@@ -18,12 +18,6 @@ interface Env {
   JWT_SECRET?: string
 }
 
-const corsHeaders = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Workspace-ID',
-}
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   const { env, params, request } = context
@@ -34,12 +28,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: corsHeaders,
+        status: 401, headers: JSON_HEADERS,
       })
     }
     if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
       return new Response(JSON.stringify({ error: 'Access denied' }), {
-        status: 403, headers: corsHeaders,
+        status: 403, headers: JSON_HEADERS,
       })
     }
     const body = await request.json() as any
@@ -47,7 +41,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     if (!body.status || !VALID_STATUSES.includes(body.status)) {
       return new Response(JSON.stringify({ error: 'Valid status required' }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: JSON_HEADERS,
       })
     }
 
@@ -57,7 +51,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     if (!existing) {
       return new Response(JSON.stringify({ error: 'Asset not found' }), {
-        status: 404, headers: corsHeaders,
+        status: 404, headers: JSON_HEADERS,
       })
     }
 
@@ -70,7 +64,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     if (!updateResult.meta.changes || updateResult.meta.changes === 0) {
       return new Response(JSON.stringify({ error: 'Asset update failed' }), {
-        status: 404, headers: corsHeaders,
+        status: 404, headers: JSON_HEADERS,
       })
     }
 
@@ -97,17 +91,17 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       createdBy: userId,
     })
 
-    return new Response(JSON.stringify({ message: 'Asset status updated' }), { headers: corsHeaders })
+    return new Response(JSON.stringify({ message: 'Asset status updated' }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[COP Asset Check-in] Error:', error)
     return new Response(JSON.stringify({ error: 'Failed to check in asset' }), {
-      status: 500, headers: corsHeaders,
+      status: 500, headers: JSON_HEADERS,
     })
   }
 }
 
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, { status: 204, headers: corsHeaders })
+  return new Response(null, { status: 204, headers: JSON_HEADERS })
 }
 
 // Reject GET requests (POST-only endpoint)

@@ -18,6 +18,7 @@
 
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { verifyCopLayerAccess } from '../../../_shared/auth-helpers'
+import { JSON_HEADERS } from '../../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -25,12 +26,6 @@ interface Env {
   JWT_SECRET?: string
 }
 
-const corsHeaders = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Workspace-ID',
-}
 
 interface BBox {
   minLon: number
@@ -74,7 +69,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   if (layerType !== 'deception' && layerType !== 'framework') {
     return new Response(JSON.stringify({
       error: `Unknown analysis layer type: '${layerType}'. Supported types: deception, framework`,
-    }), { status: 400, headers: corsHeaders })
+    }), { status: 400, headers: JSON_HEADERS })
   }
 
   // Auth: public sessions open, private sessions require owner/collaborator
@@ -84,7 +79,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   // Framework overlay is a V2 placeholder
   if (layerType === 'framework') {
     return new Response(JSON.stringify(EMPTY_FEATURE_COLLECTION), {
-      headers: corsHeaders,
+      headers: JSON_HEADERS,
     })
   }
 
@@ -175,15 +170,15 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     return new Response(JSON.stringify({
       type: 'FeatureCollection',
       features,
-    }), { headers: corsHeaders })
+    }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[COP Analysis Layer] Error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to load analysis layer',
-    }), { status: 500, headers: corsHeaders })
+    }), { status: 500, headers: JSON_HEADERS })
   }
 }
 
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, { status: 204, headers: corsHeaders })
+  return new Response(null, { status: 204, headers: JSON_HEADERS })
 }

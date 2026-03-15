@@ -6,17 +6,12 @@
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest } from '../../../_shared/auth-helpers'
+import { JSON_HEADERS } from '../../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
 }
 
-const corsHeaders = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, PUT, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Workspace-ID',
-}
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   const { env, params } = context
@@ -30,18 +25,18 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     if (!form) {
       return new Response(JSON.stringify({ error: 'Intake form not found' }), {
-        status: 404, headers: corsHeaders,
+        status: 404, headers: JSON_HEADERS,
       })
     }
 
     let form_schema = []
     try { form_schema = form.form_schema ? JSON.parse(form.form_schema) : [] } catch { form_schema = [] }
 
-    return new Response(JSON.stringify({ ...form, form_schema }), { headers: corsHeaders })
+    return new Response(JSON.stringify({ ...form, form_schema }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[COP Intake Form] Get error:', error)
     return new Response(JSON.stringify({ error: 'Failed to get intake form' }), {
-      status: 500, headers: corsHeaders,
+      status: 500, headers: JSON_HEADERS,
     })
   }
 }
@@ -55,7 +50,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: corsHeaders,
+        status: 401, headers: JSON_HEADERS,
       })
     }
     const body = await request.json() as any
@@ -66,7 +61,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
     if (!existing) {
       return new Response(JSON.stringify({ error: 'Intake form not found' }), {
-        status: 404, headers: corsHeaders,
+        status: 404, headers: JSON_HEADERS,
       })
     }
 
@@ -85,7 +80,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     if (body.require_contact !== undefined) { updates.push('require_contact = ?'); bindings.push(body.require_contact ? 1 : 0) }
 
     if (updates.length === 0) {
-      return new Response(JSON.stringify({ message: 'No changes' }), { headers: corsHeaders })
+      return new Response(JSON.stringify({ message: 'No changes' }), { headers: JSON_HEADERS })
     }
 
     updates.push('updated_at = ?')
@@ -96,15 +91,15 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       `UPDATE cop_intake_forms SET ${updates.join(', ')} WHERE id = ? AND cop_session_id = ?`
     ).bind(...bindings).run()
 
-    return new Response(JSON.stringify({ id: formId, message: 'Intake form updated' }), { headers: corsHeaders })
+    return new Response(JSON.stringify({ id: formId, message: 'Intake form updated' }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[COP Intake Form] Update error:', error)
     return new Response(JSON.stringify({ error: 'Failed to update intake form' }), {
-      status: 500, headers: corsHeaders,
+      status: 500, headers: JSON_HEADERS,
     })
   }
 }
 
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, { status: 204, headers: corsHeaders })
+  return new Response(null, { status: 204, headers: JSON_HEADERS })
 }

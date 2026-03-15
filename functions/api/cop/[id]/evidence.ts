@@ -9,17 +9,12 @@ import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-h
 import { emitCopEvent } from '../../_shared/cop-events'
 import { EVIDENCE_CREATED } from '../../_shared/cop-event-types'
 import { createTimelineEntry } from '../../_shared/timeline-helper'
+import { JSON_HEADERS } from '../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
 }
 
-const corsHeaders = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Workspace-ID',
-}
 
 async function getSessionWorkspaceId(db: D1Database, sessionId: string): Promise<string | null> {
   const row = await db.prepare(
@@ -34,11 +29,11 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
   const userId = await getUserFromRequest(context.request, context.env)
   if (!userId) {
-    return new Response(JSON.stringify({ error: 'Authentication required' }), { status: 401, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: 'Authentication required' }), { status: 401, headers: JSON_HEADERS })
   }
   const workspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId, { readOnly: true })
   if (!workspaceId) {
-    return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
   }
 
   try {
@@ -47,12 +42,12 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       SELECT * FROM evidence_items WHERE workspace_id = ? ORDER BY created_at DESC LIMIT 500
     `).bind(workspaceId).all()
 
-    return new Response(JSON.stringify({ evidence: results.results }), { headers: corsHeaders })
+    return new Response(JSON.stringify({ evidence: results.results }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[COP Evidence API] List error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to list evidence',
-    }), { status: 500, headers: corsHeaders })
+    }), { status: 500, headers: JSON_HEADERS })
   }
 }
 
@@ -64,19 +59,19 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: corsHeaders,
+        status: 401, headers: JSON_HEADERS,
       })
     }
     const workspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId)
     if (!workspaceId) {
-      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
+      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
     }
 
     const body = await request.json() as any
 
     if (!body.title?.trim()) {
       return new Response(JSON.stringify({ error: 'Title is required' }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: JSON_HEADERS,
       })
     }
 
@@ -126,16 +121,16 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     } catch { /* non-fatal */ }
 
     return new Response(JSON.stringify({ id, message: 'Evidence created' }), {
-      status: 201, headers: corsHeaders,
+      status: 201, headers: JSON_HEADERS,
     })
   } catch (error) {
     console.error('[COP Evidence API] Create error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to create evidence',
-    }), { status: 500, headers: corsHeaders })
+    }), { status: 500, headers: JSON_HEADERS })
   }
 }
 
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, { status: 204, headers: corsHeaders })
+  return new Response(null, { status: 204, headers: JSON_HEADERS })
 }

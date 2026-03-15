@@ -10,12 +10,6 @@ interface Env {
   DB: D1Database
 }
 
-const corsHeaders = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Workspace-ID',
-}
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   const { request, env, params } = context
@@ -30,7 +24,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     if (!share) {
       return new Response(JSON.stringify({ error: 'Share not found or RFI answers not allowed' }), {
-        status: 403, headers: corsHeaders,
+        status: 403, headers: JSON_HEADERS,
       })
     }
 
@@ -42,7 +36,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     ).bind(rfiId, shareSessionId).first()
     if (!rfiCheck) {
       return new Response(JSON.stringify({ error: 'RFI not found' }), {
-        status: 404, headers: corsHeaders,
+        status: 404, headers: JSON_HEADERS,
       })
     }
 
@@ -50,7 +44,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     if (!body.answer_text?.trim()) {
       return new Response(JSON.stringify({ error: 'Answer text is required' }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: JSON_HEADERS,
       })
     }
 
@@ -72,18 +66,18 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     `).bind(now, rfiId, shareSessionId).run()
 
     return new Response(JSON.stringify({ id, message: 'Answer submitted' }), {
-      status: 201, headers: corsHeaders,
+      status: 201, headers: JSON_HEADERS,
     })
   } catch (error) {
     console.error('[COP Public RFI API] Submit error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to submit answer',
-    }), { status: 500, headers: corsHeaders })
+    }), { status: 500, headers: JSON_HEADERS })
   }
 }
 
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, { status: 204, headers: corsHeaders })
+  return new Response(null, { status: 204, headers: JSON_HEADERS })
 }
 
 // Reject GET requests (POST-only endpoint)

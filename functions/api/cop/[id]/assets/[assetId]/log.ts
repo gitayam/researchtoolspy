@@ -8,6 +8,7 @@
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest, verifyCopSessionAccess } from '../../../../_shared/auth-helpers'
+import { JSON_HEADERS } from '../../../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -15,12 +16,6 @@ interface Env {
   JWT_SECRET?: string
 }
 
-const corsHeaders = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Workspace-ID',
-}
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   const { request, env, params } = context
@@ -29,11 +24,11 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
   const userId = await getUserFromRequest(request, env)
   if (!userId) {
-    return new Response(JSON.stringify({ error: 'Authentication required' }), { status: 401, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: 'Authentication required' }), { status: 401, headers: JSON_HEADERS })
   }
   const accessWorkspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId, { readOnly: true })
   if (!accessWorkspaceId) {
-    return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
   }
 
   try {
@@ -44,7 +39,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     if (!existing) {
       return new Response(JSON.stringify({ error: 'Asset not found' }), {
-        status: 404, headers: corsHeaders,
+        status: 404, headers: JSON_HEADERS,
       })
     }
 
@@ -52,15 +47,15 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       'SELECT * FROM cop_asset_log WHERE asset_id = ? AND cop_session_id = ? ORDER BY created_at DESC'
     ).bind(assetId, sessionId).all()
 
-    return new Response(JSON.stringify({ log: rows.results || [] }), { headers: corsHeaders })
+    return new Response(JSON.stringify({ log: rows.results || [] }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[COP Asset Log] Error:', error)
     return new Response(JSON.stringify({ error: 'Failed to fetch asset log' }), {
-      status: 500, headers: corsHeaders,
+      status: 500, headers: JSON_HEADERS,
     })
   }
 }
 
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, { status: 204, headers: corsHeaders })
+  return new Response(null, { status: 204, headers: JSON_HEADERS })
 }

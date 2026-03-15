@@ -14,12 +14,6 @@ interface Env {
   JWT_SECRET?: string
 }
 
-const corsHeaders = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, PUT, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Workspace-ID',
-}
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   const { request, env, params } = context
@@ -30,19 +24,19 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: corsHeaders,
+        status: 401, headers: JSON_HEADERS,
       })
     }
     if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
       return new Response(JSON.stringify({ error: 'Access denied' }), {
-        status: 403, headers: corsHeaders,
+        status: 403, headers: JSON_HEADERS,
       })
     }
     const body = await request.json() as any
 
     if (!body.answer_text?.trim()) {
       return new Response(JSON.stringify({ error: 'Answer text is required' }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: JSON_HEADERS,
       })
     }
 
@@ -52,7 +46,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     ).bind(rfiId, sessionId).first()
     if (!rfiCheck) {
       return new Response(JSON.stringify({ error: 'RFI not found' }), {
-        status: 404, headers: corsHeaders,
+        status: 404, headers: JSON_HEADERS,
       })
     }
 
@@ -96,13 +90,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
 
     return new Response(JSON.stringify({ id, message: 'Answer submitted' }), {
-      status: 201, headers: corsHeaders,
+      status: 201, headers: JSON_HEADERS,
     })
   } catch (error) {
     console.error('[COP RFI Answers API] Submit error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to submit answer',
-    }), { status: 500, headers: corsHeaders })
+    }), { status: 500, headers: JSON_HEADERS })
   }
 }
 
@@ -115,12 +109,12 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: corsHeaders,
+        status: 401, headers: JSON_HEADERS,
       })
     }
     if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
       return new Response(JSON.stringify({ error: 'Access denied' }), {
-        status: 403, headers: corsHeaders,
+        status: 403, headers: JSON_HEADERS,
       })
     }
     const body = await request.json() as any
@@ -128,7 +122,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
     if (!body.answer_id) {
       return new Response(JSON.stringify({ error: 'answer_id is required' }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: JSON_HEADERS,
       })
     }
 
@@ -138,7 +132,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     ).bind(rfiId, sessionId).first()
     if (!rfiCheck) {
       return new Response(JSON.stringify({ error: 'RFI not found' }), {
-        status: 404, headers: corsHeaders,
+        status: 404, headers: JSON_HEADERS,
       })
     }
 
@@ -162,17 +156,17 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       UPDATE cop_rfis SET status = ?, updated_at = ? WHERE id = ? AND cop_session_id = ?
     `).bind(newStatus, now, rfiId, sessionId).run()
 
-    return new Response(JSON.stringify({ message: 'Answer updated' }), { headers: corsHeaders })
+    return new Response(JSON.stringify({ message: 'Answer updated' }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[COP RFI Answers API] Accept error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to update answer',
-    }), { status: 500, headers: corsHeaders })
+    }), { status: 500, headers: JSON_HEADERS })
   }
 }
 
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, { status: 204, headers: corsHeaders })
+  return new Response(null, { status: 204, headers: JSON_HEADERS })
 }
 
 // Reject GET requests (POST-only endpoint)

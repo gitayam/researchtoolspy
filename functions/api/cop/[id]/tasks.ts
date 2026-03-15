@@ -10,18 +10,12 @@ import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-helpers'
 import { emitCopEvent } from '../../_shared/cop-events'
 import { TASK_CREATED, TASK_COMPLETED, TASK_STARTED, TASK_BLOCKED, TASK_UNBLOCKED, TASK_DELETED } from '../../_shared/cop-event-types'
-import { generatePrefixedId } from '../../_shared/api-utils'
+import { generatePrefixedId , JSON_HEADERS } from '../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
 }
 
-const corsHeaders = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Workspace-ID',
-}
 
 const VALID_STATUSES = ['todo', 'in_progress', 'done', 'blocked']
 const VALID_PRIORITIES = ['low', 'medium', 'high', 'critical']
@@ -34,11 +28,11 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
   const userId = await getUserFromRequest(request, env)
   if (!userId) {
-    return new Response(JSON.stringify({ error: 'Authentication required' }), { status: 401, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: 'Authentication required' }), { status: 401, headers: JSON_HEADERS })
   }
   const accessWorkspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId, { readOnly: true })
   if (!accessWorkspaceId) {
-    return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
   }
 
   const url = new URL(request.url)
@@ -71,12 +65,12 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     const rows = await env.DB.prepare(query).bind(...bindings).all()
 
-    return new Response(JSON.stringify({ tasks: rows.results || [] }), { headers: corsHeaders })
+    return new Response(JSON.stringify({ tasks: rows.results || [] }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[COP Tasks] List error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to list tasks',
-    }), { status: 500, headers: corsHeaders })
+    }), { status: 500, headers: JSON_HEADERS })
   }
 }
 
@@ -89,18 +83,18 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: corsHeaders,
+        status: 401, headers: JSON_HEADERS,
       })
     }
     const workspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId)
     if (!workspaceId) {
-      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
+      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
     }
     const body = await request.json() as any
 
     if (!body.title?.trim()) {
       return new Response(JSON.stringify({ error: 'Title is required' }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: JSON_HEADERS,
       })
     }
 
@@ -122,14 +116,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
       if (!parent) {
         return new Response(JSON.stringify({ error: 'Parent task not found in this session' }), {
-          status: 404, headers: corsHeaders,
+          status: 404, headers: JSON_HEADERS,
         })
       }
 
       depth = (parent.depth || 0) + 1
       if (depth > 2) {
         return new Response(JSON.stringify({ error: 'Maximum subtask depth is 2' }), {
-          status: 400, headers: corsHeaders,
+          status: 400, headers: JSON_HEADERS,
         })
       }
     }
@@ -164,13 +158,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     })
 
     return new Response(JSON.stringify({ id, message: 'Task created' }), {
-      status: 201, headers: corsHeaders,
+      status: 201, headers: JSON_HEADERS,
     })
   } catch (error) {
     console.error('[COP Tasks] Create error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to create task',
-    }), { status: 500, headers: corsHeaders })
+    }), { status: 500, headers: JSON_HEADERS })
   }
 }
 
@@ -183,19 +177,19 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: corsHeaders,
+        status: 401, headers: JSON_HEADERS,
       })
     }
     const putWorkspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId)
     if (!putWorkspaceId) {
-      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
+      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
     }
 
     const body = await request.json() as any
 
     if (!body.id) {
       return new Response(JSON.stringify({ error: 'Task id is required in body' }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: JSON_HEADERS,
       })
     }
 
@@ -206,7 +200,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
     if (!existing) {
       return new Response(JSON.stringify({ error: 'Task not found in this session' }), {
-        status: 404, headers: corsHeaders,
+        status: 404, headers: JSON_HEADERS,
       })
     }
 
@@ -225,7 +219,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
         const blocking = (unmetDeps.results as any[]).map(r => r.title).join(', ')
         return new Response(JSON.stringify({
           error: `Cannot start: blocked by unfinished dependencies: ${blocking}`,
-        }), { status: 400, headers: corsHeaders })
+        }), { status: 400, headers: JSON_HEADERS })
       }
     }
 
@@ -293,7 +287,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
     if (updates.length === 0) {
       return new Response(JSON.stringify({ error: 'No valid fields to update' }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: JSON_HEADERS,
       })
     }
 
@@ -374,12 +368,12 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       }
     }
 
-    return new Response(JSON.stringify({ id: body.id, message: 'Task updated' }), { headers: corsHeaders })
+    return new Response(JSON.stringify({ id: body.id, message: 'Task updated' }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[COP Tasks] Update error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to update task',
-    }), { status: 500, headers: corsHeaders })
+    }), { status: 500, headers: JSON_HEADERS })
   }
 }
 
@@ -394,13 +388,13 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: corsHeaders,
+        status: 401, headers: JSON_HEADERS,
       })
     }
 
     if (!taskId) {
       return new Response(JSON.stringify({ error: 'task_id query param is required' }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: JSON_HEADERS,
       })
     }
 
@@ -437,7 +431,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
 
     if (!result.meta.changes || result.meta.changes === 0) {
       return new Response(JSON.stringify({ error: 'Task not found in this session' }), {
-        status: 404, headers: corsHeaders,
+        status: 404, headers: JSON_HEADERS,
       })
     }
 
@@ -450,16 +444,16 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       createdBy: userId,
     })
 
-    return new Response(JSON.stringify({ message: 'Task deleted' }), { headers: corsHeaders })
+    return new Response(JSON.stringify({ message: 'Task deleted' }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[COP Tasks] Delete error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to delete task',
-    }), { status: 500, headers: corsHeaders })
+    }), { status: 500, headers: JSON_HEADERS })
   }
 }
 
 // OPTIONS - CORS preflight
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, { status: 204, headers: corsHeaders })
+  return new Response(null, { status: 204, headers: JSON_HEADERS })
 }

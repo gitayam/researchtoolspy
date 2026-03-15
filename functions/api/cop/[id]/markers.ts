@@ -17,18 +17,13 @@ import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-h
 import { emitCopEvent } from '../../_shared/cop-events'
 import { MARKER_CREATED, MARKER_UPDATED } from '../../_shared/cop-event-types'
 import { createTimelineEntry } from '../../_shared/timeline-helper'
+import { JSON_HEADERS } from '../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
   SESSIONS?: KVNamespace
 }
 
-const corsHeaders = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Workspace-ID',
-}
 
 // GET - List all markers for a COP session
 export const onRequestGet: PagesFunction<Env> = async (context) => {
@@ -37,11 +32,11 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
   const userId = await getUserFromRequest(context.request, context.env)
   if (!userId) {
-    return new Response(JSON.stringify({ error: 'Authentication required' }), { status: 401, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: 'Authentication required' }), { status: 401, headers: JSON_HEADERS })
   }
   const accessWorkspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId, { readOnly: true })
   if (!accessWorkspaceId) {
-    return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
   }
 
   try {
@@ -62,13 +57,13 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       }
     })
 
-    return new Response(JSON.stringify({ markers }), { headers: corsHeaders })
+    return new Response(JSON.stringify({ markers }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[COP Markers] List error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to list markers',
     }), {
-      status: 500, headers: corsHeaders,
+      status: 500, headers: JSON_HEADERS,
     })
   }
 }
@@ -82,26 +77,26 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: corsHeaders,
+        status: 401, headers: JSON_HEADERS,
       })
     }
     const workspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId)
     if (!workspaceId) {
-      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
+      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
     }
     const body = await request.json() as any
 
     if (body.lat == null || body.lon == null) {
       return new Response(JSON.stringify({ error: 'lat and lon are required' }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: JSON_HEADERS,
       })
     }
 
     if (typeof body.lat !== 'number' || body.lat < -90 || body.lat > 90) {
-      return new Response(JSON.stringify({ error: 'lat must be between -90 and 90' }), { status: 400, headers: corsHeaders })
+      return new Response(JSON.stringify({ error: 'lat must be between -90 and 90' }), { status: 400, headers: JSON_HEADERS })
     }
     if (typeof body.lon !== 'number' || body.lon < -180 || body.lon > 180) {
-      return new Response(JSON.stringify({ error: 'lon must be between -180 and 180' }), { status: 400, headers: corsHeaders })
+      return new Response(JSON.stringify({ error: 'lon must be between -180 and 180' }), { status: 400, headers: JSON_HEADERS })
     }
 
     const id = `mkr-${crypto.randomUUID().slice(0, 12)}`
@@ -176,14 +171,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     } catch (e) { console.error('[COP Markers] Timeline entry failed:', e) }
 
     return new Response(JSON.stringify({ id, uid, message: 'Marker created' }), {
-      status: 201, headers: corsHeaders,
+      status: 201, headers: JSON_HEADERS,
     })
   } catch (error) {
     console.error('[COP Markers] Create error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to create marker',
     }), {
-      status: 500, headers: corsHeaders,
+      status: 500, headers: JSON_HEADERS,
     })
   }
 }
@@ -197,18 +192,18 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: corsHeaders,
+        status: 401, headers: JSON_HEADERS,
       })
     }
     const putWorkspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId)
     if (!putWorkspaceId) {
-      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
+      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
     }
     const body = await request.json() as any
 
     if (!body.id) {
       return new Response(JSON.stringify({ error: 'id is required' }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: JSON_HEADERS,
       })
     }
 
@@ -225,7 +220,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
     if (Object.keys(allowed).length === 0) {
       return new Response(JSON.stringify({ error: 'No valid fields to update' }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: JSON_HEADERS,
       })
     }
 
@@ -238,7 +233,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
     if (!updateResult.meta.changes || updateResult.meta.changes === 0) {
       return new Response(JSON.stringify({ error: 'Marker not found in this session' }), {
-        status: 404, headers: corsHeaders,
+        status: 404, headers: JSON_HEADERS,
       })
     }
 
@@ -269,19 +264,19 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     })
 
     return new Response(JSON.stringify({ id: body.id, message: 'Marker updated' }), {
-      headers: corsHeaders,
+      headers: JSON_HEADERS,
     })
   } catch (error) {
     console.error('[COP Markers] Update error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to update marker',
     }), {
-      status: 500, headers: corsHeaders,
+      status: 500, headers: JSON_HEADERS,
     })
   }
 }
 
 // OPTIONS - CORS preflight
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, { status: 204, headers: corsHeaders })
+  return new Response(null, { status: 204, headers: JSON_HEADERS })
 }

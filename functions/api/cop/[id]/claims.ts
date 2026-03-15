@@ -8,18 +8,12 @@
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-helpers'
 import { createTimelineEntry } from '../../_shared/timeline-helper'
-import { generatePrefixedId } from '../../_shared/api-utils'
+import { generatePrefixedId , JSON_HEADERS } from '../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
 }
 
-const corsHeaders = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Workspace-ID',
-}
 
 // GET — list claims for a session
 export const onRequestGet: PagesFunction<Env> = async (context) => {
@@ -28,11 +22,11 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
   const userId = await getUserFromRequest(request, env)
   if (!userId) {
-    return new Response(JSON.stringify({ error: 'Authentication required' }), { status: 401, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: 'Authentication required' }), { status: 401, headers: JSON_HEADERS })
   }
   const accessWorkspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId, { readOnly: true })
   if (!accessWorkspaceId) {
-    return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
   }
 
   const url = new URL(request.url)
@@ -51,11 +45,11 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     const results = await env.DB.prepare(query).bind(...bindings).all()
 
-    return new Response(JSON.stringify({ claims: results.results }), { headers: corsHeaders })
+    return new Response(JSON.stringify({ claims: results.results }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[COP Claims] List error:', error)
     return new Response(JSON.stringify({ error: 'Failed to list claims' }), {
-      status: 500, headers: corsHeaders,
+      status: 500, headers: JSON_HEADERS,
     })
   }
 }
@@ -69,17 +63,17 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: corsHeaders,
+        status: 401, headers: JSON_HEADERS,
       })
     }
     if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
-      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
+      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
     }
     const body = await request.json() as any
 
     if (!Array.isArray(body.claims) || body.claims.length === 0) {
       return new Response(JSON.stringify({ error: 'claims[] is required' }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: JSON_HEADERS,
       })
     }
 
@@ -129,11 +123,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     return new Response(JSON.stringify({
       message: `${ids.length} claims saved`,
       ids,
-    }), { status: 201, headers: corsHeaders })
+    }), { status: 201, headers: JSON_HEADERS })
   } catch (error) {
     console.error('[COP Claims] Create error:', error)
     return new Response(JSON.stringify({ error: 'Failed to save claims' }), {
-      status: 500, headers: corsHeaders,
+      status: 500, headers: JSON_HEADERS,
     })
   }
 }
@@ -147,18 +141,18 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: corsHeaders,
+        status: 401, headers: JSON_HEADERS,
       })
     }
     if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
-      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
+      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
     }
     const body = await request.json() as any
     const claimId = body.claim_id
 
     if (!claimId) {
       return new Response(JSON.stringify({ error: 'claim_id is required' }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: JSON_HEADERS,
       })
     }
 
@@ -177,7 +171,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
       if (!claim) {
         return new Response(JSON.stringify({ error: 'Claim not found' }), {
-          status: 404, headers: corsHeaders,
+          status: 404, headers: JSON_HEADERS,
         })
       }
 
@@ -216,14 +210,14 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       return new Response(JSON.stringify({
         message: 'Claim verified and promoted to evidence',
         evidence_item_id: evidenceId,
-      }), { headers: corsHeaders })
+      }), { headers: JSON_HEADERS })
     }
 
     // Simple status update
     const validStatuses = ['unverified', 'verified', 'disputed', 'false']
     if (body.status && !validStatuses.includes(body.status)) {
       return new Response(JSON.stringify({ error: `status must be one of: ${validStatuses.join(', ')}` }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: JSON_HEADERS,
       })
     }
 
@@ -234,7 +228,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
     if (!updateResult.meta.changes || updateResult.meta.changes === 0) {
       return new Response(JSON.stringify({ error: 'Claim not found in this session' }), {
-        status: 404, headers: corsHeaders,
+        status: 404, headers: JSON_HEADERS,
       })
     }
 
@@ -257,16 +251,16 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       } catch (e) { console.error('[COP Claims] Timeline entry failed:', e) }
     }
 
-    return new Response(JSON.stringify({ message: 'Claim updated' }), { headers: corsHeaders })
+    return new Response(JSON.stringify({ message: 'Claim updated' }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[COP Claims] Update error:', error)
     return new Response(JSON.stringify({ error: 'Failed to update claim' }), {
-      status: 500, headers: corsHeaders,
+      status: 500, headers: JSON_HEADERS,
     })
   }
 }
 
 // OPTIONS — CORS preflight
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, { status: 204, headers: corsHeaders })
+  return new Response(null, { status: 204, headers: JSON_HEADERS })
 }

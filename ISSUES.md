@@ -1,7 +1,20 @@
 # ResearchTools.net — Issue Tracker
 
 **Last updated:** 2026-03-15
-**Current tag:** v0.16.9-json-safety
+**Current tag:** v0.17.0-cors-cleanup
+
+---
+
+## Fixed (v0.17.0)
+
+### P2 — 60 Endpoint Files Had Redundant Local corsHeaders Definitions
+- [x] 51 COP endpoint files — removed local `const corsHeaders = {...}` and replaced all usages with shared `JSON_HEADERS`
+- [x] 7 cross-table endpoint files — same migration
+- [x] 2 analysis endpoints (`hamilton-rule.ts`, `equilibrium-analysis.ts`) — removed `corsHeaders = JSON_HEADERS` alias
+- [x] All 60 files now import `JSON_HEADERS` from `_shared/api-utils` instead of declaring their own headers
+- [x] Only `_middleware.ts` retains its own corsHeaders (intentional — it's the global CORS handler)
+- [x] ~600 lines of duplicated CORS definitions removed across 60 files
+- **Root cause:** COP and cross-table endpoints were built before `_shared/api-utils.ts` existed, each copy-pasting their own corsHeaders constant. The global `_middleware.ts` already adds CORS to all responses, so these were purely redundant.
 
 ---
 
@@ -474,7 +487,7 @@
 - [x] ~~generateId() in 21 COP endpoints~~ — deduplicated to shared `generatePrefixedId()` in v0.14.8
 - [x] ~~CORS headers inconsistent across 75 endpoints~~ — migrated to shared `CORS_HEADERS`/`JSON_HEADERS` in v0.14.9
 - [x] ~~~295 inline error responses with incomplete CORS~~ — 61 more files migrated in v0.16.0 (down from ~120 to ~65 remaining, mostly COP endpoints + 7 cross-table sub-endpoints). **Note:** `_middleware.ts` adds CORS to ALL responses, so remaining inline CORS is purely cosmetic (P3)
-- [ ] **~56 COP endpoint files + 7 cross-table sub-endpoints** still use local corsHeaders — cosmetic only (middleware covers CORS)
+- [x] ~~56 COP endpoint files + 7 cross-table sub-endpoints~~ — migrated to shared `JSON_HEADERS` in v0.17.0
 - [ ] **Dual API surface** — `/api/workspaces/` (team JWT/hash) and `/api/settings/workspaces` (personal `requireAuth`) should be consolidated
 
 ### P2 — Data Integrity

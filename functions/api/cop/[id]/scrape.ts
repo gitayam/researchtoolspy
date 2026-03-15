@@ -6,6 +6,7 @@
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-helpers'
+import { JSON_HEADERS } from '../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -14,12 +15,6 @@ interface Env {
   JWT_SECRET?: string
 }
 
-const corsHeaders = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Workspace-ID',
-}
 
 const APIFY_BASE = 'https://api.apify.com/v2'
 
@@ -47,24 +42,24 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: corsHeaders,
+        status: 401, headers: JSON_HEADERS,
       })
     }
     if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
-      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
+      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
     }
 
     const apiKey = env.APIFY_API_KEY
     if (!apiKey) {
       return new Response(JSON.stringify({ error: 'APIFY_API_KEY not configured' }), {
-        status: 503, headers: corsHeaders,
+        status: 503, headers: JSON_HEADERS,
       })
     }
 
     const workspaceId = await getSessionWorkspaceId(env.DB, sessionId)
     if (!workspaceId) {
       return new Response(JSON.stringify({ error: 'COP session not found' }), {
-        status: 404, headers: corsHeaders,
+        status: 404, headers: JSON_HEADERS,
       })
     }
 
@@ -75,7 +70,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!actorId) {
       return new Response(JSON.stringify({
         error: `Unknown scraper type: ${scraperType}. Supported: ${Object.keys(ACTORS).join(', ')}`,
-      }), { status: 400, headers: corsHeaders })
+      }), { status: 400, headers: JSON_HEADERS })
     }
 
     // Build actor input based on type
@@ -85,7 +80,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       // Tweet scraper input
       if (!body.query && !body.urls) {
         return new Response(JSON.stringify({ error: 'query or urls required for twitter scraper' }), {
-          status: 400, headers: corsHeaders,
+          status: 400, headers: JSON_HEADERS,
         })
       }
       actorInput = {
@@ -98,7 +93,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       // TikTok scraper input
       if (!body.query && !body.urls) {
         return new Response(JSON.stringify({ error: 'query or urls required for tiktok scraper' }), {
-          status: 400, headers: corsHeaders,
+          status: 400, headers: JSON_HEADERS,
         })
       }
       actorInput = {
@@ -138,7 +133,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       return new Response(JSON.stringify({
         error: 'Failed to start scraper',
         detail: apifyError,
-      }), { status: 502, headers: corsHeaders })
+      }), { status: 502, headers: JSON_HEADERS })
     }
 
     const runData = await runRes.json() as any
@@ -159,7 +154,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         items_found: items.length,
         evidence_created: inserted,
         message: `Scraped ${items.length} items, created ${inserted} evidence entries`,
-      }), { headers: corsHeaders })
+      }), { headers: JSON_HEADERS })
     }
 
     // Async run — return run ID for polling
@@ -167,12 +162,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       run_id: runId,
       status: runStatus.toLowerCase(),
       message: `Scraper started. Poll GET /api/cop/${sessionId}/scrape?run_id=${runId} for results.`,
-    }), { status: 202, headers: corsHeaders })
+    }), { status: 202, headers: JSON_HEADERS })
 
   } catch (error) {
     console.error('[COP Scrape] Error:', error)
     return new Response(JSON.stringify({ error: 'Scrape failed' }), {
-      status: 500, headers: corsHeaders,
+      status: 500, headers: JSON_HEADERS,
     })
   }
 }
@@ -186,7 +181,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
   if (!runId) {
     return new Response(JSON.stringify({ error: 'run_id query param required' }), {
-      status: 400, headers: corsHeaders,
+      status: 400, headers: JSON_HEADERS,
     })
   }
 
@@ -194,24 +189,24 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: corsHeaders,
+        status: 401, headers: JSON_HEADERS,
       })
     }
     if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
-      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
+      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
     }
 
     const apiKey = env.APIFY_API_KEY
     if (!apiKey) {
       return new Response(JSON.stringify({ error: 'APIFY_API_KEY not configured' }), {
-        status: 503, headers: corsHeaders,
+        status: 503, headers: JSON_HEADERS,
       })
     }
 
     const workspaceId = await getSessionWorkspaceId(env.DB, sessionId)
     if (!workspaceId) {
       return new Response(JSON.stringify({ error: 'COP session not found' }), {
-        status: 404, headers: corsHeaders,
+        status: 404, headers: JSON_HEADERS,
       })
     }
 
@@ -222,7 +217,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     if (!statusRes.ok) {
       return new Response(JSON.stringify({ error: 'Failed to check run status' }), {
-        status: 502, headers: corsHeaders,
+        status: 502, headers: JSON_HEADERS,
       })
     }
 
@@ -246,7 +241,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
           status: 'completed',
           items_found: items.length,
           evidence_created: inserted,
-        }), { headers: corsHeaders })
+        }), { headers: JSON_HEADERS })
       }
 
       return new Response(JSON.stringify({
@@ -254,19 +249,19 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         status: 'completed',
         items_found: items.length,
         items: items.slice(0, 10), // Preview first 10
-      }), { headers: corsHeaders })
+      }), { headers: JSON_HEADERS })
     }
 
     return new Response(JSON.stringify({
       run_id: runId,
       status: runStatus.toLowerCase(),
       started_at: run.startedAt,
-    }), { headers: corsHeaders })
+    }), { headers: JSON_HEADERS })
 
   } catch (error) {
     console.error('[COP Scrape] Status check error:', error)
     return new Response(JSON.stringify({ error: 'Status check failed' }), {
-      status: 500, headers: corsHeaders,
+      status: 500, headers: JSON_HEADERS,
     })
   }
 }
@@ -358,5 +353,5 @@ async function batchInsertEvidence(
 }
 
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, { status: 204, headers: corsHeaders })
+  return new Response(null, { status: 204, headers: JSON_HEADERS })
 }

@@ -8,7 +8,7 @@
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-helpers'
-import { generatePrefixedId } from '../../_shared/api-utils'
+import { generatePrefixedId , JSON_HEADERS } from '../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -16,12 +16,6 @@ interface Env {
   JWT_SECRET?: string
 }
 
-const corsHeaders = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Workspace-ID',
-}
 
 /**
  * Validate tasks_json structure.
@@ -69,11 +63,11 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
   const userId = await getUserFromRequest(request, env)
   if (!userId) {
-    return new Response(JSON.stringify({ error: 'Authentication required' }), { status: 401, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: 'Authentication required' }), { status: 401, headers: JSON_HEADERS })
   }
   const accessWorkspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId, { readOnly: true })
   if (!accessWorkspaceId) {
-    return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
   }
 
   try {
@@ -88,11 +82,11 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       'SELECT * FROM cop_task_templates WHERE workspace_id = ? ORDER BY updated_at DESC'
     ).bind(workspaceId).all()
 
-    return new Response(JSON.stringify({ templates: results.results || [] }), { headers: corsHeaders })
+    return new Response(JSON.stringify({ templates: results.results || [] }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[COP Task Templates] List error:', error)
     return new Response(JSON.stringify({ error: 'Failed to list templates' }), {
-      status: 500, headers: corsHeaders,
+      status: 500, headers: JSON_HEADERS,
     })
   }
 }
@@ -106,17 +100,17 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: corsHeaders,
+        status: 401, headers: JSON_HEADERS,
       })
     }
     if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
-      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
+      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
     }
     const body = await request.json() as any
 
     if (!body.name?.trim()) {
       return new Response(JSON.stringify({ error: 'Template name is required' }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: JSON_HEADERS,
       })
     }
 
@@ -126,7 +120,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         tasksJson = typeof body.tasks_json === 'string' ? JSON.parse(body.tasks_json) : body.tasks_json
       } catch {
         return new Response(JSON.stringify({ error: 'Invalid tasks_json format' }), {
-          status: 400, headers: corsHeaders,
+          status: 400, headers: JSON_HEADERS,
         })
       }
     }
@@ -134,7 +128,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const validationError = validateTasksJson(tasksJson)
     if (validationError) {
       return new Response(JSON.stringify({ error: validationError }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: JSON_HEADERS,
       })
     }
 
@@ -159,12 +153,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     ).run()
 
     return new Response(JSON.stringify({ id, message: 'Template created' }), {
-      status: 201, headers: corsHeaders,
+      status: 201, headers: JSON_HEADERS,
     })
   } catch (error) {
     console.error('[COP Task Templates] Create error:', error)
     return new Response(JSON.stringify({ error: 'Failed to create template' }), {
-      status: 500, headers: corsHeaders,
+      status: 500, headers: JSON_HEADERS,
     })
   }
 }
@@ -178,17 +172,17 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: corsHeaders,
+        status: 401, headers: JSON_HEADERS,
       })
     }
     if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
-      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
+      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
     }
     const body = await request.json() as any
 
     if (!body.id) {
       return new Response(JSON.stringify({ error: 'Template id is required in body' }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: JSON_HEADERS,
       })
     }
 
@@ -213,14 +207,14 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
         tasksJson = typeof body.tasks_json === 'string' ? JSON.parse(body.tasks_json) : body.tasks_json
       } catch {
         return new Response(JSON.stringify({ error: 'Invalid tasks_json format' }), {
-          status: 400, headers: corsHeaders,
+          status: 400, headers: JSON_HEADERS,
         })
       }
 
       const validationError = validateTasksJson(tasksJson)
       if (validationError) {
         return new Response(JSON.stringify({ error: validationError }), {
-          status: 400, headers: corsHeaders,
+          status: 400, headers: JSON_HEADERS,
         })
       }
 
@@ -230,7 +224,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
     if (updates.length === 0) {
       return new Response(JSON.stringify({ error: 'No valid fields to update' }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: JSON_HEADERS,
       })
     }
 
@@ -249,11 +243,11 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       `UPDATE cop_task_templates SET ${updates.join(', ')} WHERE id = ? AND workspace_id = ?`
     ).bind(...bindings).run()
 
-    return new Response(JSON.stringify({ id: body.id, message: 'Template updated' }), { headers: corsHeaders })
+    return new Response(JSON.stringify({ id: body.id, message: 'Template updated' }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[COP Task Templates] Update error:', error)
     return new Response(JSON.stringify({ error: 'Failed to update template' }), {
-      status: 500, headers: corsHeaders,
+      status: 500, headers: JSON_HEADERS,
     })
   }
 }
@@ -267,17 +261,17 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: corsHeaders,
+        status: 401, headers: JSON_HEADERS,
       })
     }
     if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
-      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
+      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
     }
     const body = await request.json() as any
 
     if (!body.id) {
       return new Response(JSON.stringify({ error: 'Template id is required' }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: JSON_HEADERS,
       })
     }
 
@@ -293,20 +287,20 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
 
     if (!result.meta.changes || result.meta.changes === 0) {
       return new Response(JSON.stringify({ error: 'Template not found' }), {
-        status: 404, headers: corsHeaders,
+        status: 404, headers: JSON_HEADERS,
       })
     }
 
-    return new Response(JSON.stringify({ message: 'Template deleted' }), { headers: corsHeaders })
+    return new Response(JSON.stringify({ message: 'Template deleted' }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[COP Task Templates] Delete error:', error)
     return new Response(JSON.stringify({ error: 'Failed to delete template' }), {
-      status: 500, headers: corsHeaders,
+      status: 500, headers: JSON_HEADERS,
     })
   }
 }
 
 // OPTIONS - CORS preflight
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, { status: 204, headers: corsHeaders })
+  return new Response(null, { status: 204, headers: JSON_HEADERS })
 }

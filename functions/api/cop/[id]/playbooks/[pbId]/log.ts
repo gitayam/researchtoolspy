@@ -13,6 +13,7 @@
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest, verifyCopSessionAccess } from '../../../../_shared/auth-helpers'
+import { JSON_HEADERS } from '../../../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -20,12 +21,6 @@ interface Env {
   JWT_SECRET?: string
 }
 
-const corsHeaders = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Workspace-ID',
-}
 
 function parseActionsTaken(row: any): any {
   if (!row) return row
@@ -47,11 +42,11 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
   const userId = await getUserFromRequest(request, env)
   if (!userId) {
-    return new Response(JSON.stringify({ error: 'Authentication required' }), { status: 401, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: 'Authentication required' }), { status: 401, headers: JSON_HEADERS })
   }
   const accessWorkspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId, { readOnly: true })
   if (!accessWorkspaceId) {
-    return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
   }
 
   const limit = Math.min(Number(url.searchParams.get('limit') || 50), 200)
@@ -66,7 +61,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     if (!playbook) {
       return new Response(JSON.stringify({ error: 'Playbook not found' }), {
-        status: 404, headers: corsHeaders,
+        status: 404, headers: JSON_HEADERS,
       })
     }
 
@@ -89,15 +84,15 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     const rows = await env.DB.prepare(query).bind(...bindings).all()
     const entries = (rows.results || []).map(parseActionsTaken)
 
-    return new Response(JSON.stringify({ log: entries, total, limit, offset }), { headers: corsHeaders })
+    return new Response(JSON.stringify({ log: entries, total, limit, offset }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[COP Playbook Log] Error:', error)
     return new Response(JSON.stringify({ error: 'Failed to fetch execution log' }), {
-      status: 500, headers: corsHeaders,
+      status: 500, headers: JSON_HEADERS,
     })
   }
 }
 
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, { status: 204, headers: corsHeaders })
+  return new Response(null, { status: 204, headers: JSON_HEADERS })
 }

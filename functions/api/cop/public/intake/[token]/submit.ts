@@ -7,12 +7,6 @@ import { emitCopEvent } from '../../../../_shared/cop-events'
 import { INGEST_SUBMISSION_RECEIVED } from '../../../../_shared/cop-event-types'
 import { generatePrefixedId, JSON_HEADERS } from '../../../../_shared/api-utils'
 
-const corsHeaders = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Workspace-ID',
-}
 
 interface Env {
   DB: D1Database
@@ -29,13 +23,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     if (!form) {
       return new Response(JSON.stringify({ error: 'Form not found' }), {
-        status: 404, headers: corsHeaders,
+        status: 404, headers: JSON_HEADERS,
       })
     }
 
     if (form.status !== 'active') {
       return new Response(JSON.stringify({ error: 'This form is not currently accepting submissions' }), {
-        status: 403, headers: corsHeaders,
+        status: 403, headers: JSON_HEADERS,
       })
     }
 
@@ -44,14 +38,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     // Validate required location
     if (form.require_location === 1 && (body.lat == null || body.lon == null)) {
       return new Response(JSON.stringify({ error: 'Location is required' }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: JSON_HEADERS,
       })
     }
 
     // Validate required contact
     if (form.require_contact === 1 && !body.submitter_contact?.trim()) {
       return new Response(JSON.stringify({ error: 'Contact information is required' }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: JSON_HEADERS,
       })
     }
 
@@ -63,7 +57,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     for (const field of formSchema) {
       if (field.required && !String(formData[field.name] ?? '').trim()) {
         return new Response(JSON.stringify({ error: `${field.label} is required` }), {
-          status: 400, headers: corsHeaders,
+          status: 400, headers: JSON_HEADERS,
         })
       }
     }
@@ -101,18 +95,18 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     })
 
     return new Response(JSON.stringify({ id, message: 'Submission received. Thank you.' }), {
-      status: 201, headers: corsHeaders,
+      status: 201, headers: JSON_HEADERS,
     })
   } catch (error) {
     console.error('[COP Public Intake] Submit error:', error)
     return new Response(JSON.stringify({ error: 'Failed to submit' }), {
-      status: 500, headers: corsHeaders,
+      status: 500, headers: JSON_HEADERS,
     })
   }
 }
 
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, { status: 204, headers: corsHeaders })
+  return new Response(null, { status: 204, headers: JSON_HEADERS })
 }
 
 // Reject GET requests (POST-only endpoint)

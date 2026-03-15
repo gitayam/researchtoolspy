@@ -9,7 +9,7 @@ import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-h
 import { emitCopEvent } from '../../_shared/cop-events'
 import { ALERT_DISMISSED, ALERT_ACTIONED, ALERT_LINKED } from '../../_shared/cop-event-types'
 import { createTimelineEntry } from '../../_shared/timeline-helper'
-import { generatePrefixedId } from '../../_shared/api-utils'
+import { generatePrefixedId , JSON_HEADERS } from '../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -17,12 +17,6 @@ interface Env {
   REDSIGHT_API_KEY?: string
 }
 
-const corsHeaders = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Workspace-ID',
-}
 
 interface RedsightIncident {
   incident_id: string
@@ -123,13 +117,13 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: corsHeaders,
+        status: 401, headers: JSON_HEADERS,
       })
     }
     const accessWorkspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId, { readOnly: true })
     if (!accessWorkspaceId) {
       return new Response(JSON.stringify({ error: 'Access denied' }), {
-        status: 403, headers: corsHeaders,
+        status: 403, headers: JSON_HEADERS,
       })
     }
 
@@ -142,7 +136,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     if (!session) {
       return new Response(JSON.stringify({ error: 'COP session not found' }), {
-        status: 404, headers: corsHeaders,
+        status: 404, headers: JSON_HEADERS,
       })
     }
 
@@ -151,7 +145,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         alerts: [],
         enabled: false,
         region: session.global_alerts_region,
-      }), { headers: corsHeaders })
+      }), { headers: JSON_HEADERS })
     }
 
     // 2. Fetch ALL local alert state from D1 (always load full state for merge)
@@ -248,11 +242,11 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       enabled: true,
       region: session.global_alerts_region,
       api_available: apiAvailable,
-    }), { headers: corsHeaders })
+    }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[COP Alerts] GET error:', error)
     return new Response(JSON.stringify({ error: 'Failed to fetch alerts' }), {
-      status: 500, headers: corsHeaders,
+      status: 500, headers: JSON_HEADERS,
     })
   }
 }
@@ -265,7 +259,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const userId = await getUserFromRequest(request, env)
   if (!userId) {
     return new Response(JSON.stringify({ error: 'Authentication required' }), {
-      status: 401, headers: corsHeaders,
+      status: 401, headers: JSON_HEADERS,
     })
   }
 
@@ -276,12 +270,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!body.action || !validActions.includes(body.action)) {
       return new Response(JSON.stringify({
         error: `action is required and must be one of: ${validActions.join(', ')}`,
-      }), { status: 400, headers: corsHeaders })
+      }), { status: 400, headers: JSON_HEADERS })
     }
 
     if (!body.incident_id) {
       return new Response(JSON.stringify({ error: 'incident_id is required' }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: JSON_HEADERS,
       })
     }
 
@@ -292,7 +286,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     if (!session) {
       return new Response(JSON.stringify({ error: 'COP session not found' }), {
-        status: 404, headers: corsHeaders,
+        status: 404, headers: JSON_HEADERS,
       })
     }
 
@@ -423,11 +417,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       message: `Alert ${body.action} successful`,
       incident_id: body.incident_id,
       status: newStatus,
-    }), { status: 200, headers: corsHeaders })
+    }), { status: 200, headers: JSON_HEADERS })
   } catch (error) {
     console.error('[COP Alerts] POST error:', error)
     return new Response(JSON.stringify({ error: 'Failed to action alert' }), {
-      status: 500, headers: corsHeaders,
+      status: 500, headers: JSON_HEADERS,
     })
   }
 }

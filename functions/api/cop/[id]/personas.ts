@@ -10,18 +10,12 @@ import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-h
 import { emitCopEvent } from '../../_shared/cop-events'
 import { PERSONA_CREATED, PERSONA_LINKED } from '../../_shared/cop-event-types'
 import { createTimelineEntry } from '../../_shared/timeline-helper'
-import { generatePrefixedId } from '../../_shared/api-utils'
+import { generatePrefixedId , JSON_HEADERS } from '../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
 }
 
-const corsHeaders = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Workspace-ID',
-}
 
 function generateLinkId(): string {
   return `pln-${crypto.randomUUID().slice(0, 12)}`
@@ -39,13 +33,13 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: corsHeaders,
+        status: 401, headers: JSON_HEADERS,
       })
     }
     const workspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId, { readOnly: true })
     if (!workspaceId) {
       return new Response(JSON.stringify({ error: 'Access denied' }), {
-        status: 403, headers: corsHeaders,
+        status: 403, headers: JSON_HEADERS,
       })
     }
 
@@ -82,12 +76,12 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       links: linksByPersona[p.id] || [],
     }))
 
-    return new Response(JSON.stringify({ personas: enriched }), { headers: corsHeaders })
+    return new Response(JSON.stringify({ personas: enriched }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[COP Personas] List error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to list personas',
-    }), { status: 500, headers: corsHeaders })
+    }), { status: 500, headers: JSON_HEADERS })
   }
 }
 
@@ -101,13 +95,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: corsHeaders,
+        status: 401, headers: JSON_HEADERS,
       })
     }
     const workspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId)
     if (!workspaceId) {
       return new Response(JSON.stringify({ error: 'Access denied' }), {
-        status: 403, headers: corsHeaders,
+        status: 403, headers: JSON_HEADERS,
       })
     }
     const body = await request.json() as any
@@ -116,7 +110,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (action === 'link') {
       if (!body.persona_a_id || !body.persona_b_id) {
         return new Response(JSON.stringify({ error: 'persona_a_id and persona_b_id are required' }), {
-          status: 400, headers: corsHeaders,
+          status: 400, headers: JSON_HEADERS,
         })
       }
 
@@ -126,7 +120,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       `).bind(body.persona_a_id, body.persona_b_id, sessionId).all()
       if ((check.results?.length ?? 0) < 2) {
         return new Response(JSON.stringify({ error: 'One or both personas do not belong to this session' }), {
-          status: 403, headers: corsHeaders,
+          status: 403, headers: JSON_HEADERS,
         })
       }
 
@@ -150,7 +144,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
 
       return new Response(JSON.stringify({ id, message: 'Persona link created' }), {
-        status: 201, headers: corsHeaders,
+        status: 201, headers: JSON_HEADERS,
       })
     }
 
@@ -223,7 +217,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         message: `${created.length} personas created, ${skipped.length} duplicates skipped`,
         ids: created,
         skipped,
-      }), { status: 201, headers: corsHeaders })
+      }), { status: 201, headers: JSON_HEADERS })
     }
 
     // Handle persona update
@@ -241,7 +235,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
       if (updates.length === 0) {
         return new Response(JSON.stringify({ error: 'No valid fields to update' }), {
-          status: 400, headers: corsHeaders,
+          status: 400, headers: JSON_HEADERS,
         })
       }
 
@@ -256,23 +250,23 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
       if (!updateResult.meta.changes || updateResult.meta.changes === 0) {
         return new Response(JSON.stringify({ error: 'Persona not found in this session' }), {
-          status: 404, headers: corsHeaders,
+          status: 404, headers: JSON_HEADERS,
         })
       }
 
-      return new Response(JSON.stringify({ id: body.id, message: 'Persona updated' }), { headers: corsHeaders })
+      return new Response(JSON.stringify({ id: body.id, message: 'Persona updated' }), { headers: JSON_HEADERS })
     }
 
     // Handle persona creation
     if (!body.display_name?.trim()) {
       return new Response(JSON.stringify({ error: 'display_name is required' }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: JSON_HEADERS,
       })
     }
 
     if (!body.platform || !VALID_PLATFORMS.includes(body.platform)) {
       return new Response(JSON.stringify({ error: `platform must be one of: ${VALID_PLATFORMS.join(', ')}` }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: JSON_HEADERS,
       })
     }
 
@@ -300,16 +294,16 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     })
 
     return new Response(JSON.stringify({ id, message: 'Persona created' }), {
-      status: 201, headers: corsHeaders,
+      status: 201, headers: JSON_HEADERS,
     })
   } catch (error) {
     console.error('[COP Personas] Create/Update error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to create/update persona',
-    }), { status: 500, headers: corsHeaders })
+    }), { status: 500, headers: JSON_HEADERS })
   }
 }
 
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, { status: 204, headers: corsHeaders })
+  return new Response(null, { status: 204, headers: JSON_HEADERS })
 }

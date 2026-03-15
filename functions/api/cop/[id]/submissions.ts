@@ -8,6 +8,7 @@ import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-helpers'
 import { emitCopEvent } from '../../_shared/cop-events'
 import { INGEST_SUBMISSION_TRIAGED, INGEST_SUBMISSION_REJECTED } from '../../_shared/cop-event-types'
+import { JSON_HEADERS } from '../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -15,12 +16,6 @@ interface Env {
   JWT_SECRET?: string
 }
 
-const corsHeaders = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, PUT, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Workspace-ID',
-}
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   const { env, params, request } = context
@@ -28,11 +23,11 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
   const userId = await getUserFromRequest(request, env)
   if (!userId) {
-    return new Response(JSON.stringify({ error: 'Authentication required' }), { status: 401, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: 'Authentication required' }), { status: 401, headers: JSON_HEADERS })
   }
   const accessWorkspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId, { readOnly: true })
   if (!accessWorkspaceId) {
-    return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
   }
 
   try {
@@ -56,11 +51,11 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       return { ...row, form_data }
     })
 
-    return new Response(JSON.stringify({ submissions }), { headers: corsHeaders })
+    return new Response(JSON.stringify({ submissions }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[COP Submissions] List error:', error)
     return new Response(JSON.stringify({ error: 'Failed to list submissions' }), {
-      status: 500, headers: corsHeaders,
+      status: 500, headers: JSON_HEADERS,
     })
   }
 }
@@ -72,11 +67,11 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
   const userId = await getUserFromRequest(request, env)
   if (!userId) {
     return new Response(JSON.stringify({ error: 'Authentication required' }), {
-      status: 401, headers: corsHeaders,
+      status: 401, headers: JSON_HEADERS,
     })
   }
   if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
-    return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
   }
 
   try {
@@ -85,7 +80,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
     if (!subId) {
       return new Response(JSON.stringify({ error: 'Submission ID required' }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: JSON_HEADERS,
       })
     }
 
@@ -95,7 +90,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
     if (!existing) {
       return new Response(JSON.stringify({ error: 'Submission not found' }), {
-        status: 404, headers: corsHeaders,
+        status: 404, headers: JSON_HEADERS,
       })
     }
 
@@ -118,7 +113,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     }
 
     if (updates.length === 0) {
-      return new Response(JSON.stringify({ message: 'No changes' }), { headers: corsHeaders })
+      return new Response(JSON.stringify({ message: 'No changes' }), { headers: JSON_HEADERS })
     }
 
     bindings.push(subId, sessionId)
@@ -152,15 +147,15 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       })
     }
 
-    return new Response(JSON.stringify({ id: subId, message: 'Submission updated' }), { headers: corsHeaders })
+    return new Response(JSON.stringify({ id: subId, message: 'Submission updated' }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[COP Submissions] Triage error:', error)
     return new Response(JSON.stringify({ error: 'Failed to triage submission' }), {
-      status: 500, headers: corsHeaders,
+      status: 500, headers: JSON_HEADERS,
     })
   }
 }
 
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, { status: 204, headers: corsHeaders })
+  return new Response(null, { status: 204, headers: JSON_HEADERS })
 }

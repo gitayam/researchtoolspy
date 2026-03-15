@@ -7,6 +7,7 @@
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest, verifyCopSessionAccess } from '../../../_shared/auth-helpers'
+import { JSON_HEADERS } from '../../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -14,12 +15,6 @@ interface Env {
   JWT_SECRET?: string
 }
 
-const corsHeaders = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Workspace-ID',
-}
 
 const VALID_STATUSES = ['active', 'paused', 'draft']
 
@@ -39,11 +34,11 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
   const userId = await getUserFromRequest(request, env)
   if (!userId) {
-    return new Response(JSON.stringify({ error: 'Authentication required' }), { status: 401, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: 'Authentication required' }), { status: 401, headers: JSON_HEADERS })
   }
   const accessWorkspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId, { readOnly: true })
   if (!accessWorkspaceId) {
-    return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
   }
 
   try {
@@ -53,7 +48,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     if (!playbook) {
       return new Response(JSON.stringify({ error: 'Playbook not found' }), {
-        status: 404, headers: corsHeaders,
+        status: 404, headers: JSON_HEADERS,
       })
     }
 
@@ -70,11 +65,11 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       actions: parseJsonField(r, 'actions', []),
     }))
 
-    return new Response(JSON.stringify({ playbook, rules: parsedRules }), { headers: corsHeaders })
+    return new Response(JSON.stringify({ playbook, rules: parsedRules }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[COP Playbook] Get error:', error)
     return new Response(JSON.stringify({ error: 'Failed to get playbook' }), {
-      status: 500, headers: corsHeaders,
+      status: 500, headers: JSON_HEADERS,
     })
   }
 }
@@ -88,11 +83,11 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: corsHeaders,
+        status: 401, headers: JSON_HEADERS,
       })
     }
     if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
-      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
+      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
     }
     const body = await request.json() as any
 
@@ -102,7 +97,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
     if (!existing) {
       return new Response(JSON.stringify({ error: 'Playbook not found' }), {
-        status: 404, headers: corsHeaders,
+        status: 404, headers: JSON_HEADERS,
       })
     }
 
@@ -125,7 +120,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
     if (updates.length === 0) {
       return new Response(JSON.stringify({ error: 'No valid fields to update' }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: JSON_HEADERS,
       })
     }
 
@@ -137,11 +132,11 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       `UPDATE cop_playbooks SET ${updates.join(', ')} WHERE id = ? AND cop_session_id = ?`
     ).bind(...bindings).run()
 
-    return new Response(JSON.stringify({ id: pbId, message: 'Playbook updated' }), { headers: corsHeaders })
+    return new Response(JSON.stringify({ id: pbId, message: 'Playbook updated' }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[COP Playbook] Update error:', error)
     return new Response(JSON.stringify({ error: 'Failed to update playbook' }), {
-      status: 500, headers: corsHeaders,
+      status: 500, headers: JSON_HEADERS,
     })
   }
 }
@@ -155,11 +150,11 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: corsHeaders,
+        status: 401, headers: JSON_HEADERS,
       })
     }
     if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
-      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
+      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
     }
     const existing = await env.DB.prepare(
       'SELECT id FROM cop_playbooks WHERE id = ? AND cop_session_id = ?'
@@ -167,7 +162,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
 
     if (!existing) {
       return new Response(JSON.stringify({ error: 'Playbook not found' }), {
-        status: 404, headers: corsHeaders,
+        status: 404, headers: JSON_HEADERS,
       })
     }
 
@@ -176,15 +171,15 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     await env.DB.prepare('DELETE FROM cop_playbook_rules WHERE playbook_id = ?').bind(pbId).run()
     await env.DB.prepare('DELETE FROM cop_playbooks WHERE id = ? AND cop_session_id = ?').bind(pbId, sessionId).run()
 
-    return new Response(JSON.stringify({ message: 'Playbook deleted' }), { headers: corsHeaders })
+    return new Response(JSON.stringify({ message: 'Playbook deleted' }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[COP Playbook] Delete error:', error)
     return new Response(JSON.stringify({ error: 'Failed to delete playbook' }), {
-      status: 500, headers: corsHeaders,
+      status: 500, headers: JSON_HEADERS,
     })
   }
 }
 
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, { status: 204, headers: corsHeaders })
+  return new Response(null, { status: 204, headers: JSON_HEADERS })
 }

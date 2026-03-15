@@ -8,18 +8,13 @@
 
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest } from '../../_shared/auth-helpers'
+import { JSON_HEADERS } from '../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
   SESSIONS?: KVNamespace
 }
 
-const corsHeaders = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Workspace-ID'
-}
 
 const jsonFields = ['active_layers', 'layer_config', 'linked_frameworks', 'key_questions', 'event_facts', 'content_analyses'] as const
 
@@ -58,18 +53,18 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     if (!result) {
       return new Response(JSON.stringify({ error: 'COP session not found' }), {
         status: 404,
-        headers: corsHeaders
+        headers: JSON_HEADERS
       })
     }
 
     const session = parseJsonFields(result)
 
-    return new Response(JSON.stringify({ session }), { headers: corsHeaders })
+    return new Response(JSON.stringify({ session }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[COP Sessions API] Get error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to get COP session',
-    }), { status: 500, headers: corsHeaders })
+    }), { status: 500, headers: JSON_HEADERS })
   }
 }
 
@@ -80,7 +75,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
   try {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
-      return new Response(JSON.stringify({ error: 'Authentication required' }), { status: 401, headers: corsHeaders })
+      return new Response(JSON.stringify({ error: 'Authentication required' }), { status: 401, headers: JSON_HEADERS })
     }
 
     // Verify session exists
@@ -89,12 +84,12 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     ).bind(id).first<{ id: string; created_by: number }>()
 
     if (!session) {
-      return new Response(JSON.stringify({ error: 'COP session not found' }), { status: 404, headers: corsHeaders })
+      return new Response(JSON.stringify({ error: 'COP session not found' }), { status: 404, headers: JSON_HEADERS })
     }
 
     // Verify ownership
     if (session.created_by !== userId) {
-      return new Response(JSON.stringify({ error: 'Not authorized to update this session' }), { status: 403, headers: corsHeaders })
+      return new Response(JSON.stringify({ error: 'Not authorized to update this session' }), { status: 403, headers: JSON_HEADERS })
     }
 
     const body = await request.json() as any
@@ -198,12 +193,12 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       }
     }
 
-    return new Response(JSON.stringify({ message: 'COP session updated' }), { headers: corsHeaders })
+    return new Response(JSON.stringify({ message: 'COP session updated' }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[COP Sessions API] Update error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to update COP session',
-    }), { status: 500, headers: corsHeaders })
+    }), { status: 500, headers: JSON_HEADERS })
   }
 }
 
@@ -214,7 +209,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
   try {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
-      return new Response(JSON.stringify({ error: 'Authentication required' }), { status: 401, headers: corsHeaders })
+      return new Response(JSON.stringify({ error: 'Authentication required' }), { status: 401, headers: JSON_HEADERS })
     }
 
     // Verify session exists
@@ -223,11 +218,11 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     ).bind(id).first<{ id: string; created_by: number }>()
 
     if (!session) {
-      return new Response(JSON.stringify({ error: 'COP session not found' }), { status: 404, headers: corsHeaders })
+      return new Response(JSON.stringify({ error: 'COP session not found' }), { status: 404, headers: JSON_HEADERS })
     }
 
     if (session.created_by !== userId) {
-      return new Response(JSON.stringify({ error: 'Not authorized to delete this session' }), { status: 403, headers: corsHeaders })
+      return new Response(JSON.stringify({ error: 'Not authorized to delete this session' }), { status: 403, headers: JSON_HEADERS })
     }
 
     const now = new Date().toISOString()
@@ -238,16 +233,16 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       WHERE id = ?
     `).bind(now, id).run()
 
-    return new Response(JSON.stringify({ message: 'COP session archived' }), { headers: corsHeaders })
+    return new Response(JSON.stringify({ message: 'COP session archived' }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[COP Sessions API] Delete error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to archive COP session',
-    }), { status: 500, headers: corsHeaders })
+    }), { status: 500, headers: JSON_HEADERS })
   }
 }
 
 // OPTIONS - CORS preflight
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, { status: 204, headers: corsHeaders })
+  return new Response(null, { status: 204, headers: JSON_HEADERS })
 }

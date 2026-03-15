@@ -1,27 +1,22 @@
 // POST /api/cross-table/:id/rounds — Advance Delphi round
 import { requireAuth } from '../../_shared/auth-helpers'
+import { JSON_HEADERS } from '../../_shared/api-utils'
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash',
-  'Content-Type': 'application/json',
-}
 
 export async function onRequest(context: any) {
   const { request, env, params } = context
   const tableId = params.id as string
 
   if (request.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers: corsHeaders })
+    return new Response(null, { status: 204, headers: JSON_HEADERS })
   }
 
   if (request.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers: JSON_HEADERS })
   }
 
   if (!env.DB) {
-    return new Response(JSON.stringify({ error: 'Database not configured' }), { status: 500, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: 'Database not configured' }), { status: 500, headers: JSON_HEADERS })
   }
 
   try {
@@ -32,7 +27,7 @@ export async function onRequest(context: any) {
     ).bind(tableId, userId).first()
 
     if (!table) {
-      return new Response(JSON.stringify({ error: 'Cross table not found' }), { status: 404, headers: corsHeaders })
+      return new Response(JSON.stringify({ error: 'Cross table not found' }), { status: 404, headers: JSON_HEADERS })
     }
 
     const config = typeof table.config === 'string' ? JSON.parse(table.config) : table.config
@@ -53,10 +48,10 @@ export async function onRequest(context: any) {
     return new Response(JSON.stringify({
       previous_round: currentRound,
       current_round: newRound,
-    }), { status: 201, headers: corsHeaders })
+    }), { status: 201, headers: JSON_HEADERS })
   } catch (err: any) {
     if (err instanceof Response) return err
     console.error('[CrossTable Rounds] Error:', err)
-    return new Response(JSON.stringify({ error: 'Internal server error' }), { status: 500, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: 'Internal server error' }), { status: 500, headers: JSON_HEADERS })
   }
 }

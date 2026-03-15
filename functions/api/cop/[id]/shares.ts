@@ -8,18 +8,12 @@ import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest } from '../../_shared/auth-helpers'
 import { emitCopEvent } from '../../_shared/cop-events'
 import { SHARE_CREATED } from '../../_shared/cop-event-types'
-import { generatePrefixedId } from '../../_shared/api-utils'
+import { generatePrefixedId , JSON_HEADERS } from '../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
 }
 
-const corsHeaders = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Workspace-ID',
-}
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   const { request, env, params } = context
@@ -29,7 +23,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: corsHeaders,
+        status: 401, headers: JSON_HEADERS,
       })
     }
     const body = await request.json() as any
@@ -70,12 +64,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       share_token: token,
       url: `/public/cop/${token}`,
       message: 'Share link created',
-    }), { status: 201, headers: corsHeaders })
+    }), { status: 201, headers: JSON_HEADERS })
   } catch (error) {
     console.error('[COP Share API] Create error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to create share link',
-    }), { status: 500, headers: corsHeaders })
+    }), { status: 500, headers: JSON_HEADERS })
   }
 }
 
@@ -87,7 +81,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: corsHeaders,
+        status: 401, headers: JSON_HEADERS,
       })
     }
 
@@ -100,7 +94,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     if (!access) {
       return new Response(JSON.stringify({ error: 'Access denied' }), {
-        status: 403, headers: corsHeaders,
+        status: 403, headers: JSON_HEADERS,
       })
     }
 
@@ -113,15 +107,15 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       visible_panels: JSON.parse(r.visible_panels || '["map"]'),
     }))
 
-    return new Response(JSON.stringify({ shares }), { headers: corsHeaders })
+    return new Response(JSON.stringify({ shares }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[COP Share API] List error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to list share links',
-    }), { status: 500, headers: corsHeaders })
+    }), { status: 500, headers: JSON_HEADERS })
   }
 }
 
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, { status: 204, headers: corsHeaders })
+  return new Response(null, { status: 204, headers: JSON_HEADERS })
 }

@@ -7,6 +7,7 @@ import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest, verifyCopSessionAccess } from '../../../_shared/auth-helpers'
 import { emitCopEvent } from '../../../_shared/cop-events'
 import { RFI_ANSWERED, RFI_ACCEPTED, RFI_CLOSED } from '../../../_shared/cop-event-types'
+import { JSON_HEADERS } from '../../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -14,12 +15,6 @@ interface Env {
   JWT_SECRET?: string
 }
 
-const corsHeaders = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'PUT, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Workspace-ID',
-}
 
 export const onRequestPut: PagesFunction<Env> = async (context) => {
   const { request, env, params } = context
@@ -30,11 +25,11 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: corsHeaders,
+        status: 401, headers: JSON_HEADERS,
       })
     }
     if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
-      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
+      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
     }
     const body = await request.json() as any
     const now = new Date().toISOString()
@@ -46,7 +41,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
     if (!existing) {
       return new Response(JSON.stringify({ error: 'RFI not found' }), {
-        status: 404, headers: corsHeaders,
+        status: 404, headers: JSON_HEADERS,
       })
     }
 
@@ -97,15 +92,15 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       }
     }
 
-    return new Response(JSON.stringify({ message: 'RFI updated' }), { headers: corsHeaders })
+    return new Response(JSON.stringify({ message: 'RFI updated' }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[COP RFI API] Update error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to update RFI',
-    }), { status: 500, headers: corsHeaders })
+    }), { status: 500, headers: JSON_HEADERS })
   }
 }
 
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, { status: 204, headers: corsHeaders })
+  return new Response(null, { status: 204, headers: JSON_HEADERS })
 }

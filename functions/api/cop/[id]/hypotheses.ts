@@ -10,17 +10,12 @@ import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-h
 import { emitCopEvent } from '../../_shared/cop-events'
 import { HYPOTHESIS_CREATED, HYPOTHESIS_UPDATED, HYPOTHESIS_EVIDENCE_LINKED } from '../../_shared/cop-event-types'
 import { createTimelineEntry } from '../../_shared/timeline-helper'
+import { JSON_HEADERS } from '../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
 }
 
-const corsHeaders = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Workspace-ID',
-}
 
 function generateHypId(): string {
   return `hyp-${crypto.randomUUID().slice(0, 12)}`
@@ -36,11 +31,11 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
   const userId = await getUserFromRequest(context.request, context.env)
   if (!userId) {
-    return new Response(JSON.stringify({ error: 'Authentication required' }), { status: 401, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: 'Authentication required' }), { status: 401, headers: JSON_HEADERS })
   }
   const accessWorkspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId, { readOnly: true })
   if (!accessWorkspaceId) {
-    return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
   }
 
   try {
@@ -72,12 +67,12 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       evidence: evidenceByHyp[h.id] || [],
     }))
 
-    return new Response(JSON.stringify({ hypotheses: enriched }), { headers: corsHeaders })
+    return new Response(JSON.stringify({ hypotheses: enriched }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[COP Hypotheses API] List error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to list hypotheses',
-    }), { status: 500, headers: corsHeaders })
+    }), { status: 500, headers: JSON_HEADERS })
   }
 }
 
@@ -89,12 +84,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: corsHeaders,
+        status: 401, headers: JSON_HEADERS,
       })
     }
     const postWorkspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId)
     if (!postWorkspaceId) {
-      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
+      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
     }
     const body = await request.json() as any
 
@@ -106,13 +101,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       ).bind(body.hypothesis_id, sessionId).first()
       if (!hyp) {
         return new Response(JSON.stringify({ error: 'Hypothesis not found in this session' }), {
-          status: 404, headers: corsHeaders,
+          status: 404, headers: JSON_HEADERS,
         })
       }
 
       if (!body.title?.trim()) {
         return new Response(JSON.stringify({ error: 'Evidence title is required' }), {
-          status: 400, headers: corsHeaders,
+          status: 400, headers: JSON_HEADERS,
         })
       }
 
@@ -134,14 +129,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
 
       return new Response(JSON.stringify({ id, message: 'Evidence linked to hypothesis' }), {
-        status: 201, headers: corsHeaders,
+        status: 201, headers: JSON_HEADERS,
       })
     }
 
     // Otherwise, create a new hypothesis
     if (!body.statement?.trim()) {
       return new Response(JSON.stringify({ error: 'Statement is required' }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: JSON_HEADERS,
       })
     }
 
@@ -177,13 +172,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     } catch (e) { console.error('[COP Hypotheses] Timeline entry failed:', e) }
 
     return new Response(JSON.stringify({ id, message: 'Hypothesis created' }), {
-      status: 201, headers: corsHeaders,
+      status: 201, headers: JSON_HEADERS,
     })
   } catch (error) {
     console.error('[COP Hypotheses API] Create error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to create hypothesis',
-    }), { status: 500, headers: corsHeaders })
+    }), { status: 500, headers: JSON_HEADERS })
   }
 }
 
@@ -195,18 +190,18 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: corsHeaders,
+        status: 401, headers: JSON_HEADERS,
       })
     }
     const putAccessId = await verifyCopSessionAccess(env.DB, sessionId, userId)
     if (!putAccessId) {
-      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
+      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
     }
     const body = await request.json() as any
 
     if (!body.id) {
       return new Response(JSON.stringify({ error: 'Hypothesis id is required' }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: JSON_HEADERS,
       })
     }
 
@@ -225,7 +220,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
     if (updates.length === 0) {
       return new Response(JSON.stringify({ error: 'No valid fields to update' }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: JSON_HEADERS,
       })
     }
 
@@ -240,7 +235,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
     if (!updateResult.meta.changes || updateResult.meta.changes === 0) {
       return new Response(JSON.stringify({ error: 'Hypothesis not found in this session' }), {
-        status: 404, headers: corsHeaders,
+        status: 404, headers: JSON_HEADERS,
       })
     }
 
@@ -253,15 +248,15 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       createdBy: userId,
     })
 
-    return new Response(JSON.stringify({ message: 'Hypothesis updated' }), { headers: corsHeaders })
+    return new Response(JSON.stringify({ message: 'Hypothesis updated' }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[COP Hypotheses API] Update error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to update hypothesis',
-    }), { status: 500, headers: corsHeaders })
+    }), { status: 500, headers: JSON_HEADERS })
   }
 }
 
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, { status: 204, headers: corsHeaders })
+  return new Response(null, { status: 204, headers: JSON_HEADERS })
 }

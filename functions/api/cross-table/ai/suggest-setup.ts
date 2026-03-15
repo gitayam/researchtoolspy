@@ -1,37 +1,32 @@
 // POST /api/cross-table/ai/suggest-setup — standalone AI criteria+rows suggestions (no tableId needed)
 import { getUserFromRequest } from '../../_shared/auth-helpers'
 import { callOpenAIViaGateway } from '../../_shared/ai-gateway'
+import { JSON_HEADERS } from '../../_shared/api-utils'
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash',
-  'Content-Type': 'application/json',
-}
 
 export async function onRequest(context: any) {
   const { request, env } = context
 
   if (request.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers: corsHeaders })
+    return new Response(null, { status: 204, headers: JSON_HEADERS })
   }
 
   if (request.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers: JSON_HEADERS })
   }
 
   try {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: corsHeaders,
+        status: 401, headers: JSON_HEADERS,
       })
     }
     const body = await request.json() as any
     const { topic, template_type, count } = body
 
     if (!topic || typeof topic !== 'string' || topic.trim().length < 3) {
-      return new Response(JSON.stringify({ error: 'Topic must be at least 3 characters' }), { status: 400, headers: corsHeaders })
+      return new Response(JSON.stringify({ error: 'Topic must be at least 3 characters' }), { status: 400, headers: JSON_HEADERS })
     }
 
     const numCriteria = Math.min(Math.max(count || 6, 2), 12)
@@ -73,7 +68,7 @@ Respond with ONLY a JSON object with this shape:
     try {
       parsed = JSON.parse(content)
     } catch {
-      return new Response(JSON.stringify({ criteria: [], rows: [] }), { headers: corsHeaders })
+      return new Response(JSON.stringify({ criteria: [], rows: [] }), { headers: JSON_HEADERS })
     }
 
     // Validate field-by-field — never spread raw LLM output
@@ -95,9 +90,9 @@ Respond with ONLY a JSON object with this shape:
         description: typeof r.description === 'string' ? String(r.description).slice(0, 500) : '',
       }))
 
-    return new Response(JSON.stringify({ criteria, rows }), { headers: corsHeaders })
+    return new Response(JSON.stringify({ criteria, rows }), { headers: JSON_HEADERS })
   } catch (err: any) {
     console.error('[CrossTable AI Setup] Error:', err)
-    return new Response(JSON.stringify({ error: 'AI suggestion request failed' }), { status: 500, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: 'AI suggestion request failed' }), { status: 500, headers: JSON_HEADERS })
   }
 }

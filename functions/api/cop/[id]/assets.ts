@@ -10,7 +10,7 @@ import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-helpers'
 import { emitCopEvent } from '../../_shared/cop-events'
 import { ASSET_CREATED, ASSET_UPDATED, ASSET_STATUS_CHANGED, ASSET_QUOTA_LOW } from '../../_shared/cop-event-types'
-import { generatePrefixedId } from '../../_shared/api-utils'
+import { generatePrefixedId , JSON_HEADERS } from '../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -18,12 +18,6 @@ interface Env {
   JWT_SECRET?: string
 }
 
-const corsHeaders = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Workspace-ID',
-}
 
 const VALID_ASSET_TYPES = ['human', 'source', 'infrastructure', 'digital']
 const VALID_STATUSES = ['available', 'deployed', 'degraded', 'offline', 'compromised', 'exhausted']
@@ -49,11 +43,11 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
   const userId = await getUserFromRequest(request, env)
   if (!userId) {
-    return new Response(JSON.stringify({ error: 'Authentication required' }), { status: 401, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: 'Authentication required' }), { status: 401, headers: JSON_HEADERS })
   }
   const accessWorkspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId, { readOnly: true })
   if (!accessWorkspaceId) {
-    return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
   }
 
   try {
@@ -75,11 +69,11 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     const rows = await env.DB.prepare(query).bind(...bindings).all()
     const assets = (rows.results || []).map(parseDetails)
 
-    return new Response(JSON.stringify({ assets }), { headers: corsHeaders })
+    return new Response(JSON.stringify({ assets }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[COP Assets] List error:', error)
     return new Response(JSON.stringify({ error: 'Failed to list assets' }), {
-      status: 500, headers: corsHeaders,
+      status: 500, headers: JSON_HEADERS,
     })
   }
 }
@@ -93,23 +87,23 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: corsHeaders,
+        status: 401, headers: JSON_HEADERS,
       })
     }
     if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
-      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
+      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
     }
     const body = await request.json() as any
 
     if (!body.name?.trim()) {
       return new Response(JSON.stringify({ error: 'Name is required' }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: JSON_HEADERS,
       })
     }
 
     if (!body.asset_type || !VALID_ASSET_TYPES.includes(body.asset_type)) {
       return new Response(JSON.stringify({ error: 'Valid asset_type required (human, source, infrastructure, digital)' }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: JSON_HEADERS,
       })
     }
 
@@ -154,12 +148,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     })
 
     return new Response(JSON.stringify({ id, message: 'Asset created' }), {
-      status: 201, headers: corsHeaders,
+      status: 201, headers: JSON_HEADERS,
     })
   } catch (error) {
     console.error('[COP Assets] Create error:', error)
     return new Response(JSON.stringify({ error: 'Failed to create asset' }), {
-      status: 500, headers: corsHeaders,
+      status: 500, headers: JSON_HEADERS,
     })
   }
 }
@@ -173,17 +167,17 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: corsHeaders,
+        status: 401, headers: JSON_HEADERS,
       })
     }
     if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
-      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
+      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
     }
     const body = await request.json() as any
 
     if (!body.id) {
       return new Response(JSON.stringify({ error: 'Asset id is required in body' }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: JSON_HEADERS,
       })
     }
 
@@ -194,7 +188,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
     if (!existing) {
       return new Response(JSON.stringify({ error: 'Asset not found in this session' }), {
-        status: 404, headers: corsHeaders,
+        status: 404, headers: JSON_HEADERS,
       })
     }
 
@@ -245,7 +239,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
     if (updates.length === 0) {
       return new Response(JSON.stringify({ error: 'No valid fields to update' }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: JSON_HEADERS,
       })
     }
 
@@ -303,11 +297,11 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       }
     }
 
-    return new Response(JSON.stringify({ id: body.id, message: 'Asset updated' }), { headers: corsHeaders })
+    return new Response(JSON.stringify({ id: body.id, message: 'Asset updated' }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[COP Assets] Update error:', error)
     return new Response(JSON.stringify({ error: 'Failed to update asset' }), {
-      status: 500, headers: corsHeaders,
+      status: 500, headers: JSON_HEADERS,
     })
   }
 }
@@ -324,15 +318,15 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: corsHeaders,
+        status: 401, headers: JSON_HEADERS,
       })
     }
     if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
-      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
+      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
     }
     if (!assetId) {
       return new Response(JSON.stringify({ error: 'asset_id query param is required' }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: JSON_HEADERS,
       })
     }
 
@@ -342,7 +336,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
 
     if (!existing) {
       return new Response(JSON.stringify({ error: 'Asset not found in this session' }), {
-        status: 404, headers: corsHeaders,
+        status: 404, headers: JSON_HEADERS,
       })
     }
 
@@ -371,16 +365,16 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       createdBy: userId,
     })
 
-    return new Response(JSON.stringify({ message: hard ? 'Asset deleted' : 'Asset set to offline' }), { headers: corsHeaders })
+    return new Response(JSON.stringify({ message: hard ? 'Asset deleted' : 'Asset set to offline' }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[COP Assets] Delete error:', error)
     return new Response(JSON.stringify({ error: 'Failed to delete asset' }), {
-      status: 500, headers: corsHeaders,
+      status: 500, headers: JSON_HEADERS,
     })
   }
 }
 
 // OPTIONS - CORS preflight
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, { status: 204, headers: corsHeaders })
+  return new Response(null, { status: 204, headers: JSON_HEADERS })
 }

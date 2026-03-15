@@ -11,6 +11,7 @@
 
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { verifyCopLayerAccess } from '../../../_shared/auth-helpers'
+import { JSON_HEADERS } from '../../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -18,12 +19,6 @@ interface Env {
   JWT_SECRET?: string
 }
 
-const corsHeaders = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Workspace-ID',
-}
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   const { request, env, params } = context
@@ -69,15 +64,15 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     return new Response(JSON.stringify({
       type: 'FeatureCollection',
       features,
-    }), { headers: corsHeaders })
+    }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[COP POO Estimates Layer] Error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to load POO estimates layer',
-    }), { status: 500, headers: corsHeaders })
+    }), { status: 500, headers: JSON_HEADERS })
   }
 }
 
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, { status: 204, headers: corsHeaders })
+  return new Response(null, { status: 204, headers: JSON_HEADERS })
 }

@@ -15,7 +15,6 @@ interface Env {
   SESSIONS?: KVNamespace
 }
 
-const corsHeaders = JSON_HEADERS
 
 // GET - List all equilibrium analyses
 export const onRequestGet: PagesFunction<Env> = async (context) => {
@@ -26,7 +25,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     const authUserId = await getUserFromRequest(request, env)
     if (!authUserId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: corsHeaders,
+        status: 401, headers: JSON_HEADERS,
       })
     }
 
@@ -54,13 +53,13 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       time_series_count: row.time_series ? JSON.parse(row.time_series).length : 0
     }))
 
-    return new Response(JSON.stringify({ analyses }), { headers: corsHeaders })
+    return new Response(JSON.stringify({ analyses }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[Equilibrium API] List error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to list analyses'
 
-    }), { status: 500, headers: corsHeaders })
+    }), { status: 500, headers: JSON_HEADERS })
   }
 }
 
@@ -73,7 +72,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const authUserId = await getUserFromRequest(request, env)
     if (!authUserId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: corsHeaders,
+        status: 401, headers: JSON_HEADERS,
       })
     }
 
@@ -83,7 +82,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!body.title) {
       return new Response(JSON.stringify({ error: 'Title is required' }), {
         status: 400,
-        headers: corsHeaders
+        headers: JSON_HEADERS
       })
     }
 
@@ -115,18 +114,18 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     return new Response(JSON.stringify({ id, message: 'Analysis created' }), {
       status: 201,
-      headers: corsHeaders
+      headers: JSON_HEADERS
     })
   } catch (error) {
     console.error('[Equilibrium API] Create error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to create analysis'
 
-    }), { status: 500, headers: corsHeaders })
+    }), { status: 500, headers: JSON_HEADERS })
   }
 }
 
 // OPTIONS - CORS preflight
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, { status: 204, headers: corsHeaders })
+  return new Response(null, { status: 204, headers: JSON_HEADERS })
 }

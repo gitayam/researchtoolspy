@@ -7,19 +7,13 @@
 
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest } from '../_shared/auth-helpers'
-import { generatePrefixedId } from '../_shared/api-utils'
+import { generatePrefixedId , JSON_HEADERS } from '../_shared/api-utils'
 
 interface Env {
   DB: D1Database
   SESSIONS?: KVNamespace
 }
 
-const corsHeaders = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Workspace-ID'
-}
 
 const jsonFields = ['active_layers', 'layer_config', 'linked_frameworks', 'key_questions', 'event_facts', 'content_analyses'] as const
 
@@ -48,7 +42,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: corsHeaders
+        status: 401, headers: JSON_HEADERS
       })
     }
     const workspaceId = request.headers.get('X-Workspace-ID') || url.searchParams.get('workspace_id')
@@ -75,12 +69,12 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     const sessions = (results.results || []).map((row: any) => parseJsonFields(row))
 
-    return new Response(JSON.stringify({ sessions }), { headers: corsHeaders })
+    return new Response(JSON.stringify({ sessions }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[COP Sessions API] List error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to list COP sessions',
-    }), { status: 500, headers: corsHeaders })
+    }), { status: 500, headers: JSON_HEADERS })
   }
 }
 
@@ -93,7 +87,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: corsHeaders,
+        status: 401, headers: JSON_HEADERS,
       })
     }
     const explicitWorkspace = request.headers.get('X-Workspace-ID') || url.searchParams.get('workspace_id')
@@ -102,7 +96,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!body.name) {
       return new Response(JSON.stringify({ error: 'Name is required' }), {
         status: 400,
-        headers: corsHeaders
+        headers: JSON_HEADERS
       })
     }
 
@@ -180,17 +174,17 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     return new Response(JSON.stringify({ id, workspace_id: workspaceId, team_workspace_id: body.team_workspace_id || null, message: 'COP session created' }), {
       status: 201,
-      headers: corsHeaders
+      headers: JSON_HEADERS
     })
   } catch (error) {
     console.error('[COP Sessions API] Create error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to create COP session',
-    }), { status: 500, headers: corsHeaders })
+    }), { status: 500, headers: JSON_HEADERS })
   }
 }
 
 // OPTIONS - CORS preflight
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, { status: 204, headers: corsHeaders })
+  return new Response(null, { status: 204, headers: JSON_HEADERS })
 }

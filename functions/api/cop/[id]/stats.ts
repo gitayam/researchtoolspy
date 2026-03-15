@@ -10,18 +10,13 @@
 
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-helpers'
+import { JSON_HEADERS } from '../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
   SESSIONS?: KVNamespace
 }
 
-const corsHeaders = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Workspace-ID',
-}
 
 // GET - Aggregate workspace stats for a COP session
 export const onRequestGet: PagesFunction<Env> = async (context) => {
@@ -32,13 +27,13 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: corsHeaders,
+        status: 401, headers: JSON_HEADERS,
       })
     }
     const workspace_id = await verifyCopSessionAccess(env.DB, sessionId, userId, { readOnly: true })
     if (!workspace_id) {
       return new Response(JSON.stringify({ error: 'Access denied' }), {
-        status: 403, headers: corsHeaders,
+        status: 403, headers: JSON_HEADERS,
       })
     }
 
@@ -100,18 +95,18 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       alert_count,
     }
 
-    return new Response(JSON.stringify({ stats }), { headers: corsHeaders })
+    return new Response(JSON.stringify({ stats }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[COP Stats] Error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to get workspace stats',
     }), {
-      status: 500, headers: corsHeaders,
+      status: 500, headers: JSON_HEADERS,
     })
   }
 }
 
 // OPTIONS - CORS preflight
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, { status: 204, headers: corsHeaders })
+  return new Response(null, { status: 204, headers: JSON_HEADERS })
 }

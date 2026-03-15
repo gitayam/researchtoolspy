@@ -8,7 +8,7 @@
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-helpers'
-import { generatePrefixedId } from '../../_shared/api-utils'
+import { generatePrefixedId , JSON_HEADERS } from '../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -16,12 +16,6 @@ interface Env {
   JWT_SECRET?: string
 }
 
-const corsHeaders = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Workspace-ID',
-}
 
 const VALID_CONFIDENCE = ['CONFIRMED', 'PROBABLE', 'POSSIBLE', 'DOUBTFUL']
 
@@ -32,11 +26,11 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
   const userId = await getUserFromRequest(request, env)
   if (!userId) {
-    return new Response(JSON.stringify({ error: 'Authentication required' }), { status: 401, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: 'Authentication required' }), { status: 401, headers: JSON_HEADERS })
   }
   const accessWorkspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId, { readOnly: true })
   if (!accessWorkspaceId) {
-    return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
   }
 
   try {
@@ -44,11 +38,11 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       `SELECT * FROM cop_poo_estimates WHERE cop_session_id = ? ORDER BY created_at DESC LIMIT 500`
     ).bind(sessionId).all()
 
-    return new Response(JSON.stringify({ estimates: results.results }), { headers: corsHeaders })
+    return new Response(JSON.stringify({ estimates: results.results }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[COP POO Estimates] List error:', error)
     return new Response(JSON.stringify({ error: 'Failed to list POO estimates' }), {
-      status: 500, headers: corsHeaders,
+      status: 500, headers: JSON_HEADERS,
     })
   }
 }
@@ -62,43 +56,43 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: corsHeaders,
+        status: 401, headers: JSON_HEADERS,
       })
     }
     if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
-      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
+      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
     }
 
     const body = await request.json() as any
 
     if (!body.name || body.impact_lat == null || body.impact_lon == null) {
       return new Response(JSON.stringify({ error: 'name, impact_lat, and impact_lon are required' }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: JSON_HEADERS,
       })
     }
 
     if (typeof body.impact_lat !== 'number' || typeof body.impact_lon !== 'number') {
       return new Response(JSON.stringify({ error: 'impact_lat and impact_lon must be numbers' }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: JSON_HEADERS,
       })
     }
 
     if (body.impact_lat < -90 || body.impact_lat > 90 || body.impact_lon < -180 || body.impact_lon > 180) {
       return new Response(JSON.stringify({ error: 'impact_lat must be -90..90, impact_lon must be -180..180' }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: JSON_HEADERS,
       })
     }
 
     if (body.confidence !== undefined && !VALID_CONFIDENCE.includes(body.confidence)) {
       return new Response(JSON.stringify({ error: `confidence must be one of: ${VALID_CONFIDENCE.join(', ')}` }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: JSON_HEADERS,
       })
     }
 
     if (body.approach_bearing !== undefined && body.approach_bearing !== null) {
       if (typeof body.approach_bearing !== 'number' || body.approach_bearing < 0 || body.approach_bearing > 360) {
         return new Response(JSON.stringify({ error: 'approach_bearing must be a number 0-360' }), {
-          status: 400, headers: corsHeaders,
+          status: 400, headers: JSON_HEADERS,
         })
       }
     }
@@ -139,12 +133,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     ).run()
 
     return new Response(JSON.stringify({ id, message: 'POO estimate created' }), {
-      status: 201, headers: corsHeaders,
+      status: 201, headers: JSON_HEADERS,
     })
   } catch (error) {
     console.error('[COP POO Estimates] Create error:', error)
     return new Response(JSON.stringify({ error: 'Failed to create POO estimate' }), {
-      status: 500, headers: corsHeaders,
+      status: 500, headers: JSON_HEADERS,
     })
   }
 }
@@ -158,11 +152,11 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: corsHeaders,
+        status: 401, headers: JSON_HEADERS,
       })
     }
     if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
-      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
+      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
     }
 
     const body = await request.json() as any
@@ -170,20 +164,20 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
     if (!estimateId) {
       return new Response(JSON.stringify({ error: 'estimate_id is required' }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: JSON_HEADERS,
       })
     }
 
     if (body.confidence !== undefined && !VALID_CONFIDENCE.includes(body.confidence)) {
       return new Response(JSON.stringify({ error: `confidence must be one of: ${VALID_CONFIDENCE.join(', ')}` }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: JSON_HEADERS,
       })
     }
 
     if (body.approach_bearing !== undefined && body.approach_bearing !== null) {
       if (typeof body.approach_bearing !== 'number' || body.approach_bearing < 0 || body.approach_bearing > 360) {
         return new Response(JSON.stringify({ error: 'approach_bearing must be a number 0-360' }), {
-          status: 400, headers: corsHeaders,
+          status: 400, headers: JSON_HEADERS,
         })
       }
     }
@@ -191,7 +185,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     if (body.impact_lat !== undefined) {
       if (typeof body.impact_lat !== 'number' || body.impact_lat < -90 || body.impact_lat > 90) {
         return new Response(JSON.stringify({ error: 'impact_lat must be a number -90..90' }), {
-          status: 400, headers: corsHeaders,
+          status: 400, headers: JSON_HEADERS,
         })
       }
     }
@@ -199,7 +193,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     if (body.impact_lon !== undefined) {
       if (typeof body.impact_lon !== 'number' || body.impact_lon < -180 || body.impact_lon > 180) {
         return new Response(JSON.stringify({ error: 'impact_lon must be a number -180..180' }), {
-          status: 400, headers: corsHeaders,
+          status: 400, headers: JSON_HEADERS,
         })
       }
     }
@@ -239,7 +233,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
     if (!updateResult.meta.changes || updateResult.meta.changes === 0) {
       return new Response(JSON.stringify({ error: 'POO estimate not found in this session' }), {
-        status: 404, headers: corsHeaders,
+        status: 404, headers: JSON_HEADERS,
       })
     }
 
@@ -247,11 +241,11 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       `SELECT * FROM cop_poo_estimates WHERE id = ? AND cop_session_id = ?`
     ).bind(estimateId, sessionId).first()
 
-    return new Response(JSON.stringify({ message: 'POO estimate updated', estimate: estimate || { id: estimateId } }), { headers: corsHeaders })
+    return new Response(JSON.stringify({ message: 'POO estimate updated', estimate: estimate || { id: estimateId } }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[COP POO Estimates] Update error:', error)
     return new Response(JSON.stringify({ error: 'Failed to update POO estimate' }), {
-      status: 500, headers: corsHeaders,
+      status: 500, headers: JSON_HEADERS,
     })
   }
 }
@@ -265,11 +259,11 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: corsHeaders,
+        status: 401, headers: JSON_HEADERS,
       })
     }
     if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
-      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
+      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
     }
 
     const url = new URL(request.url)
@@ -277,7 +271,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
 
     if (!estimateId) {
       return new Response(JSON.stringify({ error: 'estimate_id query param is required' }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: JSON_HEADERS,
       })
     }
 
@@ -287,20 +281,20 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
 
     if (!deleteResult.meta.changes || deleteResult.meta.changes === 0) {
       return new Response(JSON.stringify({ error: 'POO estimate not found in this session' }), {
-        status: 404, headers: corsHeaders,
+        status: 404, headers: JSON_HEADERS,
       })
     }
 
-    return new Response(JSON.stringify({ message: 'POO estimate deleted' }), { headers: corsHeaders })
+    return new Response(JSON.stringify({ message: 'POO estimate deleted' }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[COP POO Estimates] Delete error:', error)
     return new Response(JSON.stringify({ error: 'Failed to delete POO estimate' }), {
-      status: 500, headers: corsHeaders,
+      status: 500, headers: JSON_HEADERS,
     })
   }
 }
 
 // OPTIONS — CORS preflight
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, { status: 204, headers: corsHeaders })
+  return new Response(null, { status: 204, headers: JSON_HEADERS })
 }

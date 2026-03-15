@@ -19,12 +19,6 @@ interface Env {
   DB: D1Database
 }
 
-const corsHeaders = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Workspace-ID',
-}
 
 const VALID_FORMATS = ['geojson', 'kml', 'cot', 'stix', 'csv'] as const
 const VALID_SCOPES = ['full', 'layers', 'entities', 'evidence', 'tasks'] as const
@@ -231,7 +225,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const userId = await getUserFromRequest(request, env)
   if (!userId) {
     return new Response(JSON.stringify({ error: 'Authentication required' }), {
-      status: 401, headers: corsHeaders,
+      status: 401, headers: JSON_HEADERS,
     })
   }
 
@@ -244,7 +238,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!VALID_FORMATS.includes(format)) {
       return new Response(
         JSON.stringify({ error: `Invalid format. Must be one of: ${VALID_FORMATS.join(', ')}` }),
-        { status: 400, headers: corsHeaders }
+        { status: 400, headers: JSON_HEADERS }
       )
     }
 
@@ -252,7 +246,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!VALID_SCOPES.includes(scope)) {
       return new Response(
         JSON.stringify({ error: `Invalid scope. Must be one of: ${VALID_SCOPES.join(', ')}` }),
-        { status: 400, headers: corsHeaders }
+        { status: 400, headers: JSON_HEADERS }
       )
     }
 
@@ -264,7 +258,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!session) {
       return new Response(
         JSON.stringify({ error: 'COP session not found' }),
-        { status: 404, headers: corsHeaders }
+        { status: 404, headers: JSON_HEADERS }
       )
     }
 
@@ -368,14 +362,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       console.error('[COP Export] Serialization error:', serializeError)
       return new Response(
         JSON.stringify({ error: 'Export serialization failed', export_id: exportId }),
-        { status: 500, headers: corsHeaders }
+        { status: 500, headers: JSON_HEADERS }
       )
     }
   } catch (error: any) {
     console.error('[COP Export] Error:', error)
     return new Response(
       JSON.stringify({ error: 'Failed to process export request' }),
-      { status: 500, headers: corsHeaders }
+      { status: 500, headers: JSON_HEADERS }
     )
   }
 }
@@ -383,7 +377,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 export const onRequestOptions: PagesFunction = async () => {
   return new Response(null, {
     status: 204,
-    headers: corsHeaders,
+    headers: JSON_HEADERS,
   })
 }
 

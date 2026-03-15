@@ -8,18 +8,12 @@
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-helpers'
-import { generatePrefixedId } from '../../_shared/api-utils'
+import { generatePrefixedId , JSON_HEADERS } from '../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
 }
 
-const corsHeaders = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Workspace-ID',
-}
 
 // GET — list timeline entries for a session, ordered by event_date
 export const onRequestGet: PagesFunction<Env> = async (context) => {
@@ -28,11 +22,11 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
   const userId = await getUserFromRequest(request, env)
   if (!userId) {
-    return new Response(JSON.stringify({ error: 'Authentication required' }), { status: 401, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: 'Authentication required' }), { status: 401, headers: JSON_HEADERS })
   }
   const accessWorkspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId, { readOnly: true })
   if (!accessWorkspaceId) {
-    return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
   }
 
   const url = new URL(request.url)
@@ -61,11 +55,11 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     const results = await env.DB.prepare(query).bind(...bindings).all()
 
-    return new Response(JSON.stringify({ entries: results.results }), { headers: corsHeaders })
+    return new Response(JSON.stringify({ entries: results.results }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[COP Timeline] List error:', error)
     return new Response(JSON.stringify({ error: 'Failed to list timeline entries' }), {
-      status: 500, headers: corsHeaders,
+      status: 500, headers: JSON_HEADERS,
     })
   }
 }
@@ -79,11 +73,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: corsHeaders,
+        status: 401, headers: JSON_HEADERS,
       })
     }
     if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
-      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
+      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
     }
     const body = await request.json() as any
 
@@ -93,7 +87,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     if (entries.length === 0 || !entries[0].title) {
       return new Response(JSON.stringify({ error: 'At least one entry with title and event_date is required' }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: JSON_HEADERS,
       })
     }
 
@@ -134,11 +128,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     return new Response(JSON.stringify({
       message: `${ids.length} timeline entries saved`,
       ids,
-    }), { status: 201, headers: corsHeaders })
+    }), { status: 201, headers: JSON_HEADERS })
   } catch (error) {
     console.error('[COP Timeline] Create error:', error)
     return new Response(JSON.stringify({ error: 'Failed to save timeline entries' }), {
-      status: 500, headers: corsHeaders,
+      status: 500, headers: JSON_HEADERS,
     })
   }
 }
@@ -152,18 +146,18 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: corsHeaders,
+        status: 401, headers: JSON_HEADERS,
       })
     }
     if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
-      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
+      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
     }
     const body = await request.json() as any
     const entryId = body.entry_id
 
     if (!entryId) {
       return new Response(JSON.stringify({ error: 'entry_id is required' }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: JSON_HEADERS,
       })
     }
 
@@ -174,14 +168,14 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
     if (existingEntry?.source_type === 'system') {
       return new Response(JSON.stringify({ error: 'System-generated entries cannot be modified' }), {
-        status: 403, headers: corsHeaders,
+        status: 403, headers: JSON_HEADERS,
       })
     }
 
     const validCategories = ['event', 'meeting', 'communication', 'financial', 'legal', 'travel', 'publication', 'military', 'political']
     if (body.category !== undefined && !validCategories.includes(body.category)) {
       return new Response(JSON.stringify({ error: `category must be one of: ${validCategories.join(', ')}` }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: JSON_HEADERS,
       })
     }
 
@@ -203,7 +197,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
     if (!updateResult.meta.changes || updateResult.meta.changes === 0) {
       return new Response(JSON.stringify({ error: 'Timeline entry not found in this session' }), {
-        status: 404, headers: corsHeaders,
+        status: 404, headers: JSON_HEADERS,
       })
     }
 
@@ -211,11 +205,11 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       `SELECT * FROM cop_timeline_entries WHERE id = ? AND cop_session_id = ?`
     ).bind(entryId, sessionId).first()
 
-    return new Response(JSON.stringify({ message: 'Timeline entry updated', entry: updated || { id: entryId } }), { headers: corsHeaders })
+    return new Response(JSON.stringify({ message: 'Timeline entry updated', entry: updated || { id: entryId } }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[COP Timeline] Update error:', error)
     return new Response(JSON.stringify({ error: 'Failed to update timeline entry' }), {
-      status: 500, headers: corsHeaders,
+      status: 500, headers: JSON_HEADERS,
     })
   }
 }
@@ -229,18 +223,18 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: corsHeaders,
+        status: 401, headers: JSON_HEADERS,
       })
     }
     if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
-      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
+      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
     }
     const url = new URL(request.url)
     const entryId = url.searchParams.get('entry_id')
 
     if (!entryId) {
       return new Response(JSON.stringify({ error: 'entry_id query param is required' }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: JSON_HEADERS,
       })
     }
 
@@ -250,7 +244,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
 
     if (existing?.source_type === 'system') {
       return new Response(JSON.stringify({ error: 'System-generated entries cannot be deleted' }), {
-        status: 403, headers: corsHeaders,
+        status: 403, headers: JSON_HEADERS,
       })
     }
 
@@ -260,20 +254,20 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
 
     if (!deleteResult.meta.changes || deleteResult.meta.changes === 0) {
       return new Response(JSON.stringify({ error: 'Timeline entry not found in this session' }), {
-        status: 404, headers: corsHeaders,
+        status: 404, headers: JSON_HEADERS,
       })
     }
 
-    return new Response(JSON.stringify({ message: 'Timeline entry deleted' }), { headers: corsHeaders })
+    return new Response(JSON.stringify({ message: 'Timeline entry deleted' }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[COP Timeline] Delete error:', error)
     return new Response(JSON.stringify({ error: 'Failed to delete timeline entry' }), {
-      status: 500, headers: corsHeaders,
+      status: 500, headers: JSON_HEADERS,
     })
   }
 }
 
 // OPTIONS — CORS preflight
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, { status: 204, headers: corsHeaders })
+  return new Response(null, { status: 204, headers: JSON_HEADERS })
 }

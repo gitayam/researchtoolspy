@@ -9,18 +9,12 @@ import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-helpers'
 import { emitCopEvent } from '../../_shared/cop-events'
 import { RFI_CREATED, RFI_ANSWERED, RFI_CLOSED } from '../../_shared/cop-event-types'
-import { generatePrefixedId } from '../../_shared/api-utils'
+import { generatePrefixedId , JSON_HEADERS } from '../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
 }
 
-const corsHeaders = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Workspace-ID',
-}
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   const { env, params } = context
@@ -28,11 +22,11 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
   const userId = await getUserFromRequest(context.request, context.env)
   if (!userId) {
-    return new Response(JSON.stringify({ error: 'Authentication required' }), { status: 401, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: 'Authentication required' }), { status: 401, headers: JSON_HEADERS })
   }
   const accessWorkspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId, { readOnly: true })
   if (!accessWorkspaceId) {
-    return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
   }
 
   try {
@@ -72,12 +66,12 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       answers: answersByRfi[r.id] || [],
     }))
 
-    return new Response(JSON.stringify({ rfis: enriched }), { headers: corsHeaders })
+    return new Response(JSON.stringify({ rfis: enriched }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[COP RFI API] List error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to list RFIs',
-    }), { status: 500, headers: corsHeaders })
+    }), { status: 500, headers: JSON_HEADERS })
   }
 }
 
@@ -89,18 +83,18 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: corsHeaders,
+        status: 401, headers: JSON_HEADERS,
       })
     }
     const postWorkspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId)
     if (!postWorkspaceId) {
-      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
+      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
     }
     const body = await request.json() as any
 
     if (!body.question?.trim()) {
       return new Response(JSON.stringify({ error: 'Question is required' }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: JSON_HEADERS,
       })
     }
 
@@ -124,13 +118,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     })
 
     return new Response(JSON.stringify({ id, message: 'RFI created' }), {
-      status: 201, headers: corsHeaders,
+      status: 201, headers: JSON_HEADERS,
     })
   } catch (error) {
     console.error('[COP RFI API] Create error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to create RFI',
-    }), { status: 500, headers: corsHeaders })
+    }), { status: 500, headers: JSON_HEADERS })
   }
 }
 
@@ -143,18 +137,18 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: corsHeaders,
+        status: 401, headers: JSON_HEADERS,
       })
     }
     const putWorkspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId)
     if (!putWorkspaceId) {
-      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
+      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
     }
     const body = await request.json() as any
 
     if (!body.id) {
       return new Response(JSON.stringify({ error: 'id is required' }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: JSON_HEADERS,
       })
     }
 
@@ -190,7 +184,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
     if (!updateResult.meta.changes || updateResult.meta.changes === 0) {
       return new Response(JSON.stringify({ error: 'RFI not found' }), {
-        status: 404, headers: corsHeaders,
+        status: 404, headers: JSON_HEADERS,
       })
     }
 
@@ -250,16 +244,16 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     }
 
     return new Response(JSON.stringify({ id: body.id, message: 'RFI updated' }), {
-      headers: corsHeaders,
+      headers: JSON_HEADERS,
     })
   } catch (error) {
     console.error('[COP RFI API] Update error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to update RFI',
-    }), { status: 500, headers: corsHeaders })
+    }), { status: 500, headers: JSON_HEADERS })
   }
 }
 
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, { status: 204, headers: corsHeaders })
+  return new Response(null, { status: 204, headers: JSON_HEADERS })
 }

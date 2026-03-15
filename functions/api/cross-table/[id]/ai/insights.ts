@@ -2,35 +2,30 @@
 import { getUserFromRequest } from '../../../_shared/auth-helpers'
 import { callOpenAIViaGateway } from '../../../_shared/ai-gateway'
 import { computeRankings } from '../../../../../src/lib/cross-table/engine/ranking'
+import { JSON_HEADERS } from '../../../_shared/api-utils'
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash',
-  'Content-Type': 'application/json',
-}
 
 export async function onRequest(context: any) {
   const { request, env, params } = context
   const tableId = params.id as string
 
   if (request.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers: corsHeaders })
+    return new Response(null, { status: 204, headers: JSON_HEADERS })
   }
 
   if (request.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers: JSON_HEADERS })
   }
 
   if (!env.DB) {
-    return new Response(JSON.stringify({ error: 'Database not configured' }), { status: 500, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: 'Database not configured' }), { status: 500, headers: JSON_HEADERS })
   }
 
   try {
     const authUserId = await getUserFromRequest(request, env)
     if (!authUserId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: corsHeaders,
+        status: 401, headers: JSON_HEADERS,
       })
     }
 
@@ -39,7 +34,7 @@ export async function onRequest(context: any) {
     ).bind(tableId, authUserId).first()
 
     if (!table) {
-      return new Response(JSON.stringify({ error: 'Cross table not found' }), { status: 404, headers: corsHeaders })
+      return new Response(JSON.stringify({ error: 'Cross table not found' }), { status: 404, headers: JSON_HEADERS })
     }
 
     const config = typeof table.config === 'string' ? JSON.parse(table.config) : table.config
@@ -111,9 +106,9 @@ Provide analysis as a JSON object with these fields:
         : [],
     }
 
-    return new Response(JSON.stringify({ insights, results: rankingSummary }), { headers: corsHeaders })
+    return new Response(JSON.stringify({ insights, results: rankingSummary }), { headers: JSON_HEADERS })
   } catch (err: any) {
     console.error('[CrossTable AI Insights] Error:', err)
-    return new Response(JSON.stringify({ error: 'AI request failed' }), { status: 500, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: 'AI request failed' }), { status: 500, headers: JSON_HEADERS })
   }
 }

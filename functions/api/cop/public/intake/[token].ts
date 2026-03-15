@@ -4,12 +4,6 @@
  * GET /api/cop/public/intake/:token - Get form schema for public submission (no auth)
  */
 
-const corsHeaders = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Workspace-ID',
-}
 
 interface Env {
   DB: D1Database
@@ -26,13 +20,13 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     if (!form) {
       return new Response(JSON.stringify({ error: 'Form not found' }), {
-        status: 404, headers: corsHeaders,
+        status: 404, headers: JSON_HEADERS,
       })
     }
 
     if (form.status !== 'active') {
       return new Response(JSON.stringify({ error: 'This form is not currently accepting submissions' }), {
-        status: 403, headers: corsHeaders,
+        status: 403, headers: JSON_HEADERS,
       })
     }
 
@@ -45,15 +39,15 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       form_schema,
       require_location: form.require_location === 1,
       require_contact: form.require_contact === 1,
-    }), { headers: corsHeaders })
+    }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[COP Public Intake] Form fetch error:', error)
     return new Response(JSON.stringify({ error: 'Failed to load form' }), {
-      status: 500, headers: corsHeaders,
+      status: 500, headers: JSON_HEADERS,
     })
   }
 }
 
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, { status: 204, headers: corsHeaders })
+  return new Response(null, { status: 204, headers: JSON_HEADERS })
 }

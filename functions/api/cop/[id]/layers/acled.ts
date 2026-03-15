@@ -18,6 +18,7 @@
 
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { verifyCopLayerAccess } from '../../../_shared/auth-helpers'
+import { JSON_HEADERS } from '../../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -32,12 +33,6 @@ const ACLED_BASE_URL = 'https://api.acleddata.com/acled/read'
 const CACHE_TTL = 3600 // 1 hour in seconds
 const ACLED_LIMIT = 500
 
-const corsHeaders = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Workspace-ID',
-}
 
 interface BBox {
   minLon: number
@@ -141,7 +136,7 @@ function emptyCollection(meta: Record<string, any>) {
     type: 'FeatureCollection',
     features: [],
     _meta: meta,
-  }), { headers: corsHeaders })
+  }), { headers: JSON_HEADERS })
 }
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
@@ -164,7 +159,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     if (!session) {
       return new Response(JSON.stringify({ error: 'COP session not found' }), {
         status: 404,
-        headers: corsHeaders,
+        headers: JSON_HEADERS,
       })
     }
 
@@ -205,7 +200,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
             ...parsed._meta,
             cache_hit: true,
           }
-          return new Response(JSON.stringify(parsed), { headers: corsHeaders })
+          return new Response(JSON.stringify(parsed), { headers: JSON_HEADERS })
         }
       } catch (e) {
         console.warn('[COP ACLED Layer] KV read error:', e)
@@ -289,7 +284,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       }
     }
 
-    return new Response(JSON.stringify(result), { headers: corsHeaders })
+    return new Response(JSON.stringify(result), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[COP ACLED Layer] Error:', error)
     return new Response(JSON.stringify({
@@ -301,10 +296,10 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         fetched_at: new Date().toISOString(),
         error: 'Failed to fetch ACLED data',
       },
-    }), { headers: corsHeaders })
+    }), { headers: JSON_HEADERS })
   }
 }
 
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, { status: 204, headers: corsHeaders })
+  return new Response(null, { status: 204, headers: JSON_HEADERS })
 }

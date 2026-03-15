@@ -20,12 +20,6 @@ interface Env {
   JWT_SECRET?: string
 }
 
-const corsHeaders = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Workspace-ID',
-}
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   const { env, params, request } = context
@@ -36,11 +30,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: corsHeaders,
+        status: 401, headers: JSON_HEADERS,
       })
     }
     if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
-      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
+      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
     }
     const body = await request.json() as any
 
@@ -51,7 +45,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     if (!task) {
       return new Response(JSON.stringify({ error: 'Task not found in this session' }), {
-        status: 404, headers: corsHeaders,
+        status: 404, headers: JSON_HEADERS,
       })
     }
 
@@ -62,18 +56,18 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         return new Response(JSON.stringify({
           message: 'Task auto-assigned',
           assigned_to: result.assignee,
-        }), { headers: corsHeaders })
+        }), { headers: JSON_HEADERS })
       } else {
         return new Response(JSON.stringify({
           error: 'No eligible collaborator found for auto-assignment',
-        }), { status: 422, headers: corsHeaders })
+        }), { status: 422, headers: JSON_HEADERS })
       }
     }
 
     // Manual assignment
     if (!body.assigned_to) {
       return new Response(JSON.stringify({ error: 'assigned_to or auto=true required' }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: JSON_HEADERS,
       })
     }
 
@@ -98,18 +92,18 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     return new Response(JSON.stringify({
       message: 'Task reassigned',
       assigned_to: body.assigned_to,
-    }), { headers: corsHeaders })
+    }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[COP Task Reassign] Error:', error)
     return new Response(JSON.stringify({ error: 'Failed to reassign task' }), {
-      status: 500, headers: corsHeaders,
+      status: 500, headers: JSON_HEADERS,
     })
   }
 }
 
 // OPTIONS - CORS preflight
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, { status: 204, headers: corsHeaders })
+  return new Response(null, { status: 204, headers: JSON_HEADERS })
 }
 
 // Reject GET requests (POST-only endpoint)

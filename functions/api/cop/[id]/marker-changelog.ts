@@ -6,7 +6,7 @@
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-helpers'
-import { generatePrefixedId } from '../../_shared/api-utils'
+import { generatePrefixedId , JSON_HEADERS } from '../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -14,12 +14,6 @@ interface Env {
   JWT_SECRET?: string
 }
 
-const corsHeaders = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Workspace-ID',
-}
 
 const VALID_ACTIONS = ['created', 'moved', 'confidence_changed', 'rationale_updated', 'evidence_linked', 'deleted']
 
@@ -32,17 +26,17 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
   const userId = await getUserFromRequest(request, env)
   if (!userId) {
-    return new Response(JSON.stringify({ error: 'Authentication required' }), { status: 401, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: 'Authentication required' }), { status: 401, headers: JSON_HEADERS })
   }
   const accessWorkspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId, { readOnly: true })
   if (!accessWorkspaceId) {
-    return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
   }
 
   try {
     if (!markerId) {
       return new Response(JSON.stringify({ error: 'marker_id query param is required' }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: JSON_HEADERS,
       })
     }
 
@@ -52,12 +46,12 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       ORDER BY created_at DESC
     `).bind(markerId, sessionId).all()
 
-    return new Response(JSON.stringify({ changelog: rows.results || [] }), { headers: corsHeaders })
+    return new Response(JSON.stringify({ changelog: rows.results || [] }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[COP Marker Changelog] List error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to list changelog',
-    }), { status: 500, headers: corsHeaders })
+    }), { status: 500, headers: JSON_HEADERS })
   }
 }
 
@@ -70,23 +64,23 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: corsHeaders,
+        status: 401, headers: JSON_HEADERS,
       })
     }
     if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
-      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
+      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
     }
     const body = await request.json() as any
 
     if (!body.marker_id?.trim()) {
       return new Response(JSON.stringify({ error: 'marker_id is required' }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: JSON_HEADERS,
       })
     }
 
     if (!body.action || !VALID_ACTIONS.includes(body.action)) {
       return new Response(JSON.stringify({ error: `action must be one of: ${VALID_ACTIONS.join(', ')}` }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: JSON_HEADERS,
       })
     }
 
@@ -96,7 +90,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     ).bind(body.marker_id.trim(), sessionId).first()
     if (!marker) {
       return new Response(JSON.stringify({ error: 'Marker not found in this session' }), {
-        status: 404, headers: corsHeaders,
+        status: 404, headers: JSON_HEADERS,
       })
     }
 
@@ -119,17 +113,17 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     ).run()
 
     return new Response(JSON.stringify({ id, message: 'Changelog entry created' }), {
-      status: 201, headers: corsHeaders,
+      status: 201, headers: JSON_HEADERS,
     })
   } catch (error) {
     console.error('[COP Marker Changelog] Create error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to create changelog entry',
-    }), { status: 500, headers: corsHeaders })
+    }), { status: 500, headers: JSON_HEADERS })
   }
 }
 
 // OPTIONS - CORS preflight
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, { status: 204, headers: corsHeaders })
+  return new Response(null, { status: 204, headers: JSON_HEADERS })
 }

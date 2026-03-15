@@ -15,12 +15,6 @@ interface Env {
 
 const MAX_BATCH_SIZE = 100
 
-const corsHeaders = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Workspace-ID',
-}
 
 interface EvidenceInput {
   title: string
@@ -45,16 +39,16 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: corsHeaders,
+        status: 401, headers: JSON_HEADERS,
       })
     }
     if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
-      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
+      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
     }
     const workspaceId = await getSessionWorkspaceId(env.DB, sessionId)
     if (!workspaceId) {
       return new Response(JSON.stringify({ error: 'COP session not found' }), {
-        status: 404, headers: corsHeaders,
+        status: 404, headers: JSON_HEADERS,
       })
     }
 
@@ -62,7 +56,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     if (!Array.isArray(body.items) || body.items.length === 0) {
       return new Response(JSON.stringify({ error: 'items array is required and must not be empty' }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: JSON_HEADERS,
       })
     }
 
@@ -70,7 +64,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       return new Response(JSON.stringify({
         error: `Batch size exceeds maximum of ${MAX_BATCH_SIZE} items`,
       }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: JSON_HEADERS,
       })
     }
 
@@ -81,7 +75,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         return new Response(JSON.stringify({
           error: `Item at index ${i} is missing a required title`,
         }), {
-          status: 400, headers: corsHeaders,
+          status: 400, headers: JSON_HEADERS,
         })
       }
     }
@@ -131,18 +125,18 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       created: items.length,
       items,
     }), {
-      status: 201, headers: corsHeaders,
+      status: 201, headers: JSON_HEADERS,
     })
   } catch (error) {
     console.error('[COP Evidence Batch API] Create error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to create evidence batch',
-    }), { status: 500, headers: corsHeaders })
+    }), { status: 500, headers: JSON_HEADERS })
   }
 }
 
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, { status: 204, headers: corsHeaders })
+  return new Response(null, { status: 204, headers: JSON_HEADERS })
 }
 
 // Reject GET requests (POST-only endpoint)
