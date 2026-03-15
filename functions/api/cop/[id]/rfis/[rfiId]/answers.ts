@@ -5,10 +5,12 @@
  * PUT  /api/cop/:id/rfis/:rfiId/answers - Accept/reject answer (body: { answer_id, is_accepted })
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserFromRequest } from '../../../../_shared/auth-helpers'
+import { getUserFromRequest, verifyCopSessionAccess } from '../../../../_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
+  SESSIONS?: KVNamespace
+  JWT_SECRET?: string
 }
 
 const corsHeaders = {
@@ -32,6 +34,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
         status: 401, headers: corsHeaders,
+      })
+    }
+    if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
+      return new Response(JSON.stringify({ error: 'Access denied' }), {
+        status: 403, headers: corsHeaders,
       })
     }
     const body = await request.json() as any
@@ -112,6 +119,11 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
         status: 401, headers: corsHeaders,
+      })
+    }
+    if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
+      return new Response(JSON.stringify({ error: 'Access denied' }), {
+        status: 403, headers: corsHeaders,
       })
     }
     const body = await request.json() as any

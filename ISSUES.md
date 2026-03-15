@@ -1,7 +1,24 @@
 # ResearchTools.net — Issue Tracker
 
 **Last updated:** 2026-03-15
-**Current tag:** v0.14.3-cop-auth-complete
+**Current tag:** v0.14.4-deep-auth-sweep
+
+---
+
+## Fixed (v0.14.4)
+
+### P0 — COP Sub-resource Endpoints Missing Session Access Checks
+- [x] `assets/[assetId]/check-in.ts` — POST had `getUserFromRequest` but no `verifyCopSessionAccess`
+- [x] `rfis/[rfiId]/answers.ts` — POST and PUT had `getUserFromRequest` but no `verifyCopSessionAccess`
+- [x] `playbooks/[pbId]/rules.ts` — GET had zero auth; POST/PUT/DELETE had `getUserFromRequest` but no `verifyCopSessionAccess`
+- [x] All 3 now enforce `getUserFromRequest` + `verifyCopSessionAccess` on all handlers
+- **Root cause:** sub-resource endpoints (nested under session ID) assumed parent auth was sufficient, but each handler runs independently
+
+### P1 — Research List Endpoints Had Zero Auth
+- [x] `research/evidence/list.ts` — GET had no auth at all
+- [x] `research/submissions/list.ts` — GET had no auth at all
+- [x] Both now enforce `getUserFromRequest` (401 if unauthenticated)
+- **Root cause:** research endpoints built as internal tools, never had auth wired in
 
 ---
 

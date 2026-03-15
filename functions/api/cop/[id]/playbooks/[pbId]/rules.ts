@@ -7,11 +7,12 @@
  * DELETE /api/cop/:id/playbooks/:pbId/rules?rule_id=x  - Delete rule
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserFromRequest } from '../../../../_shared/auth-helpers'
+import { getUserFromRequest, verifyCopSessionAccess } from '../../../../_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
   SESSIONS?: KVNamespace
+  JWT_SECRET?: string
 }
 
 function generateId(): string {
@@ -52,9 +53,22 @@ async function verifyPlaybookSession(env: Env, pbId: string, sessionId: string):
 }
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
-  const { env, params } = context
+  const { env, params, request } = context
   const sessionId = params.id as string
   const pbId = params.pbId as string
+
+  const userId = await getUserFromRequest(request, env)
+  if (!userId) {
+    return new Response(JSON.stringify({ error: 'Authentication required' }), {
+      status: 401, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+    })
+  }
+  const accessWorkspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId, { readOnly: true })
+  if (!accessWorkspaceId) {
+    return new Response(JSON.stringify({ error: 'Access denied' }), {
+      status: 403, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+    })
+  }
 
   try {
     if (!await verifyPlaybookSession(env, pbId, sessionId)) {
@@ -87,6 +101,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
         status: 401, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      })
+    }
+    if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
+      return new Response(JSON.stringify({ error: 'Access denied' }), {
+        status: 403, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       })
     }
 
@@ -169,6 +188,11 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
         status: 401, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      })
+    }
+    if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
+      return new Response(JSON.stringify({ error: 'Access denied' }), {
+        status: 403, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       })
     }
 
@@ -276,6 +300,11 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
         status: 401, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      })
+    }
+    if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
+      return new Response(JSON.stringify({ error: 'Access denied' }), {
+        status: 403, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       })
     }
 
