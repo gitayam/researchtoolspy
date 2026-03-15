@@ -183,9 +183,15 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       'SELECT task_id, depends_on_task_id FROM cop_task_dependencies WHERE id = ? AND cop_session_id = ?'
     ).bind(body.id, sessionId).first() as any
 
-    await env.DB.prepare(
+    const deleteResult = await env.DB.prepare(
       'DELETE FROM cop_task_dependencies WHERE id = ? AND cop_session_id = ?'
     ).bind(body.id, sessionId).run()
+
+    if (!deleteResult.meta.changes || deleteResult.meta.changes === 0) {
+      return new Response(JSON.stringify({ error: 'Dependency not found in this session' }), {
+        status: 404, headers: corsHeaders,
+      })
+    }
 
     if (dep) {
       await emitCopEvent(env.DB, {

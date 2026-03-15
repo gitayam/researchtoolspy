@@ -147,17 +147,19 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         })
       }
 
-      const placeholders = notification_ids.map(() => '?').join(',')
+      // Cap array length to prevent oversized queries
+      const cappedIds = notification_ids.slice(0, 100)
+      const placeholders = cappedIds.map(() => '?').join(',')
       const now = is_read ? new Date().toISOString() : null
 
       await env.DB.prepare(`
         UPDATE user_notifications
         SET is_read = ?, read_at = ?
         WHERE id IN (${placeholders}) AND user_hash = ?
-      `).bind(is_read === false ? 0 : 1, now, ...notification_ids, userHash).run()
+      `).bind(is_read === false ? 0 : 1, now, ...cappedIds, userHash).run()
 
       return new Response(JSON.stringify({
-        message: `${notification_ids.length} notifications updated`
+        message: `${cappedIds.length} notifications updated`
       }), { headers: CORS_HEADERS })
     }
 

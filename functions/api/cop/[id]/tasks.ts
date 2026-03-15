@@ -176,6 +176,13 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
   const sessionId = params.id as string
 
   try {
+    const userId = await getUserFromRequest(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: corsHeaders,
+      })
+    }
+
     const body = await request.json() as any
 
     if (!body.id) {
@@ -195,12 +202,6 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       })
     }
 
-    const userId = await getUserFromRequest(request, env)
-    if (!userId) {
-      return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: corsHeaders,
-      })
-    }
     const now = new Date().toISOString()
 
     // Block transition to in_progress if dependencies unmet

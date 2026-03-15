@@ -91,11 +91,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
+    const VALID_ROLES = ['VIEWER', 'EDITOR', 'ADMIN']
+    const role = VALID_ROLES.includes(body.role) ? body.role : 'VIEWER'
+
     const id = crypto.randomUUID()
     await env.DB.prepare(`
       INSERT INTO workspace_members (id, workspace_id, user_id, role, joined_at)
       VALUES (?, ?, ?, ?, datetime('now'))
-    `).bind(id, workspaceId, body.user_id, body.role).run()
+    `).bind(id, workspaceId, body.user_id, role).run()
 
     return new Response(JSON.stringify({ id, message: 'Member added' }), {
       status: 201, headers: jsonHeaders,

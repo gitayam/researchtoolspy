@@ -1,6 +1,6 @@
 # Site Issues — Investigation Report
 
-**Last updated:** 2026-03-15 (Sessions 34-78)
+**Last updated:** 2026-03-15 (Sessions 34-78b)
 
 ## Fixed — v2.15.6 (Session 78)
 
@@ -48,6 +48,24 @@
 | # | Issue | Status |
 |---|-------|--------|
 | 457 | **relationships.ts GET** — `parseInt(limit)` without max cap. Client can request `?limit=999999`. Fixed: added `Math.min(..., 500)` | FIXED |
+
+### HIGH — INTELLIGENCE DASHBOARD DATA LEAK (REMAINING 2)
+| # | Issue | Status |
+|---|-------|--------|
+| 461 | **intelligence/kpi.ts** — GET uses getUserIdOrDefault, exposes user 1's entity counts/framework data. Fixed: getUserFromRequest + 401 | FIXED |
+| 462 | **intelligence/contradictions.ts** — Same pattern. Exposes framework analysis contradictions. Fixed | FIXED |
+
+### MEDIUM — AUTH ORDERING + INPUT VALIDATION
+| # | Issue | Status |
+|---|-------|--------|
+| 463 | **cop/[id]/tasks.ts PUT** — Auth check was after body parsing + DB query. Unauthenticated users could trigger body parsing and DB lookups. Fixed: moved auth to top of handler | FIXED |
+| 464 | **workspaces/[id]/members.ts POST** — `body.role` inserted without validation, allowing privilege escalation via `role: 'ADMIN'`. Fixed: whitelist validation (VIEWER/EDITOR/ADMIN), defaults to VIEWER | FIXED |
+
+### LOW — INPUT BOUNDS + META.CHANGES
+| # | Issue | Status |
+|---|-------|--------|
+| 465 | **notifications.ts PATCH** — `notification_ids` array unbounded, allowing oversized SQL queries. Fixed: capped to 100 | FIXED |
+| 466 | **cop/[id]/task-dependencies.ts DELETE** — No meta.changes check, always returns 200. Fixed: added 404 on no changes | FIXED |
 
 ### LOW — UNHANDLED PROMISE REJECTIONS
 | # | Issue | Status |
