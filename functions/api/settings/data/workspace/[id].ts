@@ -12,41 +12,23 @@ interface Env {
 }
 
 /**
- * Helper to get user hash from authenticated user ID
- */
-async function getUserHashFromId(db: D1Database, userId: number): Promise<string | null> {
-  const user = await db.prepare('SELECT user_hash FROM users WHERE id = ?').bind(userId).first()
-  return user?.user_hash as string | null
-}
-
-/**
  * DELETE /api/settings/data/workspace/[id]
- * Clear all data in workspace
+ * Clear all data in workspace (entities, frameworks, evidence, analyses, etc.)
  */
 export const onRequestDelete: PagesFunction<Env> = async (context) => {
   try {
     const userId = await requireAuth(context.request, context.env)
-    const userHash = await getUserHashFromId(context.env.DB, userId)
-
-    if (!userHash) {
-      return Response.json({ error: 'User hash not found' }, { status: 404 })
-    }
 
     const workspaceId = context.params.id as string
     if (!workspaceId) {
       return Response.json({ error: 'Workspace ID required' }, { status: 400 })
     }
 
-    // Prevent deletion of default workspace data
-    if (workspaceId === '1') {
-      return Response.json({ error: 'Cannot clear default workspace data' }, { status: 400 })
-    }
-
-    // Verify workspace ownership
+    // Verify workspace ownership via owner_id
     const workspace = await context.env.DB.prepare(
-      'SELECT id, user_hash FROM workspaces WHERE id = ? AND user_hash = ?'
+      'SELECT id, owner_id FROM workspaces WHERE id = ? AND owner_id = ?'
     )
-      .bind(workspaceId, userHash)
+      .bind(workspaceId, userId)
       .first()
 
     if (!workspace) {
@@ -56,27 +38,40 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     // Delete all data associated with this workspace
     const deletedCounts: Record<string, number> = {}
 
-    // Delete frameworks (if table exists)
-    try {
-      const result = await context.env.DB.prepare('DELETE FROM frameworks WHERE workspace_id = ?')
-        .bind(workspaceId)
-        .run()
-      deletedCounts.frameworks = result.meta?.changes || 0
-    } catch {
-      deletedCounts.frameworks = 0
+    // Entity tables
+    const entityTables = ['actors', 'sources', 'events', 'places', 'behaviors']
+    for (const table of entityTables) {
+      try {
+        const result = await context.env.DB.prepare(`DELETE FROM ${table} WHERE workspace_id = ?`)
+          .bind(workspaceId)
+          .run()
+        deletedCounts[table] = result.meta?.changes || 0
+      } catch {
+        deletedCounts[table] = 0
+      }
     }
 
-    // Delete evidence (if table exists)
+    // Framework sessions (correct table name)
     try {
-      const result = await context.env.DB.prepare('DELETE FROM evidence WHERE workspace_id = ?')
+      const result = await context.env.DB.prepare('DELETE FROM framework_sessions WHERE workspace_id = ?')
         .bind(workspaceId)
         .run()
-      deletedCounts.evidence = result.meta?.changes || 0
+      deletedCounts.framework_sessions = result.meta?.changes || 0
     } catch {
-      deletedCounts.evidence = 0
+      deletedCounts.framework_sessions = 0
     }
 
-    // Delete ACH analyses (if table exists)
+    // Evidence items (correct table name)
+    try {
+      const result = await context.env.DB.prepare('DELETE FROM evidence_items WHERE workspace_id = ?')
+        .bind(workspaceId)
+        .run()
+      deletedCounts.evidence_items = result.meta?.changes || 0
+    } catch {
+      deletedCounts.evidence_items = 0
+    }
+
+    // ACH analyses
     try {
       const result = await context.env.DB.prepare('DELETE FROM ach_analyses WHERE workspace_id = ?')
         .bind(workspaceId)
@@ -86,28 +81,14 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       deletedCounts.ach_analyses = 0
     }
 
-    // Delete comments (if table exists)
+    // Relationships
     try {
-      const result = await context.env.DB.prepare(
-        `DELETE FROM comments WHERE workspace_id = ?`
-      )
+      const result = await context.env.DB.prepare('DELETE FROM relationships WHERE workspace_id = ?')
         .bind(workspaceId)
         .run()
-      deletedCounts.comments = result.meta?.changes || 0
+      deletedCounts.relationships = result.meta?.changes || 0
     } catch {
-      deletedCounts.comments = 0
-    }
-
-    // Log the clear operation
-    try {
-      await context.env.DB.prepare(
-        `INSERT INTO settings_audit_log (user_hash, category, setting_key, new_value, changed_at)
-         VALUES (?, 'data', 'workspace_cleared', ?, CURRENT_TIMESTAMP)`
-      )
-        .bind(userHash, JSON.stringify({ workspace_id: workspaceId, deleted: deletedCounts }))
-        .run()
-    } catch {
-      // Audit log table might not exist - continue anyway
+      deletedCounts.relationships = 0
     }
 
     return Response.json({

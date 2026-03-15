@@ -47,7 +47,7 @@ function buildEntityQuery(
 
   if (search) {
     where += ` AND name LIKE ?`
-    binds.push(`${search}%`)
+    binds.push(`%${search}%`)
   }
 
   const sql = `SELECT CAST(id AS TEXT) as id, name, '${entityType}' as entity_type, ${meta.typeCol} as type, ${meta.categoryCol} as category, created_by, created_at, workspace_id FROM ${table} ${where}`
@@ -76,8 +76,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     const typeFilter = url.searchParams.get('type') || null
     const search = url.searchParams.get('search') || null
-    const limit = Math.min(parseInt(url.searchParams.get('limit') || '50'), 200)
-    const offset = parseInt(url.searchParams.get('offset') || '0')
+    const limit = Math.min(parseInt(url.searchParams.get('limit') || '50', 10) || 50, 200)
+    const offset = Math.max(parseInt(url.searchParams.get('offset') || '0', 10) || 0, 0)
 
     // If type filter is set, resolve singular name to plural table name
     const resolvedTable = typeFilter ? TYPE_TO_TABLE[typeFilter] : null

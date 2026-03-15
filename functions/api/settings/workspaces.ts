@@ -34,7 +34,6 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     const workspaces = (results.results || []).map((row: any) => ({
       ...row,
       is_public: Boolean(row.is_public),
-      is_default: row.id === '1',
     }))
 
     // If no workspaces exist, create a default one
@@ -48,25 +47,19 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         description: 'Default workspace',
         type: 'PERSONAL' as const,
         is_public: false,
-        is_default: true,
         created_at: createdAt,
       }
 
-      await context.env.DB.prepare(
-        `INSERT INTO workspaces (id, name, description, type, is_public, owner_id, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-      )
-        .bind(
-          defaultId,
-          defaultWorkspace.name,
-          defaultWorkspace.description,
-          defaultWorkspace.type,
-          0,
-          userId,
-          createdAt,
-          createdAt
-        )
-        .run()
+      await context.env.DB.batch([
+        context.env.DB.prepare(
+          `INSERT INTO workspaces (id, name, description, type, is_public, owner_id, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+        ).bind(defaultId, defaultWorkspace.name, defaultWorkspace.description, defaultWorkspace.type, 0, userId, createdAt, createdAt),
+        context.env.DB.prepare(
+          `INSERT INTO workspace_members (id, workspace_id, user_id, role, joined_at)
+           VALUES (?, ?, ?, 'ADMIN', ?)`
+        ).bind(crypto.randomUUID(), defaultId, userId, createdAt),
+      ])
 
       return Response.json({
         workspaces: [defaultWorkspace],
@@ -115,13 +108,17 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const isPublic = body.type === 'PUBLIC'
     const createdAt = new Date().toISOString()
 
-    // Insert workspace
-    await context.env.DB.prepare(
-      `INSERT INTO workspaces (id, name, description, type, is_public, owner_id, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-    )
-      .bind(id, body.name, body.description || null, body.type, isPublic ? 1 : 0, userId, createdAt, createdAt)
-      .run()
+    // Insert workspace and add creator as ADMIN member atomically
+    await context.env.DB.batch([
+      context.env.DB.prepare(
+        `INSERT INTO workspaces (id, name, description, type, is_public, owner_id, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+      ).bind(id, body.name, body.description || null, body.type, isPublic ? 1 : 0, userId, createdAt, createdAt),
+      context.env.DB.prepare(
+        `INSERT INTO workspace_members (id, workspace_id, user_id, role, joined_at)
+         VALUES (?, ?, ?, 'ADMIN', ?)`
+      ).bind(crypto.randomUUID(), id, userId, createdAt),
+    ])
 
     const workspace = {
       id,
@@ -129,7 +126,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       description: body.description,
       type: body.type,
       is_public: isPublic,
-      is_default: false,
       created_at: createdAt,
     }
 

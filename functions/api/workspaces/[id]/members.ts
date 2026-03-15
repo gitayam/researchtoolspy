@@ -91,6 +91,17 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
+    // Check if user is already a member
+    const existing = await env.DB.prepare(
+      'SELECT id FROM workspace_members WHERE workspace_id = ? AND user_id = ?'
+    ).bind(workspaceId, body.user_id).first()
+
+    if (existing) {
+      return new Response(JSON.stringify({ error: 'User is already a member of this workspace' }), {
+        status: 409, headers: jsonHeaders,
+      })
+    }
+
     const VALID_ROLES = ['VIEWER', 'EDITOR', 'ADMIN']
     const role = VALID_ROLES.includes(body.role) ? body.role : 'VIEWER'
 

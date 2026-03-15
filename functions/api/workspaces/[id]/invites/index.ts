@@ -1,9 +1,9 @@
 /**
  * Workspace Invites API
  *
- * GET  /api/workspaces/:id/invites           - List invite links
- * POST /api/workspaces/:id/invites           - Create invite link
- * DELETE /api/workspaces/:id/invites?revoke=ID - Revoke invite
+ * GET  /api/workspaces/:id/invites              - List invite links
+ * POST /api/workspaces/:id/invites              - Create invite link
+ * DELETE /api/workspaces/:id/invites/:inviteId   - Revoke invite (see [inviteId].ts)
  */
 
 import { getUserFromRequest } from '../../../_shared/auth-helpers'

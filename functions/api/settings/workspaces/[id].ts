@@ -117,10 +117,21 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       return Response.json({ error: 'Workspace not found or access denied' }, { status: 404 })
     }
 
-    // Delete workspace (cascading deletes should handle related data)
-    await context.env.DB.prepare('DELETE FROM workspaces WHERE id = ? AND owner_id = ?')
-      .bind(workspaceId, userId)
-      .run()
+    // Cascade delete related data, then workspace itself
+    await context.env.DB.batch([
+      context.env.DB.prepare('DELETE FROM workspace_invites WHERE workspace_id = ?').bind(workspaceId),
+      context.env.DB.prepare('DELETE FROM workspace_members WHERE workspace_id = ?').bind(workspaceId),
+      context.env.DB.prepare('DELETE FROM actors WHERE workspace_id = ?').bind(workspaceId),
+      context.env.DB.prepare('DELETE FROM sources WHERE workspace_id = ?').bind(workspaceId),
+      context.env.DB.prepare('DELETE FROM events WHERE workspace_id = ?').bind(workspaceId),
+      context.env.DB.prepare('DELETE FROM places WHERE workspace_id = ?').bind(workspaceId),
+      context.env.DB.prepare('DELETE FROM behaviors WHERE workspace_id = ?').bind(workspaceId),
+      context.env.DB.prepare('DELETE FROM relationships WHERE workspace_id = ?').bind(workspaceId),
+      context.env.DB.prepare('DELETE FROM evidence_items WHERE workspace_id = ?').bind(workspaceId),
+      context.env.DB.prepare('DELETE FROM framework_sessions WHERE workspace_id = ?').bind(workspaceId),
+      context.env.DB.prepare('DELETE FROM ach_analyses WHERE workspace_id = ?').bind(workspaceId),
+      context.env.DB.prepare('DELETE FROM workspaces WHERE id = ? AND owner_id = ?').bind(workspaceId, userId),
+    ])
 
     return Response.json({
       success: true,

@@ -35,8 +35,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     }
 
     const typeFilter = url.searchParams.get('type') || null
-    const limit = Math.min(parseInt(url.searchParams.get('limit') || '50'), 200)
-    const offset = parseInt(url.searchParams.get('offset') || '0')
+    const limit = Math.min(parseInt(url.searchParams.get('limit') || '50', 10) || 50, 200)
+    const offset = Math.max(parseInt(url.searchParams.get('offset') || '0', 10) || 0, 0)
 
     let whereClause = 'WHERE fs.workspace_id = ?'
     const binds: any[] = [workspaceId]

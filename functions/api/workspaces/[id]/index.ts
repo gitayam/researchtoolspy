@@ -150,7 +150,24 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       })
     }
 
-    await env.DB.prepare(`DELETE FROM workspaces WHERE id = ?`).bind(workspaceId).run()
+    // Cascade delete related data before removing workspace
+    // Order matters: delete leaf records first, then parent records
+    await env.DB.batch([
+      env.DB.prepare('DELETE FROM workspace_invites WHERE workspace_id = ?').bind(workspaceId),
+      env.DB.prepare('DELETE FROM workspace_members WHERE workspace_id = ?').bind(workspaceId),
+      env.DB.prepare('DELETE FROM investigation_activity WHERE investigation_id IN (SELECT id FROM investigations WHERE workspace_id = ?)').bind(workspaceId),
+      env.DB.prepare('DELETE FROM investigations WHERE workspace_id = ?').bind(workspaceId),
+      env.DB.prepare('DELETE FROM actors WHERE workspace_id = ?').bind(workspaceId),
+      env.DB.prepare('DELETE FROM sources WHERE workspace_id = ?').bind(workspaceId),
+      env.DB.prepare('DELETE FROM events WHERE workspace_id = ?').bind(workspaceId),
+      env.DB.prepare('DELETE FROM places WHERE workspace_id = ?').bind(workspaceId),
+      env.DB.prepare('DELETE FROM behaviors WHERE workspace_id = ?').bind(workspaceId),
+      env.DB.prepare('DELETE FROM relationships WHERE workspace_id = ?').bind(workspaceId),
+      env.DB.prepare('DELETE FROM evidence_items WHERE workspace_id = ?').bind(workspaceId),
+      env.DB.prepare('DELETE FROM framework_sessions WHERE workspace_id = ?').bind(workspaceId),
+      env.DB.prepare('DELETE FROM ach_analyses WHERE workspace_id = ?').bind(workspaceId),
+      env.DB.prepare('DELETE FROM workspaces WHERE id = ?').bind(workspaceId),
+    ])
 
     return new Response(JSON.stringify({ message: 'Workspace deleted' }), { headers: jsonHeaders })
   } catch (error) {

@@ -34,8 +34,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       })
     }
 
-    const limit = Math.min(parseInt(url.searchParams.get('limit') || '50'), 200)
-    const offset = parseInt(url.searchParams.get('offset') || '0')
+    const limit = Math.min(parseInt(url.searchParams.get('limit') || '50', 10) || 50, 200)
+    const offset = Math.max(parseInt(url.searchParams.get('offset') || '0', 10) || 0, 0)
 
     const countResult = await env.DB.prepare(
       'SELECT COUNT(*) as total FROM cop_sessions WHERE team_workspace_id = ?'
