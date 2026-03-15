@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Separator } from '@/components/ui/separator'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { MOMAssessmentList } from './MOMAssessmentList'
+import { MOMAssessmentModal } from './MOMAssessmentModal'
 import { RelationshipList, RelationshipForm } from '@/components/network'
 import { FrameworkUsagePanel } from '@/components/shared/FrameworkUsagePanel'
 import type { Event, MOMAssessment, Relationship } from '@/types/entities'
@@ -30,6 +31,8 @@ export function EventDetailView({ event, onEdit, onDelete }: EventDetailViewProp
   const [entityNames, setEntityNames] = useState<Record<string, string>>({})
   const [isRelationshipFormOpen, setIsRelationshipFormOpen] = useState(false)
   const [editingRelationship, setEditingRelationship] = useState<Relationship | undefined>(undefined)
+  const [isMomModalOpen, setIsMomModalOpen] = useState(false)
+  const [editingMomAssessment, setEditingMomAssessment] = useState<MOMAssessment | undefined>(undefined)
 
   // Load MOM assessments for this event
   useEffect(() => {
@@ -461,7 +464,8 @@ export function EventDetailView({ event, onEdit, onDelete }: EventDetailViewProp
                     Create MOM assessments to track which actors had motive, opportunity, and means
                   </p>
                   <Button onClick={() => {
-                    // TODO: Open MOM assessment creation modal with event pre-selected
+                    setEditingMomAssessment(undefined)
+                    setIsMomModalOpen(true)
                   }}>
                     <Plus className="h-4 w-4 mr-2" />
                     Add Actor Assessment
@@ -474,10 +478,12 @@ export function EventDetailView({ event, onEdit, onDelete }: EventDetailViewProp
                   compact={true}
                   showFilters={momAssessments.length > 3}
                   onCreateNew={() => {
-                    // TODO: Open MOM assessment creation modal with event pre-selected
+                    setEditingMomAssessment(undefined)
+                    setIsMomModalOpen(true)
                   }}
                   onEdit={(assessment) => {
-                    // TODO: Open MOM assessment edit modal
+                    setEditingMomAssessment(assessment)
+                    setIsMomModalOpen(true)
                   }}
                   onDelete={async (assessment) => {
                     if (!confirm(`Delete MOM assessment "${assessment.scenario_description}"?`)) return
@@ -630,6 +636,25 @@ export function EventDetailView({ event, onEdit, onDelete }: EventDetailViewProp
           />
         </DialogContent>
       </Dialog>
+
+      {/* MOM Assessment Modal */}
+      <MOMAssessmentModal
+        open={isMomModalOpen}
+        onClose={() => {
+          setIsMomModalOpen(false)
+          setEditingMomAssessment(undefined)
+        }}
+        assessment={editingMomAssessment}
+        eventId={event.id}
+        workspaceId={event.workspace_id}
+        onSuccess={async () => {
+          const response = await fetch(`/api/mom-assessments?event_id=${event.id}`, { headers: getCopHeaders() })
+          if (response.ok) {
+            const data = await response.json()
+            setMomAssessments(data.assessments || [])
+          }
+        }}
+      />
     </div>
   )
 }

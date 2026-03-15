@@ -474,10 +474,12 @@ export function ActorDetailView({ actor, onEdit, onDelete }: ActorDetailViewProp
                   compact={true}
                   showFilters={momAssessments.length > 3}
                   onCreateNew={() => {
-                    // TODO: Open MOM assessment creation modal
+                    setEditingMomAssessment(undefined)
+                    setIsMomModalOpen(true)
                   }}
                   onEdit={(assessment) => {
-                    // TODO: Open MOM assessment edit modal
+                    setEditingMomAssessment(assessment)
+                    setIsMomModalOpen(true)
                   }}
                   onDelete={async (assessment) => {
                     if (!confirm(`Delete MOM assessment "${assessment.scenario_description}"?`)) return
@@ -863,6 +865,25 @@ export function ActorDetailView({ actor, onEdit, onDelete }: ActorDetailViewProp
         entityId={actor.id}
         entityType="ACTOR"
         entityName={actor.name}
+      />
+
+      {/* MOM Assessment Modal */}
+      <MOMAssessmentModal
+        open={isMomModalOpen}
+        onClose={() => {
+          setIsMomModalOpen(false)
+          setEditingMomAssessment(undefined)
+        }}
+        assessment={editingMomAssessment}
+        actorId={actor.id}
+        workspaceId={actor.workspace_id}
+        onSuccess={async () => {
+          const response = await fetch(`/api/mom-assessments?actor_id=${actor.id}`, { headers: getCopHeaders() })
+          if (response.ok) {
+            const data = await response.json()
+            setMomAssessments(data.assessments || [])
+          }
+        }}
       />
     </div>
   )

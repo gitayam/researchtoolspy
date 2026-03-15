@@ -1,7 +1,19 @@
 # ResearchTools.net — Issue Tracker
 
 **Last updated:** 2026-03-15
-**Current tag:** v0.18.0-entity-linkers-comments
+**Current tag:** v0.18.1-mom-modals-wired
+
+---
+
+## Fixed (v0.18.1)
+
+### P3 → P2 — MOM Assessment Modals Not Wired (Create/Edit No-Ops)
+- [x] `ActorDetailView.tsx` — imported `MOMAssessmentModal` but never rendered it; `onCreateNew` and `onEdit` callbacks were TODO stubs
+- [x] `EventDetailView.tsx` — didn't import modal at all; same TODO stubs on button callbacks; also missing state variables
+- [x] Wired `isMomModalOpen`/`editingMomAssessment` state to TODO callbacks in both files
+- [x] Added `<MOMAssessmentModal>` JSX rendering with proper props (`actorId`/`eventId`, `workspaceId`, `onSuccess` refresh)
+- [x] Delete already worked (was wired to `fetch` + `getCopHeaders()`)
+- **Impact:** MOM assessment create and edit buttons on Actor and Event detail pages now open the modal dialog. Combined with v0.17.9 backend creation, the MOM feature is fully end-to-end functional.
 
 ---
 
@@ -686,7 +698,7 @@
 ### P3 — UX / Polish
 
 - [ ] **Export functionality not implemented** — `PublicFrameworkPage.tsx:65` shows alert("coming soon")
-- [ ] **MOM assessment modals not wired** — `EventDetailView.tsx`, `ActorDetailView.tsx`
+- [x] ~~MOM assessment modals not wired~~ — fixed in v0.18.1 (backend in v0.17.9, frontend wiring in v0.18.1)
 - [ ] **Starbursting launcher UI missing** — `ContentIntelligencePage.tsx`
 - [x] ~~Library vote shows "Anonymous"~~ — fixed in v0.13.3
 
