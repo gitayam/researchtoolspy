@@ -69,6 +69,10 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       'SELECT bbox_min_lat, bbox_min_lon, bbox_max_lat, bbox_max_lon FROM cop_sessions WHERE id = ?'
     ).bind(sessionId).first()
 
+    if (!session) {
+      return new Response(JSON.stringify({ error: 'COP session not found' }), { status: 404, headers: JSON_HEADERS })
+    }
+
     const workspaceId = access.workspace_id
 
     // 2. Determine bbox

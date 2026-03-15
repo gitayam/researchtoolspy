@@ -69,6 +69,10 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
        FROM cop_sessions WHERE id = ?`
     ).bind(sessionId).first()
 
+    if (!session) {
+      return new Response(JSON.stringify({ error: 'COP session not found' }), { status: 404, headers: JSON_HEADERS })
+    }
+
     const workspaceId = access.workspace_id
 
     // 2. Determine bbox

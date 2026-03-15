@@ -1,7 +1,22 @@
 # ResearchTools.net — Issue Tracker
 
 **Last updated:** 2026-03-15
-**Current tag:** v0.19.4-relationships-response-fix
+**Current tag:** v0.19.5-cop-layer-null-guard
+
+---
+
+## Fixed (v0.19.5)
+
+### P1 — 6 COP Layer Endpoints Crash on Deleted/Missing Session (TypeError)
+- [x] `layers/actors.ts`, `layers/places.ts`, `layers/relationships.ts`, `layers/analysis.ts`, `layers/events.ts`, `layers/assets.ts`
+- [x] All called `sessionBBox(session)` where `session` could be `null` (from `.first()` on deleted/missing COP session)
+- [x] `sessionBBox()` accesses `session.bbox_min_lon` — throws `TypeError: Cannot read property of null`
+- [x] Fix: Added `if (!session)` null guard returning 404 before calling `sessionBBox()` in all 6 files
+- [x] `gdelt.ts` and `acled.ts` already had this guard — consistent now
+- **Root cause:** Layer endpoints were written incrementally, each copy-pasting the session lookup without the null guard that `gdelt.ts`/`acled.ts` had
+
+### Also verified (no fix needed)
+- [x] `workspaces/[id]/members.ts` returns bare array — frontend `TeamTab.tsx:55` does `setMembers(data)` expecting bare array (self-consistent, no mismatch)
 
 ---
 
