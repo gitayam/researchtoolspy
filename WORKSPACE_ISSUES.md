@@ -1,6 +1,30 @@
 # Site Issues — Investigation Report
 
-**Last updated:** 2026-03-15 (Sessions 34-80)
+**Last updated:** 2026-03-15 (Sessions 34-81)
+
+## Fixed — v2.15.9 (Session 81)
+
+### MEDIUM — LIBRARY PUBLISH WITHOUT OWNERSHIP CHECK
+| # | Issue | Status |
+|---|-------|--------|
+| 491 | **library/index.ts POST** — Any authenticated user could publish any framework by ID without verifying ownership. Fixed: added workspace membership check via `framework_sessions` + `workspace_members` join | FIXED |
+
+### LOW — COLLABORATOR DELETE WITHOUT ROLE CHECK
+| # | Issue | Status |
+|---|-------|--------|
+| 492 | **cop/[id]/collaborators.ts DELETE** — Any authenticated user could remove any collaborator. Fixed: only session owner or the collaborator themselves can remove | FIXED |
+
+### MEDIUM — RAW error.message LEAKED IN 16 FRONTEND ALERTS
+| # | Issue | Status |
+|---|-------|--------|
+| 493 | **16 alert() calls across 12 files** — Displayed raw `error.message` or `error.error` from API responses to users, potentially exposing internal details (table names, query info). Fixed: replaced with generic user-friendly messages. Files: EntityQuickCreate (4), ActorsPage, EventsPage, SourcesPage, CitationToEvidenceModal, ExportButton (3), COGWizard, InvestigationPacketsPage, EvidenceSubmissionsPage (3), SubmissionsReviewPage, ClaimEvidenceLinker, ClaimEntityLinker, GenericFrameworkForm, WebScraperPage | FIXED |
+
+### LOW — EMPTY CATCH BLOCKS IN COP CLAIMS
+| # | Issue | Status |
+|---|-------|--------|
+| 494 | **CopClaimsPanel.tsx** — 2 fire-and-forget persona creation calls had `.catch(() => {})` swallowing errors silently. Fixed: replaced with `.catch(console.error)` | FIXED |
+
+---
 
 ## Fixed — v2.15.8 (Session 80)
 

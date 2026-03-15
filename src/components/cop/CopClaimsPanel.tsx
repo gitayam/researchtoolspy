@@ -315,7 +315,7 @@ export default function CopClaimsPanel({ sessionId, expanded, highlightEntityId 
             body: JSON.stringify({ personas: personas.map(p => ({ ...p, platform: 'other' })), source: 'geoconfirmed' }),
           }).then(() => {
             window.dispatchEvent(new CustomEvent('cop:personas-updated'))
-          }).catch(() => {})
+          }).catch(console.error)
         }
 
         setResults(prev => [result, ...prev])
@@ -406,7 +406,7 @@ export default function CopClaimsPanel({ sessionId, expanded, highlightEntityId 
             }).then(() => {
               // Notify Actors panel to refresh
               window.dispatchEvent(new CustomEvent('cop:personas-updated'))
-            }).catch(() => {})
+            }).catch(console.error)
           }
         } catch { /* non-fatal */ }
       }

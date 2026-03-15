@@ -78,7 +78,7 @@ export function ExportButton({
       logger.info('✓ Report preview generated')
     } catch (error) {
       logger.error('Failed to generate preview:', error)
-      alert(`Failed to generate report preview: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      alert('Failed to generate report preview. Please try again.')
     } finally {
       setGenerating(false)
     }
@@ -115,7 +115,7 @@ export function ExportButton({
       logger.info('✓ Enhanced SWOT report exported successfully')
     } catch (error) {
       logger.error('Enhanced export failed:', error)
-      alert(`Failed to export enhanced report: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      alert('Failed to export enhanced report. Please try again.')
     } finally {
       setExporting(false)
       setCurrentFormat(null)
@@ -152,7 +152,7 @@ export function ExportButton({
       logger.info(`✓ Successfully exported to ${format.toUpperCase()}`)
     } catch (error) {
       logger.error('Export failed:', error)
-      alert(`Failed to export report: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      alert('Failed to export report. Please try again.')
     } finally {
       setExporting(false)
       setCurrentFormat(null)

@@ -137,7 +137,7 @@ export function EventsPage() {
         navigate('/dashboard/entities/events')
       } else {
         const error = await response.json().catch(() => ({ error: 'Unknown error' }))
-        alert(`Failed to delete event: ${error.error}`)
+        alert('Failed to delete event. Please try again.')
       }
     } catch (error) {
       console.error('Failed to delete event:', error)

@@ -172,7 +172,7 @@ export default function EvidenceSubmissionsPage() {
       await loadForms()
     } catch (err) {
       console.error('Failed to toggle form:', err)
-      alert(err instanceof Error ? err.message : 'Failed to toggle form')
+      alert('Failed to toggle form. Please try again.')
     }
   }
 
@@ -194,7 +194,7 @@ export default function EvidenceSubmissionsPage() {
       await loadForms()
     } catch (err) {
       console.error('Failed to delete form:', err)
-      alert(err instanceof Error ? err.message : 'Failed to delete form')
+      alert('Failed to delete form. Please try again.')
     }
   }
 
@@ -240,7 +240,7 @@ export default function EvidenceSubmissionsPage() {
       setSelectedSubmission(null)
     } catch (err) {
       console.error('Failed to process:', err)
-      alert(err instanceof Error ? err.message : 'Failed to process submission')
+      alert('Failed to process submission. Please try again.')
     } finally {
       setIsProcessing(false)
     }

@@ -137,7 +137,7 @@ export function SourcesPage() {
         navigate('/dashboard/entities/sources')
       } else {
         const error = await response.json().catch(() => ({ error: 'Unknown error' }))
-        alert(`Failed to delete source: ${error.error}`)
+        alert('Failed to delete source. Please try again.')
       }
     } catch (error) {
       console.error('Failed to delete source:', error)

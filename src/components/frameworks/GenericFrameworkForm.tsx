@@ -1289,7 +1289,7 @@ export function GenericFrameworkForm({
       })
     } catch (error) {
       console.error('Failed to generate questions:', error)
-      alert(error instanceof Error ? error.message : 'Failed to generate follow-up questions. Please try again.')
+      alert('Failed to generate follow-up questions. Please try again.')
     } finally {
       setGeneratingQuestions(false)
     }

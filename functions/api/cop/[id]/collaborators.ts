@@ -206,6 +206,29 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       })
     }
 
+    // Verify the requesting user is session creator or removing themselves
+    const session = await env.DB.prepare(
+      'SELECT created_by FROM cop_sessions WHERE id = ?'
+    ).bind(sessionId).first()
+
+    const collab = await env.DB.prepare(
+      'SELECT user_id FROM cop_collaborators WHERE id = ? AND cop_session_id = ?'
+    ).bind(body.collaborator_id, sessionId).first()
+
+    if (!collab) {
+      return new Response(JSON.stringify({ error: 'Collaborator not found in this session' }), {
+        status: 404, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      })
+    }
+
+    const isOwner = session && Number(session.created_by) === userId
+    const isSelf = collab && Number(collab.user_id) === userId
+    if (!isOwner && !isSelf) {
+      return new Response(JSON.stringify({ error: 'Only session owner can remove collaborators' }), {
+        status: 403, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      })
+    }
+
     await env.DB.prepare(
       `DELETE FROM cop_collaborators WHERE id = ? AND cop_session_id = ?`
     ).bind(body.collaborator_id, sessionId).run()

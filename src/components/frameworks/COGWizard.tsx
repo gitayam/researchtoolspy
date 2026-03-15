@@ -228,7 +228,7 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
       }
     } catch (error) {
       console.error('Failed to generate entities:', error)
-      alert(`❌ Entity generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      alert('Entity generation failed. Please try again.')
     } finally {
       setGeneratingEntities(false)
     }

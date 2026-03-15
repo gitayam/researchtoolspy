@@ -177,7 +177,7 @@ export function ClaimEntityLinker({ claimAdjustmentId, onLinked }: ClaimEntityLi
       onLinked?.()
     } catch (error) {
       console.error('Error linking entity:', error)
-      alert(error instanceof Error ? error.message : 'Failed to link entity')
+      alert('Failed to link entity. Please try again.')
     } finally {
       setLinking(false)
     }

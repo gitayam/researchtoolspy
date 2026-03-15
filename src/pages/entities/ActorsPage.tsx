@@ -142,7 +142,7 @@ export function ActorsPage() {
         navigate('/dashboard/entities/actors')
       } else {
         const error = await response.json().catch(() => ({ error: 'Unknown error' }))
-        alert(`Failed to delete actor: ${error.error}`)
+        alert('Failed to delete actor. Please try again.')
       }
     } catch (error) {
       console.error('Failed to delete actor:', error)

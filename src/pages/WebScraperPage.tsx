@@ -84,7 +84,7 @@ export function WebScraperPage() {
         throw new Error(t('scraper:alerts.createFailed'))
       }
     } catch (err: any) {
-      alert(t('scraper:alerts.createError', { error: err.message }))
+      alert(t('scraper:alerts.createFailed'))
     }
   }
 

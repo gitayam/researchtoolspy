@@ -78,7 +78,7 @@ export function CitationToEvidenceModal({ citation, onClose, onSuccess }: Citati
       }
     } catch (error: any) {
       console.error('Failed to create evidence:', error)
-      alert(`Failed to create evidence: ${error.message}`)
+      alert('Failed to create evidence. Please try again.')
     } finally {
       setLoading(false)
     }

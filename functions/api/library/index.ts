@@ -168,6 +168,20 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         })
       }
 
+      // Verify the user owns this framework (via workspace membership)
+      const ownsFramework = await env.DB.prepare(`
+        SELECT f.id FROM framework_sessions f
+        INNER JOIN workspace_members wm ON f.workspace_id = wm.workspace_id
+        WHERE f.id = ? AND wm.user_id = ?
+      `).bind(framework_id, userId).first()
+
+      if (!ownsFramework) {
+        return new Response(JSON.stringify({ error: 'Framework not found or not accessible' }), {
+          status: 403,
+          headers: CORS_HEADERS
+        })
+      }
+
       // Check if already published
       const existing = await env.DB.prepare(
         'SELECT id FROM library_frameworks WHERE framework_id = ? AND is_published = 1'

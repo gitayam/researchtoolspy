@@ -172,7 +172,7 @@ export function ClaimEvidenceLinker({ claimAdjustmentId, onLinked }: ClaimEviden
       onLinked?.()
     } catch (error) {
       console.error('Error linking evidence:', error)
-      alert(error instanceof Error ? error.message : 'Failed to link evidence')
+      alert('Failed to link evidence. Please try again.')
     } finally {
       setLinking(false)
     }

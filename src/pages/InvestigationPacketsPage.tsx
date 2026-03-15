@@ -125,7 +125,7 @@ export function InvestigationPacketsPage() {
       }
     } catch (error) {
       console.error('Error creating packet:', error)
-      alert(error instanceof Error ? error.message : t('investigationPackets:alerts.createFailed'))
+      alert(t('investigationPackets:alerts.createFailed'))
     } finally {
       setCreating(false)
     }

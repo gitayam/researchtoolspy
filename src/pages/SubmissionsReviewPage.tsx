@@ -132,7 +132,7 @@ export default function SubmissionsReviewPage() {
       setSelectedSubmission(null)
     } catch (err) {
       console.error('Failed to process:', err)
-      alert(err instanceof Error ? err.message : t('submissionsReview:alerts.processFailed'))
+      alert(t('submissionsReview:alerts.processFailed'))
     } finally {
       setIsProcessing(false)
     }
