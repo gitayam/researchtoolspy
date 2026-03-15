@@ -10,6 +10,14 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
   try {
     const userId = await getUserIdOrDefault(request, env)
+    const url = new URL(request.url)
+    const workspaceId = url.searchParams.get('workspace_id') || request.headers.get('X-Workspace-ID')
+
+    // Build workspace-scoped filter for entity tables
+    const entityFilter = workspaceId
+      ? 'created_by = ? AND workspace_id = ?'
+      : 'created_by = ?'
+    const entityParams = workspaceId ? [userId, workspaceId] : [userId]
 
     // Run all queries in parallel
     const [
@@ -32,11 +40,11 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         GROUP BY framework_type
       `).bind(userId).all<{ framework_type: string; cnt: number }>(),
 
-      env.DB.prepare(`SELECT COUNT(*) as cnt FROM actors WHERE (created_by = ? OR is_public = 1)`).bind(userId).first<{ cnt: number }>(),
-      env.DB.prepare(`SELECT COUNT(*) as cnt FROM sources WHERE (created_by = ? OR is_public = 1)`).bind(userId).first<{ cnt: number }>(),
-      env.DB.prepare(`SELECT COUNT(*) as cnt FROM events WHERE (created_by = ? OR is_public = 1)`).bind(userId).first<{ cnt: number }>(),
-      env.DB.prepare(`SELECT COUNT(*) as cnt FROM places WHERE (created_by = ? OR is_public = 1)`).bind(userId).first<{ cnt: number }>(),
-      env.DB.prepare(`SELECT COUNT(*) as cnt FROM behaviors WHERE (created_by = ? OR is_public = 1)`).bind(userId).first<{ cnt: number }>(),
+      env.DB.prepare(`SELECT COUNT(*) as cnt FROM actors WHERE ${entityFilter}`).bind(...entityParams).first<{ cnt: number }>(),
+      env.DB.prepare(`SELECT COUNT(*) as cnt FROM sources WHERE ${entityFilter}`).bind(...entityParams).first<{ cnt: number }>(),
+      env.DB.prepare(`SELECT COUNT(*) as cnt FROM events WHERE ${entityFilter}`).bind(...entityParams).first<{ cnt: number }>(),
+      env.DB.prepare(`SELECT COUNT(*) as cnt FROM places WHERE ${entityFilter}`).bind(...entityParams).first<{ cnt: number }>(),
+      env.DB.prepare(`SELECT COUNT(*) as cnt FROM behaviors WHERE ${entityFilter}`).bind(...entityParams).first<{ cnt: number }>(),
 
       env.DB.prepare(`SELECT COUNT(*) as cnt FROM evidence_items WHERE created_by = ?`).bind(userId).first<{ cnt: number }>(),
 

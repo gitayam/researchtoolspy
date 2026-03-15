@@ -1,6 +1,6 @@
 # Site Issues — Investigation Report
 
-**Last updated:** 2026-03-14 (Sessions 34-68)
+**Last updated:** 2026-03-14 (Sessions 34-68b)
 
 ## Fixed — v0.13.0 (Session 34)
 
@@ -691,6 +691,33 @@
 | # | Issue | Status |
 |---|-------|--------|
 | 304 | **framework-datasets.ts** — First GET query (by framework_id) missing LIMIT. Fixed: `LIMIT 500` | FIXED |
+
+---
+
+## Fixed — v0.17.5 (Session 68b)
+
+### SECURITY — DATA ISOLATION (CRITICAL)
+| # | Issue | Status |
+|---|-------|--------|
+| 314 | **evidence.ts GET list returns ALL evidence** — No `created_by` filter on list query. Any user can see every evidence record in the database. Fixed: added `WHERE created_by = ?` to list query | FIXED |
+| 315 | **evidence.ts GET single returns any record** — `SELECT * FROM evidence WHERE id = ?` has no ownership check. Fixed: added `AND created_by = ?` | FIXED |
+| 316 | **intelligence/entities.ts cross-workspace leakage** — Entity queries used `created_by = ? OR is_public = 1` which leaks public entities from ALL workspaces. Fixed: added optional `workspace_id` filter from header/param, removed `is_public` fallback when workspace scoped | FIXED |
+| 317 | **intelligence/kpi.ts cross-workspace entity counts** — Same `is_public = 1` leakage on 5 entity count queries. Fixed: added workspace_id filtering matching entities.ts pattern | FIXED |
+
+### DATA ISOLATION (MEDIUM)
+| # | Issue | Status |
+|---|-------|--------|
+| 318 | **EvidenceLinker.tsx hardcoded workspace_id='1'** — Three `localStorage.getItem('current_workspace_id') \|\| '1'` fallbacks query wrong workspace for users without key set. Fixed: use `omnicore_workspace_id` (correct key), skip fetch if no workspace | FIXED |
+
+### MEMORY LEAK (1 component)
+| # | Issue | Status |
+|---|-------|--------|
+| 319 | **EvidenceLinker.tsx missing AbortController** — useEffect fetch without cleanup. Fixed: signal + abort on unmount | FIXED |
+
+### CODE QUALITY
+| # | Issue | Status |
+|---|-------|--------|
+| 320 | **extract-claims.ts 5 empty catch blocks** — Paywall bypass fallthrough chain had `catch (e) {}` with no indication of intent. Fixed: added `// Fallthrough to next source — intentional silent failure` comments | FIXED |
 
 ---
 

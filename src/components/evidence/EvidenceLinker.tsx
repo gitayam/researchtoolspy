@@ -50,49 +50,52 @@ export function EvidenceLinker({
 
   useEffect(() => {
     if (open) {
-      loadData()
+      const controller = new AbortController()
+      loadData(controller.signal)
+      return () => controller.abort()
     }
   }, [open, selectedTab])
 
-  const loadData = async () => {
+  const loadData = async (signal?: AbortSignal) => {
     setLoading(true)
     try {
+      const wsId = localStorage.getItem('omnicore_workspace_id') || localStorage.getItem('current_workspace_id') || ''
       // Load based on selected tab
       switch (selectedTab) {
         case 'data':
-          const evidenceRes = await fetch('/api/evidence-items')
+          const evidenceRes = await fetch('/api/evidence-items', { signal })
           if (evidenceRes.ok) {
             const data = await evidenceRes.json()
             setDataItems(data.evidence || [])
           }
           break
         case 'actor':
-          const wsId = localStorage.getItem('current_workspace_id') || '1'
-          const actorRes = await fetch(`/api/actors?workspace_id=${wsId}`)
+          if (!wsId) break
+          const actorRes = await fetch(`/api/actors?workspace_id=${wsId}`, { signal })
           if (actorRes.ok) {
             const data = await actorRes.json()
             setActors(data.actors || [])
           }
           break
         case 'source':
-          const wsIdSrc = localStorage.getItem('current_workspace_id') || '1'
-          const sourceRes = await fetch(`/api/sources?workspace_id=${wsIdSrc}`)
+          if (!wsId) break
+          const sourceRes = await fetch(`/api/sources?workspace_id=${wsId}`, { signal })
           if (sourceRes.ok) {
             const data = await sourceRes.json()
             setSources(data.sources || [])
           }
           break
         case 'event':
-          const wsIdEvt = localStorage.getItem('current_workspace_id') || '1'
-          const eventRes = await fetch(`/api/events?workspace_id=${wsIdEvt}`)
+          if (!wsId) break
+          const eventRes = await fetch(`/api/events?workspace_id=${wsId}`, { signal })
           if (eventRes.ok) {
             const data = await eventRes.json()
             setEvents(data.events || [])
           }
           break
       }
-    } catch (error) {
-      console.error('Failed to load evidence:', error)
+    } catch (error: any) {
+      if (error?.name !== 'AbortError') console.error('Failed to load evidence:', error)
     } finally {
       setLoading(false)
     }

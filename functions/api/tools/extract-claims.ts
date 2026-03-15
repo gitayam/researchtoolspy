@@ -196,6 +196,7 @@ async function fetchWithFallback(url: string): Promise<{
       }
     }
   } catch (e) {
+    // Fallthrough to next source — intentional silent failure
   }
 
   // 2. Try Google AMP cache (works for many news sites)
@@ -219,6 +220,7 @@ async function fetchWithFallback(url: string): Promise<{
       }
     }
   } catch (e) {
+    // Fallthrough to next source — intentional silent failure
   }
 
   // 3. Try Google webcache
@@ -242,6 +244,7 @@ async function fetchWithFallback(url: string): Promise<{
       }
     }
   } catch (e) {
+    // Fallthrough to next source — intentional silent failure
   }
 
   // 4. Try archive.ph
@@ -264,6 +267,7 @@ async function fetchWithFallback(url: string): Promise<{
       }
     }
   } catch (e) {
+    // Fallthrough to next source — intentional silent failure
   }
 
   // 5. Try Wayback Machine
@@ -294,6 +298,7 @@ async function fetchWithFallback(url: string): Promise<{
       }
     }
   } catch (e) {
+    // Fallthrough to next source — intentional silent failure
   }
 
   // 6. All real sources failed — return OG metadata if we have it

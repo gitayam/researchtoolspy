@@ -10,12 +10,21 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
   try {
     const userId = await getUserIdOrDefault(request, env)
+    const url = new URL(request.url)
+    const workspaceId = url.searchParams.get('workspace_id') || request.headers.get('X-Workspace-ID')
 
     const fwCount = await env.DB.prepare(`
       SELECT COUNT(*) as cnt FROM framework_sessions
       WHERE user_id = ? AND status != 'archived'
     `).bind(userId).first<{ cnt: number }>()
     const totalFrameworks = fwCount?.cnt ?? 0
+
+    // Build workspace-scoped entity filter
+    const wsFilter = workspaceId
+      ? 'created_by = ? AND workspace_id = ?'
+      : 'created_by = ?'
+    const wsParams = workspaceId ? [userId, workspaceId] : [userId]
+    const bindParams = [...wsParams, ...wsParams, ...wsParams, ...wsParams, ...wsParams, userId, userId, userId]
 
     const entitiesResult = await env.DB.prepare(`
       SELECT
@@ -25,15 +34,15 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         COALESCE(r_count.rel_count, 0) as relationship_count,
         m.avg_mom as mom_score
       FROM (
-        SELECT CAST(id AS TEXT) as id, name, 'ACTOR' as entity_type, created_by FROM actors WHERE created_by = ? OR is_public = 1
+        SELECT CAST(id AS TEXT) as id, name, 'ACTOR' as entity_type, created_by FROM actors WHERE ${wsFilter}
         UNION ALL
-        SELECT CAST(id AS TEXT) as id, name, 'SOURCE' as entity_type, created_by FROM sources WHERE created_by = ? OR is_public = 1
+        SELECT CAST(id AS TEXT) as id, name, 'SOURCE' as entity_type, created_by FROM sources WHERE ${wsFilter}
         UNION ALL
-        SELECT CAST(id AS TEXT) as id, name, 'EVENT' as entity_type, created_by FROM events WHERE created_by = ? OR is_public = 1
+        SELECT CAST(id AS TEXT) as id, name, 'EVENT' as entity_type, created_by FROM events WHERE ${wsFilter}
         UNION ALL
-        SELECT CAST(id AS TEXT) as id, name, 'PLACE' as entity_type, created_by FROM places WHERE created_by = ? OR is_public = 1
+        SELECT CAST(id AS TEXT) as id, name, 'PLACE' as entity_type, created_by FROM places WHERE ${wsFilter}
         UNION ALL
-        SELECT CAST(id AS TEXT) as id, name, 'BEHAVIOR' as entity_type, created_by FROM behaviors WHERE created_by = ? OR is_public = 1
+        SELECT CAST(id AS TEXT) as id, name, 'BEHAVIOR' as entity_type, created_by FROM behaviors WHERE ${wsFilter}
       ) e
       LEFT JOIN (
         SELECT entity_id, COUNT(*) as rel_count FROM (
@@ -50,7 +59,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       ) m ON m.actor_id = e.id AND e.entity_type = 'ACTOR'
       ORDER BY COALESCE(r_count.rel_count, 0) DESC
       LIMIT 100
-    `).bind(userId, userId, userId, userId, userId, userId, userId, userId).all<{
+    `).bind(...bindParams).all<{
       entity_id: string
       entity_name: string
       entity_type: string

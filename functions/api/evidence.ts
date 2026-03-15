@@ -28,8 +28,8 @@ export async function onRequest(context: any) {
       if (evidenceId) {
         // Get single evidence from D1
         const evidence = await env.DB.prepare(
-          'SELECT * FROM evidence WHERE id = ?'
-        ).bind(evidenceId).first()
+          'SELECT * FROM evidence WHERE id = ? AND created_by = ?'
+        ).bind(evidenceId, userId).first()
 
         if (!evidence) {
           return new Response(JSON.stringify({ error: 'Evidence not found' }), {
@@ -69,8 +69,8 @@ export async function onRequest(context: any) {
       const status = url.searchParams.get('status')
       const limit = parseInt(url.searchParams.get('limit') || '50')
 
-      let query = 'SELECT * FROM evidence WHERE 1=1'
-      const params: any[] = []
+      let query = 'SELECT * FROM evidence WHERE created_by = ?'
+      const params: any[] = [userId]
 
       if (type) {
         query += ' AND type = ?'
