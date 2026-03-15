@@ -112,24 +112,23 @@ export default function CopEventSidebar({
 
   // Fetch open RFI count for badge
   useEffect(() => {
-    let cancelled = false
+    const controller = new AbortController()
     async function fetchRfiCount() {
       try {
-        const res = await fetch(`/api/cop/${session.id}/rfis`)
+        const res = await fetch(`/api/cop/${session.id}/rfis`, { signal: controller.signal })
         if (!res.ok) return
         const data = await res.json()
-        if (cancelled) return
         const rfis = data.rfis ?? data ?? []
         const openCount = Array.isArray(rfis)
           ? rfis.filter((r: { status: string }) => r.status === 'open').length
           : 0
         setOpenRfiCount(openCount)
-      } catch {
-        // ignore
+      } catch (e: any) {
+        if (e?.name !== 'AbortError') console.error('Failed to fetch RFI count:', e)
       }
     }
     fetchRfiCount()
-    return () => { cancelled = true }
+    return () => controller.abort()
   }, [session.id])
 
   // ── Render tab content ──────────────────────────────────────

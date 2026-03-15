@@ -51,14 +51,14 @@ export default function CopAnalysisSummary({ sessionId, expanded }: CopAnalysisS
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (signal?: AbortSignal) => {
     setLoading(true)
     setError(null)
 
     const headers = getCopHeaders()
 
     try {
-      const res = await fetch(`/api/cop/${sessionId}/hypotheses`, { headers })
+      const res = await fetch(`/api/cop/${sessionId}/hypotheses`, { headers, signal })
 
       if (!res.ok) {
         throw new Error(`Failed to load hypotheses (${res.status})`)
@@ -89,15 +89,19 @@ export default function CopAnalysisSummary({ sessionId, expanded }: CopAnalysisS
 
       setFindings(derivedFindings)
       setContradictions(derivedContradictions)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load analysis')
+    } catch (err: any) {
+      if (err?.name !== 'AbortError') {
+        setError(err instanceof Error ? err.message : 'Failed to load analysis')
+      }
     } finally {
       setLoading(false)
     }
   }, [sessionId])
 
   useEffect(() => {
-    fetchData()
+    const controller = new AbortController()
+    fetchData(controller.signal)
+    return () => controller.abort()
   }, [fetchData])
 
   const visibleFindings = expanded ? findings.slice(0, 20) : findings.slice(0, 5)
@@ -121,7 +125,7 @@ export default function CopAnalysisSummary({ sessionId, expanded }: CopAnalysisS
         <p className="text-xs text-red-400 mb-2">{error}</p>
         <button
           type="button"
-          onClick={fetchData}
+          onClick={() => fetchData()}
           className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
         >
           Retry

@@ -1,6 +1,6 @@
 # Site Issues — Investigation Report
 
-**Last updated:** 2026-03-14 (Sessions 34-69)
+**Last updated:** 2026-03-15 (Sessions 34-70)
 
 ## Fixed — v0.13.0 (Session 34)
 
@@ -691,6 +691,19 @@
 | # | Issue | Status |
 |---|-------|--------|
 | 304 | **framework-datasets.ts** — First GET query (by framework_id) missing LIMIT. Fixed: `LIMIT 500` | FIXED |
+
+---
+
+## Fixed — v0.17.7 (Session 70)
+
+### MEMORY LEAK — COP COMPONENTS (5 AbortController fixes)
+| # | Issue | Status |
+|---|-------|--------|
+| 327 | **CopRfiTab.tsx** — 30s polling interval + initial fetch without AbortController. Most dangerous: orphaned polling requests accumulate on tab switch. Fixed: signal threaded through fetchRfis + merged into single useEffect with cleanup | FIXED |
+| 328 | **CopTimelinePanel.tsx** — Promise-chain fetch in useEffect without signal/cleanup. Fixed: AbortController + abort on unmount | FIXED |
+| 329 | **CopEntityDrawer.tsx** — fetchEntities callback without signal. Drawer frequently opened/closed, causing orphaned requests. Fixed: signal parameter + AbortController in useEffect | FIXED |
+| 330 | **CopEventSidebar.tsx** — Used legacy `let cancelled = false` flag instead of AbortController. Fixed: replaced with proper AbortController pattern | FIXED |
+| 331 | **CopAnalysisSummary.tsx** — fetchData callback without signal. Panel toggles frequently. Fixed: signal parameter + AbortController in useEffect | FIXED |
 
 ---
 

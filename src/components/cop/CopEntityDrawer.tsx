@@ -104,13 +104,14 @@ export default function CopEntityDrawer({
   // ── Fetch entities for a tab ────────────────────────────────────
 
   const fetchEntities = useCallback(
-    async (tab: TabKey, force = false) => {
+    async (tab: TabKey, force = false, signal?: AbortSignal) => {
       if (!force && cache[tab] !== null) return
       setLoading(true)
       try {
         const params = new URLSearchParams({ workspace_id: workspaceId || sessionId })
         const res = await fetch(`/api/${tab}?${params}`, {
           headers: getCopHeaders(),
+          signal,
         })
         if (!res.ok) throw new Error(`Failed to fetch ${tab}`)
         const data = await res.json()
@@ -119,9 +120,11 @@ export default function CopEntityDrawer({
           ? data
           : data[key] ?? []
         setCache((prev) => ({ ...prev, [tab]: entities }))
-      } catch (err) {
-        console.error(`Failed to fetch ${tab}:`, err)
-        setCache((prev) => ({ ...prev, [tab]: [] }))
+      } catch (err: any) {
+        if (err?.name !== 'AbortError') {
+          console.error(`Failed to fetch ${tab}:`, err)
+          setCache((prev) => ({ ...prev, [tab]: [] }))
+        }
       } finally {
         setLoading(false)
       }
@@ -134,7 +137,9 @@ export default function CopEntityDrawer({
   // Fetch data when tab changes
   useEffect(() => {
     if (open) {
-      fetchEntities(activeTab)
+      const controller = new AbortController()
+      fetchEntities(activeTab, false, controller.signal)
+      return () => controller.abort()
     }
   }, [activeTab, open]) // eslint-disable-line react-hooks/exhaustive-deps
 

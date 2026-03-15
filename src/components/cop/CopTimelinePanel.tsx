@@ -138,7 +138,8 @@ export default function CopTimelinePanel({ sessionId, expanded, onScrollToPanel 
   // Load persisted timeline entries on mount
   useEffect(() => {
     if (!sessionId) return
-    fetch(`/api/cop/${sessionId}/timeline`, { headers: getCopHeaders() })
+    const controller = new AbortController()
+    fetch(`/api/cop/${sessionId}/timeline`, { headers: getCopHeaders(), signal: controller.signal })
       .then(r => r.ok ? r.json() : null)
       .then(data => {
         if (data?.entries?.length) {
@@ -163,8 +164,9 @@ export default function CopTimelinePanel({ sessionId, expanded, onScrollToPanel 
           }
         }
       })
-      .catch(() => {})
+      .catch((e) => { if (e?.name !== 'AbortError') console.error('Failed to load timeline:', e) })
       .finally(() => setInitialLoading(false))
+    return () => controller.abort()
   }, [sessionId])
 
   // ── Filtered entries + tab counts ─────────────────────────────

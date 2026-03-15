@@ -60,10 +60,10 @@ export default function CopRfiTab({ sessionId, onRfiCountChange }: CopRfiTabProp
 
   // ── Fetch RFIs ──────────────────────────────────────────────
 
-  const fetchRfis = useCallback(async (isBackground = false) => {
+  const fetchRfis = useCallback(async (isBackground = false, signal?: AbortSignal) => {
     if (isBackground) setPolling(true)
     try {
-      const res = await fetch(`/api/cop/${sessionId}/rfis`)
+      const res = await fetch(`/api/cop/${sessionId}/rfis`, { signal })
       if (!res.ok) throw new Error('Failed to fetch RFIs')
       const data = await res.json()
       const items: CopRfi[] = data.rfis ?? data ?? []
@@ -71,23 +71,21 @@ export default function CopRfiTab({ sessionId, onRfiCountChange }: CopRfiTabProp
       setFetchError(false)
       const openCount = items.filter(r => r.status === 'open').length
       onRfiCountChange?.(openCount)
-    } catch {
-      if (!isBackground) setFetchError(true)
+    } catch (e: any) {
+      if (e?.name !== 'AbortError' && !isBackground) setFetchError(true)
     } finally {
       setLoading(false)
       setPolling(false)
     }
   }, [sessionId, onRfiCountChange])
 
-  // Initial fetch
+  // Initial fetch + poll every 30s
   useEffect(() => {
-    fetchRfis()
-  }, [fetchRfis])
-
-  // Poll every 30s
-  useEffect(() => {
-    intervalRef.current = setInterval(() => fetchRfis(true), 30000)
+    const controller = new AbortController()
+    fetchRfis(false, controller.signal)
+    intervalRef.current = setInterval(() => fetchRfis(true, controller.signal), 30000)
     return () => {
+      controller.abort()
       if (intervalRef.current) clearInterval(intervalRef.current)
     }
   }, [fetchRfis])
