@@ -2,6 +2,62 @@
 
 **Last updated:** 2026-03-15 (Sessions 34-85)
 
+## Known Open — Prioritized for Next Sessions
+
+### HIGH — getUserIdOrDefault on 6 Remaining Mutation Endpoints
+| File | Methods | Notes |
+|------|---------|-------|
+| `equilibrium-analysis.ts` | POST (line 88) | Falls back to user 1 |
+| `content-intelligence/saved-links.ts` | POST/PUT/DELETE (lines 120, 255, 356) | 3 mutation methods |
+| `frameworks/[id].ts` | PUT/DELETE (lines 76, 186) | Framework edit/delete |
+
+### HIGH — 10+ Mutation Endpoints with `|| '1'` Workspace Fallback
+| File | Method | Notes |
+|------|--------|-------|
+| `hamilton-rule.ts` | POST (line 94) | |
+| `collection/start.ts` | POST (line 41) | |
+| `evidence/recommend.ts` | POST (line 58) | |
+| `equilibrium-analysis.ts` | POST (line 89) | |
+| `ach/evidence.ts` | POST (line 137) | |
+| `ach/scores.ts` | POST (line 179) | |
+| `ach/hypotheses.ts` | POST/PUT (lines 117, 186) | |
+| `ach/index.ts` | POST/PUT/DELETE (lines 123, 194, 279) | |
+| `ach/from-content-intelligence.ts` | POST (line 28) | |
+| `content-intelligence/auto-extract-entities.ts` | POST (line 37) | |
+| `content-intelligence/analyze-url.ts` | POST (line 71) | |
+| `content-intelligence/starbursting.ts` | POST (line 180) | |
+| `investigation-packets/create.ts` | POST (line 26) | |
+
+### HIGH — 8 More External Fetch Calls Missing AbortSignal
+| File | Lines | Service |
+|------|-------|---------|
+| `collection/start.ts` | 104 | External scraper |
+| `collection/[jobId]/approve.ts` | 97 | External |
+| `tools/extract.ts` | 315 | External |
+| `tools/batch-process.ts` | 47 | External |
+| `content-intelligence/starbursting.ts` | 138, 183 | OpenAI direct |
+| `frameworks/pmesii-pt/import-url.ts` | 46 | OpenAI direct |
+| `cop/[id]/alerts.ts` | 71 | OpenAI direct |
+
+### MEDIUM — 20 Files Missing meta.changes Check on DELETE/UPDATE
+Key files: `settings/workspaces/[id].ts`, `settings/user.ts`, `investigations/[id].ts`, `ach/evidence.ts`, `ach/scores.ts`, `ach/hypotheses.ts`, `cop/sessions/[id].ts` (partial), `cop/[id]/submissions.ts`, `cop/[id]/assets.ts`, `cop/[id]/rfis/[rfiId].ts`, `cop/[id]/playbooks/[pbId].ts`, `claims/remove-evidence-link.ts`, `claims/remove-entity-mention.ts`
+
+### MEDIUM — 15 Frontend Silent `.catch(() => ({}))` Blocks
+Files: CopGlobalCaptureBar, CopInviteDialog, CopExportDialog, InvestigationsPage, CollaborationPage, ContentIntelligencePage (5), RageCheckPage, InvestigationDetailPage, NewInvestigationPage, CopListPage, lib/api/content-intelligence.ts
+
+### MEDIUM — 9 Hardcoded X-User-Hash Headers (Should Use getCopHeaders())
+Files: GenericFrameworkView, BehaviorSearchDialog, GenericFrameworkForm, COGWizard, ShareButton, SwotForm, useSettings, SettingsPage (2)
+
+### LOW — 163+ alert() Calls Needing Toast Migration
+Largest concentrations: EntityQuickCreate (12), GenericFrameworkForm (10), BatchProcessingPage (10), DeceptionView (7), DataManagement (6)
+
+### LOW — COP Session Ownership (Systemic)
+- 25+ COP GET endpoints lack auth (Issue #384)
+- 15+ COP POST/PUT/DELETE lack session membership verification (Issue #385)
+- `notifications.ts` POST and `activity.ts` POST still unauthed (#396-397)
+
+---
+
 ## Fixed — v2.16.4 (Session 85)
 
 ### HIGH — EXTERNAL FETCH CALLS WITHOUT ABORT TIMEOUTS (50+ INSTANCES, 23 FILES)
