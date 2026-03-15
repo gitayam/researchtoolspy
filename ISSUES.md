@@ -1,7 +1,24 @@
 # ResearchTools.net — Issue Tracker
 
 **Last updated:** 2026-03-15
-**Current tag:** v0.17.7-social-media-split
+**Current tag:** v0.17.8-entity-detail-routes
+
+---
+
+## Fixed (v0.17.8)
+
+### P1 — Entity Detail/Edit/Delete Routes Entirely Broken (Same Anti-Pattern as v0.17.7)
+- [x] `actors.ts`, `sources.ts`, `events.ts`, `relationships.ts` — all used internal `url.pathname.match()` for `/:id` routes, which never receives requests in Cloudflare Pages Functions
+- [x] Frontend calls GET/PUT/DELETE on `/api/actors/:id`, `/api/sources/:id`, `/api/events/:id`, `/api/relationships/:id` — ALL returned SPA HTML (200)
+- [x] Created proper directory-based route files:
+  - `actors/[id].ts` — GET (detail with related_counts), PUT (update), DELETE (with workspace entity_count decrement)
+  - `sources/[id].ts` — GET (detail with evidence count), PUT (update), DELETE
+  - `events/[id].ts` — GET (detail with related actors/evidence/place), PUT (update with actor/evidence link management), DELETE
+  - `relationships/[id].ts` — GET (detail with resolved source/target entities), PUT (update), DELETE
+- [x] Existing sub-routes unaffected: `actors/search.ts`, `actors/[actor_id]/credibility.ts`, `relationships/infer-type.ts` still work
+- [x] Original monolith files retained (still handle list + create on base paths)
+- **Root cause:** Same anti-pattern as `social-media.ts` (v0.17.7) and documented in Lessons Learned Session 31. Entity monoliths used `url.pathname.match(/^\/api\/actors\/([^\/]+)$/)` to route `/:id` requests, but Cloudflare Pages only delivers `/api/actors` to `actors.ts`. The `/:id` detail/edit/delete operations on all 4 entity pages (Actors, Sources, Events + relationship management) were completely non-functional.
+- **Impact:** Actors page detail view, inline editing, and deletion. Sources page detail/edit/delete. Events page detail/edit/delete. Relationship editing and deletion from entity detail views. All restored.
 
 ---
 
