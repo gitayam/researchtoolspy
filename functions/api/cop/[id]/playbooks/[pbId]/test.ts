@@ -10,7 +10,7 @@
  *   - event_limit: number of recent events to test against (default 20, max 100)
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserFromRequest } from '../../../../_shared/auth-helpers'
+import { getUserFromRequest, verifyCopSessionAccess } from '../../../../_shared/auth-helpers'
 import { evaluateAllConditions } from '../../../../_shared/playbook-engine/condition-evaluator'
 import { JSON_HEADERS } from '../../../../_shared/api-utils'
 
@@ -48,7 +48,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+        status: 401, headers: JSON_HEADERS,
+      })
+    }
+    if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
+      return new Response(JSON.stringify({ error: 'Access denied' }), {
+        status: 403, headers: JSON_HEADERS,
       })
     }
 
@@ -64,7 +69,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     if (!playbook) {
       return new Response(JSON.stringify({ error: 'Playbook not found' }), {
-        status: 404, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+        status: 404, headers: JSON_HEADERS,
       })
     }
 
@@ -169,11 +174,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       would_skip,
       events_tested: eventRows.length,
       rules_tested: ruleRows.length,
-    }), { headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } })
+    }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[COP Playbook Test] Error:', error)
     return new Response(JSON.stringify({ error: 'Failed to run dry test' }), {
-      status: 500, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      status: 500, headers: JSON_HEADERS,
     })
   }
 }
@@ -183,4 +188,8 @@ export const onRequestGet: PagesFunction = async () => {
   return new Response(JSON.stringify({ error: 'Method not allowed. Use POST.' }), {
     status: 405, headers: JSON_HEADERS,
   })
+}
+
+export const onRequestOptions: PagesFunction = async () => {
+  return new Response(null, { status: 204, headers: JSON_HEADERS })
 }

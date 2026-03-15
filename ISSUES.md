@@ -1,7 +1,24 @@
 # ResearchTools.net — Issue Tracker
 
 **Last updated:** 2026-03-15
-**Current tag:** v0.20.3-ach-rfi-hardening
+**Current tag:** v0.20.4-playbook-comments-hardening
+
+---
+
+## Fixed (v0.20.4)
+
+### P1 — Playbook Test Endpoint Missing Session Access Check (Security)
+- [x] `cop/[id]/playbooks/[pbId]/test.ts:47-53` — POST checked auth but NOT session access
+- [x] Any authenticated user could dry-run playbooks on any COP session by guessing IDs
+- [x] Fix: Added `verifyCopSessionAccess()` call, returns 403 if not owner/collaborator
+- [x] Also replaced inline CORS headers with `JSON_HEADERS` constant, added OPTIONS handler
+- **Root cause:** Same pattern as v0.20.2 COP shares — auth without authorization. Sibling `rules.ts` already had the check; `test.ts` was missed. Per Lessons Learned Session 33: "copy auth from the strictest sibling handler."
+
+### P2 — Comments GET Returned Bare Array
+- [x] `comments.ts:129` — `JSON.stringify(comments)` returned `[...]` instead of `{comments: [...]}`
+- [x] Inconsistent with all other list endpoints (actors, sources, evidence-items, etc.)
+- [x] Fix: Changed to `JSON.stringify({ comments, total: comments.length })`
+- [x] Frontend `CommentThread.tsx:85` updated to handle both shapes for backwards compatibility
 
 ---
 

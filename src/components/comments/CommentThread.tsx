@@ -82,7 +82,7 @@ export function CommentThread({ entityType, entityId, className }: CommentThread
       const response = await fetch(`/api/comments?${params}`, { headers: getCopHeaders(), signal })
       if (response.ok) {
         const data = await response.json()
-        setComments(data)
+        setComments(Array.isArray(data) ? data : data.comments || [])
       }
     } catch (error: any) {
       if (error?.name !== 'AbortError') console.error('[Comments] Fetch failed:', error)

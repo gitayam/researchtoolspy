@@ -126,7 +126,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         reactions: safeJSON(comment.reactions, {})
       }))
 
-      return new Response(JSON.stringify(comments), {
+      return new Response(JSON.stringify({ comments, total: comments.length }), {
         status: 200,
         headers: JSON_HEADERS
       })
