@@ -8,6 +8,7 @@
  */
 
 import { requireAuth } from '../_shared/auth-helpers'
+import { JSON_HEADERS, optionsResponse } from '../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -171,13 +172,14 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     const userHash = await getUserHashFromId(context.env.DB, userId)
 
     if (!userHash) {
-      return Response.json({ error: 'User hash not found' }, { status: 404 })
+      return Response.json({ error: 'User hash not found' }, { status: 404, headers: JSON_HEADERS })
     }
 
     const settings = await loadSettings(context.env.DB, userHash)
 
     return Response.json(settings, {
       headers: {
+        ...JSON_HEADERS,
         'Cache-Control': 'private, max-age=60',
       },
     })
@@ -188,7 +190,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       {
         error: 'Failed to load settings',
       },
-      { status: 500 }
+      { status: 500, headers: JSON_HEADERS }
     )
   }
 }
@@ -203,7 +205,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     const userHash = await getUserHashFromId(context.env.DB, userId)
 
     if (!userHash) {
-      return Response.json({ error: 'User hash not found' }, { status: 404 })
+      return Response.json({ error: 'User hash not found' }, { status: 404, headers: JSON_HEADERS })
     }
 
     const updates = (await context.request.json()) as Partial<Omit<UserSettings, 'user_hash'>>
@@ -218,7 +220,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
           error: 'Invalid update',
           message: 'Must include at least one valid category: display, ai, notifications, or workspace',
         },
-        { status: 400 }
+        { status: 400, headers: JSON_HEADERS }
       )
     }
 
@@ -230,7 +232,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     return Response.json({
       success: true,
       settings,
-    })
+    }, { headers: JSON_HEADERS })
   } catch (error: any) {
     if (error instanceof Response) return error
     console.error('Settings PUT error:', error)
@@ -238,7 +240,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       {
         error: 'Failed to update settings',
       },
-      { status: 500 }
+      { status: 500, headers: JSON_HEADERS }
     )
   }
 }
@@ -253,7 +255,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     const userHash = await getUserHashFromId(context.env.DB, userId)
 
     if (!userHash) {
-      return Response.json({ error: 'User hash not found' }, { status: 404 })
+      return Response.json({ error: 'User hash not found' }, { status: 404, headers: JSON_HEADERS })
     }
 
     // Delete all settings for this hash
@@ -266,7 +268,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
         user_hash: userHash,
         ...DEFAULT_SETTINGS,
       },
-    })
+    }, { headers: JSON_HEADERS })
   } catch (error: any) {
     if (error instanceof Response) return error
     console.error('Settings DELETE error:', error)
@@ -274,7 +276,12 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       {
         error: 'Failed to reset settings',
       },
-      { status: 500 }
+      { status: 500, headers: JSON_HEADERS }
     )
   }
+}
+
+/** OPTIONS /api/settings/user — CORS preflight */
+export const onRequestOptions: PagesFunction<Env> = async () => {
+  return optionsResponse()
 }

@@ -6,6 +6,7 @@
  */
 
 import { requireAuth } from '../../_shared/auth-helpers'
+import { JSON_HEADERS, optionsResponse } from '../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -22,7 +23,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
     const workspaceId = context.params.id as string
     if (!workspaceId) {
-      return Response.json({ error: 'Workspace ID required' }, { status: 400 })
+      return Response.json({ error: 'Workspace ID required' }, { status: 400, headers: JSON_HEADERS })
     }
 
     const body = (await context.request.json()) as {
@@ -31,7 +32,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     }
 
     if (!body.name && !body.description) {
-      return Response.json({ error: 'At least one field to update is required' }, { status: 400 })
+      return Response.json({ error: 'At least one field to update is required' }, { status: 400, headers: JSON_HEADERS })
     }
 
     // Verify ownership
@@ -42,7 +43,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       .first()
 
     if (!workspace) {
-      return Response.json({ error: 'Workspace not found or access denied' }, { status: 404 })
+      return Response.json({ error: 'Workspace not found or access denied' }, { status: 404, headers: JSON_HEADERS })
     }
 
     // Build update query
@@ -78,9 +79,9 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       .first()
 
     if (!updated) {
-      return Response.json({ success: true, id: workspaceId })
+      return Response.json({ success: true, id: workspaceId }, { headers: JSON_HEADERS })
     }
-    return Response.json(updated)
+    return Response.json(updated, { headers: JSON_HEADERS })
   } catch (error: any) {
     if (error instanceof Response) return error
     console.error('Workspace PUT error:', error)
@@ -88,7 +89,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       {
         error: 'Failed to update workspace',
       },
-      { status: 500 }
+      { status: 500, headers: JSON_HEADERS }
     )
   }
 }
@@ -103,7 +104,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
 
     const workspaceId = context.params.id as string
     if (!workspaceId) {
-      return Response.json({ error: 'Workspace ID required' }, { status: 400 })
+      return Response.json({ error: 'Workspace ID required' }, { status: 400, headers: JSON_HEADERS })
     }
 
     // Verify ownership
@@ -114,7 +115,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       .first()
 
     if (!workspace) {
-      return Response.json({ error: 'Workspace not found or access denied' }, { status: 404 })
+      return Response.json({ error: 'Workspace not found or access denied' }, { status: 404, headers: JSON_HEADERS })
     }
 
     // Cascade delete related data, then workspace itself
@@ -136,7 +137,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     return Response.json({
       success: true,
       message: 'Workspace deleted successfully',
-    })
+    }, { headers: JSON_HEADERS })
   } catch (error: any) {
     if (error instanceof Response) return error
     console.error('Workspace DELETE error:', error)
@@ -144,7 +145,12 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       {
         error: 'Failed to delete workspace',
       },
-      { status: 500 }
+      { status: 500, headers: JSON_HEADERS }
     )
   }
+}
+
+/** OPTIONS /api/settings/workspaces/[id] — CORS preflight */
+export const onRequestOptions: PagesFunction<Env> = async () => {
+  return optionsResponse()
 }

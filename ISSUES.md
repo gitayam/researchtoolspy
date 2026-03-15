@@ -1,7 +1,23 @@
 # ResearchTools.net — Issue Tracker
 
 **Last updated:** 2026-03-15
-**Current tag:** v0.15.1-inline-cors-cleanup
+**Current tag:** v0.15.2-settings-cors-fix
+
+---
+
+## Fixed (v0.15.2)
+
+### P1 — 8 Settings/Auth Endpoints Had Zero CORS Headers on Response.json()
+- [x] `settings/workspaces.ts` — 7 `Response.json()` calls had no CORS headers at all
+- [x] `settings/workspaces/[id].ts` — 10 `Response.json()` calls had no CORS headers
+- [x] `settings/user.ts` — 10 `Response.json()` calls had no CORS headers
+- [x] `settings/data/export.ts` — 5 `Response.json()` calls had no CORS headers
+- [x] `settings/data/import.ts` — 5 `Response.json()` calls had no CORS headers
+- [x] `settings/data/workspace/[id].ts` — 4 `Response.json()` calls had no CORS headers
+- [x] `settings/hash/backup.ts` — 2 `Response.json()` calls had no CORS headers
+- [x] `hash-auth/authenticate.ts` — 6 `Response.json()` calls had no CORS headers
+- [x] All 8 files now import and use `JSON_HEADERS` from shared `api-utils.ts`
+- **Root cause:** `Response.json()` provides NO CORS headers by default — browsers completely block these responses in cross-origin contexts. Settings/auth endpoints were built using the convenience `Response.json()` API without explicit headers.
 
 ---
 

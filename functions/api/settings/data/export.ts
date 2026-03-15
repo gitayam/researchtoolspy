@@ -5,6 +5,7 @@
  */
 
 import { requireAuth } from '../../_shared/auth-helpers'
+import { JSON_HEADERS, CORS_HEADERS, optionsResponse } from '../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -131,23 +132,23 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const userHash = await getUserHashFromId(context.env.DB, userId)
 
     if (!userHash) {
-      return Response.json({ error: 'User hash not found' }, { status: 404 })
+      return Response.json({ error: 'User hash not found' }, { status: 404, headers: JSON_HEADERS })
     }
 
     const body = (await context.request.json()) as ExportRequest
 
     // Validate export request
     if (!['full', 'workspace', 'settings', 'frameworks', 'evidence'].includes(body.export_type)) {
-      return Response.json({ error: 'Invalid export_type' }, { status: 400 })
+      return Response.json({ error: 'Invalid export_type' }, { status: 400, headers: JSON_HEADERS })
     }
 
     if (!['json', 'csv', 'excel', 'pdf'].includes(body.format)) {
-      return Response.json({ error: 'Invalid format' }, { status: 400 })
+      return Response.json({ error: 'Invalid format' }, { status: 400, headers: JSON_HEADERS })
     }
 
     // Only JSON is fully supported for now
     if (body.format !== 'json') {
-      return Response.json({ error: 'Only JSON format is currently supported' }, { status: 400 })
+      return Response.json({ error: 'Only JSON format is currently supported' }, { status: 400, headers: JSON_HEADERS })
     }
 
     // Build export data
@@ -195,6 +196,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     return new Response(blob, {
       headers: {
+        ...CORS_HEADERS,
         'Content-Type': 'application/json',
         'Content-Disposition': `attachment; filename="omnicore_export_${exportData.export_id}.json"`,
         'Content-Length': blob.byteLength.toString(),
@@ -207,7 +209,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       {
         error: 'Failed to export data',
       },
-      { status: 500 }
+      { status: 500, headers: JSON_HEADERS }
     )
   }
+}
+
+/** OPTIONS /api/settings/data/export — CORS preflight */
+export const onRequestOptions: PagesFunction<Env> = async () => {
+  return optionsResponse()
 }

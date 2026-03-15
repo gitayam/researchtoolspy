@@ -5,6 +5,7 @@
  */
 
 import { requireAuth } from '../../../_shared/auth-helpers'
+import { JSON_HEADERS } from '../../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -21,7 +22,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
 
     const workspaceId = context.params.id as string
     if (!workspaceId) {
-      return Response.json({ error: 'Workspace ID required' }, { status: 400 })
+      return Response.json({ error: 'Workspace ID required' }, { status: 400, headers: JSON_HEADERS })
     }
 
     // Verify workspace ownership via owner_id
@@ -32,7 +33,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       .first()
 
     if (!workspace) {
-      return Response.json({ error: 'Workspace not found or access denied' }, { status: 404 })
+      return Response.json({ error: 'Workspace not found or access denied' }, { status: 404, headers: JSON_HEADERS })
     }
 
     // Delete all data associated with this workspace
@@ -96,7 +97,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       message: 'Workspace data cleared successfully',
       deleted: deletedCounts,
       total: Object.values(deletedCounts).reduce((a, b) => a + b, 0),
-    })
+    }, { headers: JSON_HEADERS })
   } catch (error: any) {
     if (error instanceof Response) return error
     console.error('Clear workspace data error:', error)
@@ -104,7 +105,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       {
         error: 'Failed to clear workspace data',
       },
-      { status: 500 }
+      { status: 500, headers: JSON_HEADERS }
     )
   }
 }

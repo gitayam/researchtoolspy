@@ -5,6 +5,7 @@
  */
 
 import { requireAuth } from '../../_shared/auth-helpers'
+import { JSON_HEADERS, optionsResponse } from '../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -96,18 +97,18 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const userHash = await getUserHashFromId(context.env.DB, userId)
 
     if (!userHash) {
-      return Response.json({ error: 'User hash not found' }, { status: 404 })
+      return Response.json({ error: 'User hash not found' }, { status: 404, headers: JSON_HEADERS })
     }
 
     const body = (await context.request.json()) as ImportRequest
 
     // Validate import data
     if (!body.data || !body.data.export_id) {
-      return Response.json({ error: 'Invalid import data' }, { status: 400 })
+      return Response.json({ error: 'Invalid import data' }, { status: 400, headers: JSON_HEADERS })
     }
 
     if (!body.options) {
-      return Response.json({ error: 'Import options required' }, { status: 400 })
+      return Response.json({ error: 'Import options required' }, { status: 400, headers: JSON_HEADERS })
     }
 
     const imported = {
@@ -156,7 +157,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       success: true,
       imported_count: imported,
       errors: errors.length > 0 ? errors : undefined,
-    })
+    }, { headers: JSON_HEADERS })
   } catch (error: any) {
     if (error instanceof Response) return error
     console.error('Import error:', error)
@@ -164,7 +165,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       {
         error: 'Failed to import data',
       },
-      { status: 500 }
+      { status: 500, headers: JSON_HEADERS }
     )
   }
+}
+
+/** OPTIONS /api/settings/data/import — CORS preflight */
+export const onRequestOptions: PagesFunction<Env> = async () => {
+  return optionsResponse()
 }

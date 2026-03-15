@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { generateToken } from '../../utils/jwt'
+import { JSON_HEADERS, optionsResponse } from '../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -22,7 +23,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     try {
       body = await request.json()
     } catch (e) {
-      return Response.json({ error: 'Invalid JSON body' }, { status: 400 })
+      return Response.json({ error: 'Invalid JSON body' }, { status: 400, headers: JSON_HEADERS })
     }
 
     const result = LoginSchema.safeParse(body)
@@ -30,7 +31,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!result.success) {
       return Response.json(
         { error: 'Validation failed', details: result.error.errors },
-        { status: 400 }
+        { status: 400, headers: JSON_HEADERS }
       )
     }
 
@@ -44,7 +45,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!user) {
       return Response.json(
         { error: 'Account not found. Please register a new account.' },
-        { status: 401 }
+        { status: 401, headers: JSON_HEADERS }
       )
     }
 
@@ -53,7 +54,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       console.error('[Auth] JWT_SECRET not configured')
       return Response.json(
         { error: 'Authentication service unavailable' },
-        { status: 503 }
+        { status: 503, headers: JSON_HEADERS }
       )
     }
 
@@ -71,13 +72,18 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       expires_in: 3600,
       account_hash: user.user_hash,
       role: user.role
-    })
+    }, { headers: JSON_HEADERS })
 
   } catch (error) {
     console.error('Hash Auth Error:', error)
     return Response.json(
       { error: 'Authentication failed' },
-      { status: 500 }
+      { status: 500, headers: JSON_HEADERS }
     )
   }
+}
+
+/** OPTIONS /api/hash-auth/authenticate — CORS preflight */
+export const onRequestOptions: PagesFunction<Env> = async () => {
+  return optionsResponse()
 }

@@ -7,6 +7,7 @@
  */
 
 import { requireAuth } from '../_shared/auth-helpers'
+import { JSON_HEADERS, optionsResponse } from '../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -63,12 +64,12 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
       return Response.json({
         workspaces: [defaultWorkspace],
-      })
+      }, { headers: JSON_HEADERS })
     }
 
     return Response.json({
       workspaces,
-    })
+    }, { headers: JSON_HEADERS })
   } catch (error: any) {
     if (error instanceof Response) return error
     console.error('Workspaces GET error:', error)
@@ -76,7 +77,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       {
         error: 'Failed to load workspaces',
       },
-      { status: 500 }
+      { status: 500, headers: JSON_HEADERS }
     )
   }
 }
@@ -96,11 +97,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
 
     if (!body.name || !body.name.trim()) {
-      return Response.json({ error: 'Workspace name is required' }, { status: 400 })
+      return Response.json({ error: 'Workspace name is required' }, { status: 400, headers: JSON_HEADERS })
     }
 
     if (!['PERSONAL', 'TEAM', 'PUBLIC'].includes(body.type)) {
-      return Response.json({ error: 'Invalid workspace type' }, { status: 400 })
+      return Response.json({ error: 'Invalid workspace type' }, { status: 400, headers: JSON_HEADERS })
     }
 
     // Generate unique ID
@@ -129,7 +130,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       created_at: createdAt,
     }
 
-    return Response.json(workspace, { status: 201 })
+    return Response.json(workspace, { status: 201, headers: JSON_HEADERS })
   } catch (error: any) {
     if (error instanceof Response) return error
     console.error('Workspace POST error:', error)
@@ -137,7 +138,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       {
         error: 'Failed to create workspace',
       },
-      { status: 500 }
+      { status: 500, headers: JSON_HEADERS }
     )
   }
+}
+
+/** OPTIONS /api/settings/workspaces — CORS preflight */
+export const onRequestOptions: PagesFunction<Env> = async () => {
+  return optionsResponse()
 }

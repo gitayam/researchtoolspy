@@ -5,6 +5,7 @@
  */
 
 import { requireAuth } from '../../_shared/auth-helpers'
+import { JSON_HEADERS } from '../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -29,7 +30,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const userHash = await getUserHashFromId(context.env.DB, userId)
 
     if (!userHash) {
-      return Response.json({ error: 'User hash not found' }, { status: 404 })
+      return Response.json({ error: 'User hash not found' }, { status: 404, headers: JSON_HEADERS })
     }
 
     // Get workspace names for this hash
@@ -138,7 +139,7 @@ Questions? Visit https://omnicore.app/help or contact support
       {
         error: 'Failed to generate hash backup',
       },
-      { status: 500 }
+      { status: 500, headers: JSON_HEADERS }
     )
   }
 }
