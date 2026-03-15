@@ -21,6 +21,17 @@ async function getUserHashFromId(db: D1Database, userId: number): Promise<string
 }
 
 /**
+ * GET /api/settings/hash/backup
+ * Returns method hint (backup requires POST)
+ */
+export const onRequestGet: PagesFunction<Env> = async () => {
+  return Response.json(
+    { error: 'Use POST to generate a hash backup file' },
+    { status: 405, headers: JSON_HEADERS }
+  )
+}
+
+/**
  * POST /api/settings/hash/backup
  * Generate hash backup file
  */

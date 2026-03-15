@@ -409,12 +409,24 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       'SELECT title FROM cop_tasks WHERE id = ? AND cop_session_id = ?'
     ).bind(taskId, sessionId).first() as any
 
-    // Clean up dependencies referencing this task
+    // Clean up dependencies for subtasks first, then the parent task
+    const subtasks = await env.DB.prepare(
+      'SELECT id FROM cop_tasks WHERE parent_task_id = ? AND cop_session_id = ?'
+    ).bind(taskId, sessionId).all()
+
+    const subtaskIds = (subtasks.results || []).map((s: any) => s.id)
+    for (const subId of subtaskIds) {
+      await env.DB.prepare(
+        'DELETE FROM cop_task_dependencies WHERE (task_id = ? OR depends_on_task_id = ?) AND cop_session_id = ?'
+      ).bind(subId, subId, sessionId).run()
+    }
+
+    // Clean up dependencies referencing the parent task
     await env.DB.prepare(
       'DELETE FROM cop_task_dependencies WHERE (task_id = ? OR depends_on_task_id = ?) AND cop_session_id = ?'
     ).bind(taskId, taskId, sessionId).run()
 
-    // Delete subtasks
+    // Delete subtasks, then the parent task
     await env.DB.prepare(
       'DELETE FROM cop_tasks WHERE parent_task_id = ? AND cop_session_id = ?'
     ).bind(taskId, sessionId).run()

@@ -62,6 +62,12 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
     const body: RecommendRequest = await request.json()
     const { framework_type, context: ctx, workspace_id = request.headers.get('X-Workspace-ID') || null } = body
 
+    if (!ctx || typeof ctx !== 'object') {
+      return new Response(JSON.stringify({
+        error: 'Missing required field: context (object with title, keywords, entities, or timeframe)',
+      }), { status: 400, headers: JSON_HEADERS })
+    }
+
     const allEvidence: any[] = []
     const matchReasons = new Map<number, string[]>()
 
@@ -84,6 +90,7 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
           matchReasons.get(ev.id)!.push('Mentions related actor')
         })
       } catch (error) {
+        console.warn('[Evidence Recommend] evidence_actors query failed:', error)
       }
 
       // Also search in who/what/description fields
@@ -140,6 +147,7 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
           matchReasons.get(ev.id)!.push('Matching timeframe')
         })
       } catch (error) {
+        console.warn('[Evidence Recommend] timeframe query failed:', error)
       }
     }
 

@@ -1,7 +1,27 @@
 # ResearchTools.net — Issue Tracker
 
 **Last updated:** 2026-03-15
-**Current tag:** v0.16.5-type-safety
+**Current tag:** v0.16.6-validation-fix
+
+---
+
+## Fixed (v0.16.6)
+
+### P0 — evidence/recommend 500 on Missing Input
+- [x] `evidence/recommend.ts` — POST crashed with 500 TypeError when `context` field missing from request body (accessing `.entities` on `undefined`)
+- [x] Added input validation: returns 400 with clear error when `context` object is missing
+- [x] Fixed 2 silent empty catch blocks — now log via `console.warn` with `[Evidence Recommend]` prefix
+- **Root cause:** No validation on required `context` field before destructuring; empty catches hid secondary errors
+
+### P1 — hash/backup GET Returned SPA HTML (Missing Handler)
+- [x] `settings/hash/backup.ts` — only had `onRequestPost`, GET fell through to SPA HTML with 200
+- [x] Added `onRequestGet` handler returning 405 "Use POST to generate a hash backup file"
+- **Root cause:** Endpoint was POST-only but no GET handler existed to reject non-POST requests
+
+### P2 — COP Task DELETE Didn't Clean Subtask Dependencies
+- [x] `cop/[id]/tasks.ts` — when deleting a parent task, subtask dependencies were orphaned
+- [x] Now queries subtask IDs first, deletes their dependencies, then deletes parent dependencies, then subtasks, then parent
+- **Root cause:** DELETE cascade only handled parent-level dependencies, not subtask-level
 
 ---
 
