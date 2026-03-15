@@ -6,7 +6,7 @@
  */
 
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserIdOrDefault, getUserFromRequest } from '../_shared/auth-helpers'
+import { getUserFromRequest } from '../_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
@@ -48,20 +48,25 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   const url = new URL(request.url)
 
   try {
-    const userId = await getUserIdOrDefault(request, env)
+    const userId = await getUserFromRequest(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: corsHeaders
+      })
+    }
     const workspaceId = request.headers.get('X-Workspace-ID') || url.searchParams.get('workspace_id')
     const status = url.searchParams.get('status') || 'ACTIVE'
 
-    // If a specific workspace is requested, filter by it. Otherwise show
-    // all sessions the user created (supports per-session workspaces).
+    // If a specific workspace is requested, filter by it and scope to user.
+    // Otherwise show all sessions the user created.
     let results
     if (workspaceId) {
       results = await env.DB.prepare(`
         SELECT * FROM cop_sessions
-        WHERE workspace_id = ? AND status = ?
+        WHERE workspace_id = ? AND status = ? AND created_by = ?
         ORDER BY updated_at DESC
         LIMIT 200
-      `).bind(workspaceId, status).all()
+      `).bind(workspaceId, status, userId).all()
     } else {
       results = await env.DB.prepare(`
         SELECT * FROM cop_sessions

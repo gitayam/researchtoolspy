@@ -169,7 +169,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         entity_id,
         parent_comment_id,
         content,
-        workspace_id = body.workspace_id || request.headers.get('X-Workspace-ID') || '1'
+        workspace_id = body.workspace_id || request.headers.get('X-Workspace-ID') || null
       } = body
 
       if (!entity_type || !entity_id || !content) {
@@ -436,9 +436,16 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       }
 
       // Soft delete
-      await env.DB.prepare(`
+      const deleteResult = await env.DB.prepare(`
         UPDATE comments SET status = 'deleted', content = '[deleted]' WHERE id = ?
       `).bind(commentId).run()
+
+      if (!deleteResult.meta.changes) {
+        return new Response(JSON.stringify({ error: 'Comment not found' }), {
+          status: 404,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
 
       return new Response(JSON.stringify({ success: true }), {
         status: 200,

@@ -5,6 +5,7 @@
  */
 
 import { useState, useCallback } from 'react'
+import { getCopHeaders } from '@/lib/cop-auth'
 import { Download, Upload, Trash2, Shield, AlertTriangle, FileJson, Key } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -48,10 +49,7 @@ export function DataManagement({ userHash, workspaceId }: DataManagementProps) {
 
       const response = await fetch('/api/settings/data/export', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-User-Hash': userHash,
-        },
+        headers: getCopHeaders(),
         body: JSON.stringify({
           export_type: exportType,
           format: exportFormat,
@@ -98,10 +96,7 @@ export function DataManagement({ userHash, workspaceId }: DataManagementProps) {
 
       const response = await fetch('/api/settings/data/import', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-User-Hash': userHash,
-        },
+        headers: getCopHeaders(),
         body: JSON.stringify({
           data,
           options: {
@@ -144,9 +139,7 @@ export function DataManagement({ userHash, workspaceId }: DataManagementProps) {
 
       const response = await fetch(`/api/settings/data/workspace/${workspaceId}`, {
         method: 'DELETE',
-        headers: {
-          'X-User-Hash': userHash,
-        },
+        headers: getCopHeaders(),
       })
 
       if (!response.ok) {
@@ -173,9 +166,7 @@ export function DataManagement({ userHash, workspaceId }: DataManagementProps) {
     try {
       const response = await fetch('/api/settings/hash/backup', {
         method: 'POST',
-        headers: {
-          'X-User-Hash': userHash,
-        },
+        headers: getCopHeaders(),
       })
 
       if (!response.ok) {

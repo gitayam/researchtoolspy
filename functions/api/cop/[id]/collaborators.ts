@@ -229,9 +229,15 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       })
     }
 
-    await env.DB.prepare(
+    const deleteResult = await env.DB.prepare(
       `DELETE FROM cop_collaborators WHERE id = ? AND cop_session_id = ?`
     ).bind(body.collaborator_id, sessionId).run()
+
+    if (!deleteResult.meta.changes) {
+      return new Response(JSON.stringify({ error: 'Collaborator not found' }), {
+        status: 404, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      })
+    }
 
     const removedBy = userId
     await emitCopEvent(env.DB, {

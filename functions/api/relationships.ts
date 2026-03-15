@@ -426,9 +426,16 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         )
       }
 
-      await env.DB.prepare(`
+      const deleteResult = await env.DB.prepare(`
         DELETE FROM relationships WHERE id = ?
       `).bind(relationshipId).run()
+
+      if (!deleteResult.meta.changes) {
+        return new Response(
+          JSON.stringify({ error: 'Relationship not found' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
 
       return new Response(
         JSON.stringify({ message: 'Relationship deleted successfully' }),

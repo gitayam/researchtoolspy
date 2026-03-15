@@ -7,7 +7,7 @@
  */
 
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserFromRequest, getUserIdOrDefault } from '../../_shared/auth-helpers'
+import { getUserFromRequest } from '../../_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
@@ -78,9 +78,10 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
   const { request, env, params } = context
   const id = params.id as string
   try {
-    // Use getUserIdOrDefault for COP sessions — guest users (X-User-Hash) must be
-    // able to update sessions they created via the default user (ID 1) fallback.
-    const userId = await getUserIdOrDefault(request, env)
+    const userId = await getUserFromRequest(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), { status: 401, headers: corsHeaders })
+    }
 
     // Verify session exists
     const session = await env.DB.prepare(
@@ -206,7 +207,10 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
   const { request, env, params } = context
   const id = params.id as string
   try {
-    const userId = await getUserIdOrDefault(request, env)
+    const userId = await getUserFromRequest(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), { status: 401, headers: corsHeaders })
+    }
 
     // Verify session exists
     const session = await env.DB.prepare(
@@ -215,6 +219,10 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
 
     if (!session) {
       return new Response(JSON.stringify({ error: 'COP session not found' }), { status: 404, headers: corsHeaders })
+    }
+
+    if (session.created_by !== userId) {
+      return new Response(JSON.stringify({ error: 'Not authorized to delete this session' }), { status: 403, headers: corsHeaders })
     }
 
     const now = new Date().toISOString()

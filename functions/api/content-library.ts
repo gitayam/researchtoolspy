@@ -3,7 +3,7 @@
  * Fetches all analyzed content for a user/workspace
  */
 
-import { getUserIdOrDefault } from './_shared/auth-helpers'
+import { getUserFromRequest } from './_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
@@ -24,25 +24,31 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   const { request, env } = context
 
   try {
-    // Get authentication (allow guest access for content browsing)
-    const userId = await getUserIdOrDefault(request, env)
+    // Require authentication
+    const userId = await getUserFromRequest(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
     const workspaceId = request.headers.get('X-Workspace-ID') || '1'
 
     // Parse query parameters
     const url = new URL(request.url)
-    const limit = parseInt(url.searchParams.get('limit') || '50')
-    const offset = parseInt(url.searchParams.get('offset') || '0')
+    const limit = Math.min(parseInt(url.searchParams.get('limit') || '50'), 200)
+    const offset = Math.max(parseInt(url.searchParams.get('offset') || '0'), 0)
 
-    // Build query
+    // Build query — scope to authenticated user's content
     let query = `
       SELECT
         id, url, url_normalized, title, author, publish_date, domain,
         summary, word_count, key_entities, created_at, updated_at,
         last_accessed_at
       FROM content_intelligence
-      WHERE workspace_id = ?
+      WHERE workspace_id = ? AND created_by = ?
     `
-    const params: any[] = [workspaceId]
+    const params: any[] = [workspaceId, userId]
 
     // Order by most recently accessed
     query += ` ORDER BY last_accessed_at DESC LIMIT ? OFFSET ?`

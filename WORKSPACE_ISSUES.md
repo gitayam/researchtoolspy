@@ -1,6 +1,47 @@
 # Site Issues — Investigation Report
 
-**Last updated:** 2026-03-15 (Sessions 34-82)
+**Last updated:** 2026-03-15 (Sessions 34-83)
+
+## Fixed — v2.16.2 (Session 83)
+
+### CRITICAL — COP SESSIONS PUT/DELETE AUTH BYPASS
+| # | Issue | Status |
+|---|-------|--------|
+| 515 | **cop/sessions/[id].ts PUT** — Used `getUserIdOrDefault` (falls back to user 1). Any unauthenticated user could update ANY COP session. Fixed: `getUserFromRequest` + 401 gate | FIXED |
+| 516 | **cop/sessions/[id].ts DELETE** — Same guest fallback. Also missing ownership check entirely — verified session existed but never checked `created_by`. Fixed: auth gate + ownership guard (403) | FIXED |
+
+### HIGH — CONTENT-LIBRARY X-WORKSPACE-ID IDOR
+| # | Issue | Status |
+|---|-------|--------|
+| 517 | **content-library.ts GET** — Blindly trusted `X-Workspace-ID` header, defaulting to `'1'`. Any user could read any workspace's content. Fixed: auth gate + `AND created_by = ?` scoping + pagination caps (limit 200, offset >= 0) | FIXED |
+
+### HIGH — COP SESSIONS GET X-WORKSPACE-ID IDOR
+| # | Issue | Status |
+|---|-------|--------|
+| 518 | **cop/sessions.ts GET** — `getUserIdOrDefault` + workspace query without membership check. Unauthenticated users could enumerate all sessions in any workspace. Fixed: `getUserFromRequest` + `AND created_by = ?` | FIXED |
+
+### HIGH — DELETE OPERATIONS WITHOUT VERIFICATION
+| # | Issue | Status |
+|---|-------|--------|
+| 519 | **relationships.ts DELETE** — No `meta.changes` check after DELETE. Always returned 200 even if nothing deleted. Fixed: return 404 on zero changes | FIXED |
+| 520 | **comments.ts DELETE** — Soft-delete UPDATE without `meta.changes` check. Fixed: return 404 if no comment found | FIXED |
+
+### HIGH — COMMENTS POST WORKSPACE FALLBACK TO '1'
+| # | Issue | Status |
+|---|-------|--------|
+| 521 | **comments.ts POST** — `workspace_id` defaulted to `'1'` when not provided, silently creating comments in wrong workspace. Fixed: defaults to null | FIXED |
+
+### MEDIUM — COP COLLABORATORS DELETE META.CHANGES
+| # | Issue | Status |
+|---|-------|--------|
+| 522 | **cop/[id]/collaborators.ts DELETE** — `emitCopEvent(COLLABORATOR_REMOVED)` fired even if DELETE affected zero rows (phantom audit events). Fixed: 404 guard before event emission | FIXED |
+
+### MEDIUM — DATAMANAGEMENT MISSING getCopHeaders()
+| # | Issue | Status |
+|---|-------|--------|
+| 523 | **DataManagement.tsx** — 4 fetch calls using manual `X-User-Hash` headers instead of centralized `getCopHeaders()`. Fixed: all 4 calls now use getCopHeaders() | FIXED |
+
+---
 
 ## Fixed — v2.16.1 (Session 82)
 
