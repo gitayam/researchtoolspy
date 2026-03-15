@@ -1,7 +1,21 @@
 # ResearchTools.net — Issue Tracker
 
 **Last updated:** 2026-03-15
-**Current tag:** v0.17.1-workspace-query-fix
+**Current tag:** v0.17.2-safe-json-parse
+
+---
+
+## Fixed (v0.17.2)
+
+### P2 — 47 Unsafe JSON.parse Calls in Entity Endpoints Could Crash on Corrupt Data
+- [x] Added shared `safeJsonParse(value, fallback)` helper to `_shared/api-utils.ts`
+- [x] `actors.ts` — 19 `JSON.parse()` calls on `aliases`, `tags`, `deception_profile` D1 text columns → `safeJsonParse()` with `[]` or `null` fallback
+- [x] `events.ts` — 11 `JSON.parse()` calls on `coordinates`, `tags`, `source`, `metadata`, `eve_assessment` → `safeJsonParse()`
+- [x] `places.ts` — 7 `JSON.parse()` calls on `coordinates`, `aliases`, `deception_profile` → `safeJsonParse()`
+- [x] `behaviors.ts` — 6 `JSON.parse()` calls on `indicators`, `aliases`, `deception_profile` → `safeJsonParse()`
+- [x] `sources.ts` — 4 `JSON.parse()` calls on `moses_assessment` → `safeJsonParse()`
+- [x] All 5 entity endpoints now gracefully handle corrupt JSON in any D1 text column — returns fallback value instead of crashing the entire response
+- **Root cause:** Entity endpoints used raw `JSON.parse()` with ternary null-checks, but these don't protect against malformed JSON strings (e.g. `"[invalid"`, truncated data). One bad row in the database would crash the entire list/detail response with a 500. The shared `safeJsonParse` wrapper catches parse errors and returns the specified fallback.
 
 ---
 

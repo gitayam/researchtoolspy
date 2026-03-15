@@ -6,7 +6,7 @@
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserIdOrDefault, getUserFromRequest } from './_shared/auth-helpers'
 import { checkWorkspaceAccess } from './_shared/workspace-helpers'
-import { generateId, CORS_HEADERS, JSON_HEADERS } from './_shared/api-utils'
+import { generateId, CORS_HEADERS, JSON_HEADERS, safeJsonParse } from './_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -79,7 +79,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
       const behaviors = results.map(b => ({
         ...b,
-        indicators: b.indicators ? JSON.parse(b.indicators as string) : [],
+        indicators: safeJsonParse(b.indicators, []),
         is_public: Boolean(b.is_public)
       }))
 
@@ -187,7 +187,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       return new Response(
         JSON.stringify({
           ...behavior,
-          indicators: behavior.indicators ? JSON.parse(behavior.indicators as string) : [],
+          indicators: safeJsonParse(behavior.indicators, []),
           is_public: Boolean(behavior.is_public)
         }),
         { status: 201, headers: JSON_HEADERS }
@@ -230,12 +230,12 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       return new Response(
         JSON.stringify({
           ...behavior,
-          indicators: behavior.indicators ? JSON.parse(behavior.indicators as string) : [],
+          indicators: safeJsonParse(behavior.indicators, []),
           is_public: Boolean(behavior.is_public),
           actors: actors.map(a => ({
             ...a,
-            aliases: a.aliases ? JSON.parse(a.aliases as string) : [],
-            deception_profile: a.deception_profile ? JSON.parse(a.deception_profile as string) : null,
+            aliases: safeJsonParse(a.aliases, []),
+            deception_profile: safeJsonParse(a.deception_profile),
             is_public: Boolean(a.is_public)
           })),
           actor_count: actors.length
@@ -339,7 +339,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       return new Response(
         JSON.stringify({
           ...updated,
-          indicators: updated.indicators ? JSON.parse(updated.indicators as string) : [],
+          indicators: safeJsonParse(updated.indicators, []),
           is_public: Boolean(updated.is_public)
         }),
         { status: 200, headers: JSON_HEADERS }

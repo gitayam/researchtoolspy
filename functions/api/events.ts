@@ -6,7 +6,7 @@
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserIdOrDefault, getUserFromRequest } from './_shared/auth-helpers'
 import { checkWorkspaceAccess } from './_shared/workspace-helpers'
-import { generateId, CORS_HEADERS, JSON_HEADERS } from './_shared/api-utils'
+import { generateId, CORS_HEADERS, JSON_HEADERS, safeJsonParse } from './_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -85,7 +85,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
       const events = results.map(e => ({
         ...e,
-        coordinates: e.coordinates ? JSON.parse(e.coordinates as string) : null,
+        coordinates: safeJsonParse(e.coordinates),
         is_public: Boolean(e.is_public)
       }))
 
@@ -208,7 +208,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       return new Response(
         JSON.stringify({
           ...event,
-          coordinates: event.coordinates ? JSON.parse(event.coordinates as string) : null,
+          coordinates: safeJsonParse(event.coordinates),
           is_public: Boolean(event.is_public)
         }),
         { status: 201, headers: JSON_HEADERS }
@@ -265,24 +265,24 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       return new Response(
         JSON.stringify({
           ...event,
-          coordinates: event.coordinates ? JSON.parse(event.coordinates as string) : null,
+          coordinates: safeJsonParse(event.coordinates),
           is_public: Boolean(event.is_public),
           actors: actors.map(a => ({
             ...a,
-            aliases: a.aliases ? JSON.parse(a.aliases as string) : [],
-            deception_profile: a.deception_profile ? JSON.parse(a.deception_profile as string) : null,
+            aliases: safeJsonParse(a.aliases, []),
+            deception_profile: safeJsonParse(a.deception_profile),
             is_public: Boolean(a.is_public)
           })),
           evidence: evidence.map(e => ({
             ...e,
-            tags: e.tags ? JSON.parse(e.tags as string) : [],
-            source: e.source ? JSON.parse(e.source as string) : {},
-            metadata: e.metadata ? JSON.parse(e.metadata as string) : {},
-            eve_assessment: e.eve_assessment ? JSON.parse(e.eve_assessment as string) : null
+            tags: safeJsonParse(e.tags, []),
+            source: safeJsonParse(e.source, {}),
+            metadata: safeJsonParse(e.metadata, {}),
+            eve_assessment: safeJsonParse(e.eve_assessment)
           })),
           place: place ? {
             ...place,
-            coordinates: place.coordinates ? JSON.parse(place.coordinates as string) : null
+            coordinates: safeJsonParse(place.coordinates)
           } : null
         }),
         { status: 200, headers: JSON_HEADERS }
@@ -402,7 +402,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       return new Response(
         JSON.stringify({
           ...updated,
-          coordinates: updated.coordinates ? JSON.parse(updated.coordinates as string) : null,
+          coordinates: safeJsonParse(updated.coordinates),
           is_public: Boolean(updated.is_public)
         }),
         { status: 200, headers: JSON_HEADERS }

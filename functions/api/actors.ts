@@ -6,7 +6,7 @@
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserIdOrDefault, getUserFromRequest } from './_shared/auth-helpers'
 import { checkWorkspaceAccess } from './_shared/workspace-helpers'
-import { generateId, CORS_HEADERS, JSON_HEADERS } from './_shared/api-utils'
+import { generateId, CORS_HEADERS, JSON_HEADERS, safeJsonParse } from './_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -69,9 +69,9 @@ export const onRequest: PagesFunction<Env> = async (context) => {
             exists: true,
             actor: {
               ...actor,
-              aliases: actor.aliases ? JSON.parse(actor.aliases as string) : [],
-              tags: actor.tags ? JSON.parse(actor.tags as string) : [],
-              deception_profile: actor.deception_profile ? JSON.parse(actor.deception_profile as string) : null,
+              aliases: safeJsonParse(actor.aliases, []),
+              tags: safeJsonParse(actor.tags, []),
+              deception_profile: safeJsonParse(actor.deception_profile),
               is_public: Boolean(actor.is_public)
             }
           }),
@@ -95,9 +95,9 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         ).bind(userId).all()
         const actors = results.map(a => ({
           ...a,
-          aliases: a.aliases ? JSON.parse(a.aliases as string) : [],
-          tags: a.tags ? JSON.parse(a.tags as string) : [],
-          deception_profile: a.deception_profile ? JSON.parse(a.deception_profile as string) : null,
+          aliases: safeJsonParse(a.aliases, []),
+          tags: safeJsonParse(a.tags, []),
+          deception_profile: safeJsonParse(a.deception_profile),
           is_public: Boolean(a.is_public)
         }))
         return new Response(
@@ -141,9 +141,9 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       // Parse JSON fields
       const actors = results.map(a => ({
         ...a,
-        aliases: a.aliases ? JSON.parse(a.aliases as string) : [],
-        tags: a.tags ? JSON.parse(a.tags as string) : [],
-        deception_profile: a.deception_profile ? JSON.parse(a.deception_profile as string) : null,
+        aliases: safeJsonParse(a.aliases, []),
+        tags: safeJsonParse(a.tags, []),
+        deception_profile: safeJsonParse(a.deception_profile),
         is_public: Boolean(a.is_public)
       }))
 
@@ -240,9 +240,9 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       return new Response(
         JSON.stringify({
           ...actor,
-          aliases: actor.aliases ? JSON.parse(actor.aliases as string) : [],
-          tags: actor.tags ? JSON.parse(actor.tags as string) : [],
-          deception_profile: actor.deception_profile ? JSON.parse(actor.deception_profile as string) : null,
+          aliases: safeJsonParse(actor.aliases, []),
+          tags: safeJsonParse(actor.tags, []),
+          deception_profile: safeJsonParse(actor.deception_profile),
           is_public: Boolean(actor.is_public)
         }),
         { status: 201, headers: JSON_HEADERS }
@@ -296,9 +296,9 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       return new Response(
         JSON.stringify({
           ...actor,
-          aliases: actor.aliases ? JSON.parse(actor.aliases as string) : [],
-          tags: actor.tags ? JSON.parse(actor.tags as string) : [],
-          deception_profile: actor.deception_profile ? JSON.parse(actor.deception_profile as string) : null,
+          aliases: safeJsonParse(actor.aliases, []),
+          tags: safeJsonParse(actor.tags, []),
+          deception_profile: safeJsonParse(actor.deception_profile),
           is_public: Boolean(actor.is_public),
           related_counts: {
             events: eventsCount[0]?.count || 0,
@@ -387,9 +387,9 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       return new Response(
         JSON.stringify({
           ...updated,
-          aliases: updated.aliases ? JSON.parse(updated.aliases as string) : [],
-          tags: updated.tags ? JSON.parse(updated.tags as string) : [],
-          deception_profile: updated.deception_profile ? JSON.parse(updated.deception_profile as string) : null,
+          aliases: safeJsonParse(updated.aliases, []),
+          tags: safeJsonParse(updated.tags, []),
+          deception_profile: safeJsonParse(updated.deception_profile),
           is_public: Boolean(updated.is_public)
         }),
         { status: 200, headers: JSON_HEADERS }
@@ -482,9 +482,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         )
       }
 
-      const deceptionProfile = actor.deception_profile
-        ? JSON.parse(actor.deception_profile as string)
-        : null
+      const deceptionProfile = safeJsonParse(actor.deception_profile)
 
       return new Response(
         JSON.stringify(deceptionProfile),

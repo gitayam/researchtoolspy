@@ -28,6 +28,12 @@ export const JSON_HEADERS = {
   'Content-Type': 'application/json',
 } as const
 
+/** Safe JSON.parse — returns fallback on malformed data instead of throwing */
+export function safeJsonParse(value: any, fallback: any = null): any {
+  if (!value) return fallback
+  try { return JSON.parse(value) } catch { return fallback }
+}
+
 /** Return a preflight (OPTIONS) response */
 export function optionsResponse(): Response {
   return new Response(null, { status: 204, headers: CORS_HEADERS })

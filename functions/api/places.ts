@@ -6,7 +6,7 @@
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserIdOrDefault, getUserFromRequest } from './_shared/auth-helpers'
 import { checkWorkspaceAccess } from './_shared/workspace-helpers'
-import { generateId, CORS_HEADERS, JSON_HEADERS } from './_shared/api-utils'
+import { generateId, CORS_HEADERS, JSON_HEADERS, safeJsonParse } from './_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -79,7 +79,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
       const places = results.map(p => ({
         ...p,
-        coordinates: p.coordinates ? JSON.parse(p.coordinates as string) : null,
+        coordinates: safeJsonParse(p.coordinates),
         is_public: Boolean(p.is_public)
       }))
 
@@ -177,7 +177,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       return new Response(
         JSON.stringify({
           ...place,
-          coordinates: place.coordinates ? JSON.parse(place.coordinates as string) : null,
+          coordinates: safeJsonParse(place.coordinates),
           is_public: Boolean(place.is_public)
         }),
         { status: 201, headers: JSON_HEADERS }
@@ -219,8 +219,8 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         if (controllingActor) {
           controllingActor = {
             ...controllingActor,
-            aliases: controllingActor.aliases ? JSON.parse(controllingActor.aliases as string) : [],
-            deception_profile: controllingActor.deception_profile ? JSON.parse(controllingActor.deception_profile as string) : null,
+            aliases: safeJsonParse(controllingActor.aliases, []),
+            deception_profile: safeJsonParse(controllingActor.deception_profile),
             is_public: Boolean(controllingActor.is_public)
           }
         }
@@ -235,12 +235,12 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       return new Response(
         JSON.stringify({
           ...place,
-          coordinates: place.coordinates ? JSON.parse(place.coordinates as string) : null,
+          coordinates: safeJsonParse(place.coordinates),
           is_public: Boolean(place.is_public),
           controlling_actor: controllingActor,
           events: events.map(e => ({
             ...e,
-            coordinates: e.coordinates ? JSON.parse(e.coordinates as string) : null,
+            coordinates: safeJsonParse(e.coordinates),
             is_public: Boolean(e.is_public)
           })),
           event_count: events.length
@@ -317,7 +317,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       return new Response(
         JSON.stringify({
           ...updated,
-          coordinates: updated.coordinates ? JSON.parse(updated.coordinates as string) : null,
+          coordinates: safeJsonParse(updated.coordinates),
           is_public: Boolean(updated.is_public)
         }),
         { status: 200, headers: JSON_HEADERS }

@@ -6,7 +6,7 @@
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserIdOrDefault, getUserFromRequest } from './_shared/auth-helpers'
 import { checkWorkspaceAccess } from './_shared/workspace-helpers'
-import { generateId, CORS_HEADERS, JSON_HEADERS } from './_shared/api-utils'
+import { generateId, CORS_HEADERS, JSON_HEADERS, safeJsonParse } from './_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -69,7 +69,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
       const sources = results.map(s => ({
         ...s,
-        moses_assessment: s.moses_assessment ? JSON.parse(s.moses_assessment as string) : null,
+        moses_assessment: safeJsonParse(s.moses_assessment),
         is_public: Boolean(s.is_public)
       }))
 
@@ -156,7 +156,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       return new Response(
         JSON.stringify({
           ...source,
-          moses_assessment: source.moses_assessment ? JSON.parse(source.moses_assessment as string) : null,
+          moses_assessment: safeJsonParse(source.moses_assessment),
           is_public: Boolean(source.is_public)
         }),
         { status: 201, headers: JSON_HEADERS }
@@ -196,7 +196,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       return new Response(
         JSON.stringify({
           ...source,
-          moses_assessment: source.moses_assessment ? JSON.parse(source.moses_assessment as string) : null,
+          moses_assessment: safeJsonParse(source.moses_assessment),
           is_public: Boolean(source.is_public),
           related_counts: {
             evidence: evidenceCount[0]?.count || 0
@@ -273,7 +273,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       return new Response(
         JSON.stringify({
           ...updated,
-          moses_assessment: updated.moses_assessment ? JSON.parse(updated.moses_assessment as string) : null,
+          moses_assessment: safeJsonParse(updated.moses_assessment),
           is_public: Boolean(updated.is_public)
         }),
         { status: 200, headers: JSON_HEADERS }
