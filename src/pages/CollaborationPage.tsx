@@ -75,7 +75,7 @@ export function CollaborationPage() {
       setError(null)
       const response = await fetch('/api/workspaces', { headers: getAuthHeaders(), signal })
       if (!response.ok) {
-        const errData = await response.json().catch(() => ({}))
+        const errData = await response.json().catch((e) => { console.error('[CollaborationPage] JSON parse error:', e); return {} })
         setError(errData.error || `Failed to load workspaces (${response.status})`)
         return
       }

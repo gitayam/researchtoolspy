@@ -1,49 +1,21 @@
 # Site Issues — Investigation Report
 
-**Last updated:** 2026-03-15 (Sessions 34-85)
+**Last updated:** 2026-03-15 (Sessions 34-86)
 
 ## Known Open — Prioritized for Next Sessions
 
-### HIGH — getUserIdOrDefault on 6 Remaining Mutation Endpoints
-| File | Methods | Notes |
-|------|---------|-------|
-| `equilibrium-analysis.ts` | POST (line 88) | Falls back to user 1 |
-| `content-intelligence/saved-links.ts` | POST/PUT/DELETE (lines 120, 255, 356) | 3 mutation methods |
-| `frameworks/[id].ts` | PUT/DELETE (lines 76, 186) | Framework edit/delete |
-
-### HIGH — 10+ Mutation Endpoints with `|| '1'` Workspace Fallback
-| File | Method | Notes |
-|------|--------|-------|
-| `hamilton-rule.ts` | POST (line 94) | |
-| `collection/start.ts` | POST (line 41) | |
-| `evidence/recommend.ts` | POST (line 58) | |
-| `equilibrium-analysis.ts` | POST (line 89) | |
-| `ach/evidence.ts` | POST (line 137) | |
-| `ach/scores.ts` | POST (line 179) | |
-| `ach/hypotheses.ts` | POST/PUT (lines 117, 186) | |
-| `ach/index.ts` | POST/PUT/DELETE (lines 123, 194, 279) | |
-| `ach/from-content-intelligence.ts` | POST (line 28) | |
-| `content-intelligence/auto-extract-entities.ts` | POST (line 37) | |
-| `content-intelligence/analyze-url.ts` | POST (line 71) | |
-| `content-intelligence/starbursting.ts` | POST (line 180) | |
-| `investigation-packets/create.ts` | POST (line 26) | |
-
-### HIGH — 8 More External Fetch Calls Missing AbortSignal
+### HIGH — 7 More External Fetch Calls Missing AbortSignal (Internal API Calls)
 | File | Lines | Service |
 |------|-------|---------|
-| `collection/start.ts` | 104 | External scraper |
-| `collection/[jobId]/approve.ts` | 97 | External |
-| `tools/extract.ts` | 315 | External |
-| `tools/batch-process.ts` | 47 | External |
-| `content-intelligence/starbursting.ts` | 138, 183 | OpenAI direct |
-| `frameworks/pmesii-pt/import-url.ts` | 46 | OpenAI direct |
-| `cop/[id]/alerts.ts` | 71 | OpenAI direct |
+| `collection/start.ts` | 104 | Internal scraper endpoint |
+| `collection/[jobId]/approve.ts` | 97 | Internal endpoint |
+| `tools/extract.ts` | 315 | Internal endpoint |
+| `tools/batch-process.ts` | 47 | Internal endpoint |
+| `content-intelligence/starbursting.ts` | 138, 183 | Internal API calls |
+| `frameworks/pmesii-pt/import-url.ts` | 46 | Internal API call |
 
 ### MEDIUM — 20 Files Missing meta.changes Check on DELETE/UPDATE
 Key files: `settings/workspaces/[id].ts`, `settings/user.ts`, `investigations/[id].ts`, `ach/evidence.ts`, `ach/scores.ts`, `ach/hypotheses.ts`, `cop/sessions/[id].ts` (partial), `cop/[id]/submissions.ts`, `cop/[id]/assets.ts`, `cop/[id]/rfis/[rfiId].ts`, `cop/[id]/playbooks/[pbId].ts`, `claims/remove-evidence-link.ts`, `claims/remove-entity-mention.ts`
-
-### MEDIUM — 15 Frontend Silent `.catch(() => ({}))` Blocks
-Files: CopGlobalCaptureBar, CopInviteDialog, CopExportDialog, InvestigationsPage, CollaborationPage, ContentIntelligencePage (5), RageCheckPage, InvestigationDetailPage, NewInvestigationPage, CopListPage, lib/api/content-intelligence.ts
 
 ### MEDIUM — 9 Hardcoded X-User-Hash Headers (Should Use getCopHeaders())
 Files: GenericFrameworkView, BehaviorSearchDialog, GenericFrameworkForm, COGWizard, ShareButton, SwotForm, useSettings, SettingsPage (2)
@@ -55,6 +27,39 @@ Largest concentrations: EntityQuickCreate (12), GenericFrameworkForm (10), Batch
 - 25+ COP GET endpoints lack auth (Issue #384)
 - 15+ COP POST/PUT/DELETE lack session membership verification (Issue #385)
 - `notifications.ts` POST and `activity.ts` POST still unauthed (#396-397)
+
+---
+
+## Fixed — v2.16.5 (Session 86)
+
+### HIGH — MUTATION ENDPOINT getUserIdOrDefault + WORKSPACE '1' FALLBACKS (14 FILES)
+| # | Issue | Status |
+|---|-------|--------|
+| 548 | **equilibrium-analysis.ts POST** — Used `getUserIdOrDefault` after auth gate (redundant + insecure). Fixed: removed getUserIdOrDefault, use authUserId directly. Also fixed workspace `|| '1'` → `|| null` | FIXED |
+| 549 | **ach/hypotheses.ts** — All 3 handlers (POST/PUT/DELETE) had workspace `|| '1'`. Fixed: `|| null` on all | FIXED |
+| 550 | **ach/scores.ts** — POST + DELETE had workspace `|| '1'`. Fixed: `|| null` | FIXED |
+| 551 | **ach/evidence.ts** — POST + DELETE had workspace `|| '1'`. Fixed: `|| null` | FIXED |
+| 552 | **ach/index.ts** — POST/PUT/DELETE had workspace `|| '1'`. Fixed: `|| null` on all mutation handlers | FIXED |
+| 553 | **ach/from-content-intelligence.ts** — POST workspace `|| '1'`. Fixed: `|| null` | FIXED |
+| 554 | **hamilton-rule.ts** — POST workspace `|| '1'`. Fixed: `|| null` | FIXED |
+| 555 | **collection/start.ts** — POST workspace `|| '1'`. Fixed: `|| null` | FIXED |
+| 556 | **evidence/recommend.ts** — POST workspace `|| '1'`. Fixed: `|| null` | FIXED |
+| 557 | **content-intelligence/auto-extract-entities.ts** — POST workspace `|| '1'`. Fixed: `|| null` | FIXED |
+| 558 | **content-intelligence/analyze-url.ts** — POST workspace `|| '1'`. Fixed: `|| null` | FIXED |
+| 559 | **content-intelligence/starbursting.ts** — POST workspace `|| '1'`. Fixed: `|| null` | FIXED |
+| 560 | **investigation-packets/create.ts** — POST workspace `|| '1'`. Fixed: `|| null` | FIXED |
+| 561 | **cop/[id]/alerts.ts** — External Redsight API fetch missing AbortSignal. Fixed: 15s timeout | FIXED |
+
+### HIGH — STALE SCAN FINDINGS VERIFIED AS ALREADY FIXED
+| # | Issue | Status |
+|---|-------|--------|
+| 562 | **saved-links.ts POST/PUT/DELETE** — Scan reported getUserIdOrDefault but mutations already use getUserFromRequest + 401 | ALREADY FIXED |
+| 563 | **frameworks/[id].ts PUT/DELETE** — Scan reported getUserIdOrDefault but mutations already use getUserFromRequest + 401 + ownership | ALREADY FIXED |
+
+### MEDIUM — 15 FRONTEND SILENT `.catch(() => ({}))` BLOCKS (11 FILES)
+| # | Issue | Status |
+|---|-------|--------|
+| 564 | **11 frontend files, 15 instances** — Silent JSON parse error catches with no logging. Fixed: added console.error with component-specific tags. Files: CopGlobalCaptureBar (1), CopInviteDialog (1), CopExportDialog (1), content-intelligence.ts (1), InvestigationsPage (1), CollaborationPage (1), ContentIntelligencePage (5), RageCheckPage (1), InvestigationDetailPage (1), NewInvestigationPage (1), CopListPage (1) | FIXED |
 
 ---
 

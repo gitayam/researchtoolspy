@@ -135,7 +135,7 @@ export default function CopListPage() {
         headers: getCopHeaders(),
       })
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
+        const data = await res.json().catch((e) => { console.error('[CopListPage] JSON parse error:', e); return {} })
         throw new Error(data.error ?? 'Failed to delete')
       }
       setSessions((prev) => prev.filter((s) => s.id !== deleteTarget.id))

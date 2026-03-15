@@ -6,7 +6,7 @@
  */
 
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserIdOrDefault, getUserFromRequest } from './_shared/auth-helpers'
+import { getUserFromRequest } from './_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
@@ -85,8 +85,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    const userId = await getUserIdOrDefault(request, env)
-    const workspaceId = request.headers.get('X-Workspace-ID') || url.searchParams.get('workspace_id') || '1'
+    const workspaceId = request.headers.get('X-Workspace-ID') || url.searchParams.get('workspace_id') || null
     const body = await request.json() as any
 
     if (!body.title) {
@@ -115,7 +114,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       body.time_series ? JSON.stringify(body.time_series) : '[]',
       body.variables ? JSON.stringify(body.variables) : null,
       workspaceId,
-      userId,
+      authUserId,
       now,
       now,
       body.is_public ? 1 : 0,

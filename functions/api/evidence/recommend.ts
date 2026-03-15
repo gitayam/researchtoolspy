@@ -55,7 +55,7 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
 
   try {
     const body: RecommendRequest = await request.json()
-    const { framework_type, context: ctx, workspace_id = request.headers.get('X-Workspace-ID') || '1' } = body
+    const { framework_type, context: ctx, workspace_id = request.headers.get('X-Workspace-ID') || null } = body
 
     const allEvidence: any[] = []
     const matchReasons = new Map<number, string[]>()

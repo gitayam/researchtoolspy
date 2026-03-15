@@ -1117,7 +1117,7 @@ ${shortSummary}`
       })
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
+        const errorData = await response.json().catch((e) => { console.error('[ContentIntelligencePage] JSON parse error:', e); return {} })
         console.error('[Claims] API error:', errorData)
         throw new Error(errorData.details || errorData.error || 'Claims analysis failed')
       }
@@ -1583,7 +1583,7 @@ ${shortSummary}`
       })
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
+        const errorData = await response.json().catch((e) => { console.error('[ContentIntelligencePage] JSON parse error:', e); return {} })
         throw new Error(errorData.details || errorData.error || 'Failed to create ACH')
       }
 
@@ -1773,7 +1773,7 @@ ${shortSummary}`
           await checkEntityDuplicates(analysis.entities)
         }
       } else {
-        const errorData = await response.json().catch(() => ({}))
+        const errorData = await response.json().catch((e) => { console.error('[ContentIntelligencePage] JSON parse error:', e); return {} })
         throw new Error(errorData.error || 'Failed to save')
       }
     } catch (error) {
@@ -1923,7 +1923,7 @@ ${shortSummary}`
       })
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
+        const errorData = await response.json().catch((e) => { console.error('[ContentIntelligencePage] JSON parse error:', e); return {} })
         console.error('[Starbursting] API error:', errorData)
         throw new Error(errorData.details || errorData.error || 'Failed to create Starbursting session')
       }
@@ -1965,7 +1965,7 @@ ${shortSummary}`
       })
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
+        const errorData = await response.json().catch((e) => { console.error('[ContentIntelligencePage] JSON parse error:', e); return {} })
         throw new Error(errorData.details || errorData.error || 'Failed to generate more questions')
       }
 

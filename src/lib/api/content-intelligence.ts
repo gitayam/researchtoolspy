@@ -187,7 +187,7 @@ function getAuthHeaders(): Record<string, string> {
 
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}))
+    const errorData = await response.json().catch((e) => { console.error('[content-intelligence-api] JSON parse error:', e); return {} })
     throw new ContentIntelligenceAPIError(
       errorData.error || errorData.details || `Request failed with status ${response.status}`,
       response.status,

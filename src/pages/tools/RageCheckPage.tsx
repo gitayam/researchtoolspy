@@ -52,7 +52,7 @@ export function RageCheckPage() {
       })
 
       if (!response.ok) {
-        const data = await response.json().catch(() => ({}))
+        const data = await response.json().catch((e) => { console.error('[RageCheckPage] JSON parse error:', e); return {} })
         throw new Error(data.error || 'Analysis failed')
       }
 

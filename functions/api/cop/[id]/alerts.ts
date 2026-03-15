@@ -71,6 +71,7 @@ async function fetchRedsightIncidents(
     const response = await fetch(url.toString(), {
       method: 'GET',
       headers,
+      signal: AbortSignal.timeout(15000),
     })
 
     if (!response.ok) {

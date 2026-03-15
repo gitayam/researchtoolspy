@@ -103,7 +103,7 @@ export default function NewInvestigationPage() {
         const data = await response.json()
         navigate(`/dashboard/investigations/${data.investigation.id}`)
       } else {
-        const errorData = await response.json().catch(() => ({}))
+        const errorData = await response.json().catch((e) => { console.error('[NewInvestigationPage] JSON parse error:', e); return {} })
         const errorMessage = errorData.error || 'Failed to create investigation'
         const errorDetails = errorData.details ? `\n\nDetails: ${errorData.details}` : ''
         alert(`${errorMessage}${errorDetails}`)

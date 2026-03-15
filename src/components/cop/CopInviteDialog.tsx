@@ -111,7 +111,7 @@ export default function CopInviteDialog({
         body: JSON.stringify({ email: trimmed, role }),
       })
       if (!res.ok) {
-        const errData = await res.json().catch(() => ({}))
+        const errData = await res.json().catch((e) => { console.error('[CopInviteDialog] JSON parse error:', e); return {} })
         throw new Error(errData.error ?? 'Failed to send invite')
       }
       setEmail('')

@@ -68,7 +68,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       if (user?.user_hash) bookmarkHash = user.user_hash as string
     }
 
-    const workspaceId = request.headers.get('X-Workspace-ID') || '1'
+    const workspaceId = request.headers.get('X-Workspace-ID') || null
 
     // Parse request
     let body: AnalyzeUrlRequest

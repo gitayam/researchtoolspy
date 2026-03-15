@@ -34,7 +34,7 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
         headers: corsHeaders,
       })
     }
-    const { analysis_id, workspace_id = request.headers.get('X-Workspace-ID') || '1' } = body
+    const { analysis_id, workspace_id = request.headers.get('X-Workspace-ID') || null } = body
     const user_id = body.user_id || userId
 
     if (!analysis_id) {

@@ -23,7 +23,7 @@ interface CreatePacketRequest {
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
     const authUserId = await requireAuth(context.request, context.env)
-    const workspaceId = context.request.headers.get('X-Workspace-ID') || '1'
+    const workspaceId = context.request.headers.get('X-Workspace-ID') || null
 
     const body = await context.request.json() as CreatePacketRequest
 

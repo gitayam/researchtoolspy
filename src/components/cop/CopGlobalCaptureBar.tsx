@@ -57,7 +57,7 @@ export default function CopGlobalCaptureBar({ sessionId, onSuccess, onLocationDe
       })
 
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
+        const data = await res.json().catch((e) => { console.error('[CopGlobalCaptureBar] JSON parse error:', e); return {} })
         throw new Error(data.error ?? 'Failed to capture intel')
       }
 

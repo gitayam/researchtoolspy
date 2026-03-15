@@ -32,8 +32,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     const id = url.searchParams.get('id')
     const userId = await getUserIdOrDefault(context.request, context.env)
 
-    // Get workspace_id from query params, header, or default to '1'
-    const workspaceId = url.searchParams.get('workspace_id') || context.request.headers.get('X-Workspace-ID') || '1'
+    const workspaceId = url.searchParams.get('workspace_id') || context.request.headers.get('X-Workspace-ID') || null
 
     if (id) {
       // Get specific analysis with hypotheses, evidence, and scores
@@ -119,8 +118,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
     const data = await context.request.json() as Partial<ACHAnalysis>
 
-    // Get workspace_id from query params, header, or default to '1'
-    const workspaceId = url.searchParams.get('workspace_id') || context.request.headers.get('X-Workspace-ID') || '1'
+    const workspaceId = url.searchParams.get('workspace_id') || context.request.headers.get('X-Workspace-ID') || null
 
     if (!data.title || !data.question) {
       return new Response(JSON.stringify({
@@ -190,8 +188,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       })
     }
 
-    // Get workspace_id from query params, header, or default to '1'
-    const workspaceId = url.searchParams.get('workspace_id') || context.request.headers.get('X-Workspace-ID') || '1'
+    const workspaceId = url.searchParams.get('workspace_id') || context.request.headers.get('X-Workspace-ID') || null
 
     if (!id) {
       return new Response(JSON.stringify({ error: 'ID is required' }), {
@@ -275,8 +272,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       })
     }
 
-    // Get workspace_id from query params, header, or default to '1'
-    const workspaceId = url.searchParams.get('workspace_id') || context.request.headers.get('X-Workspace-ID') || '1'
+    const workspaceId = url.searchParams.get('workspace_id') || context.request.headers.get('X-Workspace-ID') || null
 
     if (!id) {
       return new Response(JSON.stringify({ error: 'ID is required' }), {

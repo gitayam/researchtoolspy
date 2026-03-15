@@ -85,7 +85,7 @@ export function InvestigationDetailPage() {
         } else if (response.status === 403) {
           setError(t('investigation:accessDenied'))
         } else {
-          const data = await response.json().catch(() => ({}))
+          const data = await response.json().catch((e) => { console.error('[InvestigationDetailPage] JSON parse error:', e); return {} })
           setError(data.error || t('investigation:loadFailed'))
         }
         return

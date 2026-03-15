@@ -91,7 +91,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    const workspaceId = request.headers.get('X-Workspace-ID') || url.searchParams.get('workspace_id') || '1'
+    const workspaceId = request.headers.get('X-Workspace-ID') || url.searchParams.get('workspace_id') || null
     const body = await request.json() as any
 
     if (!body.title) {
