@@ -5,11 +5,13 @@
  * GET  /api/cop/:id/scrape?run_id=xxx — Check run status / fetch results
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserFromRequest } from '../../_shared/auth-helpers'
+import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
   APIFY_API_KEY?: string
+  SESSIONS?: KVNamespace
+  JWT_SECRET?: string
 }
 
 const corsHeaders = {
@@ -47,6 +49,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
         status: 401, headers: corsHeaders,
       })
+    }
+    if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
+      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
     }
 
     const apiKey = env.APIFY_API_KEY
@@ -191,6 +196,9 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
         status: 401, headers: corsHeaders,
       })
+    }
+    if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
+      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
     }
 
     const apiKey = env.APIFY_API_KEY

@@ -1,7 +1,24 @@
 # ResearchTools.net — Issue Tracker
 
 **Last updated:** 2026-03-15
-**Current tag:** v0.14.5-non-cop-auth-sweep
+**Current tag:** v0.14.6-cop-deep-sub-resource-auth
+
+---
+
+## Fixed (v0.14.6)
+
+### P0 — 9 COP Sub-resource Endpoints Missing Auth or Session Access
+- [x] `playbooks/[pbId].ts` — GET had zero auth; PUT/DELETE had auth but no session access
+- [x] `playbooks/[pbId]/log.ts` — GET had zero auth (execution logs fully public)
+- [x] `assets/[assetId]/log.ts` — GET had zero auth (audit trail fully public)
+- [x] `exports/[exportId]/download.ts` — GET had zero auth (export metadata fully public)
+- [x] `rfis/[rfiId].ts` — PUT had auth but no session access
+- [x] `scrape.ts` — POST/GET had auth but no session access
+- [x] `tasks/[taskId]/reassign.ts` — POST had auth but no session access
+- [x] `tasks/deploy-template.ts` — POST had auth but no session access
+- [x] `evidence/batch.ts` — POST had auth but no session access
+- [x] All 9 now enforce `getUserFromRequest` + `verifyCopSessionAccess` on all 13 handler entry points
+- **Root cause:** deeply nested sub-resource endpoints (3-4 levels deep) built without session access checks, assuming parent route coverage
 
 ---
 

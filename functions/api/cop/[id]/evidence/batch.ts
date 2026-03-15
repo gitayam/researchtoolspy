@@ -4,10 +4,12 @@
  * POST /api/cop/:id/evidence/batch - Insert up to 100 evidence items via D1 batch
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserFromRequest } from '../../../_shared/auth-helpers'
+import { getUserFromRequest, verifyCopSessionAccess } from '../../../_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
+  SESSIONS?: KVNamespace
+  JWT_SECRET?: string
 }
 
 const MAX_BATCH_SIZE = 100
@@ -44,6 +46,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
         status: 401, headers: corsHeaders,
       })
+    }
+    if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
+      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
     }
     const workspaceId = await getSessionWorkspaceId(env.DB, sessionId)
     if (!workspaceId) {

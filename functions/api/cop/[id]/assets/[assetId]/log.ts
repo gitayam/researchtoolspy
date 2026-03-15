@@ -7,9 +7,12 @@
  * ordered by created_at DESC.
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
+import { getUserFromRequest, verifyCopSessionAccess } from '../../../../_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
+  SESSIONS?: KVNamespace
+  JWT_SECRET?: string
 }
 
 const corsHeaders = {
@@ -20,9 +23,18 @@ const corsHeaders = {
 }
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
-  const { env, params } = context
+  const { request, env, params } = context
   const sessionId = params.id as string
   const assetId = params.assetId as string
+
+  const userId = await getUserFromRequest(request, env)
+  if (!userId) {
+    return new Response(JSON.stringify({ error: 'Authentication required' }), { status: 401, headers: corsHeaders })
+  }
+  const accessWorkspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId, { readOnly: true })
+  if (!accessWorkspaceId) {
+    return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
+  }
 
   try {
     // Verify asset exists in this session

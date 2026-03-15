@@ -6,10 +6,12 @@
  * DELETE /api/cop/:id/playbooks/:pbId - Delete playbook (cascades to rules + log)
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserFromRequest } from '../../../_shared/auth-helpers'
+import { getUserFromRequest, verifyCopSessionAccess } from '../../../_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
+  SESSIONS?: KVNamespace
+  JWT_SECRET?: string
 }
 
 const corsHeaders = {
@@ -31,9 +33,18 @@ function parseJsonField(row: any, field: string, fallback: any = {}): any {
 }
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
-  const { env, params } = context
+  const { request, env, params } = context
   const sessionId = params.id as string
   const pbId = params.pbId as string
+
+  const userId = await getUserFromRequest(request, env)
+  if (!userId) {
+    return new Response(JSON.stringify({ error: 'Authentication required' }), { status: 401, headers: corsHeaders })
+  }
+  const accessWorkspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId, { readOnly: true })
+  if (!accessWorkspaceId) {
+    return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
+  }
 
   try {
     const playbook = await env.DB.prepare(
@@ -79,6 +90,9 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
         status: 401, headers: corsHeaders,
       })
+    }
+    if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
+      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
     }
     const body = await request.json() as any
 
@@ -143,6 +157,9 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
         status: 401, headers: corsHeaders,
       })
+    }
+    if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
+      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
     }
     const existing = await env.DB.prepare(
       'SELECT id FROM cop_playbooks WHERE id = ? AND cop_session_id = ?'
