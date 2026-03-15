@@ -436,7 +436,7 @@ export function HamiltonRulePage() {
                       className={`p-3 rounded-md border cursor-pointer hover:bg-accent ${
                         selectedAnalysis?.id === a.id ? 'border-primary bg-accent' : ''
                       }`}
-                      onClick={() => fetchAnalysis(a.id!).then(setSelectedAnalysis)}
+                      onClick={() => fetchAnalysis(a.id!).then(setSelectedAnalysis).catch(console.error)}
                     >
                       <div className="flex justify-between items-start">
                         <div>

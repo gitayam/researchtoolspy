@@ -158,7 +158,7 @@ export function ACHShareButton({
 
   const handleCopyLink = () => {
     if (shareUrl) {
-      navigator.clipboard.writeText(shareUrl)
+      navigator.clipboard.writeText(shareUrl).catch(console.error)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     }

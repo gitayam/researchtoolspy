@@ -27,8 +27,8 @@ export async function onRequest(context: any) {
       if (evidenceId) {
         // Get single evidence item with citations
         const evidence = await env.DB.prepare(`
-          SELECT * FROM evidence_items WHERE id = ?
-        `).bind(evidenceId).first()
+          SELECT * FROM evidence_items WHERE id = ? AND (created_by = ? OR is_public = 1)
+        `).bind(evidenceId, userId).first()
 
         if (!evidence) {
           return new Response(JSON.stringify({ error: 'Evidence not found' }), {

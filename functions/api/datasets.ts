@@ -27,8 +27,8 @@ export async function onRequest(context: any) {
       if (datasetId) {
         // Get single dataset from D1
         const dataset = await env.DB.prepare(
-          'SELECT * FROM datasets WHERE id = ?'
-        ).bind(datasetId).first()
+          'SELECT * FROM datasets WHERE id = ? AND (created_by = ? OR is_public = 1)'
+        ).bind(datasetId, userId).first()
 
         if (!dataset) {
           return new Response(JSON.stringify({ error: 'Dataset not found' }), {

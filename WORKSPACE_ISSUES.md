@@ -31,10 +31,30 @@
 | 450 | **cross-table/[id]/ai/score-suggest.ts** — Same pattern. Fixed | FIXED |
 | 451 | **cross-table/[id]/ai/suggest-criteria.ts** — Same pattern. Fixed | FIXED |
 
-### LOW — BUILD FAILURE: TYPESCRIPT ERROR IN COPMAP
+### HIGH — IDOR: SINGLE-ITEM GET WITHOUT OWNERSHIP CHECK
 | # | Issue | Status |
 |---|-------|--------|
-| 452 | **CopMap.tsx:251** — `Type 'number \| number[] \| number[][]'` iterator error on Polygon coordinate destructuring. Fixed: explicit type cast | FIXED |
+| 452 | **evidence-items.ts GET single** — `SELECT * FROM evidence_items WHERE id = ?` without ownership check. Any user can read any evidence item by ID. Fixed: added `AND (created_by = ? OR is_public = 1)` | FIXED |
+| 453 | **datasets.ts GET single** — Same pattern. Any user can read any dataset by ID. Fixed: added ownership filter | FIXED |
+
+### HIGH — INTELLIGENCE DASHBOARD DATA LEAK
+| # | Issue | Status |
+|---|-------|--------|
+| 454 | **intelligence/network.ts** — GET uses getUserIdOrDefault, exposes user 1's relationship graphs to unauthenticated visitors. Fixed: getUserFromRequest + 401 | FIXED |
+| 455 | **intelligence/timeline.ts** — Same pattern. Exposes framework/evidence activity. Fixed | FIXED |
+| 456 | **intelligence/entities.ts** — Same pattern. Exposes entity counts and workspace data. Fixed | FIXED |
+
+### MEDIUM — RELATIONSHIPS LIMIT NOT CAPPED
+| # | Issue | Status |
+|---|-------|--------|
+| 457 | **relationships.ts GET** — `parseInt(limit)` without max cap. Client can request `?limit=999999`. Fixed: added `Math.min(..., 500)` | FIXED |
+
+### LOW — UNHANDLED PROMISE REJECTIONS
+| # | Issue | Status |
+|---|-------|--------|
+| 458 | **HamiltonRulePage.tsx:439** — `.then(setSelectedAnalysis)` without `.catch()`. Fixed: added `.catch(console.error)` | FIXED |
+| 459 | **EquilibriumAnalysisPage.tsx:345** — Same pattern. Fixed | FIXED |
+| 460 | **ACHShareButton.tsx:161** — `navigator.clipboard.writeText()` without `.catch()`. Fixed | FIXED |
 
 ---
 
