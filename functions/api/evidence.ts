@@ -230,7 +230,7 @@ export async function onRequest(context: any) {
       }
       const result = await env.DB.prepare(
         'DELETE FROM evidence WHERE id = ? AND created_by = ?'
-      ).bind(evidenceId, userId).run()
+      ).bind(evidenceId, authUserId).run()
 
       if (result.meta.changes === 0) {
         return new Response(JSON.stringify({ error: 'Evidence not found or access denied' }), {

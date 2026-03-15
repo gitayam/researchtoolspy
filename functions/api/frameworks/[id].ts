@@ -94,7 +94,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
     // Verify ownership — user_id must match or workspace must match
     const workspaceId = context.request.headers.get('X-Workspace-ID')
-    const isOwner = existing.user_id === userId
+    const isOwner = String(existing.user_id) === String(userId)
     const inWorkspace = workspaceId && existing.workspace_id === workspaceId
     if (!isOwner && !inWorkspace) {
       return new Response(JSON.stringify({ error: 'Not authorized to update this session' }), {

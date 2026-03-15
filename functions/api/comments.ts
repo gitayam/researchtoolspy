@@ -309,7 +309,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       }
 
       // Check ownership
-      const isOwner = existing.user_id === userId.toString()
+      const isOwner = String(existing.user_id) === String(userId)
 
       const body = await request.json() as any
 
@@ -416,7 +416,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       }
 
       // Check ownership
-      const isOwner = existing.user_id === userId.toString()
+      const isOwner = String(existing.user_id) === String(userId)
 
       if (!isOwner) {
         return new Response(JSON.stringify({ error: 'Only comment owner can delete' }), {

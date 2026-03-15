@@ -1,7 +1,26 @@
 # ResearchTools.net — Issue Tracker
 
 **Last updated:** 2026-03-15
-**Current tag:** v0.16.2-pdf-ai-fix
+**Current tag:** v0.16.3-auth-safety
+
+---
+
+## Fixed (v0.16.3)
+
+### P1 — evidence.ts DELETE Used Wrong Variable for Ownership Check
+- [x] `evidence.ts:233` — DELETE query used `userId` (from `getUserIdOrDefault`, guest fallback to user 1) instead of `authUserId` (from `getUserFromRequest`, strict auth)
+- [x] Changed `.bind(evidenceId, userId)` → `.bind(evidenceId, authUserId)`
+- **Root cause:** `userId` was defined at function scope (line 17) for GET requests; DELETE handler introduced `authUserId` on line 225 but reused the outer `userId` in the query
+
+### P1 — comments.ts Fragile Type Coercion in Ownership Check
+- [x] `comments.ts:419` (2 occurrences) — `existing.user_id === userId.toString()` used strict equality between potentially mismatched types (D1 may return INTEGER or TEXT)
+- [x] Changed to `String(existing.user_id) === String(userId)` for safe comparison
+- **Root cause:** D1 SQLite returns flexible types; strict `===` with `.toString()` on one side is fragile
+
+### P1 — frameworks/[id].ts Fragile Ownership Comparison
+- [x] `frameworks/[id].ts:97` — `existing.user_id === userId` without type coercion
+- [x] Changed to `String(existing.user_id) === String(userId)`
+- **Root cause:** Same D1 type coercion issue as comments.ts
 
 ---
 
