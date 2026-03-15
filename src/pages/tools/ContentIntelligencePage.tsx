@@ -5292,9 +5292,7 @@ ${shortSummary}`
                             size="sm"
                             onClick={async () => {
                               try {
-                                // Fetch the full analysis to create citation
-                                const response = await fetch(`/api/content-intelligence/analyze-url`)
-                                // For now, use the link data directly
+                                // Use the link data directly to create citation
                                 const mockAnalysis: ContentAnalysis = {
                                   id: link.analysis_id!,
                                   user_id: 1,

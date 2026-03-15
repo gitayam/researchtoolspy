@@ -20,6 +20,11 @@
 |---|-------|--------|
 | 489 | **37 files, ~113 fetch calls** — POST/PUT/DELETE calls across pages, hooks, and components still missing `X-User-Hash`. Includes core AI utilities (client.ts, useAI, useCOGAI), all ACH pages, entity pages, COP components (RfiTab, Wizard, IntelTab), framework components, and tool pages. Fixed: added `getCopHeaders()` import + usage to all 37 files | FIXED |
 
+### HIGH — DEAD FETCH + BUG FIX
+| # | Issue | Status |
+|---|-------|--------|
+| 490 | **ContentIntelligencePage.tsx:5296** — Dead `fetch('/api/content-intelligence/analyze-url')` GET to POST-only endpoint. Response never used, immediately constructs mockAnalysis from link data. Fixed: removed dead fetch | FIXED |
+
 ### HIGH — BATCH ARRAY CAPS
 | # | Issue | Status |
 |---|-------|--------|
