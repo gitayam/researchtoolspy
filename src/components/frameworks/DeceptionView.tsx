@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect, useMemo } from 'react'
+import { getCopHeaders } from '@/lib/cop-auth'
 import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -368,13 +369,13 @@ export function DeceptionView({
         // Use framework-evidence API for data items
         response = await fetch(
           `/api/framework-evidence?framework_id=${data.id}&evidence_id=${entity_id}`,
-          { method: 'DELETE' }
+          { method: 'DELETE', headers: getCopHeaders() }
         )
       } else {
         // Use framework-entities API for actors, sources, events
         response = await fetch(
           `/api/framework-entities?framework_id=${data.id}&entity_type=${entity_type}&entity_id=${entity_id}`,
-          { method: 'DELETE' }
+          { method: 'DELETE', headers: getCopHeaders() }
         )
       }
 

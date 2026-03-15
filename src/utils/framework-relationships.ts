@@ -6,6 +6,7 @@
  */
 
 import type { CreateRelationshipRequest, RelationshipType, RelationshipConfidence } from '@/types/entities'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 // MOM Assessment types (simplified - adjust based on actual types)
 interface MOMAssessment {
@@ -272,7 +273,7 @@ export async function bulkCreateRelationships(
     try {
       const response = await fetch('/api/relationships', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCopHeaders(),
         body: JSON.stringify(rel)
       })
 

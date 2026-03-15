@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { getCopHeaders } from '@/lib/cop-auth'
 import { ArrowLeft, ArrowRight, Check, Sparkles, Plus, X, Search, AlertCircle, Lightbulb } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -156,7 +157,7 @@ export function ACHWizard({ initialData, onSave, onComplete, backPath }: ACHWiza
     try {
       const response = await fetch('/api/ach/generate-hypotheses', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCopHeaders(),
         body: JSON.stringify({ question })
       })
 
@@ -293,7 +294,7 @@ export function ACHWizard({ initialData, onSave, onComplete, backPath }: ACHWiza
         if (hyp.text.trim()) {
           await fetch('/api/ach/hypotheses', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: getCopHeaders(),
             body: JSON.stringify({
               ach_analysis_id: achId,
               text: hyp.text,
@@ -309,7 +310,7 @@ export function ACHWizard({ initialData, onSave, onComplete, backPath }: ACHWiza
       for (const evidenceId of selectedEvidence) {
         await fetch('/api/ach/evidence', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getCopHeaders(),
           body: JSON.stringify({
             ach_analysis_id: achId,
             evidence_id: evidenceId

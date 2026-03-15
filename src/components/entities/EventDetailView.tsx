@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { getCopHeaders } from '@/lib/cop-auth'
 import { ArrowLeft, Edit, Trash2, Calendar, Clock, MapPin, AlertTriangle, CheckCircle, Users, FileText, Plus, Link as LinkIcon, Network } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -481,7 +482,7 @@ export function EventDetailView({ event, onEdit, onDelete }: EventDetailViewProp
                   onDelete={async (assessment) => {
                     if (!confirm(`Delete MOM assessment "${assessment.scenario_description}"?`)) return
                     try {
-                      await fetch(`/api/mom-assessments/${assessment.id}`, { method: 'DELETE' })
+                      await fetch(`/api/mom-assessments/${assessment.id}`, { method: 'DELETE', headers: getCopHeaders() })
                       setMomAssessments(prev => prev.filter(a => a.id !== assessment.id))
                     } catch (error) {
                       console.error('Failed to delete MOM assessment:', error)

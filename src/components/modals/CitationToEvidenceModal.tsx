@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { getCopHeaders } from '@/lib/cop-auth'
 import { X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -45,7 +46,7 @@ export function CitationToEvidenceModal({ citation, onClose, onSuccess }: Citati
     try {
       const response = await fetch('/api/evidence-items', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCopHeaders(),
         body: JSON.stringify({
           title: formData.title,
           description: `Citation: ${citation.citation}`,

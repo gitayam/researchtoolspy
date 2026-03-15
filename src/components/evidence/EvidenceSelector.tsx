@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { getCopHeaders } from '@/lib/cop-auth'
 import { Search, CheckSquare, Check, Target, TrendingUp, Zap, Plus } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -75,7 +76,7 @@ export function EvidenceSelector({
     try {
       const response = await fetch('/api/evidence-items', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCopHeaders(),
         body: JSON.stringify(data)
       })
 

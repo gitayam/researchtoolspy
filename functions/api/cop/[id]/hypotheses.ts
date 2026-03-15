@@ -87,6 +87,16 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     // If hypothesis_id is present, this is an "add evidence link" request
     if (body.hypothesis_id) {
+      // Verify hypothesis belongs to this session
+      const hyp = await env.DB.prepare(
+        'SELECT id FROM cop_hypotheses WHERE id = ? AND cop_session_id = ?'
+      ).bind(body.hypothesis_id, sessionId).first()
+      if (!hyp) {
+        return new Response(JSON.stringify({ error: 'Hypothesis not found in this session' }), {
+          status: 404, headers: corsHeaders,
+        })
+      }
+
       if (!body.title?.trim()) {
         return new Response(JSON.stringify({ error: 'Evidence title is required' }), {
           status: 400, headers: corsHeaders,

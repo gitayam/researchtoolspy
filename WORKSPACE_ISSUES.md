@@ -17,6 +17,23 @@
 | 470 | **content-intelligence/git-repository-extract.ts** — POST GitHub API extraction with zero auth. Fixed: added getUserFromRequest + 401 gate | FIXED |
 | 471 | **content-intelligence/virustotal-lookup.ts** — POST VirusTotal API lookup with zero auth (consumes API key quota). Fixed: added getUserFromRequest + 401 gate | FIXED |
 
+### MEDIUM — COP CROSS-SESSION WRITE VULNERABILITIES
+| # | Issue | Status |
+|---|-------|--------|
+| 472 | **cop/[id]/marker-changelog.ts POST** — Accepted any `marker_id` without verifying it belongs to the session. Could pollute other sessions' changelogs. Fixed: added SELECT check before INSERT | FIXED |
+| 473 | **cop/[id]/hypotheses.ts POST** — Evidence link INSERT without verifying hypothesis belongs to session. Could cross-link across sessions. Fixed: added SELECT check before INSERT | FIXED |
+
+### MEDIUM — INPUT BOUNDS: LIMIT CAPS
+| # | Issue | Status |
+|---|-------|--------|
+| 474 | **notifications.ts GET** — `limit` query param uncapped. Fixed: `Math.min(..., 200)` | FIXED |
+| 475 | **notifications.ts DELETE** — `ids` array uncapped (PATCH already capped at 100). Fixed: `.slice(0, 100)` | FIXED |
+
+### MEDIUM — FRONTEND: 27 FETCH CALLS MISSING AUTH HEADERS
+| # | Issue | Status |
+|---|-------|--------|
+| 476 | **26 fetch calls across 15 files** — POST/PUT/DELETE calls missing `X-User-Hash` header. Now that backend has auth gates, these calls would fail with 401. Fixed: added `getCopHeaders()` import + usage to all 15 files (DeceptionView, EventDetailView, ClaimEvidenceLinker, ClaimEntityLinker, framework-relationships, GuestModeContext, ACHWizard, ACHEvidenceManager, ACHShareButton, EvidenceSelector, StarburstingEntityLinker, ClaimAnalysisDisplay, AIUrlScraper, CitationToEvidenceModal, FeedbackDialog) | FIXED |
+
 ---
 
 ## Fixed — v2.15.6 (Session 78)

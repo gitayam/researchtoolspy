@@ -5,6 +5,7 @@
  */
 
 import { useState, useRef, useCallback } from 'react'
+import { getCopHeaders } from '@/lib/cop-auth'
 import { useTranslation } from 'react-i18next'
 import { MessageSquare, Image as ImageIcon, X, Loader2 } from 'lucide-react'
 import {
@@ -87,9 +88,7 @@ export function FeedbackDialog() {
     try {
       const response = await fetch('/api/feedback/submit', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: getCopHeaders(),
         body: JSON.stringify({
           toolName: toolName || undefined,
           toolUrl: toolUrl || undefined,

@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect } from 'react'
+import { getCopHeaders } from '@/lib/cop-auth'
 import { Users, MapPin, Calendar, Plus, Link as LinkIcon, Check, Loader2, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -82,7 +83,7 @@ export function StarburstingEntityLinker({
     try {
       const response = await fetch(`/api/content-intelligence/starbursting/${sessionId}/link-entity`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCopHeaders(),
         body: JSON.stringify({
           question_id: questionId,
           entity_name: entity.name,
@@ -123,7 +124,7 @@ export function StarburstingEntityLinker({
       // 1. Create the entity
       const createResponse = await fetch('/api/actors', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCopHeaders(),
         body: JSON.stringify({
           name: entity.name,
           type: dbType,
@@ -138,7 +139,7 @@ export function StarburstingEntityLinker({
       // 2. Link it to the question
       const linkResponse = await fetch(`/api/content-intelligence/starbursting/${sessionId}/link-entity`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCopHeaders(),
         body: JSON.stringify({
           question_id: questionId,
           entity_name: entity.name,

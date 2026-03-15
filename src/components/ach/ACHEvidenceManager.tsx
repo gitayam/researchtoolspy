@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { getCopHeaders } from '@/lib/cop-auth'
 import { Plus, Search, Trash2, FileText, ExternalLink, CheckCircle2, Edit } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -52,7 +53,7 @@ export function ACHEvidenceManager({
     try {
       const response = await fetch('/api/evidence-items', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCopHeaders(),
         body: JSON.stringify(formData)
       })
       if (!response.ok) throw new Error('Failed to create evidence')
@@ -75,7 +76,7 @@ export function ACHEvidenceManager({
     try {
       const response = await fetch(`/api/evidence-items?id=${editingEvidence.id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCopHeaders(),
         body: JSON.stringify(formData)
       })
       if (!response.ok) throw new Error('Failed to update evidence')

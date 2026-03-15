@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react'
 import type { ReactNode } from 'react'
 import { safeJSONParse, safeJSONStringify } from '@/utils/safe-json'
 import { useAuthStore } from '@/stores/auth'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 export type UserMode = 'guest' | 'authenticated'
 
@@ -89,7 +90,7 @@ export function GuestModeProvider({ children }: GuestModeProviderProps) {
       // Send to backend (implement this based on your API)
       const response = await fetch('/api/guest-conversions', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCopHeaders(),
         body: JSON.stringify({
           guest_session_id: guestSessionId,
           user_id: userId,

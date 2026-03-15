@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect } from 'react'
+import { getCopHeaders } from '@/lib/cop-auth'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -183,6 +184,7 @@ export function ClaimEvidenceLinker({ claimAdjustmentId, onLinked }: ClaimEviden
     try {
       const response = await fetch(`/api/claims/remove-evidence-link/${linkId}`, {
         method: 'DELETE',
+        headers: getCopHeaders(),
         credentials: 'include'
       })
 

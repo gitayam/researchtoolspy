@@ -9,6 +9,7 @@
  */
 
 import { useState, useEffect } from 'react'
+import { getCopHeaders } from '@/lib/cop-auth'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
@@ -280,7 +281,7 @@ export function ClaimAnalysisDisplay({ contentAnalysisId, claimAnalysis: initial
 
       const response = await fetch('/api/claims/save-adjustment', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCopHeaders(),
         credentials: 'include',
         body: JSON.stringify(payload)
       })
@@ -410,6 +411,7 @@ export function ClaimAnalysisDisplay({ contentAnalysisId, claimAnalysis: initial
 
       const response = await fetch(`/api/claims/retry-analysis/${contentAnalysisId}`, {
         method: 'POST',
+        headers: getCopHeaders(),
         credentials: 'include'
       })
 
@@ -448,6 +450,7 @@ export function ClaimAnalysisDisplay({ contentAnalysisId, claimAnalysis: initial
 
       const response = await fetch(`/api/claims/share/${claimAdjustmentId}`, {
         method: 'POST',
+        headers: getCopHeaders(),
         credentials: 'include'
       })
 

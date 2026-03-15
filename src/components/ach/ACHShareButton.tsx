@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { getCopHeaders } from '@/lib/cop-auth'
 import { Share2, Copy, Check, Globe, Lock, Link } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -68,7 +69,7 @@ export function ACHShareButton({
     try {
       const response = await fetch(`/api/ach/${analysisId}/share`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCopHeaders(),
         body: JSON.stringify({ is_public: newIsPublic, domain, tags })
       })
 
@@ -104,7 +105,7 @@ export function ACHShareButton({
       try {
         await fetch(`/api/ach/${analysisId}/share`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getCopHeaders(),
           body: JSON.stringify({ is_public: true, domain: newDomain, tags })
         })
 
@@ -127,7 +128,7 @@ export function ACHShareButton({
       if (isPublic) {
         fetch(`/api/ach/${analysisId}/share`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getCopHeaders(),
           body: JSON.stringify({ is_public: true, domain, tags: updatedTags })
         }).then(() => {
           if (onUpdate) {
@@ -146,7 +147,7 @@ export function ACHShareButton({
     if (isPublic) {
       fetch(`/api/ach/${analysisId}/share`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCopHeaders(),
         body: JSON.stringify({ is_public: true, domain, tags: updatedTags })
       }).then(() => {
         if (onUpdate) {
@@ -182,7 +183,7 @@ export function ACHShareButton({
       // Otherwise, create share link first
       const response = await fetch(`/api/ach/${analysisId}/share`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCopHeaders(),
         body: JSON.stringify({ is_public: true, domain, tags })
       })
 

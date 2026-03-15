@@ -36,7 +36,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     // GET /api/notifications - List user's notifications
     if (request.method === 'GET') {
       const url = new URL(request.url)
-      const limit = parseInt(url.searchParams.get('limit') || '50')
+      const limit = Math.min(parseInt(url.searchParams.get('limit') || '50') || 50, 200)
       const offset = parseInt(url.searchParams.get('offset') || '0')
       const unreadOnly = url.searchParams.get('unread_only') === 'true'
 
@@ -188,14 +188,16 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         })
       }
 
-      const placeholders = notificationIds.map(() => '?').join(',')
+      // Cap array length to prevent oversized queries
+      const cappedIds = notificationIds.slice(0, 100)
+      const placeholders = cappedIds.map(() => '?').join(',')
       await env.DB.prepare(`
         DELETE FROM user_notifications
         WHERE id IN (${placeholders}) AND user_hash = ?
-      `).bind(...notificationIds, userHash).run()
+      `).bind(...cappedIds, userHash).run()
 
       return new Response(JSON.stringify({
-        message: `${notificationIds.length} notifications deleted`
+        message: `${cappedIds.length} notifications deleted`
       }), { headers: CORS_HEADERS })
     }
 

@@ -79,6 +79,16 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
+    // Verify marker belongs to this session
+    const marker = await env.DB.prepare(
+      'SELECT id FROM cop_markers WHERE id = ? AND cop_session_id = ?'
+    ).bind(body.marker_id.trim(), sessionId).first()
+    if (!marker) {
+      return new Response(JSON.stringify({ error: 'Marker not found in this session' }), {
+        status: 404, headers: corsHeaders,
+      })
+    }
+
     const id = generateId()
     const now = new Date().toISOString()
 

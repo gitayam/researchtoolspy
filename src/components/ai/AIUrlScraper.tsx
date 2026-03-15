@@ -5,6 +5,7 @@
  */
 
 import { useState } from 'react'
+import { getCopHeaders } from '@/lib/cop-auth'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -68,7 +69,7 @@ export function AIUrlScraper({
     try {
       const response = await fetch('/api/ai/scrape-url', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCopHeaders(),
         body: JSON.stringify({ url: url.trim(), framework, language: currentLanguage })
       })
 
