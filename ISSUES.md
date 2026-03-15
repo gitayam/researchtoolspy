@@ -1,7 +1,17 @@
 # ResearchTools.net — Issue Tracker
 
 **Last updated:** 2026-03-15
-**Current tag:** v0.13.3-workspace-isolation
+**Current tag:** v0.13.4-entity-access-fix
+
+---
+
+## Fixed (v0.13.4)
+
+### P2 — Entity Endpoints Denied COP Workspace Access
+- [x] `relationships.ts` and `credibility.ts` had their own `checkWorkspaceAccess` functions missing the COP session lookup
+- [x] COP workspace IDs (`cop-*`) were falling through to the workspace table lookup and failing (no matching row)
+- [x] Added `workspace_id === '1'` auto-grant and `startsWith('cop-')` session existence check to both files
+- **Root cause:** these endpoints duplicated `checkWorkspaceAccess` instead of importing a shared helper, and the COP-aware logic was never added
 
 ---
 

@@ -23,6 +23,17 @@ async function checkWorkspaceAccess(
   env: Env,
   requiredRole?: 'ADMIN' | 'EDITOR' | 'VIEWER'
 ): Promise<boolean> {
+  // Default workspace "1" — auto-grant for all authenticated users
+  if (workspaceId === '1') return true
+
+  // COP session workspaces — access controlled by session sharing, not workspace ACL
+  if (workspaceId.startsWith('cop-')) {
+    const session = await env.DB.prepare(
+      'SELECT id FROM cop_sessions WHERE workspace_id = ?'
+    ).bind(workspaceId).first()
+    if (session) return true
+  }
+
   const workspace = await env.DB.prepare(`
     SELECT owner_id, is_public FROM workspaces WHERE id = ?
   `).bind(workspaceId).first()
