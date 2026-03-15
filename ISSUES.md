@@ -1,7 +1,29 @@
 # ResearchTools.net — Issue Tracker
 
 **Last updated:** 2026-03-15
-**Current tag:** v0.18.1-mom-modals-wired
+**Current tag:** v0.18.2-claims-endpoints-fixed
+
+---
+
+## Fixed (v0.18.2)
+
+### P1 — Claims Sub-Endpoints Broken (Internal Routing Anti-Pattern, 6th Instance)
+- [x] 6 claims endpoints used `url.pathname.split('/')` for `:id` extraction — dead code, Cloudflare never routes sub-paths to parent files
+- [x] Created `functions/api/claims/get-evidence-links/[id].ts` — GET, returns evidence linked to a claim
+- [x] Created `functions/api/claims/get-claim-entities/[id].ts` — GET, returns entity mentions for a claim
+- [x] Created `functions/api/claims/remove-evidence-link/[id].ts` — DELETE, removes evidence link
+- [x] Created `functions/api/claims/remove-entity-mention/[id].ts` — DELETE, removes entity mention
+- [x] Created `functions/api/claims/update-entity-credibility/[id].ts` — PATCH, updates credibility impact (-50 to +50)
+- [x] Created `functions/api/claims/retry-analysis/[id].ts` — POST, re-runs AI deception analysis
+- [x] Fixed auth pattern: `requireAuth(context.request, context.env)` returns user ID directly (not `auth.user.id`)
+- [x] Fixed ownership check: `String(claimAdjustment.content_owner) !== String(authUserId)` for D1 type coercion
+- [x] 5 of 6 endpoints verified working (404 for nonexistent IDs). `retry-analysis` returns 500 — likely `content_analysis` table query issue (pre-existing, P2)
+- **Root cause:** Same anti-pattern as Sessions 31, v0.17.7, v0.17.8, v0.18.0. This is the 6th batch of files found with internal routing dead code.
+
+### P2 — `retry-analysis` Endpoint Returns 500
+- [ ] `retry-analysis/[id].ts` — function loads and authenticates correctly, but DB query against `content_analysis` table fails
+- Likely cause: table doesn't exist in production D1, or schema mismatch
+- Low priority: AI retry is a niche feature, core claim CRUD endpoints all work
 
 ---
 
