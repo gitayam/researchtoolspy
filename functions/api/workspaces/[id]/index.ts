@@ -12,6 +12,7 @@ import { JSON_HEADERS } from '../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
+  SESSIONS?: KVNamespace
 }
 
 
@@ -144,7 +145,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       })
     }
 
-    if (workspace.owner_id !== userId) {
+    if (String(workspace.owner_id) !== String(userId)) {
       return new Response(JSON.stringify({ error: 'Only workspace owner can delete' }), {
         status: 403, headers: JSON_HEADERS,
       })
@@ -152,11 +153,27 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
 
     // Cascade delete related data before removing workspace
     // Order matters: delete leaf records first, then parent records
+    // COP session children must be deleted before cop_sessions
+    const copSessionSubquery = `SELECT id FROM cop_sessions WHERE workspace_id = ? OR team_workspace_id = ?`
     await env.DB.batch([
+      // Workspace membership
       env.DB.prepare('DELETE FROM workspace_invites WHERE workspace_id = ?').bind(workspaceId),
       env.DB.prepare('DELETE FROM workspace_members WHERE workspace_id = ?').bind(workspaceId),
+      // Investigation data
       env.DB.prepare('DELETE FROM investigation_activity WHERE investigation_id IN (SELECT id FROM investigations WHERE workspace_id = ?)').bind(workspaceId),
       env.DB.prepare('DELETE FROM investigations WHERE workspace_id = ?').bind(workspaceId),
+      // COP session children (leaf records first)
+      env.DB.prepare(`DELETE FROM cop_markers WHERE cop_session_id IN (${copSessionSubquery})`).bind(workspaceId, workspaceId),
+      env.DB.prepare(`DELETE FROM cop_collaborators WHERE cop_session_id IN (${copSessionSubquery})`).bind(workspaceId, workspaceId),
+      env.DB.prepare(`DELETE FROM cop_playbooks WHERE cop_session_id IN (${copSessionSubquery})`).bind(workspaceId, workspaceId),
+      env.DB.prepare(`DELETE FROM cop_intake_forms WHERE cop_session_id IN (${copSessionSubquery})`).bind(workspaceId, workspaceId),
+      env.DB.prepare('DELETE FROM cop_task_templates WHERE workspace_id = ?').bind(workspaceId),
+      env.DB.prepare('DELETE FROM cop_claims WHERE workspace_id = ?').bind(workspaceId),
+      env.DB.prepare('DELETE FROM cop_hypotheses WHERE workspace_id = ?').bind(workspaceId),
+      env.DB.prepare('DELETE FROM cop_personas WHERE workspace_id = ?').bind(workspaceId),
+      // COP sessions
+      env.DB.prepare('DELETE FROM cop_sessions WHERE workspace_id = ? OR team_workspace_id = ?').bind(workspaceId, workspaceId),
+      // Entity tables
       env.DB.prepare('DELETE FROM actors WHERE workspace_id = ?').bind(workspaceId),
       env.DB.prepare('DELETE FROM sources WHERE workspace_id = ?').bind(workspaceId),
       env.DB.prepare('DELETE FROM events WHERE workspace_id = ?').bind(workspaceId),
@@ -164,8 +181,10 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       env.DB.prepare('DELETE FROM behaviors WHERE workspace_id = ?').bind(workspaceId),
       env.DB.prepare('DELETE FROM relationships WHERE workspace_id = ?').bind(workspaceId),
       env.DB.prepare('DELETE FROM evidence_items WHERE workspace_id = ?').bind(workspaceId),
+      // Frameworks
       env.DB.prepare('DELETE FROM framework_sessions WHERE workspace_id = ?').bind(workspaceId),
       env.DB.prepare('DELETE FROM ach_analyses WHERE workspace_id = ?').bind(workspaceId),
+      // Workspace itself
       env.DB.prepare('DELETE FROM workspaces WHERE id = ?').bind(workspaceId),
     ])
 

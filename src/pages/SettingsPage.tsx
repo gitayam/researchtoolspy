@@ -61,7 +61,7 @@ export function SettingsPage() {
       if (!userHash) return
 
       try {
-        const response = await fetch(`/api/settings/workspaces/${workspaceId}`, {
+        const response = await fetch(`/api/workspaces/${workspaceId}`, {
           method: 'DELETE',
           headers: getCopHeaders(),
         })
@@ -90,7 +90,7 @@ export function SettingsPage() {
       if (!userHash) return
 
       try {
-        const response = await fetch(`/api/settings/workspaces/${workspaceId}`, {
+        const response = await fetch(`/api/workspaces/${workspaceId}`, {
           method: 'PUT',
           headers: getCopHeaders(),
           body: JSON.stringify({ name, description }),

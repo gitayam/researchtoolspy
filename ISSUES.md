@@ -1,7 +1,33 @@
 # ResearchTools.net — Issue Tracker
 
 **Last updated:** 2026-03-15
-**Current tag:** v0.18.6-entity-dead-code-cleanup
+**Current tag:** v0.18.7-workspace-fixes
+
+---
+
+## Fixed (v0.18.7)
+
+### P1 — SettingsPage Workspace PUT/DELETE Routes Were 404 (Cloudflare Routing)
+- [x] `SettingsPage.tsx` called `PUT /api/settings/workspaces/${id}` and `DELETE /api/settings/workspaces/${id}` — but no `functions/api/settings/workspaces/[id].ts` file exists
+- [x] These routes silently returned 404 — workspace rename and delete from Settings tab were completely broken
+- [x] Fix: Redirected both calls to `/api/workspaces/${id}` which has working PUT/DELETE handlers
+- **Root cause:** Same Cloudflare file-based routing anti-pattern (Lessons Learned Session 31). `settings/workspaces.ts` only handles `/api/settings/workspaces`, not sub-paths.
+
+### P1 — Workspace DELETE Ownership Check Type Mismatch
+- [x] `workspaces/[id]/index.ts:147` — used `workspace.owner_id !== userId` (strict `!==`)
+- [x] D1 may return `owner_id` as string while `getUserFromRequest` returns number — strict equality silently fails
+- [x] Fix: Changed to `String(workspace.owner_id) !== String(userId)` (matches GET handler pattern at line 36)
+- **Root cause:** D1 type coercion trap — same pattern documented in Lessons Learned Session 28.
+
+### P2 — Workspace DELETE Cascade Missing COP Tables (Data Orphans)
+- [x] Workspace delete cascade was missing: `cop_sessions`, `cop_markers`, `cop_collaborators`, `cop_playbooks`, `cop_intake_forms`, `cop_task_templates`, `cop_claims`, `cop_hypotheses`, `cop_personas`
+- [x] Deleting a workspace would leave all COP data orphaned in the database
+- [x] Fix: Added 9 COP-related DELETE statements to the batch cascade, ordered leaf-first
+
+### P2 — Workspace `[id]/index.ts` Missing SESSIONS Binding
+- [x] `Env` interface only had `DB: D1Database` — no `SESSIONS?: KVNamespace`
+- [x] Session-based auth would fail silently for workspace management operations
+- [x] Fix: Added `SESSIONS?: KVNamespace` to Env interface
 
 ---
 
@@ -767,7 +793,7 @@
 - [x] ~~CORS headers inconsistent across 75 endpoints~~ — migrated to shared `CORS_HEADERS`/`JSON_HEADERS` in v0.14.9
 - [x] ~~~295 inline error responses with incomplete CORS~~ — 61 more files migrated in v0.16.0 (down from ~120 to ~65 remaining, mostly COP endpoints + 7 cross-table sub-endpoints). **Note:** `_middleware.ts` adds CORS to ALL responses, so remaining inline CORS is purely cosmetic (P3)
 - [x] ~~56 COP endpoint files + 7 cross-table sub-endpoints~~ — migrated to shared `JSON_HEADERS` in v0.17.0
-- [ ] **Dual API surface** — `/api/workspaces/` (team JWT/hash) and `/api/settings/workspaces` (personal `requireAuth`) should be consolidated
+- [x] ~~Dual API surface~~ — SettingsPage PUT/DELETE redirected to `/api/workspaces/${id}` in v0.18.7. POST still uses `/api/settings/workspaces` for simple workspace creation (no investigation/COP bundle). Full consolidation deferred (P3).
 
 ### P2 — Data Integrity
 
@@ -812,7 +838,7 @@
 ## Notes
 
 - **Entity tables lack FK constraints** on workspace_id → manual cascade required on workspace delete
-- **D1 batch()** used for transactional cascade deletes (all-or-nothing)
+- **D1 batch()** used for transactional cascade deletes (all-or-nothing). Workspace delete cascade now covers 23 tables (entities, COP sessions + children, frameworks, workspace metadata).
 - **All API endpoints now use real auth** — no more hardcoded user IDs anywhere in `functions/api/`
 - **All POST-only endpoints return 405 on GET** — no more SPA HTML leaking from API paths
 - **Shared utilities** in `functions/api/_shared/`: `workspace-helpers.ts` (access control), `api-utils.ts` (generateId, CORS), `auth-helpers.ts` (auth)
