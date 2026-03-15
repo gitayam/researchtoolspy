@@ -6,6 +6,7 @@
 
 import { callOpenAIViaGateway, getOptimalCacheTTL } from '../_shared/ai-gateway'
 import { getUserFromRequest } from '../_shared/auth-helpers'
+import { fetchSocialViaApify } from '../_shared/apify-social'
 
 interface Env {
   DB: D1Database
@@ -14,6 +15,7 @@ interface Env {
   AI_CONFIG: KVNamespace
   CACHE: KVNamespace
   RATE_LIMIT?: KVNamespace
+  APIFY_API_KEY?: string
 }
 
 interface ScrapeRequest {
@@ -355,35 +357,50 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     let title = ''
     let html = ''
 
-    // 1. Specialized Twitter/X Scraping (oEmbed)
-    const isTwitter = /twitter\.com|x\.com/.test(url)
-    
-    if (isTwitter) {
+    // 1. Try Apify for Twitter/X and TikTok (richer content with engagement data)
+    if (context.env.APIFY_API_KEY) {
       try {
-        const oembedUrl = `https://publish.twitter.com/oembed?url=${encodeURIComponent(url)}`
-        const twitterResponse = await fetch(oembedUrl, { signal: AbortSignal.timeout(10000) })
-        
-        if (twitterResponse.ok) {
-          const data = await twitterResponse.json() as any
-          html = data.html || ''
-          
-          // Extract text from blockquote
-          const pMatch = html.match(/<p[^>]*>(.*?)<\/p>/)
-          if (pMatch && pMatch[1]) {
-            content = pMatch[1]
-              .replace(/<br\s*\/?>/g, '\n')
-              .replace(/<[^>]+>/g, '')
-              .replace(/&amp;/g, '&')
-              .replace(/&lt;/g, '<')
-              .replace(/&gt;/g, '>')
-              .replace(/&quot;/g, '"')
-              .replace(/&#39;/g, "'")
-              .trim()
-          }
-          title = `Tweet by ${data.author_name}`
+        const socialResult = await fetchSocialViaApify(url, context.env.APIFY_API_KEY)
+        if (socialResult?.success && socialResult.text.length > 20) {
+          content = socialResult.text
+          title = socialResult.title || `${socialResult.platform} post`
         }
       } catch (e) {
-        console.error('[Scrape] Twitter oEmbed failed:', e)
+        console.error('[Scrape] Apify social extraction failed:', e)
+      }
+    }
+
+    // 2. Fallback: Twitter/X oEmbed (no API key needed, limited content)
+    if (!content) {
+      const isTwitter = /twitter\.com|x\.com/.test(url)
+
+      if (isTwitter) {
+        try {
+          const oembedUrl = `https://publish.twitter.com/oembed?url=${encodeURIComponent(url)}`
+          const twitterResponse = await fetch(oembedUrl, { signal: AbortSignal.timeout(10000) })
+
+          if (twitterResponse.ok) {
+            const data = await twitterResponse.json() as any
+            html = data.html || ''
+
+            // Extract text from blockquote
+            const pMatch = html.match(/<p[^>]*>(.*?)<\/p>/)
+            if (pMatch && pMatch[1]) {
+              content = pMatch[1]
+                .replace(/<br\s*\/?>/g, '\n')
+                .replace(/<[^>]+>/g, '')
+                .replace(/&amp;/g, '&')
+                .replace(/&lt;/g, '<')
+                .replace(/&gt;/g, '>')
+                .replace(/&quot;/g, '"')
+                .replace(/&#39;/g, "'")
+                .trim()
+            }
+            title = `Tweet by ${data.author_name}`
+          }
+        } catch (e) {
+          console.error('[Scrape] Twitter oEmbed failed:', e)
+        }
       }
     }
 

@@ -233,3 +233,56 @@ export async function verifyCopSessionAccess(
 
   return null
 }
+
+/**
+ * Verify access to COP layer endpoints (GeoJSON map layers).
+ *
+ * Layer endpoints are READ-only and serve GeoJSON for the map.
+ * - Public sessions: accessible without auth (map embeds, shared links)
+ * - Private sessions: require auth + ownership or collaborator role
+ *
+ * Returns { workspace_id } on success, or a Response (4xx) on failure.
+ */
+export async function verifyCopLayerAccess(
+  db: D1Database,
+  sessionId: string,
+  request: Request,
+  env: Env
+): Promise<{ workspace_id: string } | Response> {
+  const session = await db.prepare(
+    'SELECT workspace_id, created_by, is_public FROM cop_sessions WHERE id = ?'
+  ).bind(sessionId).first<{ workspace_id: string; created_by: number; is_public: number }>()
+
+  if (!session) {
+    return new Response(JSON.stringify({ error: 'COP session not found' }), {
+      status: 404,
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+    })
+  }
+
+  // Public sessions — anyone can view layers (map embeds, shared links)
+  if (session.is_public) return { workspace_id: session.workspace_id }
+
+  // Private session — require authentication
+  const userId = await getUserFromRequest(request, env)
+  if (!userId) {
+    return new Response(JSON.stringify({ error: 'Authentication required' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+    })
+  }
+
+  // Owner
+  if (session.created_by === userId) return { workspace_id: session.workspace_id }
+
+  // Collaborator
+  const collab = await db.prepare(
+    'SELECT 1 FROM cop_collaborators WHERE cop_session_id = ? AND user_id = ?'
+  ).bind(sessionId, userId).first()
+  if (collab) return { workspace_id: session.workspace_id }
+
+  return new Response(JSON.stringify({ error: 'Access denied' }), {
+    status: 403,
+    headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+  })
+}

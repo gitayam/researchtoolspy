@@ -45,7 +45,7 @@ export function EvidenceSelector({
   const loadEvidence = async (signal?: AbortSignal) => {
     setLoading(true)
     try {
-      const response = await fetch('/api/evidence-items', { signal })
+      const response = await fetch('/api/evidence-items', { headers: getCopHeaders(), signal })
       if (response.ok) {
         const data = await response.json()
         setEvidence(data.evidence || [])

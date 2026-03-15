@@ -34,7 +34,7 @@ export function SourceDetailView({ source, onEdit, onDelete }: SourceDetailViewP
     const loadRelationships = async () => {
       setLoadingRelationships(true)
       try {
-        const response = await fetch(`/api/relationships?entity_id=${source.id}&workspace_id=${source.workspace_id}`, { signal: controller.signal })
+        const response = await fetch(`/api/relationships?entity_id=${source.id}&workspace_id=${source.workspace_id}`, { headers: getCopHeaders(), signal: controller.signal })
         if (response.ok) {
           const data = await response.json()
           setRelationships(data.relationships || [])

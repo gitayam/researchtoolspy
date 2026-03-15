@@ -1,8 +1,10 @@
 /**
  * Shared Scraping Utilities
  * Centralizes logic for fetching and extracting text from URLs
- * including platform-specific handlers (Twitter, etc.)
+ * including platform-specific handlers (Twitter, TikTok via Apify)
  */
+
+import { fetchSocialViaApify } from './apify-social'
 
 export interface ScrapedContent {
   title: string
@@ -10,21 +12,36 @@ export interface ScrapedContent {
   error?: string
 }
 
-export async function scrapeUrl(url: string): Promise<ScrapedContent> {
-  // 1. Specialized Twitter/X Scraping (oEmbed)
-  // This bypasses the need for API keys or headless browsers for basic text
+export async function scrapeUrl(url: string, apifyApiKey?: string): Promise<ScrapedContent> {
+  // 1. Try Apify for Twitter/X and TikTok (richer content with engagement metrics)
+  if (apifyApiKey) {
+    try {
+      const socialResult = await fetchSocialViaApify(url, apifyApiKey)
+      if (socialResult?.success && socialResult.text.length > 20) {
+        return {
+          title: socialResult.title || `${socialResult.platform} post`,
+          content: socialResult.text,
+        }
+      }
+    } catch (e) {
+      console.error('[Scrape] Apify social extraction failed:', e)
+      // Fall through to oEmbed / standard fetch
+    }
+  }
+
+  // 2. Fallback: Twitter/X oEmbed (no API key needed, but limited content)
   const isTwitter = /twitter\.com|x\.com/.test(url)
-  
+
   if (isTwitter) {
     try {
       const oembedUrl = `https://publish.twitter.com/oembed?url=${encodeURIComponent(url)}`
       const twitterResponse = await fetch(oembedUrl)
-      
+
       if (twitterResponse.ok) {
         const data = await twitterResponse.json() as any
         const html = data.html || ''
         let content = ''
-        
+
         // Extract text from blockquote
         const pMatch = html.match(/<p[^>]*>(.*?)<\/p>/)
         if (pMatch && pMatch[1]) {
@@ -38,7 +55,7 @@ export async function scrapeUrl(url: string): Promise<ScrapedContent> {
             .replace(/&#39;/g, "'")
             .trim()
         }
-        
+
         return {
           title: `Tweet by ${data.author_name}`,
           content: content || 'No text content found in tweet.'
@@ -50,7 +67,7 @@ export async function scrapeUrl(url: string): Promise<ScrapedContent> {
     }
   }
 
-  // 2. Standard Fetch
+  // 3. Standard Fetch
   try {
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 15000) // 15s timeout
@@ -73,7 +90,7 @@ export async function scrapeUrl(url: string): Promise<ScrapedContent> {
     }
 
     const html = await response.text()
-    
+
     // Extract Title
     const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i)
     const title = titleMatch ? titleMatch[1].trim() : url
@@ -83,7 +100,7 @@ export async function scrapeUrl(url: string): Promise<ScrapedContent> {
     text = text.replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
     text = text.replace(/<[^>]+>/g, ' ')
     text = text.replace(/\s+/g, ' ').trim()
-    
+
     return {
       title,
       content: text.substring(0, 20000) // Limit to 20k chars
@@ -91,10 +108,10 @@ export async function scrapeUrl(url: string): Promise<ScrapedContent> {
 
   } catch (error) {
     console.error('[Scrape] Standard fetch failed:', error)
-    return { 
-      title: 'Error', 
-      content: '', 
-      error: 'Scraping failed' 
+    return {
+      title: 'Error',
+      content: '',
+      error: 'Scraping failed'
     }
   }
 }

@@ -134,7 +134,7 @@ export function ACHWizard({ initialData, onSave, onComplete, backPath }: ACHWiza
 
     setLoadingEvidence(true)
     try {
-      const response = await fetch('/api/evidence-items')
+      const response = await fetch('/api/evidence-items', { headers: getCopHeaders() })
       if (response.ok) {
         const data = await response.json()
         setAllEvidence(data.evidence || [])

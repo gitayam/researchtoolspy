@@ -2,6 +2,7 @@ import { useRef, useEffect, useCallback, useState } from 'react'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import type { CopSession, CopFeatureCollection } from '@/types/cop'
+import { convertPooLayerData } from '@/components/cop/poo-geometry'
 
 // ── Color mapping per layer id ──────────────────────────────────
 const LAYER_COLORS: Record<string, string> = {
@@ -14,6 +15,8 @@ const LAYER_COLORS: Record<string, string> = {
   'deception-risk': '#7c3aed',
   'framework-overlay': '#059669',
   'cop-markers': '#eab308',
+  'poo-estimates': '#ef4444',
+  'user-drawings': '#f97316',
 }
 
 function getLayerColor(layerId: string): string {
@@ -26,6 +29,16 @@ const LINE_LAYER_IDS = new Set(['relationships'])
 function isLineLayer(layerId: string): boolean {
   return LINE_LAYER_IDS.has(layerId)
 }
+
+// ── Polygon layers (POO estimates, user drawings) ───────────────
+const POLYGON_LAYER_IDS = new Set(['poo-estimates', 'user-drawings'])
+
+function isPolygonLayer(layerId: string): boolean {
+  return POLYGON_LAYER_IDS.has(layerId)
+}
+
+// ── Layers that need data transformation before rendering ───────
+const POO_LAYER_ID = 'poo-estimates'
 
 // ── Props ───────────────────────────────────────────────────────
 export interface CopMapProps {
@@ -179,21 +192,28 @@ export default function CopMap({
       for (const [layerId, fc] of Object.entries(layers)) {
         const sourceId = `cop-${layerId}`
 
+        // Transform POO layer data from points to polygons before rendering
+        let resolvedData: GeoJSON.FeatureCollection = fc as unknown as GeoJSON.FeatureCollection
+        if (layerId === POO_LAYER_ID) {
+          resolvedData = convertPooLayerData(resolvedData)
+        }
+
         // If the source already exists, update its data
         const existingSource = map.getSource(sourceId) as maplibregl.GeoJSONSource | undefined
         if (existingSource) {
-          existingSource.setData(fc as unknown as GeoJSON.FeatureCollection)
+          existingSource.setData(resolvedData)
           continue
         }
 
         // Otherwise, add a new source + layer(s)
         const isLine = isLineLayer(layerId)
+        const isPolygon = isPolygonLayer(layerId)
         const color = getLayerColor(layerId)
 
         map.addSource(sourceId, {
           type: 'geojson',
-          data: fc as unknown as GeoJSON.FeatureCollection,
-          ...(isLine
+          data: resolvedData,
+          ...(isLine || isPolygon
             ? {}
             : { cluster: true, clusterMaxZoom: 14, clusterRadius: 50 }),
         })
@@ -201,7 +221,9 @@ export default function CopMap({
         addedSourcesRef.current.add(sourceId)
         newSourceAdded = true
 
-        if (isLine) {
+        if (isPolygon) {
+          addPolygonLayers(map, sourceId, layerId, color, popupRef)
+        } else if (isLine) {
           addLineLayer(map, sourceId, layerId, color)
         } else {
           addPointLayers(map, sourceId, layerId, color, popupRef, onMarkerOpenInFeedRef)
@@ -223,6 +245,13 @@ export default function CopMap({
               for (const c of geom.coordinates) {
                 bounds.extend(c as [number, number])
                 hasCoords = true
+              }
+            } else if (geom.type === 'Polygon') {
+              for (const ring of geom.coordinates as number[][][]) {
+                for (const c of ring as number[][]) {
+                  bounds.extend(c as [number, number])
+                  hasCoords = true
+                }
               }
             }
           }
@@ -461,6 +490,216 @@ function addPointLayers(
   })
   map.on('mouseleave', clusterId, () => {
     map.getCanvas().style.cursor = ''
+  })
+}
+
+// ── Confidence color helper ──────────────────────────────────────
+const CONFIDENCE_POPUP_COLORS: Record<string, string> = {
+  CONFIRMED: '#22c55e',
+  PROBABLE: '#3b82f6',
+  POSSIBLE: '#eab308',
+  DOUBTFUL: '#ef4444',
+}
+
+// ── Polygon layers (POO estimates, drawings) ────────────────────
+
+function addPolygonLayers(
+  map: maplibregl.Map,
+  sourceId: string,
+  layerId: string,
+  color: string,
+  popupRef: React.MutableRefObject<maplibregl.Popup | null>,
+) {
+  const fillId = `cop-fill-${layerId}`
+  const outlineId = `cop-outline-${layerId}`
+  const vectorId = `cop-vector-${layerId}`
+  const impactId = `cop-impact-${layerId}`
+  const labelId = `cop-label-${layerId}`
+
+  // 1. Fill layer for polygons (circles, sectors) — skip range-ring (outline-only)
+  map.addLayer({
+    id: fillId,
+    type: 'fill',
+    source: sourceId,
+    filter: ['all',
+      ['==', ['geometry-type'], 'Polygon'],
+      ['!=', ['get', 'layer_type'], 'range-ring'],
+    ],
+    paint: {
+      'fill-color': ['coalesce', ['get', 'color'], color],
+      'fill-opacity': ['coalesce', ['get', 'opacity'], 0.15],
+    },
+  })
+
+  // 2. Outline layer — solid for sectors, dashed for range circles
+  map.addLayer({
+    id: outlineId,
+    type: 'line',
+    source: sourceId,
+    filter: ['==', ['geometry-type'], 'Polygon'],
+    paint: {
+      'line-color': ['coalesce', ['get', 'stroke_color'], color],
+      'line-opacity': ['coalesce', ['get', 'stroke_opacity'], 0.6],
+      'line-width': ['coalesce', ['get', 'stroke_width'], 2],
+      'line-dasharray': ['match', ['get', 'layer_type'],
+        'probability-sector', ['literal', [1]],
+        'max-range', ['literal', [6, 3]],
+        'min-range', ['literal', [3, 2]],
+        ['literal', [2, 2]],
+      ],
+    },
+  })
+
+  // 3. Approach vector line (bearing centerline from impact outward)
+  map.addLayer({
+    id: vectorId,
+    type: 'line',
+    source: sourceId,
+    filter: ['all',
+      ['==', ['geometry-type'], 'LineString'],
+      ['==', ['get', 'layer_type'], 'approach-vector'],
+    ],
+    paint: {
+      'line-color': ['coalesce', ['get', 'color'], color],
+      'line-opacity': ['coalesce', ['get', 'stroke_opacity'], 0.7],
+      'line-width': 2,
+      'line-dasharray': [8, 4],
+    },
+  })
+
+  // 4. Impact point marker (crosshair style)
+  map.addLayer({
+    id: impactId,
+    type: 'circle',
+    source: sourceId,
+    filter: ['all',
+      ['==', ['geometry-type'], 'Point'],
+      ['==', ['get', 'layer_type'], 'impact-point'],
+    ],
+    paint: {
+      'circle-radius': 9,
+      'circle-color': 'rgba(0,0,0,0.6)',
+      'circle-stroke-width': 3,
+      'circle-stroke-color': ['coalesce', ['get', 'color'], color],
+      'circle-opacity': 1,
+    },
+  })
+
+  // 5. Range label text along bearing line
+  map.addLayer({
+    id: labelId,
+    type: 'symbol',
+    source: sourceId,
+    filter: ['all',
+      ['==', ['geometry-type'], 'Point'],
+      ['==', ['get', 'layer_type'], 'range-label'],
+    ],
+    layout: {
+      'text-field': ['get', 'label'],
+      'text-size': 11,
+      'text-font': ['Open Sans Regular', 'Arial Unicode MS Regular'],
+      'text-offset': [0, -1.2],
+      'text-allow-overlap': true,
+    },
+    paint: {
+      'text-color': '#e2e8f0',
+      'text-halo-color': 'rgba(0,0,0,0.8)',
+      'text-halo-width': 1.5,
+    },
+  })
+
+  // Hover cursor on polygons and impact
+  for (const lid of [fillId, impactId]) {
+    map.on('mouseenter', lid, () => { map.getCanvas().style.cursor = 'pointer' })
+    map.on('mouseleave', lid, () => { map.getCanvas().style.cursor = '' })
+  }
+
+  // Click popup for polygon features (circles, sectors)
+  map.on('click', fillId, (e) => {
+    const feature = e.features?.[0]
+    if (!feature) return
+
+    const props = feature.properties ?? {}
+    const name = String(props.poo_name ?? props.name ?? 'Untitled')
+    const layerType = String(props.layer_type ?? '')
+    const confidence = props.confidence ? String(props.confidence) : ''
+    const confColor = CONFIDENCE_POPUP_COLORS[confidence] ?? '#94a3b8'
+    const rangeBasis = props.range_basis ? String(props.range_basis) : ''
+    const maxRange = props.max_range_km ? `${props.max_range_km}km` : ''
+    const bearing = props.bearing != null ? `${props.bearing}°` : ''
+    const bearingCardinal = props.bearing_cardinal ? String(props.bearing_cardinal) : ''
+    const bearingBasis = props.bearing_basis ? String(props.bearing_basis) : ''
+    const sectorWidth = props.sector_width_deg ? `${props.sector_width_deg}°` : ''
+
+    let typeLabel = ''
+    let typeColor = color
+    if (layerType === 'max-range') { typeLabel = 'Max Range Circle'; typeColor = color }
+    else if (layerType === 'probability-sector') { typeLabel = 'Probability Sector'; typeColor = confColor }
+    else if (layerType === 'min-range') { typeLabel = 'Min Range Exclusion' }
+    else if (layerType === 'range-ring') { typeLabel = `${props.range_km ?? ''}km Ring` }
+
+    const html = `
+      <div style="max-width: 280px; font-family: system-ui, sans-serif; line-height: 1.4;">
+        <strong style="font-size: 13px; color: #e2e8f0;">${escapeHtml(name)}</strong>
+        <div style="font-size: 11px; color: ${sanitizeColor(typeColor)}; margin-top: 2px; font-weight: 600;">${escapeHtml(typeLabel)}</div>
+        ${confidence ? `<div style="font-size: 11px; margin-top: 4px;"><span style="background: ${sanitizeColor(confColor)}22; color: ${sanitizeColor(confColor)}; padding: 1px 6px; border-radius: 3px; font-weight: 600;">${escapeHtml(confidence)}</span></div>` : ''}
+        ${maxRange ? `<div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">Range: <strong>${escapeHtml(maxRange)}</strong>${rangeBasis ? ` — ${escapeHtml(rangeBasis)}` : ''}</div>` : ''}
+        ${bearing ? `<div style="font-size: 11px; color: #94a3b8;">Bearing: <strong>${escapeHtml(bearing)} ${escapeHtml(bearingCardinal)}</strong>${bearingBasis ? ` — ${escapeHtml(bearingBasis)}` : ''}</div>` : ''}
+        ${sectorWidth ? `<div style="font-size: 11px; color: #94a3b8;">Sector: ${escapeHtml(sectorWidth)} cone</div>` : ''}
+      </div>
+    `
+
+    popupRef.current?.remove()
+    popupRef.current = new maplibregl.Popup({ closeButton: true, closeOnClick: true })
+      .setLngLat(e.lngLat)
+      .setHTML(html)
+      .addTo(map)
+  })
+
+  // Click popup for impact points — rich detail
+  map.on('click', impactId, (e) => {
+    const feature = e.features?.[0]
+    if (!feature || feature.geometry.type !== 'Point') return
+
+    const coords = (feature.geometry as GeoJSON.Point).coordinates.slice() as [number, number]
+    const props = feature.properties ?? {}
+    const name = String(props.name ?? props.poo_name ?? 'Impact Point')
+    const description = props.description ? String(props.description) : ''
+    const confidence = props.confidence ? String(props.confidence) : ''
+    const confColor = CONFIDENCE_POPUP_COLORS[confidence] ?? '#94a3b8'
+    const maxRange = props.max_range_km ? `${props.max_range_km}km` : ''
+    const minRange = props.min_range_km ? `${props.min_range_km}km` : ''
+    const bearing = props.approach_bearing != null ? `${props.approach_bearing}°` : ''
+    const bearingCardinal = props.bearing_cardinal ? String(props.bearing_cardinal) : ''
+    const sectorWidth = props.sector_width_deg ? `${props.sector_width_deg}°` : ''
+    const rangeBasis = props.range_basis ? String(props.range_basis) : ''
+    const bearingBasis = props.bearing_basis ? String(props.bearing_basis) : ''
+
+    const html = `
+      <div style="max-width: 300px; font-family: system-ui, sans-serif; line-height: 1.5;">
+        <strong style="font-size: 14px; color: #e2e8f0;">${escapeHtml(name)}</strong>
+        <div style="font-size: 11px; color: ${sanitizeColor(color)}; margin-top: 2px;">POO Impact Point</div>
+        ${confidence ? `<div style="font-size: 11px; margin-top: 4px;"><span style="background: ${sanitizeColor(confColor)}22; color: ${sanitizeColor(confColor)}; padding: 2px 8px; border-radius: 4px; font-weight: 600;">${escapeHtml(confidence)}</span></div>` : ''}
+        <div style="margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(148,163,184,0.2);">
+          ${maxRange ? `<div style="font-size: 11px; color: #cbd5e1;">Max Range: <strong>${escapeHtml(maxRange)}</strong>${rangeBasis ? ` <span style="color: #64748b;">(${escapeHtml(rangeBasis)})</span>` : ''}</div>` : ''}
+          ${minRange ? `<div style="font-size: 11px; color: #cbd5e1;">Min Range: <strong>${escapeHtml(minRange)}</strong></div>` : ''}
+          ${bearing ? `<div style="font-size: 11px; color: #cbd5e1;">Approach: <strong>${escapeHtml(bearing)} ${escapeHtml(bearingCardinal)}</strong>${bearingBasis ? ` <span style="color: #64748b;">(${escapeHtml(bearingBasis)})</span>` : ''}</div>` : ''}
+          ${sectorWidth ? `<div style="font-size: 11px; color: #cbd5e1;">Sector: <strong>${escapeHtml(sectorWidth)} cone</strong></div>` : ''}
+        </div>
+        ${description ? `<div style="font-size: 11px; color: #64748b; margin-top: 6px; padding-top: 4px; border-top: 1px solid rgba(148,163,184,0.15);">${escapeHtml(description.length > 200 ? description.slice(0, 200) + '...' : description)}</div>` : ''}
+        <div style="font-size: 10px; color: #475569; margin-top: 4px;">${coords[1].toFixed(6)}°N, ${coords[0].toFixed(6)}°E</div>
+      </div>
+    `
+
+    while (Math.abs(e.lngLat.lng - coords[0]) > 180) {
+      coords[0] += e.lngLat.lng > coords[0] ? 360 : -360
+    }
+
+    popupRef.current?.remove()
+    popupRef.current = new maplibregl.Popup({ closeButton: true, closeOnClick: true })
+      .setLngLat(coords)
+      .setHTML(html)
+      .addTo(map)
   })
 }
 

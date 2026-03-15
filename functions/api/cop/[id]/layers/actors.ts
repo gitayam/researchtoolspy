@@ -12,9 +12,12 @@
  */
 
 import type { PagesFunction } from '@cloudflare/workers-types'
+import { verifyCopLayerAccess } from '../../../_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
+  SESSIONS?: KVNamespace
+  JWT_SECRET?: string
 }
 
 const corsHeaders = {
@@ -60,20 +63,17 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   const sessionId = params.id as string
   const url = new URL(request.url)
 
+  // Auth: public sessions open, private sessions require owner/collaborator
+  const access = await verifyCopLayerAccess(env.DB, sessionId, request, env)
+  if (access instanceof Response) return access
+
   try {
-    // 1. Look up the COP session
+    // 1. Look up the COP session for bbox
     const session = await env.DB.prepare(
-      'SELECT workspace_id, bbox_min_lat, bbox_min_lon, bbox_max_lat, bbox_max_lon FROM cop_sessions WHERE id = ?'
+      'SELECT bbox_min_lat, bbox_min_lon, bbox_max_lat, bbox_max_lon FROM cop_sessions WHERE id = ?'
     ).bind(sessionId).first()
 
-    if (!session) {
-      return new Response(JSON.stringify({ error: 'COP session not found' }), {
-        status: 404,
-        headers: corsHeaders,
-      })
-    }
-
-    const workspaceId = session.workspace_id as string
+    const workspaceId = access.workspace_id
 
     // 2. Determine bbox
     const bbox = parseBBoxParam(url.searchParams.get('bbox')) || sessionBBox(session)

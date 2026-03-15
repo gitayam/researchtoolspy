@@ -37,7 +37,7 @@ export function ACHEvidenceManager({
   const loadEvidence = async (signal?: AbortSignal) => {
     try {
       setLoading(true)
-      const response = await fetch('/api/evidence-items', { signal })
+      const response = await fetch('/api/evidence-items', { headers: getCopHeaders(), signal })
       if (response.ok) {
         const data = await response.json()
         setAllEvidence(data.evidence || [])

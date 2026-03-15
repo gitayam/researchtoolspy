@@ -108,6 +108,16 @@ cop_add_share cop-xxx true map event rfi  # allow_rfi_answers + visible panels
 cop_delete_share cop-xxx <token>
 ```
 
+### Scrapers (Apify integration)
+```bash
+cop_scrape_twitter cop-xxx "search query" 20     # scrape Twitter/X → evidence
+cop_scrape_twitter_urls cop-xxx https://x.com/... # scrape specific tweets
+cop_scrape_tiktok cop-xxx "search query" 20       # scrape TikTok → evidence
+cop_scrape_tiktok_urls cop-xxx https://tiktok.com/... # scrape specific TikTok videos
+cop_scrape_status cop-xxx <run_id>               # check async run status
+cop_scrape_status cop-xxx <run_id> false          # preview without ingesting
+```
+
 ### Stats & Activity
 ```bash
 cop_stats cop-xxx

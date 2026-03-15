@@ -40,6 +40,7 @@ import {
   Download,
   Menu,
   X as XIcon,
+  Target,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -74,6 +75,7 @@ const CopAssetPanel = lazy(() => import('@/components/cop/CopAssetPanel'))
 const CopExportDialog = lazy(() => import('@/components/cop/CopExportDialog'))
 const CopPlaybookPanel = lazy(() => import('@/components/cop/CopPlaybookPanel'))
 const CopClaimsPanel = lazy(() => import('@/components/cop/CopClaimsPanel'))
+const CopPooPanel = lazy(() => import('@/components/cop/CopPooPanel'))
 
 /** Suspense wrapper for lazy-loaded panels — shows a subtle loading indicator */
 function LazyPanel({ children }: { children: ReactNode }) {
@@ -241,7 +243,8 @@ export default function CopWorkspacePage() {
 
   // ── Pin placement state ─────────────────────────────────────
   const [pinPlacementMode, setPinPlacementMode] = useState(false)
-  const pinSourceRef = useRef<{ type: 'evidence' | 'hypothesis'; id: string; text: string } | null>(null)
+  const pinSourceRef = useRef<{ type: 'evidence' | 'hypothesis' | 'poo'; id: string; text: string } | null>(null)
+  const [pooPickedLocation, setPooPickedLocation] = useState<{ lat: number; lon: number } | null>(null)
 
   // ── Layer state ────────────────────────────────────────────────
   const [activeLayers, setActiveLayers] = useState<string[]>([])
@@ -452,6 +455,12 @@ export default function CopWorkspacePage() {
 
       if (!source || !id) return
 
+      // POO pick-from-map: just set coordinates, don't create a marker
+      if (source.type === 'poo') {
+        setPooPickedLocation({ lat, lon })
+        return
+      }
+
       try {
         await fetch(`/api/cop/${id}/markers`, {
           method: 'POST',
@@ -471,6 +480,11 @@ export default function CopWorkspacePage() {
     },
     [id],
   )
+
+  const handlePooPickFromMap = useCallback(() => {
+    pinSourceRef.current = { type: 'poo', id: 'poo-pick', text: 'POO Impact Point' }
+    setPinPlacementMode(true)
+  }, [])
 
   const handleGoToBlocker = useCallback(
     (rfiId: string) => {
@@ -767,6 +781,12 @@ export default function CopWorkspacePage() {
                 onPinToMapFromHypothesis={handlePinToMapFromHypothesis}
                 onLinkPersona={handleLinkPersona}
                 onMarkerOpenInFeed={handleMarkerOpenInFeed}
+                onRefreshLayer={(layerId: string) => {
+                  const def = getLayerById(layerId)
+                  if (def) fetchLayerData(def)
+                }}
+                onPooPickFromMap={handlePooPickFromMap}
+                pooPickedLocation={pooPickedLocation}
                 onOpenEntityDrawer={(tab?: string, prefill?: any) => {
                   if (tab) setEntityDrawerTab(tab)
                   if (prefill) setEntityDrawerPrefill(prefill)
@@ -898,6 +918,9 @@ interface ProgressLayoutProps {
   onLinkPersona?: (handle: string, platform: string, itemId: string) => void
   onOpenEntityDrawer?: (tab?: string, prefill?: any) => void
   onMarkerOpenInFeed?: (sourceType: string, sourceId: string) => void
+  onRefreshLayer?: (layerId: string) => void
+  onPooPickFromMap?: () => void
+  pooPickedLocation?: { lat: number; lon: number } | null
   panelLayout: ReturnType<typeof usePanelLayout>
 }
 
@@ -933,6 +956,9 @@ function ProgressLayout({
   onLinkPersona,
   onOpenEntityDrawer,
   onMarkerOpenInFeed,
+  onRefreshLayer,
+  onPooPickFromMap,
+  pooPickedLocation,
   panelLayout,
 }: ProgressLayoutProps) {
   const { visiblePanels, hiddenPanels, movePanel, toggleWidth, toggleVisible, resetLayout } = panelLayout
@@ -1036,6 +1062,22 @@ function ProgressLayout({
             <CopHypothesisTab sessionId={sessionId} onPinToMap={onPinToMapFromHypothesis} />
           </div>
         </div>
+      ),
+    },
+    poo: {
+      id: 'poo',
+      title: 'POO Estimates',
+      icon: <Target className="h-4 w-4 text-red-400" />,
+      height: 'standard',
+      render: () => (
+        <LazyPanel>
+          <CopPooPanel
+            sessionId={sessionId}
+            onEstimateCreated={() => onRefreshLayer?.('poo-estimates')}
+            onPickFromMap={onPooPickFromMap}
+            pickedLocation={pooPickedLocation}
+          />
+        </LazyPanel>
       ),
     },
     tasks: {

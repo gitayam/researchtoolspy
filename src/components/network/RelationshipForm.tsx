@@ -109,7 +109,7 @@ export function RelationshipForm({
     setSearchingEntities(true)
     try {
       const endpoint = getEntityEndpoint(entityType)
-      const response = await fetch(`${endpoint}?search=${encodeURIComponent(query)}&workspace_id=${workspaceId}&limit=10`, { signal })
+      const response = await fetch(`${endpoint}?search=${encodeURIComponent(query)}&workspace_id=${workspaceId}&limit=10`, { headers: getCopHeaders(), signal })
       if (response.ok) {
         const data = await response.json()
         const key = getEntityArrayKey(entityType)

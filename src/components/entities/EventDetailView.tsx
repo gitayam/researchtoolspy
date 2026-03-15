@@ -37,7 +37,7 @@ export function EventDetailView({ event, onEdit, onDelete }: EventDetailViewProp
     const loadMomAssessments = async () => {
       setLoadingMom(true)
       try {
-        const response = await fetch(`/api/mom-assessments?event_id=${event.id}`, { signal: controller.signal })
+        const response = await fetch(`/api/mom-assessments?event_id=${event.id}`, { headers: getCopHeaders(), signal: controller.signal })
         if (response.ok) {
           const data = await response.json()
           setMomAssessments(data.assessments || [])
@@ -46,7 +46,7 @@ export function EventDetailView({ event, onEdit, onDelete }: EventDetailViewProp
           const names: Record<string, string> = {}
           const actorResults = await Promise.allSettled(
             uniqueActorIds.map(actorId =>
-              fetch(`/api/actors/${actorId}`, { signal: controller.signal })
+              fetch(`/api/actors/${actorId}`, { headers: getCopHeaders(), signal: controller.signal })
                 .then(r => r.ok ? r.json() : null)
                 .then(d => d ? { id: actorId, name: d.actor.name } : null)
             )
@@ -77,7 +77,7 @@ export function EventDetailView({ event, onEdit, onDelete }: EventDetailViewProp
     const loadRelationships = async () => {
       setLoadingRelationships(true)
       try {
-        const response = await fetch(`/api/relationships?entity_id=${event.id}&workspace_id=${event.workspace_id}`, { signal: controller.signal })
+        const response = await fetch(`/api/relationships?entity_id=${event.id}&workspace_id=${event.workspace_id}`, { headers: getCopHeaders(), signal: controller.signal })
         if (response.ok) {
           const data = await response.json()
           setRelationships(data.relationships || [])

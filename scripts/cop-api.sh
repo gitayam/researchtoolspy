@@ -518,6 +518,60 @@ cop_activity() {
 }
 
 # ═════════════════════════════════════════════════════════════════
+# SCRAPERS (Apify integration)
+# ═════════════════════════════════════════════════════════════════
+
+# Usage: cop_scrape_twitter <session_id> "search query" [limit]
+#   Searches Twitter/X and ingests results as evidence
+cop_scrape_twitter() {
+  local id="$1" query="$2" limit="${3:-20}"
+  [[ -z "$id" || -z "$query" ]] && { echo "Usage: cop_scrape_twitter <session_id> \"search query\" [limit]" >&2; return 1; }
+  _cop_post "/api/cop/$id/scrape" \
+    "$(jq -n --arg q "$query" --argjson l "$limit" \
+      '{type:"twitter", query:$q, limit:$l}')" | _jpp
+}
+
+# Usage: cop_scrape_twitter_urls <session_id> url1 [url2 ...]
+#   Scrapes specific tweet URLs and ingests as evidence
+cop_scrape_twitter_urls() {
+  local id="$1"; shift
+  [[ -z "$id" || $# -eq 0 ]] && { echo "Usage: cop_scrape_twitter_urls <session_id> <url1> [url2] ..." >&2; return 1; }
+  local urls
+  urls=$(printf '%s\n' "$@" | jq -R . | jq -s .)
+  _cop_post "/api/cop/$id/scrape" \
+    "$(jq -n --argjson u "$urls" '{type:"twitter", urls:$u}')" | _jpp
+}
+
+# Usage: cop_scrape_tiktok <session_id> "search query" [limit]
+#   Searches TikTok and ingests results as evidence
+cop_scrape_tiktok() {
+  local id="$1" query="$2" limit="${3:-20}"
+  [[ -z "$id" || -z "$query" ]] && { echo "Usage: cop_scrape_tiktok <session_id> \"search query\" [limit]" >&2; return 1; }
+  _cop_post "/api/cop/$id/scrape" \
+    "$(jq -n --arg q "$query" --argjson l "$limit" \
+      '{type:"tiktok", query:$q, limit:$l}')" | _jpp
+}
+
+# Usage: cop_scrape_tiktok_urls <session_id> url1 [url2 ...]
+#   Scrapes specific TikTok video URLs and ingests as evidence
+cop_scrape_tiktok_urls() {
+  local id="$1"; shift
+  [[ -z "$id" || $# -eq 0 ]] && { echo "Usage: cop_scrape_tiktok_urls <session_id> <url1> [url2] ..." >&2; return 1; }
+  local urls
+  urls=$(printf '%s\n' "$@" | jq -R . | jq -s .)
+  _cop_post "/api/cop/$id/scrape" \
+    "$(jq -n --argjson u "$urls" '{type:"tiktok", urls:$u}')" | _jpp
+}
+
+# Usage: cop_scrape_status <session_id> <run_id> [ingest]
+#   Check status of an async scrape run. Set ingest=false to preview without ingesting.
+cop_scrape_status() {
+  local id="$1" run_id="$2" ingest="${3:-true}"
+  [[ -z "$id" || -z "$run_id" ]] && { echo "Usage: cop_scrape_status <session_id> <run_id> [ingest=true|false]" >&2; return 1; }
+  _cop_get "/api/cop/$id/scrape?run_id=$run_id&ingest=$ingest" | _jpp
+}
+
+# ═════════════════════════════════════════════════════════════════
 # HELP
 # ═════════════════════════════════════════════════════════════════
 
@@ -593,6 +647,13 @@ COP API Functions — source scripts/cop-api.sh
     cop_shares <id>                                    List shares
     cop_add_share <id> [allow_rfi] [panels...]         Create share link
     cop_delete_share <id> <token>                      Revoke share
+
+  SCRAPERS (Apify)
+    cop_scrape_twitter <id> "query" [limit]            Scrape Twitter/X → evidence
+    cop_scrape_twitter_urls <id> url1 [url2...]        Scrape specific tweets
+    cop_scrape_tiktok <id> "query" [limit]              Scrape TikTok → evidence
+    cop_scrape_tiktok_urls <id> url1 [url2...]         Scrape specific TikTok videos
+    cop_scrape_status <id> <run_id> [ingest]           Check async scrape status
 
   OTHER
     cop_stats <id>                                     Session statistics

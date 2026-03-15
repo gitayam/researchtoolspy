@@ -1,7 +1,18 @@
 # ResearchTools.net — Issue Tracker
 
 **Last updated:** 2026-03-15
-**Current tag:** v0.13.0-workspace-hardening
+**Current tag:** v0.13.1-layer-auth
+
+---
+
+## Fixed (v0.13.1)
+
+### P0 — COP Layer Endpoints Had Zero Auth Checks
+- [x] 10 layer endpoints in `functions/api/cop/[id]/layers/` returned private session entity data (actors, places, markers, relationships, analysis, assets, events, poo-estimates, gdelt, acled) to anyone who knew the session ID
+- [x] Added `verifyCopLayerAccess` helper to `auth-helpers.ts` — public sessions open to all, private sessions require auth + owner/collaborator
+- [x] All 10 layer endpoints now use `verifyCopLayerAccess` before returning data
+- [x] Env interfaces updated with `SESSIONS?` and `JWT_SECRET?` bindings for auth resolution
+- **Root cause:** layer endpoints were added as read-only GeoJSON feeds and auth was never wired in
 
 ---
 

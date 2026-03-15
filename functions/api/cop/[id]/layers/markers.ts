@@ -9,9 +9,12 @@
  */
 
 import type { PagesFunction } from '@cloudflare/workers-types'
+import { verifyCopLayerAccess } from '../../../_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
+  SESSIONS?: KVNamespace
+  JWT_SECRET?: string
 }
 
 const corsHeaders = {
@@ -22,8 +25,12 @@ const corsHeaders = {
 }
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
-  const { env, params } = context
+  const { request, env, params } = context
   const sessionId = params.id as string
+
+  // Auth: public sessions open, private sessions require owner/collaborator
+  const access = await verifyCopLayerAccess(env.DB, sessionId, request, env)
+  if (access instanceof Response) return access
 
   try {
     const rows = await env.DB.prepare(`

@@ -25,7 +25,7 @@ export interface PanelLayoutState {
 
 // ── Defaults ───────────────────────────────────────────────────
 
-const LAYOUT_VERSION = 5
+const LAYOUT_VERSION = 6
 
 /** Default panel order and widths — matches the original hardcoded layout */
 export const DEFAULT_PANELS: PanelConfig[] = [
@@ -35,6 +35,7 @@ export const DEFAULT_PANELS: PanelConfig[] = [
   { id: 'actors',      width: 'full', visible: true },
   { id: 'rfi',         width: 'half', visible: true },
   { id: 'analysis',    width: 'half', visible: true },
+  { id: 'poo',         width: 'half', visible: true },
   { id: 'tasks',       width: 'full', visible: true },
   { id: 'submissions', width: 'half', visible: true },
   { id: 'assets',      width: 'half', visible: true },

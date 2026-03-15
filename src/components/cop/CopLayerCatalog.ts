@@ -142,6 +142,17 @@ export const COP_LAYERS: CopLayerDef[] = [
     defaultFor: ['area_study'],
     filterable: false,
   },
+  {
+    id: 'poo-estimates',
+    name: 'POO Estimates',
+    description: 'Point of Origin estimation circles and probability sectors',
+    category: 'analysis',
+    icon: 'Target',
+    source: { type: 'api', endpoint: '/layers/poo-estimates' },
+    render: { type: 'polygon', color: '#ef4444' },
+    defaultFor: ['event_analysis', 'crisis_response'],
+    filterable: false,
+  },
 
   // ── Operational Layers ─────────────────────────────────
   {

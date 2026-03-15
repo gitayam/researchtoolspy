@@ -10,6 +10,7 @@
 import { callOpenAIViaGateway, getOptimalCacheTTL } from '../_shared/ai-gateway'
 import { enhancedFetch } from '../../utils/browser-profiles'
 import { getUserFromRequest } from '../_shared/auth-helpers'
+import { fetchSocialViaApify } from '../_shared/apify-social'
 
 interface Env {
   DB: D1Database
@@ -17,6 +18,7 @@ interface Env {
   AI_GATEWAY_ACCOUNT_ID?: string
   AI_CONFIG: KVNamespace
   CACHE: KVNamespace
+  APIFY_API_KEY?: string
 }
 
 interface ExtractClaimsRequest {
@@ -453,14 +455,26 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    // Early detection: x.com/twitter.com blocks all server-side scraping
+    // Early detection: x.com/twitter.com and tiktok.com block server-side scraping
+    // Use Apify if available, otherwise reject with helpful message
     try {
       const parsedUrl = new URL(url)
       const host = parsedUrl.hostname.replace(/^www\./, '')
-      if (host === 'x.com' || host === 'twitter.com') {
+      if ((host === 'x.com' || host === 'twitter.com') && !context.env.APIFY_API_KEY) {
         return new Response(JSON.stringify({
           error: 'Twitter/X posts cannot be scraped',
-          details: 'X.com blocks server-side requests. Paste the tweet text directly into the claims panel instead.',
+          details: 'X.com blocks server-side requests. Configure APIFY_API_KEY to enable Twitter scraping, or paste the tweet text directly.',
+          url,
+          paywalled: false
+        }), {
+          status: 422,
+          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        })
+      }
+      if (host === 'tiktok.com' && !context.env.APIFY_API_KEY) {
+        return new Response(JSON.stringify({
+          error: 'TikTok videos cannot be scraped',
+          details: 'TikTok blocks server-side requests. Configure APIFY_API_KEY to enable TikTok scraping.',
           url,
           paywalled: false
         }), {
@@ -472,8 +486,28 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       // Invalid URL — will be caught by fetch below
     }
 
-    // 1. Fetch content with fallback chain
-    const fetched = await fetchWithFallback(url)
+    // 1. Try Apify for social media URLs first (richer content than standard fetch)
+    let fetched: Awaited<ReturnType<typeof fetchWithFallback>>
+    if (context.env.APIFY_API_KEY) {
+      const socialResult = await fetchSocialViaApify(url, context.env.APIFY_API_KEY)
+      if (socialResult?.success && socialResult.text.length > 50) {
+        fetched = {
+          text: socialResult.text,
+          html: '',
+          ogMetadata: {
+            title: socialResult.title,
+            author: socialResult.author,
+            publishDate: socialResult.publishDate,
+          },
+          source: 'apify',
+          paywalled: false,
+        }
+      } else {
+        fetched = await fetchWithFallback(url)
+      }
+    } else {
+      fetched = await fetchWithFallback(url)
+    }
 
     if (fetched.error && !fetched.text) {
       return new Response(JSON.stringify({

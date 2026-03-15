@@ -7,6 +7,7 @@ interface Env {
   OPENAI_API_KEY: string
   AI_CONFIG: KVNamespace
   CACHE: KVNamespace
+  APIFY_API_KEY?: string
 }
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
@@ -26,7 +27,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     
     // Use shared scraper
-    const scraped = await scrapeUrl(url)
+    const scraped = await scrapeUrl(url, context.env.APIFY_API_KEY)
 
     if (scraped.error) {
        return new Response(JSON.stringify({ 

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { getCopHeaders } from '@/lib/cop-auth'
 import { Checkbox } from '@/components/ui/checkbox'
 import type { EvidenceItem } from '@/types/evidence'
 import type { Actor, Source, Event } from '@/types/entities'
@@ -63,7 +64,7 @@ export function EvidenceLinker({
       // Load based on selected tab
       switch (selectedTab) {
         case 'data':
-          const evidenceRes = await fetch('/api/evidence-items', { signal })
+          const evidenceRes = await fetch('/api/evidence-items', { headers: getCopHeaders(), signal })
           if (evidenceRes.ok) {
             const data = await evidenceRes.json()
             setDataItems(data.evidence || [])
@@ -71,7 +72,7 @@ export function EvidenceLinker({
           break
         case 'actor':
           if (!wsId) break
-          const actorRes = await fetch(`/api/actors?workspace_id=${wsId}`, { signal })
+          const actorRes = await fetch(`/api/actors?workspace_id=${wsId}`, { headers: getCopHeaders(), signal })
           if (actorRes.ok) {
             const data = await actorRes.json()
             setActors(data.actors || [])
@@ -79,7 +80,7 @@ export function EvidenceLinker({
           break
         case 'source':
           if (!wsId) break
-          const sourceRes = await fetch(`/api/sources?workspace_id=${wsId}`, { signal })
+          const sourceRes = await fetch(`/api/sources?workspace_id=${wsId}`, { headers: getCopHeaders(), signal })
           if (sourceRes.ok) {
             const data = await sourceRes.json()
             setSources(data.sources || [])
@@ -87,7 +88,7 @@ export function EvidenceLinker({
           break
         case 'event':
           if (!wsId) break
-          const eventRes = await fetch(`/api/events?workspace_id=${wsId}`, { signal })
+          const eventRes = await fetch(`/api/events?workspace_id=${wsId}`, { headers: getCopHeaders(), signal })
           if (eventRes.ok) {
             const data = await eventRes.json()
             setEvents(data.events || [])

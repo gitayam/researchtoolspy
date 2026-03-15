@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import type { Dataset } from '@/types/dataset'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 interface DatasetSelectorProps {
   open: boolean
@@ -41,7 +42,7 @@ export function DatasetSelector({
   const loadDataset = async (signal?: AbortSignal) => {
     setLoading(true)
     try {
-      const response = await fetch('/api/dataset', { signal })
+      const response = await fetch('/api/dataset', { headers: getCopHeaders(), signal })
       if (response.ok) {
         const data = await response.json()
         setDataset(data.dataset || [])

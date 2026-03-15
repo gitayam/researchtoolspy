@@ -15,6 +15,7 @@ import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest } from '../_shared/auth-helpers'
 import { callOpenAIViaGateway, getOptimalCacheTTL } from '../_shared/ai-gateway'
 import { normalizeClaims } from './normalize-claims'
+import { fetchSocialViaApify } from '../_shared/apify-social'
 import { extractAndSaveClaimEntities } from './extract-claim-entities'
 import { matchMultipleClaimsEntities } from './match-entities-to-actors'
 import { isPDFUrl, extractPDFText, intelligentPDFSummary } from './pdf-extractor'
@@ -26,6 +27,7 @@ interface Env {
   SESSIONS?: KVNamespace
   RATE_LIMIT?: KVNamespace
   JWT_SECRET?: string
+  APIFY_API_KEY?: string
 }
 
 interface AnalyzeUrlRequest {
@@ -148,7 +150,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const archiveUrls = generateArchiveUrls(normalizedUrl)
 
     // Extract content with automatic fallback to archives if blocked
-    const contentData = await extractUrlContentWithFallback(normalizedUrl, env.OPENAI_API_KEY)
+    const contentData = await extractUrlContentWithFallback(normalizedUrl, env.OPENAI_API_KEY, env.APIFY_API_KEY)
 
     if (!contentData.success) {
       console.error(`[DEBUG] Content extraction failed: ${contentData.error}`)
@@ -876,7 +878,7 @@ function isContentBlocked(result: {
 /**
  * Extract URL content with automatic fallback to archives if blocked
  */
-async function extractUrlContentWithFallback(url: string, apiKey?: string): Promise<{
+async function extractUrlContentWithFallback(url: string, apiKey?: string, apifyApiKey?: string): Promise<{
   success: boolean
   error?: string
   text: string
@@ -890,11 +892,32 @@ async function extractUrlContentWithFallback(url: string, apiKey?: string): Prom
     chapters?: string[]
     keyPoints?: string[]
   }
-  source?: 'original' | 'archive.ph' | 'wayback' | 'smry.ai'
+  source?: 'original' | 'archive.ph' | 'wayback' | 'smry.ai' | 'apify'
   fallback_attempts?: string[]
   links?: LinkInfo[]
 }> {
   const fallbackAttempts: string[] = []
+
+  // Try Apify for Twitter/X and TikTok URLs first (richer content than oEmbed/fetch)
+  if (apifyApiKey) {
+    try {
+      const socialResult = await fetchSocialViaApify(url, apifyApiKey)
+      if (socialResult?.success && socialResult.text.length > 50) {
+        fallbackAttempts.push('apify')
+        return {
+          success: true,
+          text: socialResult.text,
+          title: socialResult.title,
+          author: socialResult.author,
+          publishDate: socialResult.publishDate,
+          source: 'apify',
+          fallback_attempts: fallbackAttempts,
+        }
+      }
+    } catch (error) {
+      console.error('[Fallback] Apify social extraction failed:', error)
+    }
+  }
 
   // Try original URL first
   fallbackAttempts.push('original')
