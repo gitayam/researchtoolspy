@@ -30,6 +30,7 @@ import {
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { useTranslation } from 'react-i18next'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 interface SocialMediaProfile {
   id: string
@@ -150,11 +151,8 @@ export function SocialMediaPage() {
 
   const loadStats = async (signal?: AbortSignal) => {
     try {
-      const token = localStorage.getItem('auth_token')
       const response = await fetch('/api/social-media/stats', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
+        headers: getCopHeaders(),
         signal,
       })
       if (response.ok) {
@@ -169,16 +167,13 @@ export function SocialMediaPage() {
   const loadProfiles = async (signal?: AbortSignal) => {
     try {
       setLoading(true)
-      const token = localStorage.getItem('auth_token')
       const params = new URLSearchParams()
       if (selectedPlatform !== 'all') {
         params.append('platform', selectedPlatform)
       }
 
       const response = await fetch(`/api/social-media/profiles?${params}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
+        headers: getCopHeaders(),
         signal,
       })
       if (response.ok) {
@@ -194,11 +189,8 @@ export function SocialMediaPage() {
 
   const loadPosts = async (profileId: string, signal?: AbortSignal) => {
     try {
-      const token = localStorage.getItem('auth_token')
       const response = await fetch(`/api/social-media/posts?profile_id=${profileId}&limit=50`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
+        headers: getCopHeaders(),
         signal,
       })
       if (response.ok) {
@@ -212,11 +204,8 @@ export function SocialMediaPage() {
 
   const loadJobs = async (signal?: AbortSignal) => {
     try {
-      const token = localStorage.getItem('auth_token')
       const response = await fetch('/api/social-media/jobs', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
+        headers: getCopHeaders(),
         signal,
       })
       if (response.ok) {
@@ -231,13 +220,9 @@ export function SocialMediaPage() {
   const handleAddProfile = async () => {
     try {
       setLoading(true)
-      const token = localStorage.getItem('auth_token')
       const response = await fetch('/api/social-media/profiles', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
+        headers: getCopHeaders(),
         body: JSON.stringify(newProfile)
       })
 
@@ -257,13 +242,9 @@ export function SocialMediaPage() {
   const handleCreateJob = async () => {
     try {
       setLoading(true)
-      const token = localStorage.getItem('auth_token')
       const response = await fetch('/api/social-media/jobs', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
+        headers: getCopHeaders(),
         body: JSON.stringify(newJob)
       })
 
@@ -283,12 +264,9 @@ export function SocialMediaPage() {
     if (!confirm(t('socialMedia:profiles.deleteConfirm'))) return
 
     try {
-      const token = localStorage.getItem('auth_token')
       await fetch(`/api/social-media/profiles/${profileId}`, {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers: getCopHeaders(),
       })
       loadProfiles()
       loadStats()

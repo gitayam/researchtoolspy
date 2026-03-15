@@ -63,12 +63,7 @@ export function CollaborationPage() {
     return userHash
   }
 
-  const getAuthHeaders = (): HeadersInit => {
-    const headers: HeadersInit = { ...getCopHeaders() }
-    const authToken = localStorage.getItem('auth_token')
-    if (authToken) headers['Authorization'] = `Bearer ${authToken}`
-    return headers
-  }
+  const getAuthHeaders = (): HeadersInit => getCopHeaders()
 
   const fetchWorkspaces = async (signal?: AbortSignal) => {
     try {

@@ -29,11 +29,7 @@ export function WorkspaceStatsBar({ workspaceId, onTabClick }: WorkspaceStatsBar
   const fetchStats = async (signal?: AbortSignal) => {
     setStats(null) // Reset on workspace change to avoid showing stale data
     try {
-      const headers: HeadersInit = { ...getCopHeaders() }
-      const authToken = localStorage.getItem('auth_token')
-      if (authToken) headers['Authorization'] = `Bearer ${authToken}`
-
-      const response = await fetch(`/api/workspaces/${workspaceId}/stats`, { headers, signal })
+      const response = await fetch(`/api/workspaces/${workspaceId}/stats`, { headers: getCopHeaders(), signal })
       if (response.ok) {
         setStats(await response.json())
       }

@@ -47,11 +47,7 @@ export function ToolsTab({ workspaceId, userRole }: ToolsTabProps) {
   const fetchTools = async (signal?: AbortSignal) => {
     try {
       setLoading(true)
-      const headers: HeadersInit = { ...getCopHeaders() }
-      const authToken = localStorage.getItem('auth_token')
-      if (authToken) headers['Authorization'] = `Bearer ${authToken}`
-
-      const response = await fetch(`/api/workspaces/${workspaceId}/tools`, { headers, signal })
+      const response = await fetch(`/api/workspaces/${workspaceId}/tools`, { headers: getCopHeaders(), signal })
       if (response.ok) {
         const data = await response.json()
         setPlaybooks(data.playbooks || [])

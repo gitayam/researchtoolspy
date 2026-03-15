@@ -34,14 +34,7 @@ export function TeamTab({ workspaceId, userRole }: TeamTabProps) {
 
   const canManage = userRole === 'OWNER' || userRole === 'ADMIN'
 
-  const getAuthHeaders = (): HeadersInit => {
-    const headers: HeadersInit = { ...getCopHeaders() }
-    const authToken = localStorage.getItem('auth_token')
-    if (authToken) {
-      headers['Authorization'] = `Bearer ${authToken}`
-    }
-    return headers
-  }
+  const getAuthHeaders = (): HeadersInit => getCopHeaders()
 
   useEffect(() => {
     const controller = new AbortController()

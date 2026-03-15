@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 interface BehaviorOption {
   id: string
@@ -50,21 +51,16 @@ export function BehaviorSelector({
       setLoading(true)
       try {
         // Get workspace from localStorage
-        const workspaceId = localStorage.getItem('currentWorkspace')
+        const workspaceId = localStorage.getItem('omnicore_workspace_id') || localStorage.getItem('current_workspace_id')
         if (!workspaceId) {
           console.warn('No workspace selected')
           setBehaviors([])
           return
         }
 
-        const token = localStorage.getItem('token')
         const response = await fetch(
           `/api/frameworks?type=behavior&workspace_id=${workspaceId}`,
-          {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          }
+          { headers: getCopHeaders() }
         )
 
         if (response.ok) {

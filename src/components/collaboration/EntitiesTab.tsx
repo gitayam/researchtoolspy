@@ -66,16 +66,12 @@ export function EntitiesTab({ workspaceId, userRole }: EntitiesTabProps) {
   const fetchEntities = async (signal?: AbortSignal) => {
     try {
       setLoading(true)
-      const headers: HeadersInit = { ...getCopHeaders() }
-      const authToken = localStorage.getItem('auth_token')
-      if (authToken) headers['Authorization'] = `Bearer ${authToken}`
-
       const params = new URLSearchParams()
       if (typeFilter) params.set('type', typeFilter)
       if (search) params.set('search', search)
       params.set('limit', '50')
 
-      const response = await fetch(`/api/workspaces/${workspaceId}/entities?${params}`, { headers, signal })
+      const response = await fetch(`/api/workspaces/${workspaceId}/entities?${params}`, { headers: getCopHeaders(), signal })
       if (response.ok) {
         const data = await response.json()
         setEntities(data.entities)

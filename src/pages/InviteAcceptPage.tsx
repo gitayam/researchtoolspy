@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { useAuthStore } from '@/stores/auth'
 import type { WorkspaceInviteInfo, AcceptInviteRequest, AcceptInviteResponse } from '@/types/workspace-invites'
 import { useTranslation } from 'react-i18next'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 export function InviteAcceptPage() {
   const { t } = useTranslation(['invite'])
@@ -73,10 +74,7 @@ export function InviteAcceptPage() {
 
       const response = await fetch(`/api/invites/${inviteToken}/accept`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`
-        },
+        headers: getCopHeaders(),
         body: JSON.stringify(requestBody)
       })
 

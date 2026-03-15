@@ -45,11 +45,7 @@ export function CopSessionsTab({ workspaceId, userRole }: CopSessionsTabProps) {
   const fetchSessions = async (signal?: AbortSignal) => {
     try {
       setLoading(true)
-      const headers: HeadersInit = { ...getCopHeaders() }
-      const authToken = localStorage.getItem('auth_token')
-      if (authToken) headers['Authorization'] = `Bearer ${authToken}`
-
-      const response = await fetch(`/api/workspaces/${workspaceId}/cop-sessions?limit=50`, { headers, signal })
+      const response = await fetch(`/api/workspaces/${workspaceId}/cop-sessions?limit=50`, { headers: getCopHeaders(), signal })
       if (response.ok) {
         const data = await response.json()
         setSessions(data.sessions)

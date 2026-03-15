@@ -152,7 +152,7 @@ export default function CopMiniGraph({ sessionId, workspaceId: propWorkspaceId, 
       try {
         const headers = getCopHeaders()
 
-        const workspaceId = propWorkspaceId || localStorage.getItem('currentWorkspaceId') || 'default'
+        const workspaceId = propWorkspaceId || localStorage.getItem('omnicore_workspace_id') || localStorage.getItem('current_workspace_id') || 'default'
         const res = await fetch(`/api/relationships?workspace_id=${workspaceId}&cop_session_id=${sessionId}`, { headers, signal: controller.signal })
 
         if (!res.ok) throw new Error(`Failed to fetch relationships (${res.status})`)
@@ -250,7 +250,7 @@ export default function CopMiniGraph({ sessionId, workspaceId: propWorkspaceId, 
   }
 
   // ── Graph ────────────────────────────────────────────────────
-  const workspaceId = propWorkspaceId || localStorage.getItem('currentWorkspaceId') || 'default'
+  const workspaceId = propWorkspaceId || localStorage.getItem('omnicore_workspace_id') || localStorage.getItem('current_workspace_id') || 'default'
 
   return (
     <div ref={containerRef} className="w-full h-full relative">

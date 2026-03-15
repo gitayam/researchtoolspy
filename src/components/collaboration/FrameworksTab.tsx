@@ -47,14 +47,10 @@ export function FrameworksTab({ workspaceId, userRole }: FrameworksTabProps) {
   const fetchFrameworks = async (signal?: AbortSignal) => {
     try {
       setLoading(true)
-      const headers: HeadersInit = { ...getCopHeaders() }
-      const authToken = localStorage.getItem('auth_token')
-      if (authToken) headers['Authorization'] = `Bearer ${authToken}`
-
       const params = new URLSearchParams({ limit: '50' })
       if (typeFilter) params.set('type', typeFilter)
 
-      const response = await fetch(`/api/workspaces/${workspaceId}/frameworks?${params}`, { headers, signal })
+      const response = await fetch(`/api/workspaces/${workspaceId}/frameworks?${params}`, { headers: getCopHeaders(), signal })
       if (response.ok) {
         const data = await response.json()
         setFrameworks(data.frameworks)

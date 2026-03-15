@@ -1,6 +1,6 @@
 # Site Issues — Investigation Report
 
-**Last updated:** 2026-03-15 (Sessions 34-89b)
+**Last updated:** 2026-03-15 (Sessions 34-90)
 
 ## Known Open — Prioritized for Next Sessions
 
@@ -14,6 +14,26 @@ Largest concentrations: EntityQuickCreate (12), GenericFrameworkForm (10), Batch
 - 25+ COP GET endpoints lack auth (Issue #384)
 - 15+ COP POST/PUT/DELETE lack session membership verification (Issue #385)
 - `notifications.ts` POST and `activity.ts` POST still unauthed (#396-397)
+
+---
+
+## Fixed — v2.16.11 (Session 90)
+
+### HIGH — 14 DEAD `auth_token` REFERENCES SENDING UNAUTHENTICATED REQUESTS (8 FILES)
+| # | Issue | Status |
+|---|-------|--------|
+| 603 | **SocialMediaPage.tsx** — 7 fetch calls using `localStorage.getItem('auth_token')` (dead key, never set by current auth system). All API calls were fully unauthenticated. Fixed: import + use getCopHeaders() | FIXED |
+| 604 | **CopSessionsTab.tsx, ToolsTab.tsx, EntitiesTab.tsx, FrameworksTab.tsx** — Used getCopHeaders() but then redundantly overrode Authorization with dead `auth_token`. Fixed: removed dead override, use getCopHeaders() directly | FIXED |
+| 605 | **TeamTab.tsx, CollaborationPage.tsx** — `getAuthHeaders()` wrapper spread getCopHeaders() then overrode with dead `auth_token`. Fixed: getAuthHeaders() now just returns getCopHeaders() | FIXED |
+| 606 | **WorkspaceStatsBar.tsx** — Same redundant `auth_token` override on top of getCopHeaders(). Fixed: removed dead code | FIXED |
+| 607 | **InviteAcceptPage.tsx** — Manual `Authorization: Bearer ${auth_token}` with no getCopHeaders(). Fixed: import + use getCopHeaders() | FIXED |
+
+### MEDIUM — 4 WRONG localStorage WORKSPACE KEYS (3 FILES)
+| # | Issue | Status |
+|---|-------|--------|
+| 608 | **CopMiniGraph.tsx** (2 instances) — Used `currentWorkspaceId` instead of `omnicore_workspace_id`. Always returned null, fell back to 'default'. Fixed: correct key chain | FIXED |
+| 609 | **NetworkGraphPage.tsx** — Same wrong key `currentWorkspaceId`. Fixed: correct key chain | FIXED |
+| 610 | **BehaviorSelector.tsx** — Used `currentWorkspace` (wrong key) + dead `localStorage.getItem('token')` for auth. Fixed: correct workspace key + getCopHeaders() | FIXED |
 
 ---
 

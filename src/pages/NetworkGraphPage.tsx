@@ -94,7 +94,7 @@ export function NetworkGraphPage() {
       setLoading(true)
       try {
         // Get workspace ID from localStorage or use default
-        const workspaceId = localStorage.getItem('currentWorkspaceId') || 'default'
+        const workspaceId = localStorage.getItem('omnicore_workspace_id') || localStorage.getItem('current_workspace_id') || 'default'
 
         const response = await fetch(`/api/relationships?workspace_id=${workspaceId}`, { signal: controller.signal, headers: getCopHeaders() })
         if (response.ok) {
