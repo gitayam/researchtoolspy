@@ -1,7 +1,24 @@
 # ResearchTools.net — Issue Tracker
 
 **Last updated:** 2026-03-15
-**Current tag:** v0.19.3-entity-response-fix
+**Current tag:** v0.19.4-relationships-response-fix
+
+---
+
+## Fixed (v0.19.4)
+
+### P1 — `relationships.ts` Returned Bare Array (Same Bug as v0.19.3)
+- [x] `relationships.ts` returned `JSON.stringify(relationships)` — bare array instead of wrapped object
+- [x] Frontend `ActorDetailView.tsx:80` uses `data.relationships || []` — got `undefined`, rendered empty
+- [x] Fix: Changed to `JSON.stringify({ relationships })` — matching all other entity endpoints
+- **Root cause:** Same class of bug as v0.19.3. Relationships endpoint was missed in the original entity response sweep because it lives in a separate file from the other four entities.
+
+### Audit Results — All Entity Endpoints Now Consistent
+- [x] All 6 entity list endpoints return wrapped objects: `{ actors }`, `{ sources }`, `{ events }`, `{ places }`, `{ behaviors }`, `{ relationships }`
+- [x] `comments.ts` and `social-media/` endpoints confirmed self-consistent (bare arrays, frontend expects bare arrays — no mismatch)
+- [x] No remaining `requireAuth(context)` wrong-signature calls found
+- [x] All `requireAuth` outer catch blocks have `instanceof Response` check
+- [x] 8/8 core endpoints returning 200 on production smoke test
 
 ---
 

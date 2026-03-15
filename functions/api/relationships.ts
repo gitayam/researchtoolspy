@@ -112,7 +112,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       }))
 
       return new Response(
-        JSON.stringify(relationships),
+        JSON.stringify({ relationships }),
         { status: 200, headers: JSON_HEADERS }
       )
     }
