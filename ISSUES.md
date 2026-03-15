@@ -1,7 +1,38 @@
 # ResearchTools.net — Issue Tracker
 
 **Last updated:** 2026-03-15
-**Current tag:** v0.19.9-ownership-pagination
+**Current tag:** v0.20.0-entity-crud-complete
+
+---
+
+## Fixed (v0.20.0)
+
+### P2 — Behaviors & Places Missing GET/PUT/DELETE Detail Endpoints
+- [x] Created `functions/api/behaviors/[id].ts` — GET, PUT, DELETE with auth + workspace access checks
+- [x] Created `functions/api/places/[id].ts` — GET, PUT, DELETE with auth + workspace access checks
+- [x] Both DELETE handlers decrement `workspace.entity_count` via `json_set(... MAX(0, ... - 1))` — matching actors/sources/events pattern
+- [x] Behaviors DELETE also cleans up `actor_behaviors` junction table records
+- [x] PUT handlers accept all entity-specific fields with dynamic SET clause building
+- **Root cause:** When entity endpoints were created, only actors, sources, and events got `[id].ts` detail handlers. Behaviors and places only had list (GET) and create (POST) in their main file. Users couldn't edit or delete these entity types.
+
+### P2 — COP Session Archive Now Revokes Public Share Links
+- [x] `cop/sessions/[id].ts` DELETE handler now deletes all `cop_shares` for the archived session
+- [x] Prevents archived sessions from remaining publicly accessible via stale share tokens
+- **Root cause:** Soft-delete only updated session status to ARCHIVED but left share links active. A share token for an archived session would still serve data via `/api/cop/public/[token]`.
+
+### Lessons Learned Cross-Reference
+- **Session 12 line 116-119:** "If id is a unique PK, don't add AND workspace_id = ? to the WHERE clause — it creates fragile coupling." Applied: entity PUT/DELETE use pre-check authorization (`checkWorkspaceAccess`) rather than WHERE clause coupling, matching the established pattern in actors/[id].ts.
+- **Session 33:** "Every mutation needs auth AND ownership checks." Applied: all new PUT/DELETE handlers require auth + EDITOR workspace access.
+
+### All 6 Entity Types Now Have Full CRUD
+| Entity | List (GET) | Create (POST) | Detail (GET) | Update (PUT) | Delete (DELETE) |
+|--------|-----------|---------------|-------------|-------------|----------------|
+| Actors | actors.ts | actors.ts | actors/[id].ts | actors/[id].ts | actors/[id].ts |
+| Sources | sources.ts | sources.ts | sources/[id].ts | sources/[id].ts | sources/[id].ts |
+| Events | events.ts | events.ts | events/[id].ts | events/[id].ts | events/[id].ts |
+| Places | places.ts | places.ts | **places/[id].ts** (NEW) | **places/[id].ts** (NEW) | **places/[id].ts** (NEW) |
+| Behaviors | behaviors.ts | behaviors.ts | **behaviors/[id].ts** (NEW) | **behaviors/[id].ts** (NEW) | **behaviors/[id].ts** (NEW) |
+| Relationships | relationships.ts | relationships.ts | — | — | — |
 
 ---
 

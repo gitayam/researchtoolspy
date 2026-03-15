@@ -233,6 +233,11 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       WHERE id = ?
     `).bind(now, id).run()
 
+    // Revoke all public share links for archived session
+    await env.DB.prepare(
+      'DELETE FROM cop_shares WHERE cop_session_id = ?'
+    ).bind(id).run()
+
     return new Response(JSON.stringify({ message: 'COP session archived' }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[COP Sessions API] Delete error:', error)
