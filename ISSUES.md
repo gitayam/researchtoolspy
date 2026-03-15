@@ -1,7 +1,25 @@
 # ResearchTools.net — Issue Tracker
 
 **Last updated:** 2026-03-15
-**Current tag:** v0.17.6-auth-headers-fix
+**Current tag:** v0.17.7-social-media-split
+
+---
+
+## Fixed (v0.17.7)
+
+### P1 — Social Media Page Entirely Broken (Internal URL Routing Anti-Pattern)
+- [x] `social-media.ts` was a 690-line monolith using internal `url.pathname` routing — Cloudflare Pages never routes sub-paths to this file
+- [x] Frontend calls `/api/social-media/profiles`, `/api/social-media/jobs`, `/api/social-media/stats`, `/api/social-media/posts` — ALL returned SPA HTML (200)
+- [x] Split into proper directory-based routing:
+  - `social-media/profiles.ts` — GET (list) + POST (create/update)
+  - `social-media/profiles/[id].ts` — GET (detail) + DELETE
+  - `social-media/jobs.ts` — GET (list) + POST (create)
+  - `social-media/jobs/[id].ts` — GET (detail) + PUT (update status)
+  - `social-media/posts.ts` — GET (list) + POST (create/update)
+  - `social-media/stats.ts` — GET (aggregate counts)
+- [x] Removed old `social-media.ts` monolith
+- [x] All new files use `safeJsonParse` for JSON columns, `String()` for ownership checks, proper auth
+- **Root cause:** Exact same anti-pattern documented in Lessons Learned Session 31: "Cloudflare Pages Functions: File Path IS the Route, Not Internal Regex." The file used `url.pathname.match()` to route sub-paths, but Cloudflare never delivers those requests to the handler. The entire Social Media Intelligence page was non-functional.
 
 ---
 
