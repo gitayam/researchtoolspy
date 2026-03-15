@@ -206,7 +206,8 @@ async function fetchWithFallback(url: string): Promise<{
     const ampUrl = `https://cdn.ampproject.org/v/s/${url.replace(/^https?:\/\//, '')}?amp_js_v=0.1`
     const ampResp = await fetch(ampUrl, {
       headers: { 'User-Agent': 'Mozilla/5.0' },
-      redirect: 'follow'
+      redirect: 'follow',
+      signal: AbortSignal.timeout(15000)
     })
     if (ampResp.ok) {
       const html = await ampResp.text()
@@ -230,7 +231,8 @@ async function fetchWithFallback(url: string): Promise<{
     const cacheUrl = `https://webcache.googleusercontent.com/search?q=cache:${encodeURIComponent(url)}`
     const cacheResp = await fetch(cacheUrl, {
       headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
-      redirect: 'follow'
+      redirect: 'follow',
+      signal: AbortSignal.timeout(15000)
     })
     if (cacheResp.ok) {
       const html = await cacheResp.text()
@@ -253,7 +255,8 @@ async function fetchWithFallback(url: string): Promise<{
   try {
     const archiveResp = await fetch(`https://archive.ph/newest/${url}`, {
       headers: { 'User-Agent': 'Mozilla/5.0' },
-      redirect: 'follow'
+      redirect: 'follow',
+      signal: AbortSignal.timeout(15000)
     })
     if (archiveResp.ok) {
       const html = await archiveResp.text()
@@ -275,14 +278,16 @@ async function fetchWithFallback(url: string): Promise<{
   // 5. Try Wayback Machine
   try {
     const wbResp = await fetch(
-      `https://archive.org/wayback/available?url=${encodeURIComponent(url)}`
+      `https://archive.org/wayback/available?url=${encodeURIComponent(url)}`,
+      { signal: AbortSignal.timeout(15000) }
     )
     if (wbResp.ok) {
       const wbData = await wbResp.json() as any
       const snapshot = wbData?.archived_snapshots?.closest
       if (snapshot?.url) {
         const archiveResp = await fetch(snapshot.url, {
-          headers: { 'User-Agent': 'Mozilla/5.0' }
+          headers: { 'User-Agent': 'Mozilla/5.0' },
+          signal: AbortSignal.timeout(15000)
         })
         if (archiveResp.ok) {
           const html = await archiveResp.text()

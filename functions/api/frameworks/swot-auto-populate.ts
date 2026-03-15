@@ -182,7 +182,8 @@ ${c.content}
 Extract 3-5 items per SWOT quadrant. Focus on actionable insights.`
           }
         ]
-      })
+      }),
+      signal: AbortSignal.timeout(30000)
     })
 
     if (!gptResponse.ok) {

@@ -82,7 +82,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       headers: {
         'x-apikey': env.VIRUSTOTAL_API_KEY,
         'Accept': 'application/json'
-      }
+      },
+      signal: AbortSignal.timeout(15000)
     })
 
     if (!vtResponse.ok) {

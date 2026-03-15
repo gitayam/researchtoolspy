@@ -30,7 +30,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     const userResult = await env.DB.prepare('SELECT user_hash FROM users WHERE id = ?').bind(userId).first()
     const userHash = userResult?.user_hash as string
 
-    const workspaceId = request.headers.get('X-Workspace-Id') || '1'
+    const workspaceId = request.headers.get('X-Workspace-Id') || null
 
     if (request.method === 'POST') {
       const body: any = await request.json()

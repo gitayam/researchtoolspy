@@ -134,7 +134,8 @@ Return the response as a JSON object with a "questions" array:
         temperature: 0.7,
         max_tokens: 3000,
         response_format: { type: 'json_object' }
-      })
+      }),
+      signal: AbortSignal.timeout(30000)
     })
 
     if (!response.ok) {

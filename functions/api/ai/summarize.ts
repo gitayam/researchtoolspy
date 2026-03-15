@@ -92,7 +92,8 @@ ${mode === 'comprehensive' ? 'Use markdown headings (##) to organize sections.' 
         ],
         max_completion_tokens: modelSettings.maxTokens,
         verbosity
-      })
+      }),
+      signal: AbortSignal.timeout(30000)
     })
 
     if (!response.ok) {

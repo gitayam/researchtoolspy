@@ -1,6 +1,32 @@
 # Site Issues — Investigation Report
 
-**Last updated:** 2026-03-15 (Sessions 34-84)
+**Last updated:** 2026-03-15 (Sessions 34-85)
+
+## Fixed — v2.16.4 (Session 85)
+
+### HIGH — EXTERNAL FETCH CALLS WITHOUT ABORT TIMEOUTS (50+ INSTANCES, 23 FILES)
+| # | Issue | Status |
+|---|-------|--------|
+| 534 | **13 direct OpenAI API files** — Direct `fetch('https://api.openai.com/...')` calls without AbortSignal could hang indefinitely. Fixed: added `signal: AbortSignal.timeout(30000)` to all. Files: ai/generate, ai/summarize, ai/questions, ai/generate-questions, ai/generate-title, ai/report-enhance (3 calls), research/recommend-questions, research/generate-plan (45s for complex plans), ach/generate-hypotheses, ach/from-content-intelligence (2 calls), content-intelligence/pdf-extractor (4 OpenAI + 2 pdf.co calls), frameworks/swot-auto-populate, relationships/infer-type (2 calls) | FIXED |
+| 535 | **content-intelligence/git-repository-extract.ts** — 13 external fetch calls (GitHub 6, GitLab 4, Bitbucket 3) without timeouts. Fixed: `AbortSignal.timeout(15000)` on all | FIXED |
+| 536 | **content-intelligence/social-media-extract.ts** — 15 external fetch calls (cobalt, snapinsta, instadp, saveinsta, oembed) without timeouts. Fixed: `AbortSignal.timeout(15000)` on all | FIXED |
+| 537 | **tools/geoconfirmed.ts** — 5 GeoConfirmed API fetch calls without timeouts. Fixed: 15s timeout on API calls, 30s on KML export | FIXED |
+| 538 | **tools/extract-claims.ts** — 5 external fetch calls (AMP, Google cache, archive.ph, Wayback Machine) missing timeouts. Fixed: `AbortSignal.timeout(15000)` on all | FIXED |
+| 539 | **tools/analyze-url.ts** — 3 Wayback Machine API calls (availability check, CDX search, save) missing timeouts. Fixed: 15s on reads, 30s on save | FIXED |
+| 540 | **content-intelligence/domain-country.ts** — ip-api.com fetch without timeout. Fixed: 15s timeout | FIXED |
+| 541 | **content-intelligence/virustotal-lookup.ts** — VirusTotal API fetch without timeout. Fixed: 15s timeout | FIXED |
+| 542 | **content-intelligence/twitter-image-proxy.ts** — Twitter CDN image fetch without timeout. Fixed: 15s timeout | FIXED |
+| 543 | **content-intelligence/social-extract.ts** — Instagram HTML scrape without timeout. Fixed: 15s timeout | FIXED |
+| 544 | **research/submit/[hashId].ts** — Wayback Machine save fetch without timeout. Fixed: 30s timeout | FIXED |
+
+### MEDIUM — MUTATION ENDPOINT WORKSPACE '1' FALLBACKS (3 MORE FILES)
+| # | Issue | Status |
+|---|-------|--------|
+| 545 | **evidence-items.ts POST** — `body.workspace_id || '1'` on actor auto-linking queries (2 instances). Could misdirect actor lookups to workspace '1'. Fixed: `|| null` | FIXED |
+| 546 | **library/fork.ts POST** — `request.headers.get('X-Workspace-Id') || '1'` on fork operation. Fixed: `|| null` | FIXED |
+| 547 | **library/index.ts POST** — `original_workspace_id || '1'` when publishing to library. Fixed: `|| null` | FIXED |
+
+---
 
 ## Fixed — v2.16.3 (Session 84)
 

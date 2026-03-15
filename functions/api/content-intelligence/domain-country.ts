@@ -137,7 +137,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     // Use ip-api.com free API (no key required, 45 requests/min)
     // Alternative: ipapi.co (1000 requests/day free)
-    const geoResponse = await fetch(`http://ip-api.com/json/${domain}?fields=status,message,country,countryCode,region,city,org,query`)
+    const geoResponse = await fetch(`http://ip-api.com/json/${domain}?fields=status,message,country,countryCode,region,city,org,query`, {
+      signal: AbortSignal.timeout(15000)
+    })
 
     if (!geoResponse.ok) {
       throw new Error('Geolocation API unavailable')

@@ -660,7 +660,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           ],
           max_completion_tokens: verbosity === 'executive' ? 500 : verbosity === 'comprehensive' ? 2000 : 1000,
           verbosity: verbosity === 'executive' ? 'low' : verbosity === 'comprehensive' ? 'high' : 'medium'
-        })
+        }),
+        signal: AbortSignal.timeout(30000)
       })
 
       if (summaryResponse.ok) {
@@ -689,7 +690,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           max_completion_tokens: 1500,
           verbosity: 'low',
           reasoning_effort: 'minimal'
-        })
+        }),
+        signal: AbortSignal.timeout(30000)
       })
 
       if (insightsResponse.ok) {
@@ -724,7 +726,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           max_completion_tokens: 1500,
           verbosity: 'low',
           reasoning_effort: 'minimal'
-        })
+        }),
+        signal: AbortSignal.timeout(30000)
       })
 
       if (recommendationsResponse.ok) {

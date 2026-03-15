@@ -328,7 +328,8 @@ Make the plan specific to THIS research question and research type, not generic 
         temperature: 0.6,
         max_tokens: 3500,
         response_format: { type: 'json_object' }
-      })
+      }),
+      signal: AbortSignal.timeout(45000)
     })
 
     if (!apiResponse.ok) {

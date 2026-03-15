@@ -40,7 +40,8 @@ async function autoArchiveUrl(url: string): Promise<string | null> {
   try {
     const response = await fetch(`https://web.archive.org/save/${url}`, {
       method: 'GET',
-      redirect: 'follow'
+      redirect: 'follow',
+      signal: AbortSignal.timeout(30000)
     })
 
     if (response.ok) {

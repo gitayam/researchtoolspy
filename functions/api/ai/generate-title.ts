@@ -107,7 +107,8 @@ Return ONLY the title, nothing else.`
         ],
         // Note: gpt-4o-mini only supports temperature=1 (default), so we omit it
         max_tokens: 50
-      })
+      }),
+      signal: AbortSignal.timeout(30000)
     })
 
     if (!response.ok) {

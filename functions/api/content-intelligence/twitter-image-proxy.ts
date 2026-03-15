@@ -73,7 +73,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       cf: {
         cacheTtl: 604800, // 7 days
         cacheEverything: true
-      }
+      },
+      signal: AbortSignal.timeout(15000)
     })
 
     if (!twitterResponse.ok) {

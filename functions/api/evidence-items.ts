@@ -215,7 +215,7 @@ export async function onRequest(context: any) {
             AND LENGTH(name) > 3
             AND workspace_id = ?
             LIMIT 10
-          `).bind(body.who, body.workspace_id || '1').all()
+          `).bind(body.who, body.workspace_id || null).all()
 
           // Auto-create links for matched actors
           for (const actor of actors.results) {
@@ -374,7 +374,7 @@ export async function onRequest(context: any) {
             AND LENGTH(name) > 3
             AND workspace_id = ?
             LIMIT 10
-          `).bind(body.who, body.workspace_id || '1').all()
+          `).bind(body.who, body.workspace_id || null).all()
 
           // Auto-create new links
           for (const actor of actors.results) {

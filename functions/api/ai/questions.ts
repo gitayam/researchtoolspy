@@ -97,7 +97,8 @@ No explanations, just the JSON array.`
         max_completion_tokens: modelSettings.maxTokens,
         verbosity: modelSettings.verbosity,
         ...(modelSettings.reasoningEffort && { reasoning_effort: modelSettings.reasoningEffort })
-      })
+      }),
+      signal: AbortSignal.timeout(30000)
     })
 
     if (!response.ok) {

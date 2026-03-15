@@ -216,7 +216,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         description || '',
         tags || '[]',
         category || '',
-        original_workspace_id || '1',
+        original_workspace_id || null,
         now,
         searchText,
         now

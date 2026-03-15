@@ -81,7 +81,8 @@ Return format: ["hypothesis 1", "hypothesis 2", ...]`
         temperature: 0.7,
         max_completion_tokens: 800,
         response_format: { type: 'json_object' }
-      })
+      }),
+      signal: AbortSignal.timeout(30000)
     })
 
     if (!gptResponse.ok) {

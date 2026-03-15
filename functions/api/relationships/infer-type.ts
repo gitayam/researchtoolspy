@@ -222,7 +222,8 @@ Respond with ONLY the relationship type, no explanation.`
         ],
         temperature: 0.3,
         max_tokens: 50
-      })
+      }),
+      signal: AbortSignal.timeout(30000)
     })
 
     if (!response.ok) {
@@ -279,7 +280,8 @@ Provide a brief 1-2 sentence explanation of why this relationship type fits, bas
         ],
         temperature: 0.7,
         max_tokens: 150
-      })
+      }),
+      signal: AbortSignal.timeout(30000)
     })
 
     if (!response.ok) {

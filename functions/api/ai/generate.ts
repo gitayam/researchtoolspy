@@ -133,11 +133,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           'OpenAI-Organization': context.env.OPENAI_ORGANIZATION
         })
       },
-      body: JSON.stringify(openaiRequest)
+      body: JSON.stringify(openaiRequest),
+      signal: AbortSignal.timeout(30000)
     })
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: { message: 'Unknown error' } }))
+      const error = await response.json().catch((e) => { console.error('[ai/generate] JSON parse error:', e); return { error: { message: 'Unknown error' } } })
       console.error('OpenAI API error:', error)
       return Response.json({
         error: 'AI generation failed',

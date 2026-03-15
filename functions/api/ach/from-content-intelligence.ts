@@ -79,7 +79,8 @@ Return ONLY the question text, no other formatting.`
         ],
         temperature: 0.7,
         max_completion_tokens: 200
-      })
+      }),
+      signal: AbortSignal.timeout(30000)
     })
 
     const questionData = await questionResponse.json()
@@ -109,7 +110,8 @@ Return ONLY a JSON array of hypothesis strings: ["hypothesis 1", "hypothesis 2",
         temperature: 0.7,
         max_completion_tokens: 600,
         response_format: { type: 'json_object' }
-      })
+      }),
+      signal: AbortSignal.timeout(30000)
     })
 
     const hypothesesData = await hypothesesResponse.json()

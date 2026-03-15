@@ -257,7 +257,8 @@ async function extractGitHub(url: string, env: Env): Promise<RepositoryInfo> {
 
     // Fetch repository information
     const repoResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}`, {
-      headers
+      headers,
+      signal: AbortSignal.timeout(15000)
     })
 
     if (!repoResponse.ok) {
@@ -284,7 +285,8 @@ async function extractGitHub(url: string, env: Env): Promise<RepositoryInfo> {
     let readme: { content: string, truncated: boolean } | undefined
     try {
       const readmeResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/readme`, {
-        headers
+        headers,
+        signal: AbortSignal.timeout(15000)
       })
 
       if (readmeResponse.ok) {
@@ -305,7 +307,8 @@ async function extractGitHub(url: string, env: Env): Promise<RepositoryInfo> {
     let languages: Record<string, number> | undefined
     try {
       const langsResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/languages`, {
-        headers
+        headers,
+        signal: AbortSignal.timeout(15000)
       })
 
       if (langsResponse.ok) {
@@ -320,7 +323,8 @@ async function extractGitHub(url: string, env: Env): Promise<RepositoryInfo> {
     let latestCommit: { sha: string, message: string, author: string, date: string, url: string } | undefined
     try {
       const commitsResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/commits?per_page=5`, {
-        headers
+        headers,
+        signal: AbortSignal.timeout(15000)
       })
 
       if (commitsResponse.ok) {
@@ -351,7 +355,8 @@ async function extractGitHub(url: string, env: Env): Promise<RepositoryInfo> {
     let latestRelease: { name: string, tag: string, publishedAt: string, url: string, description?: string } | undefined
     try {
       const releaseResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/releases/latest`, {
-        headers
+        headers,
+        signal: AbortSignal.timeout(15000)
       })
 
       if (releaseResponse.ok) {
@@ -372,7 +377,8 @@ async function extractGitHub(url: string, env: Env): Promise<RepositoryInfo> {
     let contributors: number | undefined
     try {
       const contributorsResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/contributors?per_page=1`, {
-        headers
+        headers,
+        signal: AbortSignal.timeout(15000)
       })
 
       if (contributorsResponse.ok) {
@@ -461,7 +467,8 @@ async function extractGitLab(url: string): Promise<RepositoryInfo> {
     const projectResponse = await fetch(`https://gitlab.com/api/v4/projects/${encodedPath}`, {
       headers: {
         'Accept': 'application/json'
-      }
+      },
+      signal: AbortSignal.timeout(15000)
     })
 
     if (!projectResponse.ok) {
@@ -480,7 +487,7 @@ async function extractGitLab(url: string): Promise<RepositoryInfo> {
     // Fetch README
     let readme: { content: string, truncated: boolean } | undefined
     try {
-      const readmeResponse = await fetch(`https://gitlab.com/api/v4/projects/${encodedPath}/repository/files/README.md/raw?ref=${projectData.default_branch}`)
+      const readmeResponse = await fetch(`https://gitlab.com/api/v4/projects/${encodedPath}/repository/files/README.md/raw?ref=${projectData.default_branch}`, { signal: AbortSignal.timeout(15000) })
 
       if (readmeResponse.ok) {
         const content = await readmeResponse.text()
@@ -497,7 +504,7 @@ async function extractGitLab(url: string): Promise<RepositoryInfo> {
     let recentCommits: Array<{ sha: string, message: string, author: string, date: string }> | undefined
     let latestCommit: { sha: string, message: string, author: string, date: string, url: string } | undefined
     try {
-      const commitsResponse = await fetch(`https://gitlab.com/api/v4/projects/${encodedPath}/repository/commits?per_page=5`)
+      const commitsResponse = await fetch(`https://gitlab.com/api/v4/projects/${encodedPath}/repository/commits?per_page=5`, { signal: AbortSignal.timeout(15000) })
 
       if (commitsResponse.ok) {
         const commitsData = await commitsResponse.json() as any[]
@@ -526,7 +533,7 @@ async function extractGitLab(url: string): Promise<RepositoryInfo> {
     // Fetch latest release/tag
     let latestRelease: { name: string, tag: string, publishedAt: string, url: string } | undefined
     try {
-      const releaseResponse = await fetch(`https://gitlab.com/api/v4/projects/${encodedPath}/releases?per_page=1`)
+      const releaseResponse = await fetch(`https://gitlab.com/api/v4/projects/${encodedPath}/releases?per_page=1`, { signal: AbortSignal.timeout(15000) })
 
       if (releaseResponse.ok) {
         const releases = await releaseResponse.json() as any[]
@@ -606,7 +613,7 @@ async function extractBitbucket(url: string): Promise<RepositoryInfo> {
     logger.info(`Fetching repository: ${workspace}/${repoSlug}`)
 
     // Fetch repository information using Bitbucket API v2.0
-    const repoResponse = await fetch(`https://api.bitbucket.org/2.0/repositories/${workspace}/${repoSlug}`)
+    const repoResponse = await fetch(`https://api.bitbucket.org/2.0/repositories/${workspace}/${repoSlug}`, { signal: AbortSignal.timeout(15000) })
 
     if (!repoResponse.ok) {
       if (repoResponse.status === 404) {
@@ -624,7 +631,7 @@ async function extractBitbucket(url: string): Promise<RepositoryInfo> {
     // Fetch README
     let readme: { content: string, truncated: boolean } | undefined
     try {
-      const readmeResponse = await fetch(`https://api.bitbucket.org/2.0/repositories/${workspace}/${repoSlug}/src/${repoData.mainbranch?.name || 'master'}/README.md`)
+      const readmeResponse = await fetch(`https://api.bitbucket.org/2.0/repositories/${workspace}/${repoSlug}/src/${repoData.mainbranch?.name || 'master'}/README.md`, { signal: AbortSignal.timeout(15000) })
 
       if (readmeResponse.ok) {
         const content = await readmeResponse.text()
@@ -641,7 +648,7 @@ async function extractBitbucket(url: string): Promise<RepositoryInfo> {
     let recentCommits: Array<{ sha: string, message: string, author: string, date: string }> | undefined
     let latestCommit: { sha: string, message: string, author: string, date: string, url: string } | undefined
     try {
-      const commitsResponse = await fetch(`https://api.bitbucket.org/2.0/repositories/${workspace}/${repoSlug}/commits?pagelen=5`)
+      const commitsResponse = await fetch(`https://api.bitbucket.org/2.0/repositories/${workspace}/${repoSlug}/commits?pagelen=5`, { signal: AbortSignal.timeout(15000) })
 
       if (commitsResponse.ok) {
         const commitsData = await commitsResponse.json() as any

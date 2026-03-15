@@ -251,7 +251,8 @@ ${jsonFormat}`
           }
         ],
         max_completion_tokens: maxTokens
-      })
+      }),
+      signal: AbortSignal.timeout(30000)
     })
 
     if (!response.ok) {

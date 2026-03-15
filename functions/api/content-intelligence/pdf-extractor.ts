@@ -79,7 +79,8 @@ async function extractPDFViaExternalService(pdfBuffer: ArrayBuffer): Promise<{
         'Content-Type': 'application/octet-stream',
         'x-api-key': 'YOUR_PDF_CO_API_KEY' // TODO: Get from env
       },
-      body: pdfBuffer
+      body: pdfBuffer,
+      signal: AbortSignal.timeout(30000)
     })
 
     if (!uploadResponse.ok) {
@@ -99,7 +100,8 @@ async function extractPDFViaExternalService(pdfBuffer: ArrayBuffer): Promise<{
       body: JSON.stringify({
         url: fileUrl,
         inline: true
-      })
+      }),
+      signal: AbortSignal.timeout(30000)
     })
 
     if (!extractResponse.ok) {
@@ -274,7 +276,8 @@ Example: ["What is the main argument?", "What evidence supports this?"]`
         { role: 'system', content: 'You are an expert analyst who generates insightful questions about documents.' },
         { role: 'user', content: prompt }
       ]
-    })
+    }),
+    signal: AbortSignal.timeout(30000)
   })
 
   const data = await response.json() as any
@@ -354,7 +357,8 @@ Provide a concise, evidence-based answer (2-3 sentences max).`
         { role: 'system', content: 'You are a precise analyst who answers questions based only on provided evidence.' },
         { role: 'user', content: prompt }
       ]
-    })
+    }),
+    signal: AbortSignal.timeout(30000)
   })
 
   const data = await response.json() as any
@@ -397,7 +401,8 @@ Generate a 250-word summary that:
         },
         { role: 'user', content: prompt }
       ]
-    })
+    }),
+    signal: AbortSignal.timeout(30000)
   })
 
   const data = await response.json() as any
@@ -419,7 +424,8 @@ async function generateStandardSummary(text: string, apiKey: string): Promise<st
         { role: 'system', content: 'You are an expert at creating concise, informative summaries.' },
         { role: 'user', content: `Summarize this text in 250 words:\n\n${text.slice(0, 8000)}` }
       ]
-    })
+    }),
+    signal: AbortSignal.timeout(30000)
   })
 
   const data = await response.json() as any

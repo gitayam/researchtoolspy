@@ -315,7 +315,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (body.checkWayback) {
       try {
         const waybackResponse = await fetch(
-          `https://archive.org/wayback/available?url=${encodeURIComponent(normalizedUrl)}`
+          `https://archive.org/wayback/available?url=${encodeURIComponent(normalizedUrl)}`,
+          { signal: AbortSignal.timeout(15000) }
         )
 
         if (waybackResponse.ok) {
@@ -333,7 +334,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
             // Try to get more snapshot data
             try {
               const cdxResponse = await fetch(
-                `http://web.archive.org/cdx/search/cdx?url=${encodeURIComponent(normalizedUrl)}&output=json&limit=100`
+                `http://web.archive.org/cdx/search/cdx?url=${encodeURIComponent(normalizedUrl)}&output=json&limit=100`,
+                { signal: AbortSignal.timeout(15000) }
               )
               if (cdxResponse.ok) {
                 const cdxData = await cdxResponse.json()
@@ -360,7 +362,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
               const saveResponse = await fetch(saveUrl, {
                 headers: {
                   'User-Agent': 'ResearchToolsPy URL Analyzer/1.0 (Academic Research Tool)'
-                }
+                },
+                signal: AbortSignal.timeout(30000)
               })
 
               // Consume response body to prevent connection leak

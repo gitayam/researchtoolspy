@@ -240,13 +240,13 @@ function parseGeoconfirmedUrl(url: string): { conflict: string; eventId: string 
 // ─── Fetch helpers ───
 
 async function fetchConflicts(): Promise<GCConflict[]> {
-  const res = await fetch(`${GC_API}/Conflict`)
+  const res = await fetch(`${GC_API}/Conflict`, { signal: AbortSignal.timeout(15000) })
   if (!res.ok) throw new Error(`Conflict API returned ${res.status}`)
   return res.json()
 }
 
 async function fetchConflictDetail(shortName: string): Promise<{ factions: GCFaction[] }> {
-  const res = await fetch(`${GC_API}/Conflict/${shortName}`)
+  const res = await fetch(`${GC_API}/Conflict/${shortName}`, { signal: AbortSignal.timeout(15000) })
   if (!res.ok) throw new Error(`Conflict detail API returned ${res.status}`)
   return res.json()
 }
@@ -256,19 +256,19 @@ async function fetchPlacemarks(conflict: string, page: number, pageSize: number,
   // Fall back to unfiltered results if search fails
   if (search) {
     const searchUrl = `${GC_API}/Placemark/${conflict}/${page}/${pageSize}?search=${encodeURIComponent(search)}`
-    const searchRes = await fetch(searchUrl)
+    const searchRes = await fetch(searchUrl, { signal: AbortSignal.timeout(15000) })
     if (searchRes.ok) return searchRes.json()
     // Fall through to unfiltered if search is blocked
   }
   const url = `${GC_API}/Placemark/${conflict}/${page}/${pageSize}`
-  const res = await fetch(url)
+  const res = await fetch(url, { signal: AbortSignal.timeout(15000) })
   if (!res.ok) throw new Error(`Placemark API returned ${res.status}`)
   return res.json()
 }
 
 // ─── KML fetch + parse (async with DecompressionStream) ───
 async function fetchAndParseKML(conflict: string): Promise<KMLPlacemark[]> {
-  const res = await fetch(`${GC_API}/map/ExportAsKml/${conflict}`)
+  const res = await fetch(`${GC_API}/map/ExportAsKml/${conflict}`, { signal: AbortSignal.timeout(30000) })
   if (!res.ok) throw new Error(`KML export returned ${res.status}`)
 
   const arrayBuffer = await res.arrayBuffer()

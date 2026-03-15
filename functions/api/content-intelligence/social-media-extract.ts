@@ -294,7 +294,7 @@ async function extractYouTube(url: string, mode: string): Promise<SocialMediaExt
     // Use YouTube oEmbed API for reliable metadata with retry
     const oembedData = await fetchWithRetry(async () => {
       const oembedUrl = `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`
-      const oembedResponse = await fetch(oembedUrl)
+      const oembedResponse = await fetch(oembedUrl, { signal: AbortSignal.timeout(15000) })
 
       if (!oembedResponse.ok) {
         throw new Error(`YouTube oEmbed API failed with status ${oembedResponse.status}`)
@@ -331,7 +331,8 @@ async function extractYouTube(url: string, mode: string): Promise<SocialMediaExt
               aFormat: 'mp3',
               isAudioOnly: false,
               isTTFullAudio: false
-            })
+            }),
+            signal: AbortSignal.timeout(15000)
           })
 
           if (!cobaltResponse.ok) {
@@ -461,6 +462,7 @@ async function fetchYouTubeTranscript(videoId: string, preferredLang: string = '
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+        signal: AbortSignal.timeout(15000),
         body: JSON.stringify({
           context: {
             client: {
@@ -505,7 +507,7 @@ async function fetchYouTubeTranscript(videoId: string, preferredLang: string = '
 
 
     // Fetch transcript XML
-    const transcriptResponse = await fetch(selectedTrack.baseUrl)
+    const transcriptResponse = await fetch(selectedTrack.baseUrl, { signal: AbortSignal.timeout(15000) })
 
     if (!transcriptResponse.ok) {
       throw new Error(`Failed to fetch transcript: ${transcriptResponse.status}`)
@@ -718,7 +720,8 @@ async function extractInstagramViaCobalt(url: string, shortcode: string, mode: s
         vQuality: '1080',
         aFormat: 'mp3',
         isAudioOnly: false
-      })
+      }),
+      signal: AbortSignal.timeout(15000)
     })
 
     if (!cobaltResponse.ok) {
@@ -807,7 +810,8 @@ async function extractInstagramViaSnapInsta(url: string, shortcode: string): Pro
         'Accept': 'application/json',
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
       },
-      body: `q=${encodeURIComponent(url)}&t=media&lang=en`
+      body: `q=${encodeURIComponent(url)}&t=media&lang=en`,
+      signal: AbortSignal.timeout(15000)
     })
   }, 2, 1000)
 
@@ -865,7 +869,8 @@ async function extractInstagramViaInstaDP(url: string, shortcode: string): Promi
   const response = await fetch(`https://www.instadp.com/api/media?url=${encodeURIComponent(url)}`, {
     headers: {
       'Accept': 'application/json'
-    }
+    },
+    signal: AbortSignal.timeout(15000)
   })
 
   if (!response.ok) {
@@ -916,7 +921,8 @@ async function extractInstagramViaSaveInsta(url: string, shortcode: string): Pro
         'Accept': '*/*',
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
       },
-      body: `q=${encodeURIComponent(url)}&t=media&lang=en`
+      body: `q=${encodeURIComponent(url)}&t=media&lang=en`,
+      signal: AbortSignal.timeout(15000)
     })
   }, 2, 1000)
 
@@ -974,7 +980,8 @@ async function extractInstagramViaOEmbed(url: string, shortcode: string): Promis
   const response = await fetch(oembedUrl, {
     headers: {
       'Accept': 'application/json'
-    }
+    },
+    signal: AbortSignal.timeout(15000)
   })
 
   if (!response.ok) {
@@ -1038,7 +1045,8 @@ async function extractTikTok(url: string, mode: string): Promise<SocialMediaExtr
           vQuality: '720',
           aFormat: 'mp3',
           isAudioOnly: false
-        })
+        }),
+        signal: AbortSignal.timeout(15000)
       })
 
       if (!cobaltResponse.ok) {
@@ -1128,7 +1136,8 @@ async function extractTwitter(url: string, mode: string): Promise<SocialMediaExt
               vQuality: '720',
               aFormat: 'mp3',
               isAudioOnly: false
-            })
+            }),
+            signal: AbortSignal.timeout(15000)
           })
 
           if (!cobaltResponse.ok) {
@@ -1147,7 +1156,7 @@ async function extractTwitter(url: string, mode: string): Promise<SocialMediaExt
     // Strategy 2: Get metadata via Twitter oEmbed API
     const oembedData = await fetchWithRetry(async () => {
       const oembedUrl = `https://publish.twitter.com/oembed?url=${encodeURIComponent(url)}`
-      const response = await fetch(oembedUrl)
+      const response = await fetch(oembedUrl, { signal: AbortSignal.timeout(15000) })
 
       if (!response.ok) {
         throw new Error(`Twitter oEmbed API returned status ${response.status}`)
@@ -1227,7 +1236,7 @@ async function extractTwitter(url: string, mode: string): Promise<SocialMediaExt
 
         const vxData = await fetchWithRetry(async () => {
           const vxUrl = `https://api.vxtwitter.com/${username}/status/${tweetId}`
-          const vxResponse = await fetch(vxUrl)
+          const vxResponse = await fetch(vxUrl, { signal: AbortSignal.timeout(15000) })
 
           if (!vxResponse.ok) {
             throw new Error(`VxTwitter API returned status ${vxResponse.status}`)
@@ -1464,7 +1473,7 @@ async function extractBluesky(url: string, mode: string): Promise<SocialMediaExt
       let did = handle
       if (!handle.startsWith('did:')) {
         const resolveUrl = `https://public.api.bsky.app/xrpc/com.atproto.identity.resolveHandle?handle=${encodeURIComponent(handle)}`
-        const resolveResponse = await fetch(resolveUrl)
+        const resolveResponse = await fetch(resolveUrl, { signal: AbortSignal.timeout(15000) })
         if (!resolveResponse.ok) {
           throw new Error(`Failed to resolve handle: ${resolveResponse.status}`)
         }
@@ -1474,7 +1483,7 @@ async function extractBluesky(url: string, mode: string): Promise<SocialMediaExt
 
       // Now fetch the post
       const postUrl = `https://public.api.bsky.app/xrpc/app.bsky.feed.getPostThread?uri=at://${did}/app.bsky.feed.post/${rkey}&depth=0`
-      const postResponse = await fetch(postUrl)
+      const postResponse = await fetch(postUrl, { signal: AbortSignal.timeout(15000) })
 
       if (!postResponse.ok) {
         throw new Error(`Bluesky API returned status ${postResponse.status}`)
