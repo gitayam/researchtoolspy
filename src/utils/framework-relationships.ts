@@ -281,7 +281,7 @@ export async function bulkCreateRelationships(
         created++
         onProgress?.(i + 1, relationships.length, 'success')
       } else {
-        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }))
+        const errorData = await response.json().catch((e) => { console.error('[framework-relationships] JSON parse error:', e); return { message: 'Unknown error' } })
         failed++
         errors.push({
           relationship: rel,

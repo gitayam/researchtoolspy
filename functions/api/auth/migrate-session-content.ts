@@ -70,7 +70,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
 
     // Get workspace (default to '1' for now)
-    const workspaceId = request.headers.get('X-Workspace-ID') || '1'
+    const workspaceId = request.headers.get('X-Workspace-ID') || null
 
 
     // Begin transaction-like operations

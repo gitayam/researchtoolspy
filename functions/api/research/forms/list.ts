@@ -5,14 +5,24 @@
  * List all submission forms for a workspace
  */
 
+import { getUserFromRequest } from '../../_shared/auth-helpers'
+
 interface Env {
   DB: D1Database
+  SESSIONS?: KVNamespace
 }
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   try {
+    const userId = await getUserFromRequest(context.request, context.env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      })
+    }
+
     const url = new URL(context.request.url)
-    const workspaceId = url.searchParams.get('workspaceId') || '1'
+    const workspaceId = url.searchParams.get('workspaceId') || null
     const activeOnly = url.searchParams.get('activeOnly') === 'true'
 
     let query = `

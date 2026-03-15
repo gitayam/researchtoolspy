@@ -30,7 +30,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
 
     const body = await context.request.json() as ProcessSubmissionRequest
-    const workspaceId = context.request.headers.get('X-Workspace-ID') || '1'
+    const workspaceId = context.request.headers.get('X-Workspace-ID') || null
 
     if (!body.submissionId) {
       return new Response(JSON.stringify({

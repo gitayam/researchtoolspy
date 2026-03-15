@@ -70,7 +70,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     // Create default tasks from template
     const tasks: any[] = []
     const now = new Date().toISOString()
-    const workspaceId = context.request.headers.get('X-Workspace-ID') || '1'
+    const workspaceId = context.request.headers.get('X-Workspace-ID') || null
 
     for (const defaultTask of template.default_tasks) {
       const taskId = crypto.randomUUID()

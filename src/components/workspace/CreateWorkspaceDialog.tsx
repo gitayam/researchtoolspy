@@ -78,7 +78,7 @@ export function CreateWorkspaceDialog({ onWorkspaceCreated }: CreateWorkspaceDia
       })
 
       if (!response.ok) {
-        const error = await response.json().catch(() => ({ error: 'Unknown error' }))
+        const error = await response.json().catch((e) => { console.error('[CreateWorkspaceDialog] JSON parse error:', e); return { error: 'Unknown error' } })
         throw new Error(error.error || 'Failed to create workspace')
       }
 

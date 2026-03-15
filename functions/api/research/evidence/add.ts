@@ -79,7 +79,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     const evidenceId = crypto.randomUUID()
     const now = new Date().toISOString()
-    const workspaceId = body.workspaceId || context.request.headers.get('X-Workspace-ID') || '1'
+    const workspaceId = body.workspaceId || context.request.headers.get('X-Workspace-ID') || null
 
     await context.env.DB.prepare(`
       INSERT INTO research_evidence (

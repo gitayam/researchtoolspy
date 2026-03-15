@@ -232,7 +232,7 @@ export function GenericFrameworkView({
         setLinkedEvidence(prev => [...prev, ...selected])
         logger.info('Evidence linked successfully')
       } else {
-        const error = await response.json().catch(() => ({ error: 'Unknown error' }))
+        const error = await response.json().catch((e) => { console.error('[GenericFrameworkView] JSON parse error:', e); return { error: 'Unknown error' } })
         logger.error('Failed to link evidence:', error)
         alert('Failed to link evidence. Please try again.')
       }
@@ -260,7 +260,7 @@ export function GenericFrameworkView({
         )
         logger.info('Evidence unlinked successfully')
       } else {
-        const error = await response.json().catch(() => ({ error: 'Unknown error' }))
+        const error = await response.json().catch((e) => { console.error('[GenericFrameworkView] JSON parse error:', e); return { error: 'Unknown error' } })
         logger.error('Failed to unlink evidence:', error)
         alert('Failed to unlink evidence. Please try again.')
       }

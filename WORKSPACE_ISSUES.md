@@ -1,6 +1,29 @@
 # Site Issues — Investigation Report
 
-**Last updated:** 2026-03-15 (Sessions 34-83)
+**Last updated:** 2026-03-15 (Sessions 34-84)
+
+## Fixed — v2.16.3 (Session 84)
+
+### HIGH — MUTATION ENDPOINTS WITH WORKSPACE '1' FALLBACK (5 FILES)
+| # | Issue | Status |
+|---|-------|--------|
+| 527 | **research/evidence/add.ts POST** — Workspace defaulted to '1' when X-Workspace-ID missing. Fixed: defaults to null | FIXED |
+| 528 | **research/workflow/init.ts POST** — Same fallback. Fixed: null | FIXED |
+| 529 | **research/submissions/process.ts POST** — Same fallback. Fixed: null | FIXED |
+| 530 | **auth/migrate-session-content.ts POST** — Same fallback. Fixed: null | FIXED |
+| 531 | **frameworks.ts POST** — Framework creation defaulted to workspace '1'. Fixed: null | FIXED |
+
+### MEDIUM — RESEARCH FORMS LIST MISSING AUTH
+| # | Issue | Status |
+|---|-------|--------|
+| 532 | **research/forms/list.ts GET** — No auth check + workspace '1' fallback. Unauthenticated users could list submission form metadata. Fixed: getUserFromRequest + 401 gate + workspace null default | FIXED |
+
+### MEDIUM — FRONTEND SILENT JSON CATCH BLOCKS (11 INSTANCES)
+| # | Issue | Status |
+|---|-------|--------|
+| 533 | **6 frontend files** — 11 `.catch(() => ({}))` on `.json()` calls swallowed parse errors silently. Fixed: added console.error logging. Files: EntityQuickCreate (4), GenericFrameworkView (2), ClaimAnalysisDisplay (2), CreateWorkspaceDialog (1), RelationshipForm (1), framework-relationships (1) | FIXED |
+
+---
 
 ## Fixed — v2.16.2 (Session 83)
 

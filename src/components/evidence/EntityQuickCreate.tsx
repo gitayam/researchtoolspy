@@ -112,7 +112,7 @@ export function EntityQuickCreate({
         onEntityCreated('data', result.evidence)
         handleClose()
       } else {
-        const error = await response.json().catch(() => ({ error: 'Unknown error' }))
+        const error = await response.json().catch((e) => { console.error('[EntityQuickCreate] JSON parse error:', e); return { error: 'Unknown error' } })
         alert('Failed to create data. Please try again.')
       }
     } catch (error) {
@@ -145,7 +145,7 @@ export function EntityQuickCreate({
         onEntityCreated('actor', result.actor)
         handleClose()
       } else {
-        const error = await response.json().catch(() => ({ error: 'Unknown error' }))
+        const error = await response.json().catch((e) => { console.error('[EntityQuickCreate] JSON parse error:', e); return { error: 'Unknown error' } })
         alert('Failed to create actor. Please try again.')
       }
     } catch (error) {
@@ -178,7 +178,7 @@ export function EntityQuickCreate({
         onEntityCreated('source', result.source)
         handleClose()
       } else {
-        const error = await response.json().catch(() => ({ error: 'Unknown error' }))
+        const error = await response.json().catch((e) => { console.error('[EntityQuickCreate] JSON parse error:', e); return { error: 'Unknown error' } })
         alert('Failed to create source. Please try again.')
       }
     } catch (error) {
@@ -211,7 +211,7 @@ export function EntityQuickCreate({
         onEntityCreated('event', result.event)
         handleClose()
       } else {
-        const error = await response.json().catch(() => ({ error: 'Unknown error' }))
+        const error = await response.json().catch((e) => { console.error('[EntityQuickCreate] JSON parse error:', e); return { error: 'Unknown error' } })
         alert('Failed to create event. Please try again.')
       }
     } catch (error) {
