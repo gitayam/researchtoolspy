@@ -1,7 +1,29 @@
 # ResearchTools.net — Issue Tracker
 
 **Last updated:** 2026-03-15
-**Current tag:** v0.18.9-scrape-leak-cors-fix
+**Current tag:** v0.19.0-clean-sweep
+
+---
+
+## v0.19.0 — Clean Sweep Audit
+
+### Full Codebase Anti-Pattern Scan — All Clear
+- [x] `requireAuth(context)` wrong args: **0 remaining** (4 fixed in v0.18.8)
+- [x] `auth.user.id` destructure on plain number: **0 remaining**
+- [x] `error.message` leaked in HTTP responses: **0 remaining** (last one fixed in v0.18.9)
+- [x] `|| '1'` hardcoded user fallbacks: **0 remaining**
+- [x] `url.pathname.match()` dead routing code: **0 remaining**
+- [x] `.toString()` on potentially undefined values: **0 remaining** in backend (frontend uses safe patterns on numbers/Date)
+
+### Smoke Test Results — 36/36 Passing
+- All API endpoints return correct status codes
+- Auth enforcement verified on all mutation endpoints
+- CORS preflight handled globally by `_middleware.ts`
+
+### P3 Finding — 60 Files Missing Inline `onRequestOptions` Handlers
+- Not a functional issue — `_middleware.ts` adds CORS headers to ALL responses including OPTIONS
+- Inline handlers are purely cosmetic/defensive-in-depth
+- Deferred as P3 tech debt
 
 ---
 
@@ -863,6 +885,9 @@
 
 - [x] ~~5 tools endpoints open~~ — fixed in v0.14.7
 - [x] ~~Collection job endpoints open~~ — fixed in v0.14.7
+
+### P3 — 60 Files Missing Inline CORS OPTIONS Handlers
+- [ ] **60 POST/PUT/DELETE endpoint files lack `onRequestOptions` export** — functionally harmless since `_middleware.ts` handles CORS globally. Adding them would be defensive-in-depth only. List available in v0.19.0 scan notes.
 
 ### P3 — AI Config (Intentional)
 
