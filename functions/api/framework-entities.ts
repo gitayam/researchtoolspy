@@ -195,6 +195,16 @@ export async function onRequest(context: any) {
         })
       }
 
+      // Verify framework ownership before unlinking
+      const fw = await env.DB.prepare(
+        'SELECT id FROM framework_sessions WHERE id = ? AND user_id = ?'
+      ).bind(frameworkId, authUserId).first()
+      if (!fw) {
+        return new Response(JSON.stringify({ error: 'Framework not found or access denied' }), {
+          status: 404, headers: corsHeaders,
+        })
+      }
+
       await env.DB.prepare(
         'DELETE FROM framework_entities WHERE framework_id = ? AND entity_type = ? AND entity_id = ?'
       ).bind(frameworkId, entityType, entityId).run()

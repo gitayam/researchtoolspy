@@ -64,7 +64,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     const formData = body.form_data || {}
     for (const field of formSchema) {
-      if (field.required && !formData[field.name]?.toString().trim()) {
+      if (field.required && !String(formData[field.name] ?? '').trim()) {
         return new Response(JSON.stringify({ error: `${field.label} is required` }), {
           status: 400, headers: corsHeaders,
         })

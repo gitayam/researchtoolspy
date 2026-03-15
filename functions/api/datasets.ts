@@ -192,7 +192,7 @@ export async function onRequest(context: any) {
         reliability: body.reliability || 'F'
       }
 
-      await env.DB.prepare(
+      const updateResult = await env.DB.prepare(
         `UPDATE datasets
          SET title = ?, description = ?, content = ?, type = ?, status = ?,
              tags = ?, source = ?, metadata = ?, sats_evaluation = ?,
@@ -200,7 +200,7 @@ export async function onRequest(context: any) {
              updated_by = ?, key_points = ?, contradictions = ?,
              corroborations = ?, implications = ?, version = ?, previous_versions = ?,
              is_public = ?, shared_by_user_id = ?
-         WHERE id = ?`
+         WHERE id = ? AND created_by = ?`
       ).bind(
         body.title,
         body.description || '',
@@ -213,7 +213,7 @@ export async function onRequest(context: any) {
         body.sats_evaluation ? JSON.stringify(body.sats_evaluation) : null,
         JSON.stringify(body.frameworks || []),
         JSON.stringify(body.attachments || []),
-        body.updated_by || userId,
+        authUserId,
         JSON.stringify(body.key_points || []),
         JSON.stringify(body.contradictions || []),
         JSON.stringify(body.corroborations || []),
@@ -222,8 +222,15 @@ export async function onRequest(context: any) {
         JSON.stringify(body.previous_versions || []),
         body.is_public ? 1 : 0,
         body.shared_by_user_id || null,
-        datasetId
+        datasetId,
+        authUserId
       ).run()
+
+      if (!updateResult.meta.changes || updateResult.meta.changes === 0) {
+        return new Response(JSON.stringify({ error: 'Dataset not found or access denied' }), {
+          status: 404, headers: corsHeaders,
+        })
+      }
 
       return new Response(JSON.stringify({ message: 'Dataset updated successfully' }), {
         status: 200,
@@ -239,9 +246,15 @@ export async function onRequest(context: any) {
           status: 401, headers: corsHeaders,
         })
       }
-      await env.DB.prepare(
-        'DELETE FROM datasets WHERE id = ?'
-      ).bind(datasetId).run()
+      const delResult = await env.DB.prepare(
+        'DELETE FROM datasets WHERE id = ? AND created_by = ?'
+      ).bind(datasetId, authUserId).run()
+
+      if (!delResult.meta.changes || delResult.meta.changes === 0) {
+        return new Response(JSON.stringify({ error: 'Dataset not found or access denied' }), {
+          status: 404, headers: corsHeaders,
+        })
+      }
 
       return new Response(JSON.stringify({ message: 'Dataset deleted successfully' }), {
         status: 200,

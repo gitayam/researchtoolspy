@@ -161,6 +161,16 @@ export async function onRequest(context: any) {
         })
       }
 
+      // Verify evidence ownership before removing citation
+      const ev = await env.DB.prepare(
+        'SELECT id FROM evidence_items WHERE id = ? AND created_by = ?'
+      ).bind(evidenceId, authUserId).first()
+      if (!ev) {
+        return new Response(JSON.stringify({ error: 'Evidence not found or access denied' }), {
+          status: 404, headers: corsHeaders,
+        })
+      }
+
       await env.DB.prepare(
         'DELETE FROM evidence_citations WHERE evidence_id = ? AND dataset_id = ?'
       ).bind(evidenceId, datasetId).run()

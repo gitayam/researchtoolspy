@@ -1,6 +1,30 @@
 # Site Issues — Investigation Report
 
-**Last updated:** 2026-03-14 (Sessions 34-71)
+**Last updated:** 2026-03-14 (Sessions 34-72)
+
+## Fixed — v0.18.0 (Session 72)
+
+### SECURITY — MISSING OWNERSHIP ON DELETE (CRITICAL)
+| # | Issue | Status |
+|---|-------|--------|
+| 356 | **datasets.ts DELETE has no ownership check** — Any authenticated user can delete any dataset by ID. `DELETE FROM datasets WHERE id = ?` without `AND created_by = ?`. Fixed: added ownership scope + meta.changes check | FIXED |
+| 357 | **datasets.ts PUT has no ownership check + residual impersonation** — `UPDATE datasets WHERE id = ?` without owner scope. Also `body.updated_by \|\| userId` still used `userId` (guest-compatible) instead of `authUserId`. Fixed: added `AND created_by = ?` + use `authUserId` | FIXED |
+| 358 | **framework-datasets.ts DELETE no framework ownership** — Any authenticated user can unlink datasets from any framework. Fixed: added SELECT guard verifying `framework_sessions.user_id` | FIXED |
+| 359 | **framework-evidence.ts DELETE no framework ownership** — Same pattern as #358. Fixed: added SELECT guard | FIXED |
+| 360 | **framework-entities.ts DELETE no framework ownership** — Same pattern as #358. Fixed: added SELECT guard | FIXED |
+| 361 | **evidence-citations.ts DELETE no evidence ownership** — Any authenticated user can remove citations from any evidence. Fixed: added SELECT guard verifying `evidence_items.created_by` | FIXED |
+
+### SECURITY — XSS VULNERABILITY (HIGH)
+| # | Issue | Status |
+|---|-------|--------|
+| 362 | **WordCloudSection.tsx innerHTML XSS** — `analysis.title` and `analysis.url` from API response injected directly via `innerHTML` without sanitization. Attacker-controlled title/URL could execute arbitrary JS. Fixed: replaced with DOM API `textContent` + `createTextNode` | FIXED |
+
+### CRASH FIX (MEDIUM)
+| # | Issue | Status |
+|---|-------|--------|
+| 363 | **cop/public/intake/[token]/submit.ts `.toString()` on undefined** — `formData[field.name]?.toString().trim()` crashes if field value is undefined (optional chaining returns undefined, then `.trim()` is called on it). Fixed: use `String(formData[field.name] ?? '').trim()` | FIXED |
+
+---
 
 ## Fixed — v0.17.9 (Session 71)
 
@@ -858,6 +882,11 @@
 | # | Issue | Notes |
 |---|-------|-------|
 | 107 | `feedback/submit.ts` POST has no auth | Intentionally public (contact form pattern). Consider rate limiting by IP to prevent spam. R2 screenshot uploads also unprotected. |
+
+### AI/GPT Compatibility (MEDIUM)
+| # | Issue | Notes |
+|---|-------|-------|
+| 43 | 27+ AI endpoints use `temperature` parameter | Deprecated for GPT-5. Currently works with gpt-4o-mini fallback. Files: analyze-url (7), extract-claims, claim-match, rage-check, classify-timeline-entry, extract-timeline, generate-timeline, synthesis, predictions, equilibrium, hamilton-rule, ach (2), dime-analyze, answer-question, summarize-entity, starbursting, pdf-extractor (2), generate-question, recommend-questions, generate-plan |
 
 ### Feature Gaps (LOW)
 | # | Issue | Notes |

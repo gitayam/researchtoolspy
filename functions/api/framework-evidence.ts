@@ -155,6 +155,16 @@ export async function onRequest(context: any) {
         })
       }
 
+      // Verify framework ownership before unlinking
+      const fw = await env.DB.prepare(
+        'SELECT id FROM framework_sessions WHERE id = ? AND user_id = ?'
+      ).bind(frameworkId, authUserId).first()
+      if (!fw) {
+        return new Response(JSON.stringify({ error: 'Framework not found or access denied' }), {
+          status: 404, headers: corsHeaders,
+        })
+      }
+
       const sectionKey = url.searchParams.get('section_key')
 
       let query = 'DELETE FROM framework_evidence WHERE framework_id = ? AND evidence_id = ?'
