@@ -54,6 +54,7 @@ export function EvidencePage() {
           headers: getCopHeaders(),
           body: JSON.stringify(data)
         })
+        if (response.status === 401) throw new Error('Authentication required. Please log in first.')
         if (!response.ok) throw new Error('Failed to update evidence')
       } else {
         const response = await fetch('/api/evidence-items', {
@@ -61,6 +62,7 @@ export function EvidencePage() {
           headers: getCopHeaders(),
           body: JSON.stringify(data)
         })
+        if (response.status === 401) throw new Error('Authentication required. Please log in first.')
         if (!response.ok) throw new Error('Failed to create evidence')
       }
 

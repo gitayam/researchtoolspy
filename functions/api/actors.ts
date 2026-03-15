@@ -177,11 +177,22 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
     // GET /api/actors?workspace_id=xxx - List actors
     if (method === 'GET' && url.pathname === '/api/actors') {
-      const workspaceId = url.searchParams.get('workspace_id')
+      const workspaceId = url.searchParams.get('workspace_id') || request.headers.get('X-Workspace-ID')
       if (!workspaceId) {
+        // No workspace context — return user's actors across all workspaces
+        const { results } = await env.DB.prepare(
+          `SELECT * FROM actors WHERE created_by = ? ORDER BY created_at DESC LIMIT 500`
+        ).bind(userId).all()
+        const actors = results.map(a => ({
+          ...a,
+          aliases: a.aliases ? JSON.parse(a.aliases as string) : [],
+          tags: a.tags ? JSON.parse(a.tags as string) : [],
+          deception_profile: a.deception_profile ? JSON.parse(a.deception_profile as string) : null,
+          is_public: Boolean(a.is_public)
+        }))
         return new Response(
-          JSON.stringify({ error: 'workspace_id parameter required' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          JSON.stringify({ actors }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
 

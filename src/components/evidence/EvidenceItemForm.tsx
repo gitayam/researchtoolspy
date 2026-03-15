@@ -82,7 +82,9 @@ export function EvidenceItemForm({
     const loadActors = async () => {
       setLoadingActors(true)
       try {
-        const response = await fetch('/api/actors', {
+        const workspaceId = localStorage.getItem('omnicore_workspace_id') || localStorage.getItem('current_workspace_id')
+        const wsParam = workspaceId ? `?workspace_id=${workspaceId}` : ''
+        const response = await fetch(`/api/actors${wsParam}`, {
           headers: getCopHeaders(),
           signal: controller.signal,
         })
