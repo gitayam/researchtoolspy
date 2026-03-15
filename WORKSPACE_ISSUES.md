@@ -1,6 +1,45 @@
 # Site Issues — Investigation Report
 
-**Last updated:** 2026-03-15 (Sessions 34-70b)
+**Last updated:** 2026-03-14 (Sessions 34-71)
+
+## Fixed — v0.17.9 (Session 71)
+
+### SECURITY — PRIVILEGE ESCALATION (CRITICAL)
+| # | Issue | Status |
+|---|-------|--------|
+| 337 | **guest-conversions.ts accepts arbitrary `body.user_id`** — Any unauthenticated user can convert a guest session to any user_id in the system. No auth check at all. Fixed: added `getUserFromRequest` + 401, use server-side `authUserId` | FIXED |
+
+### SECURITY — USER IMPERSONATION (HIGH)
+| # | Issue | Status |
+|---|-------|--------|
+| 338 | **cross-table/[id]/scorers.ts accepts `body.user_id` on invite** — Table owner verified, but scorer user_id from client allows pre-linking to arbitrary user before invite acceptance. Fixed: always set `user_id = NULL` on invite (set on accept) | FIXED |
+
+### DATA ISOLATION (MEDIUM)
+| # | Issue | Status |
+|---|-------|--------|
+| 339 | **WorkspaceContext.tsx missing `omnicore_workspace_id` fallback** — Provider initialization used only `current_workspace_id || '1'`, missing the primary `omnicore_workspace_id` key. Fixed: added `omnicore_workspace_id` as first fallback | FIXED |
+
+### MEMORY LEAK — COP COMPONENTS (16 AbortController fixes)
+| # | Issue | Status |
+|---|-------|--------|
+| 340 | **CopHypothesisTab.tsx** — fetch on mount without AbortController. Fixed: signal parameter + cleanup | FIXED |
+| 341 | **CopGapAnalysis.tsx** — Promise.all fetch with `let cancelled` flag instead of AbortController. Fixed: proper signal threading | FIXED |
+| 342 | **CopPersonaPanel.tsx** — fetch on mount without signal. Fixed: AbortController + cleanup | FIXED |
+| 343 | **CopCollaboratorSkills.tsx** — dialog fetch without signal. Fixed: AbortController on open | FIXED |
+| 344 | **CopGlobalAlertPanel.tsx** — initial fetch + 60s polling without signal. Orphaned polling requests accumulate. Fixed: merged into single useEffect with AbortController | FIXED |
+| 345 | **CopEvidenceFeed.tsx** — initial fetch + 30s monitor polling with `let cancelled` flag. Fixed: AbortController on both useEffects | FIXED |
+| 346 | **CopMiniGraph.tsx** — relationship fetch + entity name resolution with `let cancelled`. Fixed: AbortController | FIXED |
+| 347 | **CopQuestionsTab.tsx** — starburst framework fetch without signal. Fixed: signal parameter + cleanup | FIXED |
+| 348 | **EntityRelationships.tsx** — fetch on mount without signal. Fixed: AbortController + cleanup | FIXED |
+| 349 | **EntityEvidenceLinks.tsx** — fetch on mount without signal. Fixed: AbortController + cleanup | FIXED |
+| 350 | **EntitySearch.tsx** — debounced multi-endpoint search without cancellation. Fixed: abort in-flight search on new query | FIXED |
+| 351 | **CopEvidencePersonaLinkDialog.tsx** — fetch on dialog open without signal. Fixed: AbortController on open | FIXED |
+| 352 | **CopExportDialog.tsx** — export history fetch without signal. Fixed: AbortController on open | FIXED |
+| 353 | **CopInviteDialog.tsx** — collaborator fetch without signal + onClick handler type mismatch. Fixed: AbortController + `() => fetchCollaborators()` wrapper | FIXED |
+| 354 | **CopMarkerChangelog.tsx** — changelog fetch without signal. Fixed: AbortController + cleanup | FIXED |
+| 355 | **PublicIntakeForm.tsx** — bare fetch in useEffect without any cleanup. Fixed: AbortController | FIXED |
+
+---
 
 ## Fixed — v0.13.0 (Session 34)
 

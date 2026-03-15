@@ -106,24 +106,26 @@ export default function CopPersonaPanel({ sessionId, expanded, onPromoteToActor 
 
   // ── Fetch personas ──────────────────────────────────────────
 
-  const fetchPersonas = useCallback(async () => {
+  const fetchPersonas = useCallback(async (signal?: AbortSignal) => {
     try {
-      const res = await fetch(`/api/cop/${sessionId}/personas`, { headers: getCopHeaders() })
+      const res = await fetch(`/api/cop/${sessionId}/personas`, { headers: getCopHeaders(), signal })
       if (!res.ok) {
         setPersonas([])
         return
       }
       const data = await res.json()
       setPersonas(data.personas ?? data ?? [])
-    } catch {
-      // Silent failure
+    } catch (e: any) {
+      if (e?.name !== 'AbortError') setPersonas([])
     } finally {
       setLoading(false)
     }
   }, [sessionId])
 
   useEffect(() => {
-    fetchPersonas()
+    const controller = new AbortController()
+    fetchPersonas(controller.signal)
+    return () => controller.abort()
   }, [fetchPersonas])
 
   // Auto-refresh when entities are extracted in Claims panel

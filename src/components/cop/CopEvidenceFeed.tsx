@@ -194,7 +194,7 @@ export default function CopEvidenceFeed({
   // ── Fetch evidence ──────────────────────────────────────────
 
   useEffect(() => {
-    let cancelled = false
+    const controller = new AbortController()
 
     async function fetchEvidence() {
       setLoading(true)
@@ -202,12 +202,12 @@ export default function CopEvidenceFeed({
         const headers = getCopHeaders()
         if (sessionId) headers['X-Workspace-ID'] = sessionId
 
-        const res = await fetch(`/api/cop/${sessionId}/evidence`, { headers })
+        const res = await fetch(`/api/cop/${sessionId}/evidence`, { headers, signal: controller.signal })
         if (!res.ok) throw new Error(`Failed to fetch evidence (${res.status})`)
 
         const data = await res.json()
         const evidenceData = Array.isArray(data) ? data : data.evidence ?? data.items ?? []
-        
+
         // Fetch tags for these items
         const tagsMap = await fetchTagsForItems(evidenceData.map((e: any) => e.id).filter(Boolean))
 
@@ -227,22 +227,20 @@ export default function CopEvidenceFeed({
           })
         )
 
-        if (!cancelled) {
-          list.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-          setItems(prev => {
-            const pending = prev.filter(i => i.status === 'pending')
-            return [...pending, ...list.filter(ni => !pending.some(pi => pi.url === ni.url))]
-          })
-        }
-      } catch (err) {
-        console.error('[CopEvidenceFeed] fetch error:', err)
+        list.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        setItems(prev => {
+          const pending = prev.filter(i => i.status === 'pending')
+          return [...pending, ...list.filter(ni => !pending.some(pi => pi.url === ni.url))]
+        })
+      } catch (e: any) {
+        if (e?.name !== 'AbortError') console.error('[CopEvidenceFeed] fetch error:', e)
       } finally {
-        if (!cancelled) setLoading(false)
+        if (!controller.signal.aborted) setLoading(false)
       }
     }
 
     fetchEvidence()
-    return () => { cancelled = true }
+    return () => controller.abort()
   }, [sessionId, fetchTagsForItems])
 
   // Polling in monitor mode
@@ -255,16 +253,17 @@ export default function CopEvidenceFeed({
       return
     }
 
+    const controller = new AbortController()
     pollingRef.current = setInterval(async () => {
       try {
         const headers = getCopHeaders()
         if (sessionId) headers['X-Workspace-ID'] = sessionId
 
-        const res = await fetch(`/api/cop/${sessionId}/evidence`, { headers })
+        const res = await fetch(`/api/cop/${sessionId}/evidence`, { headers, signal: controller.signal })
         if (!res.ok) return
         const data = await res.json()
         const evidenceData = data.evidence ?? data.items ?? []
-        
+
         // Fetch tags for new items
         const tagsMap = await fetchTagsForItems(evidenceData.map((e: any) => e.id).filter(Boolean))
 
@@ -295,18 +294,19 @@ export default function CopEvidenceFeed({
           const filteredNew = newItems.filter(ni => !pending.some(pi => pi.url === ni.url))
           return [...pending, ...filteredNew]
         })
-      } catch {
-        // Silent failure on polling
+      } catch (e: any) {
+        if (e?.name === 'AbortError') return
       }
     }, 30000)
 
     return () => {
+      controller.abort()
       if (pollingRef.current) {
         clearInterval(pollingRef.current)
         pollingRef.current = null
       }
     }
-  }, [monitorMode, sessionId])
+  }, [monitorMode, sessionId, fetchTagsForItems])
 
   // Auto-dismiss handle detections after 8s
   useEffect(() => {

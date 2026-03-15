@@ -23,13 +23,15 @@ export default function PublicIntakeForm({ token }: PublicIntakeFormProps) {
   const [submitted, setSubmitted] = useState(false)
 
   useEffect(() => {
-    fetch(`/api/cop/public/intake/${token}`)
+    const controller = new AbortController()
+    fetch(`/api/cop/public/intake/${token}`, { signal: controller.signal })
       .then(res => {
         if (!res.ok) throw new Error(res.status === 403 ? 'Form closed' : 'Form not found')
         return res.json()
       })
       .then(data => { setFormMeta(data); setLoading(false) })
-      .catch(err => { setError(err.message); setLoading(false) })
+      .catch(err => { if (err?.name !== 'AbortError') { setError(err.message); setLoading(false) } })
+    return () => controller.abort()
   }, [token])
 
   const requestLocation = useCallback(() => {

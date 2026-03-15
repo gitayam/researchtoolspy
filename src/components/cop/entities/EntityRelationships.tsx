@@ -79,7 +79,7 @@ export default function EntityRelationships({
   const [selectedType, setSelectedType] = useState<RelationshipType>('ALLIED_WITH')
   const [selectedConfidence, setSelectedConfidence] = useState<RelationshipConfidence>('PROBABLE')
 
-  const fetchRelationships = useCallback(async () => {
+  const fetchRelationships = useCallback(async (signal?: AbortSignal) => {
     setLoading(true)
     setError(null)
     try {
@@ -89,14 +89,16 @@ export default function EntityRelationships({
       })
       const response = await fetch(`/api/relationships?${params}`, {
         headers: getCopHeaders(),
+        signal,
       })
       if (!response.ok) throw new Error('Failed to load relationships')
 
       const data = await response.json()
       const rels: Relationship[] = data.relationships || data || []
       setRelationships(rels)
-    } catch (err) {
-      console.error('Failed to fetch relationships:', err)
+    } catch (e: any) {
+      if (e?.name === 'AbortError') return
+      console.error('Failed to fetch relationships:', e)
       setError('Could not load relationships')
     } finally {
       setLoading(false)
@@ -104,7 +106,9 @@ export default function EntityRelationships({
   }, [entityId, sessionId, workspaceId])
 
   useEffect(() => {
-    fetchRelationships()
+    const controller = new AbortController()
+    fetchRelationships(controller.signal)
+    return () => controller.abort()
   }, [fetchRelationships])
 
   const handleSubmit = async () => {

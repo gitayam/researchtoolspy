@@ -1,4 +1,6 @@
 // Cloudflare Pages Function for Guest Conversion API
+import { getUserFromRequest } from './_shared/auth-helpers'
+
 export async function onRequest(context: any) {
   const { request, env } = context
 
@@ -18,18 +20,25 @@ export async function onRequest(context: any) {
   try {
     // POST - Convert guest session to authenticated user
     if (request.method === 'POST') {
+      const authUserId = await getUserFromRequest(request, env)
+      if (!authUserId) {
+        return new Response(JSON.stringify({ error: 'Authentication required' }), {
+          status: 401, headers: corsHeaders,
+        })
+      }
+
       const body = await request.json()
 
-      if (!body.guest_session_id || !body.user_id) {
+      if (!body.guest_session_id) {
         return new Response(JSON.stringify({
-          error: 'guest_session_id and user_id are required'
+          error: 'guest_session_id is required'
         }), {
           status: 400,
           headers: corsHeaders,
         })
       }
 
-      // Record the conversion
+      // Record the conversion — use server-side auth user ID, never client-supplied
       const result = await env.DB.prepare(`
         INSERT INTO guest_conversions (
           guest_session_id,
@@ -39,7 +48,7 @@ export async function onRequest(context: any) {
         ) VALUES (?, ?, ?, datetime('now'))
       `).bind(
         body.guest_session_id,
-        body.user_id,
+        authUserId,
         body.framework_count || 0
       ).run()
 

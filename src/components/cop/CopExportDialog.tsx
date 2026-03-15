@@ -61,26 +61,28 @@ export default function CopExportDialog({
 
   // ── Fetch past exports ────────────────────────────────────
 
-  const fetchPastExports = useCallback(async () => {
+  const fetchPastExports = useCallback(async (signal?: AbortSignal) => {
     setLoadingHistory(true)
     try {
       const res = await fetch(`/api/cop/${sessionId}/exports?limit=10`, {
         headers: getCopHeaders(),
+        signal,
       })
       if (!res.ok) throw new Error('Failed to fetch export history')
       const data = await res.json()
       setPastExports(data.exports ?? [])
-    } catch {
-      // Silent fail for history
+    } catch (e: any) {
+      if (e?.name === 'AbortError') return
     } finally {
       setLoadingHistory(false)
     }
   }, [sessionId])
 
   useEffect(() => {
-    if (open) {
-      fetchPastExports()
-    }
+    if (!open) return
+    const controller = new AbortController()
+    fetchPastExports(controller.signal)
+    return () => controller.abort()
   }, [open, fetchPastExports])
 
   // ── Trigger export ────────────────────────────────────────

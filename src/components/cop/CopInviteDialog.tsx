@@ -66,17 +66,19 @@ export default function CopInviteDialog({
 
   // ── Fetch collaborators ────────────────────────────────────
 
-  const fetchCollaborators = useCallback(async () => {
+  const fetchCollaborators = useCallback(async (signal?: AbortSignal) => {
     setLoading(true)
     setFetchError(false)
     try {
       const res = await fetch(`/api/cop/${sessionId}/collaborators`, {
         headers: getCopHeaders(),
+        signal,
       })
       if (!res.ok) throw new Error('Failed to fetch collaborators')
       const data = await res.json()
       setCollaborators(data.collaborators ?? [])
-    } catch {
+    } catch (e: any) {
+      if (e?.name === 'AbortError') return
       setFetchError(true)
     } finally {
       setLoading(false)
@@ -85,12 +87,13 @@ export default function CopInviteDialog({
 
   // Fetch when dialog opens
   useEffect(() => {
-    if (open) {
-      fetchCollaborators()
-      setShareLink('')
-      setLinkCopied(false)
-      setInviteError('')
-    }
+    if (!open) return
+    const controller = new AbortController()
+    fetchCollaborators(controller.signal)
+    setShareLink('')
+    setLinkCopied(false)
+    setInviteError('')
+    return () => controller.abort()
   }, [open, fetchCollaborators])
 
   // ── Invite by email ────────────────────────────────────────
@@ -304,7 +307,7 @@ export default function CopInviteDialog({
                 <p className="text-xs text-gray-500 mb-1">Failed to load collaborators.</p>
                 <button
                   type="button"
-                  onClick={fetchCollaborators}
+                  onClick={() => fetchCollaborators()}
                   className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
                 >
                   Retry

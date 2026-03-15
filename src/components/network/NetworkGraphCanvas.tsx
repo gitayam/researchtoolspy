@@ -1,5 +1,7 @@
 import { useRef, useCallback, useMemo } from 'react'
 import ForceGraph2D from 'react-force-graph-2d'
+import { ZoomIn, ZoomOut, RotateCcw } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import type { EntityType, Relationship } from '@/types/entities'
 
 interface NetworkNode {
@@ -26,6 +28,9 @@ interface NetworkGraphCanvasProps {
   height?: number
   highlightedPath?: string[] // Array of node IDs in the path
   highlightedNodes?: Set<string> // Set of node IDs to highlight (from framework)
+  showLegend?: boolean // Hide legend in mini view
+  darkMode?: boolean // Adapt colors for dark backgrounds
+  compact?: boolean // Faster stabilization + zoom controls for mini view
 }
 
 const ENTITY_TYPE_COLORS: Record<EntityType, string> = {
@@ -54,7 +59,10 @@ export function NetworkGraphCanvas({
   width = 800,
   height = 600,
   highlightedPath = [],
-  highlightedNodes = new Set()
+  highlightedNodes = new Set(),
+  showLegend = true,
+  darkMode = false,
+  compact = false,
 }: NetworkGraphCanvasProps) {
   const graphRef = useRef<any>(null)
 
@@ -73,9 +81,13 @@ export function NetworkGraphCanvas({
         ...link,
         source: link.source,
         target: link.target,
-        color: link.confidence === 'CONFIRMED' ? '#000000' :
-               link.confidence === 'PROBABLE' ? '#666666' :
-               link.confidence === 'POSSIBLE' ? '#999999' : '#cccccc',
+        color: darkMode
+          ? (link.confidence === 'CONFIRMED' ? '#e2e8f0' :
+             link.confidence === 'PROBABLE' ? '#94a3b8' :
+             link.confidence === 'POSSIBLE' ? '#64748b' : '#475569')
+          : (link.confidence === 'CONFIRMED' ? '#000000' :
+             link.confidence === 'PROBABLE' ? '#666666' :
+             link.confidence === 'POSSIBLE' ? '#999999' : '#cccccc'),
         width: link.weight * 3, // Scale by weight
         type: link.relationshipType
       }))
@@ -94,11 +106,31 @@ export function NetworkGraphCanvas({
     }
   }, [onBackgroundClick])
 
+  const handleZoomIn = useCallback(() => {
+    const g = graphRef.current
+    if (g) {
+      const currentZoom = g.zoom()
+      g.zoom(currentZoom * 1.5, 300)
+    }
+  }, [])
+
+  const handleZoomOut = useCallback(() => {
+    const g = graphRef.current
+    if (g) {
+      const currentZoom = g.zoom()
+      g.zoom(currentZoom / 1.5, 300)
+    }
+  }, [])
+
+  const handleZoomReset = useCallback(() => {
+    graphRef.current?.zoomToFit(400, 20)
+  }, [])
+
   // Custom node canvas rendering
   const paintNode = useCallback((node: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
     const label = node.name
     const fontSize = 12 / globalScale
-    const nodeRadius = Math.sqrt(node.val || 1) * 4
+    const nodeRadius = Math.sqrt(node.val || 1) * 5
     const isInPath = highlightedPath.includes(node.id)
     const isInHighlightSet = highlightedNodes.has(node.id)
     const isHighlighted = isInPath || isInHighlightSet
@@ -109,8 +141,8 @@ export function NetworkGraphCanvas({
     ctx.fillStyle = node.color || '#999999'
     ctx.fill()
 
-    // Draw border (golden if highlighted, white otherwise)
-    ctx.strokeStyle = isHighlighted ? '#fbbf24' : '#ffffff' // golden-400
+    // Draw border (golden if highlighted, subtle otherwise)
+    ctx.strokeStyle = isHighlighted ? '#fbbf24' : (darkMode ? 'rgba(255,255,255,0.3)' : '#ffffff')
     ctx.lineWidth = isHighlighted ? 3 / globalScale : 1.5 / globalScale
     ctx.stroke()
 
@@ -118,20 +150,39 @@ export function NetworkGraphCanvas({
     if (isHighlighted) {
       ctx.beginPath()
       ctx.arc(node.x, node.y, nodeRadius + 2 / globalScale, 0, 2 * Math.PI)
-      ctx.strokeStyle = 'rgba(251, 191, 36, 0.3)' // golden with opacity
+      ctx.strokeStyle = 'rgba(251, 191, 36, 0.3)'
       ctx.lineWidth = 4 / globalScale
       ctx.stroke()
     }
 
-    // Draw label (always show for highlighted nodes)
-    if (isHighlighted || globalScale > 1.5) {
-      ctx.font = `${fontSize}px Sans-Serif`
-      ctx.textAlign = 'center'
-      ctx.textBaseline = 'middle'
-      ctx.fillStyle = isHighlighted ? '#92400e' : '#333333' // darker text for highlighted
-      ctx.fillText(label, node.x, node.y + nodeRadius + fontSize)
-    }
-  }, [highlightedPath, highlightedNodes])
+    // Always show truncated labels — with background pill for readability
+    const truncatedLabel = label.length > 12 ? label.substring(0, 11) + '…' : label
+    ctx.font = `${fontSize}px Sans-Serif`
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+
+    const textY = node.y + nodeRadius + fontSize
+    const textWidth = ctx.measureText(truncatedLabel).width
+    const padding = 2 / globalScale
+
+    // Background pill behind label
+    ctx.fillStyle = darkMode ? 'rgba(15, 23, 42, 0.75)' : 'rgba(255, 255, 255, 0.85)'
+    ctx.beginPath()
+    ctx.roundRect(
+      node.x - textWidth / 2 - padding,
+      textY - fontSize / 2 - padding,
+      textWidth + padding * 2,
+      fontSize + padding * 2,
+      3 / globalScale
+    )
+    ctx.fill()
+
+    // Label text
+    ctx.fillStyle = isHighlighted
+      ? '#fbbf24'
+      : (darkMode ? '#e2e8f0' : '#333333')
+    ctx.fillText(truncatedLabel, node.x, textY)
+  }, [highlightedPath, highlightedNodes, darkMode])
 
   // Custom link canvas rendering
   const paintLink = useCallback((link: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
@@ -150,7 +201,7 @@ export function NetworkGraphCanvas({
 
     const lineWidth = isHighlighted ? 4 / globalScale : (link.width || 1) / globalScale
 
-    ctx.strokeStyle = isHighlighted ? '#fbbf24' : (link.color || '#cccccc') // golden if highlighted
+    ctx.strokeStyle = isHighlighted ? '#fbbf24' : (link.color || (darkMode ? '#475569' : '#cccccc'))
     ctx.lineWidth = lineWidth
 
     // Draw dashed line for lower confidence (unless highlighted)
@@ -184,12 +235,12 @@ export function NetworkGraphCanvas({
     ctx.lineTo(-arrowLength, arrowWidth / 2)
     ctx.closePath()
 
-    ctx.fillStyle = isHighlighted ? '#fbbf24' : (link.color || '#cccccc')
+    ctx.fillStyle = isHighlighted ? '#fbbf24' : (link.color || (darkMode ? '#475569' : '#cccccc'))
     ctx.fill()
     ctx.restore()
 
     ctx.setLineDash([])
-  }, [highlightedPath])
+  }, [highlightedPath, darkMode])
 
   return (
     <div className="relative" style={{ width, height }}>
@@ -198,51 +249,92 @@ export function NetworkGraphCanvas({
         graphData={graphData}
         width={width}
         height={height}
-        backgroundColor="#f9fafb"
+        backgroundColor="rgba(0,0,0,0)"
         nodeCanvasObject={paintNode}
         linkCanvasObject={paintLink}
         nodeCanvasObjectMode={() => 'replace'}
         linkCanvasObjectMode={() => 'replace'}
+        nodeLabel={(node: any) => `${node.name} (${node.entityType.toLowerCase()})`}
+        linkLabel={(link: any) => `${link.type?.replace(/_/g, ' ')?.toLowerCase() ?? 'related'}`}
         onNodeClick={handleNodeClick}
         onBackgroundClick={handleBackgroundClick}
         enableNodeDrag={true}
         enableZoomInteraction={true}
         enablePanInteraction={true}
-        cooldownTicks={100}
-        d3AlphaDecay={0.02}
-        d3VelocityDecay={0.3}
+        cooldownTicks={compact ? 50 : 100}
+        d3AlphaDecay={compact ? 0.05 : 0.02}
+        d3VelocityDecay={compact ? 0.4 : 0.3}
       />
 
-      {/* Legend */}
-      <div className="absolute top-4 right-4 bg-white p-4 rounded-lg shadow-lg border border-gray-200">
-        <h3 className="text-sm font-semibold mb-2">Entity Types</h3>
-        <div className="space-y-1">
+      {/* Legend — hidden in mini view */}
+      {showLegend && (
+        <div className={cn(
+          "absolute top-4 right-4 p-4 rounded-lg shadow-lg border",
+          darkMode
+            ? "bg-slate-900/90 border-slate-700 text-slate-200"
+            : "bg-white border-gray-200 text-gray-900"
+        )}>
+          <h3 className="text-sm font-semibold mb-2">Entity Types</h3>
+          <div className="space-y-1">
+            {Object.entries(ENTITY_TYPE_COLORS).map(([type, color]) => (
+              <div key={type} className="flex items-center gap-2 text-xs">
+                <div
+                  className="w-3 h-3 rounded-full"
+                  style={{ backgroundColor: color }}
+                />
+                <span className="capitalize">{type.toLowerCase()}</span>
+              </div>
+            ))}
+          </div>
+          <h3 className="text-sm font-semibold mt-3 mb-2">Confidence</h3>
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 text-xs">
+              <div className={cn("w-6 h-0.5", darkMode ? "bg-slate-200" : "bg-black")} />
+              <span>Confirmed</span>
+            </div>
+            <div className="flex items-center gap-2 text-xs">
+              <div className={cn("w-6 h-0.5", darkMode ? "bg-slate-400" : "bg-gray-600")} />
+              <span>Probable</span>
+            </div>
+            <div className="flex items-center gap-2 text-xs">
+              <div className={cn("w-6 h-0.5", darkMode ? "bg-slate-500" : "bg-gray-400")} style={{ borderBottom: `2px dashed ${darkMode ? '#64748b' : '#9ca3af'}` }} />
+              <span>Possible</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Inline mini legend when full legend is hidden */}
+      {!showLegend && (
+        <div className="absolute bottom-1 left-2 flex items-center gap-2 opacity-60">
           {Object.entries(ENTITY_TYPE_COLORS).map(([type, color]) => (
-            <div key={type} className="flex items-center gap-2 text-xs">
-              <div
-                className="w-3 h-3 rounded-full"
-                style={{ backgroundColor: color }}
-              />
-              <span>{ENTITY_TYPE_ICONS[type as EntityType]} {type}</span>
+            <div key={type} className="flex items-center gap-1" title={type.toLowerCase()}>
+              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
+              <span className="text-[9px] text-slate-400 capitalize">{type.substring(0, 3).toLowerCase()}</span>
             </div>
           ))}
         </div>
-        <h3 className="text-sm font-semibold mt-3 mb-2">Confidence</h3>
-        <div className="space-y-1">
-          <div className="flex items-center gap-2 text-xs">
-            <div className="w-6 h-0.5 bg-black" />
-            <span>Confirmed</span>
-          </div>
-          <div className="flex items-center gap-2 text-xs">
-            <div className="w-6 h-0.5 bg-gray-600" />
-            <span>Probable</span>
-          </div>
-          <div className="flex items-center gap-2 text-xs">
-            <div className="w-6 h-0.5 bg-gray-400" style={{ borderBottom: '2px dashed #9ca3af' }} />
-            <span>Possible</span>
-          </div>
+      )}
+
+      {/* Zoom controls */}
+      {compact && (
+        <div className="absolute bottom-1 right-1 flex items-center gap-0.5">
+          {[
+            { icon: ZoomIn, handler: handleZoomIn, label: 'Zoom in' },
+            { icon: ZoomOut, handler: handleZoomOut, label: 'Zoom out' },
+            { icon: RotateCcw, handler: handleZoomReset, label: 'Fit to view' },
+          ].map(({ icon: Icon, handler, label }) => (
+            <button
+              key={label}
+              onClick={handler}
+              className="p-1 rounded bg-slate-800/60 hover:bg-slate-700/80 text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
+              title={label}
+            >
+              <Icon className="h-3 w-3" />
+            </button>
+          ))}
         </div>
-      </div>
+      )}
     </div>
   )
 }

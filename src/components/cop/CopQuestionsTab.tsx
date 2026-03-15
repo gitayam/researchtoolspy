@@ -196,11 +196,12 @@ export default function CopQuestionsTab({ session }: CopQuestionsTabProps) {
     typeof id === 'string' || typeof id === 'number'
   ) ?? null
 
-  const fetchStarburst = useCallback(async (id: string | number) => {
+  const fetchStarburst = useCallback(async (id: string | number, signal?: AbortSignal) => {
     setLoading(true)
     try {
       const res = await fetch(`/api/frameworks/${id}`, {
         headers: getCopHeaders(),
+        signal,
       })
       if (!res.ok) return
       const data = await res.json()
@@ -238,8 +239,8 @@ export default function CopQuestionsTab({ session }: CopQuestionsTabProps) {
         id: String(data.id ?? id),
         questions,
       })
-    } catch {
-      // ignore — will fall through to key_questions view
+    } catch (e: any) {
+      if (e?.name === 'AbortError') return
     } finally {
       setLoading(false)
     }
@@ -247,7 +248,9 @@ export default function CopQuestionsTab({ session }: CopQuestionsTabProps) {
 
   useEffect(() => {
     if (!starburstId) return
-    fetchStarburst(starburstId)
+    const controller = new AbortController()
+    fetchStarburst(starburstId, controller.signal)
+    return () => controller.abort()
   }, [starburstId, fetchStarburst])
 
   const toggleCategory = (key: string) => {

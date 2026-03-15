@@ -101,17 +101,15 @@ export default function CopGapAnalysis({ sessionId }: CopGapAnalysisProps) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    let cancelled = false
+    const controller = new AbortController()
 
     async function fetchAndAnalyze() {
       setLoading(true)
       try {
         const [statsRes, rfisRes] = await Promise.all([
-          fetch(`/api/cop/${sessionId}/stats`, { headers: getCopHeaders() }),
-          fetch(`/api/cop/${sessionId}/rfis`, { headers: getCopHeaders() }),
+          fetch(`/api/cop/${sessionId}/stats`, { headers: getCopHeaders(), signal: controller.signal }),
+          fetch(`/api/cop/${sessionId}/rfis`, { headers: getCopHeaders(), signal: controller.signal }),
         ])
-
-        if (cancelled) return
 
         const statsData = statsRes.ok ? await statsRes.json() : { stats: {} }
         const rfisData = rfisRes.ok ? await rfisRes.json() : { rfis: [] }
@@ -119,19 +117,16 @@ export default function CopGapAnalysis({ sessionId }: CopGapAnalysisProps) {
         const stats = statsData.stats ?? statsData ?? {}
         const rfis: any[] = rfisData.rfis ?? rfisData ?? []
 
-        if (!cancelled) {
-          setGaps(analyzeGaps(stats, rfis))
-        }
-      } catch {
-        // Silently handle fetch errors — panel shows empty state
-        if (!cancelled) setGaps([])
+        setGaps(analyzeGaps(stats, rfis))
+      } catch (e: any) {
+        if (e?.name !== 'AbortError') setGaps([])
       } finally {
-        if (!cancelled) setLoading(false)
+        if (!controller.signal.aborted) setLoading(false)
       }
     }
 
     fetchAndAnalyze()
-    return () => { cancelled = true }
+    return () => controller.abort()
   }, [sessionId])
 
   return (

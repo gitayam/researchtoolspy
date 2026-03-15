@@ -133,10 +133,10 @@ export default function CopGlobalAlertPanel({ sessionId, expanded, onScrollToPan
 
   // ── Fetch alerts ─────────────────────────────────────────────
 
-  const fetchAlerts = useCallback(async (showLoader = false) => {
+  const fetchAlerts = useCallback(async (showLoader = false, signal?: AbortSignal) => {
     if (showLoader) setLoading(true)
     try {
-      const res = await fetch(`/api/cop/${sessionId}/alerts`, { headers: getCopHeaders() })
+      const res = await fetch(`/api/cop/${sessionId}/alerts`, { headers: getCopHeaders(), signal })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const data = await res.json()
       setAlerts(data.alerts ?? [])
@@ -146,31 +146,29 @@ export default function CopGlobalAlertPanel({ sessionId, expanded, onScrollToPan
         setRegionDraft(data.region)
       }
       setError(null)
-    } catch {
+    } catch (e: any) {
+      if (e?.name === 'AbortError') return
       if (showLoader) setError('Failed to load alerts')
     } finally {
-      setLoading(false)
+      if (!signal?.aborted) setLoading(false)
     }
   }, [sessionId])
 
-  // Initial load
+  // Initial load + auto-refresh every 60s when expanded and enabled
   useEffect(() => {
-    fetchAlerts(true)
-  }, [fetchAlerts])
+    const controller = new AbortController()
+    fetchAlerts(true, controller.signal)
 
-  // Auto-refresh every 60s when expanded and enabled
-  useEffect(() => {
-    if (!expanded || !enabled) {
+    if (expanded && enabled) {
+      intervalRef.current = setInterval(() => fetchAlerts(false, controller.signal), AUTO_REFRESH_MS)
+    }
+
+    return () => {
+      controller.abort()
       if (intervalRef.current) {
         clearInterval(intervalRef.current)
         intervalRef.current = null
       }
-      return
-    }
-
-    intervalRef.current = setInterval(() => fetchAlerts(false), AUTO_REFRESH_MS)
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current)
     }
   }, [expanded, enabled, fetchAlerts])
 

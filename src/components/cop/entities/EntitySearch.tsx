@@ -100,6 +100,7 @@ export function EntitySearch({
   const [showDropdown, setShowDropdown] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const abortRef = useRef<AbortController | null>(null)
 
   const typesToSearch = filterTypes
     ? Object.keys(ENTITY_TYPE_CONFIG).filter((t) => filterTypes.includes(t))
@@ -113,6 +114,11 @@ export function EntitySearch({
         return
       }
 
+      // Cancel any in-flight search
+      abortRef.current?.abort()
+      const controller = new AbortController()
+      abortRef.current = controller
+
       setLoading(true)
       const headers = getCopHeaders()
 
@@ -125,7 +131,7 @@ export function EntitySearch({
             limit: '5',
           })
 
-          const response = await fetch(`${config.endpoint}?${params}`, { headers })
+          const response = await fetch(`${config.endpoint}?${params}`, { headers, signal: controller.signal })
           if (!response.ok) return { typeKey, items: [] }
 
           const data = await response.json()
@@ -154,11 +160,12 @@ export function EntitySearch({
         }
 
         setResults(grouped)
-      } catch (error) {
-        console.error('Entity search failed:', error)
+      } catch (e: any) {
+        if (e?.name === 'AbortError') return
+        console.error('Entity search failed:', e)
         setResults({})
       } finally {
-        setLoading(false)
+        if (!controller.signal.aborted) setLoading(false)
       }
     },
     [sessionId, excludeId, typesToSearch.join(',')]

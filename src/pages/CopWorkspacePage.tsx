@@ -201,8 +201,9 @@ export default function CopWorkspacePage() {
   const [mode, setMode] = useState<CopWorkspaceMode>('progress')
   const [showMap, setShowMap] = useState(true)
 
-  // ── RFI badge count ────────────────────────────────────────────
+  // ── Badge counts ───────────────────────────────────────────────
   const [rfiCount, setRfiCount] = useState(0)
+  const [relationshipCount, setRelationshipCount] = useState(0)
 
   // ── Workspace stats (shared by sidebar + entities panel) ─────
   const [workspaceStats, setWorkspaceStats] = useState<{
@@ -754,6 +755,8 @@ export default function CopWorkspacePage() {
                 stats={workspaceStats}
                 rfiCount={rfiCount}
                 setRfiCount={setRfiCount}
+                relationshipCount={relationshipCount}
+                setRelationshipCount={setRelationshipCount}
                 activeLayers={activeLayers}
                 onToggleLayer={handleToggleLayer}
                 layerData={layerData}
@@ -882,6 +885,8 @@ interface ProgressLayoutProps {
   stats?: Record<string, number | undefined>
   rfiCount: number
   setRfiCount: (v: number) => void
+  relationshipCount: number
+  setRelationshipCount: (v: number) => void
   activeLayers: string[]
   onToggleLayer: (id: string) => void
   layerData: Record<string, CopFeatureCollection>
@@ -915,6 +920,8 @@ function ProgressLayout({
   stats,
   rfiCount,
   setRfiCount,
+  relationshipCount,
+  setRelationshipCount,
   activeLayers,
   onToggleLayer,
   layerData,
@@ -949,8 +956,21 @@ function ProgressLayout({
       title: 'Entity Relationships',
       icon: <Network className="h-4 w-4 text-purple-400" />,
       height: 'standard',
+      badge: relationshipCount > 0 ? relationshipCount : undefined,
       render: (expanded) => (
-        <CopMiniGraph sessionId={sessionId} workspaceId={session.workspace_id} expanded={expanded} />
+        <CopMiniGraph
+          sessionId={sessionId}
+          workspaceId={session.workspace_id}
+          expanded={expanded}
+          onRelationshipCount={setRelationshipCount}
+          onNodeClick={(_entityId, entityType) => {
+            const tabMap: Record<string, string> = {
+              ACTOR: 'actors', SOURCE: 'sources', EVENT: 'events',
+              PLACE: 'places', BEHAVIOR: 'behaviors', EVIDENCE: 'evidence',
+            }
+            onOpenEntityDrawer?.(tabMap[entityType] || 'actors')
+          }}
+        />
       ),
     },
     timeline: {

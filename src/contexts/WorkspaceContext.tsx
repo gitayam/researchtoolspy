@@ -23,8 +23,7 @@ const WorkspaceContext = createContext<WorkspaceContextValue | undefined>(undefi
 
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [currentWorkspaceId, setCurrentWorkspaceIdState] = useState<string>(() => {
-    // Load from localStorage or default to '1'
-    return localStorage.getItem('current_workspace_id') || '1'
+    return localStorage.getItem('omnicore_workspace_id') || localStorage.getItem('current_workspace_id') || '1'
   })
   const [workspaces, setWorkspaces] = useState<Workspace[]>([])
   const [isLoading, setIsLoading] = useState(true)

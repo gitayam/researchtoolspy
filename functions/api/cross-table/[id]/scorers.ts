@@ -71,14 +71,15 @@ async function handleInvite(env: any, tableId: string, request: Request) {
   const now = new Date().toISOString()
   const id = crypto.randomUUID()
 
+  // user_id is always null on invite — it gets set when the scorer accepts the invite
   await env.DB.prepare(
-    'INSERT INTO cross_table_scorers (id, cross_table_id, user_id, invite_token, status, invited_at) VALUES (?, ?, ?, ?, ?, ?)'
-  ).bind(id, tableId, body.user_id ?? null, inviteToken, 'invited', now).run()
+    'INSERT INTO cross_table_scorers (id, cross_table_id, user_id, invite_token, status, invited_at) VALUES (?, ?, NULL, ?, ?, ?)'
+  ).bind(id, tableId, inviteToken, 'invited', now).run()
 
   const url = new URL(request.url)
   return new Response(JSON.stringify({
     scorer: {
-      id, cross_table_id: tableId, user_id: body.user_id ?? null,
+      id, cross_table_id: tableId, user_id: null,
       invite_token: inviteToken, status: 'invited',
       invited_at: now, accepted_at: null,
     },

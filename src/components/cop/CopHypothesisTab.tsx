@@ -86,26 +86,26 @@ export default function CopHypothesisTab({ sessionId, onPinToMap }: CopHypothesi
 
   // ── Fetch Hypotheses ──────────────────────────────────────────
 
-  const fetchHypotheses = useCallback(async () => {
+  const fetchHypotheses = useCallback(async (signal?: AbortSignal) => {
     try {
-      // For now, using a mock/placeholder endpoint or state until backend catch up
-      // In a real implementation, this would hit /api/cop/${sessionId}/hypotheses
-      const res = await fetch(`/api/cop/${sessionId}/hypotheses`, { headers: getCopHeaders() })
+      const res = await fetch(`/api/cop/${sessionId}/hypotheses`, { headers: getCopHeaders(), signal })
       if (!res.ok) {
          setHypotheses([])
          return
       }
       const data = await res.json()
       setHypotheses(data.hypotheses ?? [])
-    } catch {
-      // Silent failure
+    } catch (e: any) {
+      if (e?.name !== 'AbortError') setHypotheses([])
     } finally {
       setLoading(false)
     }
   }, [sessionId])
 
   useEffect(() => {
-    fetchHypotheses()
+    const controller = new AbortController()
+    fetchHypotheses(controller.signal)
+    return () => controller.abort()
   }, [fetchHypotheses])
 
   // New Hypothesis Form - confidence

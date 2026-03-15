@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from 'react'
-import { Network, Loader2 } from 'lucide-react'
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
+import { Network, Loader2, Maximize2 } from 'lucide-react'
 import { getCopHeaders } from '@/lib/cop-auth'
 import { NetworkGraphCanvas } from '@/components/network/NetworkGraphCanvas'
 import type { EntityType, Relationship } from '@/types/entities'
@@ -27,6 +27,8 @@ interface CopMiniGraphProps {
   sessionId: string
   workspaceId?: string
   expanded: boolean
+  onRelationshipCount?: (count: number) => void
+  onNodeClick?: (entityId: string, entityType: EntityType) => void
 }
 
 // ── Helpers ──────────────────────────────────────────────────────
@@ -117,13 +119,33 @@ async function fetchEntityNames(
 
 // ── Component ────────────────────────────────────────────────────
 
-export default function CopMiniGraph({ sessionId, workspaceId: propWorkspaceId, expanded }: CopMiniGraphProps) {
+export default function CopMiniGraph({ sessionId, workspaceId: propWorkspaceId, expanded, onRelationshipCount, onNodeClick }: CopMiniGraphProps) {
   const [relationships, setRelationships] = useState<Relationship[]>([])
   const [entityNames, setEntityNames] = useState<Record<string, { name: string; type: EntityType }>>({})
   const [loading, setLoading] = useState(true)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 })
+
+  // Responsive sizing via ResizeObserver
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0]
+      if (entry) {
+        setContainerSize({
+          width: Math.floor(entry.contentRect.width),
+          height: Math.floor(entry.contentRect.height),
+        })
+      }
+    })
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
 
   useEffect(() => {
-    let cancelled = false
+    const controller = new AbortController()
 
     async function load() {
       setLoading(true)
@@ -131,29 +153,29 @@ export default function CopMiniGraph({ sessionId, workspaceId: propWorkspaceId, 
         const headers = getCopHeaders()
 
         const workspaceId = propWorkspaceId || localStorage.getItem('currentWorkspaceId') || 'default'
-        const res = await fetch(`/api/relationships?workspace_id=${workspaceId}&cop_session_id=${sessionId}`, { headers })
+        const res = await fetch(`/api/relationships?workspace_id=${workspaceId}&cop_session_id=${sessionId}`, { headers, signal: controller.signal })
 
         if (!res.ok) throw new Error(`Failed to fetch relationships (${res.status})`)
 
         const data = await res.json()
         const rels: Relationship[] = data.relationships ?? data ?? []
 
-        if (cancelled) return
         setRelationships(rels)
+        onRelationshipCount?.(rels.length)
 
         if (rels.length > 0) {
           const names = await fetchEntityNames(rels, workspaceId, headers)
-          if (!cancelled) setEntityNames(names)
+          if (!controller.signal.aborted) setEntityNames(names)
         }
-      } catch (err) {
-        console.error('[CopMiniGraph] Failed to load relationships:', err)
+      } catch (e: any) {
+        if (e?.name !== 'AbortError') console.error('[CopMiniGraph] Failed to load relationships:', e)
       } finally {
-        if (!cancelled) setLoading(false)
+        if (!controller.signal.aborted) setLoading(false)
       }
     }
 
     load()
-    return () => { cancelled = true }
+    return () => controller.abort()
   }, [sessionId, propWorkspaceId])
 
   // Build graph nodes and links from relationship data
@@ -201,10 +223,14 @@ export default function CopMiniGraph({ sessionId, workspaceId: propWorkspaceId, 
     return { nodes: Array.from(nodeMap.values()), links: builtLinks }
   }, [relationships, entityNames])
 
+  const handleNodeClick = useCallback((node: NetworkNode) => {
+    onNodeClick?.(node.id, node.entityType)
+  }, [onNodeClick])
+
   // ── Loading state ────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full">
+      <div ref={containerRef} className="flex items-center justify-center w-full h-full">
         <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
       </div>
     )
@@ -213,7 +239,7 @@ export default function CopMiniGraph({ sessionId, workspaceId: propWorkspaceId, 
   // ── Empty state ──────────────────────────────────────────────
   if (nodes.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-center px-4">
+      <div ref={containerRef} className="flex flex-col items-center justify-center w-full h-full text-center px-4">
         <Network className="h-8 w-8 text-gray-600 mb-2" />
         <p className="text-sm text-gray-400 font-medium">No entity relationships yet</p>
         <p className="text-xs text-gray-500 mt-1">
@@ -224,13 +250,32 @@ export default function CopMiniGraph({ sessionId, workspaceId: propWorkspaceId, 
   }
 
   // ── Graph ────────────────────────────────────────────────────
+  const workspaceId = propWorkspaceId || localStorage.getItem('currentWorkspaceId') || 'default'
+
   return (
-    <div className="w-full h-full">
-      <NetworkGraphCanvas
-        nodes={nodes}
-        links={links}
-        {...(expanded ? {} : { width: 400, height: 260 })}
-      />
+    <div ref={containerRef} className="w-full h-full relative">
+      {containerSize.width > 0 && containerSize.height > 0 && (
+        <NetworkGraphCanvas
+          nodes={nodes}
+          links={links}
+          width={containerSize.width}
+          height={containerSize.height}
+          showLegend={expanded}
+          darkMode={true}
+          compact={!expanded}
+          onNodeClick={handleNodeClick}
+        />
+      )}
+      {/* Open full network graph page */}
+      <a
+        href={`/network?workspace_id=${workspaceId}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="absolute top-1 right-1 p-1 rounded bg-slate-800/60 hover:bg-slate-700/80 text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
+        title="Open full network graph"
+      >
+        <Maximize2 className="h-3.5 w-3.5" />
+      </a>
     </div>
   )
 }

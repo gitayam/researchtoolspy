@@ -159,26 +159,29 @@ export default function CopMarkerChangelog({
   }, [rationale])
 
   // Fetch changelog
-  const fetchChangelog = useCallback(async () => {
+  const fetchChangelog = useCallback(async (signal?: AbortSignal) => {
     setLoading(true)
     setError(null)
     try {
       const res = await fetch(
         `/api/cop/${sessionId}/marker-changelog?marker_id=${encodeURIComponent(markerId)}`,
-        { headers: getCopHeaders() },
+        { headers: getCopHeaders(), signal },
       )
       if (!res.ok) throw new Error(`Failed to fetch changelog (${res.status})`)
       const data = await res.json()
       setChangelog(Array.isArray(data.changelog) ? data.changelog : [])
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load changelog')
+    } catch (e: any) {
+      if (e?.name === 'AbortError') return
+      setError(e instanceof Error ? e.message : 'Failed to load changelog')
     } finally {
       setLoading(false)
     }
   }, [sessionId, markerId])
 
   useEffect(() => {
-    fetchChangelog()
+    const controller = new AbortController()
+    fetchChangelog(controller.signal)
+    return () => controller.abort()
   }, [fetchChangelog])
 
   // Handle update

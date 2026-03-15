@@ -68,25 +68,29 @@ export default function CopCollaboratorSkills({
 
   // ── Fetch collaborators ────────────────────────────────────
 
-  const fetchCollaborators = useCallback(async () => {
+  const fetchCollaborators = useCallback(async (signal?: AbortSignal) => {
     setLoading(true)
     try {
       const res = await fetch(`/api/cop/${sessionId}/collaborators`, {
         headers: getCopHeaders(),
+        signal,
       })
       if (!res.ok) throw new Error('Failed to fetch')
       const data = await res.json()
       setCollaborators(data.collaborators ?? [])
       setLocalEdits({})
-    } catch {
-      // ignore
+    } catch (e: any) {
+      if (e?.name === 'AbortError') return
     } finally {
       setLoading(false)
     }
   }, [sessionId])
 
   useEffect(() => {
-    if (open) fetchCollaborators()
+    if (!open) return
+    const controller = new AbortController()
+    fetchCollaborators(controller.signal)
+    return () => controller.abort()
   }, [open, fetchCollaborators])
 
   // ── Get editable values ────────────────────────────────────

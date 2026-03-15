@@ -70,13 +70,13 @@ export default function EntityEvidenceLinks({
 
   // ── Fetch linked relationships ─────────────────────────────────
 
-  const fetchRelationships = useCallback(async () => {
+  const fetchRelationships = useCallback(async (signal?: AbortSignal) => {
     try {
       setLoading(true)
       setError(null)
       const res = await fetch(
         `/api/relationships?entity_id=${encodeURIComponent(entityId)}&workspace_id=${encodeURIComponent(workspaceId || sessionId)}`,
-        { headers: getCopHeaders() },
+        { headers: getCopHeaders(), signal },
       )
       if (!res.ok) throw new Error(`Failed to fetch relationships (${res.status})`)
       const data = await res.json()
@@ -89,15 +89,18 @@ export default function EntityEvidenceLinks({
           (r.source_entity_type === 'EVIDENCE' || r.target_entity_type === 'EVIDENCE'),
       )
       setRelationships(evidenceRels)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load evidence links')
+    } catch (e: any) {
+      if (e?.name === 'AbortError') return
+      setError(e instanceof Error ? e.message : 'Failed to load evidence links')
     } finally {
       setLoading(false)
     }
   }, [entityId, sessionId, workspaceId])
 
   useEffect(() => {
-    fetchRelationships()
+    const controller = new AbortController()
+    fetchRelationships(controller.signal)
+    return () => controller.abort()
   }, [fetchRelationships])
 
   // ── Fetch available evidence for linking ───────────────────────

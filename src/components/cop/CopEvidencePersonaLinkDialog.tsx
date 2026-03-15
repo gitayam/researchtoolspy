@@ -48,30 +48,31 @@ export default function CopEvidencePersonaLinkDialog({
   // Form state for creating new
   const [displayName, setDisplayName] = useState(handle)
 
-  useEffect(() => {
-    if (open) {
-      setDisplayName(handle)
-      setMode('create')
-      setSelectedPersonaId('')
-      setError(null)
-      fetchPersonas()
-    }
-  }, [open, handle])
-
-  const fetchPersonas = useCallback(async () => {
+  const fetchPersonas = useCallback(async (signal?: AbortSignal) => {
     setLoading(true)
     try {
-      const res = await fetch(`/api/cop/${sessionId}/personas`, { headers: getCopHeaders() })
+      const res = await fetch(`/api/cop/${sessionId}/personas`, { headers: getCopHeaders(), signal })
       if (res.ok) {
         const data = await res.json()
         setPersonas(data.personas ?? data ?? [])
       }
-    } catch {
-      // ignore
+    } catch (e: any) {
+      if (e?.name === 'AbortError') return
     } finally {
       setLoading(false)
     }
   }, [sessionId])
+
+  useEffect(() => {
+    if (!open) return
+    setDisplayName(handle)
+    setMode('create')
+    setSelectedPersonaId('')
+    setError(null)
+    const controller = new AbortController()
+    fetchPersonas(controller.signal)
+    return () => controller.abort()
+  }, [open, handle, fetchPersonas])
 
   const handleSubmit = async () => {
     setSubmitting(true)
