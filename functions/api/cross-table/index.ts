@@ -34,7 +34,7 @@ export async function onRequest(context: any) {
           status: 401, headers: corsHeaders,
         })
       }
-      return await handleCreate(env, userId, request)
+      return await handleCreate(env, authUserId, request)
     }
     return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers: corsHeaders })
   } catch (err: any) {

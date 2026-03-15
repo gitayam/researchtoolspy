@@ -9,8 +9,10 @@
 
 import { callOpenAIViaGateway, getOptimalCacheTTL } from '../_shared/ai-gateway'
 import { enhancedFetch } from '../../utils/browser-profiles'
+import { getUserFromRequest } from '../_shared/auth-helpers'
 
 interface Env {
+  DB: D1Database
   OPENAI_API_KEY: string
   AI_GATEWAY_ACCOUNT_ID?: string
   AI_CONFIG: KVNamespace
@@ -428,6 +430,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const startTime = Date.now()
 
   try {
+    const authUserId = await getUserFromRequest(context.request, context.env)
+    if (!authUserId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      })
+    }
+
     const body = await context.request.json() as ExtractClaimsRequest
     const { url, include_entities = true, include_summary = true } = body
 

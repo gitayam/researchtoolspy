@@ -5,7 +5,10 @@
  * Generates research question recommendations based on a topic description.
  */
 
+import { getUserFromRequest } from '../_shared/auth-helpers'
+
 interface Env {
+  DB: D1Database
   OPENAI_API_KEY: string
 }
 
@@ -33,6 +36,14 @@ interface GeneratedQuestion {
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
+    const authUserId = await getUserFromRequest(context.request, context.env)
+    if (!authUserId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      })
+    }
+
     const body = await context.request.json() as RecommendQuestionsRequest
 
     // Validate required fields

@@ -1,6 +1,30 @@
 # Site Issues — Investigation Report
 
-**Last updated:** 2026-03-15 (Sessions 34-76)
+**Last updated:** 2026-03-15 (Sessions 34-77)
+
+## Fixed — v0.18.5 (Session 77)
+
+### CRITICAL — 8 UNAUTHENTICATED AI ENDPOINTS (COST EXPOSURE)
+| # | Issue | Status |
+|---|-------|--------|
+| 412 | **tools/classify-timeline-entry.ts** — POST triggers OpenAI with zero auth. Fixed: added getUserFromRequest + 401 gate | FIXED |
+| 413 | **tools/extract-timeline.ts** — POST scrapes URL + OpenAI analysis with zero auth. Fixed | FIXED |
+| 414 | **tools/extract-claims.ts** — POST full pipeline (scrape + GPT claims + entities) with zero auth. Fixed | FIXED |
+| 415 | **tools/claim-match.ts** — POST OpenAI claim matching with zero auth. Fixed | FIXED |
+| 416 | **tools/rage-check.ts** — POST scrape + OpenAI analysis with zero auth. Fixed | FIXED |
+| 417 | **ach/generate-hypotheses.ts** — POST GPT hypothesis generation with zero auth. Fixed | FIXED |
+| 418 | **research/recommend-questions.ts** — POST GPT question generation with zero auth. Fixed | FIXED |
+| 419 | **cross-table/ai/suggest-setup.ts** — POST OpenAI with only getUserIdOrDefault (guest fallback). Fixed: replaced with getUserFromRequest + 401 gate | FIXED |
+
+### HIGH — CROSS-TABLE userId SHADOWING (4 FILES)
+| # | Issue | Status |
+|---|-------|--------|
+| 420 | **cross-table/[id].ts** — PUT/DELETE handlers get `authUserId` for auth check but pass guest-fallback `userId` to handler functions. Fixed: pass `authUserId` | FIXED |
+| 421 | **cross-table/index.ts** — POST handler same pattern. Fixed: pass `authUserId` to handleCreate | FIXED |
+| 422 | **cross-table/[id]/scores.ts** — PUT handler same pattern. Fixed: pass `authUserId` to handleUpsert | FIXED |
+| 423 | **cross-table/[id].ts DELETE** — `DELETE FROM cross_tables WHERE id = ?` without `AND user_id = ?`. Pre-check has ownership but actual DELETE is unscoped. Fixed: added `AND user_id = ?` | FIXED |
+
+---
 
 ## Fixed — v0.18.4b (Session 76 — additional frontend fixes)
 

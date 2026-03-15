@@ -41,7 +41,7 @@ export async function onRequest(context: any) {
           status: 401, headers: corsHeaders,
         })
       }
-      return await handleUpsert(env, tableId, userId, request, table)
+      return await handleUpsert(env, tableId, authUserId, request, table)
     }
     return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers: corsHeaders })
   } catch (err: any) {

@@ -6,8 +6,10 @@
  */
 
 import { callOpenAIViaGateway, getOptimalCacheTTL } from '../_shared/ai-gateway'
+import { getUserFromRequest } from '../_shared/auth-helpers'
 
 interface Env {
+  DB: D1Database
   OPENAI_API_KEY: string
   AI_GATEWAY_ACCOUNT_ID?: string
   AI_CONFIG: KVNamespace
@@ -26,6 +28,12 @@ const VALID_IMPORTANCE = ['low', 'normal', 'high', 'critical']
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
+    const authUserId = await getUserFromRequest(context.request, context.env)
+    if (!authUserId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: corsHeaders,
+      })
+    }
     const body = await context.request.json() as { text: string; today?: string }
 
     if (!body.text?.trim()) {

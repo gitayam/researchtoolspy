@@ -1,5 +1,5 @@
 // POST /api/cross-table/ai/suggest-setup — standalone AI criteria+rows suggestions (no tableId needed)
-import { getUserIdOrDefault } from '../../_shared/auth-helpers'
+import { getUserFromRequest } from '../../_shared/auth-helpers'
 import { callOpenAIViaGateway } from '../../_shared/ai-gateway'
 
 const corsHeaders = {
@@ -21,7 +21,12 @@ export async function onRequest(context: any) {
   }
 
   try {
-    const userId = await getUserIdOrDefault(request, env)
+    const userId = await getUserFromRequest(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: corsHeaders,
+      })
+    }
     const body = await request.json() as any
     const { topic, template_type, count } = body
 

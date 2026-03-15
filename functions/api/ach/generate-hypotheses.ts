@@ -3,7 +3,10 @@
  * Generates 4-6 competing hypotheses based on intelligence question
  */
 
+import { getUserFromRequest } from '../_shared/auth-helpers'
+
 interface Env {
+  DB: D1Database
   OPENAI_API_KEY: string
 }
 
@@ -13,6 +16,14 @@ interface GenerateRequest {
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
+    const authUserId = await getUserFromRequest(context.request, context.env)
+    if (!authUserId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      })
+    }
+
     const data = await context.request.json() as GenerateRequest
 
     if (!data.question) {

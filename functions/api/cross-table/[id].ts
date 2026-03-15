@@ -33,7 +33,7 @@ export async function onRequest(context: any) {
           status: 401, headers: corsHeaders,
         })
       }
-      return await handleUpdate(env, userId, id, request)
+      return await handleUpdate(env, authUserId, id, request)
     }
     if (request.method === 'DELETE') {
       const authUserId = await getUserFromRequest(request, env)
@@ -42,7 +42,7 @@ export async function onRequest(context: any) {
           status: 401, headers: corsHeaders,
         })
       }
-      return await handleDelete(env, userId, id)
+      return await handleDelete(env, authUserId, id)
     }
     return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers: corsHeaders })
   } catch (err: any) {
@@ -111,7 +111,7 @@ async function handleDelete(env: any, userId: number, id: string) {
     return new Response(JSON.stringify({ error: 'Cross table not found' }), { status: 404, headers: corsHeaders })
   }
 
-  await env.DB.prepare('DELETE FROM cross_tables WHERE id = ?').bind(id).run()
+  await env.DB.prepare('DELETE FROM cross_tables WHERE id = ? AND user_id = ?').bind(id, userId).run()
   return new Response(JSON.stringify({ success: true }), { headers: corsHeaders })
 }
 
