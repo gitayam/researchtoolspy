@@ -10,6 +10,7 @@ import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-helpers'
 import { emitCopEvent } from '../../_shared/cop-events'
 import { ASSET_CREATED, ASSET_UPDATED, ASSET_STATUS_CHANGED, ASSET_QUOTA_LOW } from '../../_shared/cop-event-types'
+import { generatePrefixedId } from '../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -22,10 +23,6 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Workspace-ID',
-}
-
-function generateId(): string {
-  return `ast-${crypto.randomUUID().slice(0, 12)}`
 }
 
 const VALID_ASSET_TYPES = ['human', 'source', 'infrastructure', 'digital']
@@ -123,7 +120,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     const workspaceId = session?.workspace_id || request.headers.get('X-Workspace-ID') || sessionId
 
-    const id = generateId()
+    const id = generatePrefixedId('ast')
     const now = new Date().toISOString()
     const status = VALID_STATUSES.includes(body.status) ? body.status : 'available'
     const sensitivity = VALID_SENSITIVITIES.includes(body.sensitivity) ? body.sensitivity : 'unclassified'

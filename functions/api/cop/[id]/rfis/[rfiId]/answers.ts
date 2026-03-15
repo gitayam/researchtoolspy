@@ -6,6 +6,7 @@
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest, verifyCopSessionAccess } from '../../../../_shared/auth-helpers'
+import { generatePrefixedId } from '../../../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -18,10 +19,6 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, PUT, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Workspace-ID',
-}
-
-function generateId(): string {
-  return `rfia-${crypto.randomUUID().slice(0, 12)}`
 }
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
@@ -59,7 +56,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    const id = generateId()
+    const id = generatePrefixedId('rfia')
     const now = new Date().toISOString()
 
     await env.DB.prepare(`

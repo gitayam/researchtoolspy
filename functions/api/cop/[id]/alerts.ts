@@ -9,6 +9,7 @@ import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-h
 import { emitCopEvent } from '../../_shared/cop-events'
 import { ALERT_DISMISSED, ALERT_ACTIONED, ALERT_LINKED } from '../../_shared/cop-event-types'
 import { createTimelineEntry } from '../../_shared/timeline-helper'
+import { generatePrefixedId } from '../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -21,10 +22,6 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Workspace-ID',
-}
-
-function generateId(): string {
-  return `alt-${crypto.randomUUID().slice(0, 12)}`
 }
 
 interface RedsightIncident {
@@ -361,7 +358,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       ).bind(...bindings).run()
     } else {
       // Insert new record
-      const id = generateId()
+      const id = generatePrefixedId('alt')
 
       await env.DB.prepare(`
         INSERT INTO cop_alert_state

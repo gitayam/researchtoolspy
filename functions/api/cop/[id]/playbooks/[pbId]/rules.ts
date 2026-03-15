@@ -8,15 +8,12 @@
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest, verifyCopSessionAccess } from '../../../../_shared/auth-helpers'
+import { generatePrefixedId } from '../../../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
   SESSIONS?: KVNamespace
   JWT_SECRET?: string
-}
-
-function generateId(): string {
-  return `pbr-${crypto.randomUUID().slice(0, 12)}`
 }
 
 const VALID_ACTION_TYPES = [
@@ -145,7 +142,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     ).bind(pbId).first() as any
     const nextPosition = (maxPos?.max_pos ?? -1) + 1
 
-    const id = generateId()
+    const id = generatePrefixedId('pbr')
     const now = new Date().toISOString()
 
     await env.DB.prepare(`

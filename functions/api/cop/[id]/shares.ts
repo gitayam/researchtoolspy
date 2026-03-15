@@ -8,6 +8,7 @@ import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest } from '../../_shared/auth-helpers'
 import { emitCopEvent } from '../../_shared/cop-events'
 import { SHARE_CREATED } from '../../_shared/cop-event-types'
+import { generatePrefixedId } from '../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -18,10 +19,6 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Workspace-ID',
-}
-
-function generateId(): string {
-  return `cops-${crypto.randomUUID().slice(0, 12)}`
 }
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
@@ -37,7 +34,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
     const body = await request.json() as any
 
-    const id = generateId()
+    const id = generatePrefixedId('cops')
     const token = crypto.randomUUID()
     const now = new Date().toISOString()
 

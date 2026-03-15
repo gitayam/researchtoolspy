@@ -10,6 +10,11 @@ export function generateId(): string {
   return crypto.randomUUID()
 }
 
+/** Generate a prefixed short ID (e.g. "rfi-a1b2c3d4e5f6") used by COP entities */
+export function generatePrefixedId(prefix: string): string {
+  return `${prefix}-${crypto.randomUUID().slice(0, 12)}`
+}
+
 /** Standard CORS headers for all API endpoints */
 export const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',

@@ -10,6 +10,7 @@ import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-h
 import { emitCopEvent } from '../../_shared/cop-events'
 import { PERSONA_CREATED, PERSONA_LINKED } from '../../_shared/cop-event-types'
 import { createTimelineEntry } from '../../_shared/timeline-helper'
+import { generatePrefixedId } from '../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -20,10 +21,6 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Workspace-ID',
-}
-
-function generateId(): string {
-  return `per-${crypto.randomUUID().slice(0, 12)}`
 }
 
 function generateLinkId(): string {
@@ -181,7 +178,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         }
 
         const platform = VALID_PLATFORMS.includes(p.platform) ? p.platform : 'other'
-        const id = generateId()
+        const id = generatePrefixedId('per')
         existingNames.add(name.toLowerCase())
 
         await env.DB.prepare(`
@@ -279,7 +276,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    const id = generateId()
+    const id = generatePrefixedId('per')
     const now = new Date().toISOString()
     const status = VALID_STATUSES.includes(body.status) ? body.status : 'active'
 

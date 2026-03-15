@@ -9,6 +9,7 @@ import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-helpers'
 import { emitCopEvent } from '../../_shared/cop-events'
 import { RFI_CREATED, RFI_ANSWERED, RFI_CLOSED } from '../../_shared/cop-event-types'
+import { generatePrefixedId } from '../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -19,10 +20,6 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Workspace-ID',
-}
-
-function generateId(): string {
-  return `rfi-${crypto.randomUUID().slice(0, 12)}`
 }
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
@@ -107,7 +104,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    const id = generateId()
+    const id = generatePrefixedId('rfi')
     const now = new Date().toISOString()
     const priority = ['critical', 'high', 'medium', 'low'].includes(body.priority) ? body.priority : 'medium'
     const isBLocker = body.is_blocker ? 1 : 0

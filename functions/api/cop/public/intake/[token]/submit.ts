@@ -5,6 +5,7 @@
  */
 import { emitCopEvent } from '../../../../_shared/cop-events'
 import { INGEST_SUBMISSION_RECEIVED } from '../../../../_shared/cop-event-types'
+import { generatePrefixedId } from '../../../../_shared/api-utils'
 
 const corsHeaders = {
   'Content-Type': 'application/json',
@@ -15,10 +16,6 @@ const corsHeaders = {
 
 interface Env {
   DB: D1Database
-}
-
-function generateId(): string {
-  return `sub-${crypto.randomUUID().slice(0, 12)}`
 }
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
@@ -71,7 +68,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       }
     }
 
-    const id = generateId()
+    const id = generatePrefixedId('sub')
 
     await env.DB.prepare(`
       INSERT INTO cop_submissions (id, intake_form_id, cop_session_id, form_data, submitter_name, submitter_contact, lat, lon)

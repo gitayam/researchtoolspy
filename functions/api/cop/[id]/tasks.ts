@@ -10,6 +10,7 @@ import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-helpers'
 import { emitCopEvent } from '../../_shared/cop-events'
 import { TASK_CREATED, TASK_COMPLETED, TASK_STARTED, TASK_BLOCKED, TASK_UNBLOCKED, TASK_DELETED } from '../../_shared/cop-event-types'
+import { generatePrefixedId } from '../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -20,10 +21,6 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Workspace-ID',
-}
-
-function generateId(): string {
-  return `tsk-${crypto.randomUUID().slice(0, 12)}`
 }
 
 const VALID_STATUSES = ['todo', 'in_progress', 'done', 'blocked']
@@ -107,7 +104,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    const id = generateId()
+    const id = generatePrefixedId('tsk')
     const now = new Date().toISOString()
     const status = VALID_STATUSES.includes(body.status) ? body.status : 'todo'
     const priority = VALID_PRIORITIES.includes(body.priority) ? body.priority : 'medium'

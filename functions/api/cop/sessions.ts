@@ -7,6 +7,7 @@
 
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest } from '../_shared/auth-helpers'
+import { generatePrefixedId } from '../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -18,10 +19,6 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Workspace-ID'
-}
-
-function generateId(): string {
-  return `cop-${crypto.randomUUID().slice(0, 12)}`
 }
 
 const jsonFields = ['active_layers', 'layer_config', 'linked_frameworks', 'key_questions', 'event_facts', 'content_analyses'] as const
@@ -109,7 +106,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    const id = generateId()
+    const id = generatePrefixedId('cop')
     const now = new Date().toISOString()
 
     // Auto-create a dedicated workspace for this COP session unless one was explicitly provided.

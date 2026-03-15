@@ -4,6 +4,7 @@
  * POST /api/cop/public/:token/rfis/:rfiId/answers - Submit answer from public view
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
+import { generatePrefixedId } from '../../../../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -14,10 +15,6 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type',
-}
-
-function generateId(): string {
-  return `rfia-${crypto.randomUUID().slice(0, 12)}`
 }
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
@@ -57,7 +54,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    const id = generateId()
+    const id = generatePrefixedId('rfia')
     const now = new Date().toISOString()
 
     await env.DB.prepare(`

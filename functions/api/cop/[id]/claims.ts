@@ -8,6 +8,7 @@
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-helpers'
 import { createTimelineEntry } from '../../_shared/timeline-helper'
+import { generatePrefixedId } from '../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -18,10 +19,6 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Workspace-ID',
-}
-
-function generateId(): string {
-  return `clm-${crypto.randomUUID().slice(0, 12)}`
 }
 
 // GET — list claims for a session
@@ -98,7 +95,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const ids: string[] = []
 
     const stmts = claims.map((claim: any) => {
-      const id = generateId()
+      const id = generatePrefixedId('clm')
       ids.push(id)
       return env.DB.prepare(`
         INSERT INTO cop_claims (id, cop_session_id, workspace_id, url, url_title, url_domain, claim_text, category, confidence, summary, created_by, created_at, updated_at)

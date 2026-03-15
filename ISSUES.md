@@ -1,7 +1,19 @@
 # ResearchTools.net — Issue Tracker
 
 **Last updated:** 2026-03-15
-**Current tag:** v0.14.7-tools-auth-frontend-errors
+**Current tag:** v0.14.8-generateid-dedup
+
+---
+
+## Fixed (v0.14.8)
+
+### P2 — generateId() Deduplicated Across 21 COP Endpoints
+- [x] Added shared `generatePrefixedId(prefix)` to `functions/api/_shared/api-utils.ts`
+- [x] Migrated all 21 COP endpoint files from local `generateId()` to shared `generatePrefixedId(prefix)`
+- [x] Each entity retains its unique prefix: `cop-`, `rfi-`, `clm-`, `tsk-`, `per-`, `ast-`, `tle-`, `pb-`, `cops-`, `alt-`, `etg-`, `dep-`, `ttpl-`, `poo-`, `mcl-`, `ifm-`, `pbr-`, `alog-`, `rfia-`, `sub-`
+- [x] Zero local `generateId` definitions remain in `functions/api/cop/`
+- [x] Build passes, production deployment verified
+- **Root cause:** each COP endpoint copy-pasted its own `generateId()` wrapper with entity-specific prefix; no shared utility existed for prefixed IDs
 
 ---
 
@@ -202,7 +214,7 @@
 
 ### P2 — Tech Debt: Remaining Duplication
 
-- [ ] **generateId() still in 26 COP endpoints** — shared `api-utils.ts` created but only entity endpoints migrated so far
+- [x] ~~generateId() in 21 COP endpoints~~ — deduplicated to shared `generatePrefixedId()` in v0.14.8
 - [ ] **CORS headers duplicated ~219 files** — shared `CORS_HEADERS` and `JSON_HEADERS` created in `api-utils.ts` but not yet adopted
 - [ ] **Dual API surface** — `/api/workspaces/` (team JWT/hash) and `/api/settings/workspaces` (personal `requireAuth`) should be consolidated
 
