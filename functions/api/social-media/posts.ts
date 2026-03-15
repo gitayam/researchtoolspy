@@ -40,7 +40,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       media_downloaded: Boolean(row.media_downloaded),
     }))
 
-    return new Response(JSON.stringify(posts), { headers: JSON_HEADERS })
+    return new Response(JSON.stringify({ posts, total: posts.length }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[social-media/posts] GET error:', error)
     return new Response(JSON.stringify({ error: 'Failed to fetch posts' }), { status: 500, headers: JSON_HEADERS })
@@ -180,4 +180,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     console.error('[social-media/posts] POST error:', error)
     return new Response(JSON.stringify({ error: 'Failed to create/update post' }), { status: 500, headers: JSON_HEADERS })
   }
+}
+
+export const onRequestOptions: PagesFunction = async () => {
+  return new Response(null, { status: 204, headers: JSON_HEADERS })
 }

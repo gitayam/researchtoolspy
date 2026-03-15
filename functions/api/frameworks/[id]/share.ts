@@ -3,10 +3,13 @@
  * Toggle public/private sharing for a framework
  */
 
+import { getUserFromRequest } from '../../_shared/auth-helpers'
 import { JSON_HEADERS } from '../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
+  JWT_SECRET?: string
+  SESSIONS?: KVNamespace
 }
 
 function generateShareToken(): string {
@@ -24,10 +27,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const { id } = context.params as { id: string }
     const { is_public, category } = await context.request.json() as { is_public: boolean; category?: string }
 
-    // Check authentication
-    const userId = context.data?.user?.id
+    // Check authentication using standard auth helpers
+    const userId = await getUserFromRequest(context.request, context.env)
     if (!userId) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 })
+      return Response.json({ error: 'Authentication required' }, { status: 401, headers: JSON_HEADERS })
     }
 
     // Verify ownership
@@ -37,11 +40,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       .first()
 
     if (!framework) {
-      return Response.json({ error: 'Framework not found' }, { status: 404 })
+      return Response.json({ error: 'Framework not found' }, { status: 404, headers: JSON_HEADERS })
     }
 
     if (framework.user_id !== userId) {
-      return Response.json({ error: 'Forbidden - you do not own this framework' }, { status: 403 })
+      return Response.json({ error: 'Access denied' }, { status: 403, headers: JSON_HEADERS })
     }
 
     // Generate share token if making public and doesn't have one
@@ -78,8 +81,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     console.error('Share framework error:', error)
     return Response.json({
       error: 'Failed to update sharing settings',
-      message: 'Internal server error'
-    }, { status: 500 })
+    }, { status: 500, headers: JSON_HEADERS })
   }
 }
 
@@ -88,4 +90,8 @@ export const onRequestGet: PagesFunction = async () => {
   return new Response(JSON.stringify({ error: 'Method not allowed. Use POST.' }), {
     status: 405, headers: JSON_HEADERS,
   })
+}
+
+export const onRequestOptions: PagesFunction = async () => {
+  return new Response(null, { status: 204, headers: JSON_HEADERS })
 }

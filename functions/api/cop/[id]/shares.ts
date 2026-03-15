@@ -5,7 +5,7 @@
  * GET  /api/cop/:id/shares - List existing share links
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserFromRequest } from '../../_shared/auth-helpers'
+import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-helpers'
 import { emitCopEvent } from '../../_shared/cop-events'
 import { SHARE_CREATED } from '../../_shared/cop-event-types'
 import { generatePrefixedId , JSON_HEADERS } from '../../_shared/api-utils'
@@ -26,6 +26,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         status: 401, headers: JSON_HEADERS,
       })
     }
+    // Verify user has access to this session (owner or collaborator)
+    const workspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId)
+    if (!workspaceId) {
+      return new Response(JSON.stringify({ error: 'Access denied' }), {
+        status: 403, headers: JSON_HEADERS,
+      })
+    }
+
     const body = await request.json() as any
 
     const id = generatePrefixedId('cops')

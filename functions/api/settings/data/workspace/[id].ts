@@ -74,7 +74,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
         // Table may not exist in this environment — log but continue
         console.warn(`[Workspace Clear] Failed to clear ${table}:`, err?.message)
         deletedCounts[table] = 0
-        errors.push(`${table}: ${err?.message || 'unknown error'}`)
+        errors.push(`${table}: failed to clear`)
       }
     }
 

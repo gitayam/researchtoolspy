@@ -1,7 +1,42 @@
 # ResearchTools.net — Issue Tracker
 
 **Last updated:** 2026-03-15
-**Current tag:** v0.20.1-public-share-hardening
+**Current tag:** v0.20.2-auth-share-hardening
+
+---
+
+## Fixed (v0.20.2)
+
+### P1 — COP Shares POST Missing Session Access Check (Security)
+- [x] `cop/[id]/shares.ts:18-28` — POST handler created share links without verifying user owns/collaborates on the session
+- [x] Any authenticated user could create share links for ANY COP session by guessing the session ID
+- [x] Fix: Added `verifyCopSessionAccess()` call before share creation, returns 403 if not owner/collaborator
+- **Root cause:** POST handler only checked auth (is user logged in?) not authorization (can user access this session?). GET and DELETE already had this check. Lessons Learned Session 33: "copy auth from the strictest sibling handler."
+
+### P1 — Framework Share Used Non-Standard Auth (`context.data?.user?.id`)
+- [x] `frameworks/[id]/share.ts:28` — Used `context.data?.user?.id` instead of `getUserFromRequest()`
+- [x] `context.data.user` is never set by Cloudflare Pages middleware — auth was always null, endpoint always returned 401
+- [x] Fix: Replaced with `getUserFromRequest(context.request, context.env)`, added proper Env interface bindings
+- [x] Also added JSON_HEADERS to all error responses, OPTIONS handler
+- **Root cause:** Endpoint was written before auth helpers were standardized. Copy-paste from a different framework pattern.
+
+### P1 — Framework Share Schema Mismatch (`share_token`, `category` columns missing)
+- [x] `frameworks/[id]/share.ts:56-67` — UPDATE query referenced `share_token` and `category` columns
+- [x] Production `framework_sessions` table didn't have these columns — every share toggle attempt crashed with 500
+- [x] Fix: Added migration `095-add-framework-share-columns.sql`, applied to prod
+- **Root cause:** Endpoint code was written but corresponding migration was never created or deployed.
+
+### P2 — Workspace Delete Leaked Internal Error Messages
+- [x] `settings/data/workspace/[id].ts:77` — Response included `err?.message` in errors array
+- [x] Could expose table names, constraint names, or SQLite internals to clients
+- [x] Fix: Changed to generic `"${table}: failed to clear"` message
+- **Root cause:** Error detail useful for debugging but violates OWASP A01. Console.warn already logs the real message server-side.
+
+### P2 — Social Media Posts GET Returned Bare Array
+- [x] `social-media/posts.ts:43` — `JSON.stringify(posts)` returned `[...]` instead of `{posts: [...]}`
+- [x] Inconsistent with all other entity list endpoints that wrap in an object
+- [x] Fix: Changed to `JSON.stringify({ posts, total: posts.length })`
+- [x] Also added missing `onRequestOptions` handler for CORS preflight
 
 ---
 
