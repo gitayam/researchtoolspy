@@ -120,6 +120,12 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       const now = new Date().toISOString()
 
       if (existing) {
+        // Verify ownership before update
+        if (existing.created_by && Number(existing.created_by) !== userId) {
+          return new Response(JSON.stringify({ error: 'Not authorized to update this profile' }), {
+            status: 403, headers: corsHeaders
+          })
+        }
         // Update existing profile
         await env.DB.prepare(`
           UPDATE social_media_profiles
@@ -139,7 +145,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
               last_scraped_at = ?,
               is_active = ?,
               scrape_frequency = ?
-          WHERE id = ?
+          WHERE id = ? AND created_by = ?
         `).bind(
           body.display_name || null,
           body.profile_url || `https://${body.platform.toLowerCase()}.com/${body.username}`,
@@ -157,7 +163,8 @@ export const onRequest: PagesFunction<Env> = async (context) => {
           now,
           body.is_active !== false ? 1 : 0,
           body.scrape_frequency || 'MANUAL',
-          id
+          id,
+          userId
         ).run()
       } else {
         // Create new profile
@@ -223,8 +230,8 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       const profileId = profileMatch[1]
 
       const profile = await env.DB.prepare(`
-        SELECT * FROM social_media_profiles WHERE id = ?
-      `).bind(profileId).first()
+        SELECT * FROM social_media_profiles WHERE id = ? AND created_by = ?
+      `).bind(profileId, userId).first()
 
       if (!profile) {
         return new Response(
@@ -329,7 +336,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       const now = new Date().toISOString()
 
       if (existing) {
-        // Update existing post
+        // Update existing post - verify ownership
         await env.DB.prepare(`
           UPDATE social_media_posts
           SET caption = ?,
@@ -345,7 +352,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
               sentiment_score = ?,
               topics = ?,
               entities = ?
-          WHERE id = ?
+          WHERE id = ? AND created_by = ?
         `).bind(
           body.caption || null,
           body.content || null,
@@ -360,7 +367,8 @@ export const onRequest: PagesFunction<Env> = async (context) => {
           body.sentiment_score || null,
           body.topics ? JSON.stringify(body.topics) : null,
           body.entities ? JSON.stringify(body.entities) : null,
-          id
+          id,
+          userId
         ).run()
       } else {
         // Create new post
@@ -525,8 +533,8 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       const jobId = jobMatch[1]
 
       const job = await env.DB.prepare(`
-        SELECT * FROM social_media_jobs WHERE id = ?
-      `).bind(jobId).first()
+        SELECT * FROM social_media_jobs WHERE id = ? AND created_by = ?
+      `).bind(jobId, userId).first()
 
       if (!job) {
         return new Response(
@@ -594,6 +602,18 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     const analyticsMatch = url.pathname.match(/^\/api\/social-media\/analytics\/profile\/([^\/]+)$/)
     if (method === 'GET' && analyticsMatch) {
       const profileId = analyticsMatch[1]
+
+      // Verify profile ownership before returning analytics
+      const profileOwner = await env.DB.prepare(
+        'SELECT id FROM social_media_profiles WHERE id = ? AND created_by = ?'
+      ).bind(profileId, userId).first()
+
+      if (!profileOwner) {
+        return new Response(
+          JSON.stringify({ error: 'Profile not found' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
 
       // Get aggregated statistics from posts
       const stats = await env.DB.prepare(`

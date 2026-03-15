@@ -1,5 +1,3 @@
-import { generateToken } from '../../utils/jwt' // We'll need to ensure this exists or mock it
-
 import { z } from 'zod'
 import { generateToken } from '../../utils/jwt'
 
@@ -50,12 +48,21 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       )
     }
 
+    // Reject if JWT_SECRET is not configured
+    if (!env.JWT_SECRET) {
+      console.error('[Auth] JWT_SECRET not configured')
+      return Response.json(
+        { error: 'Authentication service unavailable' },
+        { status: 503 }
+      )
+    }
+
     // Generate JWT using shared utility
     const token = await generateToken({
       sub: user.id,
       name: user.full_name,
       role: user.role
-    }, env.JWT_SECRET || 'dev-secret-key')
+    }, env.JWT_SECRET)
 
     return Response.json({
       access_token: token,

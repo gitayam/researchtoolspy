@@ -196,7 +196,7 @@ export async function onRequest(context: any) {
              frameworks = ?, attachments = ?, updated_at = datetime('now'),
              updated_by = ?, key_points = ?, contradictions = ?,
              corroborations = ?, implications = ?, version = ?, previous_versions = ?
-         WHERE id = ?`
+         WHERE id = ? AND created_by = ?`
       ).bind(
         body.title,
         body.description || '',
@@ -216,7 +216,8 @@ export async function onRequest(context: any) {
         JSON.stringify(body.implications || []),
         body.version || 1,
         JSON.stringify(body.previous_versions || []),
-        evidenceId
+        evidenceId,
+        authUserId
       ).run()
 
       return new Response(JSON.stringify({ message: 'Evidence updated successfully' }), {

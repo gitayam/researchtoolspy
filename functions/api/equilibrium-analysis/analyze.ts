@@ -151,11 +151,12 @@ Return ONLY valid JSON with this exact structure:
     await env.DB.prepare(`
       UPDATE equilibrium_analyses
       SET equilibrium_analysis = ?, updated_at = ?
-      WHERE id = ?
+      WHERE id = ? AND created_by = ?
     `).bind(
       JSON.stringify(analysisResult),
       now,
-      body.analysis_id
+      body.analysis_id,
+      authUserId
     ).run()
 
     return new Response(JSON.stringify({

@@ -34,6 +34,13 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   const url = new URL(request.url)
 
   try {
+    const authUserId = await getUserFromRequest(request, env)
+    if (!authUserId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: corsHeaders,
+      })
+    }
+
     const workspaceId = request.headers.get('X-Workspace-ID') || url.searchParams.get('workspace_id') || '1'
 
     const results = await env.DB.prepare(`

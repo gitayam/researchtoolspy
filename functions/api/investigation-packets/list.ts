@@ -17,7 +17,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     const url = new URL(context.request.url)
     const status = url.searchParams.get('status') // Filter by status (active, completed, archived)
-    const limit = parseInt(url.searchParams.get('limit') || '50')
+    const limit = Math.min(parseInt(url.searchParams.get('limit') || '50') || 50, 200)
     const offset = parseInt(url.searchParams.get('offset') || '0')
 
     let sql = `

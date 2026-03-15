@@ -2,6 +2,55 @@
 
 **Last updated:** 2026-03-15 (Sessions 34-81)
 
+## Fixed — v2.16.0 (Session 81 Batch 2)
+
+### HIGH — JWT SECRET HARDCODED FALLBACK
+| # | Issue | Status |
+|---|-------|--------|
+| 497 | **hash-auth/authenticate.ts** — `env.JWT_SECRET \|\| 'dev-secret-key'` allows token forgery if env var missing in production. Fixed: returns 503 if JWT_SECRET not configured | FIXED |
+
+### MEDIUM — EVIDENCE PUT IDOR
+| # | Issue | Status |
+|---|-------|--------|
+| 495 | **evidence.ts PUT** — UPDATE missing `AND created_by = ?`, any auth'd user could edit any evidence item. Fixed: added ownership check in WHERE clause | FIXED |
+
+### MEDIUM — FRAMEWORKS GET SINGLE AUTH BYPASS
+| # | Issue | Status |
+|---|-------|--------|
+| 496 | **frameworks.ts GET /:id** — Logic `if (userId && framework.user_id !== userId && !framework.is_public)` allowed unauthenticated access to private frameworks. Fixed: `if (!framework.is_public && (!userId \|\| framework.user_id !== userId))` | FIXED |
+
+### MEDIUM — WEB-SCRAPER MISSING AUTH
+| # | Issue | Status |
+|---|-------|--------|
+| 498 | **web-scraper.ts** — No auth gate, anyone could scrape URLs. Fixed: added getUserFromRequest + 401 | FIXED |
+
+### MEDIUM — EQUILIBRIUM-ANALYSIS IDOR + AUTH
+| # | Issue | Status |
+|---|-------|--------|
+| 500 | **equilibrium-analysis/analyze.ts PUT** — UPDATE missing ownership check. Fixed: added `AND created_by = ?` | FIXED |
+| 501 | **equilibrium-analysis.ts GET** — No auth gate, unauthenticated users can read analyses. Fixed: added getUserFromRequest + 401 | FIXED |
+
+### MEDIUM — HAMILTON-RULE MISSING AUTH
+| # | Issue | Status |
+|---|-------|--------|
+| 502 | **hamilton-rule.ts GET** — No auth gate. Fixed: added getUserFromRequest + 401 | FIXED |
+
+### MEDIUM — SOCIAL-MEDIA IDOR (5 ENDPOINTS)
+| # | Issue | Status |
+|---|-------|--------|
+| 503 | **social-media.ts PUT profiles** — UPDATE pre-check added, `AND created_by = ?` in WHERE | FIXED |
+| 504 | **social-media.ts GET profiles/:id** — Missing ownership check. Fixed: `AND created_by = ?` | FIXED |
+| 505 | **social-media.ts GET analytics/:profileId** — No profile ownership check, anyone could view analytics. Fixed: verify profile ownership before returning data | FIXED |
+| 506 | **social-media.ts GET jobs/:id** — Missing ownership check. Fixed: `AND created_by = ?` | FIXED |
+| 507 | **social-media.ts POST posts (update)** — Existing post update had no `AND created_by = ?`. Fixed | FIXED |
+
+### LOW — INVESTIGATION-PACKETS LIST UNBOUNDED
+| # | Issue | Status |
+|---|-------|--------|
+| 499 | **investigation-packets/list.ts** — No limit cap on query. Fixed: capped at 200 | FIXED |
+
+---
+
 ## Fixed — v2.15.9 (Session 81)
 
 ### MEDIUM — LIBRARY PUBLISH WITHOUT OWNERSHIP CHECK

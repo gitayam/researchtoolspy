@@ -63,8 +63,7 @@ export async function onRequest(context: any) {
         }
 
         // CRITICAL FIX: Verify user owns this framework OR it's public
-        // Allow access if: user owns it, it's public, or user is not authenticated (guest viewing public)
-        if (userId && framework.user_id !== userId && !framework.is_public) {
+        if (!framework.is_public && (!userId || framework.user_id !== userId)) {
           return new Response(JSON.stringify({ error: 'Unauthorized access to private framework' }), {
             status: 403,
             headers: corsHeaders,

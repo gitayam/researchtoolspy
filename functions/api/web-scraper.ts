@@ -1,5 +1,6 @@
 // Cloudflare Pages Function for Web Scraping API
 import { enhancedFetch } from '../utils/browser-profiles'
+import { getUserFromRequest } from './_shared/auth-helpers'
 
 interface ScrapingRequest {
   url: string
@@ -49,6 +50,15 @@ export async function onRequest(context: any) {
   if (request.method !== 'POST') {
     return new Response(JSON.stringify({ error: 'Method not allowed' }), {
       status: 405,
+      headers: corsHeaders,
+    })
+  }
+
+  // Require authentication
+  const authUserId = await getUserFromRequest(request, env)
+  if (!authUserId) {
+    return new Response(JSON.stringify({ error: 'Authentication required' }), {
+      status: 401,
       headers: corsHeaders,
     })
   }
