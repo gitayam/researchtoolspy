@@ -14,6 +14,7 @@ import { EvidenceItemForm } from '@/components/evidence/EvidenceItemForm'
 import { evidenceToCitation } from '@/utils/evidence-to-citation'
 import { addCitation } from '@/utils/citation-library'
 import { useTranslation } from 'react-i18next'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 export function EvidencePage() {
   const { t } = useTranslation()
@@ -50,14 +51,14 @@ export function EvidencePage() {
       if (formMode === 'edit' && editingEvidence?.id) {
         const response = await fetch(`/api/evidence-items?id=${editingEvidence.id}`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getCopHeaders(),
           body: JSON.stringify(data)
         })
         if (!response.ok) throw new Error('Failed to update evidence')
       } else {
         const response = await fetch('/api/evidence-items', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getCopHeaders(),
           body: JSON.stringify(data)
         })
         if (!response.ok) throw new Error('Failed to create evidence')
@@ -77,7 +78,8 @@ export function EvidencePage() {
 
     try {
       const response = await fetch(`/api/evidence-items?id=${id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: getCopHeaders(),
       })
       if (response.ok) {
         await loadEvidence()

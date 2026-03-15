@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { SourceForm } from '@/components/entities/SourceForm'
 import { SourceDetailView } from '@/components/entities/SourceDetailView'
+import { getCopHeaders } from '@/lib/cop-auth'
 import type { Source, SourceType } from '@/types/entities'
 
 export function SourcesPage() {
@@ -84,7 +85,7 @@ export function SourcesPage() {
   const handleCreateSource = async (data: Partial<Source>) => {
     const response = await fetch('/api/sources', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getCopHeaders(),
       body: JSON.stringify({ ...data, workspace_id: workspaceId })
     })
 
@@ -103,7 +104,7 @@ export function SourcesPage() {
 
     const response = await fetch(`/api/sources/${editingSource.id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getCopHeaders(),
       body: JSON.stringify(data)
     })
 
@@ -128,7 +129,8 @@ export function SourcesPage() {
 
     try {
       const response = await fetch(`/api/sources/${currentSource.id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: getCopHeaders(),
       })
 
       if (response.ok) {

@@ -5,6 +5,7 @@
  * Supports export to Word, PDF, PowerPoint, and CSV formats
  */
 
+import { getCopHeaders } from '@/lib/cop-auth'
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, Table, TableRow, TableCell, WidthType } from 'docx'
 import { jsPDF } from 'jspdf'
 import pptxgen from 'pptxgenjs'
@@ -82,7 +83,7 @@ export class ReportGenerator {
     try {
       const response = await fetch('/api/ai/report-enhance', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCopHeaders(),
         body: JSON.stringify({
           frameworkType,
           data,

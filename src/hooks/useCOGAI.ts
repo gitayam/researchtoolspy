@@ -7,6 +7,7 @@
 
 import { useState, useCallback } from 'react'
 import { useAI } from './useAI'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 export type COGAnalysisMode =
   | 'suggest-cog'
@@ -131,7 +132,7 @@ export function useCOGAI() {
     try {
       const response = await fetch('/api/ai/cog-analysis', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCopHeaders(),
         body: JSON.stringify({
           mode: 'suggest-cog',
           context
@@ -173,7 +174,7 @@ export function useCOGAI() {
     try {
       const response = await fetch('/api/ai/cog-analysis', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCopHeaders(),
         body: JSON.stringify({
           mode: 'validate-cog',
           cog,
@@ -216,7 +217,7 @@ export function useCOGAI() {
     try {
       const response = await fetch('/api/ai/cog-analysis', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCopHeaders(),
         body: JSON.stringify({
           mode: 'generate-capabilities',
           cog,
@@ -260,7 +261,7 @@ export function useCOGAI() {
     try {
       const response = await fetch('/api/ai/cog-analysis', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCopHeaders(),
         body: JSON.stringify({
           mode: 'generate-requirements',
           capability,
@@ -306,7 +307,7 @@ export function useCOGAI() {
     try {
       const response = await fetch('/api/ai/cog-analysis', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCopHeaders(),
         body: JSON.stringify({
           mode: 'generate-vulnerabilities',
           requirement,
@@ -354,7 +355,7 @@ export function useCOGAI() {
     try {
       const response = await fetch('/api/ai/cog-analysis', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCopHeaders(),
         body: JSON.stringify({
           mode: 'generate-impact',
           requirement: vulnerability,

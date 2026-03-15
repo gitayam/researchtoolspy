@@ -420,7 +420,8 @@ export function SourceDetailView({ source, onEdit, onDelete }: SourceDetailViewP
                     if (!confirm('Delete this relationship?')) return
                     try {
                       const response = await fetch(`/api/relationships/${relationship.id}`, {
-                        method: 'DELETE'
+                        method: 'DELETE',
+                        headers: getCopHeaders()
                       })
                       if (response.ok) {
                         setRelationships(prev => prev.filter(r => r.id !== relationship.id))
@@ -475,7 +476,7 @@ export function SourceDetailView({ source, onEdit, onDelete }: SourceDetailViewP
                 if (editingRelationship) {
                   const response = await fetch(`/api/relationships/${editingRelationship.id}`, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: getCopHeaders(),
                     body: JSON.stringify(data)
                   })
                   if (response.ok) {
@@ -488,7 +489,7 @@ export function SourceDetailView({ source, onEdit, onDelete }: SourceDetailViewP
                 } else {
                   const response = await fetch('/api/relationships', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: getCopHeaders(),
                     body: JSON.stringify(data)
                   })
                   if (response.ok) {

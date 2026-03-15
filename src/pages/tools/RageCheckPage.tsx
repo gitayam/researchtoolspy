@@ -1,6 +1,7 @@
 
 import { useState } from 'react'
 import { useTranslation, Trans } from 'react-i18next'
+import { getCopHeaders } from '@/lib/cop-auth'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -46,7 +47,7 @@ export function RageCheckPage() {
     try {
       const response = await fetch('/api/tools/rage-check', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCopHeaders(),
         body: JSON.stringify({ url })
       })
 

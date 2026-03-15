@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { getCopHeaders } from '@/lib/cop-auth'
 import { Sparkles, Loader2, Check, AlertCircle, X, ThumbsUp, ThumbsDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -110,7 +111,7 @@ export function AICOGAssistant({
 
       const response = await fetch('/api/ai/cog-analysis', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCopHeaders(),
         body: JSON.stringify(requestPayload),
         signal: controller.signal
       })

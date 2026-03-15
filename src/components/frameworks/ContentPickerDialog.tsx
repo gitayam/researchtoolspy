@@ -6,6 +6,7 @@
  */
 
 import { useState, useEffect } from 'react'
+import { getCopHeaders } from '@/lib/cop-auth'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -54,7 +55,7 @@ export function ContentPickerDialog({
         // Fetch from content library API
         const response = await fetch('/api/content-library', {
           method: 'GET',
-          headers: { 'Content-Type': 'application/json' }
+          headers: getCopHeaders()
         })
 
         if (!response.ok) {

@@ -13,6 +13,7 @@ import type {
   ModelSettings
 } from './config'
 import { defaultAIConfig, estimateRequestCost, MODEL_CAPABILITIES } from './config'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 export interface GenerateParams {
   prompt: string
@@ -346,7 +347,7 @@ export class BrowserAIClient {
   async generate(params: Omit<GenerateParams, 'systemPrompt'>): Promise<GenerateResponse> {
     const response = await fetch(`${this.baseURL}/generate`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getCopHeaders(),
       body: JSON.stringify(params)
     })
 
@@ -361,7 +362,7 @@ export class BrowserAIClient {
   async generateBatch(params: BatchGenerateParams): Promise<BatchGenerateResponse> {
     const response = await fetch(`${this.baseURL}/generate-batch`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getCopHeaders(),
       body: JSON.stringify(params)
     })
 
@@ -376,7 +377,7 @@ export class BrowserAIClient {
   async summarize(content: string, mode: 'executive' | 'standard' | 'comprehensive' = 'standard'): Promise<string> {
     const response = await fetch(`${this.baseURL}/summarize`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getCopHeaders(),
       body: JSON.stringify({ content, mode })
     })
 
@@ -391,7 +392,7 @@ export class BrowserAIClient {
   async generateQuestions(context: Parameters<AIClient['generateQuestions']>[0]): Promise<string[]> {
     const response = await fetch(`${this.baseURL}/questions`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getCopHeaders(),
       body: JSON.stringify(context)
     })
 
@@ -406,7 +407,7 @@ export class BrowserAIClient {
   async formatContent(content: string): Promise<string> {
     const response = await fetch(`${this.baseURL}/format`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getCopHeaders(),
       body: JSON.stringify({ content })
     })
 

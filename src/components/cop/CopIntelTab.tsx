@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react'
+import { getCopHeaders } from '@/lib/cop-auth'
 import { Link, Loader2, ExternalLink } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -51,7 +52,7 @@ export default function CopIntelTab({ session, onSessionUpdate }: CopIntelTabPro
     try {
       const res = await fetch('/api/content-intelligence/analyze-url', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCopHeaders(),
         body: JSON.stringify({ url: trimmed, workspace_id: session.id }),
       })
 

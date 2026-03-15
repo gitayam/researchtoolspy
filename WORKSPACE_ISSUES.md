@@ -15,6 +15,11 @@
 | 484 | **comments.ts GET** — No auth check, anyone can read all comments for any entity. Fixed: added getUserFromRequest + 401 gate | FIXED |
 | 485 | **activity.ts GET** — `X-Workspace-ID` header trusted without workspace membership check. Any user can read any workspace's activity feed. Fixed: added workspace_members ownership check + 403 | FIXED |
 
+### HIGH — FRONTEND: 113 MORE FETCH CALLS MISSING AUTH HEADERS (BATCH 2)
+| # | Issue | Status |
+|---|-------|--------|
+| 489 | **37 files, ~113 fetch calls** — POST/PUT/DELETE calls across pages, hooks, and components still missing `X-User-Hash`. Includes core AI utilities (client.ts, useAI, useCOGAI), all ACH pages, entity pages, COP components (RfiTab, Wizard, IntelTab), framework components, and tool pages. Fixed: added `getCopHeaders()` import + usage to all 37 files | FIXED |
+
 ### HIGH — BATCH ARRAY CAPS
 | # | Issue | Status |
 |---|-------|--------|

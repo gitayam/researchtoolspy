@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { getCopHeaders } from '@/lib/cop-auth'
 import { Sparkles, Loader2, Plus, AlertCircle, RotateCcw, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -45,9 +46,7 @@ export function AITimelineGenerator({
       // Call backend API endpoint
       const response = await fetch('/api/ai/generate-timeline', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: getCopHeaders(),
         body: JSON.stringify(requestPayload)
       })
 

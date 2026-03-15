@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
+import { getCopHeaders } from '@/lib/cop-auth'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -110,7 +111,7 @@ export default function SubmissionsReviewPage() {
     try {
       const response = await fetch('/api/research/submissions/process', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCopHeaders(),
         body: JSON.stringify({
           submissionId: processDialog.submissionId,
           verificationStatus: processDialog.verificationStatus,

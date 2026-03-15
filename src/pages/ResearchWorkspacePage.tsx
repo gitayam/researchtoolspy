@@ -15,6 +15,7 @@ import {
   ClipboardList
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 interface WorkflowStage {
   id: string
@@ -124,7 +125,7 @@ export default function ResearchWorkspacePage() {
     try {
       const response = await fetch('/api/research/workflow/init', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCopHeaders(),
         body: JSON.stringify({
           researchQuestionId: workspace.researchQuestionId,
           researchContext: workspace.researchContext

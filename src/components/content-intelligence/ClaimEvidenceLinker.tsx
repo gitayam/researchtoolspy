@@ -137,7 +137,7 @@ export function ClaimEvidenceLinker({ claimAdjustmentId, onLinked }: ClaimEviden
       setLinking(true)
       const response = await fetch('/api/claims/link-evidence', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCopHeaders(),
         credentials: 'include',
         body: JSON.stringify({
           claim_adjustment_id: claimAdjustmentId,

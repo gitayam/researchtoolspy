@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import type { ExtractionMode, ScrapingResult } from '@/types/scraper'
 import { cn } from '@/lib/utils'
 import { useTranslation } from 'react-i18next'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 export function WebScraperPage() {
   const { t } = useTranslation(['scraper'])
@@ -31,7 +32,7 @@ export function WebScraperPage() {
     try {
       const response = await fetch('/api/web-scraper', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCopHeaders(),
         body: JSON.stringify({
           url,
           extract_mode: extractMode,
@@ -59,7 +60,7 @@ export function WebScraperPage() {
     try {
       const response = await fetch('/api/datasets', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCopHeaders(),
         body: JSON.stringify({
           title: result.title || result.domain,
           description: result.description || `Content from ${result.domain}`,

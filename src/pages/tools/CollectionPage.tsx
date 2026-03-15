@@ -59,6 +59,7 @@ import type {
   ApproveResultsResponse,
   CollectionResultsSummary,
 } from '@/types/collection'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 // ============================================
 // Constants
@@ -101,7 +102,7 @@ const collectionKeys = {
 async function startCollection(request: CollectionJobRequest): Promise<CollectionJobResponse> {
   const response = await fetch('/api/collection/start', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getCopHeaders(),
     body: JSON.stringify(request),
   })
   if (!response.ok) {
@@ -145,7 +146,7 @@ async function approveResults(
 ): Promise<ApproveResultsResponse & { batchJobId?: string; urls?: number }> {
   const response = await fetch(`/api/collection/${jobId}/approve`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getCopHeaders(),
     body: JSON.stringify(request),
   })
   if (!response.ok) {

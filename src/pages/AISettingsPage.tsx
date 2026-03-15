@@ -15,6 +15,7 @@ import { Sparkles, DollarSign, Zap, AlertCircle, CheckCircle, Settings, BarChart
 import type { AIConfiguration, AIModel } from '@/lib/ai/config'
 import { MODEL_PRICING } from '@/lib/ai/config'
 import { useTranslation } from 'react-i18next'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 // API response type extends AIConfiguration with additional runtime fields
 interface AIConfigResponse extends AIConfiguration {
@@ -60,7 +61,7 @@ export function AISettingsPage() {
 
       const response = await fetch('/api/ai/config', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCopHeaders(),
         body: JSON.stringify(config)
       })
 

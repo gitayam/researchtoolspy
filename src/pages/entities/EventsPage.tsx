@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { EventForm } from '@/components/entities/EventForm'
 import { EventDetailView } from '@/components/entities/EventDetailView'
+import { getCopHeaders } from '@/lib/cop-auth'
 import type { Event, EventType } from '@/types/entities'
 
 export function EventsPage() {
@@ -84,7 +85,7 @@ export function EventsPage() {
   const handleCreateEvent = async (data: Partial<Event>) => {
     const response = await fetch('/api/events', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getCopHeaders(),
       body: JSON.stringify({ ...data, workspace_id: workspaceId })
     })
 
@@ -103,7 +104,7 @@ export function EventsPage() {
 
     const response = await fetch(`/api/events/${editingEvent.id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getCopHeaders(),
       body: JSON.stringify(data)
     })
 
@@ -128,7 +129,8 @@ export function EventsPage() {
 
     try {
       const response = await fetch(`/api/events/${currentEvent.id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: getCopHeaders(),
       })
 
       if (response.ok) {

@@ -13,6 +13,7 @@ import {
 import type { ACHAnalysis } from '@/types/ach'
 import { ACHMatrix } from '@/components/ach/ACHMatrix'
 import { ACHAnalysisForm, type ACHFormData } from '@/components/ach/ACHAnalysisForm'
+import { getCopHeaders } from '@/lib/cop-auth'
 import { ACHShareButton } from '@/components/ach/ACHShareButton'
 import { ACHVisualAnalytics } from '@/components/ach/ACHVisualAnalytics'
 import { ACHPDFExport } from '@/components/ach/ACHPDFExport'
@@ -68,7 +69,7 @@ export function ACHAnalysisPage() {
     try {
       await fetch('/api/ach/scores', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCopHeaders(),
         body: JSON.stringify({
           ach_analysis_id: analysis.id,
           hypothesis_id: hypothesisId,
@@ -97,7 +98,8 @@ export function ACHAnalysisPage() {
 
     try {
       await fetch(`/api/ach/evidence?id=${linkId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: getCopHeaders(),
       })
       await loadAnalysis()
     } catch (error) {
@@ -117,7 +119,7 @@ export function ACHAnalysisPage() {
       // Update analysis
       await fetch(`/api/ach?id=${analysis.id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCopHeaders(),
         body: JSON.stringify({
           title: formData.title,
           description: formData.description,
@@ -134,7 +136,7 @@ export function ACHAnalysisPage() {
         for (const oldHyp of analysis.hypotheses) {
           const stillExists = formData.hypotheses.find(h => h.id === oldHyp.id)
           if (!stillExists) {
-            await fetch(`/api/ach/hypotheses?id=${oldHyp.id}`, { method: 'DELETE' })
+            await fetch(`/api/ach/hypotheses?id=${oldHyp.id}`, { method: 'DELETE', headers: getCopHeaders() })
           }
         }
       }
@@ -143,13 +145,13 @@ export function ACHAnalysisPage() {
         if (hyp.id) {
           await fetch(`/api/ach/hypotheses?id=${hyp.id}`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            headers: getCopHeaders(),
             body: JSON.stringify(hyp)
           })
         } else {
           await fetch('/api/ach/hypotheses', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: getCopHeaders(),
             body: JSON.stringify({ ...hyp, ach_analysis_id: analysis.id })
           })
         }
@@ -165,7 +167,8 @@ export function ACHAnalysisPage() {
           const link = analysis.evidence?.find(e => e.evidence_id === evidenceId)
           if (link?.link_id) {
             await fetch(`/api/ach/evidence?id=${link.link_id}`, {
-              method: 'DELETE'
+              method: 'DELETE',
+              headers: getCopHeaders(),
             })
           }
         }
@@ -176,7 +179,7 @@ export function ACHAnalysisPage() {
         if (!currentLinks.includes(evidenceId)) {
           await fetch('/api/ach/evidence', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: getCopHeaders(),
             body: JSON.stringify({
               ach_analysis_id: analysis.id,
               evidence_id: evidenceId

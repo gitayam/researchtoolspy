@@ -285,7 +285,7 @@ export default function ContentIntelligencePage() {
     try {
       const response = await fetch('/api/content-intelligence/summarize-entity', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCopHeaders(),
         body: JSON.stringify({
           content: analysis.extracted_text,
           entity_name: entityName,
@@ -617,7 +617,7 @@ export default function ContentIntelligencePage() {
       setSaveLoading(true)
       const response = await fetch('/api/content-intelligence/share', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCopHeaders(),
         body: JSON.stringify({ analysisId: analysis.id })
       })
 
@@ -824,7 +824,7 @@ ${shortSummary}`
         logger.info('Creating share link in background for next copy')
         fetch('/api/content-intelligence/share', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getCopHeaders(),
           body: JSON.stringify({ analysisId: analysis.id })
         })
           .then(response => response.ok ? response.json() : null)
@@ -1260,7 +1260,7 @@ ${shortSummary}`
 
         const response = await fetch('/api/content-intelligence/saved-links', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getCopHeaders(),
           body: JSON.stringify({
             url,
             note: saveNote || undefined,
@@ -1576,7 +1576,7 @@ ${shortSummary}`
 
       const response = await fetch('/api/ach/from-content-intelligence', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCopHeaders(),
         body: JSON.stringify({
           analysis_id: analysisId
         })
@@ -2007,7 +2007,7 @@ ${shortSummary}`
     try {
       const response = await fetch('/api/content-intelligence/domain-country', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCopHeaders(),
         body: JSON.stringify({ url: urlToLookup })
       })
 
@@ -2049,7 +2049,7 @@ ${shortSummary}`
     try {
       const response = await fetch('/api/content-intelligence/virustotal-lookup', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCopHeaders(),
         body: JSON.stringify({ url })
       })
 
@@ -2105,7 +2105,7 @@ ${shortSummary}`
     try {
       const response = await fetch('/api/content-intelligence/answer-question', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCopHeaders(),
         body: JSON.stringify({
           analysis_id: analysis.id,
           question: question.trim()
@@ -2157,7 +2157,7 @@ ${shortSummary}`
 
       const response = await fetch('/api/content-intelligence/social-media-extract', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCopHeaders(),
         body: JSON.stringify({
           url,
           platform: analysis?.social_platform,
@@ -2218,7 +2218,7 @@ ${shortSummary}`
 
       const response = await fetch('/api/content-intelligence/git-repository-extract', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCopHeaders(),
         body: JSON.stringify({ url })
       })
 
@@ -5207,7 +5207,7 @@ ${shortSummary}`
                               setProcessing(true)
                               const response = await fetch(`/api/content-intelligence/analyze-url`, {
                                 method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
+                                headers: getCopHeaders(),
                                 body: JSON.stringify({
                                   url: link.url,
                                   load_existing: true,
@@ -5256,7 +5256,7 @@ ${shortSummary}`
 
                                 const response = await fetch('/api/content-intelligence/starbursting', {
                                   method: 'POST',
-                                  headers: { 'Content-Type': 'application/json' },
+                                  headers: getCopHeaders(),
                                   body: JSON.stringify({
                                     analysis_ids: [link.analysis_id],
                                     title: link.title || 'Content Analysis'

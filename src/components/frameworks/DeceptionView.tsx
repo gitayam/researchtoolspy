@@ -314,7 +314,7 @@ export function DeceptionView({
         const evidenceIds = dataItems.map(item => item.entity_id)
         const response = await fetch('/api/framework-evidence', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getCopHeaders(),
           body: JSON.stringify({
             framework_id: data.id,
             evidence_ids: evidenceIds
@@ -333,7 +333,7 @@ export function DeceptionView({
 
         const response = await fetch('/api/framework-entities', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getCopHeaders(),
           body: JSON.stringify({
             framework_id: data.id,
             entities
@@ -424,7 +424,7 @@ export function DeceptionView({
 
       const response = await fetch(`/api/actors/${actorId}/deception`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCopHeaders(),
         body: JSON.stringify(deceptionProfile)
       })
 

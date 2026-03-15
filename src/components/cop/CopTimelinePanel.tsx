@@ -227,7 +227,7 @@ export default function CopTimelinePanel({ sessionId, expanded, onScrollToPanel 
       const timeout = setTimeout(() => controller.abort(), 2000)
       const res = await fetch('/api/tools/classify-timeline-entry', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCopHeaders(),
         body: JSON.stringify({ text, today: new Date().toISOString().slice(0, 10) }),
         signal: controller.signal,
       })

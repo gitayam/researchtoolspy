@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { getCopHeaders } from '@/lib/cop-auth'
 import { Save, X, Search, ArrowRight, Calendar as CalendarIcon, Sparkles, CheckCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -163,7 +164,7 @@ export function RelationshipForm({
     try {
       const response = await fetch('/api/relationships/infer-type', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCopHeaders(),
         body: JSON.stringify({
           source_entity_id: formData.source_entity_id,
           source_entity_type: formData.source_entity_type,

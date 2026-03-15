@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { getCopHeaders } from '@/lib/cop-auth'
 import {
   HelpCircle,
   Plus,
@@ -116,7 +117,7 @@ export default function CopRfiTab({ sessionId, onRfiCountChange }: CopRfiTabProp
     try {
       const res = await fetch(`/api/cop/${sessionId}/rfis`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCopHeaders(),
         body: JSON.stringify({
           question: trimmed,
           priority: newPriority,
@@ -145,7 +146,7 @@ export default function CopRfiTab({ sessionId, onRfiCountChange }: CopRfiTabProp
       try {
         await fetch(`/api/cop/${sessionId}/rfis/${rfiId}/answers`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getCopHeaders(),
           body: JSON.stringify({ answer_id: answerId, is_accepted: true }),
         })
         await fetchRfis()
@@ -172,7 +173,7 @@ export default function CopRfiTab({ sessionId, onRfiCountChange }: CopRfiTabProp
       try {
         const res = await fetch(`/api/cop/${sessionId}/rfis/${rfiId}/answers`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getCopHeaders(),
           body: JSON.stringify({
             answer_text: trimmed,
             source_url: answerSource.trim() || undefined,
@@ -206,7 +207,7 @@ export default function CopRfiTab({ sessionId, onRfiCountChange }: CopRfiTabProp
       try {
         await fetch(`/api/cop/${sessionId}/rfis`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getCopHeaders(),
           body: JSON.stringify({ id: rfiId, is_blocker: newValue }),
         })
       } catch {
@@ -230,7 +231,7 @@ export default function CopRfiTab({ sessionId, onRfiCountChange }: CopRfiTabProp
       try {
         await fetch(`/api/cop/${sessionId}/rfis`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getCopHeaders(),
           body: JSON.stringify({ id: rfiId, status: newStatus }),
         })
         await fetchRfis()
@@ -248,7 +249,7 @@ export default function CopRfiTab({ sessionId, onRfiCountChange }: CopRfiTabProp
       try {
         await fetch(`/api/cop/${sessionId}/rfis`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getCopHeaders(),
           body: JSON.stringify({ id: rfiId, assigned_to: assignedTo || null }),
         })
         await fetchRfis()

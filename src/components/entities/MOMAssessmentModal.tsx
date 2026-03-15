@@ -1,3 +1,4 @@
+import { getCopHeaders } from '@/lib/cop-auth'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { MOMAssessmentForm } from './MOMAssessmentForm'
 import type { MOMAssessment, CreateMOMAssessmentRequest, UpdateMOMAssessmentRequest } from '@/types/entities'
@@ -33,7 +34,7 @@ export function MOMAssessmentModal({
 
       const response = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCopHeaders(),
         body: JSON.stringify(data)
       })
 

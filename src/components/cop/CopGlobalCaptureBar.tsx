@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
+import { getCopHeaders } from '@/lib/cop-auth'
 import { Link, Brain, Loader2, Sparkles, Command, MapPin } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -51,7 +52,7 @@ export default function CopGlobalCaptureBar({ sessionId, onSuccess, onLocationDe
 
       const res = await fetch(endpoint, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCopHeaders(),
         body: JSON.stringify(body),
       })
 

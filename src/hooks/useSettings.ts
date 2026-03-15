@@ -14,6 +14,7 @@ import type {
   SettingUpdate,
 } from '@/types/settings'
 import { DEFAULT_USER_SETTINGS } from '@/types/settings'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 const STORAGE_PREFIX = 'settings_'
 
@@ -105,7 +106,7 @@ export function useSettings(): UseSettingsReturn {
 
       // Try to load from API
       const response = await fetch('/api/settings/user', {
-        headers: buildHeaders(hash),
+        headers: getCopHeaders(),
       })
 
       if (response.ok) {
@@ -171,7 +172,7 @@ export function useSettings(): UseSettingsReturn {
         // Send to API
         const response = await fetch('/api/settings/user', {
           method: 'PUT',
-          headers: buildHeaders(hash),
+          headers: getCopHeaders(),
           body: JSON.stringify({
             [category]: newSettings[category as keyof UserSettings],
           }),
@@ -244,7 +245,7 @@ export function useSettings(): UseSettingsReturn {
     try {
       const response = await fetch('/api/settings/user', {
         method: 'DELETE',
-        headers: buildHeaders(hash),
+        headers: getCopHeaders(),
       })
 
       if (!response.ok) {

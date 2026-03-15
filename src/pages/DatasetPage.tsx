@@ -11,6 +11,7 @@ import { DatasetType, DatasetStatus, CredibilityLevel } from '@/types/dataset'
 import { cn } from '@/lib/utils'
 import { DatasetForm } from '@/components/datasets/DatasetForm'
 import { useTranslation } from 'react-i18next'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 // Mock data - will be replaced with API calls
 const mockDataset: Dataset[] = []
@@ -63,14 +64,14 @@ export function DatasetPage() {
       if (formMode === 'edit' && editingDataset?.id) {
         const response = await fetch(`/api/dataset?id=${editingDataset.id}`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getCopHeaders(),
           body: JSON.stringify(payload)
         })
         if (!response.ok) throw new Error(t('dataset:alerts.updateFailed'))
       } else {
         const response = await fetch('/api/dataset', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getCopHeaders(),
           body: JSON.stringify(payload)
         })
         if (!response.ok) throw new Error(t('dataset:alerts.createFailed'))
@@ -90,7 +91,8 @@ export function DatasetPage() {
 
     try {
       const response = await fetch(`/api/dataset?id=${id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: getCopHeaders(),
       })
       if (response.ok) {
         await loadDataset()

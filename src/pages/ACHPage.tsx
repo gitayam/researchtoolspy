@@ -9,6 +9,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import type { ACHAnalysis, AnalysisStatus } from '@/types/ach'
 import { cn } from '@/lib/utils'
 import { useNavigate } from 'react-router-dom'
+import { getCopHeaders } from '@/lib/cop-auth'
 import { ACHAnalysisForm, type ACHFormData } from '@/components/ach/ACHAnalysisForm'
 import { ACHWizard } from '@/components/ach/ACHWizard'
 import { frameworkDescriptions } from '@/config/framework-descriptions'
@@ -52,7 +53,8 @@ export function ACHPage() {
 
     try {
       const response = await fetch(`/api/ach?id=${id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: getCopHeaders(),
       })
       if (response.ok) {
         await loadAnalyses()
@@ -90,7 +92,7 @@ export function ACHPage() {
         // Update existing analysis
         const response = await fetch(`/api/ach?id=${editingAnalysis.id}`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getCopHeaders(),
           body: JSON.stringify({
             title: formData.title,
             description: formData.description,
@@ -109,7 +111,7 @@ export function ACHPage() {
           for (const oldHyp of editingAnalysis.hypotheses) {
             const stillExists = formData.hypotheses.find(h => h.id === oldHyp.id)
             if (!stillExists) {
-              await fetch(`/api/ach/hypotheses?id=${oldHyp.id}`, { method: 'DELETE' })
+              await fetch(`/api/ach/hypotheses?id=${oldHyp.id}`, { method: 'DELETE', headers: getCopHeaders() })
             }
           }
         }
@@ -120,14 +122,14 @@ export function ACHPage() {
             // Update existing
             await fetch(`/api/ach/hypotheses?id=${hyp.id}`, {
               method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
+              headers: getCopHeaders(),
               body: JSON.stringify(hyp)
             })
           } else {
             // Create new
             await fetch('/api/ach/hypotheses', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: getCopHeaders(),
               body: JSON.stringify({
                 ...hyp,
                 ach_analysis_id: editingAnalysis.id
@@ -147,7 +149,8 @@ export function ACHPage() {
             const link = editingAnalysis.evidence?.find(e => e.evidence_id === evidenceId)
             if (link?.link_id) {
               await fetch(`/api/ach/evidence?id=${link.link_id}`, {
-                method: 'DELETE'
+                method: 'DELETE',
+                headers: getCopHeaders(),
               })
             }
           }
@@ -158,7 +161,7 @@ export function ACHPage() {
           if (!currentLinks.includes(evidenceId)) {
             await fetch('/api/ach/evidence', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: getCopHeaders(),
               body: JSON.stringify({
                 ach_analysis_id: editingAnalysis.id,
                 evidence_id: evidenceId
@@ -170,7 +173,7 @@ export function ACHPage() {
         // Create new analysis
         const response = await fetch('/api/ach', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getCopHeaders(),
           body: JSON.stringify({
             title: formData.title,
             description: formData.description,
@@ -189,7 +192,7 @@ export function ACHPage() {
         for (const hyp of formData.hypotheses) {
           await fetch('/api/ach/hypotheses', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: getCopHeaders(),
             body: JSON.stringify({
               ...hyp,
               ach_analysis_id: newAnalysis.id
@@ -202,7 +205,7 @@ export function ACHPage() {
           for (const evidenceId of formData.evidence_ids) {
             await fetch('/api/ach/evidence', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: getCopHeaders(),
               body: JSON.stringify({
                 ach_analysis_id: newAnalysis.id,
                 evidence_id: evidenceId
@@ -232,7 +235,7 @@ export function ACHPage() {
     try {
       const response = await fetch('/api/ach', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCopHeaders(),
         body: JSON.stringify(data)
       })
 

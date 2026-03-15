@@ -1,5 +1,6 @@
 import { useState, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { getCopHeaders } from '@/lib/cop-auth'
 import {
   Zap,
   Radio,
@@ -277,7 +278,7 @@ export default function CopWizard({ onClose }: CopWizardProps) {
 
       const res = await fetch('/api/cop/sessions', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCopHeaders(),
         body: JSON.stringify(body),
       })
 

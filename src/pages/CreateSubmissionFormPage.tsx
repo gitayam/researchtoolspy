@@ -9,6 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
 import { ArrowLeft, Copy, CheckCircle2, AlertCircle, Link as LinkIcon, Lock, Settings } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 interface FormData {
   formName: string
@@ -86,7 +87,7 @@ export default function CreateSubmissionFormPage() {
 
       const response = await fetch('/api/research/forms/create', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCopHeaders(),
         body: JSON.stringify({
           formName: formData.formName,
           formDescription: formData.formDescription || undefined,

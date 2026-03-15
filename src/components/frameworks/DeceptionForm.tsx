@@ -5,6 +5,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { getCopHeaders } from '@/lib/cop-auth'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -225,7 +226,7 @@ export function DeceptionForm({
     try {
       const res = await fetch('/api/actors', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCopHeaders(),
         credentials: 'include',
         body: JSON.stringify({
           name: name.trim(),

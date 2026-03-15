@@ -7,6 +7,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import type { AIConfiguration, AIModel, AIUseCase } from '@/lib/ai/config'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 export interface GenerateParams {
   prompt: string
@@ -86,7 +87,7 @@ export function useAI() {
     try {
       const response = await fetch('/api/ai/generate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCopHeaders(),
         body: JSON.stringify(params)
       })
 
@@ -125,7 +126,7 @@ export function useAI() {
     try {
       const response = await fetch('/api/ai/summarize', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCopHeaders(),
         body: JSON.stringify({ content, mode })
       })
 
@@ -163,7 +164,7 @@ export function useAI() {
     try {
       const response = await fetch('/api/ai/questions', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCopHeaders(),
         body: JSON.stringify(context)
       })
 
@@ -320,7 +321,7 @@ export function useBatchFieldAI(
       try {
         const response = await fetch('/api/ai/generate', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getCopHeaders(),
           body: JSON.stringify({
             prompt: `Generate content for "${field.name}" field in ${context.framework} framework.`,
             useCase: 'fieldSuggestions'

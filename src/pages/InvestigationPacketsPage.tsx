@@ -31,6 +31,7 @@ import {
   Loader2
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 interface InvestigationPacket {
   id: string
@@ -100,7 +101,7 @@ export function InvestigationPacketsPage() {
       setCreating(true)
       const response = await fetch('/api/investigation-packets/create', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCopHeaders(),
         credentials: 'include',
         body: JSON.stringify({
           title: title.trim(),

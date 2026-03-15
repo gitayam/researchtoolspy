@@ -31,6 +31,7 @@ import type { SavedCitation } from '@/types/citations'
 import { generateCitation } from '@/utils/citation-formatters'
 import { addCitation, generateCitationId } from '@/utils/citation-library'
 import { useNavigate as useNav } from 'react-router-dom'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 export function BatchProcessingPage() {
   const navigate = useNavigate()
@@ -107,7 +108,7 @@ export function BatchProcessingPage() {
     try {
       const response = await fetch('/api/tools/batch-process', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCopHeaders(),
         body: JSON.stringify({
           operation,
           items: urls.map((url, index) => ({
@@ -273,7 +274,7 @@ export function BatchProcessingPage() {
 
       const response = await fetch('/api/datasets', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCopHeaders(),
         body: JSON.stringify(dataset)
       })
 
