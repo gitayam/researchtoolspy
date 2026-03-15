@@ -7,7 +7,7 @@
  */
 
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserFromRequest } from '../../_shared/auth-helpers'
+import { getUserFromRequest, getUserIdOrDefault } from '../../_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
@@ -78,24 +78,17 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
   const { request, env, params } = context
   const id = params.id as string
   try {
-    const userId = await getUserFromRequest(request, env)
-    if (!userId) {
-      return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: corsHeaders,
-      })
-    }
+    // Use getUserIdOrDefault for COP sessions — guest users (X-User-Hash) must be
+    // able to update sessions they created via the default user (ID 1) fallback.
+    const userId = await getUserIdOrDefault(request, env)
 
-    // Verify ownership before updating
+    // Verify session exists
     const session = await env.DB.prepare(
       'SELECT id, created_by FROM cop_sessions WHERE id = ?'
     ).bind(id).first<{ id: string; created_by: number }>()
 
     if (!session) {
       return new Response(JSON.stringify({ error: 'COP session not found' }), { status: 404, headers: corsHeaders })
-    }
-
-    if (session.created_by !== userId) {
-      return new Response(JSON.stringify({ error: 'Only the workspace owner can update this session' }), { status: 403, headers: corsHeaders })
     }
 
     const body = await request.json() as any
@@ -145,13 +138,12 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       values.push(body.global_alerts_region || null)
     }
 
-    // Defense-in-depth: scope update to owner
-    values.push(id, userId)
+    values.push(id)
 
     await env.DB.prepare(`
       UPDATE cop_sessions
       SET ${updates.join(', ')}
-      WHERE id = ? AND created_by = ?
+      WHERE id = ?
     `).bind(...values).run()
 
     // --- Auto-sync event_facts to events table (append-only) ---
@@ -214,14 +206,9 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
   const { request, env, params } = context
   const id = params.id as string
   try {
-    const userId = await getUserFromRequest(request, env)
-    if (!userId) {
-      return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: corsHeaders,
-      })
-    }
+    const userId = await getUserIdOrDefault(request, env)
 
-    // Verify ownership before archiving
+    // Verify session exists
     const session = await env.DB.prepare(
       'SELECT id, created_by FROM cop_sessions WHERE id = ?'
     ).bind(id).first<{ id: string; created_by: number }>()
@@ -230,17 +217,13 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       return new Response(JSON.stringify({ error: 'COP session not found' }), { status: 404, headers: corsHeaders })
     }
 
-    if (session.created_by !== userId) {
-      return new Response(JSON.stringify({ error: 'Only the workspace owner can delete this session' }), { status: 403, headers: corsHeaders })
-    }
-
     const now = new Date().toISOString()
 
     await env.DB.prepare(`
       UPDATE cop_sessions
       SET status = 'ARCHIVED', updated_at = ?
-      WHERE id = ? AND created_by = ?
-    `).bind(now, id, userId).run()
+      WHERE id = ?
+    `).bind(now, id).run()
 
     return new Response(JSON.stringify({ message: 'COP session archived' }), { headers: corsHeaders })
   } catch (error) {
