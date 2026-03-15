@@ -123,8 +123,8 @@ export default function CopAssetPanel({ sessionId, expanded = true, onSelectAsse
       setNewNotes('')
       setShowForm(false)
       await fetchAssets()
-    } catch {
-      // ignore
+    } catch (err) {
+      console.error('[CopAssetPanel] Create asset failed:', err)
     } finally {
       setSubmitting(false)
     }

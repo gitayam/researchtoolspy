@@ -131,8 +131,8 @@ export default function CopRfiTab({ sessionId, onRfiCountChange }: CopRfiTabProp
       setIsBlocker(false)
       setShowForm(false)
       await fetchRfis()
-    } catch {
-      // ignore
+    } catch (err) {
+      console.error('[CopRfiTab] Create RFI failed:', err)
     } finally {
       setSubmitting(false)
     }
@@ -149,8 +149,8 @@ export default function CopRfiTab({ sessionId, onRfiCountChange }: CopRfiTabProp
           body: JSON.stringify({ answer_id: answerId, is_accepted: true }),
         })
         await fetchRfis()
-      } catch {
-        // ignore
+      } catch (err) {
+        console.error('[CopRfiTab] Accept answer failed:', err)
       }
     },
     [sessionId, fetchRfis]
@@ -184,8 +184,8 @@ export default function CopRfiTab({ sessionId, onRfiCountChange }: CopRfiTabProp
         setAnswerSource('')
         setAnswerResponder('')
         await fetchRfis()
-      } catch {
-        // ignore
+      } catch (err) {
+        console.error('[CopRfiTab] Submit answer failed:', err)
       } finally {
         setSubmittingAnswer(false)
       }
@@ -252,8 +252,8 @@ export default function CopRfiTab({ sessionId, onRfiCountChange }: CopRfiTabProp
           body: JSON.stringify({ id: rfiId, assigned_to: assignedTo || null }),
         })
         await fetchRfis()
-      } catch {
-        // ignore
+      } catch (err) {
+        console.error('[CopRfiTab] Assign RFI failed:', err)
       }
     },
     [sessionId, fetchRfis],

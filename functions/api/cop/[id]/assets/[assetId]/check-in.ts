@@ -60,9 +60,15 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const now = new Date().toISOString()
 
     // Update asset
-    await env.DB.prepare(
-      'UPDATE cop_assets SET status = ?, last_checked_at = ?, updated_at = ? WHERE id = ?'
-    ).bind(body.status, now, now, assetId).run()
+    const updateResult = await env.DB.prepare(
+      'UPDATE cop_assets SET status = ?, last_checked_at = ?, updated_at = ? WHERE id = ? AND cop_session_id = ?'
+    ).bind(body.status, now, now, assetId, sessionId).run()
+
+    if (!updateResult.meta.changes || updateResult.meta.changes === 0) {
+      return new Response(JSON.stringify({ error: 'Asset update failed' }), {
+        status: 404, headers: corsHeaders,
+      })
+    }
 
     // Create log entry
     const logId = generateId()

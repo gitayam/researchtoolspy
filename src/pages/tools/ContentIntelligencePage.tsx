@@ -1006,17 +1006,19 @@ ${shortSummary}`
 
     // Check if user came from landing page with a URL to analyze
     const pendingUrl = localStorage.getItem('pending_url_analysis')
+    let timeoutId: ReturnType<typeof setTimeout> | undefined
     if (pendingUrl) {
       setUrl(pendingUrl)
       localStorage.removeItem('pending_url_analysis')
       // Auto-start analysis after a brief delay to allow state to update
-      setTimeout(() => {
+      timeoutId = setTimeout(() => {
         const analyzeButton = document.querySelector('[data-analyze-button]') as HTMLButtonElement
         if (analyzeButton) {
           analyzeButton.click()
         }
       }, 800)
     }
+    return () => { if (timeoutId) clearTimeout(timeoutId) }
   }, [])
 
   const loadSavedLinks = async () => {

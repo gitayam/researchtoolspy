@@ -210,8 +210,8 @@ export default function CopTaskBoard({ sessionId, expanded = true }: CopTaskBoar
       setNewAssignedTo('')
       setShowForm(false)
       await fetchTasks()
-    } catch {
-      // ignore
+    } catch (err) {
+      console.error('[CopTaskBoard] Create task failed:', err)
     } finally {
       setSubmitting(false)
     }

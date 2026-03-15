@@ -58,8 +58,8 @@ export default function CopSubmissionInbox({ sessionId, expanded }: CopSubmissio
       })
       if (!res.ok) throw new Error('Failed to triage')
       await fetchSubmissions()
-    } catch {
-      // Silent fail
+    } catch (err) {
+      console.error('[CopSubmissionInbox] Triage failed:', err)
     }
   }, [sessionId, fetchSubmissions])
 

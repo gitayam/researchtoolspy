@@ -1,6 +1,29 @@
 # Site Issues — Investigation Report
 
-**Last updated:** 2026-03-14 (Sessions 34-72)
+**Last updated:** 2026-03-14 (Sessions 34-73)
+
+## Fixed — v0.18.1 (Session 73)
+
+### DATA INTEGRITY — MISSING meta.changes VALIDATION (HIGH)
+| # | Issue | Status |
+|---|-------|--------|
+| 364 | **rfis.ts PUT returns 200 for non-existent RFI** — `UPDATE cop_rfis SET ... WHERE id = ?` didn't check `meta.changes`. If `body.id` doesn't match, silently returns success. Fixed: check `meta.changes > 0`, return 404 if no rows updated | FIXED |
+| 365 | **check-in.ts UPDATE missing session scope** — `UPDATE cop_assets SET ... WHERE id = ?` lacked `AND cop_session_id = ?`, allowing cross-session asset status updates. Fixed: added session scope + meta.changes validation | FIXED |
+
+### DEBUGGABILITY — SILENT ERROR CATCHES (MEDIUM)
+| # | Issue | Status |
+|---|-------|--------|
+| 366 | **CopRfiTab silent catches on create/answer/accept/assign** — 4 catch blocks with `// ignore` swallow errors completely, making failures invisible to developers. Fixed: added console.error with component context | FIXED |
+| 367 | **CopTaskBoard silent catch on create** — Same pattern. Fixed: added console.error | FIXED |
+| 368 | **CopAssetPanel silent catch on create** — Same pattern. Fixed: added console.error | FIXED |
+| 369 | **CopSubmissionInbox silent catch on triage** — Same pattern. Fixed: added console.error | FIXED |
+
+### MEMORY LEAK — UNCLEANED setTimeout (LOW)
+| # | Issue | Status |
+|---|-------|--------|
+| 370 | **ContentIntelligencePage setTimeout without cleanup** — `setTimeout` for auto-analyze on pending URL never cleared if component unmounts during 800ms delay. Fixed: store timeout ID and clear in useEffect cleanup | FIXED |
+
+---
 
 ## Fixed — v0.18.0 (Session 72)
 

@@ -170,9 +170,15 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       vals.push(body.assigned_to || null)
     }
 
-    await env.DB.prepare(
+    const updateResult = await env.DB.prepare(
       `UPDATE cop_rfis SET ${sets.join(', ')} WHERE id = ? AND cop_session_id = ?`
     ).bind(...vals, body.id, sessionId).run()
+
+    if (!updateResult.meta.changes || updateResult.meta.changes === 0) {
+      return new Response(JSON.stringify({ error: 'RFI not found' }), {
+        status: 404, headers: corsHeaders,
+      })
+    }
 
     // If an answer is provided, insert into cop_rfi_answers and seed evidence
     if (body.answer?.trim()) {
