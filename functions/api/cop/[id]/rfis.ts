@@ -6,7 +6,7 @@
  * PUT  /api/cop/:id/rfis - Update RFI (status, priority, answer)
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserFromRequest } from '../../_shared/auth-helpers'
+import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-helpers'
 import { emitCopEvent } from '../../_shared/cop-events'
 import { RFI_CREATED, RFI_ANSWERED, RFI_CLOSED } from '../../_shared/cop-event-types'
 
@@ -28,6 +28,15 @@ function generateId(): string {
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   const { env, params } = context
   const sessionId = params.id as string
+
+  const userId = await getUserFromRequest(context.request, context.env)
+  if (!userId) {
+    return new Response(JSON.stringify({ error: 'Authentication required' }), { status: 401, headers: corsHeaders })
+  }
+  const accessWorkspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId, { readOnly: true })
+  if (!accessWorkspaceId) {
+    return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
+  }
 
   try {
     const rfis = await env.DB.prepare(`
@@ -86,6 +95,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         status: 401, headers: corsHeaders,
       })
     }
+    const postWorkspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId)
+    if (!postWorkspaceId) {
+      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
+    }
     const body = await request.json() as any
 
     if (!body.question?.trim()) {
@@ -135,6 +148,10 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
         status: 401, headers: corsHeaders,
       })
+    }
+    const putWorkspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId)
+    if (!putWorkspaceId) {
+      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
     }
     const body = await request.json() as any
 

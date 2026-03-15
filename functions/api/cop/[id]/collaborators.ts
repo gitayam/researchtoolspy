@@ -9,7 +9,7 @@
  */
 
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserFromRequest } from '../../_shared/auth-helpers'
+import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-helpers'
 import { emitCopEvent } from '../../_shared/cop-events'
 import { COLLABORATOR_ADDED, COLLABORATOR_REMOVED } from '../../_shared/cop-event-types'
 
@@ -20,12 +20,35 @@ interface Env {
 
 // GET - List collaborators for a COP session
 export const onRequestGet: PagesFunction<Env> = async (context) => {
-  const { env, params } = context
+  const { env, params, request } = context
   const sessionId = params.id as string
 
   try {
+    const userId = await getUserFromRequest(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      })
+    }
+    const workspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId, { readOnly: true })
+    if (!workspaceId) {
+      return new Response(JSON.stringify({ error: 'Access denied' }), {
+        status: 403, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      })
+    }
+
+    // Check if user is session owner — non-owners must not see invite_token
+    const session = await env.DB.prepare(
+      'SELECT created_by FROM cop_sessions WHERE id = ?'
+    ).bind(sessionId).first<{ created_by: number }>()
+    const isOwner = session && session.created_by === userId
+
+    const columns = isOwner
+      ? '*'
+      : 'id, cop_session_id, user_id, email, role, invited_by, invited_at, accepted_at, skills, max_concurrent, timezone, availability'
+
     const { results } = await env.DB.prepare(
-      `SELECT * FROM cop_collaborators WHERE cop_session_id = ? ORDER BY invited_at DESC LIMIT 200`
+      `SELECT ${columns} FROM cop_collaborators WHERE cop_session_id = ? ORDER BY invited_at DESC LIMIT 200`
     ).bind(sessionId).all()
 
     return new Response(JSON.stringify({ collaborators: results ?? [] }), {
@@ -51,6 +74,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
         status: 401, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      })
+    }
+    const accessWorkspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId)
+    if (!accessWorkspaceId) {
+      return new Response(JSON.stringify({ error: 'Access denied' }), {
+        status: 403, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       })
     }
 
@@ -127,6 +156,12 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
         status: 401, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       })
     }
+    const accessWorkspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId)
+    if (!accessWorkspaceId) {
+      return new Response(JSON.stringify({ error: 'Access denied' }), {
+        status: 403, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      })
+    }
 
     const body = await request.json() as {
       collaborator_id: string
@@ -195,6 +230,12 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
         status: 401, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      })
+    }
+    const accessWorkspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId)
+    if (!accessWorkspaceId) {
+      return new Response(JSON.stringify({ error: 'Access denied' }), {
+        status: 403, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       })
     }
 

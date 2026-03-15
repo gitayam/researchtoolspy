@@ -64,7 +64,7 @@ export default function CopRfiTab({ sessionId, onRfiCountChange }: CopRfiTabProp
   const fetchRfis = useCallback(async (isBackground = false, signal?: AbortSignal) => {
     if (isBackground) setPolling(true)
     try {
-      const res = await fetch(`/api/cop/${sessionId}/rfis`, { signal })
+      const res = await fetch(`/api/cop/${sessionId}/rfis`, { headers: getCopHeaders(), signal })
       if (!res.ok) throw new Error('Failed to fetch RFIs')
       const data = await res.json()
       const items: CopRfi[] = data.rfis ?? data ?? []

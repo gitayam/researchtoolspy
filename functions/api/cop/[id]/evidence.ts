@@ -5,7 +5,7 @@
  * POST /api/cop/:id/evidence - Create new evidence item scoped to session's workspace
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserFromRequest } from '../../_shared/auth-helpers'
+import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-helpers'
 import { emitCopEvent } from '../../_shared/cop-events'
 import { EVIDENCE_CREATED } from '../../_shared/cop-event-types'
 import { createTimelineEntry } from '../../_shared/timeline-helper'
@@ -32,13 +32,16 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   const { env, params } = context
   const sessionId = params.id as string
 
+  const userId = await getUserFromRequest(context.request, context.env)
+  if (!userId) {
+    return new Response(JSON.stringify({ error: 'Authentication required' }), { status: 401, headers: corsHeaders })
+  }
+  const workspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId, { readOnly: true })
+  if (!workspaceId) {
+    return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
+  }
+
   try {
-    const workspaceId = await getSessionWorkspaceId(env.DB, sessionId)
-    if (!workspaceId) {
-      return new Response(JSON.stringify({ error: 'COP session not found' }), {
-        status: 404, headers: corsHeaders,
-      })
-    }
 
     const results = await env.DB.prepare(`
       SELECT * FROM evidence_items WHERE workspace_id = ? ORDER BY created_at DESC LIMIT 500
@@ -64,11 +67,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         status: 401, headers: corsHeaders,
       })
     }
-    const workspaceId = await getSessionWorkspaceId(env.DB, sessionId)
+    const workspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId)
     if (!workspaceId) {
-      return new Response(JSON.stringify({ error: 'COP session not found' }), {
-        status: 404, headers: corsHeaders,
-      })
+      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
     }
 
     const body = await request.json() as any

@@ -9,6 +9,7 @@
  */
 
 import type { PagesFunction } from '@cloudflare/workers-types'
+import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
@@ -28,18 +29,18 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   const sessionId = params.id as string
 
   try {
-    // 1. Look up the session to get workspace_id
-    const session = await env.DB.prepare(
-      `SELECT workspace_id FROM cop_sessions WHERE id = ?`
-    ).bind(sessionId).first<{ workspace_id: string }>()
-
-    if (!session) {
-      return new Response(JSON.stringify({ error: 'COP session not found' }), {
-        status: 404, headers: corsHeaders,
+    const userId = await getUserFromRequest(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: corsHeaders,
       })
     }
-
-    const { workspace_id } = session
+    const workspace_id = await verifyCopSessionAccess(env.DB, sessionId, userId, { readOnly: true })
+    if (!workspace_id) {
+      return new Response(JSON.stringify({ error: 'Access denied' }), {
+        status: 403, headers: corsHeaders,
+      })
+    }
 
     // Helper: run a COUNT query, return 0 if table/column is missing
     const safeCount = async (sql: string, ...bindings: any[]): Promise<number> => {

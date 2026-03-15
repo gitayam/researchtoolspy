@@ -191,3 +191,45 @@ export async function requireAuth(
 
   return userId
 }
+
+/**
+ * Verify user has access to a COP session (owner, collaborator, or public reader)
+ * Returns the session's workspace_id on success, null on failure.
+ *
+ * For READ operations (GET), public sessions are accessible to any authenticated user.
+ * For WRITE operations (POST/PUT/DELETE), only owner or collaborator access is granted.
+ *
+ * @param db - D1 database binding
+ * @param sessionId - COP session ID
+ * @param userId - Authenticated user ID
+ * @param options - Optional: { readOnly: true } to allow public session access
+ * @returns workspace_id string if authorized, null if not
+ */
+export async function verifyCopSessionAccess(
+  db: D1Database,
+  sessionId: string,
+  userId: number,
+  options?: { readOnly?: boolean }
+): Promise<string | null> {
+  // Check ownership first (fast path)
+  const session = await db.prepare(
+    'SELECT workspace_id, created_by, is_public FROM cop_sessions WHERE id = ?'
+  ).bind(sessionId).first<{ workspace_id: string; created_by: number; is_public: number }>()
+
+  if (!session) return null
+
+  // Owner always has access
+  if (session.created_by === userId) return session.workspace_id
+
+  // Check collaborator table
+  const collab = await db.prepare(
+    'SELECT 1 FROM cop_collaborators WHERE cop_session_id = ? AND user_id = ?'
+  ).bind(sessionId, userId).first()
+
+  if (collab) return session.workspace_id
+
+  // Public sessions are readable by any authenticated user
+  if (options?.readOnly && session.is_public) return session.workspace_id
+
+  return null
+}

@@ -13,7 +13,7 @@
  */
 
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserFromRequest } from '../../_shared/auth-helpers'
+import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-helpers'
 import { emitCopEvent } from '../../_shared/cop-events'
 import { MARKER_CREATED, MARKER_UPDATED } from '../../_shared/cop-event-types'
 import { createTimelineEntry } from '../../_shared/timeline-helper'
@@ -34,6 +34,15 @@ const corsHeaders = {
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   const { env, params } = context
   const sessionId = params.id as string
+
+  const userId = await getUserFromRequest(context.request, context.env)
+  if (!userId) {
+    return new Response(JSON.stringify({ error: 'Authentication required' }), { status: 401, headers: corsHeaders })
+  }
+  const accessWorkspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId, { readOnly: true })
+  if (!accessWorkspaceId) {
+    return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
+  }
 
   try {
     const rows = await env.DB.prepare(`
@@ -76,10 +85,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         status: 401, headers: corsHeaders,
       })
     }
-    const session = await env.DB.prepare(
-      'SELECT workspace_id FROM cop_sessions WHERE id = ?'
-    ).bind(sessionId).first() as any
-    const workspaceId = session?.workspace_id || request.headers.get('X-Workspace-ID') || sessionId
+    const workspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId)
+    if (!workspaceId) {
+      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
+    }
     const body = await request.json() as any
 
     if (body.lat == null || body.lon == null) {
@@ -190,6 +199,10 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
         status: 401, headers: corsHeaders,
       })
+    }
+    const putWorkspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId)
+    if (!putWorkspaceId) {
+      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
     }
     const body = await request.json() as any
 

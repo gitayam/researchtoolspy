@@ -7,7 +7,7 @@
  * DELETE /api/cop/:id/tasks?task_id=x - Delete task
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserFromRequest } from '../../_shared/auth-helpers'
+import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-helpers'
 import { emitCopEvent } from '../../_shared/cop-events'
 import { TASK_CREATED, TASK_COMPLETED, TASK_STARTED, TASK_BLOCKED, TASK_UNBLOCKED, TASK_DELETED } from '../../_shared/cop-event-types'
 
@@ -34,6 +34,16 @@ const VALID_TASK_TYPES = ['pimeyes', 'geoguessr', 'forensic', 'osint', 'reverse_
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   const { env, params, request } = context
   const sessionId = params.id as string
+
+  const userId = await getUserFromRequest(request, env)
+  if (!userId) {
+    return new Response(JSON.stringify({ error: 'Authentication required' }), { status: 401, headers: corsHeaders })
+  }
+  const accessWorkspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId, { readOnly: true })
+  if (!accessWorkspaceId) {
+    return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
+  }
+
   const url = new URL(request.url)
   const statusFilter = url.searchParams.get('status')
   const assignedFilter = url.searchParams.get('assigned_to')
@@ -85,6 +95,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         status: 401, headers: corsHeaders,
       })
     }
+    const workspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId)
+    if (!workspaceId) {
+      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
+    }
     const body = await request.json() as any
 
     if (!body.title?.trim()) {
@@ -92,13 +106,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         status: 400, headers: corsHeaders,
       })
     }
-
-    // Look up session workspace_id
-    const session = await env.DB.prepare(
-      'SELECT workspace_id FROM cop_sessions WHERE id = ?'
-    ).bind(sessionId).first() as any
-
-    const workspaceId = session?.workspace_id || request.headers.get('X-Workspace-ID') || sessionId
 
     const id = generateId()
     const now = new Date().toISOString()
@@ -181,6 +188,10 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
         status: 401, headers: corsHeaders,
       })
+    }
+    const putWorkspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId)
+    if (!putWorkspaceId) {
+      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
     }
 
     const body = await request.json() as any

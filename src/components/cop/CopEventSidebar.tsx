@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { getCopHeaders } from '@/lib/cop-auth'
 import {
   ClipboardList,
   Link,
@@ -115,7 +116,7 @@ export default function CopEventSidebar({
     const controller = new AbortController()
     async function fetchRfiCount() {
       try {
-        const res = await fetch(`/api/cop/${session.id}/rfis`, { signal: controller.signal })
+        const res = await fetch(`/api/cop/${session.id}/rfis`, { headers: getCopHeaders(), signal: controller.signal })
         if (!res.ok) return
         const data = await res.json()
         const rfis = data.rfis ?? data ?? []

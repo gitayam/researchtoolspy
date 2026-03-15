@@ -6,7 +6,7 @@
  * POST /api/cop/:id/personas/link  - Create a persona link (handled via ?action=link query param)
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserFromRequest } from '../../_shared/auth-helpers'
+import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-helpers'
 import { emitCopEvent } from '../../_shared/cop-events'
 import { PERSONA_CREATED, PERSONA_LINKED } from '../../_shared/cop-event-types'
 import { createTimelineEntry } from '../../_shared/timeline-helper'
@@ -35,10 +35,23 @@ const VALID_STATUSES = ['active', 'suspended', 'deleted', 'unknown']
 const VALID_LINK_TYPES = ['alias', 'operator', 'affiliated', 'unknown']
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
-  const { env, params } = context
+  const { env, params, request } = context
   const sessionId = params.id as string
 
   try {
+    const userId = await getUserFromRequest(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: corsHeaders,
+      })
+    }
+    const workspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId, { readOnly: true })
+    if (!workspaceId) {
+      return new Response(JSON.stringify({ error: 'Access denied' }), {
+        status: 403, headers: corsHeaders,
+      })
+    }
+
     const personas = await env.DB.prepare(`
       SELECT * FROM cop_personas WHERE cop_session_id = ? ORDER BY created_at DESC
     `).bind(sessionId).all()
@@ -94,11 +107,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         status: 401, headers: corsHeaders,
       })
     }
-    // Look up the session's actual workspace_id (don't rely on header default '1')
-    const sessionRow = await env.DB.prepare(
-      `SELECT workspace_id FROM cop_sessions WHERE id = ?`
-    ).bind(sessionId).first<{ workspace_id: string }>()
-    const workspaceId = sessionRow?.workspace_id ?? sessionId
+    const workspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId)
+    if (!workspaceId) {
+      return new Response(JSON.stringify({ error: 'Access denied' }), {
+        status: 403, headers: corsHeaders,
+      })
+    }
     const body = await request.json() as any
 
     // Handle persona link creation

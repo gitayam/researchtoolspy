@@ -6,7 +6,7 @@
  * PUT  /api/cop/:id/hypotheses - Update hypothesis status/confidence
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserFromRequest } from '../../_shared/auth-helpers'
+import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-helpers'
 import { emitCopEvent } from '../../_shared/cop-events'
 import { HYPOTHESIS_CREATED, HYPOTHESIS_UPDATED, HYPOTHESIS_EVIDENCE_LINKED } from '../../_shared/cop-event-types'
 import { createTimelineEntry } from '../../_shared/timeline-helper'
@@ -33,6 +33,15 @@ function generateEvidenceLinkId(): string {
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   const { env, params } = context
   const sessionId = params.id as string
+
+  const userId = await getUserFromRequest(context.request, context.env)
+  if (!userId) {
+    return new Response(JSON.stringify({ error: 'Authentication required' }), { status: 401, headers: corsHeaders })
+  }
+  const accessWorkspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId, { readOnly: true })
+  if (!accessWorkspaceId) {
+    return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
+  }
 
   try {
     const hypotheses = await env.DB.prepare(`
@@ -83,6 +92,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         status: 401, headers: corsHeaders,
       })
     }
+    const postWorkspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId)
+    if (!postWorkspaceId) {
+      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
+    }
     const body = await request.json() as any
 
     // If hypothesis_id is present, this is an "add evidence link" request
@@ -132,12 +145,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    // Look up workspace_id from the session
-    const session = await env.DB.prepare(`
-      SELECT workspace_id FROM cop_sessions WHERE id = ?
-    `).bind(sessionId).first() as any
-
-    const workspaceId = session?.workspace_id ?? sessionId
+    const workspaceId = postWorkspaceId
     const id = generateHypId()
     const now = new Date().toISOString()
     const confidence = typeof body.confidence === 'number' ? Math.max(0, Math.min(100, body.confidence)) : 50
@@ -189,6 +197,10 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
         status: 401, headers: corsHeaders,
       })
+    }
+    const putAccessId = await verifyCopSessionAccess(env.DB, sessionId, userId)
+    if (!putAccessId) {
+      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: corsHeaders })
     }
     const body = await request.json() as any
 

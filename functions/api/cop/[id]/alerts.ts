@@ -5,7 +5,7 @@
  * POST /api/cop/:id/alerts          - Action an alert (dismiss, mark_action, mark_analysis, link_rfi, link_task)
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserFromRequest } from '../../_shared/auth-helpers'
+import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-helpers'
 import { emitCopEvent } from '../../_shared/cop-events'
 import { ALERT_DISMISSED, ALERT_ACTIONED, ALERT_LINKED } from '../../_shared/cop-event-types'
 import { createTimelineEntry } from '../../_shared/timeline-helper'
@@ -123,6 +123,19 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   const severityFilter = url.searchParams.get('severity')
 
   try {
+    const userId = await getUserFromRequest(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: corsHeaders,
+      })
+    }
+    const accessWorkspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId, { readOnly: true })
+    if (!accessWorkspaceId) {
+      return new Response(JSON.stringify({ error: 'Access denied' }), {
+        status: 403, headers: corsHeaders,
+      })
+    }
+
     // 1. Fetch session to check if alerts are enabled and get bbox
     const session = await env.DB.prepare(`
       SELECT id, workspace_id, global_alerts_enabled, global_alerts_region,

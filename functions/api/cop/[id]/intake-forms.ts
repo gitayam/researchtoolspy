@@ -5,7 +5,7 @@
  * POST /api/cop/:id/intake-forms  - Create a new intake form
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserFromRequest } from '../../_shared/auth-helpers'
+import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
@@ -27,12 +27,35 @@ function generateToken(): string {
 }
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
-  const { env, params } = context
+  const { env, params, request } = context
   const sessionId = params.id as string
 
   try {
+    const userId = await getUserFromRequest(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: corsHeaders,
+      })
+    }
+    const workspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId, { readOnly: true })
+    if (!workspaceId) {
+      return new Response(JSON.stringify({ error: 'Access denied' }), {
+        status: 403, headers: corsHeaders,
+      })
+    }
+
+    // Check if user is session owner — non-owners must not see share_token
+    const session = await env.DB.prepare(
+      'SELECT created_by FROM cop_sessions WHERE id = ?'
+    ).bind(sessionId).first<{ created_by: number }>()
+    const isOwner = session && session.created_by === userId
+
+    const columns = isOwner
+      ? '*'
+      : 'id, cop_session_id, title, description, form_schema, status, auto_tag_category, require_location, require_contact, created_by, workspace_id, created_at, updated_at'
+
     const results = await env.DB.prepare(
-      'SELECT * FROM cop_intake_forms WHERE cop_session_id = ? ORDER BY created_at DESC LIMIT 200'
+      `SELECT ${columns} FROM cop_intake_forms WHERE cop_session_id = ? ORDER BY created_at DESC LIMIT 200`
     ).bind(sessionId).all()
 
     const forms = (results.results || []).map((row: any) => {
@@ -57,6 +80,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   if (!userId) {
     return new Response(JSON.stringify({ error: 'Authentication required' }), {
       status: 401, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+    })
+  }
+  const accessWorkspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId)
+  if (!accessWorkspaceId) {
+    return new Response(JSON.stringify({ error: 'Access denied' }), {
+      status: 403, headers: corsHeaders,
     })
   }
 
