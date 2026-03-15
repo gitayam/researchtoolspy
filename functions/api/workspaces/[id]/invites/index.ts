@@ -8,12 +8,12 @@
 
 import { getUserFromRequest } from '../../../_shared/auth-helpers'
 import { canManageWorkspace } from '../../../_shared/workspace-helpers'
+import { JSON_HEADERS } from '../../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
 }
 
-const jsonHeaders = { 'Content-Type': 'application/json' }
 
 function generateInviteToken(): string {
   const chars = 'abcdefghijklmnopqrstuvwxyz0123456789'
@@ -31,13 +31,13 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: jsonHeaders,
+        status: 401, headers: JSON_HEADERS,
       })
     }
 
     if (!await canManageWorkspace(env.DB, workspaceId, userId)) {
       return new Response(JSON.stringify({ error: 'Access denied' }), {
-        status: 403, headers: jsonHeaders,
+        status: 403, headers: JSON_HEADERS,
       })
     }
 
@@ -63,11 +63,11 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       },
     }))
 
-    return new Response(JSON.stringify({ invites }), { headers: jsonHeaders })
+    return new Response(JSON.stringify({ invites }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[workspace-invites] List error:', error)
     return new Response(JSON.stringify({ error: 'Failed to list invites' }), {
-      status: 500, headers: jsonHeaders,
+      status: 500, headers: JSON_HEADERS,
     })
   }
 }
@@ -81,13 +81,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: jsonHeaders,
+        status: 401, headers: JSON_HEADERS,
       })
     }
 
     if (!await canManageWorkspace(env.DB, workspaceId, userId)) {
       return new Response(JSON.stringify({ error: 'Access denied' }), {
-        status: 403, headers: jsonHeaders,
+        status: 403, headers: JSON_HEADERS,
       })
     }
 
@@ -118,11 +118,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       default_role: role,
       expires_at: expiresAt,
       is_active: true,
-    }), { status: 201, headers: jsonHeaders })
+    }), { status: 201, headers: JSON_HEADERS })
   } catch (error) {
     console.error('[workspace-invites] Create error:', error)
     return new Response(JSON.stringify({ error: 'Failed to create invite' }), {
-      status: 500, headers: jsonHeaders,
+      status: 500, headers: JSON_HEADERS,
     })
   }
 }

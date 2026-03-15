@@ -9,6 +9,7 @@ import { getUserFromRequest } from '../_shared/auth-helpers'
 import { getWorkspaceMemberRole } from '../_shared/workspace-helpers'
 import { logActivity } from '../_shared/activity-logger'
 import { notifyWorkspaceMembers } from '../_shared/notification-logger'
+import { JSON_HEADERS } from '../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -16,7 +17,6 @@ interface Env {
   JWT_SECRET?: string
 }
 
-const jsonHeaders = { 'Content-Type': 'application/json' }
 
 interface CreateWorkspaceRequest {
   // Investigation fields
@@ -48,7 +48,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
 
     if (!userId) {
-      return new Response(JSON.stringify({ owned: [], member: [] }), { headers: jsonHeaders })
+      return new Response(JSON.stringify({ owned: [], member: [] }), { headers: JSON_HEADERS })
     }
 
     const { results: ownedWorkspaces } = await env.DB.prepare(`
@@ -72,11 +72,11 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     return new Response(JSON.stringify({
       owned: ownedWorkspaces.map(w => parseWorkspace(w, 'OWNER')),
       member: memberWorkspaces.map(w => parseWorkspace(w, (w as any).role || 'VIEWER')),
-    }), { headers: jsonHeaders })
+    }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[workspaces] List error:', error)
     return new Response(JSON.stringify({ error: 'Failed to list workspaces' }), {
-      status: 500, headers: jsonHeaders,
+      status: 500, headers: JSON_HEADERS,
     })
   }
 }
@@ -90,7 +90,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!userId) {
       return new Response(
         JSON.stringify({ error: 'Authentication required' }),
-        { status: 401, headers: jsonHeaders }
+        { status: 401, headers: JSON_HEADERS }
       )
     }
     const body = (await request.json()) as CreateWorkspaceRequest
@@ -99,14 +99,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!body.title?.trim()) {
       return new Response(
         JSON.stringify({ error: 'Title is required' }),
-        { status: 400, headers: jsonHeaders }
+        { status: 400, headers: JSON_HEADERS }
       )
     }
 
     if (!body.investigation_type || !body.cop_template) {
       return new Response(
         JSON.stringify({ error: 'Missing required fields: investigation_type, cop_template' }),
-        { status: 400, headers: jsonHeaders }
+        { status: 400, headers: JSON_HEADERS }
       )
     }
 
@@ -265,13 +265,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         investigation_id: investigationId,
         cop_session_id: copSessionId,
       }),
-      { status: 201, headers: jsonHeaders }
+      { status: 201, headers: JSON_HEADERS }
     )
   } catch (error) {
     console.error('[workspaces] Create error:', error)
     return new Response(
       JSON.stringify({ error: 'Failed to create workspace' }),
-      { status: 500, headers: jsonHeaders }
+      { status: 500, headers: JSON_HEADERS }
     )
   }
 }

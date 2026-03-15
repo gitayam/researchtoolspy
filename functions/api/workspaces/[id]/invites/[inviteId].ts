@@ -6,12 +6,12 @@
 
 import { getUserFromRequest } from '../../../_shared/auth-helpers'
 import { canManageWorkspace } from '../../../_shared/workspace-helpers'
+import { JSON_HEADERS } from '../../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
 }
 
-const jsonHeaders = { 'Content-Type': 'application/json' }
 
 export const onRequestDelete: PagesFunction<Env> = async (context) => {
   const { request, env, params } = context
@@ -22,13 +22,13 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: jsonHeaders,
+        status: 401, headers: JSON_HEADERS,
       })
     }
 
     if (!await canManageWorkspace(env.DB, workspaceId, userId)) {
       return new Response(JSON.stringify({ error: 'Access denied' }), {
-        status: 403, headers: jsonHeaders,
+        status: 403, headers: JSON_HEADERS,
       })
     }
 
@@ -38,11 +38,11 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       WHERE id = ? AND workspace_id = ?
     `).bind(now, userId, inviteId, workspaceId).run()
 
-    return new Response(JSON.stringify({ message: 'Invite revoked', revoked_at: now }), { headers: jsonHeaders })
+    return new Response(JSON.stringify({ message: 'Invite revoked', revoked_at: now }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[workspace-invites] Revoke error:', error)
     return new Response(JSON.stringify({ error: 'Failed to revoke invite' }), {
-      status: 500, headers: jsonHeaders,
+      status: 500, headers: JSON_HEADERS,
     })
   }
 }

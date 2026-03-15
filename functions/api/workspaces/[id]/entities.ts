@@ -7,13 +7,13 @@
 
 import { getUserFromRequest } from '../../_shared/auth-helpers'
 import { getWorkspaceMemberRole } from '../../_shared/workspace-helpers'
+import { JSON_HEADERS } from '../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
   SESSIONS?: KVNamespace
 }
 
-const jsonHeaders = { 'Content-Type': 'application/json' }
 
 const ENTITY_TABLES = ['actors', 'sources', 'events', 'places', 'behaviors'] as const
 type EntityTable = typeof ENTITY_TABLES[number]
@@ -27,10 +27,10 @@ const TYPE_TO_TABLE: Record<string, EntityTable> = {
 // Each table has different columns for "type" and "category"
 const TABLE_META: Record<EntityTable, { typeCol: string; categoryCol: string }> = {
   actors:    { typeCol: 'type',        categoryCol: 'category' },
-  sources:   { typeCol: 'type',        categoryCol: 'category' },
-  events:    { typeCol: 'type',        categoryCol: 'significance' },
-  places:    { typeCol: 'type',        categoryCol: 'strategic_importance' },
-  behaviors: { typeCol: 'type',        categoryCol: 'sophistication' },
+  sources:   { typeCol: 'type',        categoryCol: 'source_type' },
+  events:    { typeCol: 'event_type',  categoryCol: 'significance' },
+  places:    { typeCol: 'place_type',   categoryCol: 'strategic_importance' },
+  behaviors: { typeCol: 'behavior_type', categoryCol: 'sophistication' },
 }
 
 function buildEntityQuery(
@@ -63,14 +63,14 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: jsonHeaders,
+        status: 401, headers: JSON_HEADERS,
       })
     }
 
     const role = await getWorkspaceMemberRole(env.DB, workspaceId, userId)
     if (!role) {
       return new Response(JSON.stringify({ error: 'Not a workspace member' }), {
-        status: 403, headers: jsonHeaders,
+        status: 403, headers: JSON_HEADERS,
       })
     }
 
@@ -112,11 +112,11 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       total: (countResult?.total as number) || 0,
       limit,
       offset,
-    }), { headers: jsonHeaders })
+    }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[workspace entities] Error:', error)
     return new Response(JSON.stringify({ error: 'Failed to fetch entities' }), {
-      status: 500, headers: jsonHeaders,
+      status: 500, headers: JSON_HEADERS,
     })
   }
 }

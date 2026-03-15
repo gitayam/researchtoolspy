@@ -8,12 +8,12 @@
 
 import { getUserFromRequest } from '../../_shared/auth-helpers'
 import { canManageWorkspace } from '../../_shared/workspace-helpers'
+import { JSON_HEADERS } from '../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
 }
 
-const jsonHeaders = { 'Content-Type': 'application/json' }
 
 // GET — Workspace details
 export const onRequestGet: PagesFunction<Env> = async (context) => {
@@ -29,7 +29,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     if (!workspace) {
       return new Response(JSON.stringify({ error: 'Workspace not found' }), {
-        status: 404, headers: jsonHeaders,
+        status: 404, headers: JSON_HEADERS,
       })
     }
 
@@ -42,7 +42,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     if (!isOwner && !isMember && !workspace.is_public) {
       return new Response(JSON.stringify({ error: 'Access denied' }), {
-        status: 403, headers: jsonHeaders,
+        status: 403, headers: JSON_HEADERS,
       })
     }
 
@@ -50,11 +50,11 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       ...workspace,
       is_public: Boolean(workspace.is_public),
       allow_cloning: Boolean(workspace.allow_cloning),
-    }), { headers: jsonHeaders })
+    }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[workspace] Get error:', error)
     return new Response(JSON.stringify({ error: 'Failed to get workspace' }), {
-      status: 500, headers: jsonHeaders,
+      status: 500, headers: JSON_HEADERS,
     })
   }
 }
@@ -68,13 +68,13 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: jsonHeaders,
+        status: 401, headers: JSON_HEADERS,
       })
     }
 
     if (!await canManageWorkspace(env.DB, workspaceId, userId)) {
       return new Response(JSON.stringify({ error: 'Access denied' }), {
-        status: 403, headers: jsonHeaders,
+        status: 403, headers: JSON_HEADERS,
       })
     }
 
@@ -84,7 +84,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
     if (!workspace) {
       return new Response(JSON.stringify({ error: 'Workspace not found' }), {
-        status: 404, headers: jsonHeaders,
+        status: 404, headers: JSON_HEADERS,
       })
     }
 
@@ -112,11 +112,11 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       ...updated,
       is_public: Boolean(updated!.is_public),
       allow_cloning: Boolean(updated!.allow_cloning),
-    }), { headers: jsonHeaders })
+    }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[workspace] Update error:', error)
     return new Response(JSON.stringify({ error: 'Failed to update workspace' }), {
-      status: 500, headers: jsonHeaders,
+      status: 500, headers: JSON_HEADERS,
     })
   }
 }
@@ -130,7 +130,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: jsonHeaders,
+        status: 401, headers: JSON_HEADERS,
       })
     }
 
@@ -140,13 +140,13 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
 
     if (!workspace) {
       return new Response(JSON.stringify({ error: 'Workspace not found' }), {
-        status: 404, headers: jsonHeaders,
+        status: 404, headers: JSON_HEADERS,
       })
     }
 
     if (workspace.owner_id !== userId) {
       return new Response(JSON.stringify({ error: 'Only workspace owner can delete' }), {
-        status: 403, headers: jsonHeaders,
+        status: 403, headers: JSON_HEADERS,
       })
     }
 
@@ -169,11 +169,11 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       env.DB.prepare('DELETE FROM workspaces WHERE id = ?').bind(workspaceId),
     ])
 
-    return new Response(JSON.stringify({ message: 'Workspace deleted' }), { headers: jsonHeaders })
+    return new Response(JSON.stringify({ message: 'Workspace deleted' }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[workspace] Delete error:', error)
     return new Response(JSON.stringify({ error: 'Failed to delete workspace' }), {
-      status: 500, headers: jsonHeaders,
+      status: 500, headers: JSON_HEADERS,
     })
   }
 }

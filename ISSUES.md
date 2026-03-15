@@ -1,7 +1,35 @@
 # ResearchTools.net — Issue Tracker
 
 **Last updated:** 2026-03-15
-**Current tag:** v0.17.0-cors-cleanup
+**Current tag:** v0.17.1-workspace-query-fix
+
+---
+
+## Fixed (v0.17.1)
+
+### P1 — Workspace Tools Endpoint 500: 3 Wrong Column Names in SQL Queries
+- [x] `workspaces/[id]/tools.ts` — `p.is_active` → `p.status` (cop_playbooks has `status`, not `is_active`)
+- [x] `workspaces/[id]/tools.ts` — `t.task_type` → `t.template_type` (cop_task_templates has `template_type`)
+- [x] `workspaces/[id]/tools.ts` — `f.is_public` → `f.status` (cop_intake_forms has `status`, not `is_public`)
+- **Root cause:** Queries were written with assumed column names that didn't match the actual D1 schema. Previously masked because `team_workspace_id` was always NULL, so queries returned 0 rows and never evaluated the column references.
+
+### P1 — Workspace Entities Endpoint 500: 3 Wrong Column Names in UNION Query
+- [x] `workspaces/[id]/entities.ts` — `behaviors.type` → `behavior_type` (actual column name)
+- [x] `workspaces/[id]/entities.ts` — `places.type` → `place_type` (actual column name)
+- [x] `workspaces/[id]/entities.ts` — `events.type` → `event_type` (actual column name)
+- [x] `workspaces/[id]/entities.ts` — `sources.category` → `source_type` (sources has no `category` column)
+- **Root cause:** TABLE_META mapping assumed generic `type` column names, but entity tables use prefixed names (`behavior_type`, `place_type`, `event_type`). `sources` has no `category` column — the closest match is `source_type`.
+
+### P2 — Workspace Endpoints Queried Only team_workspace_id (Most Are NULL)
+- [x] `workspaces/[id]/cop-sessions.ts` — `WHERE team_workspace_id = ?` → `WHERE team_workspace_id = ? OR workspace_id = ?`
+- [x] `workspaces/[id]/stats.ts` — same fix applied to all COP session queries (3 queries + complex tools count with 6 bind params)
+- [x] `workspaces/[id]/tools.ts` — same fix applied to all 3 queries (playbooks, task templates, intake forms)
+- **Root cause:** Most COP sessions have NULL `team_workspace_id` but valid `workspace_id`. Querying only by `team_workspace_id` returned 0 results for most sessions.
+
+### P2 — 10 Workspace Endpoint Files Had Local jsonHeaders Instead of Shared JSON_HEADERS
+- [x] Migrated 10 workspace files from local `const jsonHeaders = { 'Content-Type': 'application/json' }` to shared `JSON_HEADERS` import
+- [x] Files: `workspaces/index.ts`, `workspaces/[id]/index.ts`, `workspaces/[id]/entities.ts`, `workspaces/[id]/frameworks.ts`, `workspaces/[id]/members.ts`, `workspaces/[id]/cop-sessions.ts`, `workspaces/[id]/stats.ts`, `workspaces/[id]/tools.ts`, `workspaces/[id]/invites/index.ts`, `workspaces/[id]/invites/[inviteId].ts`
+- **Root cause:** Workspace endpoints predated the shared `api-utils.ts` module; each defined its own minimal JSON headers without CORS fields (redundant since `_middleware.ts` handles CORS globally, but inconsistent with the rest of the codebase).
 
 ---
 
@@ -492,7 +520,7 @@
 
 ### P2 — Data Integrity
 
-- [ ] **COP sessions `team_workspace_id` mostly NULL** — stats and cop-sessions workspace endpoints query by `team_workspace_id` but most sessions never had this set. Needs backfill migration or query change.
+- [x] ~~COP sessions `team_workspace_id` mostly NULL~~ — fixed in v0.17.1, all workspace queries now use `WHERE team_workspace_id = ? OR workspace_id = ?`
 - [ ] **16 orphaned actors in workspace "1"** — created by user 1 across multiple COP sessions before workspace isolation. Cannot auto-reassign without manual review.
 
 ### P2 — Missing Features / Stubs
