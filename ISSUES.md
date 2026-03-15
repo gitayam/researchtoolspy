@@ -1,7 +1,25 @@
 # ResearchTools.net — Issue Tracker
 
 **Last updated:** 2026-03-15
-**Current tag:** v0.17.4-match-entities-handler
+**Current tag:** v0.17.5-content-search-endpoint
+
+---
+
+## Fixed (v0.17.5)
+
+### P1 — content-intelligence/search Endpoint Missing (Frontend Returned HTML)
+- [x] Created `functions/api/content-intelligence/search.ts` — new endpoint that `DeceptionClaimImporter.tsx` calls
+- [x] `GET /api/content-intelligence/search?q=...&limit=...` searches `content_intelligence` table by title, url, or content
+- [x] Returns `{ success: true, results: [{ id, title, url, claim_count, claims }] }` matching frontend's `SearchResult` interface
+- [x] Includes claim_adjustments with deception analysis data when available
+- [x] Auth required, `safeJsonParse` for claims column, POST returns 405
+- **Root cause:** Frontend component `DeceptionClaimImporter.tsx:74` fetched `/api/content-intelligence/search` but no corresponding Cloudflare Pages Function file existed. Requests fell through to SPA HTML fallback (200 with `text/html`). The endpoint was never created — only the frontend code that called it.
+
+### P3 — 13 Phantom API Routes Return SPA HTML (No Frontend Callers)
+- [x] Verified 13 non-existent routes (`analyze-content`, `save-link`, `key-phrases`, `entities`, `sentiment`, `compare`, `fact-check`, `bias-check`, `summarize`, `pdf-extractor` (direct GET), `social-media/analyze`, `investigation-packets` (index), `research/submissions/submit`) return SPA HTML
+- [x] Confirmed NONE are called by the frontend — they are phantom routes with no callers
+- [x] No fix needed — these are not real endpoints, just URLs that don't map to any Pages Function file
+- **Note:** The `pdf-extractor.ts` and `investigation-packets/` files exist but their direct GET paths don't match the test URLs (pdf-extractor is POST-only with proper 405, investigation-packets has `list.ts` and `create.ts` sub-routes)
 
 ---
 
