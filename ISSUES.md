@@ -1,7 +1,24 @@
 # ResearchTools.net — Issue Tracker
 
 **Last updated:** 2026-03-15
-**Current tag:** v0.18.4-schema-drift-security
+**Current tag:** v0.18.5-dead-code-cleanup
+
+---
+
+## Fixed (v0.18.5)
+
+### P2 — Last `|| '1'` Workspace Fallback (Data Integrity)
+- [x] `content-intelligence/match-entities-to-actors.ts` — `workspace_id || '1'` would silently query workspace "1" when no workspace provided
+- [x] Now returns 400 if no `workspace_id` in body or `X-Workspace-ID` header
+- **Root cause:** Documented in Lessons Learned Session 13 (Hardcoded Fallback IDs Persist Across Refactors). This was the last remaining instance.
+
+### P3 → Done — Dead Code Cleanup: 7 Files Deleted
+- [x] Deleted 6 claims parent files with internal routing dead code (25.4 KB removed):
+  - `claims/get-evidence-links.ts`, `claims/get-claim-entities.ts`, `claims/remove-evidence-link.ts`
+  - `claims/remove-entity-mention.ts`, `claims/update-entity-credibility.ts`, `claims/retry-analysis.ts`
+- [x] Deleted `evidence-eve.ts` — dead code, no frontend callers, no `[id].ts` counterpart
+- [x] All corresponding `[id].ts` dynamic route files verified working after deletion
+- **Impact:** 7 dead files removed (~25 KB), reducing maintenance burden and codebase confusion
 
 ---
 
@@ -37,11 +54,10 @@
 - [x] `claims/retry-analysis/[id].ts` — referenced `full_text` column on `content_analysis`; actual column is `extracted_text`
 - **Root cause:** Same schema drift pattern — query was copied from old code that predated column rename.
 
-### P3 — Dead Code Audit: 13 Files With Internal Routing Anti-Pattern
-- Identified 7 core entity files (`actors.ts`, `sources.ts`, `events.ts`, `places.ts`, `behaviors.ts`, `relationships.ts`, `comments.ts`) with `url.pathname.match()` or `split('/')` dead code — all already have working `[id].ts` counterparts
-- Identified 6 claims files with same dead code — all have working `[id].ts` counterparts created in v0.18.2
-- `evidence-eve.ts` — has internal routing but NO `[id].ts` counterpart (dead code, no functional impact since no frontend calls it)
-- **Impact:** Maintenance burden only — no functional bugs since `[id].ts` files handle the routing correctly. Cleanup is P3.
+### ~~P3 — Dead Code Audit: 13 Files With Internal Routing Anti-Pattern~~ → Partially cleaned in v0.18.5
+- [x] 6 claims parent files deleted (v0.18.5)
+- [x] `evidence-eve.ts` deleted (v0.18.5)
+- [ ] 7 core entity files still have dead routing code in parent files — lower priority since they also have working list-mode logic
 
 ---
 

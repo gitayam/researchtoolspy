@@ -40,7 +40,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    const workspaceId = body.workspace_id || request.headers.get('X-Workspace-ID') || '1'
+    const workspaceId = body.workspace_id || request.headers.get('X-Workspace-ID')
+    if (!workspaceId) {
+      return new Response(JSON.stringify({ error: 'workspace_id is required (body or X-Workspace-ID header)' }), {
+        status: 400, headers: JSON_HEADERS,
+      })
+    }
     const matches: Record<string, { id: string; name: string }> = {}
 
     for (const entity of body.entities.slice(0, 100)) {
