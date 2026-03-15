@@ -92,6 +92,11 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       return new Response(JSON.stringify({ error: 'COP session not found' }), { status: 404, headers: corsHeaders })
     }
 
+    // Verify ownership
+    if (session.created_by !== userId) {
+      return new Response(JSON.stringify({ error: 'Not authorized to update this session' }), { status: 403, headers: corsHeaders })
+    }
+
     const body = await request.json() as any
     const now = new Date().toISOString()
 

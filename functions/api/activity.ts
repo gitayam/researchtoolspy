@@ -2,7 +2,7 @@
 // Activity Feed API - Workspace activity tracking
 // ============================================================================
 
-import { getUserIdOrDefault, getUserFromRequest } from './_shared/auth-helpers'
+import { getUserFromRequest } from './_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
@@ -24,19 +24,22 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   }
 
   try {
-    const userId = await getUserIdOrDefault(request, env)
-
-    // Get user hash for logging if authenticated
-    let userHash = 'guest'
-    if (userId !== 'guest') {
-      const user = await env.DB.prepare('SELECT user_hash FROM users WHERE id = ?').bind(userId).first()
-      if (user?.user_hash) userHash = user.user_hash as string
+    const userId = await getUserFromRequest(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: CORS_HEADERS
+      })
     }
+
+    // Get user hash for logging
+    let userHash = 'unknown'
+    const user = await env.DB.prepare('SELECT user_hash FROM users WHERE id = ?').bind(userId).first()
+    if (user?.user_hash) userHash = user.user_hash as string
 
     const workspaceId = request.headers.get('X-Workspace-ID') || null
 
     // Verify workspace membership if a specific workspace is requested
-    if (workspaceId && userId !== 'guest') {
+    if (workspaceId) {
       const member = await env.DB.prepare(
         'SELECT 1 FROM workspace_members WHERE workspace_id = ? AND user_id = ?'
       ).bind(workspaceId, userId).first()
@@ -50,7 +53,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     // GET /api/activity - List workspace activity
     if (request.method === 'GET') {
       const url = new URL(request.url)
-      const limit = parseInt(url.searchParams.get('limit') || '50')
+      const limit = Math.min(parseInt(url.searchParams.get('limit') || '50'), 200)
       const offset = parseInt(url.searchParams.get('offset') || '0')
       const actionType = url.searchParams.get('type')
       const entityType = url.searchParams.get('entity_type')

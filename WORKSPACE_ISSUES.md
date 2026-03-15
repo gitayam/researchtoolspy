@@ -1,6 +1,6 @@
 # Site Issues — Investigation Report
 
-**Last updated:** 2026-03-15 (Sessions 34-90)
+**Last updated:** 2026-03-15 (Sessions 34-90b)
 
 ## Known Open — Prioritized for Next Sessions
 
@@ -14,6 +14,30 @@ Largest concentrations: EntityQuickCreate (12), GenericFrameworkForm (10), Batch
 - 25+ COP GET endpoints lack auth (Issue #384)
 - 15+ COP POST/PUT/DELETE lack session membership verification (Issue #385)
 - `notifications.ts` POST and `activity.ts` POST still unauthed (#396-397)
+
+---
+
+## Fixed — v2.16.12 (Session 90b)
+
+### CRITICAL — COP SESSION PUT MISSING OWNERSHIP CHECK
+| # | Issue | Status |
+|---|-------|--------|
+| 611 | **cop/sessions/[id].ts PUT** — Any authenticated user could update ANY COP session (name, mission brief, key questions, layers, etc). Only verified session exists, never compared `created_by` against caller. Fixed: added `session.created_by !== userId` → 403 | FIXED |
+
+### CRITICAL — ACTIVITY FEED GET UNAUTHENTICATED ACCESS
+| # | Issue | Status |
+|---|-------|--------|
+| 612 | **activity.ts GET** — Used `getUserIdOrDefault` (falls back to 'guest'). When guest, workspace membership check was skipped entirely. Any unauthenticated user could read ANY workspace's activity by setting X-Workspace-ID header. Fixed: replaced with `getUserFromRequest` + 401 gate | FIXED |
+
+### HIGH — NOTIFICATION SPOOFING
+| # | Issue | Status |
+|---|-------|--------|
+| 613 | **notifications.ts POST** — Any authenticated user could create notifications targeting ANY other user hash (fake system messages, phishing URLs). Fixed: restricted to self-notifications or workspace owners notifying their members | FIXED |
+
+### MEDIUM — ACTIVITY FEED UNBOUNDED LIMIT
+| # | Issue | Status |
+|---|-------|--------|
+| 614 | **activity.ts GET** — No max cap on `limit` param. `?limit=999999` could dump entire activity feed. Fixed: capped at 200 | FIXED |
 
 ---
 

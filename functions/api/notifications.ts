@@ -70,7 +70,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       }), { headers: CORS_HEADERS })
     }
 
-    // POST /api/notifications - Create notification (for system use or testing)
+    // POST /api/notifications - Create notification (restricted: caller can only notify themselves or workspace members they own)
     if (request.method === 'POST') {
       const body: any = await request.json()
       const {
@@ -90,6 +90,24 @@ export const onRequest: PagesFunction<Env> = async (context) => {
           status: 400,
           headers: CORS_HEADERS
         })
+      }
+
+      // Security: only allow notifying yourself or members of workspaces you own
+      if (target_user_hash !== userHash) {
+        // Check if caller owns the target workspace
+        if (!workspace_id) {
+          return new Response(JSON.stringify({ error: 'Cannot send notifications to other users without workspace context' }), {
+            status: 403, headers: CORS_HEADERS
+          })
+        }
+        const isOwner = await env.DB.prepare(
+          'SELECT 1 FROM workspace_members WHERE workspace_id = ? AND user_id = ? AND role = ?'
+        ).bind(workspace_id, userId, 'OWNER').first()
+        if (!isOwner) {
+          return new Response(JSON.stringify({ error: 'Only workspace owners can notify other members' }), {
+            status: 403, headers: CORS_HEADERS
+          })
+        }
       }
 
       const notificationId = `notif-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
