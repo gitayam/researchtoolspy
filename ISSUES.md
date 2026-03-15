@@ -1,7 +1,23 @@
 # ResearchTools.net — Issue Tracker
 
 **Last updated:** 2026-03-15
-**Current tag:** v0.18.5-dead-code-cleanup
+**Current tag:** v0.18.6-entity-dead-code-cleanup
+
+---
+
+## Fixed (v0.18.6)
+
+### P3 → Done — Dead Code Cleanup: 7 Core Entity Files Stripped (-1,469 lines)
+- [x] `actors.ts` — removed 294 lines of dead `url.pathname.match()` routing (GET/PUT/DELETE `:id` + `/deception`)
+- [x] `events.ts` — removed 249 lines of dead routing
+- [x] `sources.ts` — removed 172 lines of dead routing
+- [x] `places.ts` — removed 195 lines of dead routing
+- [x] `behaviors.ts` — removed 207 lines of dead routing
+- [x] `relationships.ts` — removed 192 lines of dead routing
+- [x] `comments.ts` — removed 176 lines of dead PATCH/DELETE routing
+- [x] All `[id].ts` counterparts verified working after parent file cleanup
+- [x] All entity list endpoints (GET) and create endpoints (POST) preserved and verified
+- **Impact:** Combined with v0.18.5 (-1,086 lines), total dead code removed: **-2,555 lines** across 14 files. The internal routing anti-pattern (Lessons Learned Session 31) is now fully eradicated.
 
 ---
 
@@ -54,10 +70,10 @@
 - [x] `claims/retry-analysis/[id].ts` — referenced `full_text` column on `content_analysis`; actual column is `extracted_text`
 - **Root cause:** Same schema drift pattern — query was copied from old code that predated column rename.
 
-### ~~P3 — Dead Code Audit: 13 Files With Internal Routing Anti-Pattern~~ → Partially cleaned in v0.18.5
+### ~~P3 — Dead Code Audit: 13 Files With Internal Routing Anti-Pattern~~ → Fully cleaned in v0.18.5 + v0.18.6
 - [x] 6 claims parent files deleted (v0.18.5)
 - [x] `evidence-eve.ts` deleted (v0.18.5)
-- [ ] 7 core entity files still have dead routing code in parent files — lower priority since they also have working list-mode logic
+- [x] 7 core entity files stripped of dead routing code (v0.18.6, -1,469 lines)
 
 ---
 
