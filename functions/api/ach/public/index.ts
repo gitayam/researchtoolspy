@@ -2,6 +2,7 @@
  * Public ACH Analysis Discovery API
  * GET /api/ach/public - List all public ACH analyses
  */
+import { JSON_HEADERS } from '../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -91,7 +92,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       limit,
       offset
     }), {
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
   } catch (error) {
     console.error('Public ACH discovery error:', error)
@@ -100,7 +101,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
   }
 }

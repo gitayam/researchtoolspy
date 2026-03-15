@@ -6,6 +6,7 @@
  */
 
 import { getUserFromRequest } from '../_shared/auth-helpers'
+import { JSON_HEADERS } from '../_shared/api-utils'
 import { randomBytes } from 'node:crypto'
 
 interface Env {
@@ -33,10 +34,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         error: 'Authentication required to save analyses'
       }), {
         status: 401,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*'
-        }
+        headers: JSON_HEADERS
       })
     }
 
@@ -47,7 +45,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         error: 'Missing analysis_id'
       }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -61,7 +59,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         error: 'Analysis not found'
       }), {
         status: 404,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -70,7 +68,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         error: 'Access denied'
       }), {
         status: 403,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -114,10 +112,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       message: 'Analysis saved permanently'
     }), {
       status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      }
+      headers: JSON_HEADERS
     })
 
   } catch (error) {
@@ -127,10 +122,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     }), {
       status: 500,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      }
+      headers: JSON_HEADERS
     })
   }
 }

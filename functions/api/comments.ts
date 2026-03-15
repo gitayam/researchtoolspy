@@ -1,6 +1,6 @@
 import { getUserFromRequest } from './_shared/auth-helpers'
 import { createNotification } from './_shared/notification-logger'
-import { generateId } from './_shared/api-utils'
+import { generateId, JSON_HEADERS, CORS_HEADERS, optionsResponse } from './_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -68,15 +68,8 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   const url = new URL(request.url)
   const method = request.method
 
-  // CORS headers
-  const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash',
-  }
-
   if (method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+    return optionsResponse()
   }
 
   try {
@@ -87,7 +80,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       if (!userId) {
         return new Response(JSON.stringify({ error: 'Authentication required' }), {
           status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          headers: JSON_HEADERS
         })
       }
 
@@ -99,7 +92,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       if (!entityType || !entityId) {
         return new Response(JSON.stringify({ error: 'entity_type and entity_id required' }), {
           status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          headers: JSON_HEADERS
         })
       }
 
@@ -135,7 +128,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
       return new Response(JSON.stringify(comments), {
         status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -146,7 +139,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       if (!userId) {
         return new Response(JSON.stringify({ error: 'Authentication required' }), {
           status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          headers: JSON_HEADERS
         })
       }
 
@@ -154,7 +147,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       const userResult = await env.DB.prepare('SELECT id, user_hash, full_name, username FROM users WHERE id = ?').bind(userId).first()
       if (!userResult) {
         return new Response(JSON.stringify({ error: 'User not found' }), {
-          status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 404, headers: JSON_HEADERS
         })
       }
       const userHash = (userResult.user_hash as string) || `user-${userId}`
@@ -172,7 +165,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       if (!entity_type || !entity_id || !content) {
         return new Response(JSON.stringify({ error: 'entity_type, entity_id, and content required' }), {
           status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          headers: JSON_HEADERS
         })
       }
 
@@ -266,7 +259,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
       if (!created) {
         return new Response(JSON.stringify({ error: 'Failed to retrieve created comment' }), {
-          status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 500, headers: JSON_HEADERS
         })
       }
 
@@ -278,7 +271,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
       return new Response(JSON.stringify(createdComment), {
         status: 201,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -291,7 +284,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       if (!commentId) {
         return new Response(JSON.stringify({ error: 'Comment ID required' }), {
           status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          headers: JSON_HEADERS
         })
       }
 
@@ -299,7 +292,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       if (!userId) {
         return new Response(JSON.stringify({ error: 'Authentication required' }), {
           status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          headers: JSON_HEADERS
         })
       }
 
@@ -311,7 +304,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       if (!existing) {
         return new Response(JSON.stringify({ error: 'Comment not found' }), {
           status: 404,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          headers: JSON_HEADERS
         })
       }
 
@@ -331,7 +324,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         const updated = await env.DB.prepare(`SELECT * FROM comments WHERE id = ?`).bind(commentId).first()
         return new Response(JSON.stringify(updated || { id: commentId, status: 'resolved' }), {
           status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          headers: JSON_HEADERS
         })
       }
 
@@ -345,7 +338,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         const updated = await env.DB.prepare(`SELECT * FROM comments WHERE id = ?`).bind(commentId).first()
         return new Response(JSON.stringify(updated || { id: commentId, status: 'open' }), {
           status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          headers: JSON_HEADERS
         })
       }
 
@@ -354,7 +347,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         if (!isOwner) {
           return new Response(JSON.stringify({ error: 'Only comment owner can edit' }), {
             status: 403,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            headers: JSON_HEADERS
           })
         }
 
@@ -370,7 +363,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         const updated = await env.DB.prepare(`SELECT * FROM comments WHERE id = ?`).bind(commentId).first()
         if (!updated) {
           return new Response(JSON.stringify({ error: 'Failed to retrieve updated comment' }), {
-            status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            status: 500, headers: JSON_HEADERS
           })
         }
         return new Response(JSON.stringify({
@@ -379,13 +372,13 @@ export const onRequest: PagesFunction<Env> = async (context) => {
           reactions: (() => { try { return updated.reactions ? JSON.parse(updated.reactions as string) : {} } catch { return {} } })()
         }), {
           status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          headers: JSON_HEADERS
         })
       }
 
       return new Response(JSON.stringify({ error: 'No valid update provided' }), {
         status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -398,7 +391,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       if (!commentId) {
         return new Response(JSON.stringify({ error: 'Comment ID required' }), {
           status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          headers: JSON_HEADERS
         })
       }
 
@@ -406,7 +399,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       if (!userId) {
         return new Response(JSON.stringify({ error: 'Authentication required' }), {
           status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          headers: JSON_HEADERS
         })
       }
 
@@ -418,7 +411,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       if (!existing) {
         return new Response(JSON.stringify({ error: 'Comment not found' }), {
           status: 404,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          headers: JSON_HEADERS
         })
       }
 
@@ -428,7 +421,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       if (!isOwner) {
         return new Response(JSON.stringify({ error: 'Only comment owner can delete' }), {
           status: 403,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          headers: JSON_HEADERS
         })
       }
 
@@ -440,19 +433,19 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       if (!deleteResult.meta.changes) {
         return new Response(JSON.stringify({ error: 'Comment not found' }), {
           status: 404,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          headers: JSON_HEADERS
         })
       }
 
       return new Response(JSON.stringify({ success: true }), {
         status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: JSON_HEADERS
       })
     }
 
     return new Response(JSON.stringify({ error: 'Method not allowed' }), {
       status: 405,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      headers: JSON_HEADERS
     })
 
   } catch (error: any) {
@@ -462,7 +455,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
     }), {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      headers: JSON_HEADERS
     })
   }
 }

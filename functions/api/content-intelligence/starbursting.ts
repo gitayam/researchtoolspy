@@ -1,4 +1,5 @@
 import { getUserFromRequest, requireAuth } from '../_shared/auth-helpers'
+import { JSON_HEADERS, optionsResponse } from '../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -14,15 +15,8 @@ interface StarburstingRequest {
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   const { request, env } = context
 
-  const corsHeaders = {
-    'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash'
-  }
-
   if (request.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+    return optionsResponse()
   }
 
   try {
@@ -35,7 +29,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!userHash) {
       return new Response(JSON.stringify({ error: 'User hash not found' }), {
         status: 404,
-        headers: corsHeaders
+        headers: JSON_HEADERS
       })
     }
 
@@ -47,7 +41,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         error: 'At least one analysis_id is required'
       }), {
         status: 400,
-        headers: corsHeaders
+        headers: JSON_HEADERS
       })
     }
 
@@ -68,7 +62,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         provided_ids: analysis_ids
       }), {
         status: 404,
-        headers: corsHeaders
+        headers: JSON_HEADERS
       })
     }
 
@@ -226,7 +220,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     return new Response(JSON.stringify(responsePayload), {
       status: 201,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
 
   } catch (error: any) {
@@ -237,20 +231,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     }), {
       status: 500,
-      headers: corsHeaders
+      headers: JSON_HEADERS
     })
   }
 }
 
 // CORS preflight
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, {
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash'
-    }
-  })
+  return optionsResponse()
 }
 
 // ========================================
@@ -266,7 +254,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       error: 'analysis_id query parameter required'
     }), {
       status: 400,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
   }
 
@@ -294,7 +282,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     return new Response(JSON.stringify({ sessions }), {
       status: 200,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
 
   } catch (error: any) {
@@ -304,7 +292,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
   }
 }

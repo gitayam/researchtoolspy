@@ -1,24 +1,18 @@
 // GET /api/cross-table/:id/scores — Get scores for a table
 // PUT /api/cross-table/:id/scores — Batch upsert scores
 import { getUserIdOrDefault, getUserFromRequest } from '../../_shared/auth-helpers'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, PUT, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash',
-  'Content-Type': 'application/json',
-}
+import { JSON_HEADERS, optionsResponse } from '../../_shared/api-utils'
 
 export async function onRequest(context: any) {
   const { request, env, params } = context
   const tableId = params.id as string
 
   if (request.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers: corsHeaders })
+    return optionsResponse()
   }
 
   if (!env.DB) {
-    return new Response(JSON.stringify({ error: 'Database not configured' }), { status: 500, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: 'Database not configured' }), { status: 500, headers: JSON_HEADERS })
   }
 
   const userId = await getUserIdOrDefault(request, env)
@@ -30,7 +24,7 @@ export async function onRequest(context: any) {
     ).bind(tableId, userId).first()
 
     if (!table) {
-      return new Response(JSON.stringify({ error: 'Cross table not found' }), { status: 404, headers: corsHeaders })
+      return new Response(JSON.stringify({ error: 'Cross table not found' }), { status: 404, headers: JSON_HEADERS })
     }
 
     if (request.method === 'GET') return await handleGet(env, tableId)
@@ -38,15 +32,15 @@ export async function onRequest(context: any) {
       const authUserId = await getUserFromRequest(request, env)
       if (!authUserId) {
         return new Response(JSON.stringify({ error: 'Authentication required' }), {
-          status: 401, headers: corsHeaders,
+          status: 401, headers: JSON_HEADERS,
         })
       }
       return await handleUpsert(env, tableId, authUserId, request, table)
     }
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers: JSON_HEADERS })
   } catch (err: any) {
     console.error('[CrossTable Scores] Error:', err)
-    return new Response(JSON.stringify({ error: 'Internal server error' }), { status: 500, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: 'Internal server error' }), { status: 500, headers: JSON_HEADERS })
   }
 }
 
@@ -55,7 +49,7 @@ async function handleGet(env: any, tableId: string) {
     'SELECT * FROM cross_table_scores WHERE cross_table_id = ? ORDER BY round, row_id, col_id'
   ).bind(tableId).all()
 
-  return new Response(JSON.stringify({ scores: result.results || [] }), { headers: corsHeaders })
+  return new Response(JSON.stringify({ scores: result.results || [] }), { headers: JSON_HEADERS })
 }
 
 async function handleUpsert(env: any, tableId: string, userId: number, request: Request, table: any) {
@@ -63,7 +57,7 @@ async function handleUpsert(env: any, tableId: string, userId: number, request: 
   const inputScores = body.scores
 
   if (!Array.isArray(inputScores)) {
-    return new Response(JSON.stringify({ error: 'scores must be an array' }), { status: 400, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: 'scores must be an array' }), { status: 400, headers: JSON_HEADERS })
   }
 
   // Cap at 500 scores per request
@@ -102,5 +96,5 @@ async function handleUpsert(env: any, tableId: string, userId: number, request: 
     'SELECT * FROM cross_table_scores WHERE cross_table_id = ? AND user_id = ? AND round = ? ORDER BY row_id, col_id'
   ).bind(tableId, userId, round).all()
 
-  return new Response(JSON.stringify({ scores: result.results || [] }), { headers: corsHeaders })
+  return new Response(JSON.stringify({ scores: result.results || [] }), { headers: JSON_HEADERS })
 }

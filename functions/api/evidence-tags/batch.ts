@@ -9,18 +9,12 @@
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest } from '../_shared/auth-helpers'
+import { JSON_HEADERS, optionsResponse } from '../_shared/api-utils'
 
 interface Env {
   DB: D1Database
   SESSIONS?: KVNamespace
   JWT_SECRET?: string
-}
-
-const corsHeaders = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Workspace-ID',
 }
 
 const MAX_IDS = 100
@@ -31,7 +25,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const userId = await getUserFromRequest(request, env)
   if (!userId) {
     return new Response(JSON.stringify({ error: 'Authentication required' }), {
-      status: 401, headers: corsHeaders,
+      status: 401, headers: JSON_HEADERS,
     })
   }
 
@@ -41,26 +35,26 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     if (!Array.isArray(evidenceIds)) {
       return new Response(JSON.stringify({ error: 'evidence_ids must be an array' }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: JSON_HEADERS,
       })
     }
 
     if (evidenceIds.length === 0) {
-      return new Response(JSON.stringify({ tags: {} }), { headers: corsHeaders })
+      return new Response(JSON.stringify({ tags: {} }), { headers: JSON_HEADERS })
     }
 
     if (evidenceIds.length > MAX_IDS) {
       return new Response(JSON.stringify({
         error: `evidence_ids exceeds maximum of ${MAX_IDS}`,
       }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: JSON_HEADERS,
       })
     }
 
     // Validate that all IDs are non-empty strings
     const cleanIds = evidenceIds.filter((id) => typeof id === 'string' && id.trim().length > 0)
     if (cleanIds.length === 0) {
-      return new Response(JSON.stringify({ tags: {} }), { headers: corsHeaders })
+      return new Response(JSON.stringify({ tags: {} }), { headers: JSON_HEADERS })
     }
 
     // Build parameterized IN clause
@@ -81,15 +75,15 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       tags[eid].push(row)
     }
 
-    return new Response(JSON.stringify({ tags }), { headers: corsHeaders })
+    return new Response(JSON.stringify({ tags }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[Evidence Tags Batch] error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to fetch evidence tags in batch',
-    }), { status: 500, headers: corsHeaders })
+    }), { status: 500, headers: JSON_HEADERS })
   }
 }
 
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, { status: 204, headers: corsHeaders })
+  return optionsResponse()
 }

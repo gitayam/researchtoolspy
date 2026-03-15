@@ -7,6 +7,7 @@
 
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest } from '../_shared/auth-helpers'
+import { JSON_HEADERS } from '../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -50,7 +51,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!authUserId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
         status: 401,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+        headers: JSON_HEADERS,
       })
     }
 
@@ -62,7 +63,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         error: 'No content IDs provided'
       }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -73,7 +74,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         error: 'Maximum 5 content sources allowed for auto-population'
       }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -104,7 +105,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         error: 'No content found for provided IDs'
       }), {
         status: 404,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -194,7 +195,7 @@ Extract 3-5 items per SWOT quadrant. Focus on actionable insights.`
         error: `GPT API error: ${gptResponse.status}`
       }), {
         status: 500,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -217,7 +218,7 @@ Extract 3-5 items per SWOT quadrant. Focus on actionable insights.`
         error: 'Failed to parse GPT response. Please try again.'
       }), {
         status: 500,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -242,7 +243,7 @@ Extract 3-5 items per SWOT quadrant. Focus on actionable insights.`
 
     return new Response(JSON.stringify(response), {
       status: 200,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
 
   } catch (error) {
@@ -252,7 +253,7 @@ Extract 3-5 items per SWOT quadrant. Focus on actionable insights.`
       error: 'Internal server error'
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
   }
 }

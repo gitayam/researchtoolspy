@@ -10,6 +10,7 @@
 
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest } from '../_shared/auth-helpers'
+import { JSON_HEADERS } from '../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -48,7 +49,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const authUserId = await getUserFromRequest(request, env)
     if (!authUserId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+        status: 401, headers: JSON_HEADERS,
       })
     }
 
@@ -58,7 +59,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!url) {
       return new Response(JSON.stringify({ error: 'URL is required' }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -72,7 +73,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         directLink: `https://www.virustotal.com/gui/domain/${domain}`
       }), {
         status: 503,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -97,7 +98,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         message: 'API request failed, but you can view the report directly on VirusTotal'
       }), {
         status: vtResponse.status === 404 ? 200 : vtResponse.status,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -123,7 +124,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     return new Response(JSON.stringify(securityInfo), {
       status: 200,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
 
   } catch (error) {
@@ -133,7 +134,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
   }
 }

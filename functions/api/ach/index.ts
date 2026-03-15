@@ -4,6 +4,7 @@
  */
 
 import { getUserIdOrDefault, getUserFromRequest } from '../_shared/auth-helpers'
+import { JSON_HEADERS } from '../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -44,7 +45,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       if (!analysis) {
         return new Response(JSON.stringify({ error: 'Analysis not found' }), {
           status: 404,
-          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+          headers: JSON_HEADERS
         })
       }
 
@@ -79,7 +80,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         evidence: evidenceLinks.results || [],
         scores: scores.results || []
       }), {
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     } else {
       // List all analyses
@@ -91,7 +92,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       return new Response(JSON.stringify({
         analyses: analyses.results || []
       }), {
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
   } catch (error) {
@@ -101,7 +102,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
   }
 }
@@ -113,7 +114,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(context.request, context.env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+        status: 401, headers: JSON_HEADERS,
       })
     }
     const data = await context.request.json() as Partial<ACHAnalysis>
@@ -125,7 +126,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         error: 'Title and question are required'
       }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -162,7 +163,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       updated_at: now
     }), {
       status: 201,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
   } catch (error) {
     console.error('ACH POST error:', error)
@@ -171,7 +172,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
   }
 }
@@ -184,7 +185,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(context.request, context.env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+        status: 401, headers: JSON_HEADERS,
       })
     }
 
@@ -193,7 +194,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     if (!id) {
       return new Response(JSON.stringify({ error: 'ID is required' }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -207,7 +208,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     if (!existing) {
       return new Response(JSON.stringify({ error: 'Analysis not found in workspace or unauthorized' }), {
         status: 404,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -241,12 +242,12 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     if (result.meta.changes === 0) {
       return new Response(JSON.stringify({ error: 'Analysis not found in workspace or unauthorized' }), {
         status: 404,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
     return new Response(JSON.stringify({ success: true }), {
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
   } catch (error) {
     console.error('ACH PUT error:', error)
@@ -255,7 +256,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
   }
 }
@@ -268,7 +269,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(context.request, context.env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+        status: 401, headers: JSON_HEADERS,
       })
     }
 
@@ -277,7 +278,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     if (!id) {
       return new Response(JSON.stringify({ error: 'ID is required' }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -289,7 +290,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     if (!existing) {
       return new Response(JSON.stringify({ error: 'Analysis not found in workspace or unauthorized' }), {
         status: 404,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -301,12 +302,12 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     if (result.meta.changes === 0) {
       return new Response(JSON.stringify({ error: 'Analysis not found in workspace or unauthorized' }), {
         status: 404,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
     return new Response(JSON.stringify({ success: true }), {
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
   } catch (error) {
     console.error('ACH DELETE error:', error)
@@ -315,7 +316,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
 
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
   }
 }

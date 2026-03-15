@@ -4,6 +4,7 @@
  */
 
 import { getUserFromRequest } from '../../../_shared/auth-helpers'
+import { JSON_HEADERS } from '../../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -18,14 +19,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
         status: 401,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+        headers: JSON_HEADERS,
       })
     }
 
     if (!token) {
       return new Response(JSON.stringify({ error: 'Share token is required' }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -37,7 +38,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!sourceAnalysis) {
       return new Response(JSON.stringify({ error: 'Analysis not found or not public' }), {
         status: 404,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -120,7 +121,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       message: 'Analysis cloned successfully. You can now score the evidence.'
     }), {
       status: 201,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
   } catch (error) {
     console.error('ACH clone error:', error)
@@ -129,7 +130,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
   }
 }

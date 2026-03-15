@@ -2,24 +2,18 @@
 // PUT /api/cross-table/:id — Update table
 // DELETE /api/cross-table/:id — Delete table
 import { getUserIdOrDefault, getUserFromRequest } from '../_shared/auth-helpers'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash',
-  'Content-Type': 'application/json',
-}
+import { JSON_HEADERS, optionsResponse } from '../_shared/api-utils'
 
 export async function onRequest(context: any) {
   const { request, env, params } = context
   const id = params.id as string
 
   if (request.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers: corsHeaders })
+    return optionsResponse()
   }
 
   if (!env.DB) {
-    return new Response(JSON.stringify({ error: 'Database not configured' }), { status: 500, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: 'Database not configured' }), { status: 500, headers: JSON_HEADERS })
   }
 
   const userId = await getUserIdOrDefault(request, env)
@@ -30,7 +24,7 @@ export async function onRequest(context: any) {
       const authUserId = await getUserFromRequest(request, env)
       if (!authUserId) {
         return new Response(JSON.stringify({ error: 'Authentication required' }), {
-          status: 401, headers: corsHeaders,
+          status: 401, headers: JSON_HEADERS,
         })
       }
       return await handleUpdate(env, authUserId, id, request)
@@ -39,15 +33,15 @@ export async function onRequest(context: any) {
       const authUserId = await getUserFromRequest(request, env)
       if (!authUserId) {
         return new Response(JSON.stringify({ error: 'Authentication required' }), {
-          status: 401, headers: corsHeaders,
+          status: 401, headers: JSON_HEADERS,
         })
       }
       return await handleDelete(env, authUserId, id)
     }
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers: JSON_HEADERS })
   } catch (err: any) {
     console.error('[CrossTable] Error:', err)
-    return new Response(JSON.stringify({ error: 'Internal server error' }), { status: 500, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: 'Internal server error' }), { status: 500, headers: JSON_HEADERS })
   }
 }
 
@@ -57,7 +51,7 @@ async function handleGet(env: any, userId: number, id: string) {
   ).bind(id, userId).first()
 
   if (!table) {
-    return new Response(JSON.stringify({ error: 'Cross table not found' }), { status: 404, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: 'Cross table not found' }), { status: 404, headers: JSON_HEADERS })
   }
 
   const scoresResult = await env.DB.prepare(
@@ -67,7 +61,7 @@ async function handleGet(env: any, userId: number, id: string) {
   return new Response(JSON.stringify({
     table: parseTableRow(table),
     scores: scoresResult.results || [],
-  }), { headers: corsHeaders })
+  }), { headers: JSON_HEADERS })
 }
 
 async function handleUpdate(env: any, userId: number, id: string, request: Request) {
@@ -76,7 +70,7 @@ async function handleUpdate(env: any, userId: number, id: string, request: Reque
   ).bind(id, userId).first()
 
   if (!existing) {
-    return new Response(JSON.stringify({ error: 'Cross table not found' }), { status: 404, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: 'Cross table not found' }), { status: 404, headers: JSON_HEADERS })
   }
 
   const body = await request.json() as any
@@ -96,10 +90,10 @@ async function handleUpdate(env: any, userId: number, id: string, request: Reque
   ).bind(id).first()
 
   if (!updated) {
-    return new Response(JSON.stringify({ success: true, id }), { headers: corsHeaders })
+    return new Response(JSON.stringify({ success: true, id }), { headers: JSON_HEADERS })
   }
 
-  return new Response(JSON.stringify({ table: parseTableRow(updated) }), { headers: corsHeaders })
+  return new Response(JSON.stringify({ table: parseTableRow(updated) }), { headers: JSON_HEADERS })
 }
 
 async function handleDelete(env: any, userId: number, id: string) {
@@ -108,11 +102,11 @@ async function handleDelete(env: any, userId: number, id: string) {
   ).bind(id, userId).first()
 
   if (!existing) {
-    return new Response(JSON.stringify({ error: 'Cross table not found' }), { status: 404, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: 'Cross table not found' }), { status: 404, headers: JSON_HEADERS })
   }
 
   await env.DB.prepare('DELETE FROM cross_tables WHERE id = ? AND user_id = ?').bind(id, userId).run()
-  return new Response(JSON.stringify({ success: true }), { headers: corsHeaders })
+  return new Response(JSON.stringify({ success: true }), { headers: JSON_HEADERS })
 }
 
 function parseTableRow(row: any) {

@@ -4,6 +4,7 @@
  */
 
 import { getUserFromRequest } from '../../_shared/auth-helpers'
+import { JSON_HEADERS } from '../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -24,7 +25,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
         status: 401,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+        headers: JSON_HEADERS,
       })
     }
     const data = await context.request.json() as ShareRequest
@@ -45,7 +46,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!existing) {
       return new Response(JSON.stringify({ error: 'Analysis not found or access denied' }), {
         status: 404,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -119,7 +120,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       domain: data.domain,
       tags: data.tags
     }), {
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
   } catch (error) {
     console.error('ACH share error:', error)
@@ -128,7 +129,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
   }
 }

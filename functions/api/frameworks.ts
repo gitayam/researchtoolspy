@@ -1,21 +1,14 @@
 // Cloudflare Pages Function for Framework API
 import { logActivity } from '../utils/activity-logger'
 import { getUserFromRequest } from './_shared/auth-helpers'
+import { JSON_HEADERS, optionsResponse } from './_shared/api-utils'
 
 export async function onRequest(context: any) {
   const { request, env } = context
 
-  // CORS headers
-  const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash',
-    'Content-Type': 'application/json',
-  }
-
   // Handle preflight
   if (request.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers: corsHeaders })
+    return optionsResponse()
   }
 
   try {
@@ -27,7 +20,7 @@ export async function onRequest(context: any) {
         details: 'DB binding is not available. Please configure D1 database in Cloudflare Pages settings.'
       }), {
         status: 500,
-        headers: corsHeaders,
+        headers: JSON_HEADERS,
       })
     }
 
@@ -58,7 +51,7 @@ export async function onRequest(context: any) {
         if (!framework) {
           return new Response(JSON.stringify({ error: 'Framework not found' }), {
             status: 404,
-            headers: corsHeaders,
+            headers: JSON_HEADERS,
           })
         }
 
@@ -66,7 +59,7 @@ export async function onRequest(context: any) {
         if (!framework.is_public && (!userId || framework.user_id !== userId)) {
           return new Response(JSON.stringify({ error: 'Unauthorized access to private framework' }), {
             status: 403,
-            headers: corsHeaders,
+            headers: JSON_HEADERS,
           })
         }
 
@@ -82,7 +75,7 @@ export async function onRequest(context: any) {
 
         return new Response(JSON.stringify(framework), {
           status: 200,
-          headers: corsHeaders,
+          headers: JSON_HEADERS,
         })
       }
 
@@ -120,7 +113,7 @@ export async function onRequest(context: any) {
 
       return new Response(JSON.stringify({ frameworks: parsedFrameworks }), {
         status: 200,
-        headers: corsHeaders,
+        headers: JSON_HEADERS,
       })
     }
 
@@ -129,7 +122,7 @@ export async function onRequest(context: any) {
       if (!userId) {
         return new Response(JSON.stringify({ error: 'Authentication required' }), {
           status: 401,
-          headers: corsHeaders,
+          headers: JSON_HEADERS,
         })
       }
 
@@ -139,14 +132,14 @@ export async function onRequest(context: any) {
       if (!body.title) {
         return new Response(JSON.stringify({ error: 'Title is required' }), {
           status: 400,
-          headers: corsHeaders,
+          headers: JSON_HEADERS,
         })
       }
 
       if (!body.framework_type) {
         return new Response(JSON.stringify({ error: 'Framework type is required' }), {
           status: 400,
-          headers: corsHeaders,
+          headers: JSON_HEADERS,
         })
       }
 
@@ -161,7 +154,7 @@ export async function onRequest(context: any) {
           error: 'Invalid data format'
         }), {
           status: 400,
-          headers: corsHeaders,
+          headers: JSON_HEADERS,
         })
       }
 
@@ -200,7 +193,7 @@ export async function onRequest(context: any) {
         message: 'Framework created successfully'
       }), {
         status: 201,
-        headers: corsHeaders,
+        headers: JSON_HEADERS,
       })
     }
 
@@ -209,7 +202,7 @@ export async function onRequest(context: any) {
       if (!userId) {
         return new Response(JSON.stringify({ error: 'Authentication required' }), {
           status: 401,
-          headers: corsHeaders,
+          headers: JSON_HEADERS,
         })
       }
 
@@ -236,7 +229,7 @@ export async function onRequest(context: any) {
       if (result.meta.changes === 0) {
         return new Response(JSON.stringify({ error: 'Framework not found in workspace or unauthorized' }), {
           status: 404,
-          headers: corsHeaders,
+          headers: JSON_HEADERS,
         })
       }
 
@@ -254,7 +247,7 @@ export async function onRequest(context: any) {
 
       return new Response(JSON.stringify({ message: 'Framework updated successfully' }), {
         status: 200,
-        headers: corsHeaders,
+        headers: JSON_HEADERS,
       })
     }
 
@@ -263,7 +256,7 @@ export async function onRequest(context: any) {
       if (!userId) {
         return new Response(JSON.stringify({ error: 'Authentication required' }), {
           status: 401,
-          headers: corsHeaders,
+          headers: JSON_HEADERS,
         })
       }
 
@@ -275,7 +268,7 @@ export async function onRequest(context: any) {
       if (!framework) {
         return new Response(JSON.stringify({ error: 'Framework not found in workspace or unauthorized' }), {
           status: 404,
-          headers: corsHeaders,
+          headers: JSON_HEADERS,
         })
       }
 
@@ -287,7 +280,7 @@ export async function onRequest(context: any) {
       if (result.meta.changes === 0) {
         return new Response(JSON.stringify({ error: 'Framework not found in workspace or unauthorized' }), {
           status: 404,
-          headers: corsHeaders,
+          headers: JSON_HEADERS,
         })
       }
 
@@ -305,13 +298,13 @@ export async function onRequest(context: any) {
 
       return new Response(JSON.stringify({ message: 'Framework deleted successfully' }), {
         status: 200,
-        headers: corsHeaders,
+        headers: JSON_HEADERS,
       })
     }
 
     return new Response(JSON.stringify({ error: 'Method not allowed' }), {
       status: 405,
-      headers: corsHeaders,
+      headers: JSON_HEADERS,
     })
 
   } catch (error: any) {
@@ -321,7 +314,7 @@ export async function onRequest(context: any) {
       message: 'Internal server error'
     }), {
       status: 500,
-      headers: corsHeaders,
+      headers: JSON_HEADERS,
     })
   }
 }

@@ -1,7 +1,36 @@
 # ResearchTools.net — Issue Tracker
 
 **Last updated:** 2026-03-15
-**Current tag:** v0.15.2-settings-cors-fix
+**Current tag:** v0.16.0-cors-consolidation
+
+---
+
+## Fixed (v0.16.0)
+
+### P2 — Massive CORS Consolidation: 61 Files Migrated to Shared Constants
+- [x] 7 intelligence endpoints — migrated from local corsHeaders to shared `JSON_HEADERS`
+- [x] 6 ACH endpoints + 3 public ACH endpoints — migrated to shared `JSON_HEADERS`
+- [x] 2 deception endpoints — migrated to shared `JSON_HEADERS`
+- [x] 5 cross-table endpoints — migrated to shared `JSON_HEADERS`
+- [x] 17 content-intelligence endpoints — migrated to shared `JSON_HEADERS`
+- [x] 6 framework endpoints — migrated to shared `JSON_HEADERS`
+- [x] 2 collection job endpoints — migrated to shared `JSON_HEADERS`
+- [x] 3 tools endpoints — migrated to shared `JSON_HEADERS`
+- [x] 2 AI endpoints — migrated to shared `JSON_HEADERS`
+- [x] 2 invite endpoints — migrated to shared `JSON_HEADERS`
+- [x] 2 actor sub-endpoints (search, credibility) — migrated to shared `JSON_HEADERS`
+- [x] 1 comments endpoint — migrated to shared `JSON_HEADERS`
+- [x] 1 evidence-tags/batch — migrated to shared `JSON_HEADERS`
+- [x] 1 evidence/recommend — migrated to shared `JSON_HEADERS`
+- [x] 1 health endpoint — migrated to shared `JSON_HEADERS`
+- [x] `_shared/error-response.ts` — replaced local `DEFAULT_CORS` with imported `JSON_HEADERS`
+- [x] Net: ~470 lines of duplicated CORS definitions removed across 61 files
+- **Root cause:** endpoints were built independently with copy-pasted corsHeaders objects; the shared `_middleware.ts` already adds CORS headers to all responses, so inline definitions were redundant
+
+### P2 — generate-entities.ts Hardcoded Workspace "1"
+- [x] `frameworks/[id]/generate-entities.ts` — entities generated from COG frameworks always went to workspace "1" instead of the framework's own workspace
+- [x] Now uses `framework.workspace_id`, with fallback to user's first workspace
+- **Root cause:** endpoint predated workspace isolation; hardcoded `workspaceId = '1'` was a placeholder never updated
 
 ---
 
@@ -282,7 +311,8 @@
 
 - [x] ~~generateId() in 21 COP endpoints~~ — deduplicated to shared `generatePrefixedId()` in v0.14.8
 - [x] ~~CORS headers inconsistent across 75 endpoints~~ — migrated to shared `CORS_HEADERS`/`JSON_HEADERS` in v0.14.9
-- [ ] **~295 inline error responses** use `{ 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }` — missing Allow-Methods/Allow-Headers. Functional (browser only checks Allow-Origin on actual responses) but inconsistent
+- [x] ~~~295 inline error responses with incomplete CORS~~ — 61 more files migrated in v0.16.0 (down from ~120 to ~65 remaining, mostly COP endpoints + 7 cross-table sub-endpoints). **Note:** `_middleware.ts` adds CORS to ALL responses, so remaining inline CORS is purely cosmetic (P3)
+- [ ] **~56 COP endpoint files + 7 cross-table sub-endpoints** still use local corsHeaders — cosmetic only (middleware covers CORS)
 - [ ] **Dual API surface** — `/api/workspaces/` (team JWT/hash) and `/api/settings/workspaces` (personal `requireAuth`) should be consolidated
 
 ### P2 — Data Integrity

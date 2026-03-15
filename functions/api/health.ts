@@ -1,5 +1,7 @@
 // Health check endpoint for monitoring
 
+import { JSON_HEADERS } from './_shared/api-utils'
+
 interface Env {
   DB: D1Database
 }
@@ -41,9 +43,6 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     latency_ms: Math.round(totalLatency)
   }), {
     status: dbStatus === 'connected' ? 200 : 503,
-    headers: {
-      'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': '*'
-    }
+    headers: JSON_HEADERS
   })
 }

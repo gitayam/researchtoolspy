@@ -1,5 +1,6 @@
 import { getUserFromRequest } from '../_shared/auth-helpers'
 import { callOpenAIViaGateway } from '../_shared/ai-gateway'
+import { JSON_HEADERS } from '../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -16,7 +17,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     if (!authUserId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
         status: 401,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+        headers: JSON_HEADERS,
       })
     }
 
@@ -54,7 +55,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         generated_at: new Date().toISOString(),
       }), {
         status: 200,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -134,13 +135,13 @@ Provide actionable, forward-looking intelligence recommendations.`
 
     return new Response(JSON.stringify(validated), {
       status: 200,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
   } catch (error) {
     console.error('Intelligence predictions error:', error)
     return new Response(JSON.stringify({ error: 'Failed to generate predictions' }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
   }
 }

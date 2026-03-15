@@ -5,6 +5,7 @@
  */
 
 import { callOpenAIViaGateway, getOptimalCacheTTL } from '../_shared/ai-gateway'
+import { JSON_HEADERS } from '../_shared/api-utils'
 import { getUserFromRequest } from '../_shared/auth-helpers'
 import { fetchSocialViaApify } from '../_shared/apify-social'
 
@@ -309,7 +310,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!authUserId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
         status: 401,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -320,7 +321,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!url || !framework) {
       return new Response(JSON.stringify({ error: 'URL and framework are required' }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -334,7 +335,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     } catch {
       return new Response(JSON.stringify({ error: 'Invalid URL format' }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -345,10 +346,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (cached) {
       return new Response(JSON.stringify(cached), {
         status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Cache': 'HIT'
-        }
+        headers: { ...JSON_HEADERS, 'X-Cache': 'HIT' }
       })
     }
 
@@ -433,7 +431,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
             technicalDetails: 'Request timeout after 15 seconds'
           }), {
             status: 504,
-            headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+            headers: JSON_HEADERS
           })
         }
         throw fetchError
@@ -481,7 +479,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           technicalDetails: `HTTP ${response.status} ${response.statusText}`
         }), {
           status: response.status,
-          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+          headers: JSON_HEADERS
         })
       }
 
@@ -550,7 +548,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!apiKey) {
       return new Response(JSON.stringify({ error: 'OpenAI API key not configured' }), {
         status: 500,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -828,10 +826,7 @@ Return ONLY JSON:
 
     return new Response(JSON.stringify(result), {
       status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Cache': 'MISS'
-      }
+      headers: { ...JSON_HEADERS, 'X-Cache': 'MISS' }
     })
 
   } catch (error) {
@@ -901,7 +896,7 @@ Return ONLY JSON:
       suggestions
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
   }
 }

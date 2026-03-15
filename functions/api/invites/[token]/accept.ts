@@ -5,16 +5,10 @@
  */
 
 import { getUserFromRequest } from '../../_shared/auth-helpers'
+import { JSON_HEADERS, optionsResponse } from '../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
-}
-
-const corsHeaders = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash',
 }
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
@@ -25,14 +19,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: corsHeaders,
+        status: 401, headers: JSON_HEADERS,
       })
     }
     const body = await request.json() as any
 
     if (!body.nickname?.trim()) {
       return new Response(JSON.stringify({ error: 'Nickname is required' }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: JSON_HEADERS,
       })
     }
 
@@ -42,7 +36,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     if (!invite) {
       return new Response(JSON.stringify({ error: 'Invite not found' }), {
-        status: 404, headers: corsHeaders,
+        status: 404, headers: JSON_HEADERS,
       })
     }
 
@@ -53,17 +47,17 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     if (!invite.is_active) {
       return new Response(JSON.stringify({ error: 'This invite has been revoked' }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: JSON_HEADERS,
       })
     }
     if (isExpired) {
       return new Response(JSON.stringify({ error: 'This invite has expired' }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: JSON_HEADERS,
       })
     }
     if (isMaxUsesReached) {
       return new Response(JSON.stringify({ error: 'This invite has reached maximum uses' }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: JSON_HEADERS,
       })
     }
 
@@ -74,7 +68,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     if (existing) {
       return new Response(JSON.stringify({ error: 'Already a member of this workspace' }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: JSON_HEADERS,
       })
     }
 
@@ -104,15 +98,15 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       role: invite.default_role,
       nickname: body.nickname.trim(),
       joined_at: joinedAt,
-    }), { status: 201, headers: corsHeaders })
+    }), { status: 201, headers: JSON_HEADERS })
   } catch (error) {
     console.error('[invites] Accept error:', error)
     return new Response(JSON.stringify({ error: 'Failed to accept invite' }), {
-      status: 500, headers: corsHeaders,
+      status: 500, headers: JSON_HEADERS,
     })
   }
 }
 
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, { status: 204, headers: corsHeaders })
+  return optionsResponse()
 }

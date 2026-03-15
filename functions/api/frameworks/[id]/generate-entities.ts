@@ -80,30 +80,21 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       )
     }
 
-    // Get or create default workspace
-    const workspaceId = '1' // Default workspace
+    // Use the framework's workspace, or fall back to user's first workspace
+    let workspaceId = framework.workspace_id as string | null
 
-    // Ensure workspace exists
-    const workspace = await env.DB.prepare(`
-      SELECT id FROM workspaces WHERE id = ?
-    `).bind(workspaceId).first()
+    if (!workspaceId) {
+      const userWorkspace = await env.DB.prepare(
+        'SELECT id FROM workspaces WHERE owner_id = ? ORDER BY created_at ASC LIMIT 1'
+      ).bind(userId).first()
 
-    if (!workspace) {
-      // Create default workspace
-      const now = new Date().toISOString()
-      await env.DB.prepare(`
-        INSERT INTO workspaces (id, name, description, type, owner_id, is_public, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `).bind(
-        workspaceId,
-        'Default Workspace',
-        'Auto-created workspace for entity generation',
-        'PERSONAL',
-        userId,
-        0,
-        now,
-        now
-      ).run()
+      if (!userWorkspace) {
+        return new Response(
+          JSON.stringify({ error: 'No workspace found. Please create a workspace first.' }),
+          { status: 400, headers: JSON_HEADERS }
+        )
+      }
+      workspaceId = userWorkspace.id as string
     }
 
     const now = new Date().toISOString()

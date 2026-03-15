@@ -6,6 +6,7 @@
 
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserIdOrDefault } from '../_shared/auth-helpers'
+import { JSON_HEADERS, optionsResponse } from '../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -13,13 +14,6 @@ interface Env {
 }
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
-  const corsHeaders = {
-    'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash'
-  }
-
   try {
     const userId = await getUserIdOrDefault(context.request, context.env)
     const url = new URL(context.request.url)
@@ -34,7 +28,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         error: 'name parameter is required'
       }), {
         status: 400,
-        headers: corsHeaders
+        headers: JSON_HEADERS
       })
     }
 
@@ -77,7 +71,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
           created_at: result.created_at
         }
       }), {
-        headers: corsHeaders
+        headers: JSON_HEADERS
       })
     }
 
@@ -86,7 +80,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       exists: false,
       actor: null
     }), {
-      headers: corsHeaders
+      headers: JSON_HEADERS
     })
 
   } catch (error) {
@@ -97,19 +91,12 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     }), {
       status: 500,
-      headers: corsHeaders
+      headers: JSON_HEADERS
     })
   }
 }
 
 // CORS preflight
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, {
-    status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash'
-    }
-  })
+  return optionsResponse()
 }

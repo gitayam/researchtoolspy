@@ -1,24 +1,18 @@
 // GET /api/cross-table — List user's cross tables
 // POST /api/cross-table — Create a new cross table
 import { getUserIdOrDefault, getUserFromRequest } from '../_shared/auth-helpers'
+import { JSON_HEADERS, optionsResponse } from '../_shared/api-utils'
 import { TEMPLATES } from '../../../src/lib/cross-table/engine/templates'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash',
-  'Content-Type': 'application/json',
-}
 
 export async function onRequest(context: any) {
   const { request, env } = context
 
   if (request.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers: corsHeaders })
+    return optionsResponse()
   }
 
   if (!env.DB) {
-    return new Response(JSON.stringify({ error: 'Database not configured' }), { status: 500, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: 'Database not configured' }), { status: 500, headers: JSON_HEADERS })
   }
 
   const userId = await getUserIdOrDefault(request, env)
@@ -31,15 +25,15 @@ export async function onRequest(context: any) {
       const authUserId = await getUserFromRequest(request, env)
       if (!authUserId) {
         return new Response(JSON.stringify({ error: 'Authentication required' }), {
-          status: 401, headers: corsHeaders,
+          status: 401, headers: JSON_HEADERS,
         })
       }
       return await handleCreate(env, authUserId, request)
     }
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers: JSON_HEADERS })
   } catch (err: any) {
     console.error('[CrossTable] Error:', err)
-    return new Response(JSON.stringify({ error: 'Internal server error' }), { status: 500, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: 'Internal server error' }), { status: 500, headers: JSON_HEADERS })
   }
 }
 
@@ -49,7 +43,7 @@ async function handleList(env: any, userId: number) {
   ).bind(userId).all()
 
   const tables = (results.results || []).map(parseTableRow)
-  return new Response(JSON.stringify({ tables }), { headers: corsHeaders })
+  return new Response(JSON.stringify({ tables }), { headers: JSON_HEADERS })
 }
 
 async function handleCreate(env: any, userId: number, request: Request) {
@@ -57,13 +51,13 @@ async function handleCreate(env: any, userId: number, request: Request) {
   const { title, description, template_type } = body
 
   if (!title || typeof title !== 'string') {
-    return new Response(JSON.stringify({ error: 'title is required' }), { status: 400, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: 'title is required' }), { status: 400, headers: JSON_HEADERS })
   }
 
   const type = template_type || 'blank'
   const template = TEMPLATES[type]
   if (!template) {
-    return new Response(JSON.stringify({ error: `Unknown template type: ${type}` }), { status: 400, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: `Unknown template type: ${type}` }), { status: 400, headers: JSON_HEADERS })
   }
 
   const id = crypto.randomUUID()
@@ -120,7 +114,7 @@ async function handleCreate(env: any, userId: number, request: Request) {
     created_at: now, updated_at: now,
   })
 
-  return new Response(JSON.stringify({ table }), { status: 201, headers: corsHeaders })
+  return new Response(JSON.stringify({ table }), { status: 201, headers: JSON_HEADERS })
 }
 
 function parseTableRow(row: any) {

@@ -4,6 +4,7 @@
  */
 
 import { getUserFromRequest } from '../_shared/auth-helpers'
+import { JSON_HEADERS } from '../_shared/api-utils'
 import crypto from 'node:crypto'
 
 interface Env {
@@ -19,7 +20,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
         status: 401,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+        headers: JSON_HEADERS,
       })
     }
 
@@ -28,7 +29,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!analysisId) {
       return new Response(JSON.stringify({ error: 'Analysis ID is required' }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -40,7 +41,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!analysis) {
       return new Response(JSON.stringify({ error: 'Analysis not found' }), {
         status: 404,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -48,7 +49,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (analysis.user_id !== userId) {
       return new Response(JSON.stringify({ error: 'Unauthorized - you can only share your own analyses' }), {
         status: 403,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -67,7 +68,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       shareToken,
       shareUrl: `${new URL(context.request.url).origin}/public/content-analysis/${shareToken}`
     }), {
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
   } catch (error) {
     console.error('Share analysis error:', error)
@@ -76,7 +77,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
   }
 }

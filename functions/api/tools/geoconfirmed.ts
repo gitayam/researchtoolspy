@@ -16,19 +16,13 @@
  */
 
 import { getUserFromRequest } from '../_shared/auth-helpers'
+import { JSON_HEADERS, optionsResponse } from '../_shared/api-utils'
 
 interface Env {
   CACHE: KVNamespace
   DB?: D1Database
   SESSIONS?: KVNamespace
   JWT_SECRET?: string
-}
-
-const corsHeaders = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash',
 }
 
 // ─── GeoConfirmed API endpoints ───
@@ -362,7 +356,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const userId = await getUserFromRequest(request, env)
   if (!userId) {
     return new Response(JSON.stringify({ error: 'Authentication required' }), {
-      status: 401, headers: corsHeaders,
+      status: 401, headers: JSON_HEADERS,
     })
   }
 
@@ -381,7 +375,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           endDate: c.endDate,
           url: `https://geoconfirmed.org/${c.shortName.toLowerCase()}`,
         })),
-      }), { headers: corsHeaders })
+      }), { headers: JSON_HEADERS })
     }
 
     // Mode: URL extraction
@@ -389,7 +383,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       const parsed = parseGeoconfirmedUrl(body.url)
       if (!parsed) {
         return new Response(JSON.stringify({ error: 'Not a valid geoconfirmed.org URL' }), {
-          status: 400, headers: corsHeaders,
+          status: 400, headers: JSON_HEADERS,
         })
       }
 
@@ -404,7 +398,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         return new Response(JSON.stringify({
           error: `Unknown conflict: ${parsed.conflict}`,
           available: conflicts.map(c => c.shortName),
-        }), { status: 404, headers: corsHeaders })
+        }), { status: 404, headers: JSON_HEADERS })
       }
 
       if (parsed.eventId) {
@@ -418,7 +412,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
         if (!target) {
           return new Response(JSON.stringify({ error: 'Event not found', eventId: parsed.eventId }), {
-            status: 404, headers: corsHeaders,
+            status: 404, headers: JSON_HEADERS,
           })
         }
 
@@ -457,7 +451,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           conflict: { name: conflict.name, code: conflict.code },
           event,
           url: body.url,
-        }), { headers: corsHeaders })
+        }), { headers: JSON_HEADERS })
       }
 
       // No specific event — return conflict overview with recent events
@@ -479,7 +473,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           icon_path: p.icon,
           url: `https://geoconfirmed.org/${parsed.conflict}/${p.id}`,
         })),
-      }), { headers: corsHeaders })
+      }), { headers: JSON_HEADERS })
     }
 
     // Mode: Search or list
@@ -500,7 +494,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       return new Response(JSON.stringify({
         error: `Unknown conflict: ${conflict}`,
         available: conflicts.map(c => ({ name: c.name, shortName: c.shortName })),
-      }), { status: 404, headers: corsHeaders })
+      }), { status: 404, headers: JSON_HEADERS })
     }
 
     const result = await fetchPlacemarks(conflictInfo.shortName, page, pageSize, search)
@@ -558,16 +552,16 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       search: search || null,
       enriched,
       events,
-    }), { headers: corsHeaders })
+    }), { headers: JSON_HEADERS })
 
   } catch (error: any) {
     console.error('[GeoConfirmed Crawler] Error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to fetch GeoConfirmed data',
-    }), { status: 500, headers: corsHeaders })
+    }), { status: 500, headers: JSON_HEADERS })
   }
 }
 
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, { status: 204, headers: corsHeaders })
+  return optionsResponse()
 }

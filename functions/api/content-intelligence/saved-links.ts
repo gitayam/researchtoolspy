@@ -12,6 +12,7 @@
 import type { PagesFunction } from '@cloudflare/workers-types'
 
 import { getUserIdOrDefault, getUserFromRequest } from '../_shared/auth-helpers'
+import { JSON_HEADERS } from '../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -99,7 +100,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       total_pages: Math.ceil(total / limit)
     }), {
       status: 200,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
 
   } catch (error) {
@@ -109,7 +110,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
   }
 }
@@ -123,7 +124,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   if (!userId) {
     return new Response(JSON.stringify({ error: 'Authentication required' }), {
       status: 401,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      headers: JSON_HEADERS,
     })
   }
 
@@ -142,7 +143,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!url) {
       return new Response(JSON.stringify({ error: 'URL is required' }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -174,7 +175,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         existing_id: existing.id
       }), {
         status: 409,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -206,7 +207,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       // Call analyze-url endpoint internally
       const analyzeResponse = await fetch(`${new URL(request.url).origin}/api/content-intelligence/analyze-url`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url, mode: 'full' })
       })
 
@@ -234,7 +235,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       analysis_id: analysisId
     }), {
       status: 201,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
 
   } catch (error) {
@@ -244,7 +245,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
   }
 }
@@ -258,14 +259,14 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
   if (!userId) {
     return new Response(JSON.stringify({ error: 'Authentication required' }), {
       status: 401,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      headers: JSON_HEADERS,
     })
   }
 
   if (!params.id) {
     return new Response(JSON.stringify({ error: 'Link ID required' }), {
       status: 400,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
   }
 
@@ -304,7 +305,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     if (updates.length === 0) {
       return new Response(JSON.stringify({ error: 'No fields to update' }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -324,7 +325,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     if (!updated) {
       return new Response(JSON.stringify({ error: 'Link not found' }), {
         status: 404,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -335,7 +336,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       is_processed: Boolean(updated.is_processed)
     }), {
       status: 200,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
 
   } catch (error) {
@@ -345,7 +346,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
   }
 }
@@ -359,14 +360,14 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
   if (!userId) {
     return new Response(JSON.stringify({ error: 'Authentication required' }), {
       status: 401,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      headers: JSON_HEADERS,
     })
   }
 
   if (!params.id) {
     return new Response(JSON.stringify({ error: 'Link ID required' }), {
       status: 400,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
   }
 
@@ -380,13 +381,13 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     if (result.meta.changes === 0) {
       return new Response(JSON.stringify({ error: 'Link not found' }), {
         status: 404,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
     return new Response(JSON.stringify({ success: true }), {
       status: 200,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
 
   } catch (error) {
@@ -396,7 +397,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
 
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
   }
 }
@@ -423,7 +424,7 @@ async function getSingleLink(db: D1Database, id: number, userId: number) {
     if (!link) {
       return new Response(JSON.stringify({ error: 'Link not found' }), {
         status: 404,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -436,7 +437,7 @@ async function getSingleLink(db: D1Database, id: number, userId: number) {
       analysis_top_phrases: link.analysis_top_phrases ? JSON.parse(link.analysis_top_phrases as string) : null
     }), {
       status: 200,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
 
   } catch (error) {
@@ -446,7 +447,7 @@ async function getSingleLink(db: D1Database, id: number, userId: number) {
 
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
   }
 }

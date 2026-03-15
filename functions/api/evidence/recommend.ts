@@ -4,6 +4,7 @@
  */
 
 import { getUserFromRequest } from '../_shared/auth-helpers'
+import { JSON_HEADERS, optionsResponse } from '../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -46,21 +47,14 @@ interface EvidenceRecommendation {
 export async function onRequestPost(context: { request: Request; env: Env }) {
   const { request, env } = context
 
-  const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash',
-    'Content-Type': 'application/json',
-  }
-
   if (request.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers: corsHeaders })
+    return optionsResponse()
   }
 
   const userId = await getUserFromRequest(request, env)
   if (!userId) {
     return new Response(JSON.stringify({ error: 'Authentication required' }), {
-      status: 401, headers: corsHeaders,
+      status: 401, headers: JSON_HEADERS,
     })
   }
 
@@ -230,7 +224,7 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
       }
     }), {
       status: 200,
-      headers: corsHeaders,
+      headers: JSON_HEADERS,
     })
 
   } catch (error) {
@@ -240,7 +234,7 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
 
     }), {
       status: 500,
-      headers: corsHeaders,
+      headers: JSON_HEADERS,
     })
   }
 }

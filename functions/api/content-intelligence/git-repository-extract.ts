@@ -10,6 +10,7 @@
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { createLogger } from '../../utils/logger'
 import { getUserFromRequest } from '../_shared/auth-helpers'
+import { JSON_HEADERS } from '../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -129,7 +130,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const authUserId = await getUserFromRequest(request, env)
     if (!authUserId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+        status: 401, headers: JSON_HEADERS,
       })
     }
 
@@ -141,7 +142,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       return new Response(JSON.stringify({
         success: false,
         error: 'URL is required'
-      }), { status: 400, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } })
+      }), { status: 400, headers: JSON_HEADERS })
     }
 
     // Detect platform
@@ -152,7 +153,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       return new Response(JSON.stringify({
         success: false,
         error: 'Could not detect Git platform from URL. Supported platforms: GitHub, GitLab, Bitbucket'
-      }), { status: 400, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } })
+      }), { status: 400, headers: JSON_HEADERS })
     }
 
     logger.info(`Extracting ${platform} repository: ${url}`)
@@ -185,7 +186,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     return new Response(JSON.stringify(result), {
       status: result.success ? 200 : 422,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
 
   } catch (error) {
@@ -195,7 +196,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       error: 'Internal server error'
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
   }
 }

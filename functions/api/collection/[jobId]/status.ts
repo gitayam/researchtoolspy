@@ -8,18 +8,12 @@
 import type { PagesFunction } from '@cloudflare/workers-types'
 import type { CollectionJob, CollectionResultsSummary } from '../../../../src/types/collection'
 import { getUserFromRequest } from '../../_shared/auth-helpers'
+import { JSON_HEADERS, optionsResponse } from '../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
   SESSIONS?: KVNamespace
   JWT_SECRET?: string
-}
-
-const corsHeaders = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Workspace-ID'
 }
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
@@ -28,7 +22,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   if (!userId) {
     return new Response(JSON.stringify({ error: 'Authentication required' }), {
       status: 401,
-      headers: corsHeaders
+      headers: JSON_HEADERS
     })
   }
 
@@ -38,7 +32,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     if (!jobId) {
       return new Response(JSON.stringify({ error: 'Job ID required' }), {
         status: 400,
-        headers: corsHeaders
+        headers: JSON_HEADERS
       })
     }
 
@@ -53,7 +47,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     if (!job) {
       return new Response(JSON.stringify({ error: 'Job not found' }), {
         status: 404,
-        headers: corsHeaders
+        headers: JSON_HEADERS
       })
     }
 
@@ -94,13 +88,13 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         resultsSummary
       }), {
         status: 200,
-        headers: corsHeaders
+        headers: JSON_HEADERS
       })
     }
 
     return new Response(JSON.stringify(parsedJob), {
       status: 200,
-      headers: corsHeaders
+      headers: JSON_HEADERS
     })
 
   } catch (error) {
@@ -110,12 +104,12 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     }), {
       status: 500,
-      headers: corsHeaders
+      headers: JSON_HEADERS
     })
   }
 }
 
 // OPTIONS - CORS preflight
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, { status: 204, headers: corsHeaders })
+  return optionsResponse()
 }

@@ -8,6 +8,7 @@
  */
 
 import { callOpenAIViaGateway } from '../_shared/ai-gateway'
+import { JSON_HEADERS } from '../_shared/api-utils'
 
 interface Env {
   OPENAI_API_KEY: string
@@ -115,7 +116,7 @@ Return ONLY valid JSON with this exact structure:
     } catch (parseError) {
       console.error('[extract-claim-entities] Failed to parse AI response:', content.slice(0, 200))
       return new Response(JSON.stringify({ entities: [], error: 'AI returned invalid JSON' }), {
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
     const entities = result.entities || []

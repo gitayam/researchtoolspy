@@ -4,15 +4,10 @@
  * GET /api/invites/:token - Get invite info (no auth required)
  */
 
+import { JSON_HEADERS, optionsResponse } from '../_shared/api-utils'
+
 interface Env {
   DB: D1Database
-}
-
-const corsHeaders = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash',
 }
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
@@ -32,7 +27,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     if (!invite) {
       return new Response(JSON.stringify({ error: 'Invite not found' }), {
-        status: 404, headers: corsHeaders,
+        status: 404, headers: JSON_HEADERS,
       })
     }
 
@@ -57,15 +52,15 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         is_expired: Boolean(isExpired),
         is_max_uses_reached: Boolean(isMaxUsesReached),
       },
-    }), { headers: corsHeaders })
+    }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[invites] Info error:', error)
     return new Response(JSON.stringify({ error: 'Failed to get invite info' }), {
-      status: 500, headers: corsHeaders,
+      status: 500, headers: JSON_HEADERS,
     })
   }
 }
 
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, { status: 204, headers: corsHeaders })
+  return optionsResponse()
 }

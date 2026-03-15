@@ -4,6 +4,7 @@
  * Generates unanswered follow-up questions based on existing analysis content
  */
 
+import { JSON_HEADERS } from '../_shared/api-utils'
 import { getUserFromRequest } from '../_shared/auth-helpers'
 
 interface Env {
@@ -106,7 +107,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!authUserId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
         status: 401,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -118,7 +119,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!apiKey) {
       return new Response(JSON.stringify({ error: 'OpenAI API key not configured' }), {
         status: 500,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -131,10 +132,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (cached) {
       return new Response(JSON.stringify(cached), {
         status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Cache': 'HIT'
-        }
+        headers: { ...JSON_HEADERS, 'X-Cache': 'HIT' }
       })
     }
 
@@ -160,7 +158,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!config) {
       return new Response(JSON.stringify({ error: `Unsupported framework: ${framework}` }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -311,10 +309,7 @@ ${jsonFormat}`
 
     return new Response(JSON.stringify(result), {
       status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Cache': 'MISS'
-      }
+      headers: { ...JSON_HEADERS, 'X-Cache': 'MISS' }
     })
 
   } catch (error) {
@@ -324,7 +319,7 @@ ${jsonFormat}`
 
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
   }
 }

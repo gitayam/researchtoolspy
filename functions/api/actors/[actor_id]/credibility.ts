@@ -9,17 +9,11 @@
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserIdOrDefault } from '../../_shared/auth-helpers'
 import { checkWorkspaceAccess } from '../../_shared/workspace-helpers'
+import { JSON_HEADERS, optionsResponse } from '../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
   SESSIONS: KVNamespace
-}
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash',
-  'Content-Type': 'application/json',
 }
 
 /** Round to 1 decimal place */
@@ -42,7 +36,7 @@ const SCORE_KEYS = {
 }
 
 export const onRequestOptions: PagesFunction<Env> = async () => {
-  return new Response(null, { status: 204, headers: corsHeaders })
+  return optionsResponse()
 }
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
@@ -56,7 +50,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     if (!workspaceId) {
       return new Response(
         JSON.stringify({ error: 'workspace_id parameter required' }),
-        { status: 400, headers: corsHeaders }
+        { status: 400, headers: JSON_HEADERS }
       )
     }
 
@@ -65,7 +59,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     if (!(await checkWorkspaceAccess(workspaceId, userId, env))) {
       return new Response(
         JSON.stringify({ error: 'Access denied to workspace' }),
-        { status: 403, headers: corsHeaders }
+        { status: 403, headers: JSON_HEADERS }
       )
     }
 
@@ -78,7 +72,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     if (!actor) {
       return new Response(
         JSON.stringify({ error: 'Actor not found' }),
-        { status: 404, headers: corsHeaders }
+        { status: 404, headers: JSON_HEADERS }
       )
     }
 
@@ -244,13 +238,13 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         previous_assessments: previousAssessments.slice(0, 10),
         mom_assessments: momAssessments.slice(0, 10),
       }),
-      { status: 200, headers: corsHeaders }
+      { status: 200, headers: JSON_HEADERS }
     )
   } catch (error) {
     console.error('Actor credibility API error:', error)
     return new Response(
       JSON.stringify({ error: 'Internal server error' }),
-      { status: 500, headers: corsHeaders }
+      { status: 500, headers: JSON_HEADERS }
     )
   }
 }

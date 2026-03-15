@@ -2,6 +2,7 @@
  * Public ACH Analysis View API
  * GET /api/ach/public/:token - View public ACH analysis (no auth required)
  */
+import { JSON_HEADERS } from '../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -15,7 +16,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     if (!token) {
       return new Response(JSON.stringify({ error: 'Share token is required' }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -27,7 +28,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     if (!analysis) {
       return new Response(JSON.stringify({ error: 'Analysis not found or not public' }), {
         status: 404,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        headers: JSON_HEADERS
       })
     }
 
@@ -105,7 +106,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       evidence: evidenceLinks.results || [],
       scores: scores.results || []
     }), {
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
   } catch (error) {
     console.error('Public ACH view error:', error)
@@ -114,7 +115,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
   }
 }

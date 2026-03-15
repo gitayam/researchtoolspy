@@ -12,6 +12,7 @@
 import type { PagesFunction } from '@cloudflare/workers-types'
 
 import { getUserFromRequest } from '../_shared/auth-helpers'
+import { JSON_HEADERS } from '../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -146,7 +147,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   if (!authUserId) {
     return new Response(JSON.stringify({ error: 'Authentication required' }), {
       status: 401,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      headers: JSON_HEADERS,
     })
   }
 
@@ -158,7 +159,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       return new Response(JSON.stringify({
         success: false,
         error: 'URL is required'
-      }), { status: 400, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } })
+      }), { status: 400, headers: JSON_HEADERS })
     }
 
     // Detect platform
@@ -168,7 +169,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       return new Response(JSON.stringify({
         success: false,
         error: 'Could not detect social media platform from URL'
-      }), { status: 400, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } })
+      }), { status: 400, headers: JSON_HEADERS })
     }
 
 
@@ -226,7 +227,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     return new Response(JSON.stringify(result), {
       status: result.success ? 200 : 422,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
 
   } catch (error) {
@@ -236,7 +237,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       error: 'Failed to extract social media content'
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      headers: JSON_HEADERS
     })
   }
 }
@@ -461,7 +462,7 @@ async function fetchYouTubeTranscript(videoId: string, preferredLang: string = '
       `https://www.youtube.com/youtubei/v1/player?key=AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8`,
       {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+        headers: { 'Content-Type': 'application/json' },
         signal: AbortSignal.timeout(15000),
         body: JSON.stringify({
           context: {

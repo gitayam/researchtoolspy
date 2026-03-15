@@ -8,6 +8,7 @@
 import { callOpenAIViaGateway, getOptimalCacheTTL } from '../_shared/ai-gateway'
 import { enhancedFetch } from '../../utils/browser-profiles'
 import { getUserFromRequest } from '../_shared/auth-helpers'
+import { JSON_HEADERS, optionsResponse } from '../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -15,13 +16,6 @@ interface Env {
   AI_GATEWAY_ACCOUNT_ID?: string
   AI_CONFIG: KVNamespace
   CACHE: KVNamespace
-}
-
-const corsHeaders = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Workspace-ID',
 }
 
 // ─── Content extraction (simplified from extract-claims) ───
@@ -117,7 +111,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const authUserId = await getUserFromRequest(context.request, context.env)
     if (!authUserId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: corsHeaders,
+        status: 401, headers: JSON_HEADERS,
       })
     }
 
@@ -125,7 +119,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     if (!body.url) {
       return new Response(JSON.stringify({ error: 'url is required' }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: JSON_HEADERS,
       })
     }
 
@@ -139,7 +133,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         return new Response(JSON.stringify({
           error: 'Twitter/X posts cannot be scraped',
           details: 'X.com blocks server-side requests. Enter timeline events manually instead.',
-        }), { status: 422, headers: corsHeaders })
+        }), { status: 422, headers: JSON_HEADERS })
       }
     } catch {
       // Invalid URL — will be caught by fetch below
@@ -153,7 +147,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!res.ok) {
       return new Response(JSON.stringify({
         error: `Failed to fetch URL (${res.status})`,
-      }), { status: 422, headers: corsHeaders })
+      }), { status: 422, headers: JSON_HEADERS })
     }
 
     const html = await res.text()
@@ -163,7 +157,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (text.length < 100) {
       return new Response(JSON.stringify({
         error: 'Insufficient content to extract timeline events',
-      }), { status: 422, headers: corsHeaders })
+      }), { status: 422, headers: JSON_HEADERS })
     }
 
     // Extract timeline events via AI
@@ -177,15 +171,15 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       domain,
       url,
       event_count: events.length,
-    }), { headers: corsHeaders })
+    }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[ExtractTimeline] Error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to extract timeline events',
-    }), { status: 500, headers: corsHeaders })
+    }), { status: 500, headers: JSON_HEADERS })
   }
 }
 
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, { status: 204, headers: corsHeaders })
+  return optionsResponse()
 }

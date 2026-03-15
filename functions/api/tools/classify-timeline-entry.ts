@@ -7,6 +7,7 @@
 
 import { callOpenAIViaGateway, getOptimalCacheTTL } from '../_shared/ai-gateway'
 import { getUserFromRequest } from '../_shared/auth-helpers'
+import { JSON_HEADERS, optionsResponse } from '../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -14,13 +15,6 @@ interface Env {
   AI_GATEWAY_ACCOUNT_ID?: string
   AI_CONFIG: KVNamespace
   CACHE: KVNamespace
-}
-
-const corsHeaders = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Workspace-ID',
 }
 
 const VALID_CATEGORIES = ['event', 'meeting', 'communication', 'financial', 'legal', 'travel', 'publication', 'military', 'political']
@@ -31,14 +25,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const authUserId = await getUserFromRequest(context.request, context.env)
     if (!authUserId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: corsHeaders,
+        status: 401, headers: JSON_HEADERS,
       })
     }
     const body = await context.request.json() as { text: string; today?: string }
 
     if (!body.text?.trim()) {
       return new Response(JSON.stringify({ error: 'text is required' }), {
-        status: 400, headers: corsHeaders,
+        status: 400, headers: JSON_HEADERS,
       })
     }
 
@@ -79,7 +73,7 @@ Return ONLY valid JSON: { "category": "...", "importance": "...", "event_date_hi
     }
 
     return new Response(JSON.stringify({ category, importance, event_date_hint }), {
-      headers: corsHeaders,
+      headers: JSON_HEADERS,
     })
   } catch (error) {
     console.error('[ClassifyTimeline] Error:', error)
@@ -88,10 +82,10 @@ Return ONLY valid JSON: { "category": "...", "importance": "...", "event_date_hi
       category: 'event',
       importance: 'normal',
       event_date_hint: null,
-    }), { headers: corsHeaders })
+    }), { headers: JSON_HEADERS })
   }
 }
 
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, { status: 204, headers: corsHeaders })
+  return optionsResponse()
 }

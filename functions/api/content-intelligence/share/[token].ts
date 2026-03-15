@@ -5,6 +5,8 @@
  * No authentication required
  */
 
+import { JSON_HEADERS } from '../../_shared/api-utils'
+
 interface Env {
   DB: D1Database
 }
@@ -18,10 +20,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         error: 'Missing share token'
       }), {
         status: 400,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*'
-        }
+        headers: JSON_HEADERS
       })
     }
 
@@ -43,10 +42,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         error: 'Shared analysis not found or has expired'
       }), {
         status: 404,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*'
-        }
+        headers: JSON_HEADERS
       })
     }
 
@@ -69,8 +65,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     }), {
       status: 200,
       headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
+        ...JSON_HEADERS,
         'Cache-Control': 'public, max-age=3600' // Cache for 1 hour
       }
     })
@@ -82,10 +77,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     }), {
       status: 500,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      }
+      headers: JSON_HEADERS
     })
   }
 }
