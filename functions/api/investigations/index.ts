@@ -233,7 +233,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         body.description || null,
         templateType,
         workspace_id,
-        user_id ?? 1,
+        user_id,
         id
       ).run()
     } catch (copError) {

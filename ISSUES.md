@@ -1,7 +1,27 @@
 # ResearchTools.net — Issue Tracker
 
 **Last updated:** 2026-03-15
-**Current tag:** v0.19.1-catch-block-sweep
+**Current tag:** v0.19.2-evidence-hardening
+
+---
+
+## Fixed (v0.19.2)
+
+### P2 — `evidence.ts` Was Pre-Workspace Legacy Code
+- [x] Used `getUserIdOrDefault` (guest fallback to user 1) — only entity endpoint without proper auth pattern
+- [x] No workspace scoping — `evidence` table lacks `workspace_id` column entirely (pre-workspace schema)
+- [x] Duplicate `safeJSON` function defined twice in same file
+- [x] Removed stale `error.message?.includes('no such table')` fallback in catch block
+- [x] Fix: Refactored to deduplicated `safeJSON`/`parseEvidence` helpers, documented workspace_id gap, cleaned catch block
+- **Root cause:** File was written in the earliest phase of development before workspace isolation existed. Unlike entity tables (actors, events, etc.) which were migrated to include workspace_id, the `evidence` table was never updated.
+- **Follow-up needed:** Add `workspace_id` column to `evidence` table via migration (P2, deferred)
+
+### P2 — `investigations/index.ts` Had `user_id ?? 1` Fallback
+- [x] Line 236: COP session creation used `user_id ?? 1` — silently creates sessions owned by user 1 if auth state is unexpected
+- [x] Per Lessons Learned Session 13: hardcoded fallback IDs mask bugs by writing data to wrong user's scope
+- [x] Fix: Removed `?? 1` — `user_id` is guaranteed non-null by this point (requireAuth already succeeded)
+
+### Smoke Test Results — 36/36 Passing
 
 ---
 
@@ -882,6 +902,7 @@
 
 - [x] ~~COP sessions `team_workspace_id` mostly NULL~~ — fixed in v0.17.1, all workspace queries now use `WHERE team_workspace_id = ? OR workspace_id = ?`
 - [ ] **16 orphaned actors in workspace "1"** — created by user 1 across multiple COP sessions before workspace isolation. Cannot auto-reassign without manual review.
+- [ ] **`evidence` table lacks `workspace_id` column** — pre-workspace schema. Evidence is scoped by `created_by` only, not by workspace. Needs `ALTER TABLE evidence ADD COLUMN workspace_id TEXT` migration + backfill.
 
 ### P2 — Missing Features / Stubs
 

@@ -2,9 +2,35 @@
 import { getUserIdOrDefault, getUserFromRequest } from './_shared/auth-helpers'
 import { CORS_HEADERS, JSON_HEADERS } from './_shared/api-utils'
 
+interface Env {
+  DB: D1Database
+  SESSIONS?: KVNamespace
+}
+
+const safeJSON = (val: any, fallback: any = []) => {
+  if (!val) return fallback
+  try { return JSON.parse(val) } catch { return fallback }
+}
+
+function parseEvidence(evidence: any) {
+  return {
+    ...evidence,
+    tags: safeJSON(evidence.tags, []),
+    source: safeJSON(evidence.source, {}),
+    metadata: safeJSON(evidence.metadata, {}),
+    sats_evaluation: safeJSON(evidence.sats_evaluation, null),
+    frameworks: safeJSON(evidence.frameworks, []),
+    attachments: safeJSON(evidence.attachments, []),
+    key_points: safeJSON(evidence.key_points, []),
+    contradictions: safeJSON(evidence.contradictions, []),
+    corroborations: safeJSON(evidence.corroborations, []),
+    implications: safeJSON(evidence.implications, []),
+    previous_versions: safeJSON(evidence.previous_versions, []),
+  }
+}
+
 export async function onRequest(context: any) {
   const { request, env } = context
-
 
   // Handle preflight
   if (request.method === 'OPTIONS') {
@@ -26,38 +52,18 @@ export async function onRequest(context: any) {
 
         if (!evidence) {
           return new Response(JSON.stringify({ error: 'Evidence not found' }), {
-            status: 404,
-            headers: JSON_HEADERS,
+            status: 404, headers: JSON_HEADERS,
           })
         }
 
-        // Parse JSON fields
-        const safeJSON = (val: any, fallback: any = []) => {
-          if (!val) return fallback
-          try { return JSON.parse(val) } catch { return fallback }
-        }
-        const parsedEvidence = {
-          ...evidence,
-          tags: safeJSON(evidence.tags, []),
-          source: safeJSON(evidence.source, {}),
-          metadata: safeJSON(evidence.metadata, {}),
-          sats_evaluation: safeJSON(evidence.sats_evaluation, null),
-          frameworks: safeJSON(evidence.frameworks, []),
-          attachments: safeJSON(evidence.attachments, []),
-          key_points: safeJSON(evidence.key_points, []),
-          contradictions: safeJSON(evidence.contradictions, []),
-          corroborations: safeJSON(evidence.corroborations, []),
-          implications: safeJSON(evidence.implications, []),
-          previous_versions: safeJSON(evidence.previous_versions, []),
-        }
-
-        return new Response(JSON.stringify(parsedEvidence), {
-          status: 200,
+        return new Response(JSON.stringify(parseEvidence(evidence)), {
           headers: JSON_HEADERS,
         })
       }
 
       // List all evidence with optional filters
+      // Note: evidence table lacks workspace_id column (pre-workspace schema).
+      // Scoping is by created_by only. workspace_id param accepted but ignored.
       const type = url.searchParams.get('type')
       const status = url.searchParams.get('status')
       const limit = parseInt(url.searchParams.get('limit') || '50')
@@ -78,29 +84,9 @@ export async function onRequest(context: any) {
       params.push(limit)
 
       const results = await env.DB.prepare(query).bind(...params).all()
-
-      // Parse JSON fields for all results (using safeJSON to handle malformed data)
-      const safeJ = (val: any, fallback: any = []) => {
-        if (!val) return fallback
-        try { return JSON.parse(val) } catch { return fallback }
-      }
-      const parsedResults = (results.results || []).map((evidence: any) => ({
-        ...evidence,
-        tags: safeJ(evidence.tags, []),
-        source: safeJ(evidence.source, {}),
-        metadata: safeJ(evidence.metadata, {}),
-        sats_evaluation: safeJ(evidence.sats_evaluation, null),
-        frameworks: safeJ(evidence.frameworks, []),
-        attachments: safeJ(evidence.attachments, []),
-        key_points: safeJ(evidence.key_points, []),
-        contradictions: safeJ(evidence.contradictions, []),
-        corroborations: safeJ(evidence.corroborations, []),
-        implications: safeJ(evidence.implications, []),
-        previous_versions: safeJ(evidence.previous_versions, []),
-      }))
+      const parsedResults = (results.results || []).map(parseEvidence)
 
       return new Response(JSON.stringify({ evidence: parsedResults }), {
-        status: 200,
         headers: JSON_HEADERS,
       })
     }
@@ -157,8 +143,7 @@ export async function onRequest(context: any) {
         id: result.meta.last_row_id,
         message: 'Evidence created successfully'
       }), {
-        status: 201,
-        headers: JSON_HEADERS,
+        status: 201, headers: JSON_HEADERS,
       })
     }
 
@@ -219,7 +204,6 @@ export async function onRequest(context: any) {
       }
 
       return new Response(JSON.stringify({ message: 'Evidence updated successfully' }), {
-        status: 200,
         headers: JSON_HEADERS,
       })
     }
@@ -238,37 +222,25 @@ export async function onRequest(context: any) {
 
       if (result.meta.changes === 0) {
         return new Response(JSON.stringify({ error: 'Evidence not found or access denied' }), {
-          status: 404,
-          headers: JSON_HEADERS,
+          status: 404, headers: JSON_HEADERS,
         })
       }
 
       return new Response(JSON.stringify({ message: 'Evidence deleted successfully' }), {
-        status: 200,
         headers: JSON_HEADERS,
       })
     }
 
     return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405,
-      headers: JSON_HEADERS,
+      status: 405, headers: JSON_HEADERS,
     })
 
   } catch (error: any) {
     console.error('[EVIDENCE API] Error:', error)
-
-    // If table doesn't exist, return empty array for GET requests
-    if (request.method === 'GET' && error.message?.includes('no such table')) {
-      return new Response(JSON.stringify({ evidence: [] }), {
-        status: 200,
-        headers: JSON_HEADERS,
-      })
-    }
     return new Response(JSON.stringify({
       error: 'Internal server error'
     }), {
-      status: 500,
-      headers: JSON_HEADERS,
+      status: 500, headers: JSON_HEADERS,
     })
   }
 }
