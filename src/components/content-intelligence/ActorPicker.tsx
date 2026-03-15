@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 interface Actor {
   id: string
@@ -55,7 +56,7 @@ export function ActorPicker({
     try {
       const response = await fetch(
         `/api/claims/search-actors?q=${encodeURIComponent(searchQuery)}&limit=10`,
-        { credentials: 'include' }
+        { headers: getCopHeaders() }
       )
 
       if (!response.ok) throw new Error('Failed to search actors')

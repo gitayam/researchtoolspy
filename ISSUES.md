@@ -1,7 +1,18 @@
 # ResearchTools.net — Issue Tracker
 
 **Last updated:** 2026-03-15
-**Current tag:** v0.17.5-content-search-endpoint
+**Current tag:** v0.17.6-auth-headers-fix
+
+---
+
+## Fixed (v0.17.6)
+
+### P1 — 13 Frontend Components Used `credentials: 'include'` Instead of Auth Headers
+- [x] 6 components had NO `getCopHeaders()` import: `PlaceLinker`, `ActorPicker`, `ActorLinker`, `EventLinker`, `SwotEvidenceLinker`, `ClaimsPage` — added import + replaced credentials with headers
+- [x] 6 components HAD the import but still used `credentials: 'include'` on some fetches: `StarburstingEntityLinker`, `ClaimEvidenceLinker`, `ClaimEntityLinker`, `ClaimAnalysisDisplay`, `DeceptionForm`, `InvestigationPacketsPage` — replaced credentials with getCopHeaders()
+- [x] 1 additional fix in `DeceptionClaimImporter.tsx` (from v0.17.5 search endpoint work)
+- [x] ~19 fetch calls total fixed across 13 files
+- **Root cause:** Components were built using `credentials: 'include'` (cookie-based auth) but the project uses `X-User-Hash` header-based auth. Without the header, endpoints using `getUserFromRequest` return 401, and endpoints using `getUserIdOrDefault` silently fall back to user 1 (wrong user context). The `getCopHeaders()` helper sends both `X-User-Hash` and `Authorization: Bearer` headers.
 
 ---
 

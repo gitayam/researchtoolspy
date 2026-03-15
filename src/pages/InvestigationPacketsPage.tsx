@@ -74,7 +74,7 @@ export function InvestigationPacketsPage() {
     try {
       setLoading(true)
       const response = await fetch('/api/investigation-packets/list', {
-        credentials: 'include',
+        headers: getCopHeaders(),
         signal,
       })
 
@@ -102,7 +102,6 @@ export function InvestigationPacketsPage() {
       const response = await fetch('/api/investigation-packets/create', {
         method: 'POST',
         headers: getCopHeaders(),
-        credentials: 'include',
         body: JSON.stringify({
           title: title.trim(),
           description: description.trim() || undefined,

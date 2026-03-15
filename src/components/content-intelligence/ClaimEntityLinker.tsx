@@ -92,7 +92,7 @@ export function ClaimEntityLinker({ claimAdjustmentId, onLinked }: ClaimEntityLi
     try {
       setLoadingEntities(true)
       const response = await fetch(`/api/claims/get-claim-entities/${claimAdjustmentId}`, {
-        credentials: 'include'
+        headers: getCopHeaders()
       })
 
       if (!response.ok) throw new Error('Failed to load linked entities')
@@ -119,7 +119,7 @@ export function ClaimEntityLinker({ claimAdjustmentId, onLinked }: ClaimEntityLi
       })
 
       const response = await fetch(`/api/claims/search-actors?${params}`, {
-        credentials: 'include'
+        headers: getCopHeaders()
       })
 
       if (!response.ok) throw new Error('Failed to search actors')
@@ -143,7 +143,6 @@ export function ClaimEntityLinker({ claimAdjustmentId, onLinked }: ClaimEntityLi
       const response = await fetch('/api/claims/link-entity', {
         method: 'POST',
         headers: getCopHeaders(),
-        credentials: 'include',
         body: JSON.stringify({
           claim_adjustment_id: claimAdjustmentId,
           entity_id: selectedActor.id,
@@ -189,8 +188,7 @@ export function ClaimEntityLinker({ claimAdjustmentId, onLinked }: ClaimEntityLi
     try {
       const response = await fetch(`/api/claims/remove-entity-mention/${mentionId}`, {
         method: 'DELETE',
-        headers: getCopHeaders(),
-        credentials: 'include'
+        headers: getCopHeaders()
       })
 
       if (!response.ok) throw new Error('Failed to remove mention')

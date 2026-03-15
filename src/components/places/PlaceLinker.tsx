@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Search, Loader2, MapPin, ExternalLink, X, CheckCircle2 } from 'lucide-react'
 import type { Place, PlaceType } from '@/types/entities'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 export interface LinkedPlace {
   id: string
@@ -60,7 +61,7 @@ export function PlaceLinker({
       })
 
       const response = await fetch(`/api/entities/places?${params}`, {
-        credentials: 'include'
+        headers: getCopHeaders()
       })
 
       if (!response.ok) throw new Error('Failed to search places')

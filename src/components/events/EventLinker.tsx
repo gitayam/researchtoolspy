@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Search, Loader2, Calendar, ExternalLink, X, CheckCircle2 } from 'lucide-react'
 import type { Event, EventType, EventSignificance } from '@/types/entities'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 export interface LinkedEvent {
   id: string
@@ -60,7 +61,7 @@ export function EventLinker({
       })
 
       const response = await fetch(`/api/entities/events?${params}`, {
-        credentials: 'include'
+        headers: getCopHeaders()
       })
 
       if (!response.ok) throw new Error('Failed to search events')

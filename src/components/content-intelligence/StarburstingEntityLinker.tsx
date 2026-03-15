@@ -56,7 +56,7 @@ export function StarburstingEntityLinker({
       
       const response = await fetch(
         `/api/actors/search?name=${encodeURIComponent(entity.name)}&type=${dbType}`,
-        { credentials: 'include' }
+        { headers: getCopHeaders() }
       )
       
       if (response.ok) {

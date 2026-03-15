@@ -88,7 +88,7 @@ export function ClaimEvidenceLinker({ claimAdjustmentId, onLinked }: ClaimEviden
     try {
       setLoadingLinks(true)
       const response = await fetch(`/api/claims/get-evidence-links/${claimAdjustmentId}`, {
-        credentials: 'include'
+        headers: getCopHeaders()
       })
 
       if (!response.ok) throw new Error('Failed to load linked evidence')
@@ -114,7 +114,7 @@ export function ClaimEvidenceLinker({ claimAdjustmentId, onLinked }: ClaimEviden
       })
 
       const response = await fetch(`/api/claims/search-evidence?${params}`, {
-        credentials: 'include'
+        headers: getCopHeaders()
       })
 
       if (!response.ok) throw new Error('Failed to search evidence')
@@ -138,7 +138,6 @@ export function ClaimEvidenceLinker({ claimAdjustmentId, onLinked }: ClaimEviden
       const response = await fetch('/api/claims/link-evidence', {
         method: 'POST',
         headers: getCopHeaders(),
-        credentials: 'include',
         body: JSON.stringify({
           claim_adjustment_id: claimAdjustmentId,
           evidence_id: selectedEvidence.id,
@@ -184,8 +183,7 @@ export function ClaimEvidenceLinker({ claimAdjustmentId, onLinked }: ClaimEviden
     try {
       const response = await fetch(`/api/claims/remove-evidence-link/${linkId}`, {
         method: 'DELETE',
-        headers: getCopHeaders(),
-        credentials: 'include'
+        headers: getCopHeaders()
       })
 
       if (!response.ok) throw new Error('Failed to remove link')

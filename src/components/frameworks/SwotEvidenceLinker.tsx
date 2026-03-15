@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Link2, Search, Loader2, Database, ExternalLink, X } from 'lucide-react'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 interface Evidence {
   id: string
@@ -53,7 +54,7 @@ export function SwotEvidenceLinker({
       setLoading(true)
       // Load full evidence details for linked IDs
       const response = await fetch(`/api/evidence-items/batch?ids=${linkedEvidenceIds.join(',')}`, {
-        credentials: 'include'
+        headers: getCopHeaders()
       })
 
       if (response.ok) {
@@ -78,7 +79,7 @@ export function SwotEvidenceLinker({
       })
 
       const response = await fetch(`/api/claims/search-evidence?${params}`, {
-        credentials: 'include'
+        headers: getCopHeaders()
       })
 
       if (!response.ok) throw new Error('Failed to search evidence')

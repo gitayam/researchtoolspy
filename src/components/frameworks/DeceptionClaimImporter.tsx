@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { FileDown, Search, Loader2, Database, ExternalLink, AlertTriangle, CheckCircle2, Info } from 'lucide-react'
+import { getCopHeaders } from '@/lib/cop-auth'
 import type { DeceptionScores } from '@/lib/deception-scoring'
 
 interface Claim {
@@ -72,7 +73,7 @@ export function DeceptionClaimImporter({ onImport }: DeceptionClaimImporterProps
       })
 
       const response = await fetch(`/api/content-intelligence/search?${params}`, {
-        credentials: 'include'
+        headers: getCopHeaders(),
       })
 
       if (!response.ok) throw new Error('Failed to search')

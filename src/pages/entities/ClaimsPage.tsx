@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 interface Claim {
   id: string
@@ -52,7 +53,7 @@ export function ClaimsPage() {
       })
 
       const response = await fetch(`/api/claims?${params}`, {
-        credentials: 'include',
+        headers: getCopHeaders(),
         signal
       })
       const data = await response.json()

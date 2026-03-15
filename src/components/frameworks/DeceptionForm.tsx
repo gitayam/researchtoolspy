@@ -161,7 +161,7 @@ export function DeceptionForm({
       try {
         const res = await fetch(
           `/api/actors?workspace_id=${encodeURIComponent(currentWorkspaceId)}&search=${encodeURIComponent(query)}&limit=10`,
-          { credentials: 'include' }
+          { headers: getCopHeaders() }
         )
         if (!res.ok) throw new Error('Search failed')
         const data = await res.json()
@@ -182,7 +182,7 @@ export function DeceptionForm({
     try {
       const res = await fetch(
         `/api/actors/${encodeURIComponent(actorId)}/credibility?workspace_id=${encodeURIComponent(currentWorkspaceId)}`,
-        { credentials: 'include' }
+        { headers: getCopHeaders() }
       )
       if (!res.ok) {
         if (res.status === 404) {
@@ -227,7 +227,6 @@ export function DeceptionForm({
       const res = await fetch('/api/actors', {
         method: 'POST',
         headers: getCopHeaders(),
-        credentials: 'include',
         body: JSON.stringify({
           name: name.trim(),
           type,

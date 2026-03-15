@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Search, Loader2, Users, ExternalLink, X, CheckCircle2 } from 'lucide-react'
 import type { Actor, ActorType } from '@/types/entities'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 export interface LinkedActor {
   id: string
@@ -59,7 +60,7 @@ export function ActorLinker({
       })
 
       const response = await fetch(`/api/entities/actors?${params}`, {
-        credentials: 'include'
+        headers: getCopHeaders()
       })
 
       if (!response.ok) throw new Error('Failed to search actors')

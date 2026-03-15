@@ -160,7 +160,7 @@ export function ClaimAnalysisDisplay({ contentAnalysisId, claimAnalysis: initial
         setLoadError(null)
 
         const response = await fetch(`/api/claims/get-adjustments/${contentAnalysisId}`, {
-          credentials: 'include'
+          headers: getCopHeaders()
         })
 
         if (!response.ok) {
@@ -282,7 +282,6 @@ export function ClaimAnalysisDisplay({ contentAnalysisId, claimAnalysis: initial
       const response = await fetch('/api/claims/save-adjustment', {
         method: 'POST',
         headers: getCopHeaders(),
-        credentials: 'include',
         body: JSON.stringify(payload)
       })
 
@@ -381,7 +380,7 @@ export function ClaimAnalysisDisplay({ contentAnalysisId, claimAnalysis: initial
   const exportToMarkdown = async (claimAdjustmentId: string) => {
     try {
       const response = await fetch(`/api/claims/export-markdown/${claimAdjustmentId}`, {
-        credentials: 'include'
+        headers: getCopHeaders()
       })
 
       if (!response.ok) {
@@ -411,8 +410,7 @@ export function ClaimAnalysisDisplay({ contentAnalysisId, claimAnalysis: initial
 
       const response = await fetch(`/api/claims/retry-analysis/${contentAnalysisId}`, {
         method: 'POST',
-        headers: getCopHeaders(),
-        credentials: 'include'
+        headers: getCopHeaders()
       })
 
       if (!response.ok) {
@@ -450,8 +448,7 @@ export function ClaimAnalysisDisplay({ contentAnalysisId, claimAnalysis: initial
 
       const response = await fetch(`/api/claims/share/${claimAdjustmentId}`, {
         method: 'POST',
-        headers: getCopHeaders(),
-        credentials: 'include'
+        headers: getCopHeaders()
       })
 
       if (!response.ok) {
