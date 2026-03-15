@@ -376,7 +376,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
       if (isTwitter) {
         try {
-          const oembedUrl = `https://publish.twitter.com/oembed?url=${encodeURIComponent(url)}`
+          const twitterUrl = url.replace('https://x.com/', 'https://twitter.com/')
+          const oembedUrl = `https://publish.twitter.com/oembed?url=${encodeURIComponent(twitterUrl)}`
           const twitterResponse = await fetch(oembedUrl, { signal: AbortSignal.timeout(10000) })
 
           if (twitterResponse.ok) {

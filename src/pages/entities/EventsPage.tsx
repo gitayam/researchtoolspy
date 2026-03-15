@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { EventForm } from '@/components/entities/EventForm'
 import { EventDetailView } from '@/components/entities/EventDetailView'
 import { getCopHeaders } from '@/lib/cop-auth'
+import { useWorkspace } from '@/contexts/WorkspaceContext'
 import type { Event, EventType } from '@/types/entities'
 
 export function EventsPage() {
@@ -18,12 +19,12 @@ export function EventsPage() {
   const { id } = useParams()
   const location = useLocation()
   const navigate = useNavigate()
+  const { currentWorkspaceId: workspaceId } = useWorkspace()
   const [events, setEvents] = useState<Event[]>([])
   const [currentEvent, setCurrentEvent] = useState<Event | null>(null)
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [filterType, setFilterType] = useState<EventType | 'all'>('all')
-  const [workspaceId, setWorkspaceId] = useState<number>(1)
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingEvent, setEditingEvent] = useState<Event | undefined>(undefined)
 
@@ -46,7 +47,7 @@ export function EventsPage() {
     setLoading(true)
     try {
       const params = new URLSearchParams({
-        workspace_id: workspaceId.toString(),
+        workspace_id: workspaceId,
         ...(filterType !== 'all' && { event_type: filterType })
       })
 

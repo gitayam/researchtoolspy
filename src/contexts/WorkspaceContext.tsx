@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 interface Workspace {
   id: string
@@ -38,24 +39,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     // Fetch available workspaces on mount
     const fetchWorkspaces = async () => {
       try {
-        const token = localStorage.getItem('omnicore_token')
-        if (!token) {
-          // Guest user - only has default workspace
-          setWorkspaces([{
-            id: '1',
-            name: 'My Workspace',
-            type: 'PERSONAL',
-            owner_id: 1,
-            is_public: false
-          }])
-          setIsLoading(false)
-          return
-        }
-
         const response = await fetch('/api/workspaces', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          },
+          headers: getCopHeaders(),
           signal: controller.signal,
         })
 

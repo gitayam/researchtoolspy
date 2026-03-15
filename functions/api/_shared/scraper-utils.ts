@@ -34,7 +34,8 @@ export async function scrapeUrl(url: string, apifyApiKey?: string): Promise<Scra
 
   if (isTwitter) {
     try {
-      const oembedUrl = `https://publish.twitter.com/oembed?url=${encodeURIComponent(url)}`
+      const twitterUrl = url.replace('https://x.com/', 'https://twitter.com/')
+      const oembedUrl = `https://publish.twitter.com/oembed?url=${encodeURIComponent(twitterUrl)}`
       const twitterResponse = await fetch(oembedUrl)
 
       if (twitterResponse.ok) {

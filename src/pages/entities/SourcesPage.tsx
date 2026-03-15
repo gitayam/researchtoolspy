@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { SourceForm } from '@/components/entities/SourceForm'
 import { SourceDetailView } from '@/components/entities/SourceDetailView'
 import { getCopHeaders } from '@/lib/cop-auth'
+import { useWorkspace } from '@/contexts/WorkspaceContext'
 import type { Source, SourceType } from '@/types/entities'
 
 export function SourcesPage() {
@@ -18,12 +19,12 @@ export function SourcesPage() {
   const { id } = useParams()
   const location = useLocation()
   const navigate = useNavigate()
+  const { currentWorkspaceId: workspaceId } = useWorkspace()
   const [sources, setSources] = useState<Source[]>([])
   const [currentSource, setCurrentSource] = useState<Source | null>(null)
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [filterType, setFilterType] = useState<SourceType | 'all'>('all')
-  const [workspaceId, setWorkspaceId] = useState<number>(1)
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingSource, setEditingSource] = useState<Source | undefined>(undefined)
 
@@ -46,7 +47,7 @@ export function SourcesPage() {
     setLoading(true)
     try {
       const params = new URLSearchParams({
-        workspace_id: workspaceId.toString(),
+        workspace_id: workspaceId,
         ...(filterType !== 'all' && { source_type: filterType })
       })
 

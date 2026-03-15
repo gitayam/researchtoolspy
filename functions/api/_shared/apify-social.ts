@@ -30,8 +30,10 @@ export interface SocialContent {
  */
 export async function fetchTwitterViaApify(url: string, apiKey: string): Promise<SocialContent> {
   // 1. Try oEmbed first — fast and works for individual tweet URLs
+  // Note: oEmbed requires twitter.com domain (x.com returns 404)
   try {
-    const oembedUrl = `https://publish.twitter.com/oembed?url=${encodeURIComponent(url)}`
+    const twitterUrl = url.replace('https://x.com/', 'https://twitter.com/')
+    const oembedUrl = `https://publish.twitter.com/oembed?url=${encodeURIComponent(twitterUrl)}`
     const oembedRes = await fetch(oembedUrl, { signal: AbortSignal.timeout(8000) })
 
     if (oembedRes.ok) {

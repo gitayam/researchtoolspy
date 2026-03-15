@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { ActorFormEnhanced } from '@/components/entities/ActorFormEnhanced'
 import { ActorDetailView } from '@/components/entities/ActorDetailView'
 import { getCopHeaders } from '@/lib/cop-auth'
+import { useWorkspace } from '@/contexts/WorkspaceContext'
 import type { Actor, ActorType } from '@/types/entities'
 
 export function ActorsPage() {
@@ -18,12 +19,12 @@ export function ActorsPage() {
   const { id } = useParams()
   const location = useLocation()
   const navigate = useNavigate()
+  const { currentWorkspaceId: workspaceId } = useWorkspace()
   const [actors, setActors] = useState<Actor[]>([])
   const [currentActor, setCurrentActor] = useState<Actor | null>(null)
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [filterType, setFilterType] = useState<ActorType | 'all'>('all')
-  const [workspaceId, setWorkspaceId] = useState<number>(1) // TODO: Get from workspace selector
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingActor, setEditingActor] = useState<Actor | undefined>(undefined)
 
@@ -46,7 +47,7 @@ export function ActorsPage() {
     setLoading(true)
     try {
       const params = new URLSearchParams({
-        workspace_id: workspaceId.toString(),
+        workspace_id: workspaceId,
         ...(filterType !== 'all' && { actor_type: filterType })
       })
 
