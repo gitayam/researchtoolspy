@@ -257,3 +257,11 @@ Extract 3-5 items per SWOT quadrant. Focus on actionable insights.`
     })
   }
 }
+
+// Reject GET requests (POST-only endpoint)
+export const onRequestGet: PagesFunction = async () => {
+  return new Response(JSON.stringify({ error: 'Method not allowed. Use POST.' }), {
+    status: 405, headers: JSON_HEADERS,
+  })
+}
+

@@ -13,6 +13,7 @@ import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest } from '../../_shared/auth-helpers'
 import { emitCopEvent } from '../../_shared/cop-events'
 import { EXPORT_REQUESTED, EXPORT_COMPLETED, EXPORT_FAILED } from '../../_shared/cop-event-types'
+import { JSON_HEADERS } from '../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -383,5 +384,12 @@ export const onRequestOptions: PagesFunction = async () => {
   return new Response(null, {
     status: 204,
     headers: corsHeaders,
+  })
+}
+
+// Reject GET requests (POST-only endpoint)
+export const onRequestGet: PagesFunction = async () => {
+  return new Response(JSON.stringify({ error: 'Method not allowed. Use POST.' }), {
+    status: 405, headers: JSON_HEADERS,
   })
 }

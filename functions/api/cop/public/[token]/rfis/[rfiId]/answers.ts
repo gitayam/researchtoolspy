@@ -4,7 +4,7 @@
  * POST /api/cop/public/:token/rfis/:rfiId/answers - Submit answer from public view
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { generatePrefixedId } from '../../../../../_shared/api-utils'
+import { generatePrefixedId, JSON_HEADERS } from '../../../../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -84,4 +84,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
 export const onRequestOptions: PagesFunction = async () => {
   return new Response(null, { status: 204, headers: corsHeaders })
+}
+
+// Reject GET requests (POST-only endpoint)
+export const onRequestGet: PagesFunction = async () => {
+  return new Response(JSON.stringify({ error: 'Method not allowed. Use POST.' }), {
+    status: 405, headers: JSON_HEADERS,
+  })
 }

@@ -185,6 +185,13 @@ Return ONLY valid JSON with this exact structure:
 }
 
 // OPTIONS - CORS preflight
+// Reject GET requests (POST-only endpoint)
+export const onRequestGet: PagesFunction = async () => {
+  return new Response(JSON.stringify({ error: 'Method not allowed. Use POST.' }), {
+    status: 405, headers: JSON_HEADERS,
+  })
+}
+
 export const onRequestOptions: PagesFunction = async () => {
   return new Response(null, { status: 204, headers: CORS_HEADERS })
 }

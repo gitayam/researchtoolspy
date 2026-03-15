@@ -5,6 +5,8 @@
  * - For non-authenticated users: returns data for local storage
  */
 
+import { JSON_HEADERS } from '../../../_shared/api-utils'
+
 interface Env {
   DB: D1Database
 }
@@ -99,4 +101,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       message: 'Internal server error'
     }, { status: 500 })
   }
+}
+
+// Reject GET requests (POST-only endpoint)
+export const onRequestGet: PagesFunction = async () => {
+  return new Response(JSON.stringify({ error: 'Method not allowed. Use POST.' }), {
+    status: 405, headers: JSON_HEADERS,
+  })
 }

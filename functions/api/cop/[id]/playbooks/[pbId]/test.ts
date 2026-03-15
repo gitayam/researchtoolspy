@@ -12,6 +12,7 @@
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest } from '../../../../_shared/auth-helpers'
 import { evaluateAllConditions } from '../../../../_shared/playbook-engine/condition-evaluator'
+import { JSON_HEADERS } from '../../../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -175,4 +176,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       status: 500, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
     })
   }
+}
+
+// Reject GET requests (POST-only endpoint)
+export const onRequestGet: PagesFunction = async () => {
+  return new Response(JSON.stringify({ error: 'Method not allowed. Use POST.' }), {
+    status: 405, headers: JSON_HEADERS,
+  })
 }

@@ -161,3 +161,11 @@ For dimensions where the content provides no relevant information, return an emp
 
   return dimensions
 }
+
+// Reject GET requests (POST-only endpoint)
+export const onRequestGet: PagesFunction = async () => {
+  return new Response(JSON.stringify({ error: 'Method not allowed. Use POST.' }), {
+    status: 405, headers: JSON_HEADERS,
+  })
+}
+

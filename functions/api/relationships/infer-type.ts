@@ -288,3 +288,11 @@ Provide a brief 1-2 sentence explanation of why this relationship type fits, bas
     return 'Relationship type inferred from available context.'
   }
 }
+
+// Reject GET requests (POST-only endpoint)
+export const onRequestGet: PagesFunction = async () => {
+  return new Response(JSON.stringify({ error: 'Method not allowed. Use POST.' }), {
+    status: 405, headers: JSON_HEADERS,
+  })
+}
+

@@ -5,6 +5,7 @@
  */
 
 import { getUserFromRequest } from '../_shared/auth-helpers'
+import { JSON_HEADERS } from '../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -117,4 +118,11 @@ ${mode === 'comprehensive' ? 'Use markdown headings (##) to organize sections.' 
       message: 'AI request failed'
     }, { status: 500 })
   }
+}
+
+// Reject GET requests (POST-only endpoint)
+export const onRequestGet: PagesFunction = async () => {
+  return new Response(JSON.stringify({ error: 'Method not allowed. Use POST.' }), {
+    status: 405, headers: JSON_HEADERS,
+  })
 }

@@ -12,6 +12,7 @@ import { getUserFromRequest, verifyCopSessionAccess } from '../../../../_shared/
 import { emitCopEvent } from '../../../../_shared/cop-events'
 import { TASK_ASSIGNED } from '../../../../_shared/cop-event-types'
 import { autoAssignTask } from '../../../../_shared/auto-assign'
+import { JSON_HEADERS } from '../../../../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -109,4 +110,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 // OPTIONS - CORS preflight
 export const onRequestOptions: PagesFunction = async () => {
   return new Response(null, { status: 204, headers: corsHeaders })
+}
+
+// Reject GET requests (POST-only endpoint)
+export const onRequestGet: PagesFunction = async () => {
+  return new Response(JSON.stringify({ error: 'Method not allowed. Use POST.' }), {
+    status: 405, headers: JSON_HEADERS,
+  })
 }

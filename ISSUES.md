@@ -1,7 +1,20 @@
 # ResearchTools.net — Issue Tracker
 
 **Last updated:** 2026-03-15
-**Current tag:** v0.16.7-scoping-fix
+**Current tag:** v0.16.8-method-guard
+
+---
+
+## Fixed (v0.16.8)
+
+### P2 — 81 POST-Only Endpoints Returned SPA HTML on GET Requests
+- [x] 81 endpoint files only exported `onRequestPost` — GET requests fell through to Cloudflare Pages SPA fallback, returning full HTML instead of JSON error
+- [x] Added `onRequestGet` handler returning 405 JSON `{"error":"Method not allowed. Use POST."}` to all 81 files
+- [x] 17 files also needed `JSON_HEADERS` import added from `_shared/api-utils`
+- [x] Fixed incorrect import path in `frameworks/public/[token]/clone.ts` (`../../../../` → `../../../`)
+- [x] Verified: all 13 sampled POST-only endpoints now return 405, all GET endpoints still return 200, POST still works
+- **Root cause:** Cloudflare Pages Functions only handle HTTP methods they export handlers for — unhandled methods fall through to the static asset serving layer which returns `index.html`. This is a security concern (leaks SPA source to API probes) and confuses API consumers expecting JSON.
+- **Categories fixed:** research (7), tools (9), AI (6), content-intelligence (12), COP sub-resources (8), claims (5), ACH (6), frameworks (4), collection (3), settings (3), auth (3), investigation-packets (2), others (13)
 
 ---
 
@@ -482,6 +495,10 @@
 
 - [ ] **AI config GET endpoint has no auth** — `functions/api/ai/config.ts` is publicly readable. This is **intentional** — config is stripped of secrets (apiKey, org removed) and frontend needs it pre-login to show AI feature availability. PUT/POST mutations require auth.
 
+### P3 — POST-Only Endpoints (Resolved)
+
+- [x] ~~81 POST-only endpoints returned SPA HTML on GET~~ — all now return 405 JSON (v0.16.8)
+
 ---
 
 ## Notes
@@ -489,5 +506,6 @@
 - **Entity tables lack FK constraints** on workspace_id → manual cascade required on workspace delete
 - **D1 batch()** used for transactional cascade deletes (all-or-nothing)
 - **All API endpoints now use real auth** — no more hardcoded user IDs anywhere in `functions/api/`
+- **All POST-only endpoints return 405 on GET** — no more SPA HTML leaking from API paths
 - **Shared utilities** in `functions/api/_shared/`: `workspace-helpers.ts` (access control), `api-utils.ts` (generateId, CORS), `auth-helpers.ts` (auth)
 - Production logs accessible via `npx wrangler pages deployment tail <id> --project-name=researchtoolspy --format json`

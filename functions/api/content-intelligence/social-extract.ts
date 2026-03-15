@@ -839,3 +839,11 @@ async function saveExtraction(db: D1Database, data: any, userId: number): Promis
     // Don't throw - extraction succeeded even if save failed
   }
 }
+
+// Reject GET requests (POST-only endpoint)
+export const onRequestGet: PagesFunction = async () => {
+  return new Response(JSON.stringify({ error: 'Method not allowed. Use POST.' }), {
+    status: 405, headers: JSON_HEADERS,
+  })
+}
+

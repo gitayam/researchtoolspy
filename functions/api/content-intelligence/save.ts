@@ -126,3 +126,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     })
   }
 }
+
+// Reject GET requests (POST-only endpoint)
+export const onRequestGet: PagesFunction = async () => {
+  return new Response(JSON.stringify({ error: 'Method not allowed. Use POST.' }), {
+    status: 405, headers: JSON_HEADERS,
+  })
+}
+

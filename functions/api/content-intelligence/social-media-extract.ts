@@ -1611,3 +1611,11 @@ async function saveSocialMediaExtraction(db: D1Database, data: any): Promise<num
 
   return result.meta.last_row_id as number
 }
+
+// Reject GET requests (POST-only endpoint)
+export const onRequestGet: PagesFunction = async () => {
+  return new Response(JSON.stringify({ error: 'Method not allowed. Use POST.' }), {
+    status: 405, headers: JSON_HEADERS,
+  })
+}
+
