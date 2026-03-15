@@ -62,7 +62,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     await env.DB.prepare(`
       INSERT INTO cop_rfi_answers (id, rfi_id, answer_text, source_url, source_description, is_accepted, created_by, responder_name, created_at)
-      VALUES (?, ?, ?, ?, ?, 0, 1, ?, ?)
+      VALUES (?, ?, ?, ?, ?, 0, NULL, ?, ?)
     `).bind(
       id, rfiId, body.answer_text.trim(),
       body.source_url || null, body.source_description || null,

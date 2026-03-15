@@ -120,7 +120,7 @@ export async function onRequest(context: any) {
             body.relevance_note || null,
             body.weight || 1.0,
             body.supports !== undefined ? body.supports : 1,
-            body.created_by || userId
+            authUserId
           ).run()
 
           results.push({ evidence_id: evidenceId, success: true })

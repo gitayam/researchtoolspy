@@ -249,7 +249,7 @@ export async function onRequest(context: any) {
             citation.citation_style || 'apa',
             citation.relevance_score || 5,
             citation.notes || null,
-            body.created_by || userId
+            authUserId
           ).run()
         }
       }

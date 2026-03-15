@@ -160,7 +160,7 @@ export async function onRequest(context: any) {
             entity.relevance_note || null,
             entity.role || null,
             entity.confidence || 1.0,
-            body.created_by || userId
+            authUserId
           ).run()
 
           results.push({ entity_type: entity.entity_type, entity_id: entity.entity_id, success: true })

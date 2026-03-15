@@ -1,6 +1,6 @@
 # Site Issues — Investigation Report
 
-**Last updated:** 2026-03-15 (Sessions 34-70)
+**Last updated:** 2026-03-15 (Sessions 34-70b)
 
 ## Fixed — v0.13.0 (Session 34)
 
@@ -694,6 +694,23 @@
 
 ---
 
+## Fixed — v0.17.8 (Session 70b)
+
+### SECURITY — USER IMPERSONATION (CRITICAL, 4 more endpoints)
+| # | Issue | Status |
+|---|-------|--------|
+| 332 | **framework-evidence.ts POST** — `body.created_by \|\| userId` allows impersonation when linking evidence to frameworks. Fixed: use `authUserId` | FIXED |
+| 333 | **datasets.ts POST** — `body.created_by \|\| userId` allows impersonation when creating datasets. Fixed: use `authUserId` | FIXED |
+| 334 | **evidence-items.ts POST** — `body.created_by \|\| userId` allows impersonation on citation inserts. Fixed: use `authUserId` | FIXED |
+| 335 | **framework-entities.ts POST** — `body.created_by \|\| userId` allows impersonation when linking entities to frameworks. Fixed: use `authUserId` | FIXED |
+
+### DATA ISOLATION (MEDIUM)
+| # | Issue | Status |
+|---|-------|--------|
+| 336 | **cop/public/[token]/rfis/[rfiId]/answers.ts** — Hardcoded `created_by = 1` on public anonymous RFI answers. All anonymous submissions attributed to user 1. Fixed: use `NULL` for anonymous | FIXED |
+
+---
+
 ## Fixed — v0.17.7 (Session 70)
 
 ### MEMORY LEAK — COP COMPONENTS (5 AbortController fixes)
@@ -796,6 +813,7 @@
 | 37 | ~22 instances of internal `url.pathname.match()` routing | Dead code per Cloudflare Pages routing model |
 | 40 | Dark mode gaps in COP components | CopPersonaLinkDialog, CopAssetDetailDrawer, CopEventSidebar, CopArtifactLightbox, CopStatusStrip, CopRfiTab, CopTagSelector — 60+ instances of `text-gray-500/600` without `dark:` variants |
 | 41 | Dark mode gaps in CopAnalysisSummary | ~14 color classes missing `dark:` variants — icons, badges, section headings, empty state text |
+| 42 | 29 icon-only buttons without aria-label | CopPanelExpander (7), BehaviorBasicInfoForm (5), NotificationBell (3), ACHAnalysisForm (3), ACHEvidenceManager (2), StarburstingEntityLinker (2), ConsensusPanel (2), DatasetBadge (2), ACHMatrix (1), AICOGAssistant (1), AnalysisLayout (1) |
 
 ### Data Isolation (MEDIUM)
 | # | Issue | Notes |

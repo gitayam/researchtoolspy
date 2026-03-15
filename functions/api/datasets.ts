@@ -153,7 +153,7 @@ export async function onRequest(context: any) {
         body.sats_evaluation ? JSON.stringify(body.sats_evaluation) : null,
         JSON.stringify(body.frameworks || []),
         JSON.stringify(body.attachments || []),
-        body.created_by || userId,
+        authUserId,
         JSON.stringify(body.key_points || []),
         JSON.stringify(body.contradictions || []),
         JSON.stringify(body.corroborations || []),
