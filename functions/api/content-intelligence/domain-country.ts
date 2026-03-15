@@ -5,9 +5,11 @@
  */
 
 import type { PagesFunction } from '@cloudflare/workers-types'
+import { getUserFromRequest } from '../_shared/auth-helpers'
 
 interface Env {
-  // No special env vars needed
+  DB: D1Database
+  SESSIONS: KVNamespace
 }
 
 interface CountryInfo {
@@ -98,6 +100,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const { request } = context
 
   try {
+    const authUserId = await getUserFromRequest(request, context.env)
+    if (!authUserId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      })
+    }
+
     const body = await request.json() as { url: string }
     const { url } = body
 

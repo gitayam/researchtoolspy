@@ -9,8 +9,11 @@
  */
 
 import type { PagesFunction } from '@cloudflare/workers-types'
+import { getUserFromRequest } from '../_shared/auth-helpers'
 
 interface Env {
+  DB: D1Database
+  SESSIONS: KVNamespace
   VIRUSTOTAL_API_KEY: string
 }
 
@@ -42,6 +45,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const { request, env } = context
 
   try {
+    const authUserId = await getUserFromRequest(request, env)
+    if (!authUserId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      })
+    }
+
     const body = await request.json() as { url: string }
     const { url } = body
 
@@ -54,7 +64,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     // Extract domain from URL
     const domain = new URL(url).hostname
-
 
     if (!env.VIRUSTOTAL_API_KEY) {
       console.error('[VirusTotal] API key not configured')

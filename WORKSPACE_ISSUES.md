@@ -1,6 +1,23 @@
 # Site Issues — Investigation Report
 
-**Last updated:** 2026-03-15 (Sessions 34-78b)
+**Last updated:** 2026-03-15 (Sessions 34-79)
+
+## Fixed — v2.15.7 (Session 79)
+
+### HIGH — INVESTIGATIONS RBAC: VIEWER CAN MODIFY/DELETE
+| # | Issue | Status |
+|---|-------|--------|
+| 467 | **investigations/[id].ts PUT** — Workspace membership check didn't filter by role. Any VIEWER could update investigations. Fixed: added `AND wm.role IN ('EDITOR', 'ADMIN')` | FIXED |
+| 468 | **investigations/[id].ts DELETE** — Same pattern. Any VIEWER could delete investigations. Fixed: added role filter | FIXED |
+
+### MEDIUM — CONTENT-INTELLIGENCE ENDPOINTS MISSING AUTH
+| # | Issue | Status |
+|---|-------|--------|
+| 469 | **content-intelligence/domain-country.ts** — POST geolocation lookup with zero auth. Fixed: added getUserFromRequest + 401 gate | FIXED |
+| 470 | **content-intelligence/git-repository-extract.ts** — POST GitHub API extraction with zero auth. Fixed: added getUserFromRequest + 401 gate | FIXED |
+| 471 | **content-intelligence/virustotal-lookup.ts** — POST VirusTotal API lookup with zero auth (consumes API key quota). Fixed: added getUserFromRequest + 401 gate | FIXED |
+
+---
 
 ## Fixed — v2.15.6 (Session 78)
 

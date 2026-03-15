@@ -90,12 +90,12 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     const investigationId = context.params.id as string
     const body = await context.request.json() as UpdateInvestigationRequest
 
-    // Verify access
+    // Verify access — require EDITOR or ADMIN role
     const investigation = await context.env.DB.prepare(`
       SELECT i.id
       FROM investigations i
       INNER JOIN workspace_members wm ON i.workspace_id = wm.workspace_id
-      WHERE i.id = ? AND wm.user_id = ?
+      WHERE i.id = ? AND wm.user_id = ? AND wm.role IN ('EDITOR', 'ADMIN')
     `).bind(investigationId, userId).first()
 
     if (!investigation) {
@@ -243,12 +243,12 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     const userId = await requireAuth(context.request, context.env)
     const investigationId = context.params.id as string
 
-    // Verify access
+    // Verify access — require EDITOR or ADMIN role (not VIEWER)
     const investigation = await context.env.DB.prepare(`
       SELECT i.id, i.title, i.workspace_id
       FROM investigations i
       INNER JOIN workspace_members wm ON i.workspace_id = wm.workspace_id
-      WHERE i.id = ? AND wm.user_id = ?
+      WHERE i.id = ? AND wm.user_id = ? AND wm.role IN ('EDITOR', 'ADMIN')
     `).bind(investigationId, userId).first()
 
     if (!investigation) {

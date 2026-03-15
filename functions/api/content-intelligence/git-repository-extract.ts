@@ -9,8 +9,11 @@
 
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { createLogger } from '../../utils/logger'
+import { getUserFromRequest } from '../_shared/auth-helpers'
 
 interface Env {
+  DB: D1Database
+  SESSIONS: KVNamespace
   CACHE: KVNamespace
   GITHUB_TOKEN?: string  // Optional: for higher rate limits
   ENVIRONMENT?: string
@@ -123,6 +126,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const logger = createLogger('GitRepoExtract', env)
 
   try {
+    const authUserId = await getUserFromRequest(request, env)
+    if (!authUserId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      })
+    }
+
     const body: GitRepoExtractRequest = await request.json() as GitRepoExtractRequest
     const { url, platform: providedPlatform } = body
 
