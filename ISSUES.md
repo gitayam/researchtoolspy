@@ -1,7 +1,22 @@
 # ResearchTools.net — Issue Tracker
 
 **Last updated:** 2026-03-15
-**Current tag:** v0.14.1-shared-utils
+**Current tag:** v0.14.2-cop-auth-hardening
+
+---
+
+## Fixed (v0.14.2)
+
+### P0 — 5 COP Endpoints Had Zero Auth on GET (Data Leakage)
+- [x] `claims.ts` — GET returned all claims without auth; POST/PUT had no session access check
+- [x] `timeline.ts` — GET returned all entries without auth; POST/PUT/DELETE had no session access check
+- [x] `cot.ts` — CoT XML feed returned all entities without auth
+- [x] `events.ts` — event log returned all session events without auth
+- [x] `exports.ts` — export history returned without auth
+- [x] All 5 now enforce `getUserFromRequest` + `verifyCopSessionAccess` on all handlers
+- [x] Verified: no auth → 401, non-owner → 403, entity endpoints unaffected → 200
+- **Root cause:** same class as v0.13.1 layer endpoints — COP endpoints built incrementally without auth, never audited as a group
+- **Remaining:** 10 more COP endpoints flagged without `verifyCopSessionAccess` (assets, evidence-tags, shares, task-dependencies, task-templates, etc.) — lower priority as they have `getUserFromRequest` on mutations
 
 ---
 

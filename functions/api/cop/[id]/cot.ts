@@ -15,6 +15,7 @@
  */
 
 import type { PagesFunction } from '@cloudflare/workers-types'
+import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-helpers'
 import {
   entityToCoT, wrapCoTFeed,
   placeToCoTType, eventToCoTType, actorToCoTType,
@@ -22,6 +23,8 @@ import {
 
 interface Env {
   DB: D1Database
+  SESSIONS?: KVNamespace
+  JWT_SECRET?: string
   CACHE?: KVNamespace
 }
 
@@ -33,8 +36,21 @@ const xmlHeaders = {
 }
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
-  const { env, params } = context
+  const { env, params, request } = context
   const sessionId = params.id as string
+
+  const userId = await getUserFromRequest(request, env)
+  if (!userId) {
+    return new Response('<error>Authentication required</error>', {
+      status: 401, headers: xmlHeaders,
+    })
+  }
+  const accessWorkspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId, { readOnly: true })
+  if (!accessWorkspaceId) {
+    return new Response('<error>Access denied</error>', {
+      status: 403, headers: xmlHeaders,
+    })
+  }
 
   try {
     const session = await env.DB.prepare(
