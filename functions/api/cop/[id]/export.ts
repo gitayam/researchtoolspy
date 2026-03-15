@@ -317,8 +317,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
       // Update export record with completed status
       await env.DB.prepare(`
-        UPDATE cop_exports SET status = 'completed', file_size_bytes = ? WHERE id = ?
-      `).bind(fileSize, exportId).run()
+        UPDATE cop_exports SET status = 'completed', file_size_bytes = ? WHERE id = ? AND cop_session_id = ?
+      `).bind(fileSize, exportId, sessionId).run()
 
       // Emit EXPORT_COMPLETED event
       await emitCopEvent(env.DB, {
@@ -346,16 +346,16 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       // Update export record with failed status
       const errMsg = serializeError?.message || 'Unknown serialization error'
       await env.DB.prepare(`
-        UPDATE cop_exports SET status = 'failed', error_message = ? WHERE id = ?
-      `).bind(errMsg, exportId).run()
+        UPDATE cop_exports SET status = 'failed', error_message = ? WHERE id = ? AND cop_session_id = ?
+      `).bind(errMsg, exportId, sessionId).run()
 
-      // Emit EXPORT_FAILED event
+      // Emit EXPORT_FAILED event (generic message — don't leak internals to activity log)
       await emitCopEvent(env.DB, {
         copSessionId: sessionId,
         eventType: EXPORT_FAILED,
         entityType: 'export',
         entityId: exportId,
-        payload: { format, scope, error: errMsg },
+        payload: { format, scope, error: 'Export serialization failed' },
         createdBy: userId,
       })
 

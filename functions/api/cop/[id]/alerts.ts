@@ -347,8 +347,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
       bindings.push(existing.id)
 
+      bindings.push(sessionId)
       await env.DB.prepare(
-        `UPDATE cop_alert_state SET ${updates.join(', ')} WHERE id = ?`
+        `UPDATE cop_alert_state SET ${updates.join(', ')} WHERE id = ? AND cop_session_id = ?`
       ).bind(...bindings).run()
     } else {
       // Insert new record

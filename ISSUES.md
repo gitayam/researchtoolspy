@@ -1,7 +1,26 @@
 # ResearchTools.net — Issue Tracker
 
 **Last updated:** 2026-03-15
-**Current tag:** v0.19.5-cop-layer-null-guard
+**Current tag:** v0.19.6-cop-session-scoping
+
+---
+
+## Fixed (v0.19.6)
+
+### P1 — 3 COP Mutation Endpoints Missing Session Scoping in UPDATE Queries
+- [x] `cop/[id]/tasks/[taskId]/reassign.ts:76` — `UPDATE cop_tasks SET ... WHERE id = ?` missing `AND cop_session_id = ?`
+- [x] `cop/[id]/export.ts:320` — `UPDATE cop_exports SET status = 'completed' ... WHERE id = ?` missing `AND cop_session_id = ?`
+- [x] `cop/[id]/export.ts:349` — `UPDATE cop_exports SET status = 'failed' ... WHERE id = ?` missing `AND cop_session_id = ?`
+- [x] `cop/[id]/alerts.ts:351` — `UPDATE cop_alert_state SET ... WHERE id = ?` missing `AND cop_session_id = ?`
+- Fix: Added `AND cop_session_id = ?` with session ID binding to all 4 UPDATE queries
+- **Root cause:** Lesson Learned Session 21-23 — route params are not access control, they must be enforced in the SQL WHERE clause. Pre-check verification (reassign verifies task at line 43, alerts looks up by session at line 308) is necessary but not sufficient for defense-in-depth.
+
+### P2 — error.message Leaked in Export Event Payload
+- [x] `cop/[id]/export.ts:358` — raw `serializeError.message` stored in `cop_events` payload via `emitCopEvent`
+- [x] Fix: Replaced with generic `'Export serialization failed'` string in event payload (raw error still logged server-side via `console.error`)
+- **Root cause:** Session 32 lesson — never leak `error.message` to user-visible surfaces. The cop_events table is read by the activity feed, exposing internal details.
+
+### Smoke Test — 13/13 Endpoints Passing
 
 ---
 

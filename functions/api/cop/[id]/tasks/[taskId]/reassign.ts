@@ -73,8 +73,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     const now = new Date().toISOString()
     await env.DB.prepare(
-      'UPDATE cop_tasks SET assigned_to = ?, updated_at = ? WHERE id = ?'
-    ).bind(body.assigned_to, now, taskId).run()
+      'UPDATE cop_tasks SET assigned_to = ?, updated_at = ? WHERE id = ? AND cop_session_id = ?'
+    ).bind(body.assigned_to, now, taskId, sessionId).run()
 
     await emitCopEvent(env.DB, {
       copSessionId: sessionId,
