@@ -1,7 +1,18 @@
 # ResearchTools.net — Issue Tracker
 
 **Last updated:** 2026-03-15
-**Current tag:** v0.14.0-workspace-refactor
+**Current tag:** v0.14.1-shared-utils
+
+---
+
+## Fixed (v0.14.1)
+
+### P2 — generateId() Duplicated 32 Times
+- [x] Extracted shared `generateId()` to `functions/api/_shared/api-utils.ts`
+- [x] Replaced local definitions in 6 entity endpoints: actors, sources, events, places, behaviors, relationships
+- [x] Created `api-utils.ts` with shared `CORS_HEADERS`, `JSON_HEADERS`, and `optionsResponse()` for future consolidation
+- [x] 26 remaining duplicates in COP endpoints — to be consolidated incrementally
+- **Root cause:** same pattern as checkWorkspaceAccess — each endpoint copy-pasted its own `crypto.randomUUID()` wrapper
 
 ---
 
@@ -90,6 +101,12 @@
 
 ## Open Issues
 
+### P2 — Tech Debt: Remaining Duplication
+
+- [ ] **generateId() still in 26 COP endpoints** — shared `api-utils.ts` created but only entity endpoints migrated so far
+- [ ] **CORS headers duplicated ~219 files** — shared `CORS_HEADERS` and `JSON_HEADERS` created in `api-utils.ts` but not yet adopted
+- [ ] **Dual API surface** — `/api/workspaces/` (team JWT/hash) and `/api/settings/workspaces` (personal `requireAuth`) should be consolidated
+
 ### P2 — Data Integrity
 
 - [ ] **COP sessions `team_workspace_id` mostly NULL** — stats and cop-sessions workspace endpoints query by `team_workspace_id` but most sessions never had this set. Needs backfill migration or query change.
@@ -101,6 +118,11 @@
 - [ ] **Screenshot API referenced but not implemented** — `analyze-url.ts:698` returns URL to non-existent endpoint
 - [ ] **No error tracking service** — `ErrorBoundary.tsx:42` has Sentry TODO
 - [ ] **Data import stubs** — `settings/data/import.ts` has TODO stubs for workspace, frameworks, and evidence import
+
+### P2 — Frontend Error Handling
+
+- [ ] **Silent fetch failures in collaboration tabs** — `CopSessionsTab.tsx`, `ToolsTab.tsx`, `WorkspaceStatsBar.tsx`, `EntitiesTab.tsx`, `FrameworksTab.tsx`, `TeamTab.tsx` all check `if (response.ok)` but do nothing on failure — errors silently swallowed
+- [ ] **GuestModeContext silent failure** — `GuestModeContext.tsx:101` swallows non-OK response on conversion API call
 
 ### P3 — UX / Polish
 
@@ -117,8 +139,8 @@
 
 ## Notes
 
-- **Dual API surface**: `/api/workspaces/` (team JWT/hash) and `/api/settings/workspaces` (personal `requireAuth`) — consider consolidating
 - **Entity tables lack FK constraints** on workspace_id → manual cascade required on workspace delete
 - **D1 batch()** used for transactional cascade deletes (all-or-nothing)
 - **All API endpoints now use real auth** — no more hardcoded user IDs anywhere in `functions/api/`
+- **Shared utilities** in `functions/api/_shared/`: `workspace-helpers.ts` (access control), `api-utils.ts` (generateId, CORS), `auth-helpers.ts` (auth)
 - Production logs accessible via `npx wrangler pages deployment tail <id> --project-name=researchtoolspy --format json`
