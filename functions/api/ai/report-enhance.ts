@@ -8,7 +8,10 @@
  * - Comprehensive analysis
  */
 
+import { getUserFromRequest } from '../_shared/auth-helpers'
+
 interface Env {
+  DB: D1Database
   AI_CONFIG: KVNamespace
   OPENAI_API_KEY?: string
   OPENAI_ORGANIZATION?: string
@@ -609,6 +612,11 @@ function getPrompt(frameworkType: string, enhancementType: string, data: any): s
  */
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
+    const authUserId = await getUserFromRequest(context.request, context.env)
+    if (!authUserId) {
+      return Response.json({ error: 'Authentication required' }, { status: 401 })
+    }
+
     if (context.env.ENABLE_AI_FEATURES !== 'true') {
       return Response.json({ error: 'AI features are disabled' }, { status: 403 })
     }

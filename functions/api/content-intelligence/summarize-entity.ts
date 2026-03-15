@@ -4,8 +4,11 @@
  */
 
 import type { PagesFunction } from '@cloudflare/workers-types'
+import { getUserFromRequest } from '../_shared/auth-helpers'
 
 interface Env {
+  DB: D1Database
+  SESSIONS: KVNamespace
   OPENAI_API_KEY: string
 }
 
@@ -27,6 +30,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const { request, env } = context
 
   try {
+    const authUserId = await getUserFromRequest(request, env)
+    if (!authUserId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401,
+        headers: CORS_HEADERS,
+      })
+    }
+
     const body = await request.json() as SummarizeEntityRequest
     const { content, entity_name, entity_type, content_title } = body
 

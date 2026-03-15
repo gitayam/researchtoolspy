@@ -5,8 +5,10 @@
  */
 
 import type { PagesFunction } from '@cloudflare/workers-types'
+import { getUserFromRequest } from '../_shared/auth-helpers'
 
 interface Env {
+  DB: D1Database
   OPENAI_API_KEY: string
 }
 
@@ -27,6 +29,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   }
 
   try {
+    const authUserId = await getUserFromRequest(request, env)
+    if (!authUserId) {
+      return new Response(
+        JSON.stringify({ error: 'Authentication required' }),
+        { status: 401, headers: corsHeaders }
+      )
+    }
+
     const { frameworkType, data, description } = await request.json()
 
     if (!frameworkType) {

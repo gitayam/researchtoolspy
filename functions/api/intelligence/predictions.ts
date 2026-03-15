@@ -1,4 +1,4 @@
-import { getUserIdOrDefault } from '../_shared/auth-helpers'
+import { getUserFromRequest } from '../_shared/auth-helpers'
 import { callOpenAIViaGateway } from '../_shared/ai-gateway'
 
 interface Env {
@@ -12,7 +12,13 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   const { request, env } = context
 
   try {
-    const userId = await getUserIdOrDefault(request, env)
+    const authUserId = await getUserFromRequest(request, env)
+    if (!authUserId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      })
+    }
 
     const [frameworks, entities, evidenceCount] = await Promise.all([
       env.DB.prepare(`
@@ -21,7 +27,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         WHERE user_id = ? AND status != 'archived'
         ORDER BY created_at DESC
         LIMIT 15
-      `).bind(userId).all<{ framework_type: string; title: string; data: string; created_at: string }>(),
+      `).bind(authUserId).all<{ framework_type: string; title: string; data: string; created_at: string }>(),
 
       env.DB.prepare(`
         SELECT name, entity_type FROM (
@@ -31,10 +37,10 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
           UNION ALL
           SELECT name, 'EVENT' as entity_type FROM events WHERE created_by = ?
         ) LIMIT 50
-      `).bind(userId, userId, userId).all<{ name: string; entity_type: string }>(),
+      `).bind(authUserId, authUserId, authUserId).all<{ name: string; entity_type: string }>(),
 
       env.DB.prepare(`SELECT COUNT(*) as cnt FROM evidence_items WHERE created_by = ?`)
-        .bind(userId).first<{ cnt: number }>(),
+        .bind(authUserId).first<{ cnt: number }>(),
     ])
 
     const fwResults = frameworks.results || []
@@ -104,7 +110,7 @@ Provide actionable, forward-looking intelligence recommendations.`
       response_format: { type: 'json_object' }
     }, {
       cacheTTL: 600,
-      metadata: { endpoint: 'intelligence-predictions', user_id: String(userId) }
+      metadata: { endpoint: 'intelligence-predictions', user_id: String(authUserId) }
     })
 
     const content = response.choices?.[0]?.message?.content || '{}'

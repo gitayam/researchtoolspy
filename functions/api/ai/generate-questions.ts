@@ -1,10 +1,13 @@
 /**
  * Generate Follow-up Questions API
- * 
+ *
  * Generates unanswered follow-up questions based on existing analysis content
  */
 
+import { getUserFromRequest } from '../_shared/auth-helpers'
+
 interface Env {
+  DB: D1Database
   OPENAI_API_KEY: string
   CACHE: KVNamespace
 }
@@ -99,6 +102,14 @@ const FRAMEWORK_CONFIGS: Record<string, {
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
+    const authUserId = await getUserFromRequest(context.request, context.env)
+    if (!authUserId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      })
+    }
+
     const request = await context.request.json() as QuestionRequest
     const { framework, existingData, context: analysisContext } = request
 

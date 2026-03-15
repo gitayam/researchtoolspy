@@ -1,6 +1,42 @@
 # Site Issues — Investigation Report
 
-**Last updated:** 2026-03-15 (Sessions 34-77)
+**Last updated:** 2026-03-15 (Sessions 34-78)
+
+## Fixed — v2.15.6 (Session 78)
+
+### CRITICAL — AUTH REGRESSION: X-USER-HASH AUTO-CREATION MISSING
+| # | Issue | Status |
+|---|-------|--------|
+| 433 | **_shared/auth-helpers.ts** — `getUserFromRequest` X-User-Hash path only did lookup, not auto-creation. Hash-authenticated COP users who didn't have a `users` table row got null back, causing 401 on all mutation endpoints (frameworks POST, RFI POST/PUT, etc.). Symptom: "Authentication required" displayed in Key Questions panel. Fixed: added auto-creation to X-User-Hash path matching Bearer token behavior | FIXED |
+
+### CRITICAL — 18 MORE UNAUTHENTICATED AI ENDPOINTS (COST EXPOSURE)
+| # | Issue | Status |
+|---|-------|--------|
+| 434 | **ai/generate.ts** — POST triggers OpenAI with zero auth | FIXED |
+| 435 | **ai/cog-analysis.ts** — POST triggers OpenAI with zero auth | FIXED |
+| 436 | **ai/generate-questions.ts** — POST triggers OpenAI with zero auth | FIXED |
+| 437 | **ai/generate-timeline.ts** — POST triggers OpenAI with zero auth | FIXED |
+| 438 | **ai/generate-title.ts** — POST triggers OpenAI with zero auth | FIXED |
+| 439 | **ai/questions.ts** — POST triggers OpenAI with zero auth | FIXED |
+| 440 | **ai/report-enhance.ts** — POST triggers OpenAI with zero auth | FIXED |
+| 441 | **ai/scrape-url.ts** — POST triggers OpenAI/scrape with zero auth | FIXED |
+| 442 | **ai/summarize.ts** — POST triggers OpenAI with zero auth | FIXED |
+| 443 | **intelligence/synthesis.ts** — POST uses getUserIdOrDefault (guest fallback to user 1). Fixed: getUserFromRequest + 401 | FIXED |
+| 444 | **intelligence/predictions.ts** — Same getUserIdOrDefault pattern. Fixed | FIXED |
+| 445 | **content-intelligence/summarize-entity.ts** — POST triggers OpenAI with zero auth | FIXED |
+| 446 | **relationships/infer-type.ts** — POST triggers OpenAI with zero auth | FIXED |
+| 447 | **frameworks/pmesii-pt/import-url.ts** — POST triggers OpenAI with zero auth | FIXED |
+| 448 | **frameworks/swot-auto-populate.ts** — POST triggers OpenAI with zero auth | FIXED |
+| 449 | **cross-table/[id]/ai/insights.ts** — POST uses getUserIdOrDefault. Fixed: getUserFromRequest + 401 | FIXED |
+| 450 | **cross-table/[id]/ai/score-suggest.ts** — Same pattern. Fixed | FIXED |
+| 451 | **cross-table/[id]/ai/suggest-criteria.ts** — Same pattern. Fixed | FIXED |
+
+### LOW — BUILD FAILURE: TYPESCRIPT ERROR IN COPMAP
+| # | Issue | Status |
+|---|-------|--------|
+| 452 | **CopMap.tsx:251** — `Type 'number \| number[] \| number[][]'` iterator error on Polygon coordinate destructuring. Fixed: explicit type cast | FIXED |
+
+---
 
 ## Fixed — v0.18.5b (Session 77 — additional findings from scan agents)
 

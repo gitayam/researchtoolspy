@@ -6,9 +6,11 @@
  */
 
 import type { PagesFunction } from '@cloudflare/workers-types'
+import { getUserFromRequest } from '../_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
+  SESSIONS: KVNamespace
   OPENAI_API_KEY: string
 }
 
@@ -44,6 +46,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const startTime = Date.now()
 
   try {
+    const authUserId = await getUserFromRequest(request, env)
+    if (!authUserId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      })
+    }
+
     const body = await request.json() as SwotAutoPopulateRequest
 
     if (!body.contentIds || body.contentIds.length === 0) {

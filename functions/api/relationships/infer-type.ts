@@ -3,8 +3,11 @@
  * Automatically determines relationship type based on context
  */
 
+import { getUserFromRequest } from '../_shared/auth-helpers'
+
 interface Env {
   DB: D1Database
+  SESSIONS: KVNamespace
   OPENAI_API_KEY: string
 }
 
@@ -53,6 +56,14 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
   }
 
   try {
+    const authUserId = await getUserFromRequest(request, env)
+    if (!authUserId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401,
+        headers: corsHeaders,
+      })
+    }
+
     const body: InferTypeRequest = await request.json()
 
     if (!body.source_entity_id || !body.target_entity_id) {

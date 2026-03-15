@@ -1,4 +1,4 @@
-import { getUserIdOrDefault } from '../_shared/auth-helpers'
+import { getUserFromRequest } from '../_shared/auth-helpers'
 import { callOpenAIViaGateway } from '../_shared/ai-gateway'
 
 interface Env {
@@ -12,7 +12,13 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   const { request, env } = context
 
   try {
-    const userId = await getUserIdOrDefault(request, env)
+    const authUserId = await getUserFromRequest(request, env)
+    if (!authUserId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      })
+    }
 
     // Load all frameworks for this user
     const frameworks = await env.DB.prepare(`
@@ -21,7 +27,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       WHERE user_id = ? AND status != 'archived'
       ORDER BY created_at DESC
       LIMIT 20
-    `).bind(userId).all<{
+    `).bind(authUserId).all<{
       id: number; framework_type: string; title: string;
       data: string; status: string; created_at: string
     }>()
@@ -96,7 +102,7 @@ Identify cross-framework patterns, agreements, contradictions, and provide an ov
       response_format: { type: 'json_object' }
     }, {
       cacheTTL: 300,
-      metadata: { endpoint: 'intelligence-synthesis', user_id: String(userId) }
+      metadata: { endpoint: 'intelligence-synthesis', user_id: String(authUserId) }
     })
 
     const content = response.choices?.[0]?.message?.content || '{}'

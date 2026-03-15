@@ -6,8 +6,10 @@
  */
 
 import { callOpenAIViaGateway, getOptimalCacheTTL } from '../_shared/ai-gateway'
+import { getUserFromRequest } from '../_shared/auth-helpers'
 
 interface Env {
+  DB: D1Database
   AI_CONFIG: KVNamespace
   OPENAI_API_KEY?: string
   OPENAI_ORGANIZATION?: string
@@ -358,6 +360,11 @@ Format your response as JSON:
  */
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
+    const authUserId = await getUserFromRequest(context.request, context.env)
+    if (!authUserId) {
+      return Response.json({ error: 'Authentication required' }, { status: 401 })
+    }
+
     // Check API key availability (same as content-intelligence)
     if (!context.env.OPENAI_API_KEY) {
       console.error('[COG AI] OpenAI API key not available')

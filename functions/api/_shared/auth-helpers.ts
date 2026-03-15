@@ -40,6 +40,24 @@ export async function getUserFromRequest(
       if (existingUser) {
         return Number(existingUser.id)
       }
+
+      // Auto-create guest user for valid hash (matches Bearer token path behavior)
+      const result = await env.DB.prepare(`
+        INSERT INTO users (username, email, user_hash, full_name, hashed_password, created_at, is_active, is_verified, role)
+        VALUES (?, ?, ?, ?, ?, ?, 1, 0, 'guest')
+        RETURNING id
+      `).bind(
+        `guest_${userHash.substring(0, 8)}`,
+        `${userHash.substring(0, 8)}@guest.local`,
+        userHash,
+        'Guest User',
+        'HASH_AUTH',
+        new Date().toISOString()
+      ).first() as { id: number } | null
+
+      if (result?.id) {
+        return Number(result.id)
+      }
     } catch (err) {
       console.error('[Auth] Failed to resolve X-User-Hash:', err)
     }

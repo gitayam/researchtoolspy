@@ -1,5 +1,5 @@
 // POST /api/cross-table/:id/ai/score-suggest — AI-suggested scores with rationale
-import { getUserIdOrDefault } from '../../../_shared/auth-helpers'
+import { getUserFromRequest } from '../../../_shared/auth-helpers'
 import { callOpenAIViaGateway } from '../../../_shared/ai-gateway'
 
 const corsHeaders = {
@@ -26,11 +26,16 @@ export async function onRequest(context: any) {
   }
 
   try {
-    const userId = await getUserIdOrDefault(request, env)
+    const authUserId = await getUserFromRequest(request, env)
+    if (!authUserId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: corsHeaders,
+      })
+    }
 
     const table = await env.DB.prepare(
       'SELECT * FROM cross_tables WHERE id = ? AND user_id = ?'
-    ).bind(tableId, userId).first()
+    ).bind(tableId, authUserId).first()
 
     if (!table) {
       return new Response(JSON.stringify({ error: 'Cross table not found' }), { status: 404, headers: corsHeaders })
@@ -71,7 +76,7 @@ Respond with a JSON object with a "scores" array. Each entry should have:
       response_format: { type: 'json_object' },
     }, {
       cacheTTL: 0,
-      metadata: { endpoint: 'cross-table-score-suggest', user_id: String(userId) },
+      metadata: { endpoint: 'cross-table-score-suggest', user_id: String(authUserId) },
     })
 
     const content = aiResponse.choices?.[0]?.message?.content || '{"scores":[]}'
