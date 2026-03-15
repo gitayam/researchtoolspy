@@ -7,7 +7,7 @@
 
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest } from './_shared/auth-helpers'
-import { JSON_HEADERS } from './_shared/api-utils'
+import { JSON_HEADERS, optionsResponse } from './_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -59,6 +59,10 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       status: 500, headers: JSON_HEADERS,
     })
   }
+}
+
+export const onRequestOptions: PagesFunction<Env> = async () => {
+  return optionsResponse()
 }
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {

@@ -132,7 +132,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       } catch { /* use default */ }
       return new Response(JSON.stringify({
         error: 'Failed to start scraper',
-        detail: apifyError,
+        detail: runRes.status === 402 ? 'Apify account limit reached or actor not rented'
+          : `Scraper service returned ${runRes.status}`,
       }), { status: 502, headers: JSON_HEADERS })
     }
 

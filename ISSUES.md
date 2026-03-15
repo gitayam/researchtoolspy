@@ -1,7 +1,22 @@
 # ResearchTools.net — Issue Tracker
 
 **Last updated:** 2026-03-15
-**Current tag:** v0.18.8-auth-schema-fixes
+**Current tag:** v0.18.9-scrape-leak-cors-fix
+
+---
+
+## Fixed (v0.18.9)
+
+### P2 — Security: `cop/[id]/scrape.ts` Leaked Third-Party Error Messages
+- [x] Line 135: `detail: apifyError` exposed raw Apify API error messages to client
+- [x] Could leak infrastructure details (API keys, internal URLs, rate limit info)
+- [x] Fix: Replaced with generic status-based messages (`Scraper service returned 502`)
+- **Root cause:** OWASP A01 — same `error.message` leak pattern from Lessons Learned Session 32, but from a third-party API instead of internal errors.
+
+### P2 — `mom-assessments.ts` Missing CORS OPTIONS Handler
+- [x] POST endpoint had no `onRequestOptions` export — browser CORS preflight would fail
+- [x] Fix: Added `optionsResponse()` handler
+- **Root cause:** File was created without CORS preflight support. Most endpoints have it.
 
 ---
 
