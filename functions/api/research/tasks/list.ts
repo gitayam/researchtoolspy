@@ -5,11 +5,22 @@
  * List all tasks for a research question or investigation
  */
 
+import { getUserFromRequest } from '../../_shared/auth-helpers'
+
 interface Env {
   DB: D1Database
+  SESSIONS?: KVNamespace
+  JWT_SECRET?: string
 }
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
+  const userId = await getUserFromRequest(context.request, context.env)
+  if (!userId) {
+    return new Response(JSON.stringify({ error: 'Authentication required' }), {
+      status: 401, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+    })
+  }
+
   try {
     const url = new URL(context.request.url)
     const researchQuestionId = url.searchParams.get('researchQuestionId')

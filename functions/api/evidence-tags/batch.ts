@@ -8,9 +8,12 @@
  * Eliminates the N+1 problem of fetching tags one evidence item at a time.
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
+import { getUserFromRequest } from '../_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
+  SESSIONS?: KVNamespace
+  JWT_SECRET?: string
 }
 
 const corsHeaders = {
@@ -24,6 +27,13 @@ const MAX_IDS = 100
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   const { request, env } = context
+
+  const userId = await getUserFromRequest(request, env)
+  if (!userId) {
+    return new Response(JSON.stringify({ error: 'Authentication required' }), {
+      status: 401, headers: corsHeaders,
+    })
+  }
 
   try {
     const body = await request.json() as { evidence_ids?: string[] }

@@ -3,8 +3,12 @@
  * Suggests relevant evidence when creating framework analyses
  */
 
+import { getUserFromRequest } from '../_shared/auth-helpers'
+
 interface Env {
   DB: D1Database
+  SESSIONS?: KVNamespace
+  JWT_SECRET?: string
 }
 
 interface RecommendRequest {
@@ -45,12 +49,19 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash',
     'Content-Type': 'application/json',
   }
 
   if (request.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers: corsHeaders })
+  }
+
+  const userId = await getUserFromRequest(request, env)
+  if (!userId) {
+    return new Response(JSON.stringify({ error: 'Authentication required' }), {
+      status: 401, headers: corsHeaders,
+    })
   }
 
   try {

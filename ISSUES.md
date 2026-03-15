@@ -1,7 +1,20 @@
 # ResearchTools.net — Issue Tracker
 
 **Last updated:** 2026-03-15
-**Current tag:** v0.14.4-deep-auth-sweep
+**Current tag:** v0.14.5-non-cop-auth-sweep
+
+---
+
+## Fixed (v0.14.5)
+
+### P1 — 5 Non-COP Endpoints Had Zero Auth (Data Leakage)
+- [x] `research/tasks/list.ts` — GET had no auth, exposed all research tasks to anyone
+- [x] `deception/history.ts` — GET had no auth, exposed deception analysis history
+- [x] `deception/aggregate.ts` — GET used `getUserIdOrDefault` (falls back to user 1), exposed sensitive risk dashboard to unauthenticated users
+- [x] `evidence-tags/batch.ts` — POST had no auth, exposed COP evidence tags
+- [x] `evidence/recommend.ts` — POST had no auth, exposed evidence recommendation engine
+- [x] All 5 now enforce `getUserFromRequest` + 401 on unauthenticated requests
+- **Root cause:** Non-COP endpoints built as internal tools or dashboard utilities, never had auth wired in. `getUserIdOrDefault` silently fell back to user 1 instead of rejecting.
 
 ---
 
@@ -173,6 +186,11 @@
 - [ ] **MOM assessment modals not wired** — `EventDetailView.tsx`, `ActorDetailView.tsx`
 - [ ] **Starbursting launcher UI missing** — `ContentIntelligencePage.tsx`
 - [x] ~~Library vote shows "Anonymous"~~ — fixed in v0.13.3
+
+### P2 — Tools/Utility Endpoints Open (No Auth)
+
+- [ ] **5 tools endpoints open** — `tools/extract.ts`, `tools/analyze-url.ts`, `tools/scrape-metadata.ts`, `tools/batch-process.ts`, `tools/geoconfirmed.ts` have zero auth. They don't expose user data but consume API quota (OpenAI, external scrapers). Low data risk, medium abuse risk.
+- [ ] **Collection job endpoints open** — `collection/[jobId]/status.ts`, `collection/[jobId]/results.ts` have zero auth. Anyone who guesses a job ID can read results. Low risk (job IDs are UUIDs).
 
 ### P3 — AI Config (Intentional)
 

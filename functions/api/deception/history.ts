@@ -3,8 +3,12 @@
  * Returns historical deception analyses for trend predictions
  */
 
+import { getUserFromRequest } from '../_shared/auth-helpers'
+
 interface Env {
   DB: D1Database
+  SESSIONS?: KVNamespace
+  JWT_SECRET?: string
 }
 
 const corsHeaders = {
@@ -20,6 +24,13 @@ export const onRequestOptions: PagesFunction<Env> = async () => {
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   const { request, env } = context
+
+  const userId = await getUserFromRequest(request, env)
+  if (!userId) {
+    return new Response(JSON.stringify({ error: 'Authentication required' }), {
+      status: 401, headers: corsHeaders,
+    })
+  }
 
   try {
     const url = new URL(request.url)

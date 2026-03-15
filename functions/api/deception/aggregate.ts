@@ -3,10 +3,12 @@
  * Aggregates all 5 deception systems: MOM, POP, EVE, MOSES, Claims
  */
 
-import { getUserIdOrDefault } from '../_shared/auth-helpers'
+import { getUserFromRequest } from '../_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
+  SESSIONS?: KVNamespace
+  JWT_SECRET?: string
 }
 
 interface Alert {
@@ -34,7 +36,12 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       })
     }
 
-    const userId = await getUserIdOrDefault(context.request, context.env)
+    const userId = await getUserFromRequest(context.request, context.env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      })
+    }
     const url = new URL(context.request.url)
     const workspaceId = url.searchParams.get('workspace_id') || context.request.headers.get('X-Workspace-ID') || null
 
