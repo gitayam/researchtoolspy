@@ -144,7 +144,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
 
     // Handle batch creation from entity extraction
-    if (Array.isArray(body.personas) && body.personas.length > 0) {
+    const personas = (body.personas || []).slice(0, 100)
+    if (personas.length > 0) {
       // Fetch existing persona names for dedup
       const existing = await env.DB.prepare(
         `SELECT LOWER(display_name) as name FROM cop_personas WHERE cop_session_id = ?`
@@ -155,7 +156,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       const created: string[] = []
       const skipped: string[] = []
 
-      for (const p of body.personas) {
+      for (const p of personas) {
         const name = (p.display_name || p.name || '').trim()
         if (!name) continue
 
@@ -238,9 +239,15 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       bindings.push(body.id)
       bindings.push(sessionId)
 
-      await env.DB.prepare(`
+      const updateResult = await env.DB.prepare(`
         UPDATE cop_personas SET ${updates.join(', ')} WHERE id = ? AND cop_session_id = ?
       `).bind(...bindings).run()
+
+      if (!updateResult.meta.changes || updateResult.meta.changes === 0) {
+        return new Response(JSON.stringify({ error: 'Persona not found in this session' }), {
+          status: 404, headers: corsHeaders,
+        })
+      }
 
       return new Response(JSON.stringify({ id: body.id, message: 'Persona updated' }), { headers: corsHeaders })
     }

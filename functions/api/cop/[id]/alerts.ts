@@ -321,20 +321,23 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         bindings.push(body.task_id)
       }
       if (body.severity) {
-        updates.push('severity = ?')
-        bindings.push(body.severity)
+        const VALID_SEVERITIES = ['LOW', 'MODERATE', 'HIGH', 'CRITICAL']
+        if (VALID_SEVERITIES.includes(body.severity.toUpperCase())) {
+          updates.push('severity = ?')
+          bindings.push(body.severity.toUpperCase())
+        }
       }
       if (body.incident_type) {
         updates.push('incident_type = ?')
-        bindings.push(body.incident_type)
+        bindings.push(String(body.incident_type).substring(0, 200))
       }
       if (body.location_name) {
         updates.push('location_name = ?')
-        bindings.push(body.location_name)
+        bindings.push(String(body.location_name).substring(0, 500))
       }
       if (body.summary) {
         updates.push('summary = ?')
-        bindings.push(body.summary)
+        bindings.push(String(body.summary).substring(0, 2000))
       }
 
       bindings.push(existing.id)
@@ -356,11 +359,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         id, sessionId, workspaceId, body.incident_id, newStatus,
         (body.action === 'link_rfi' ? body.rfi_id : null),
         (body.action === 'link_task' ? body.task_id : null),
-        body.notes ?? null,
-        body.severity ?? null,
-        body.incident_type ?? null,
-        body.location_name ?? null,
-        body.summary ?? null,
+        body.notes ? String(body.notes).substring(0, 2000) : null,
+        body.severity ? (['LOW', 'MODERATE', 'HIGH', 'CRITICAL'].includes(String(body.severity).toUpperCase()) ? String(body.severity).toUpperCase() : null) : null,
+        body.incident_type ? String(body.incident_type).substring(0, 200) : null,
+        body.location_name ? String(body.location_name).substring(0, 500) : null,
+        body.summary ? String(body.summary).substring(0, 2000) : null,
         userId, now, now
       ).run()
     }

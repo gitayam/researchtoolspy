@@ -1,6 +1,28 @@
 # Site Issues — Investigation Report
 
-**Last updated:** 2026-03-15 (Sessions 34-79)
+**Last updated:** 2026-03-15 (Sessions 34-80)
+
+## Fixed — v2.15.8 (Session 80)
+
+### LOW — COP meta.changes CHECKS ON UPDATE
+| # | Issue | Status |
+|---|-------|--------|
+| 477 | **cop/[id]/markers.ts PUT** — Returns 200 for non-existent marker + writes phantom changelog. Fixed: meta.changes check + 404 | FIXED |
+| 478 | **cop/[id]/personas.ts PUT** — Returns 200 for non-existent persona. Fixed: meta.changes check + 404 | FIXED |
+| 479 | **cop/[id]/claims.ts PUT** — Simple status update returns 200 for non-existent claim. Fixed: meta.changes check + 404 | FIXED |
+
+### LOW — BULK ARRAY CAPS
+| # | Issue | Status |
+|---|-------|--------|
+| 480 | **cop/[id]/claims.ts POST** — `body.claims[]` unbounded. Fixed: `.slice(0, 100)` | FIXED |
+| 481 | **cop/[id]/personas.ts POST batch** — `body.personas[]` unbounded. Fixed: `.slice(0, 100)` | FIXED |
+
+### LOW — ALERTS INPUT VALIDATION
+| # | Issue | Status |
+|---|-------|--------|
+| 482 | **cop/[id]/alerts.ts** — `severity`, `incident_type`, `location_name`, `summary` accepted arbitrary strings. Fixed: severity whitelist (LOW/MODERATE/HIGH/CRITICAL), length caps on text fields (200/500/2000 chars) on both UPDATE and INSERT paths | FIXED |
+
+---
 
 ## Fixed — v2.15.7 (Session 79)
 

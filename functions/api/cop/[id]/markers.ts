@@ -219,9 +219,15 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     const setClauses = Object.keys(allowed).map(k => `${k} = ?`).join(', ')
     const values = Object.values(allowed)
 
-    await env.DB.prepare(
+    const updateResult = await env.DB.prepare(
       `UPDATE cop_markers SET ${setClauses} WHERE id = ? AND cop_session_id = ?`
     ).bind(...values, body.id, sessionId).run()
+
+    if (!updateResult.meta.changes || updateResult.meta.changes === 0) {
+      return new Response(JSON.stringify({ error: 'Marker not found in this session' }), {
+        status: 404, headers: corsHeaders,
+      })
+    }
 
     // Log changelog entry
     const changelogId = `mcl-${crypto.randomUUID().slice(0, 12)}`

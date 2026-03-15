@@ -73,6 +73,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
+    const claims = body.claims.slice(0, 100)
+
     // Look up session's workspace
     const session = await env.DB.prepare(
       `SELECT workspace_id FROM cop_sessions WHERE id = ?`
@@ -82,7 +84,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const now = new Date().toISOString()
     const ids: string[] = []
 
-    const stmts = body.claims.map((claim: any) => {
+    const stmts = claims.map((claim: any) => {
       const id = generateId()
       ids.push(id)
       return env.DB.prepare(`
@@ -212,10 +214,16 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       })
     }
 
-    await env.DB.prepare(`
+    const updateResult = await env.DB.prepare(`
       UPDATE cop_claims SET status = ?, updated_at = ?
       WHERE id = ? AND cop_session_id = ?
     `).bind(body.status, now, claimId, sessionId).run()
+
+    if (!updateResult.meta.changes || updateResult.meta.changes === 0) {
+      return new Response(JSON.stringify({ error: 'Claim not found in this session' }), {
+        status: 404, headers: corsHeaders,
+      })
+    }
 
     if (body.status === 'verified' || body.status === 'disputed') {
       try {
