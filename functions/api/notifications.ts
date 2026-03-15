@@ -100,11 +100,11 @@ export const onRequest: PagesFunction<Env> = async (context) => {
             status: 403, headers: CORS_HEADERS
           })
         }
-        const isOwner = await env.DB.prepare(
-          'SELECT 1 FROM workspace_members WHERE workspace_id = ? AND user_id = ? AND role = ?'
-        ).bind(workspace_id, userId, 'OWNER').first()
-        if (!isOwner) {
-          return new Response(JSON.stringify({ error: 'Only workspace owners can notify other members' }), {
+        const canNotify = await env.DB.prepare(
+          'SELECT 1 FROM workspace_members WHERE workspace_id = ? AND user_id = ? AND role IN (?, ?)'
+        ).bind(workspace_id, userId, 'OWNER', 'ADMIN').first()
+        if (!canNotify) {
+          return new Response(JSON.stringify({ error: 'Only workspace owners and admins can notify other members' }), {
             status: 403, headers: CORS_HEADERS
           })
         }

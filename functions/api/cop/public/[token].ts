@@ -57,8 +57,20 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       })
     }
 
+    // Don't serve archived sessions via public links
+    if ((session as any).status === 'ARCHIVED') {
+      return new Response(JSON.stringify({ error: 'This session is no longer available' }), {
+        status: 410, headers: JSON_HEADERS,
+      })
+    }
+
     const parsed = parseJsonFields(session)
-    const visiblePanels = JSON.parse(share.visible_panels || '["map"]')
+    let visiblePanels: string[]
+    try {
+      visiblePanels = JSON.parse(share.visible_panels || '["map"]')
+    } catch {
+      visiblePanels = ['map']
+    }
 
     // Build response based on visible panels
     const response: any = {

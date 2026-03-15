@@ -1,7 +1,37 @@
 # ResearchTools.net — Issue Tracker
 
 **Last updated:** 2026-03-15
-**Current tag:** v0.20.0-entity-crud-complete
+**Current tag:** v0.20.1-public-share-hardening
+
+---
+
+## Fixed (v0.20.1)
+
+### P1 — COP Public Share Endpoint Served Archived Sessions
+- [x] `cop/public/[token].ts:50-58` — Fetched session without checking `status === 'ARCHIVED'`
+- [x] v0.20.0 added share cleanup on archive, but partial failures or race conditions could leave stale shares
+- [x] Fix: Added `if (session.status === 'ARCHIVED') return 410` — defense-in-depth alongside share deletion
+- **Root cause:** The share deletion in session archive is fire-and-forget. If it fails, the public endpoint has no second check. Belt-and-suspenders: delete shares AND check session status.
+
+### P1 — COP Public Share `visible_panels` JSON.parse Crash
+- [x] `cop/public/[token].ts:61` — `JSON.parse(share.visible_panels)` without try/catch
+- [x] Corrupted `visible_panels` value would crash the entire public share endpoint
+- [x] Fix: Wrapped in try/catch, fallback to `['map']`
+
+### P2 — Content Library Null Workspace Scoping
+- [x] `content-library.ts:31` — `workspace_id` from header only, defaulted to `null` when missing
+- [x] `WHERE workspace_id = ?` with null matches NULL-workspace rows (0 rows in prod currently, but future risk)
+- [x] Fix: Accept `?workspace_id=` query param (matching other endpoints), return 400 if missing
+
+### P2 — Scraper Fetch Calls Missing Timeouts
+- [x] `cop/[id]/scrape.ts:215` — Apify status check had no timeout (could hang worker)
+- [x] `cop/[id]/scrape.ts:272` — `fetchDatasetItems` had no timeout
+- [x] Fix: Added AbortController with 10s/15s timeouts to both fetch calls
+- **Root cause:** Cloudflare Workers have a 30s CPU limit. Stalled external fetches exhaust this silently.
+
+### P3 — Notifications Role Check Too Restrictive
+- [x] `notifications.ts:103-105` — Only OWNER could send notifications, not ADMIN
+- [x] Fix: Changed to `role IN ('OWNER', 'ADMIN')`
 
 ---
 

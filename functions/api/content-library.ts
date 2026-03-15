@@ -28,10 +28,15 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         headers: JSON_HEADERS,
       })
     }
-    const workspaceId = request.headers.get('X-Workspace-ID') || null
-
     // Parse query parameters
     const url = new URL(request.url)
+    const workspaceId = url.searchParams.get('workspace_id') || request.headers.get('X-Workspace-ID')
+
+    if (!workspaceId) {
+      return new Response(JSON.stringify({ error: 'workspace_id parameter required' }), {
+        status: 400, headers: JSON_HEADERS,
+      })
+    }
     const limit = Math.min(parseInt(url.searchParams.get('limit') || '50'), 200)
     const offset = Math.max(parseInt(url.searchParams.get('offset') || '0'), 0)
 

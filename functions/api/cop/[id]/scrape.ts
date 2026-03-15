@@ -211,10 +211,14 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       })
     }
 
-    // Check run status
+    // Check run status (10s timeout to prevent worker hang)
+    const statusController = new AbortController()
+    const statusTimeout = setTimeout(() => statusController.abort(), 10000)
     const statusRes = await fetch(`${APIFY_BASE}/actor-runs/${runId}`, {
       headers: { 'Authorization': `Bearer ${apiKey}` },
+      signal: statusController.signal,
     })
+    clearTimeout(statusTimeout)
 
     if (!statusRes.ok) {
       return new Response(JSON.stringify({ error: 'Failed to check run status' }), {
@@ -270,12 +274,20 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 // ── Helpers ────────────────────────────────────────────────────
 
 async function fetchDatasetItems(apiKey: string, datasetId: string, limit: number): Promise<any[]> {
-  const res = await fetch(
-    `${APIFY_BASE}/datasets/${datasetId}/items?limit=${limit}&format=json`,
-    { headers: { 'Authorization': `Bearer ${apiKey}` } }
-  )
-  if (!res.ok) return []
-  return await res.json() as any[]
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 15000)
+  try {
+    const res = await fetch(
+      `${APIFY_BASE}/datasets/${datasetId}/items?limit=${limit}&format=json`,
+      { headers: { 'Authorization': `Bearer ${apiKey}` }, signal: controller.signal }
+    )
+    clearTimeout(timeout)
+    if (!res.ok) return []
+    return await res.json() as any[]
+  } catch {
+    clearTimeout(timeout)
+    return []
+  }
 }
 
 function transformToEvidence(
