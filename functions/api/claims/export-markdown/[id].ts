@@ -14,13 +14,7 @@ interface Env {
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   try {
-    const auth = await requireAuth(context)
-    if (!auth) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: JSON_HEADERS
-      })
-    }
+    const authUserId = await requireAuth(context.request, context.env)
 
     // Extract claim_adjustment_id from URL path
     const claimAdjustmentId = context.params.id as string
@@ -50,11 +44,11 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         ca.updated_at,
         co.url as source_url,
         co.title as source_title,
-        co.publication_date
+        co.publish_date as publication_date
       FROM claim_adjustments ca
       JOIN content_analysis co ON ca.content_analysis_id = co.id
       WHERE ca.id = ? AND co.user_id = ?
-    `).bind(claimAdjustmentId, auth.user.id).first()
+    `).bind(claimAdjustmentId, authUserId).first()
 
     if (!claim) {
       return new Response(JSON.stringify({ error: 'Claim not found' }), {
@@ -74,8 +68,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         cel.created_at,
         e.title as evidence_title,
         e.description as evidence_description,
-        e.source_url as evidence_url,
-        e.evidence_type
+        e.type as evidence_type
       FROM claim_evidence_links cel
       JOIN evidence e ON cel.evidence_id = e.id
       WHERE cel.claim_adjustment_id = ?
@@ -114,10 +107,10 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       }
     })
   } catch (error) {
+    if (error instanceof Response) return error
     console.error('[Export Markdown] Error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to export claim to Markdown'
-
     }), {
       status: 500,
       headers: JSON_HEADERS
@@ -282,11 +275,7 @@ function generateMarkdown(
 function formatEvidenceLink(link: any): string {
   const lines: string[] = []
 
-  if (link.evidence_url) {
-    lines.push(`- [${link.evidence_title || 'Evidence'}](${link.evidence_url})`)
-  } else {
-    lines.push(`- **${link.evidence_title || 'Evidence'}**`)
-  }
+  lines.push(`- **${link.evidence_title || 'Evidence'}**`)
 
   if (link.evidence_type) {
     lines.push(`  - Type: ${link.evidence_type}`)

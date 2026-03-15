@@ -14,13 +14,7 @@ interface Env {
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   try {
-    const auth = await requireAuth(context)
-    if (!auth) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: JSON_HEADERS
-      })
-    }
+    const authUserId = await requireAuth(context.request, context.env)
 
     const url = new URL(context.request.url)
     const query = url.searchParams.get('q') || ''
@@ -31,18 +25,16 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       SELECT
         e.id,
         e.title,
-        e.source_type,
-        e.source_url,
-        e.content_snippet,
-        e.credibility_score,
-        e.bias_rating,
+        e.description,
+        e.type,
+        e.status,
         e.tags,
         e.created_at
       FROM evidence e
-      WHERE e.user_id = ?
+      WHERE e.created_by = ?
     `
 
-    const bindings: any[] = [auth.user.id]
+    const bindings: any[] = [authUserId]
 
     // Exclude evidence already linked to this claim
     if (claimAdjustmentId) {
@@ -58,7 +50,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     if (query) {
       sql += ` AND (
         e.title LIKE ? OR
-        e.content_snippet LIKE ? OR
+        e.description LIKE ? OR
         e.tags LIKE ?
       )`
       const searchPattern = `%${query}%`
@@ -84,10 +76,10 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       headers: JSON_HEADERS
     })
   } catch (error) {
+    if (error instanceof Response) return error
     console.error('[Search Evidence] Error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to search evidence'
-
     }), {
       status: 500,
       headers: JSON_HEADERS

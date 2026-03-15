@@ -14,13 +14,7 @@ interface Env {
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   try {
-    const auth = await requireAuth(context)
-    if (!auth) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: JSON_HEADERS
-      })
-    }
+    const authUserId = await requireAuth(context.request, context.env)
 
     const url = new URL(context.request.url)
     const query = url.searchParams.get('q') || ''
@@ -30,7 +24,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     // Get user's workspace
     const workspace = await context.env.DB.prepare(`
       SELECT workspace_id FROM workspace_members WHERE user_id = ? LIMIT 1
-    `).bind(auth.user.id).first()
+    `).bind(authUserId).first()
 
     if (!workspace) {
       return new Response(JSON.stringify({
@@ -88,10 +82,10 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       headers: JSON_HEADERS
     })
   } catch (error) {
+    if (error instanceof Response) return error
     console.error('[Search Actors] Error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to search actors'
-
     }), {
       status: 500,
       headers: JSON_HEADERS

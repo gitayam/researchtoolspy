@@ -1,7 +1,31 @@
 # ResearchTools.net — Issue Tracker
 
 **Last updated:** 2026-03-15
-**Current tag:** v0.18.7-workspace-fixes
+**Current tag:** v0.18.8-auth-schema-fixes
+
+---
+
+## Fixed (v0.18.8)
+
+### P1 — 4 Endpoints Completely Broken: `requireAuth(context)` Wrong Args
+- [x] `actors/[actor_id]/claims.ts` — `requireAuth(context)` crashes (expects `request, env`)
+- [x] `claims/export-markdown/[id].ts` — same broken auth pattern
+- [x] `claims/search-evidence.ts` — same broken auth pattern
+- [x] `claims/search-actors.ts` — same broken auth pattern
+- [x] All 4 also used `auth.user.id` but `requireAuth` returns a plain `number`, not an object
+- [x] Catch blocks also swallowed thrown Response (401) as 500 — added `if (error instanceof Response) return error`
+- **Root cause:** These files were written with an older auth pattern assumption (`auth.user.id`). Same pattern documented in Lessons Learned Sessions 32-33. Full-codebase grep found them: `grep -rn 'requireAuth(context)' functions/api/`
+
+### P2 — `search-evidence.ts` Schema Drift: Wrong Table Columns
+- [x] Queried `e.source_type, e.source_url, e.content_snippet, e.credibility_score, e.bias_rating` — none exist on `evidence` table
+- [x] Also used `WHERE e.user_id = ?` — column is `created_by`
+- [x] Fix: Updated to actual columns (`e.description, e.type, e.status`) and `WHERE e.created_by = ?`
+- **Root cause:** Endpoint written against hypothetical schema that never existed.
+
+### P2 — `export-markdown/[id].ts` Schema Drift: `publication_date` → `publish_date`
+- [x] Query referenced `co.publication_date` — actual column is `publish_date` on `content_analysis`
+- [x] Also referenced `e.source_url` and `e.evidence_type` — don't exist on `evidence` table
+- [x] Fix: Aliased `co.publish_date as publication_date`, removed non-existent evidence columns
 
 ---
 

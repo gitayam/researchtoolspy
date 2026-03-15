@@ -14,13 +14,7 @@ interface Env {
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   try {
-    const auth = await requireAuth(context)
-    if (!auth) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: JSON_HEADERS
-      })
-    }
+    const authUserId = await requireAuth(context.request, context.env)
 
     // Get actor_id from URL path
     const actorId = context.params.actor_id as string
@@ -40,7 +34,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       FROM actors a
       JOIN workspace_members wm ON a.workspace_id = wm.workspace_id
       WHERE a.id = ? AND wm.user_id = ?
-    `).bind(actorId, auth.user.id).first()
+    `).bind(actorId, authUserId).first()
 
     if (!actor) {
       return new Response(JSON.stringify({ error: 'Actor not found or access denied' }), {
@@ -142,10 +136,10 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       headers: JSON_HEADERS
     })
   } catch (error) {
+    if (error instanceof Response) return error
     console.error('[Get Actor Claims] Error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to load actor claims'
-
     }), {
       status: 500,
       headers: JSON_HEADERS
