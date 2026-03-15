@@ -34,7 +34,7 @@
       "intelligenceQuestion": "Intelligence Question *",
       "intelligenceQuestionPlaceholder": "e.g., What is Russia's primary strategic objective in Ukraine?",
       "questionTip": "Good questions are specific, answerable, and intelligence-relevant",
-      "description": "Description (Optional)",
+      "descriptionLabel": "Description (Optional)",
       "descriptionPlaceholder": "Background context and scope of analysis",
       "analyst": "Analyst",
       "analystPlaceholder": "Your name",
