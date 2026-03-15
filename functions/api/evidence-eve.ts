@@ -67,7 +67,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         `).bind(evidence.workspace_id).first()
 
         if (workspace) {
-          const isOwner = workspace.owner_id === userId
+          const isOwner = String(workspace.owner_id) === String(userId)
           const isMember = await env.DB.prepare(`
             SELECT 1 FROM workspace_members WHERE workspace_id = ? AND user_id = ?
           `).bind(evidence.workspace_id, userId).first()
@@ -113,7 +113,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         `).bind(evidence.workspace_id).first()
 
         if (workspace) {
-          const isOwner = workspace.owner_id === userId
+          const isOwner = String(workspace.owner_id) === String(userId)
           const member = await env.DB.prepare(`
             SELECT role FROM workspace_members WHERE workspace_id = ? AND user_id = ?
           `).bind(evidence.workspace_id, userId).first()
@@ -182,7 +182,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         `).bind(evidence.workspace_id).first()
 
         if (workspace) {
-          const isOwner = workspace.owner_id === userId
+          const isOwner = String(workspace.owner_id) === String(userId)
           const member = await env.DB.prepare(`
             SELECT role FROM workspace_members WHERE workspace_id = ? AND user_id = ?
           `).bind(evidence.workspace_id, userId).first()

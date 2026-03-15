@@ -41,7 +41,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     const session = await env.DB.prepare(
       'SELECT created_by FROM cop_sessions WHERE id = ?'
     ).bind(sessionId).first<{ created_by: number }>()
-    const isOwner = session && session.created_by === userId
+    const isOwner = session && String(session.created_by) === String(userId)
 
     const columns = isOwner
       ? '*'

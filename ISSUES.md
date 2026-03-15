@@ -1,7 +1,22 @@
 # ResearchTools.net — Issue Tracker
 
 **Last updated:** 2026-03-15
-**Current tag:** v0.16.4-cascade-fix
+**Current tag:** v0.16.5-type-safety
+
+---
+
+## Fixed (v0.16.5)
+
+### P1 — 11 Remaining Type Coercion Bugs in Ownership Checks
+- [x] `_shared/auth-helpers.ts` (2) — `session.created_by === userId` in COP session access helpers → `String()` on both sides
+- [x] `_shared/workspace-helpers.ts` (3) — `workspace.owner_id === userId` in `checkWorkspaceAccess`, `canManageWorkspace`, `getWorkspaceMemberRole` → `String()` on both sides
+- [x] `cop/[id]/intake-forms.ts` (1) — owner check → `String()` on both sides
+- [x] `cop/[id]/collaborators.ts` (1) — owner check → `String()` on both sides
+- [x] `workspaces/[id]/members.ts` (1) — owner check → `String()` on both sides
+- [x] `workspaces/[id]/index.ts` (1) — owner check → `String()` on both sides
+- [x] `evidence-eve.ts` (3) — workspace owner checks → `String()` on both sides
+- [x] Grep confirms zero remaining unsafe `=== userId` / `=== owner_id` comparisons in functions/api/
+- **Root cause:** D1 (SQLite) can return INTEGER columns as either JavaScript numbers or strings; strict `===` fails when types mismatch. Shared helpers were highest-impact — they protect all callers.
 
 ---
 

@@ -42,7 +42,7 @@ export async function checkWorkspaceAccess(
   if (!workspace) return false
 
   // Owner has full access
-  if (workspace.owner_id === userId) return true
+  if (String(workspace.owner_id) === String(userId)) return true
 
   // Check member access with role gating
   const member = await env.DB.prepare(
@@ -78,7 +78,7 @@ export async function canManageWorkspace(
     `SELECT owner_id FROM workspaces WHERE id = ?`
   ).bind(workspaceId).first()
   if (!workspace) return false
-  if (workspace.owner_id === userId) return true
+  if (String(workspace.owner_id) === String(userId)) return true
 
   const member = await db.prepare(
     `SELECT role FROM workspace_members WHERE workspace_id = ? AND user_id = ?`
@@ -100,7 +100,7 @@ export async function getWorkspaceMemberRole(
     `SELECT owner_id FROM workspaces WHERE id = ?`
   ).bind(workspaceId).first()
   if (!workspace) return null
-  if (workspace.owner_id === userId) return 'OWNER'
+  if (String(workspace.owner_id) === String(userId)) return 'OWNER'
 
   const member = await db.prepare(
     `SELECT role FROM workspace_members WHERE workspace_id = ? AND user_id = ?`

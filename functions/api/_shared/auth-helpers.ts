@@ -219,7 +219,7 @@ export async function verifyCopSessionAccess(
   if (!session) return null
 
   // Owner always has access
-  if (session.created_by === userId) return session.workspace_id
+  if (String(session.created_by) === String(userId)) return session.workspace_id
 
   // Check collaborator table
   const collab = await db.prepare(
@@ -273,7 +273,7 @@ export async function verifyCopLayerAccess(
   }
 
   // Owner
-  if (session.created_by === userId) return { workspace_id: session.workspace_id }
+  if (String(session.created_by) === String(userId)) return { workspace_id: session.workspace_id }
 
   // Collaborator
   const collab = await db.prepare(
