@@ -162,6 +162,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
   } catch (error) {
+    if (error instanceof Response) return error
     console.error('[Save Claim Adjustment] Error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to save claim adjustment'

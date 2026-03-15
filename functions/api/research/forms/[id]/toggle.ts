@@ -19,6 +19,7 @@ export const onRequestPatch: PagesFunction<Env> = async (context) => {
     try {
       userId = await requireAuth(context.request, context.env)
     } catch (error) {
+      if (error instanceof Response) return error
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
         status: 401, headers: JSON_HEADERS,
       })
@@ -81,6 +82,7 @@ export const onRequestPatch: PagesFunction<Env> = async (context) => {
       headers: JSON_HEADERS
     })
   } catch (error) {
+    if (error instanceof Response) return error
     console.error('[forms/toggle] Error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to toggle form status'

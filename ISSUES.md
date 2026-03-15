@@ -1,7 +1,29 @@
 # ResearchTools.net — Issue Tracker
 
 **Last updated:** 2026-03-15
-**Current tag:** v0.19.0-clean-sweep
+**Current tag:** v0.19.1-catch-block-sweep
+
+---
+
+## Fixed (v0.19.1)
+
+### P1 — 20 Endpoints Swallowed Auth 401 as 500 (Missing `instanceof Response` Check)
+- [x] `requireAuth()` throws a `Response` object on auth failure, but 20 catch blocks caught it as a generic error and returned 500 instead of the correct 401
+- [x] Affected files: all `claims/` endpoints (10), all `investigation-packets/` endpoints (4), all `investigations/` endpoints (3), all `research/` endpoints (3)
+- [x] Fix: Added `if (error instanceof Response) return error` to all 20 outer catch blocks
+- [x] Also fixed indentation on 3 inner catch blocks (investigations/index.ts, research/forms/[id]/index.ts, research/forms/[id]/toggle.ts)
+- **Root cause:** Same pattern as v0.18.8 (4 files), but the prior sweep only searched for `requireAuth(context)` wrong args — these 20 files had correct `requireAuth(request, env)` calls but broken catch blocks. Lessons Learned Session 32: "security fixes require full-codebase sweeps."
+
+### P3 — CLAUDE.md Documentation Drift: COP Auth Requirements
+- [x] CLAUDE.md stated "COP GET endpoints (layers, stats, activity) don't require auth" — incorrect
+- [x] All COP endpoints require auth + session access verification
+- [x] Public access is exclusively via share tokens at `/api/cop/public/[token]`
+- [x] Fix: Updated CLAUDE.md auth section
+
+### Smoke Test Results — 36/36 Passing
+- All 36 API endpoints return correct status codes
+- Auth enforcement verified: unauthenticated requests return 401 (not 500)
+- Guest-mode investigations correctly return empty list (200)
 
 ---
 

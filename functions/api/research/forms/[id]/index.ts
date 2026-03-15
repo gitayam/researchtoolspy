@@ -54,6 +54,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       headers: JSON_HEADERS
     })
   } catch (error) {
+    if (error instanceof Response) return error
     console.error('[forms/get] Error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to get form'
@@ -72,6 +73,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     try {
       userId = await requireAuth(context.request, context.env)
     } catch (error) {
+      if (error instanceof Response) return error
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
         status: 401, headers: JSON_HEADERS,
       })
@@ -139,6 +141,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       headers: JSON_HEADERS
     })
   } catch (error) {
+    if (error instanceof Response) return error
     console.error('[forms/delete] Error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to delete form'

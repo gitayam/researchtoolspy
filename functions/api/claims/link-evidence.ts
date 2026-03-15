@@ -141,6 +141,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       headers: JSON_HEADERS
     })
   } catch (error) {
+    if (error instanceof Response) return error
     console.error('[Link Evidence] Error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to link evidence to claim'

@@ -76,6 +76,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       headers: JSON_HEADERS
     })
   } catch (error) {
+    if (error instanceof Response) return error
     console.error('[investigations] Error fetching:', error)
     return new Response(JSON.stringify({
       error: 'Failed to fetch investigation'
@@ -230,6 +231,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       headers: JSON_HEADERS
     })
   } catch (error) {
+    if (error instanceof Response) return error
     console.error('[investigations] Error updating:', error)
     return new Response(JSON.stringify({
       error: 'Failed to update investigation'
@@ -311,6 +313,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       headers: JSON_HEADERS
     })
   } catch (error) {
+    if (error instanceof Response) return error
     console.error('[investigations] Error deleting:', error)
     return new Response(JSON.stringify({
       error: 'Failed to delete investigation'

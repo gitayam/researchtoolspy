@@ -112,6 +112,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       headers: JSON_HEADERS
     })
   } catch (error) {
+    if (error instanceof Response) return error
     console.error('[investigations] Error listing:', error)
     return new Response(JSON.stringify({
       error: 'Failed to list investigations'
@@ -130,6 +131,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     try {
       userId = await requireAuth(context.request, context.env)
     } catch (error) {
+      if (error instanceof Response) return error
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
         status: 401, headers: JSON_HEADERS,
       })
@@ -322,6 +324,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       headers: JSON_HEADERS
     })
   } catch (error) {
+    if (error instanceof Response) return error
     console.error('[investigations] Error creating:', error)
     return new Response(JSON.stringify({
       error: 'Failed to create investigation'

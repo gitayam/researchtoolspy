@@ -146,7 +146,8 @@ bbox/center/zoom fields
 
 - `X-User-Hash` header with min 16 chars (auto-creates guest user)
 - `.env` has `RESEARCHTOOLS_USER_HASH` for CLI ops
-- COP GET endpoints (layers, stats, activity) don't require auth
+- All COP endpoints require auth + session access verification
+- Public access is via share tokens: `/api/cop/public/[token]`
 - All mutations (POST/PUT/DELETE) require auth
 
 ## Workspace ID

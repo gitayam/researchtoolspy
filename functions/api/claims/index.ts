@@ -81,6 +81,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       headers: JSON_HEADERS
     })
   } catch (error) {
+    if (error instanceof Response) return error
     console.error('[claims] Error listing:', error)
     return new Response(JSON.stringify({
       error: 'Failed to list claims'

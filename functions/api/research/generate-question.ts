@@ -294,6 +294,7 @@ Generate 3 research questions with varying scope that are SMART and FINER compli
       headers: JSON_HEADERS
     })
   } catch (error) {
+    if (error instanceof Response) return error
     console.error('[generate-question] Error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to generate research questions'
