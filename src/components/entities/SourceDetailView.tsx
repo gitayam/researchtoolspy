@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { RelationshipList, RelationshipForm } from '@/components/network'
 import { FrameworkUsagePanel } from '@/components/shared/FrameworkUsagePanel'
 import type { Source, Relationship } from '@/types/entities'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 interface SourceDetailViewProps {
   source: Source

@@ -79,7 +79,7 @@ export function CommentThread({ entityType, entityId, className }: CommentThread
         entity_id: entityId,
         include_resolved: showResolved.toString()
       })
-      const response = await fetch(`/api/comments?${params}`, { signal })
+      const response = await fetch(`/api/comments?${params}`, { headers: getCopHeaders(), signal })
       if (response.ok) {
         const data = await response.json()
         setComments(data)

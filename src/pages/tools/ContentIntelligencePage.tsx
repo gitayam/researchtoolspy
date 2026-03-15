@@ -1508,7 +1508,7 @@ ${shortSummary}`
     if (!analysis?.id) return
 
     try {
-      const response = await fetch(`/api/content-intelligence/answer-question?analysis_id=${analysis.id}`)
+      const response = await fetch(`/api/content-intelligence/answer-question?analysis_id=${analysis.id}`, { headers: getCopHeaders() })
       if (response.ok) {
         const data = await response.json()
         setQaHistory(data.history || [])

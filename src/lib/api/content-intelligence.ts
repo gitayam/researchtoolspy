@@ -1,5 +1,6 @@
 // src/lib/api/content-intelligence.ts
 import { createLogger } from '@/lib/logger'
+import { getCopHeaders } from '@/lib/cop-auth'
 import type { ContentAnalysis, SavedLink } from '@/types/content-intelligence'
 
 const logger = createLogger('ContentIntelligenceAPI')
@@ -181,8 +182,7 @@ export interface AutoExtractEntitiesResponse {
 // ============================================
 
 function getAuthHeaders(): Record<string, string> {
-  const userHash = localStorage.getItem('omnicore_user_hash')
-  return userHash ? { Authorization: `Bearer ${userHash}` } : {}
+  return getCopHeaders()
 }
 
 async function handleResponse<T>(response: Response): Promise<T> {

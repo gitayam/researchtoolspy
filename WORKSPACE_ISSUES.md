@@ -1,6 +1,6 @@
 # Site Issues — Investigation Report
 
-**Last updated:** 2026-03-15 (Sessions 34-90b)
+**Last updated:** 2026-03-15 (Sessions 34-90c)
 
 ## Known Open — Prioritized for Next Sessions
 
@@ -14,6 +14,31 @@ Largest concentrations: EntityQuickCreate (12), GenericFrameworkForm (10), Batch
 - 25+ COP GET endpoints lack auth (Issue #384)
 - 15+ COP POST/PUT/DELETE lack session membership verification (Issue #385)
 - `notifications.ts` POST and `activity.ts` POST still unauthed (#396-397)
+
+---
+
+## Fixed — v2.16.13 (Session 90c)
+
+### CRITICAL — RUNTIME CRASH: MISSING IMPORT
+| # | Issue | Status |
+|---|-------|--------|
+| 615 | **SourceDetailView.tsx** — `getCopHeaders()` called in 3 places (delete/edit/create relationship) but never imported. Guaranteed `ReferenceError` at runtime. Fixed: added import | FIXED |
+
+### HIGH — GET FETCHES MISSING AUTH HEADERS
+| # | Issue | Status |
+|---|-------|--------|
+| 616 | **CommentThread.tsx** — GET `/api/comments` sent no auth headers while all mutations used getCopHeaders(). Backend requires auth → 401 on load. Fixed: added getCopHeaders() to GET | FIXED |
+| 617 | **ContentIntelligencePage.tsx** — GET `/api/content-intelligence/answer-question` sent no headers. Q&A history failed with 401. Fixed: added getCopHeaders() | FIXED |
+
+### MEDIUM — WRONG AUTH PATTERN IN API CLIENT (19 CALLS)
+| # | Issue | Status |
+|---|-------|--------|
+| 618 | **content-intelligence.ts** — Local `getAuthHeaders()` sent raw user hash as Bearer token (wrong) with no X-User-Hash or X-Workspace-ID. 19 API calls affected. Fixed: replaced with getCopHeaders() delegate | FIXED |
+
+### MEDIUM — `|| 'default'` WORKSPACE FALLBACKS
+| # | Issue | Status |
+|---|-------|--------|
+| 619 | **NetworkGraphPage.tsx + CopMiniGraph.tsx** (3 instances) — Fell back to `workspace_id=default` which matches no real workspace. Fixed: empty string fallback (API returns all user data) | FIXED |
 
 ---
 
