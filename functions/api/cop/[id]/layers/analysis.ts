@@ -101,9 +101,9 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         a.name,
         a.type AS actor_type,
         p.coordinates,
-        m.motive_score,
-        m.opportunity_score,
-        m.means_score
+        m.motive,
+        m.opportunity,
+        m.means
       FROM actors a
       INNER JOIN relationships r
         ON r.source_entity_id = a.id
@@ -144,9 +144,9 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       if (!coords || coords.lat == null || coords.lng == null) return null
 
       // Calculate risk score: average of (motive + opportunity + means) * 20 for 0-100 scale
-      const motive = row.motive_score ?? 0
-      const opportunity = row.opportunity_score ?? 0
-      const means = row.means_score ?? 0
+      const motive = row.motive ?? 0
+      const opportunity = row.opportunity ?? 0
+      const means = row.means ?? 0
       const riskScore = Math.round(((motive + opportunity + means) / 3) * 20)
 
       return {

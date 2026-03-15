@@ -1,7 +1,28 @@
 # ResearchTools.net — Issue Tracker
 
 **Last updated:** 2026-03-15
-**Current tag:** v0.18.2-claims-endpoints-fixed
+**Current tag:** v0.18.3-intel-schema-fix
+
+---
+
+## Fixed (v0.18.3)
+
+### P1 — Intelligence Dashboard Entities + KPI Endpoints Return 500
+- [x] `intelligence/entities.ts` — referenced `motive_score`, `opportunity_score`, `means_score` columns; actual columns are `motive`, `opportunity`, `means`
+- [x] `intelligence/entities.ts` — referenced `user_id` on `mom_assessments`; actual column is `assessed_by`
+- [x] `intelligence/kpi.ts` — same column name mismatches on `mom_assessments`
+- [x] `cop/[id]/layers/analysis.ts` — same stale column names for MOM assessment scores
+- **Root cause:** `mom_assessments` table was recreated in v0.17.9 with simplified column names, but 3 intelligence query files still referenced the old schema.
+
+### P2 — `retry-analysis` Endpoint Returns 500 (was in v0.18.2 open issues)
+- [x] `claims/retry-analysis/[id].ts` — referenced `full_text` column on `content_analysis`; actual column is `extracted_text`
+- **Root cause:** Same schema drift pattern — query was copied from old code that predated column rename.
+
+### P3 — Dead Code Audit: 13 Files With Internal Routing Anti-Pattern
+- Identified 7 core entity files (`actors.ts`, `sources.ts`, `events.ts`, `places.ts`, `behaviors.ts`, `relationships.ts`, `comments.ts`) with `url.pathname.match()` or `split('/')` dead code — all already have working `[id].ts` counterparts
+- Identified 6 claims files with same dead code — all have working `[id].ts` counterparts created in v0.18.2
+- `evidence-eve.ts` — has internal routing but NO `[id].ts` counterpart (dead code, no functional impact since no frontend calls it)
+- **Impact:** Maintenance burden only — no functional bugs since `[id].ts` files handle the routing correctly. Cleanup is P3.
 
 ---
 
@@ -20,10 +41,8 @@
 - [x] 5 of 6 endpoints verified working (404 for nonexistent IDs). `retry-analysis` returns 500 — likely `content_analysis` table query issue (pre-existing, P2)
 - **Root cause:** Same anti-pattern as Sessions 31, v0.17.7, v0.17.8, v0.18.0. This is the 6th batch of files found with internal routing dead code.
 
-### P2 — `retry-analysis` Endpoint Returns 500
-- [ ] `retry-analysis/[id].ts` — function loads and authenticates correctly, but DB query against `content_analysis` table fails
-- Likely cause: table doesn't exist in production D1, or schema mismatch
-- Low priority: AI retry is a niche feature, core claim CRUD endpoints all work
+### ~~P2 — `retry-analysis` Endpoint Returns 500~~ → Fixed in v0.18.3
+- [x] Root cause was `full_text` column name; actual column is `extracted_text`. Fixed above.
 
 ---
 

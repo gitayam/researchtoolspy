@@ -58,9 +58,9 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         ) GROUP BY entity_id
       ) r_count ON r_count.entity_id = e.id
       LEFT JOIN (
-        SELECT actor_id, AVG((motive_score + opportunity_score + means_score) / 3.0) as avg_mom
+        SELECT actor_id, AVG((motive + opportunity + means) / 3.0) as avg_mom
         FROM mom_assessments
-        WHERE user_id = ?
+        WHERE assessed_by = ?
         GROUP BY actor_id
       ) m ON m.actor_id = e.id AND e.entity_type = 'ACTOR'
       ORDER BY COALESCE(r_count.rel_count, 0) DESC

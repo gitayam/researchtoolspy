@@ -39,7 +39,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     // Get the content analysis
     const analysis = await context.env.DB.prepare(`
-      SELECT id, user_id, full_text, title, claim_analysis
+      SELECT id, user_id, extracted_text, title, claim_analysis
       FROM content_analysis
       WHERE id = ?
     `).bind(contentAnalysisId).first()
@@ -90,7 +90,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     // Re-run deception analysis
     const newAnalysis = await analyzeClaimsForDeception(
       claims,
-      analysis.full_text as string || '',
+      analysis.extracted_text as string || '',
       context.env
     )
 

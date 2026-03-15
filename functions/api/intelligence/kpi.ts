@@ -62,10 +62,10 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       `).bind(userId).all<{ framework_type: string; data: string; created_at: string }>(),
 
       env.DB.prepare(`
-        SELECT motive_score, opportunity_score, means_score
+        SELECT motive, opportunity, means
         FROM mom_assessments
-        WHERE user_id = ?
-      `).bind(userId).all<{ motive_score: number; opportunity_score: number; means_score: number }>(),
+        WHERE assessed_by = ?
+      `).bind(userId).all<{ motive: number; opportunity: number; means: number }>(),
 
       env.DB.prepare(`SELECT COUNT(*) as cnt FROM relationships WHERE created_by = ?`).bind(userId).first<{ cnt: number }>(),
 
@@ -124,7 +124,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     const momRows = momAssessments.results || []
     let deceptionScore = 0
     if (momRows.length > 0) {
-      const avgMom = momRows.reduce((sum, r) => sum + (r.motive_score + r.opportunity_score + r.means_score) / 3, 0) / momRows.length
+      const avgMom = momRows.reduce((sum, r) => sum + (r.motive + r.opportunity + r.means) / 3, 0) / momRows.length
       deceptionScore = Math.round(avgMom * 10) / 10
     }
     const deceptionLevel = deceptionScore >= 4 ? 'CRITICAL' : deceptionScore >= 3 ? 'HIGH' : deceptionScore >= 2 ? 'MEDIUM' : 'LOW'
