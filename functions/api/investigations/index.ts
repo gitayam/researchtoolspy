@@ -9,6 +9,9 @@ import { logActivity } from '../_shared/activity-logger'
 import { notifyWorkspaceMembers } from '../_shared/notification-logger'
 import { JSON_HEADERS, optionsResponse } from '../_shared/api-utils'
 
+// Safe JSON parse — returns fallback on malformed data
+const sj = (v: any, fb: any = []) => { if (!v) return fb; try { return JSON.parse(v) } catch { return fb } }
+
 interface Env {
   DB: D1Database
   SESSIONS?: KVNamespace
@@ -98,8 +101,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     // Parse JSON fields
     const parsed = (investigations.results || []).map((inv: any) => ({
       ...inv,
-      tags: inv.tags ? JSON.parse(inv.tags) : [],
-      metadata: inv.metadata ? JSON.parse(inv.metadata) : {}
+      tags: sj(inv.tags, []),
+      metadata: sj(inv.metadata, {})
     }))
 
     return new Response(JSON.stringify({
@@ -303,8 +306,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     const parsed = {
       ...investigation,
-      tags: investigation.tags ? JSON.parse(investigation.tags) : [],
-      metadata: investigation.metadata ? JSON.parse(investigation.metadata) : {}
+      tags: sj(investigation.tags, []),
+      metadata: sj(investigation.metadata, {})
     }
 
     // Include linked COP session ID in response

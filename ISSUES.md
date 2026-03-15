@@ -1,7 +1,28 @@
 # ResearchTools.net — Issue Tracker
 
 **Last updated:** 2026-03-15
-**Current tag:** v0.16.6-validation-fix
+**Current tag:** v0.16.7-scoping-fix
+
+---
+
+## Fixed (v0.16.7)
+
+### P0 — evidence/recommend 500 — Runtime Scoping Bug (TDZ Error)
+- [x] `evidence/recommend.ts` — POST returned 500 with "Cannot access 'keywordEvidence' before initialization"
+- [x] Renamed all query result variables to unique names (`actorResult`, `entityTextResult`, `kwResult`, `tfResult`, `ctxResult`, `recentResult`) to avoid esbuild scope flattening
+- [x] Replaced `.forEach()` callbacks with `for...of` loops (no closure scope issues)
+- [x] Fixed SQL column names: `who` → `who_involved`, `what` → `what_happened`, `where_location` → `where_occurred`
+- [x] Fixed response mapping to use correct D1 column names
+- [x] Added error detail to 500 response for debuggability
+- **Root cause:** Cloudflare Pages Functions bundler (esbuild) flattened block-scoped variables with identical names across sibling scopes, causing TDZ violations at runtime despite TypeScript passing locally
+
+### P1 — Unsafe JSON.parse Across 5 Endpoint Files
+- [x] `evidence.ts` — list endpoint: 11 unsafe `JSON.parse()` calls → safe `safeJ()` helper with try/catch fallback
+- [x] `evidence/recommend.ts` — tags parse in response mapping → IIFE with try/catch
+- [x] `investigations/[id].ts` — GET and PUT handlers: 5 unsafe `JSON.parse()` → module-level `sj()` helper
+- [x] `investigations/index.ts` — list and create handlers: 4 unsafe `JSON.parse()` → module-level `sj()` helper
+- [x] `investigations/from-research-question.ts` — 3 unsafe `JSON.parse()` → module-level `sj()` helper
+- **Root cause:** Malformed JSON in D1 text columns (empty strings, truncated data) would crash entire endpoint with unhandled SyntaxError
 
 ---
 

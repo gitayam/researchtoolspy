@@ -79,20 +79,24 @@ export async function onRequest(context: any) {
 
       const results = await env.DB.prepare(query).bind(...params).all()
 
-      // Parse JSON fields for all results
+      // Parse JSON fields for all results (using safeJSON to handle malformed data)
+      const safeJ = (val: any, fallback: any = []) => {
+        if (!val) return fallback
+        try { return JSON.parse(val) } catch { return fallback }
+      }
       const parsedResults = (results.results || []).map((evidence: any) => ({
         ...evidence,
-        tags: JSON.parse(evidence.tags || '[]'),
-        source: JSON.parse(evidence.source || '{}'),
-        metadata: JSON.parse(evidence.metadata || '{}'),
-        sats_evaluation: evidence.sats_evaluation ? JSON.parse(evidence.sats_evaluation) : null,
-        frameworks: JSON.parse(evidence.frameworks || '[]'),
-        attachments: JSON.parse(evidence.attachments || '[]'),
-        key_points: JSON.parse(evidence.key_points || '[]'),
-        contradictions: JSON.parse(evidence.contradictions || '[]'),
-        corroborations: JSON.parse(evidence.corroborations || '[]'),
-        implications: JSON.parse(evidence.implications || '[]'),
-        previous_versions: JSON.parse(evidence.previous_versions || '[]'),
+        tags: safeJ(evidence.tags, []),
+        source: safeJ(evidence.source, {}),
+        metadata: safeJ(evidence.metadata, {}),
+        sats_evaluation: safeJ(evidence.sats_evaluation, null),
+        frameworks: safeJ(evidence.frameworks, []),
+        attachments: safeJ(evidence.attachments, []),
+        key_points: safeJ(evidence.key_points, []),
+        contradictions: safeJ(evidence.contradictions, []),
+        corroborations: safeJ(evidence.corroborations, []),
+        implications: safeJ(evidence.implications, []),
+        previous_versions: safeJ(evidence.previous_versions, []),
       }))
 
       return new Response(JSON.stringify({ evidence: parsedResults }), {

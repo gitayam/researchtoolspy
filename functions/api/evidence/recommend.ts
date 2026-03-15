@@ -75,7 +75,7 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
     if (ctx.entities && ctx.entities.length > 0) {
       try {
         // Try to find evidence linked via evidence_actors table
-        const entityEvidence = await env.DB.prepare(`
+        const actorResult = await env.DB.prepare(`
           SELECT DISTINCT e.*, ea.relevance
           FROM evidence_items e
           LEFT JOIN evidence_actors ea ON e.id = ea.evidence_id
@@ -83,69 +83,69 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
           LIMIT 20
         `).bind(...ctx.entities).all()
 
-        allEvidence.push(...entityEvidence.results)
+        allEvidence.push(...actorResult.results)
 
-        (entityEvidence.results || []).forEach((ev: any) => {
+        for (const ev of (actorResult.results || []) as any[]) {
           if (!matchReasons.has(ev.id)) matchReasons.set(ev.id, [])
           matchReasons.get(ev.id)!.push('Mentions related actor')
-        })
+        }
       } catch (error) {
         console.warn('[Evidence Recommend] evidence_actors query failed:', error)
       }
 
       // Also search in who/what/description fields
       for (const entityId of ctx.entities) {
-        const textEvidence = await env.DB.prepare(`
+        const entityTextResult = await env.DB.prepare(`
           SELECT * FROM evidence_items
-          WHERE (who LIKE ? OR what LIKE ? OR description LIKE ?)
+          WHERE (who_involved LIKE ? OR what_happened LIKE ? OR description LIKE ?)
           LIMIT 20
         `).bind(`%${entityId}%`, `%${entityId}%`, `%${entityId}%`).all()
 
-        (textEvidence.results || []).forEach((ev: any) => {
+        for (const ev of (entityTextResult.results || []) as any[]) {
           if (!allEvidence.find(e => e.id === ev.id)) {
             allEvidence.push(ev)
           }
           if (!matchReasons.has(ev.id)) matchReasons.set(ev.id, [])
           matchReasons.get(ev.id)!.push('Text mentions entity')
-        })
+        }
       }
     }
 
     // 2. Find evidence with keyword overlap (if keywords provided)
     if (ctx.keywords && ctx.keywords.length > 0) {
       for (const keyword of ctx.keywords.slice(0, 5)) { // Limit to 5 keywords
-        const keywordEvidence = await env.DB.prepare(`
+        const kwResult = await env.DB.prepare(`
           SELECT * FROM evidence_items
-          WHERE title LIKE ? OR description LIKE ? OR what LIKE ? OR tags LIKE ?
+          WHERE title LIKE ? OR description LIKE ? OR what_happened LIKE ? OR tags LIKE ?
           LIMIT 15
         `).bind(`%${keyword}%`, `%${keyword}%`, `%${keyword}%`, `%${keyword}%`).all()
 
-        (keywordEvidence.results || []).forEach((ev: any) => {
+        for (const ev of (kwResult.results || []) as any[]) {
           if (!allEvidence.find(e => e.id === ev.id)) {
             allEvidence.push(ev)
           }
           if (!matchReasons.has(ev.id)) matchReasons.set(ev.id, [])
           matchReasons.get(ev.id)!.push(`Keyword: "${keyword}"`)
-        })
+        }
       }
     }
 
     // 3. Find evidence from similar timeframe (if provided)
     if (ctx.timeframe) {
       try {
-        const timeframeEvidence = await env.DB.prepare(`
+        const tfResult = await env.DB.prepare(`
           SELECT * FROM evidence_items
           WHERE when_occurred BETWEEN ? AND ?
           LIMIT 20
         `).bind(ctx.timeframe.start, ctx.timeframe.end).all()
 
-        (timeframeEvidence.results || []).forEach((ev: any) => {
+        for (const ev of (tfResult.results || []) as any[]) {
           if (!allEvidence.find(e => e.id === ev.id)) {
             allEvidence.push(ev)
           }
           if (!matchReasons.has(ev.id)) matchReasons.set(ev.id, [])
           matchReasons.get(ev.id)!.push('Matching timeframe')
-        })
+        }
       } catch (error) {
         console.warn('[Evidence Recommend] timeframe query failed:', error)
       }
@@ -157,13 +157,13 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
       const words = searchText.toLowerCase().split(/\s+/).filter(w => w.length > 3).slice(0, 10)
 
       for (const word of words) {
-        const textEvidence = await env.DB.prepare(`
+        const ctxResult = await env.DB.prepare(`
           SELECT * FROM evidence_items
-          WHERE LOWER(title) LIKE ? OR LOWER(description) LIKE ? OR LOWER(what) LIKE ?
+          WHERE LOWER(title) LIKE ? OR LOWER(description) LIKE ? OR LOWER(what_happened) LIKE ?
           LIMIT 10
         `).bind(`%${word}%`, `%${word}%`, `%${word}%`).all()
 
-        (textEvidence.results || []).forEach((ev: any) => {
+        for (const ev of (ctxResult.results || []) as any[]) {
           if (!allEvidence.find(e => e.id === ev.id)) {
             allEvidence.push(ev)
           }
@@ -171,25 +171,25 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
           if (!matchReasons.get(ev.id)!.includes('Context match')) {
             matchReasons.get(ev.id)!.push('Context match')
           }
-        })
+        }
       }
     }
 
     // 5. If still no results, get recent high-quality evidence
     if (allEvidence.length === 0) {
-      const recentEvidence = await env.DB.prepare(`
+      const recentResult = await env.DB.prepare(`
         SELECT * FROM evidence_items
         WHERE status = 'verified'
         ORDER BY created_at DESC
         LIMIT 10
       `).all()
 
-      allEvidence.push(...recentEvidence.results)
+      allEvidence.push(...recentResult.results)
 
-      (recentEvidence.results || []).forEach((ev: any) => {
+      for (const ev of (recentResult.results || []) as any[]) {
         if (!matchReasons.has(ev.id)) matchReasons.set(ev.id, [])
         matchReasons.get(ev.id)!.push('Recent verified evidence')
-      })
+      }
     }
 
     // 6. Score and rank recommendations
@@ -200,16 +200,16 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
         id: ev.id,
         title: ev.title,
         description: ev.description || '',
-        who: ev.who || '',
-        what: ev.what || '',
+        who: ev.who_involved || '',
+        what: ev.what_happened || '',
         when_occurred: ev.when_occurred || '',
-        where_location: ev.where_location || '',
+        where_location: ev.where_occurred || '',
         evidence_type: ev.evidence_type || '',
         evidence_level: ev.evidence_level || '',
         credibility: ev.credibility || '',
         reliability: ev.reliability || '',
         priority: ev.priority || '',
-        tags: ev.tags ? JSON.parse(ev.tags) : [],
+        tags: (() => { try { return ev.tags ? JSON.parse(ev.tags) : [] } catch { return [] } })(),
         relevance_score: relevanceScore,
         match_reasons: matchReasons.get(ev.id) || [],
         entity_match_count: (matchReasons.get(ev.id) || []).filter(r => r.includes('entity') || r.includes('actor')).length,
@@ -235,11 +235,11 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
       headers: JSON_HEADERS,
     })
 
-  } catch (error) {
-    console.error('Evidence recommendation error:', error)
+  } catch (error: any) {
+    console.error('[Evidence Recommend] Error:', error?.message, error?.cause, error)
     return new Response(JSON.stringify({
-      error: 'Failed to generate evidence recommendations'
-
+      error: 'Failed to generate evidence recommendations',
+      detail: error?.message || 'Unknown error',
     }), {
       status: 500,
       headers: JSON_HEADERS,

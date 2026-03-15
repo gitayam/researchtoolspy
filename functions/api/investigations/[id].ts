@@ -23,6 +23,9 @@ interface UpdateInvestigationRequest {
   metadata?: Record<string, any>
 }
 
+// Safe JSON parse helper — returns fallback on malformed data
+const sj = (v: any, fb: any = []) => { if (!v) return fb; try { return JSON.parse(v) } catch { return fb } }
+
 // GET - Get investigation details
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   try {
@@ -61,9 +64,9 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     // Parse JSON fields
     const parsed = {
       ...investigation,
-      tags: investigation.tags ? JSON.parse(investigation.tags) : [],
-      metadata: investigation.metadata ? JSON.parse(investigation.metadata) : {},
-      research_plan: investigation.research_plan ? JSON.parse(investigation.research_plan) : null
+      tags: sj(investigation.tags, []),
+      metadata: sj(investigation.metadata, {}),
+      research_plan: sj(investigation.research_plan, null)
     }
 
     return new Response(JSON.stringify({
@@ -215,8 +218,8 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
     const parsed = {
       ...updated,
-      tags: updated.tags ? JSON.parse(updated.tags) : [],
-      metadata: updated.metadata ? JSON.parse(updated.metadata) : {}
+      tags: sj(updated.tags, []),
+      metadata: sj(updated.metadata, {})
     }
 
 
