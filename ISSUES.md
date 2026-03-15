@@ -1,7 +1,26 @@
 # ResearchTools.net — Issue Tracker
 
 **Last updated:** 2026-03-15
-**Current tag:** v0.17.8-entity-detail-routes
+**Current tag:** v0.17.9-mom-assessments
+
+---
+
+## Fixed (v0.17.9)
+
+### P1 — MOM Assessment API Entirely Missing
+- [x] Frontend (`ActorDetailView`, `EventDetailView`, `MOMAssessmentModal`) calls GET/POST/PUT/DELETE on `/api/mom-assessments` and `/api/mom-assessments/:id` — no backend file existed
+- [x] Created `functions/api/mom-assessments.ts` — GET (list with actor_id/event_id/workspace_id filters) + POST (create)
+- [x] Created `functions/api/mom-assessments/[id].ts` — GET (detail) + PUT (update) + DELETE
+- [x] Old `mom_assessments` table had incompatible schema (INTEGER ids, `user_id`, `motive_score REAL`) — dropped and recreated with correct schema matching frontend types (TEXT ids, `created_by`, `motive INTEGER 0-5`)
+- [x] Added migration `094-create-mom-assessments.sql` with proper indexes
+- [x] All 5 CRUD operations verified in production
+- **Root cause:** MOM assessment feature was built in frontend but backend endpoint was never created. Old table from earlier iteration had wrong schema.
+- **Impact:** MOM (Motive, Opportunity, Means) assessment modals on Actor and Event detail pages are now functional.
+
+### P3 — `evidence-eve.ts` Dead Code (Documented)
+- [x] `evidence-eve.ts` uses internal `url.pathname.match()` for `/:id` routes — same anti-pattern as v0.17.7/v0.17.8
+- [x] No frontend code calls `/api/evidence-eve/` at all — entire file is dead code
+- [x] Documented but not removed (no urgency, no frontend impact)
 
 ---
 
