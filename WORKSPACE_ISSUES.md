@@ -1,6 +1,6 @@
 # Site Issues — Investigation Report
 
-**Last updated:** 2026-03-15 (Sessions 34-86)
+**Last updated:** 2026-03-15 (Sessions 34-87)
 
 ## Known Open — Prioritized for Next Sessions
 
@@ -27,6 +27,18 @@ Largest concentrations: EntityQuickCreate (12), GenericFrameworkForm (10), Batch
 - 25+ COP GET endpoints lack auth (Issue #384)
 - 15+ COP POST/PUT/DELETE lack session membership verification (Issue #385)
 - `notifications.ts` POST and `activity.ts` POST still unauthed (#396-397)
+
+---
+
+## Fixed — v2.16.6 (Session 87)
+
+### HIGH — EVIDENCE 401 + ACTORS 400 (REPORTED FROM BROWSER CONSOLE)
+| # | Issue | Status |
+|---|-------|--------|
+| 565 | **getCopHeaders() missing JWT auth** — Only sent X-User-Hash, not Authorization Bearer token. Users who logged in via JWT couldn't create evidence. Fixed: now sends Bearer token + X-Workspace-ID automatically | FIXED |
+| 566 | **EvidenceItemForm actors fetch 400** — Called `/api/actors` without `workspace_id` param (required). Fixed: added workspace_id from localStorage | FIXED |
+| 567 | **actors.ts GET 400 when no workspace_id** — Returned 400 instead of graceful fallback. Fixed: returns user's actors across all workspaces when no workspace specified | FIXED |
+| 568 | **EvidencePage unhelpful 401 error** — "Failed to create evidence" didn't indicate auth was the issue. Fixed: 401 now shows "Authentication required. Please log in first." | FIXED |
 
 ---
 
