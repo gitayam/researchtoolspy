@@ -1,11 +1,106 @@
 /**
  * Match Extracted Entities to Existing Actors/Places/Events
  *
- * Takes entities extracted from claims (with temporary IDs) and matches them
- * to existing entities in the actors, places, and events tables.
+ * POST /api/content-intelligence/match-entities-to-actors
+ *   Body: { entities: [{ name, type }], workspace_id? }
+ *   Returns: { matches: { [name]: { id, name } } }
  *
- * Part of Phase 3: Claims & Entity Integration
+ * Also exports utility functions for internal use by other endpoints.
  */
+
+import type { PagesFunction } from '@cloudflare/workers-types'
+import { getUserFromRequest } from '../_shared/auth-helpers'
+import { JSON_HEADERS } from '../_shared/api-utils'
+
+interface Env {
+  DB: D1Database
+  SESSIONS?: KVNamespace
+}
+
+// POST handler — match entity names to existing actors/places/events
+export const onRequestPost: PagesFunction<Env> = async (context) => {
+  const { request, env } = context
+
+  try {
+    const userId = await getUserFromRequest(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: JSON_HEADERS,
+      })
+    }
+
+    const body = await request.json() as {
+      entities?: Array<{ name: string; type: string }>
+      workspace_id?: string
+    }
+
+    if (!body.entities || !Array.isArray(body.entities) || body.entities.length === 0) {
+      return new Response(JSON.stringify({ error: 'entities array required' }), {
+        status: 400, headers: JSON_HEADERS,
+      })
+    }
+
+    const workspaceId = body.workspace_id || request.headers.get('X-Workspace-ID') || '1'
+    const matches: Record<string, { id: string; name: string }> = {}
+
+    for (const entity of body.entities.slice(0, 100)) {
+      if (!entity.name) continue
+
+      try {
+        // Try actors first
+        const actor = await env.DB.prepare(
+          'SELECT id, name FROM actors WHERE workspace_id = ? AND LOWER(TRIM(name)) = LOWER(TRIM(?)) LIMIT 1'
+        ).bind(workspaceId, entity.name).first()
+
+        if (actor) {
+          matches[entity.name] = { id: actor.id as string, name: actor.name as string }
+          continue
+        }
+
+        // Try places
+        if (entity.type === 'location' || entity.type === 'place') {
+          const place = await env.DB.prepare(
+            'SELECT id, name FROM places WHERE workspace_id = ? AND LOWER(TRIM(name)) = LOWER(TRIM(?)) LIMIT 1'
+          ).bind(workspaceId, entity.name).first()
+
+          if (place) {
+            matches[entity.name] = { id: place.id as string, name: place.name as string }
+            continue
+          }
+        }
+
+        // Try events
+        if (entity.type === 'event') {
+          const event = await env.DB.prepare(
+            'SELECT id, name FROM events WHERE workspace_id = ? AND LOWER(TRIM(name)) = LOWER(TRIM(?)) LIMIT 1'
+          ).bind(workspaceId, entity.name).first()
+
+          if (event) {
+            matches[entity.name] = { id: event.id as string, name: event.name as string }
+          }
+        }
+      } catch (err) {
+        console.warn(`[match-entities] Error matching "${entity.name}":`, err)
+      }
+    }
+
+    return new Response(JSON.stringify(matches), { headers: JSON_HEADERS })
+  } catch (error) {
+    console.error('[match-entities] POST error:', error)
+    return new Response(JSON.stringify({ error: 'Failed to match entities' }), {
+      status: 500, headers: JSON_HEADERS,
+    })
+  }
+}
+
+// Reject GET requests
+export const onRequestGet: PagesFunction = async () => {
+  return new Response(JSON.stringify({ error: 'Method not allowed. Use POST.' }), {
+    status: 405, headers: JSON_HEADERS,
+  })
+}
+
+// --- Internal utility functions (used by other endpoints) ---
 
 interface MatchResult {
   entityMentionId: string

@@ -1,7 +1,19 @@
 # ResearchTools.net — Issue Tracker
 
 **Last updated:** 2026-03-15
-**Current tag:** v0.17.3-safe-json-parse-sweep
+**Current tag:** v0.17.4-match-entities-handler
+
+---
+
+## Fixed (v0.17.4)
+
+### P2 — match-entities-to-actors Returned SPA HTML on POST (Missing Handler)
+- [x] `content-intelligence/match-entities-to-actors.ts` — was a utility-only module (exported functions for internal use) with no HTTP request handlers
+- [x] Frontend POSTs to this path but Cloudflare served SPA `index.html` fallback (200 HTML instead of JSON)
+- [x] Added `onRequestPost` handler: validates auth, accepts `{ entities: [{ name, type }], workspace_id? }`, searches actors/places/events by exact name match, returns `{ [name]: { id, name } }` map
+- [x] Added `onRequestGet` returning 405 JSON
+- [x] All original utility exports (`matchClaimEntitiesToActors`, `matchMultipleClaimsEntities`, `createActorFromUnmatchedEntity`, `getMatchingStatistics`) preserved
+- **Root cause:** File only contained exported utility functions for internal use by other endpoints (claim processing). No `onRequestPost`/`onRequestGet` was defined, so Cloudflare Pages fell through to SPA static asset serving. Same class of issue as the 81 POST-only endpoints fixed in v0.16.8.
 
 ---
 
