@@ -96,9 +96,12 @@ export async function onRequest(context: any) {
       const category = url.searchParams.get('category')
       const publicOnly = url.searchParams.get('public') === 'true'
 
-      // Filter by public access if requested
+      // Scope: show user's own evidence + public evidence
       if (publicOnly) {
         query += ' AND is_public = 1'
+      } else {
+        query += ' AND (created_by = ? OR is_public = 1)'
+        params.push(userId)
       }
 
       if (type) {
@@ -210,8 +213,9 @@ export async function onRequest(context: any) {
             SELECT id, name FROM actors
             WHERE LOWER(?) LIKE '%' || LOWER(name) || '%'
             AND LENGTH(name) > 3
+            AND workspace_id = ?
             LIMIT 10
-          `).bind(body.who).all()
+          `).bind(body.who, body.workspace_id || '1').all()
 
           // Auto-create links for matched actors
           for (const actor of actors.results) {
@@ -368,8 +372,9 @@ export async function onRequest(context: any) {
             SELECT id, name FROM actors
             WHERE LOWER(?) LIKE '%' || LOWER(name) || '%'
             AND LENGTH(name) > 3
+            AND workspace_id = ?
             LIMIT 10
-          `).bind(body.who).all()
+          `).bind(body.who, body.workspace_id || '1').all()
 
           // Auto-create new links
           for (const actor of actors.results) {

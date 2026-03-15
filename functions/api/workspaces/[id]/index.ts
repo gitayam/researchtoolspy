@@ -128,6 +128,11 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
 
   try {
     const userId = await getUserFromRequest(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: jsonHeaders,
+      })
+    }
 
     const workspace = await env.DB.prepare(
       `SELECT owner_id FROM workspaces WHERE id = ?`

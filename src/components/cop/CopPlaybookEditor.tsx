@@ -233,8 +233,8 @@ export default function CopPlaybookEditor({ sessionId, playbookId, onClose }: Co
       if (!res.ok) throw new Error('Dry run failed')
       const data = await res.json()
       setDryRunResult(data)
-    } catch {
-      // ignore
+    } catch (e) {
+      console.error('[CopPlaybookEditor] Dry run failed:', e)
     } finally {
       setDryRunning(false)
     }

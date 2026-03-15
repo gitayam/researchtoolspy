@@ -2,6 +2,43 @@
 
 **Last updated:** 2026-03-15 (Sessions 34-77)
 
+## Fixed — v0.18.5b (Session 77 — additional findings from scan agents)
+
+### HIGH — WORKSPACE DELETE MISSING AUTH GUARD
+| # | Issue | Status |
+|---|-------|--------|
+| 424 | **workspaces/[id]/index.ts DELETE** — `getUserFromRequest` returns null for unauthenticated requests but no explicit 401 check. Works by accident (`null !== number` = denied). Fixed: added explicit 401 guard | FIXED |
+
+### HIGH — EVIDENCE ITEMS GET UNSCOPED
+| # | Issue | Status |
+|---|-------|--------|
+| 425 | **evidence-items.ts GET list** — Returns all evidence items globally with `WHERE 1=1`. Private items visible to any user. Fixed: added `AND (created_by = ? OR is_public = 1)` filter | FIXED |
+
+### MEDIUM — DATASETS LIMIT NOT CAPPED
+| # | Issue | Status |
+|---|-------|--------|
+| 426 | **datasets.ts GET** — `parseInt(limit)` without max cap. Client can request `?limit=999999`. Fixed: added `Math.min(..., 500)` cap | FIXED |
+
+### MEDIUM — CROSS-WORKSPACE ACTOR LEAK VIA AUTO-LINKING
+| # | Issue | Status |
+|---|-------|--------|
+| 427 | **evidence-items.ts** — Auto-actor-linking in POST and PUT searches ALL actors globally without workspace_id filter. Links evidence to actors from other workspaces. Fixed: added `AND workspace_id = ?` to both queries | FIXED |
+
+### MEDIUM — COP ENDPOINTS MISSING meta.changes VALIDATION
+| # | Issue | Status |
+|---|-------|--------|
+| 428 | **cop/[id]/hypotheses.ts PUT** — UPDATE returns 200 success even if hypothesis doesn't exist. Fixed: added meta.changes check + 404 | FIXED |
+| 429 | **cop/[id]/timeline.ts PUT** — Same pattern. Fixed: added meta.changes check + 404 | FIXED |
+| 430 | **cop/[id]/timeline.ts DELETE** — Same pattern. Fixed: added meta.changes check + 404 | FIXED |
+
+### LOW — FRONTEND SILENT CATCHES
+| # | Issue | Status |
+|---|-------|--------|
+| 431 | **CopPlaybookEditor.tsx** — Empty catch on dry-run test hides errors. Fixed: added console.error | FIXED |
+| 432 | **CrossTableEditor.tsx** — Empty catch on score save with TODO comment. Fixed: added console.error | FIXED |
+
+---
+
 ## Fixed — v0.18.5 (Session 77)
 
 ### CRITICAL — 8 UNAUTHENTICATED AI ENDPOINTS (COST EXPOSURE)

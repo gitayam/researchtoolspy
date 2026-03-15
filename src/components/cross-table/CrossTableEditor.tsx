@@ -189,8 +189,8 @@ export function CrossTableEditor({ table, scores }: CrossTableEditorProps) {
       const data = await res.json()
       dispatch({ type: 'SET_SCORES', scores: data.scores ?? state.scores })
       dispatch({ type: 'MARK_SCORES_CLEAN' })
-    } catch {
-      // TODO: show toast
+    } catch (e) {
+      console.error('[CrossTableEditor] Score save failed:', e)
     } finally {
       setSaving(false)
     }

@@ -183,9 +183,15 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
     bindings.push(entryId, sessionId)
 
-    await env.DB.prepare(
+    const updateResult = await env.DB.prepare(
       `UPDATE cop_timeline_entries SET ${updates.join(', ')} WHERE id = ? AND cop_session_id = ?`
     ).bind(...bindings).run()
+
+    if (!updateResult.meta.changes || updateResult.meta.changes === 0) {
+      return new Response(JSON.stringify({ error: 'Timeline entry not found in this session' }), {
+        status: 404, headers: corsHeaders,
+      })
+    }
 
     const updated = await env.DB.prepare(
       `SELECT * FROM cop_timeline_entries WHERE id = ? AND cop_session_id = ?`
@@ -231,9 +237,15 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       })
     }
 
-    await env.DB.prepare(
+    const deleteResult = await env.DB.prepare(
       `DELETE FROM cop_timeline_entries WHERE id = ? AND cop_session_id = ?`
     ).bind(entryId, sessionId).run()
+
+    if (!deleteResult.meta.changes || deleteResult.meta.changes === 0) {
+      return new Response(JSON.stringify({ error: 'Timeline entry not found in this session' }), {
+        status: 404, headers: corsHeaders,
+      })
+    }
 
     return new Response(JSON.stringify({ message: 'Timeline entry deleted' }), { headers: corsHeaders })
   } catch (error) {

@@ -212,9 +212,15 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     values.push(body.id)
     values.push(sessionId)
 
-    await env.DB.prepare(`
+    const updateResult = await env.DB.prepare(`
       UPDATE cop_hypotheses SET ${updates.join(', ')} WHERE id = ? AND cop_session_id = ?
     `).bind(...values).run()
+
+    if (!updateResult.meta.changes || updateResult.meta.changes === 0) {
+      return new Response(JSON.stringify({ error: 'Hypothesis not found in this session' }), {
+        status: 404, headers: corsHeaders,
+      })
+    }
 
     await emitCopEvent(env.DB, {
       copSessionId: sessionId,

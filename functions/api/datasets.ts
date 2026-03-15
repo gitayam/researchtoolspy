@@ -63,7 +63,7 @@ export async function onRequest(context: any) {
       const type = url.searchParams.get('type')
       const status = url.searchParams.get('status')
       const publicOnly = url.searchParams.get('public') === 'true'
-      const limit = parseInt(url.searchParams.get('limit') || '50')
+      const limit = Math.min(parseInt(url.searchParams.get('limit') || '50') || 50, 500)
 
       let query = 'SELECT * FROM datasets WHERE 1=1'
       const params: any[] = []
