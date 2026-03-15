@@ -72,7 +72,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           tags = ?,
           shared_publicly_at = ?,
           updated_at = ?
-        WHERE id = ?
+        WHERE id = ? AND user_id = ?
       `).bind(
         data.is_public ? 1 : 0,
         shareToken,
@@ -80,7 +80,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         data.tags ? JSON.stringify(data.tags) : null,
         data.is_public ? (existing.is_public ? existing.shared_publicly_at : now) : null,
         now,
-        id
+        id,
+        userId
       ).run()
       updateSuccess = true
     } catch (updateError) {
@@ -94,12 +95,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
             is_public = ?,
             share_token = ?,
             updated_at = ?
-          WHERE id = ?
+          WHERE id = ? AND user_id = ?
         `).bind(
           data.is_public ? 1 : 0,
           shareToken,
           now,
-          id
+          id,
+          userId
         ).run()
         updateSuccess = true
       } catch (fallbackError) {
@@ -139,5 +141,9 @@ export const onRequestGet: PagesFunction = async () => {
   return new Response(JSON.stringify({ error: 'Method not allowed. Use POST.' }), {
     status: 405, headers: JSON_HEADERS,
   })
+}
+
+export const onRequestOptions: PagesFunction = async () => {
+  return new Response(null, { status: 204, headers: JSON_HEADERS })
 }
 

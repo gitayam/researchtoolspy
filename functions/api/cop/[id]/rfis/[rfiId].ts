@@ -101,6 +101,47 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
   }
 }
 
+export const onRequestDelete: PagesFunction<Env> = async (context) => {
+  const { request, env, params } = context
+  const sessionId = params.id as string
+  const rfiId = params.rfiId as string
+
+  try {
+    const userId = await getUserFromRequest(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: JSON_HEADERS,
+      })
+    }
+    if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
+      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
+    }
+
+    // Delete answers first (child records)
+    await env.DB.prepare(
+      'DELETE FROM cop_rfi_answers WHERE rfi_id = ? AND rfi_id IN (SELECT id FROM cop_rfis WHERE cop_session_id = ?)'
+    ).bind(rfiId, sessionId).run()
+
+    // Delete the RFI itself — session-scoped
+    const result = await env.DB.prepare(
+      'DELETE FROM cop_rfis WHERE id = ? AND cop_session_id = ?'
+    ).bind(rfiId, sessionId).run()
+
+    if (!result.meta.changes || result.meta.changes === 0) {
+      return new Response(JSON.stringify({ error: 'RFI not found' }), {
+        status: 404, headers: JSON_HEADERS,
+      })
+    }
+
+    return new Response(JSON.stringify({ message: 'RFI deleted' }), { headers: JSON_HEADERS })
+  } catch (error) {
+    console.error('[COP RFI API] Delete error:', error)
+    return new Response(JSON.stringify({
+      error: 'Failed to delete RFI',
+    }), { status: 500, headers: JSON_HEADERS })
+  }
+}
+
 export const onRequestOptions: PagesFunction = async () => {
   return new Response(null, { status: 204, headers: JSON_HEADERS })
 }

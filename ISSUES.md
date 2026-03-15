@@ -1,7 +1,32 @@
 # ResearchTools.net — Issue Tracker
 
 **Last updated:** 2026-03-15
-**Current tag:** v0.20.2-auth-share-hardening
+**Current tag:** v0.20.3-ach-rfi-hardening
+
+---
+
+## Fixed (v0.20.3)
+
+### P1 — ACH Share UPDATE Missing User Scoping (TOCTOU)
+- [x] `ach/[id]/share.ts:75-83,92-103` — Both UPDATE queries (primary + fallback) used `WHERE id = ?` without `AND user_id = ?`
+- [x] Pre-check verified ownership, but UPDATE was unscoped — race condition could allow modifying another user's analysis
+- [x] Fallback UPDATE (line 92) was particularly dangerous: no user scoping at all
+- [x] Fix: Added `AND user_id = ?` to both UPDATE WHERE clauses
+- [x] Also added missing OPTIONS handler
+- **Root cause:** TOCTOU (Time-of-Check/Time-of-Use) — ownership verified in SELECT, not enforced in UPDATE.
+
+### P2 — RFI Detail Endpoint Missing DELETE Handler
+- [x] `cop/[id]/rfis/[rfiId].ts` — Only had PUT and OPTIONS exports
+- [x] Users could update RFIs but not delete them via standard REST DELETE
+- [x] Fix: Added `onRequestDelete` with auth, session access check, session-scoped delete, and answer cascade
+- **Root cause:** Incomplete CRUD — PUT handler was added but DELETE was omitted.
+
+### P2 — Error Message Leaks in 3 Endpoints
+- [x] `collection/[jobId]/approve.ts:106` — Leaked `errorData` from internal batch API response
+- [x] `tools/rage-check.ts:36` — Leaked `scraped.error` (internal scraper details) to client
+- [x] `tools/extract-claims.ts:519` — Leaked `fetched.error` (fetch failure details) to client
+- [x] Fix: All three now log errors server-side and return generic messages to client
+- **Root cause:** Per Lessons Learned Session 32: "grep ENTIRE functions/api/ when fixing error.message leaks." These were in tool endpoints missed by prior sweeps.
 
 ---
 

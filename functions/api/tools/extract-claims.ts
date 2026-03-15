@@ -514,9 +514,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
 
     if (fetched.error && !fetched.text) {
+      console.error('[ExtractClaims] Fetch failed:', fetched.error)
       return new Response(JSON.stringify({
-        error: 'Failed to fetch content',
-        details: fetched.error || 'Empty response from all sources',
+        error: 'Failed to fetch content from URL',
         og_metadata: fetched.ogMetadata,
         paywalled: fetched.paywalled
       }), {

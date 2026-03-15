@@ -31,10 +31,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const scraped = await scrapeUrl(url, context.env.APIFY_API_KEY)
 
     if (scraped.error) {
-       return new Response(JSON.stringify({ 
-         error: 'Scraping Failed', 
-         details: scraped.error 
-       }), { status: 422 })
+       console.error('[RageCheck] Scrape failed:', scraped.error)
+       return new Response(JSON.stringify({
+         error: 'Failed to scrape URL content',
+       }), { status: 422, headers: { 'Content-Type': 'application/json' } })
     }
 
     const content = scraped.content

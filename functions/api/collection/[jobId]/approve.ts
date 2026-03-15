@@ -100,12 +100,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
 
       if (!batchResponse.ok) {
-        const errorData = await batchResponse.json()
+        console.error('[Collection Approve] Batch analysis failed:', batchResponse.status)
         return new Response(JSON.stringify({
           error: 'Batch analysis failed to start',
-          details: errorData
         }), {
-          status: 500,
+          status: 502,
           headers: JSON_HEADERS
         })
       }
