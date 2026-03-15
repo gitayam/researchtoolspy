@@ -111,7 +111,9 @@ export function WorkspaceManagement({
   }, [])
 
   const handleCopyLink = useCallback(() => {
-    navigator.clipboard.writeText(shareLink)
+    navigator.clipboard.writeText(shareLink).catch(() => {
+      console.error('[WorkspaceManagement] Clipboard write failed')
+    })
     setLinkCopied(true)
     setTimeout(() => setLinkCopied(false), 2000)
   }, [shareLink])

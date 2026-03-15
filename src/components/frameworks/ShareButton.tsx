@@ -137,7 +137,9 @@ export function ShareButton({
 
   const handleCopyLink = () => {
     if (shareUrl) {
-      navigator.clipboard.writeText(shareUrl)
+      navigator.clipboard.writeText(shareUrl).catch(() => {
+        console.error('[ShareButton] Clipboard write failed')
+      })
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     }

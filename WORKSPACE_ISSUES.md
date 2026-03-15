@@ -2,6 +2,21 @@
 
 **Last updated:** 2026-03-15 (Sessions 34-76)
 
+## Fixed — v0.18.4b (Session 76 — additional frontend fixes)
+
+### HIGH — XSS IN CONTENT INTELLIGENCE EXPORT
+| # | Issue | Status |
+|---|-------|--------|
+| 409 | **ContentIntelligencePage.tsx** — innerHTML with user data (`analysis.title`, `analysis.url`) in word cloud export metadata. Attacker-crafted title could execute JS during PNG export. Fixed: replaced innerHTML with DOM API (createElement + textContent) | FIXED |
+
+### LOW — CLIPBOARD ERROR HANDLING
+| # | Issue | Status |
+|---|-------|--------|
+| 410 | **ShareButton.tsx** — `navigator.clipboard.writeText()` without `.catch()`. Fails silently if user denies clipboard permission. Fixed: added `.catch()` | FIXED |
+| 411 | **WorkspaceManagement.tsx** — Same clipboard error handling gap. Fixed | FIXED |
+
+---
+
 ## Fixed — v0.18.4 (Session 76)
 
 ### CRITICAL — FRAMEWORK CRUD HAS NO AUTH (POST/PUT/DELETE)

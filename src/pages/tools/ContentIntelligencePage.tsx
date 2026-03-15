@@ -875,11 +875,26 @@ ${shortSummary}`
         const metadata = document.createElement('div')
         metadata.style.marginBottom = '20px'
         metadata.style.color = '#000'
-        metadata.innerHTML = `
-          <h2 style="font-size: 24px; font-weight: bold; margin-bottom: 8px;">${wordCloudView.charAt(0).toUpperCase() + wordCloudView.slice(1)} Word Cloud</h2>
-          <p style="font-size: 14px; color: #666; margin-bottom: 4px;"><strong>Source:</strong> ${analysis.title || 'Untitled'}</p>
-          <p style="font-size: 14px; color: #666;"><strong>URL:</strong> ${analysis.url}</p>
-        `
+        const h2 = document.createElement('h2')
+        h2.style.cssText = 'font-size: 24px; font-weight: bold; margin-bottom: 8px;'
+        h2.textContent = `${wordCloudView.charAt(0).toUpperCase() + wordCloudView.slice(1)} Word Cloud`
+        metadata.appendChild(h2)
+
+        const pSource = document.createElement('p')
+        pSource.style.cssText = 'font-size: 14px; color: #666; margin-bottom: 4px;'
+        const strongSource = document.createElement('strong')
+        strongSource.textContent = 'Source: '
+        pSource.appendChild(strongSource)
+        pSource.appendChild(document.createTextNode(analysis.title || 'Untitled'))
+        metadata.appendChild(pSource)
+
+        const pUrl = document.createElement('p')
+        pUrl.style.cssText = 'font-size: 14px; color: #666;'
+        const strongUrl = document.createElement('strong')
+        strongUrl.textContent = 'URL: '
+        pUrl.appendChild(strongUrl)
+        pUrl.appendChild(document.createTextNode(analysis.url || ''))
+        metadata.appendChild(pUrl)
         exportContainer.appendChild(metadata)
       }
 
