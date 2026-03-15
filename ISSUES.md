@@ -1,7 +1,33 @@
 # ResearchTools.net — Issue Tracker
 
 **Last updated:** 2026-03-15
-**Current tag:** v0.19.7-error-leak-shares
+**Current tag:** v0.19.8-cleanup-dead-code
+
+---
+
+## Fixed (v0.19.8)
+
+### P2 — Deprecated Dead `evidence.ts` Endpoint (Queries Empty Table)
+- [x] `/api/evidence` queries legacy `evidence` table with 0 rows in production
+- [x] All real evidence data (83 rows) lives in `evidence_items` table, served by `/api/evidence-items`
+- [x] No frontend code calls `/api/evidence` — confirmed via grep of src/
+- [x] Shell functions (`cop_evidence`) use `/api/cop/:id/evidence` (COP-scoped), not `/api/evidence`
+- [x] Fix: Added deprecation notice to `evidence.ts` header. Not deleted for backwards compatibility.
+- **Root cause:** Lesson Learned Session from 2026-03-09: "Migration 005 included ALTER TABLE evidence_items ADD COLUMN workspace_id but was never applied." The newer `evidence_items` table superseded `evidence` but the old endpoint was never removed.
+
+### P3 — 7 Misleading Comments in ACH Endpoints (Said "default to '1'", Code Uses null)
+- [x] `ach/evidence.ts:36,137`, `ach/hypotheses.ts:36,117,186`, `ach/scores.ts:39,179`
+- [x] Comments said "default to '1'" but code actually defaults to `null` (correct behavior)
+- [x] Fix: Updated all 7 comments to "Get workspace_id from query params or header"
+- **Root cause:** Comments were copy-pasted from pre-workspace-isolation code and never updated when the `|| '1'` fallback was removed.
+
+### Data Audit Findings
+- Production `evidence` table: **0 rows** (dead)
+- Production `evidence_items` table: **83 rows** with `workspace_id` column (active)
+- 16 orphaned actors in workspace "1" created by user 1 (system/guest) — pre-workspace-isolation artifacts. Migration would require knowing original COP session context. Tracked but not actionable without user input.
+- No `|| '1'` actual code remaining anywhere in functions/api/ (only the comments were stale)
+
+### Smoke Test — 17/17 Endpoints Passing (15×200 + 2 expected 405s for POST-only ACH endpoints)
 
 ---
 

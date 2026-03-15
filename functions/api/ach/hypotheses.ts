@@ -33,7 +33,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    // Get workspace_id from query params, header, or default to '1'
+    // Get workspace_id from query params or header
     const workspaceId = url.searchParams.get('workspace_id') || context.request.headers.get('X-Workspace-ID') || null
 
     if (!data.ach_analysis_id || !data.text) {
@@ -114,7 +114,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       })
     }
 
-    // Get workspace_id from query params, header, or default to '1'
+    // Get workspace_id from query params or header
     const workspaceId = url.searchParams.get('workspace_id') || context.request.headers.get('X-Workspace-ID') || null
 
     if (!id) {
@@ -183,7 +183,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       })
     }
 
-    // Get workspace_id from query params, header, or default to '1'
+    // Get workspace_id from query params or header
     const workspaceId = url.searchParams.get('workspace_id') || context.request.headers.get('X-Workspace-ID') || null
 
     if (!id) {

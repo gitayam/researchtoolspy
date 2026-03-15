@@ -36,7 +36,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    // Get workspace_id from query params, header, or default to '1'
+    // Get workspace_id from query params or header
     const workspaceId = url.searchParams.get('workspace_id') || context.request.headers.get('X-Workspace-ID') || null
 
     if (!data.ach_analysis_id || !data.hypothesis_id || !data.evidence_id || data.score === undefined) {
@@ -176,7 +176,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       })
     }
 
-    // Get workspace_id from query params, header, or default to '1'
+    // Get workspace_id from query params or header
     const workspaceId = url.searchParams.get('workspace_id') || context.request.headers.get('X-Workspace-ID') || null
 
     if (!id) {

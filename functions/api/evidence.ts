@@ -1,4 +1,7 @@
-// Cloudflare Pages Function for Evidence API
+// DEPRECATED: This endpoint queries the legacy 'evidence' table (0 rows).
+// All evidence data lives in 'evidence_items', served by /api/evidence-items.
+// No frontend code calls /api/evidence — this endpoint is kept for backwards
+// compatibility only. New code should use /api/evidence-items.
 import { getUserIdOrDefault, getUserFromRequest } from './_shared/auth-helpers'
 import { CORS_HEADERS, JSON_HEADERS } from './_shared/api-utils'
 
