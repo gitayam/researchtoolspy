@@ -10,7 +10,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { ArrowLeft, Download, RefreshCw, BarChart3, Route, Info } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import { ArrowLeft, Download, RefreshCw, BarChart3, Route, Info, SlidersHorizontal, X } from 'lucide-react'
 import type { Relationship, EntityType } from '@/types/entities'
 import { useTranslation } from 'react-i18next'
 
@@ -49,6 +50,7 @@ export function NetworkGraphPage() {
   const [exportDialogOpen, setExportDialogOpen] = useState(false)
   const [pathFinderOpen, setPathFinderOpen] = useState(false)
   const [showMetrics, setShowMetrics] = useState(true)
+  const [mobilePanel, setMobilePanel] = useState<'controls' | 'metrics' | null>(null)
   const [highlightedPath, setHighlightedPath] = useState<string[]>([])
   const [highlightedNodes, setHighlightedNodes] = useState<Set<string>>(new Set())
   const [sourceInfo, setSourceInfo] = useState<{ type: string; title?: string } | null>(null)
@@ -528,6 +530,81 @@ export function NetworkGraphPage() {
           </div>
         )}
       </div>
+
+      {/* Mobile: floating controls button (visible only on < lg) */}
+      <div className="lg:hidden fixed bottom-20 right-4 z-40 flex flex-col gap-2">
+        <Button
+          size="sm"
+          variant="default"
+          className="rounded-full shadow-lg h-12 w-12 p-0"
+          onClick={() => setMobilePanel('controls')}
+          aria-label="Open filters"
+        >
+          <SlidersHorizontal className="h-5 w-5" />
+        </Button>
+        {showMetrics && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="rounded-full shadow-lg h-12 w-12 p-0 bg-white dark:bg-gray-800"
+            onClick={() => setMobilePanel('metrics')}
+            aria-label="Open metrics"
+          >
+            <BarChart3 className="h-5 w-5" />
+          </Button>
+        )}
+      </div>
+
+      {/* Mobile panel dialog */}
+      <Dialog open={mobilePanel !== null} onOpenChange={(open) => { if (!open) setMobilePanel(null) }}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{mobilePanel === 'controls' ? 'Filters & Controls' : 'Network Metrics'}</DialogTitle>
+            <DialogDescription>
+              {mobilePanel === 'controls' ? 'Filter nodes and edges in the graph.' : 'View network analysis metrics.'}
+            </DialogDescription>
+          </DialogHeader>
+          {mobilePanel === 'controls' && (
+            <NetworkControls
+              filters={filters}
+              onFiltersChange={setFilters}
+              totalNodes={graphData.nodes.length}
+              totalEdges={graphData.links.length}
+            />
+          )}
+          {mobilePanel === 'metrics' && (
+            <NetworkMetricsPanel
+              nodes={graphData.nodes}
+              links={graphData.links}
+              onNodeClick={(node) => { handleNodeClickFromMetrics(node); setMobilePanel(null) }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Mobile: selected node bottom sheet */}
+      {selectedNode && (
+        <div className="lg:hidden fixed bottom-20 left-0 right-0 z-30 mx-2">
+          <Card className="shadow-xl border-2">
+            <CardContent className="p-4 space-y-2">
+              <div className="flex items-start justify-between">
+                <div>
+                  <div className="font-semibold">{selectedNode.name}</div>
+                  <Badge className="mt-1">{selectedNode.entityType}</Badge>
+                </div>
+                <button onClick={() => setSelectedNode(null)} className="text-muted-foreground hover:text-foreground">
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              <div className="flex gap-2">
+                <Button size="sm" onClick={handleNavigateToEntity} className="flex-1">
+                  {t('networkGraph:selectedNode.viewDetails')}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Export Dialog */}
       <NetworkExportDialog

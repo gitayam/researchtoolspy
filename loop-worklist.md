@@ -164,7 +164,7 @@ Cross-referenced with `docs/LESSONS_LEARNED.md` and `docs/CLOUDFLARE_LESSONS_LEA
 ### 24. [QUALITY] NetworkGraphPage hides controls on mobile with no alternative
 - **File:** `src/pages/NetworkGraphPage.tsx`
 - **Approach:** Add mobile drawer/toggle for controls, metrics, and node details.
-- **Status:** [ ] TODO
+- **Status:** [x] DONE — floating FABs open Dialog for controls/metrics; selected node shows as bottom card
 
 ### 25. [SECURITY] Rate limiting not implemented on auth endpoints
 - **Approach:** Cloudflare Rate Limiting rules or KV-based counters for login/callback.
@@ -187,3 +187,4 @@ Cross-referenced with `docs/LESSONS_LEARNED.md` and `docs/CLOUDFLARE_LESSONS_LEA
 | 2026-03-16 | #18,#23 | Cycle 4: Stats polling 30s→60s, PKCE S256 for OIDC flow (23/26 items) |
 | 2026-03-16 | — | Cycle 5: Committed remaining OIDC/auth/responsive work (57 files) + auth/me + migrations. Clean tree. |
 | 2026-03-16 | #27,#28,#29 | Cycle 6: Wizard UX overhaul (5→3 steps), auth guard, Tailwind v4 container fix (19 files) |
+| 2026-03-16 | #24 | Cycle 7: NetworkGraph mobile controls via floating FABs + Dialog panels |
