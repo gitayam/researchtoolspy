@@ -311,8 +311,8 @@ export default function CopWorkspacePage() {
       .then(r => r.ok ? r.json() : null)
       .then(data => { if (data?.stats) setWorkspaceStats(data.stats) })
       .catch((err) => { if (err.name !== 'AbortError') console.error('Failed to fetch workspace stats:', err) })
-    // Refresh stats every 30s to keep isEmpty panels responsive to changes
-    const interval = setInterval(refetchStats, 30000)
+    // Refresh stats every 60s to keep isEmpty panels responsive to changes
+    const interval = setInterval(refetchStats, 60000)
     return () => { controller.abort(); clearInterval(interval) }
   }, [id, refetchStats])
 

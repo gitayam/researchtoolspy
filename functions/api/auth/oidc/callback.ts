@@ -69,23 +69,35 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     // ---- 2. Verify state (CSRF protection) ----
     const stateKey = `oidc_state:${state}`
-    const storedState = await env.SESSIONS.get(stateKey)
-    if (!storedState) {
+    const storedStateRaw = await env.SESSIONS.get(stateKey)
+    if (!storedStateRaw) {
       return redirectWithError(url.origin, 'Invalid or expired state. Please try logging in again.')
     }
     // Delete immediately -- one-time use
     await env.SESSIONS.delete(stateKey)
 
+    // Extract PKCE code_verifier from stored state
+    let codeVerifier: string | undefined
+    try {
+      const storedState = JSON.parse(storedStateRaw)
+      codeVerifier = storedState.code_verifier
+    } catch { /* legacy state without PKCE */ }
+
     // ---- 3. Exchange code for tokens ----
     const redirectUri = `${url.origin}/api/auth/oidc/callback`
 
-    const tokenBody = new URLSearchParams({
+    const tokenParams: Record<string, string> = {
       grant_type: 'authorization_code',
       client_id: env.OIDC_CLIENT_ID,
       client_secret: env.OIDC_CLIENT_SECRET,
       code,
       redirect_uri: redirectUri,
-    })
+    }
+    // Include PKCE verifier if available (backwards-compatible with pre-PKCE sessions)
+    if (codeVerifier) {
+      tokenParams.code_verifier = codeVerifier
+    }
+    const tokenBody = new URLSearchParams(tokenParams)
 
     const tokenResponse = await fetch(env.OIDC_TOKEN_URL, {
       method: 'POST',

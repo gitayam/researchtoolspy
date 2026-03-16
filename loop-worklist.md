@@ -119,7 +119,7 @@ Cross-referenced with `docs/LESSONS_LEARNED.md` and `docs/CLOUDFLARE_LESSONS_LEA
 ### 18. [QUALITY] Stats polling every 30s with 18 DB queries
 - **File:** `src/pages/CopWorkspacePage.tsx:314`
 - **Approach:** Increase to 60-120s, or use D1 batch() for single round-trip, or event-driven refetch.
-- **Status:** [ ] TODO
+- **Status:** [x] DONE — increased polling interval from 30s to 60s (halves DB load)
 
 ### 19. [UX] SSO button label inconsistent (Login vs Register pages)
 - **Files:** LoginPage.tsx ("Login with SSO") vs RegisterPage.tsx ("Login with IrregularChat SSO")
@@ -144,7 +144,7 @@ Cross-referenced with `docs/LESSONS_LEARNED.md` and `docs/CLOUDFLARE_LESSONS_LEA
 ### 23. [SECURITY] Add PKCE to OIDC flow
 - **File:** `functions/api/auth/oidc/login.ts`
 - **Approach:** Add `code_challenge` + `code_verifier` for defense-in-depth per OAuth 2.1.
-- **Status:** [ ] TODO
+- **Status:** [x] DONE — PKCE S256 with code_verifier in KV, backwards-compatible callback
 
 ### 24. [QUALITY] NetworkGraphPage hides controls on mobile with no alternative
 - **File:** `src/pages/NetworkGraphPage.tsx`
@@ -169,3 +169,4 @@ Cross-referenced with `docs/LESSONS_LEARNED.md` and `docs/CLOUDFLARE_LESSONS_LEA
 | 2026-03-16 | #1,#2,#3,#5,#6,#9,#10,#11,#12,#14 | Cycle 1: Security + arch + UX fixes (10/26 items) |
 | 2026-03-16 | #4,#7,#15,#16,#17,#19,#22 | Cycle 2: Token expiry, OIDC email verify, sidebar UX, cleanup (17/26 items) |
 | 2026-03-16 | #13,#20,#21,#26 | Cycle 3: XSS sanitize, prompt→Dialog, inline CSS→index.css, auth magic string (21/26 items) |
+| 2026-03-16 | #18,#23 | Cycle 4: Stats polling 30s→60s, PKCE S256 for OIDC flow (23/26 items) |
