@@ -1,5 +1,5 @@
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserIdOrDefault, getUserFromRequest } from '../_shared/auth-helpers'
+import { getUserFromRequest } from '../_shared/auth-helpers'
 import { generateId, JSON_HEADERS, safeJsonParse } from '../_shared/api-utils'
 
 interface Env { DB: D1Database; SESSIONS?: KVNamespace; JWT_SECRET?: string }
@@ -7,7 +7,10 @@ interface Env { DB: D1Database; SESSIONS?: KVNamespace; JWT_SECRET?: string }
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   const { request, env } = context
   try {
-    const userId = await getUserIdOrDefault(request, env)
+    const userId = await getUserFromRequest(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), { status: 401, headers: JSON_HEADERS })
+    }
     const url = new URL(request.url)
     const profileId = url.searchParams.get('profile_id')
     const platform = url.searchParams.get('platform')
@@ -50,12 +53,10 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   const { request, env } = context
   try {
-    const authUserId = await getUserFromRequest(request, env)
-    if (!authUserId) {
+    const userId = await getUserFromRequest(request, env)
+    if (!userId) {
       return new Response(JSON.stringify({ error: 'Unauthorized. Please login or register.' }), { status: 401, headers: JSON_HEADERS })
     }
-
-    const userId = await getUserIdOrDefault(request, env)
     const body = await request.json() as any
 
     const { profile_id, platform, post_id } = body

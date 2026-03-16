@@ -125,10 +125,6 @@ const getNavigation = (t: (key: string) => string) => [
   { name: t('navigation.networkAnalysis'), href: '/dashboard/network', icon: Network },
   { name: t('navigation.datasetLibrary'), href: '/dashboard/datasets', icon: Database },
   { name: t('navigation.reports'), href: '/dashboard/reports', icon: FileText },
-  // { name: t('navigation.library'), href: '/dashboard/library', icon: Library, children: [
-  //   { name: 'Framework Library', href: '/dashboard/library' },
-  //   { name: 'Content Library', href: '/dashboard/library/content', icon: FileText },
-  // ] },
   { name: t('navigation.collaboration'), href: '/dashboard/collaboration', icon: Users },
   { name: t('navigation.activity'), href: '/dashboard/activity', icon: Activity },
   {
@@ -156,23 +152,27 @@ export function DashboardSidebar({ mobileMenuOpen: controlledOpen, onMobileMenuC
   // Support both controlled and uncontrolled modes
   const mobileMenuOpen = controlledOpen ?? internalOpen
   const setMobileMenuOpen = onMobileMenuChange ?? setInternalOpen
-  const [expandedItems, setExpandedItems] = useState<string[]>([
-    t('navigation.analysisFrameworks'),
-    t('navigation.researchTools'),
-    t('navigation.evidenceCollection'),
-    t('frameworkCategories.environmental'),
-    t('frameworkCategories.nodal'),
-    t('frameworkCategories.hypothesis'),
-    t('frameworkCategories.humanFactors'),
-    t('frameworkCategories.creative'),
-    t('frameworkCategories.monitoring')
-  ])
-
   const navigation = getNavigation(t)
 
+  // Auto-expand the section containing the current route
+  const [expandedItems, setExpandedItems] = useState<string[]>(() => {
+    const expanded: string[] = []
+    for (const item of navigation) {
+      if (item.children && pathname.startsWith(item.href)) {
+        expanded.push(item.name)
+        for (const child of item.children as any[]) {
+          if (child.isCategory && child.children?.some((sc: any) => pathname === sc.href)) {
+            expanded.push(child.name)
+          }
+        }
+      }
+    }
+    return expanded
+  })
+
   const toggleExpanded = (name: string) => {
-    setExpandedItems(prev => 
-      prev.includes(name) 
+    setExpandedItems(prev =>
+      prev.includes(name)
         ? prev.filter(item => item !== name)
         : [...prev, name]
     )
@@ -202,11 +202,12 @@ export function DashboardSidebar({ mobileMenuOpen: controlledOpen, onMobileMenuC
               {!item.children ? (
                 <Link
                   to={item.href}
+                  onClick={() => setMobileMenuOpen(false)}
                   className={cn(
                     pathname === item.href
                       ? 'bg-blue-50 border-r-2 border-blue-600 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400'
                       : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:text-blue-400 dark:hover:bg-gray-800',
-                    'group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-medium'
+                    'group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-medium min-h-[44px] items-center'
                   )}
                 >
                   <item.icon className="h-5 w-5 shrink-0" />
@@ -220,7 +221,7 @@ export function DashboardSidebar({ mobileMenuOpen: controlledOpen, onMobileMenuC
                       pathname.startsWith(item.href)
                         ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400'
                         : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:text-blue-400 dark:hover:bg-gray-800',
-                      'group flex w-full gap-x-3 rounded-md p-2 text-sm leading-6 font-medium'
+                      'group flex w-full gap-x-3 rounded-md p-2 text-sm leading-6 font-medium min-h-[44px] items-center'
                     )}
                   >
                     <item.icon className="h-5 w-5 shrink-0" />
@@ -246,6 +247,7 @@ export function DashboardSidebar({ mobileMenuOpen: controlledOpen, onMobileMenuC
                                     <li key={subChild.name}>
                                       <Link
                                         to={subChild.href}
+                                        onClick={() => setMobileMenuOpen(false)}
                                         className={cn(
                                           pathname === subChild.href
                                             ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400'
@@ -263,6 +265,7 @@ export function DashboardSidebar({ mobileMenuOpen: controlledOpen, onMobileMenuC
                           ) : (
                             <Link
                               to={child.href}
+                              onClick={() => setMobileMenuOpen(false)}
                               className={cn(
                                 pathname === child.href
                                   ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400'
@@ -289,23 +292,31 @@ export function DashboardSidebar({ mobileMenuOpen: controlledOpen, onMobileMenuC
 
   return (
     <>
-      {/* Mobile menu button - Improved touch target and visibility */}
-      <div className="lg:hidden">
+      {/* Mobile: hamburger button (CSS-controlled via .desktop-sidebar parent) */}
+      <div className="mobile-hamburger">
+        <style>{`
+          .mobile-hamburger { display: block; }
+          @media (min-width: 1024px) { .mobile-hamburger { display: none; } }
+        `}</style>
         <button
           type="button"
-          className="fixed top-3 left-3 z-50 rounded-lg bg-white dark:bg-gray-800 p-3 text-gray-700 dark:text-gray-200 shadow-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors lg:hidden border border-gray-200 dark:border-gray-700"
+          className="fixed top-3 left-3 z-50 rounded-lg bg-white dark:bg-gray-800 p-2.5 text-gray-700 dark:text-gray-200 shadow-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border border-gray-200 dark:border-gray-700"
           onClick={() => setMobileMenuOpen(true)}
           aria-label="Open navigation menu"
         >
-          <Menu className="h-7 w-7" />
+          <Menu className="h-6 w-6" />
         </button>
       </div>
 
-      {/* Mobile menu overlay - Improved drawer and close button */}
+      {/* Mobile drawer overlay */}
       {mobileMenuOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          <div className="fixed inset-0 bg-gray-900/80 backdrop-blur-sm" onClick={() => setMobileMenuOpen(false)} />
-          <div className="fixed inset-y-0 left-0 z-50 w-72 sm:w-80 bg-white dark:bg-gray-900 shadow-xl overflow-y-auto">
+        <div className="fixed inset-0 z-50" role="dialog" aria-modal="true">
+          <div
+            className="fixed inset-0 bg-gray-900/80 backdrop-blur-sm animate-[fadeIn_200ms_ease-out]"
+            onClick={() => setMobileMenuOpen(false)}
+            aria-hidden="true"
+          />
+          <div className="fixed inset-y-0 left-0 z-50 w-72 sm:w-80 bg-white dark:bg-gray-900 shadow-xl overflow-y-auto animate-[slideInLeft_200ms_ease-out]">
             <button
               type="button"
               className="absolute top-4 right-4 rounded-lg p-3 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
@@ -319,8 +330,8 @@ export function DashboardSidebar({ mobileMenuOpen: controlledOpen, onMobileMenuC
         </div>
       )}
 
-      {/* Desktop sidebar */}
-      <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-64 lg:flex-col">
+      {/* Desktop sidebar — CSS-controlled via .desktop-sidebar class from DashboardLayout */}
+      <div className="desktop-sidebar fixed inset-y-0 left-0 z-50 w-64 flex-col">
         <div className="flex grow flex-col gap-y-5 overflow-y-auto border-r border-gray-200 bg-white dark:bg-gray-900 dark:border-gray-700">
           <SidebarContent />
         </div>

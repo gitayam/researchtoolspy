@@ -29,7 +29,7 @@ Cross-referenced with `docs/LESSONS_LEARNED.md` and `docs/CLOUDFLARE_LESSONS_LEA
 - **File:** `src/stores/auth.ts:62-88`
 - **Issue:** `expires_in: 86400` stored but never checked. `refresh_token: ''` makes refresh impossible. Stale tokens linger.
 - **Approach:** Add interceptor or timer checking expiry. On expiry, redirect to login. Consider OIDC refresh token support.
-- **Status:** [ ] TODO
+- **Status:** [x] DONE — added issued_at timestamp + expiry check in checkAuth()
 
 ---
 
@@ -51,7 +51,7 @@ Cross-referenced with `docs/LESSONS_LEARNED.md` and `docs/CLOUDFLARE_LESSONS_LEA
 - **File:** `src/lib/ai-deception-analysis.ts:13`
 - **Issue:** `VITE_OPENAI_API_KEY` gets bundled into client JS. `dangerouslyAllowBrowser: true` confirms client-side use.
 - **Approach:** Verify build env doesn't set this var. Route all AI calls through backend. Cloudflare lessons: "Use secrets for API keys."
-- **Status:** [ ] TODO
+- **Status:** [~] VERIFIED — VITE_OPENAI_API_KEY not in .env; falls back to 'demo-key' (no leak). Backend migration deferred.
 
 ### 8. [ARCH] Auth hardening incomplete — inconsistent posture
 - **Files:** ~15 endpoints hardened, ~30 still use `getUserIdOrDefault`
@@ -99,13 +99,13 @@ Cross-referenced with `docs/LESSONS_LEARNED.md` and `docs/CLOUDFLARE_LESSONS_LEA
 - **File:** `functions/api/auth/oidc/callback.ts:169-200`
 - **Issue:** Auto-links OIDC identity when email matches existing account. Attacker controlling OIDC account with victim's email = account takeover.
 - **Approach:** Check `email_verified` claim before auto-linking. Or require confirmation from existing session.
-- **Status:** [ ] TODO
+- **Status:** [x] DONE — added email_verified !== false guard before auto-linking
 
 ### 16. [ARCH] Workspace type from description string matching
 - **File:** `functions/api/workspaces/index.ts:110`
 - **Issue:** `body.description?.includes('PERSONAL')` is fragile — "not a PERSONAL workspace" → type PERSONAL.
 - **Approach:** Add explicit `type` field to request body, or hardcode TEAM for team-creation endpoint.
-- **Status:** [ ] TODO
+- **Status:** [x] DONE — hardcoded to TEAM in cycle 1 (item #9)
 
 ---
 
@@ -114,7 +114,7 @@ Cross-referenced with `docs/LESSONS_LEARNED.md` and `docs/CLOUDFLARE_LESSONS_LEA
 ### 17. [UX] Sidebar starts fully collapsed — poor discoverability
 - **File:** `src/components/layout/dashboard-sidebar.tsx:152`
 - **Approach:** Expand section containing current route by default.
-- **Status:** [ ] TODO
+- **Status:** [x] DONE — useState initializer auto-expands based on pathname
 
 ### 18. [QUALITY] Stats polling every 30s with 18 DB queries
 - **File:** `src/pages/CopWorkspacePage.tsx:314`
@@ -124,7 +124,7 @@ Cross-referenced with `docs/LESSONS_LEARNED.md` and `docs/CLOUDFLARE_LESSONS_LEA
 ### 19. [UX] SSO button label inconsistent (Login vs Register pages)
 - **Files:** LoginPage.tsx ("Login with SSO") vs RegisterPage.tsx ("Login with IrregularChat SSO")
 - **Approach:** Use consistent label on both pages.
-- **Status:** [ ] TODO
+- **Status:** [x] DONE — RegisterPage now says "Login with SSO" matching LoginPage
 
 ### 20. [QUALITY] Inline `<style>` blocks in React components
 - **Files:** `src/layouts/DashboardLayout.tsx:24-35`, `src/components/layout/dashboard-sidebar.tsx:281-284`
@@ -139,7 +139,7 @@ Cross-referenced with `docs/LESSONS_LEARNED.md` and `docs/CLOUDFLARE_LESSONS_LEA
 ### 22. [CHORE] Redundant `const userId = authUserId` in social-media endpoints
 - **Files:** `functions/api/social-media/jobs.ts:71`, posts.ts:61, profiles.ts:75
 - **Approach:** Use `authUserId` directly or rename at destructuring.
-- **Status:** [ ] TODO
+- **Status:** [x] DONE — renamed to userId directly in all 3 files
 
 ### 23. [SECURITY] Add PKCE to OIDC flow
 - **File:** `functions/api/auth/oidc/login.ts`
@@ -166,4 +166,5 @@ Cross-referenced with `docs/LESSONS_LEARNED.md` and `docs/CLOUDFLARE_LESSONS_LEA
 
 | Date | Items Completed | Notes |
 |------|----------------|-------|
-| 2026-03-16 | #1,#2,#3,#5,#6,#9,#10,#11,#12,#14 | Security fixes + arch fixes + UX fixes (10/26 items) |
+| 2026-03-16 | #1,#2,#3,#5,#6,#9,#10,#11,#12,#14 | Cycle 1: Security + arch + UX fixes (10/26 items) |
+| 2026-03-16 | #4,#7,#15,#16,#17,#19,#22 | Cycle 2: Token expiry, OIDC email verify, sidebar UX, cleanup (17/26 items) |

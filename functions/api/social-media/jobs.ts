@@ -1,5 +1,5 @@
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserIdOrDefault, getUserFromRequest } from '../_shared/auth-helpers'
+import { getUserFromRequest } from '../_shared/auth-helpers'
 import { generateId, JSON_HEADERS, safeJsonParse } from '../_shared/api-utils'
 
 interface Env {
@@ -13,7 +13,13 @@ interface Env {
  */
 export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   try {
-    const userId = await getUserIdOrDefault(request, env)
+    const userId = await getUserFromRequest(request, env)
+    if (!userId) {
+      return new Response(
+        JSON.stringify({ error: 'Authentication required' }),
+        { status: 401, headers: JSON_HEADERS }
+      )
+    }
     const url = new URL(request.url)
     const status = url.searchParams.get('status')
     const platform = url.searchParams.get('platform')
@@ -54,15 +60,13 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
  */
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   try {
-    const authUserId = await getUserFromRequest(request, env)
-    if (!authUserId) {
+    const userId = await getUserFromRequest(request, env)
+    if (!userId) {
       return new Response(
         JSON.stringify({ error: 'Authentication required' }),
         { status: 401, headers: JSON_HEADERS }
       )
     }
-
-    const userId = await getUserIdOrDefault(request, env)
 
     let body: any
     try {
