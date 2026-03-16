@@ -16,6 +16,7 @@ import { WorkspaceManagement } from '@/components/settings/WorkspaceManagement'
 import { AIPreferences } from '@/components/settings/AIPreferences'
 import { DataManagement } from '@/components/settings/DataManagement'
 import { getCopHeaders } from '@/lib/cop-auth'
+import { getAuthIdentifier } from '@/lib/auth-utils'
 import type { WorkspaceType } from '@/types/settings'
 
 export function SettingsPage() {
@@ -30,7 +31,7 @@ export function SettingsPage() {
     setWorkspaces,
   } = useWorkspace()
 
-  const userHash = typeof window !== 'undefined' ? localStorage.getItem('omnicore_user_hash') : null
+  const userHash = typeof window !== 'undefined' ? getAuthIdentifier() : null
 
   // Workspace management handlers
   const handleWorkspaceCreate = useCallback(
@@ -58,7 +59,7 @@ export function SettingsPage() {
 
   const handleWorkspaceDelete = useCallback(
     async (workspaceId: string) => {
-      if (!userHash) return
+      if (!getAuthIdentifier()) return
 
       try {
         const response = await fetch(`/api/workspaces/${workspaceId}`, {
@@ -87,7 +88,7 @@ export function SettingsPage() {
 
   const handleWorkspaceUpdate = useCallback(
     async (workspaceId: string, name: string, description?: string) => {
-      if (!userHash) return
+      if (!getAuthIdentifier()) return
 
       try {
         const response = await fetch(`/api/workspaces/${workspaceId}`, {

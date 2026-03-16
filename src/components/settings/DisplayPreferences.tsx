@@ -71,7 +71,7 @@ export function DisplayPreferences({ settings, onUpdate, updating = false }: Dis
           <RadioGroup
             value={settings.theme}
             onValueChange={(value) => handleThemeChange(value as Theme)}
-            className="grid grid-cols-3 gap-4"
+            className="grid grid-cols-1 sm:grid-cols-3 gap-4"
             disabled={updating}
           >
             <div>

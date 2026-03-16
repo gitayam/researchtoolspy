@@ -161,9 +161,9 @@ export function InvestigationPacketsPage() {
   return (
     <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">{t('investigationPackets:title')}</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold">{t('investigationPackets:title')}</h1>
           <p className="text-muted-foreground mt-2">
             {t('investigationPackets:description')}
           </p>
@@ -204,7 +204,7 @@ export function InvestigationPacketsPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">{t('investigationPackets:createDialog.form.typeLabel')}</label>
                   <Input

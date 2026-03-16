@@ -207,7 +207,7 @@ export function ACHAnalysisForm({
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="analyst">Analyst</Label>
                 <Input
@@ -228,7 +228,7 @@ export function ACHAnalysisForm({
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="scale_type">Scoring Scale</Label>
                 <Select

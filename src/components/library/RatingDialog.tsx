@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label'
 import { useToast } from '@/components/ui/use-toast'
 import { Star } from 'lucide-react'
 import { getCopHeaders } from '@/lib/cop-auth'
+import { getAuthIdentifier } from '@/lib/auth-utils'
 
 interface RatingDialogProps {
   open: boolean
@@ -40,8 +41,7 @@ export function RatingDialog({
   const [reviewText, setReviewText] = useState('')
 
   const handleSubmit = async () => {
-    const userHash = localStorage.getItem('omnicore_user_hash')
-    if (!userHash) {
+    if (!getAuthIdentifier()) {
       toast({
         title: t('common:errors.error'),
         description: t('common:errors.loginRequired'),

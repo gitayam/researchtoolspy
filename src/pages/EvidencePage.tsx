@@ -287,14 +287,14 @@ export function EvidencePage() {
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('evidence.title')}</h1>
           <p className="text-sm text-gray-600 dark:text-gray-400">
             {stats.total} items &middot; {stats.avgCompleteness}% avg completeness &middot; {stats.withGaps} with gaps
           </p>
         </div>
-        <Button onClick={openCreateForm}>
+        <Button onClick={openCreateForm} className="w-full sm:w-auto">
           <Plus className="h-4 w-4 mr-2" />
           {t('evidence.addEvidence')}
         </Button>

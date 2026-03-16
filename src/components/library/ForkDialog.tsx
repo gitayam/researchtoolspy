@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button'
 import { useToast } from '@/components/ui/use-toast'
 import { GitFork } from 'lucide-react'
 import { getCopHeaders } from '@/lib/cop-auth'
+import { getAuthIdentifier } from '@/lib/auth-utils'
 
 interface ForkDialogProps {
   open: boolean
@@ -35,8 +36,7 @@ export function ForkDialog({
   const [loading, setLoading] = useState(false)
 
   const handleFork = async () => {
-    const userHash = localStorage.getItem('omnicore_user_hash')
-    if (!userHash) {
+    if (!getAuthIdentifier()) {
       toast({
         title: t('common:errors.error'),
         description: t('common:errors.loginRequired'),

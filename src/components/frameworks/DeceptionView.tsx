@@ -461,10 +461,10 @@ export function DeceptionView({
           {t('view.backToList')}
         </Button>
 
-        <div className="flex justify-between items-start">
+        <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
           <div className="flex-1">
-            <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+            <div className="flex items-center gap-3 mb-2 flex-wrap">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">
                 {data.title}
               </h1>
               <EvidenceBadge
@@ -484,7 +484,7 @@ export function DeceptionView({
             </div>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline">

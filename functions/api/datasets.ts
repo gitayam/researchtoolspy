@@ -1,5 +1,5 @@
 // Cloudflare Pages Function for Dataset API
-import { getUserIdOrDefault, getUserFromRequest } from './_shared/auth-helpers'
+import { getUserFromRequest } from './_shared/auth-helpers'
 import { CORS_HEADERS, JSON_HEADERS } from './_shared/api-utils'
 
 export async function onRequest(context: any) {
@@ -13,10 +13,15 @@ export async function onRequest(context: any) {
   try {
     const url = new URL(request.url)
     const datasetId = url.searchParams.get('id')
-    const userId = await getUserIdOrDefault(request, env)
 
     // GET - List dataset or get single dataset
     if (request.method === 'GET') {
+      const userId = await getUserFromRequest(request, env)
+      if (!userId) {
+        return new Response(JSON.stringify({ error: 'Authentication required' }), {
+          status: 401, headers: JSON_HEADERS,
+        })
+      }
       if (datasetId) {
         // Get single dataset from D1
         const dataset = await env.DB.prepare(

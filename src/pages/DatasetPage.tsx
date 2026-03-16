@@ -28,7 +28,7 @@ export function DatasetPage() {
 
   const loadDataset = async (signal?: AbortSignal) => {
     try {
-      const response = await fetch('/api/dataset', { signal })
+      const response = await fetch('/api/dataset', { headers: getCopHeaders(), signal })
       if (response.ok) {
         const data = await response.json()
         setDataset(data.dataset || [])
@@ -173,7 +173,7 @@ export function DatasetPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('dataset:title')}</h1>
           <p className="text-gray-600 dark:text-gray-400">
@@ -198,7 +198,7 @@ export function DatasetPage() {
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -246,7 +246,7 @@ export function DatasetPage() {
       </div>
 
       {/* Search and Filters */}
-      <div className="flex gap-4">
+      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
           <Input
@@ -256,28 +256,30 @@ export function DatasetPage() {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <Select value={filter.type || 'all'} onValueChange={(value) => setFilter({ ...filter, type: value === 'all' ? undefined : value as DatasetType })}>
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder={t('dataset:filters.byType')} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{t('dataset:filters.allTypes')}</SelectItem>
-            {Object.values(DatasetType).map(type => (
-              <SelectItem key={type} value={type}>{t(`dataset:types.${type}`)}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={filter.status || 'all'} onValueChange={(value) => setFilter({ ...filter, status: value === 'all' ? undefined : value as DatasetStatus })}>
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder={t('dataset:filters.byStatus')} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{t('dataset:filters.allStatuses')}</SelectItem>
-            {Object.values(DatasetStatus).map(status => (
-              <SelectItem key={status} value={status}>{t(`dataset:status.${status}`)}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex gap-3 sm:gap-4">
+          <Select value={filter.type || 'all'} onValueChange={(value) => setFilter({ ...filter, type: value === 'all' ? undefined : value as DatasetType })}>
+            <SelectTrigger className="w-full sm:w-48">
+              <SelectValue placeholder={t('dataset:filters.byType')} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t('dataset:filters.allTypes')}</SelectItem>
+              {Object.values(DatasetType).map(type => (
+                <SelectItem key={type} value={type}>{t(`dataset:types.${type}`)}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={filter.status || 'all'} onValueChange={(value) => setFilter({ ...filter, status: value === 'all' ? undefined : value as DatasetStatus })}>
+            <SelectTrigger className="w-full sm:w-48">
+              <SelectValue placeholder={t('dataset:filters.byStatus')} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t('dataset:filters.allStatuses')}</SelectItem>
+              {Object.values(DatasetStatus).map(status => (
+                <SelectItem key={status} value={status}>{t(`dataset:status.${status}`)}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Dataset List */}

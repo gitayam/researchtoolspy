@@ -41,20 +41,37 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   const workspaceId = request.headers.get('X-Workspace-ID')
 
   try {
-    // Look up by ID; optionally filter by workspace if header is provided
-    const result = workspaceId
-      ? await env.DB.prepare(`
-          SELECT * FROM cop_sessions WHERE id = ? AND (workspace_id = ? OR is_public = 1)
-        `).bind(id, workspaceId).first()
-      : await env.DB.prepare(`
-          SELECT * FROM cop_sessions WHERE id = ?
-        `).bind(id).first()
+    // Look up by ID — auth is checked via ownership/collaborator, not workspace header
+    const result = await env.DB.prepare(`
+      SELECT * FROM cop_sessions WHERE id = ?
+    `).bind(id).first()
 
     if (!result) {
       return new Response(JSON.stringify({ error: 'COP session not found' }), {
         status: 404,
         headers: JSON_HEADERS
       })
+    }
+
+    // For non-public sessions, verify the caller has access
+    if (!result.is_public) {
+      const userId = await getUserFromRequest(request, env)
+      if (!userId) {
+        return new Response(JSON.stringify({ error: 'Authentication required' }), {
+          status: 401, headers: JSON_HEADERS
+        })
+      }
+      if (Number(result.created_by) !== userId) {
+        // Check collaborator table
+        const collab = await env.DB.prepare(
+          'SELECT 1 FROM cop_collaborators WHERE cop_session_id = ? AND user_id = ?'
+        ).bind(id, userId).first()
+        if (!collab) {
+          return new Response(JSON.stringify({ error: 'Access denied' }), {
+            status: 403, headers: JSON_HEADERS
+          })
+        }
+      }
     }
 
     const session = parseJsonFields(result)

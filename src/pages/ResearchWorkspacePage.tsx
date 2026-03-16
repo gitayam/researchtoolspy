@@ -189,7 +189,7 @@ export default function ResearchWorkspacePage() {
       {/* Header */}
       <div className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center space-x-4">
               <Button
                 variant="ghost"
@@ -204,14 +204,14 @@ export default function ResearchWorkspacePage() {
                   <span className="text-2xl">{contextIcon}</span>
                   <Badge variant="outline">{contextLabel}</Badge>
                 </div>
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
                   {workspace.question}
                 </h1>
               </div>
             </div>
 
             {workspace.tasks.length === 0 && (
-              <Button onClick={initializeWorkflow}>
+              <Button onClick={initializeWorkflow} className="w-full sm:w-auto">
                 <Plus className="h-4 w-4 mr-2" />
                 {t('workspace:initializeWorkflow')}
               </Button>
@@ -223,7 +223,7 @@ export default function ResearchWorkspacePage() {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full max-w-2xl grid-cols-4">
+          <TabsList className="grid w-full max-w-2xl grid-cols-2 sm:grid-cols-4">
             <TabsTrigger value="overview">
               <Activity className="h-4 w-4 mr-2" />
               {t('workspace:tabs.overview')}

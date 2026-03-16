@@ -335,7 +335,7 @@ export function HamiltonRulePage() {
               {actors.length >= 2 && (
                 <div className="space-y-2">
                   <Label>Add Relationship</Label>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <Select value={newRelActorId} onValueChange={setNewRelActorId}>
                       <SelectTrigger>
                         <SelectValue placeholder="Actor" />
@@ -616,8 +616,8 @@ export function HamiltonRulePage() {
                   <CardTitle>Relationships</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="overflow-auto">
-                    <table className="w-full text-sm">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm min-w-[500px]">
                       <thead>
                         <tr className="border-b">
                           <th className="text-left p-2">Actor</th>

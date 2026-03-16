@@ -350,7 +350,7 @@ export default function BehaviorAnalysisToolPage() {
                 </div>
               </AccordionTrigger>
               <AccordionContent>
-                <div className="grid grid-cols-2 gap-3 pb-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pb-2">
                   <div>
                     <Label className="text-xs text-muted-foreground">
                       {context === 'intelligence' ? 'Actor / Adversary' : 'User / Stakeholder'}

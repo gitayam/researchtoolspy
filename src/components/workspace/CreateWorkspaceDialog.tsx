@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/components/ui/use-toast'
 import { generateAccountHash } from '@/lib/hash-auth'
 import { getCopHeaders } from '@/lib/cop-auth'
+import { isUserAuthenticated } from '@/lib/auth-utils'
 
 interface CreateWorkspaceDialogProps {
   onWorkspaceCreated?: () => void
@@ -32,6 +33,9 @@ export function CreateWorkspaceDialog({ onWorkspaceCreated }: CreateWorkspaceDia
   })
 
   const ensureUserHash = () => {
+    // If already authenticated via OIDC/JWT, skip hash generation
+    if (isUserAuthenticated()) return
+
     let userHash = localStorage.getItem('omnicore_user_hash')
 
     if (!userHash || userHash === 'guest') {
@@ -45,8 +49,6 @@ export function CreateWorkspaceDialog({ onWorkspaceCreated }: CreateWorkspaceDia
         description: 'Your bookmark account has been created. Save this URL to access your work!',
       })
     }
-
-    return userHash
   }
 
   const handleSubmit = async (e: React.FormEvent) => {

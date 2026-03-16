@@ -220,7 +220,7 @@ export default function InvestigationsPage() {
                   </CardHeader>
                   <CardContent>
                     {/* Stats */}
-                    <div className="grid grid-cols-4 gap-2 mb-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
                       <div className="text-center p-2 bg-gray-50 dark:bg-gray-800 rounded">
                         <div className="text-xl font-bold text-purple-600">{inv.evidence_count}</div>
                         <div className="text-xs text-gray-500">{t('pages.investigations.stats.evidence')}</div>

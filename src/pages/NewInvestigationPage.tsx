@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { getCopHeaders } from '@/lib/cop-auth'
+import { isUserAuthenticated } from '@/lib/auth-utils'
 
 interface InvestigationType {
   id: 'structured_research' | 'general_topic' | 'rapid_analysis'
@@ -128,7 +129,7 @@ export default function NewInvestigationPage() {
         <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-2">
           {step === 'type' ? t('pages.newInvestigation.chooseType') : t('pages.newInvestigation.provideDetails')}
         </p>
-        {!localStorage.getItem('omnicore_user_hash') && (
+        {!isUserAuthenticated() && (
           <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
             <p className="text-sm text-blue-700 dark:text-blue-300">
               💡 <strong>{t('pages.newInvestigation.guestMode')}</strong> {t('pages.newInvestigation.guestModeDesc')}

@@ -30,7 +30,7 @@ export function ACHPage() {
   const loadAnalyses = async (signal?: AbortSignal) => {
     try {
       setLoading(true)
-      const response = await fetch('/api/ach', { signal })
+      const response = await fetch('/api/ach', { headers: getCopHeaders(), signal })
       if (response.ok) {
         const data = await response.json()
         setAnalyses(data.analyses || [])
@@ -294,7 +294,7 @@ export function ACHPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('ach:title')}</h1>
           <p className="text-gray-600 dark:text-gray-400">
@@ -375,7 +375,7 @@ export function ACHPage() {
       </Card>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -423,7 +423,7 @@ export function ACHPage() {
       </div>
 
       {/* Search and Filters */}
-      <div className="flex gap-4">
+      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
           <Input
@@ -434,7 +434,7 @@ export function ACHPage() {
           />
         </div>
         <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as AnalysisStatus | 'all')}>
-          <SelectTrigger className="w-48">
+          <SelectTrigger className="w-full sm:w-48">
             <SelectValue placeholder={t('ach:filterStatus')} />
           </SelectTrigger>
           <SelectContent>

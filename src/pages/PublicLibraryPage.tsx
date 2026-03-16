@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { getCopHeaders } from '@/lib/cop-auth'
+import { getAuthIdentifier } from '@/lib/auth-utils'
 
 interface LibraryFramework {
   id: string
@@ -80,8 +81,7 @@ export function PublicLibraryPage() {
   }
 
   const handleVote = async (libraryFrameworkId: string, voteType: 'up' | 'down') => {
-    const userHash = localStorage.getItem('omnicore_user_hash')
-    if (!userHash) {
+    if (!getAuthIdentifier()) {
       alert(t('common:errors.loginRequired'))
       return
     }
@@ -123,10 +123,10 @@ export function PublicLibraryPage() {
         </div>
 
         {/* Filters Row */}
-        <div className="flex flex-wrap gap-4 items-center">
+        <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 items-stretch sm:items-center">
           {/* Framework Type */}
           <Select value={frameworkType || "all"} onValueChange={(v) => setFrameworkType(v === "all" ? "" : v)}>
-            <SelectTrigger className="w-[200px]">
+            <SelectTrigger className="w-full sm:w-[200px]">
               <SelectValue placeholder={t('library:filters.allTypes')} />
             </SelectTrigger>
             <SelectContent>
@@ -142,7 +142,7 @@ export function PublicLibraryPage() {
 
           {/* Category */}
           <Select value={category || "all"} onValueChange={(v) => setCategory(v === "all" ? "" : v)}>
-            <SelectTrigger className="w-[200px]">
+            <SelectTrigger className="w-full sm:w-[200px]">
               <SelectValue placeholder={t('library:filters.allCategories')} />
             </SelectTrigger>
             <SelectContent>
@@ -157,7 +157,7 @@ export function PublicLibraryPage() {
 
           {/* Sort */}
           <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-full sm:w-[180px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -169,7 +169,7 @@ export function PublicLibraryPage() {
             </SelectContent>
           </Select>
 
-          <div className="ml-auto">
+          <div className="sm:ml-auto">
             <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'grid' | 'list')}>
               <TabsList>
                 <TabsTrigger value="grid">
@@ -204,7 +204,7 @@ export function PublicLibraryPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' : 'space-y-4'}>
+        <div className={viewMode === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6' : 'space-y-4'}>
           {frameworks.map((framework) => (
             <Card key={framework.id} className="hover:shadow-lg transition-shadow">
               <CardHeader>

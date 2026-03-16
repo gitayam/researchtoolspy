@@ -265,7 +265,7 @@ export function ActorsPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
@@ -322,7 +322,7 @@ export function ActorsPage() {
       {/* Filters */}
       <Card>
         <CardContent className="pt-6">
-          <div className="flex gap-4">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
             <div className="flex-1">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -335,7 +335,7 @@ export function ActorsPage() {
               </div>
             </div>
             <Select value={filterType} onValueChange={(v) => setFilterType(v as ActorType | 'all')}>
-              <SelectTrigger className="w-[200px]">
+              <SelectTrigger className="w-full sm:w-[200px]">
                 <SelectValue placeholder={t('entities:actors.filterType')} />
               </SelectTrigger>
               <SelectContent>
@@ -371,7 +371,7 @@ export function ActorsPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredActors.map((actor) => (
             <Card key={actor.id} className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => viewActorDetail(actor)}>
               <CardHeader>

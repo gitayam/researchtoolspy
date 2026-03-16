@@ -204,7 +204,7 @@ export function ContentExtractionPage() {
       {result && (
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <CardTitle>{t('contentExtractionTool.extractionResults')}</CardTitle>
                 <CardDescription>
@@ -245,7 +245,7 @@ export function ContentExtractionPage() {
               </TabsContent>
 
               <TabsContent value="metadata" className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {result.metadata.title && (
                     <div>
                       <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('contentExtractionTool.metadataTitle')}</label>
@@ -294,7 +294,7 @@ export function ContentExtractionPage() {
                     {result.analysis.readability && (
                       <div>
                         <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('contentExtractionTool.readability')}</h3>
-                        <div className="grid grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                           <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
                             <p className="text-xs text-gray-600 dark:text-gray-400">{t('contentExtractionTool.fleschKincaid')}</p>
                             <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">

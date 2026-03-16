@@ -127,8 +127,8 @@ export function ClaimsPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-4">
-        <div className="flex-1 min-w-[200px]">
+      <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4">
+        <div className="flex-1 min-w-0">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -141,7 +141,7 @@ export function ClaimsPage() {
         </div>
 
         <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-full sm:w-[180px]">
             <SelectValue placeholder={t('entities:claims.filterStatus')} />
           </SelectTrigger>
           <SelectContent>
@@ -154,7 +154,7 @@ export function ClaimsPage() {
         </Select>
 
         <Select value={filterCategory} onValueChange={setFilterCategory}>
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-full sm:w-[180px]">
             <SelectValue placeholder={t('entities:claims.filterCategory')} />
           </SelectTrigger>
           <SelectContent>
@@ -169,7 +169,7 @@ export function ClaimsPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>{t('entities:claims.stats.total')}</CardDescription>

@@ -178,7 +178,7 @@ export function ACHVisualAnalytics({ analysis }: ACHVisualAnalyticsProps) {
             <table className="w-full border-collapse">
               <thead>
                 <tr>
-                  <th className="border border-gray-300 dark:border-gray-700 p-2 text-left text-xs font-semibold bg-gray-50 dark:bg-gray-800 min-w-[150px]">
+                  <th className="border border-gray-300 dark:border-gray-700 p-2 text-left text-xs font-semibold bg-gray-50 dark:bg-gray-800 min-w-[120px]">
                     Evidence
                   </th>
                   {hypotheses.map((h, i) => (

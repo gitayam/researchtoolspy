@@ -84,7 +84,7 @@ export function PublicACHLibraryPage() {
           </div>
 
           <Select value={domainFilter} onValueChange={(value) => setDomainFilter(value as ACHDomain | 'all')}>
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-full sm:w-[180px]">
               <Filter className="h-4 w-4 mr-2" />
               <SelectValue placeholder={t('publicAch:allDomains')} />
             </SelectTrigger>
@@ -97,7 +97,7 @@ export function PublicACHLibraryPage() {
           </Select>
 
           <Select value={sortBy} onValueChange={(value) => setSortBy(value as 'recent' | 'popular')}>
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-full sm:w-[180px]">
               <SelectValue placeholder={t('publicAch:sortBy')} />
             </SelectTrigger>
             <SelectContent>
@@ -132,7 +132,7 @@ export function PublicACHLibraryPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredAnalyses.map((analysis) => (
             <Card
               key={analysis.id}
@@ -187,6 +187,7 @@ export function PublicACHLibraryPage() {
 
                 <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
                   <div className="grid grid-cols-2 gap-2 text-xs text-gray-600 dark:text-gray-400">
+
                     <div>
                       <strong>{analysis.hypotheses?.length || 0}</strong> {t('publicAch:card.hypotheses')}
                     </div>

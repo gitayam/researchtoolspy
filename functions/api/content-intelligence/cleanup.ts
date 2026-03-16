@@ -22,13 +22,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    // Delete expired, unsaved analyses
+    // Delete expired, unsaved analyses (scoped to user)
     const result = await context.env.DB.prepare(`
       DELETE FROM content_analysis
       WHERE expires_at IS NOT NULL
         AND expires_at < datetime('now')
         AND (is_saved = FALSE OR is_saved IS NULL)
-    `).run()
+        AND user_id = ?
+    `).bind(userId).run()
 
 
     return new Response(JSON.stringify({

@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Loader2, AlertCircle, Key, LogIn } from 'lucide-react'
+import { Loader2, AlertCircle, Key, LogIn, ShieldCheck } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
@@ -166,6 +166,31 @@ export function LoginPage() {
             </div>
 
           </form>
+
+          {/* SSO Divider */}
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300 dark:border-gray-600" />
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="bg-white dark:bg-gray-800 px-3 text-gray-500 dark:text-gray-400">
+                or
+              </span>
+            </div>
+          </div>
+
+          {/* SSO Login */}
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full py-6 text-lg font-semibold border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:border-gray-400 dark:hover:border-gray-500 transition-all duration-200"
+            onClick={() => {
+              window.location.href = '/api/auth/oidc/login'
+            }}
+          >
+            <ShieldCheck className="mr-2 h-5 w-5 text-gray-500 dark:text-gray-400" />
+            Login with SSO
+          </Button>
         </CardContent>
       </Card>
     </div>

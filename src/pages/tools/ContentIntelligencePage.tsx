@@ -28,6 +28,7 @@ import { ClaimAnalysisDisplay } from '@/components/content-intelligence/ClaimAna
 import { AnalysisLayout } from '@/components/content-intelligence/AnalysisLayout'
 import { createLogger } from '@/lib/logger'
 import { getCopHeaders } from '@/lib/cop-auth'
+import { getAuthIdentifier } from '@/lib/auth-utils'
 import { StarburstingEntityLinker } from '@/components/content-intelligence/StarburstingEntityLinker'
 // New extracted components from refactor
 import {
@@ -1183,8 +1184,7 @@ ${shortSummary}`
       return
     }
 
-    const userHash = localStorage.getItem('omnicore_user_hash')
-    if (!userHash) {
+    if (!getAuthIdentifier()) {
       toast({
         title: 'Authentication Required',
         description: 'Please ensure you have a user session',
@@ -1680,10 +1680,7 @@ ${shortSummary}`
   // Save entity to evidence
   const saveEntityToEvidence = async (entityName: string, entityType: 'person' | 'organization' | 'location') => {
     try {
-      // Use hash-based authentication
-      const userHash = localStorage.getItem('omnicore_user_hash')
-
-      if (!userHash) {
+      if (!getAuthIdentifier()) {
         // Prompt user to login and return to this page
         const shouldLogin = window.confirm(
           'You need to be logged in to save entities.\n\nWould you like to login or create an account now?'
@@ -1858,9 +1855,8 @@ ${shortSummary}`
     if (!entities) return
 
     setCheckingDuplicates(true)
-    const userHash = localStorage.getItem('omnicore_user_hash')
 
-    if (!userHash) {
+    if (!getAuthIdentifier()) {
       setCheckingDuplicates(false)
       return
     }
@@ -5409,7 +5405,7 @@ ${shortSummary}`
               {vtData.votes && (vtData.votes.harmless > 0 || vtData.votes.malicious > 0) && (
                 <div>
                   <h4 className="font-semibold mb-3">Community Votes</h4>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-3 rounded-full bg-green-500"></div>
                       <span className="text-sm">Harmless: {vtData.votes.harmless}</span>

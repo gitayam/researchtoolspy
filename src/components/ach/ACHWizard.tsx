@@ -658,7 +658,7 @@ export function ACHWizard({ initialData, onSave, onComplete, backPath }: ACHWiza
           <CardContent className="space-y-6">
             <div>
               <h4 className="font-semibold mb-2">Analysis Details</h4>
-              <dl className="grid grid-cols-2 gap-2 text-sm">
+              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                 <dt className="text-muted-foreground">Title:</dt>
                 <dd className="font-medium">{title}</dd>
                 <dt className="text-muted-foreground">Question:</dt>

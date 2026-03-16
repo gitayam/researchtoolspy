@@ -281,14 +281,14 @@ export default function EvidenceSubmissionsPage() {
 
           {/* Forms Tab */}
           <TabsContent value="forms" className="mt-6">
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
               <Input
                 placeholder={t('evidenceSubmissions.searchForms', 'Search forms...')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="max-w-md"
               />
-              <Button onClick={() => navigate('/dashboard/research/forms/new')}>
+              <Button onClick={() => navigate('/dashboard/research/forms/new')} className="w-full sm:w-auto">
                 <Plus className="h-4 w-4 mr-2" />
                 {t('evidenceSubmissions.createForm', 'Create Form')}
               </Button>
@@ -324,7 +324,7 @@ export default function EvidenceSubmissionsPage() {
                 </CardContent>
               </Card>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredForms.map((form) => (
                   <Card key={form.id} className="hover:shadow-lg transition-shadow">
                     <CardHeader>
@@ -504,6 +504,7 @@ export default function EvidenceSubmissionsPage() {
               </div>
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
                 {/* List */}
                 <div className="space-y-4">
                   {submissions.length === 0 ? (

@@ -394,22 +394,22 @@ export function NetworkGraphPage() {
   return (
     <div className="h-screen flex flex-col bg-gray-50">
       {/* Header */}
-      <div className="bg-white border-b px-6 py-4">
-        <div className="flex items-center justify-between">
+      <div className="bg-white border-b px-4 sm:px-6 py-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-4">
             <Button variant="outline" onClick={() => navigate('/dashboard')}>
               <ArrowLeft className="h-4 w-4 mr-2" />
               {t('common:back')}
             </Button>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">{t('networkGraph:title')}</h1>
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{t('networkGraph:title')}</h1>
               <p className="text-sm text-gray-500">
                 {t('networkGraph:description')}
                 {highlightedNodes.size > 0 && ` • ${t('networkGraph:highlighted', { count: highlightedNodes.size })}`}
               </p>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 overflow-x-auto">
             <Button
               variant={showMetrics ? "default" : "outline"}
               onClick={() => setShowMetrics(!showMetrics)}
@@ -450,7 +450,7 @@ export function NetworkGraphPage() {
       {/* Main content */}
       <div className="flex-1 flex overflow-hidden">
         {/* Controls panel */}
-        <div className="w-80 bg-white border-r overflow-y-auto">
+        <div className="hidden lg:block w-80 bg-white border-r overflow-y-auto">
           <NetworkControls
             filters={filters}
             onFiltersChange={setFilters}
@@ -475,7 +475,7 @@ export function NetworkGraphPage() {
 
         {/* Metrics panel */}
         {showMetrics && !selectedNode && (
-          <div className="w-80 bg-white border-l overflow-y-auto">
+          <div className="hidden lg:block w-80 bg-white border-l overflow-y-auto">
             <NetworkMetricsPanel
               nodes={graphData.nodes}
               links={graphData.links}
@@ -486,7 +486,7 @@ export function NetworkGraphPage() {
 
         {/* Selected node panel */}
         {selectedNode && (
-          <div className="w-80 bg-white border-l overflow-y-auto">
+          <div className="hidden lg:block w-80 bg-white border-l overflow-y-auto">
             <Card className="h-full rounded-none border-0">
               <CardHeader>
                 <CardTitle>{t('networkGraph:selectedNode.title')}</CardTitle>

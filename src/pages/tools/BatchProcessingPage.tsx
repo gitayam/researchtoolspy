@@ -623,7 +623,7 @@ export function BatchProcessingPage() {
               </div>
 
               {/* Stats */}
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="text-center p-3 bg-green-50 dark:bg-green-900/20 rounded">
                   <div className="text-2xl font-bold text-green-600 dark:text-green-400">{result.succeeded}</div>
                   <div className="text-sm text-gray-600 dark:text-gray-400">{t('batchProcessingTool.succeeded')}</div>
@@ -643,7 +643,7 @@ export function BatchProcessingPage() {
               {/* Action Buttons */}
               <div className="space-y-3">
                 <Label>{t('batchProcessingTool.processResults')}</Label>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2">
                   <Button
                     variant="outline"
                     size="sm"

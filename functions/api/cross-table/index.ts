@@ -1,6 +1,6 @@
 // GET /api/cross-table — List user's cross tables
 // POST /api/cross-table — Create a new cross table
-import { getUserIdOrDefault, getUserFromRequest } from '../_shared/auth-helpers'
+import { getUserFromRequest } from '../_shared/auth-helpers'
 import { JSON_HEADERS, optionsResponse } from '../_shared/api-utils'
 import { TEMPLATES } from '../../../src/lib/cross-table/engine/templates'
 
@@ -15,20 +15,19 @@ export async function onRequest(context: any) {
     return new Response(JSON.stringify({ error: 'Database not configured' }), { status: 500, headers: JSON_HEADERS })
   }
 
-  const userId = await getUserIdOrDefault(request, env)
+  const userId = await getUserFromRequest(request, env)
+  if (!userId) {
+    return new Response(JSON.stringify({ error: 'Authentication required' }), {
+      status: 401, headers: JSON_HEADERS,
+    })
+  }
 
   try {
     if (request.method === 'GET') {
       return await handleList(env, userId)
     }
     if (request.method === 'POST') {
-      const authUserId = await getUserFromRequest(request, env)
-      if (!authUserId) {
-        return new Response(JSON.stringify({ error: 'Authentication required' }), {
-          status: 401, headers: JSON_HEADERS,
-        })
-      }
-      return await handleCreate(env, authUserId, request)
+      return await handleCreate(env, userId, request)
     }
     return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers: JSON_HEADERS })
   } catch (err: any) {

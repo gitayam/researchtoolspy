@@ -283,7 +283,7 @@ export function SourcesPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
@@ -335,7 +335,7 @@ export function SourcesPage() {
       {/* Filters */}
       <Card>
         <CardContent className="pt-6">
-          <div className="flex gap-4">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
             <div className="flex-1">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -348,7 +348,7 @@ export function SourcesPage() {
               </div>
             </div>
             <Select value={filterType} onValueChange={(v) => setFilterType(v as SourceType | 'all')}>
-              <SelectTrigger className="w-[200px]">
+              <SelectTrigger className="w-full sm:w-[200px]">
                 <SelectValue placeholder={t('entities:sources.filterType')} />
               </SelectTrigger>
               <SelectContent>
@@ -386,7 +386,7 @@ export function SourcesPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredSources.map((source) => (
             <Card key={source.id} className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => openEditForm(source)}>
               <CardHeader>

@@ -271,7 +271,7 @@ export function EvidenceItemForm({
               />
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <div className="flex-1 relative">
                 <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -282,7 +282,7 @@ export function EvidenceItemForm({
                 />
               </div>
               <Select value={formData.evidence_type} onValueChange={(value) => handleChange('evidence_type', value)}>
-                <SelectTrigger className="w-44">
+                <SelectTrigger className="w-full sm:w-44">
                   <SelectValue placeholder="Type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -323,7 +323,7 @@ export function EvidenceItemForm({
                 </div>
               </AccordionTrigger>
               <AccordionContent className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <Label className="text-xs text-muted-foreground">Source Name</Label>
                     <Input
@@ -346,7 +346,7 @@ export function EvidenceItemForm({
                     </Select>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <Label className="text-xs text-muted-foreground">Information Credibility</Label>
                     <Select value={formData.credibility} onValueChange={(value) => handleChange('credibility', value)}>
@@ -395,7 +395,7 @@ export function EvidenceItemForm({
                 </div>
               </AccordionTrigger>
               <AccordionContent>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <Label className="text-xs text-muted-foreground">Who</Label>
                     <Input

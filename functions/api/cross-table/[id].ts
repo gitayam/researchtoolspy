@@ -1,7 +1,7 @@
 // GET /api/cross-table/:id — Get single table with scores
 // PUT /api/cross-table/:id — Update table
 // DELETE /api/cross-table/:id — Delete table
-import { getUserIdOrDefault, getUserFromRequest } from '../_shared/auth-helpers'
+import { getUserFromRequest } from '../_shared/auth-helpers'
 import { JSON_HEADERS, optionsResponse } from '../_shared/api-utils'
 
 export async function onRequest(context: any) {
@@ -16,27 +16,20 @@ export async function onRequest(context: any) {
     return new Response(JSON.stringify({ error: 'Database not configured' }), { status: 500, headers: JSON_HEADERS })
   }
 
-  const userId = await getUserIdOrDefault(request, env)
+  const userId = await getUserFromRequest(request, env)
+  if (!userId) {
+    return new Response(JSON.stringify({ error: 'Authentication required' }), {
+      status: 401, headers: JSON_HEADERS,
+    })
+  }
 
   try {
     if (request.method === 'GET') return await handleGet(env, userId, id)
     if (request.method === 'PUT') {
-      const authUserId = await getUserFromRequest(request, env)
-      if (!authUserId) {
-        return new Response(JSON.stringify({ error: 'Authentication required' }), {
-          status: 401, headers: JSON_HEADERS,
-        })
-      }
-      return await handleUpdate(env, authUserId, id, request)
+      return await handleUpdate(env, userId, id, request)
     }
     if (request.method === 'DELETE') {
-      const authUserId = await getUserFromRequest(request, env)
-      if (!authUserId) {
-        return new Response(JSON.stringify({ error: 'Authentication required' }), {
-          status: 401, headers: JSON_HEADERS,
-        })
-      }
-      return await handleDelete(env, authUserId, id)
+      return await handleDelete(env, userId, id)
     }
     return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers: JSON_HEADERS })
   } catch (err: any) {

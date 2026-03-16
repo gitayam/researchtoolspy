@@ -1,5 +1,5 @@
 import { type ReactNode, useState, useCallback, useEffect, useRef } from 'react'
-import { Maximize2, Minimize2, X, ChevronUp, ChevronDown, Columns2, Square, EyeOff } from 'lucide-react'
+import { Maximize2, Minimize2, X, ChevronUp, ChevronDown, Columns2, Square, EyeOff, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -18,6 +18,12 @@ interface CopPanelExpanderProps {
   className?: string
   height?: PanelHeight
   defaultHidden?: boolean
+  /** When true, panel renders as a slim header-only bar (no content area) */
+  isEmpty?: boolean
+  /** Callback for the inline "+ Add" button shown on empty panels */
+  onAdd?: () => void
+  /** Label for the add button (default: "Add") */
+  addLabel?: string
   // Layout controls (optional — passed when rendered via dynamic layout)
   onMoveUp?: () => void
   onMoveDown?: () => void
@@ -47,6 +53,9 @@ export default function CopPanelExpander({
   className,
   height = 'standard',
   defaultHidden = false,
+  isEmpty = false,
+  onAdd,
+  addLabel = 'Add',
   onMoveUp,
   onMoveDown,
   onToggleWidth,
@@ -68,8 +77,8 @@ export default function CopPanelExpander({
   const [hidden] = useState(defaultHidden)
 
   useEffect(() => {
-    if (forceOpen) setExpanded(true)
-  }, [forceOpen])
+    if (forceOpen && !isEmpty) setExpanded(true)
+  }, [forceOpen, isEmpty])
 
   const handleExpand = useCallback(() => {
     setExpanded(true)
@@ -233,6 +242,53 @@ export default function CopPanelExpander({
           <div className="max-w-7xl mx-auto">
             {children(true)}
           </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Minimized: empty panel slim bar ─────────────────────────
+
+  if (isEmpty) {
+    return (
+      <div
+        className={cn(
+          'group flex items-center justify-between rounded-lg border border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50 px-2 sm:px-3 min-h-[44px] transition-all duration-200 motion-reduce:transition-none hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800/50',
+          className
+        )}
+        data-panel={id}
+        role="group"
+        aria-label={`${title} — empty`}
+      >
+        <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+          <span className="shrink-0 opacity-50">{icon}</span>
+          <h3 className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 truncate">
+            {title}
+          </h3>
+        </div>
+        <div className="flex items-center gap-1">
+          {onAdd && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 px-2 text-[10px] font-medium text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/30 cursor-pointer"
+              onClick={() => { handleExpand(); onAdd() }}
+              aria-label={`${addLabel} ${title.toLowerCase()}`}
+            >
+              <Plus className="h-3 w-3 mr-0.5" />
+              {addLabel}
+            </Button>
+          )}
+          <Button
+            ref={triggerRef}
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 cursor-pointer opacity-60 hover:opacity-100 hover:bg-slate-200 dark:hover:bg-slate-700 focus-visible:ring-2 focus-visible:ring-blue-500"
+            onClick={handleExpand}
+            aria-label={`Expand ${title} panel`}
+          >
+            <Maximize2 className="h-3 w-3" />
+          </Button>
         </div>
       </div>
     )

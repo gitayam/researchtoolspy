@@ -276,7 +276,7 @@ export function CitationsGeneratorPage() {
             </CardHeader>
             <CardContent>
               <Tabs value={citationStyle} onValueChange={(v) => setCitationStyle(v as CitationStyle)}>
-                <TabsList className="grid w-full grid-cols-4">
+                <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
                   <TabsTrigger value="apa">{t('citationsGeneratorTool.apa')}</TabsTrigger>
                   <TabsTrigger value="mla">{t('citationsGeneratorTool.mla')}</TabsTrigger>
                   <TabsTrigger value="chicago">{t('citationsGeneratorTool.chicago')}</TabsTrigger>
@@ -619,7 +619,7 @@ export function CitationsGeneratorPage() {
                   readOnly
                   className="min-h-[120px] font-serif text-sm mt-2"
                 />
-                <div className="grid grid-cols-2 gap-2 mt-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
                   <Button
                     variant="outline"
                     size="sm"

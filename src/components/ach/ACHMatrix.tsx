@@ -128,18 +128,19 @@ export function ACHMatrix({
       </div>
 
       {/* Matrix */}
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse border border-gray-300 dark:border-gray-700">
-          <thead>
-            <tr className="bg-gray-100 dark:bg-gray-800">
-              <th className="border border-gray-300 dark:border-gray-700 p-3 min-w-[200px] text-left">
-                Evidence
-              </th>
-              {hypotheses.map((hypothesis, index) => (
-                <th
-                  key={hypothesis.id}
-                  className="border border-gray-300 dark:border-gray-700 p-3 min-w-[150px] text-center"
-                >
+      <div className="relative">
+        <div className="overflow-x-auto -mx-2 px-2 sm:mx-0 sm:px-0">
+          <table className="w-full border-collapse border border-gray-300 dark:border-gray-700">
+            <thead>
+              <tr className="bg-gray-100 dark:bg-gray-800">
+                <th className="border border-gray-300 dark:border-gray-700 p-2 sm:p-3 min-w-[160px] text-left">
+                  Evidence
+                </th>
+                {hypotheses.map((hypothesis, index) => (
+                  <th
+                    key={hypothesis.id}
+                    className="border border-gray-300 dark:border-gray-700 p-2 sm:p-3 min-w-[120px] text-center"
+                  >
                   <div className="font-semibold mb-1">H{index + 1}</div>
                   <div className="text-xs font-normal text-gray-600 dark:text-gray-400">
                     {hypothesis.text}
@@ -287,7 +288,10 @@ export function ACHMatrix({
               </tr>
             </tfoot>
           )}
-        </table>
+          </table>
+        </div>
+        {/* Scroll hint gradient on right edge */}
+        <div className="absolute right-0 top-0 bottom-0 w-4 bg-gradient-to-l from-white dark:from-gray-950 to-transparent pointer-events-none sm:hidden" />
       </div>
 
       {/* Analysis Summary */}

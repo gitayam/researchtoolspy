@@ -8,6 +8,7 @@ import { WorkspaceProvider } from '@/contexts/WorkspaceContext'
 import { useAuthStore } from '@/stores/auth'
 import { router } from '@/routes'
 import i18n from '@/lib/i18n'
+import { getAuthIdentifier } from '@/lib/auth-utils'
 
 function App() {
   const checkAuth = useAuthStore((state) => state.checkAuth)
@@ -21,11 +22,11 @@ function App() {
   useEffect(() => {
     const syncLanguageFromSettings = () => {
       try {
-        const userHash = localStorage.getItem('omnicore_user_hash')
-        if (!userHash) return
+        const authId = getAuthIdentifier()
+        if (!authId) return
 
         // Check if user has stored settings with a language preference
-        const settingsKey = `settings_${userHash}`
+        const settingsKey = `settings_${authId}`
         const storedSettings = localStorage.getItem(settingsKey)
 
         if (storedSettings) {

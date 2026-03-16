@@ -7,7 +7,7 @@
  */
 
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserIdOrDefault, getUserFromRequest } from '../_shared/auth-helpers'
+import { getUserFromRequest } from '../_shared/auth-helpers'
 import { JSON_HEADERS, CORS_HEADERS, safeJsonParse } from '../_shared/api-utils'
 
 interface Env {
@@ -18,18 +18,25 @@ interface Env {
 
 // GET - Get single equilibrium analysis
 export const onRequestGet: PagesFunction<Env> = async (context) => {
-  const { env, params } = context
+  const { request, env, params } = context
   const id = params.id as string
 
   try {
+    const userId = await getUserFromRequest(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: JSON_HEADERS,
+      })
+    }
+
     const result = await env.DB.prepare(`
       SELECT
         ea.*,
         b.name as linked_behavior_title
       FROM equilibrium_analyses ea
       LEFT JOIN behaviors b ON ea.linked_behavior_id = b.id
-      WHERE ea.id = ?
-    `).bind(id).first()
+      WHERE ea.id = ? AND (ea.created_by = ? OR ea.is_public = 1)
+    `).bind(id, userId).first()
 
     if (!result) {
       return new Response(JSON.stringify({ error: 'Analysis not found' }), {

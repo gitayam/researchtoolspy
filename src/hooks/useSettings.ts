@@ -15,6 +15,7 @@ import type {
 } from '@/types/settings'
 import { DEFAULT_USER_SETTINGS } from '@/types/settings'
 import { getCopHeaders } from '@/lib/cop-auth'
+import { getAuthIdentifier } from '@/lib/auth-utils'
 
 const STORAGE_PREFIX = 'settings_'
 
@@ -31,10 +32,10 @@ interface UseSettingsReturn {
 }
 
 /**
- * Get user hash from localStorage
+ * Get auth identifier (supports both hash and OIDC/JWT auth)
  */
 function getUserHash(): string | null {
-  return localStorage.getItem('omnicore_user_hash')
+  return getAuthIdentifier()
 }
 
 /**

@@ -95,16 +95,16 @@ export default function SubmissionFormsPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
                 {t('submissionForms:title')}
               </h1>
               <p className="text-gray-600 dark:text-gray-400 mt-2">
                 {t('submissionForms:description')}
               </p>
             </div>
-            <Button onClick={() => navigate('/dashboard/research/forms/new')}>
+            <Button onClick={() => navigate('/dashboard/research/forms/new')} className="w-full sm:w-auto">
               <Plus className="h-4 w-4 mr-2" />
               {t('submissionForms:createForm')}
             </Button>
@@ -151,7 +151,7 @@ export default function SubmissionFormsPage() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredForms.map((form) => (
               <Card key={form.id} className="hover:shadow-lg transition-shadow">
                 <CardHeader>

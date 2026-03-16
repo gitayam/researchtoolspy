@@ -53,7 +53,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       evidence_count,
       framework_count, relationship_count, open_rfis, answered_questions,
       blocker_count, hypothesis_count, claim_count, verified_claim_count,
-      alert_count,
+      alert_count, timeline_count, task_count, persona_count, marker_count,
+      submission_count, poo_count,
     ] = await Promise.all([
       safeCount(`SELECT COUNT(*) as cnt FROM actors WHERE workspace_id = ?`, workspace_id),
       safeCount(`SELECT COUNT(*) as cnt FROM sources WHERE workspace_id = ?`, workspace_id),
@@ -70,6 +71,12 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       safeCount(`SELECT COUNT(*) as cnt FROM cop_claims WHERE cop_session_id = ?`, sessionId),
       safeCount(`SELECT COUNT(*) as cnt FROM cop_claims WHERE cop_session_id = ? AND status = 'verified'`, sessionId),
       safeCount(`SELECT COUNT(*) as cnt FROM cop_alert_state WHERE cop_session_id = ? AND status = 'new'`, sessionId),
+      safeCount(`SELECT COUNT(*) as cnt FROM cop_timeline_entries WHERE cop_session_id = ?`, sessionId),
+      safeCount(`SELECT COUNT(*) as cnt FROM cop_tasks WHERE cop_session_id = ?`, sessionId),
+      safeCount(`SELECT COUNT(*) as cnt FROM cop_personas WHERE cop_session_id = ?`, sessionId),
+      safeCount(`SELECT COUNT(*) as cnt FROM cop_markers WHERE cop_session_id = ?`, sessionId),
+      safeCount(`SELECT COUNT(*) as cnt FROM cop_submissions WHERE cop_session_id = ?`, sessionId),
+      safeCount(`SELECT COUNT(*) as cnt FROM cop_poo_estimates WHERE cop_session_id = ?`, sessionId),
     ])
 
     const entity_count = actor_count + source_count + event_count + place_count + behavior_count
@@ -93,6 +100,12 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       claim_count,
       verified_claim_count,
       alert_count,
+      timeline_count,
+      task_count,
+      persona_count,
+      marker_count,
+      submission_count,
+      poo_count,
     }
 
     return new Response(JSON.stringify({ stats }), { headers: JSON_HEADERS })

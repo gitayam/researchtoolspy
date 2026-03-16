@@ -526,7 +526,7 @@ export const SwotPage = () => {
                     </div>
                     <p className="text-gray-600 dark:text-gray-400 mb-4">{analysis.description}</p>
 
-                    <div className="grid grid-cols-4 gap-4 mb-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
                       <div className="text-center p-2 bg-green-50 dark:bg-green-900/20 rounded">
                         <p className="text-sm text-gray-600 dark:text-gray-400">Strengths</p>
                         <p className="text-xl font-semibold text-green-600 dark:text-green-400">{parsedData.strengths?.length || 0}</p>
@@ -1403,7 +1403,7 @@ export const CogPage = () => {
                     </div>
                     <p className="text-gray-600 dark:text-gray-400 mb-4">{analysis.description}</p>
 
-                    <div className="grid grid-cols-4 gap-2 mb-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
                       <div className="text-center p-2 bg-red-50 dark:bg-red-900/20 rounded">
                         <p className="text-xs text-gray-600 dark:text-gray-400">COGs</p>
                         <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
@@ -1869,7 +1869,7 @@ export const DeceptionPage = () => {
                     <p className="text-gray-600 dark:text-gray-400 mb-4">{analysis.description}</p>
 
                     {assessment && (
-                      <div className="grid grid-cols-4 gap-2 mb-4">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
                         <div className="text-center p-2 bg-red-50 dark:bg-red-900/20 rounded">
                           <p className="text-xs text-gray-600 dark:text-gray-400">MOM</p>
                           <p className="text-lg font-semibold text-red-600 dark:text-red-400">

@@ -34,10 +34,10 @@ export function DashboardHeader() {
   const authUser = useAuthStore((state) => state.user)
   const logoutUser = useAuthStore((state) => state.logout)
 
-  // Display info for header
+  // Display info for header — prefer OIDC username/name, fall back to hash display
   const displayUser = {
-    username: authUser?.account_hash ? `Hash: ${authUser.account_hash.slice(0, 8)}...` : t('auth.guest'),
-    role: 'user'
+    username: authUser?.username || authUser?.full_name || (authUser?.account_hash ? `Hash: ${authUser.account_hash.slice(0, 8)}...` : t('auth.guest')),
+    role: authUser?.role || 'user'
   }
 
   const handleLogout = () => {
@@ -62,7 +62,7 @@ export function DashboardHeader() {
 
   return (
     <header className="sticky top-0 z-40 bg-white shadow-sm dark:bg-gray-900 dark:border-b dark:border-gray-700" role="banner">
-      <div className="flex h-16 sm:h-18 items-center justify-between px-4 sm:px-6 lg:px-8">
+      <div className="flex h-14 sm:h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Breadcrumbs / Page title - Better mobile spacing */}
         <Link to="/" className="flex items-center gap-2 sm:gap-3 pl-14 lg:pl-0 hover:opacity-80 transition-opacity">
           <img
@@ -77,17 +77,23 @@ export function DashboardHeader() {
 
         {/* Right side - Improved mobile layout */}
         <div className="flex items-center gap-x-2 sm:gap-x-3 lg:gap-x-4">
-          {/* Workspace Selector */}
-          <WorkspaceSelector />
+          {/* Workspace Selector - hidden on small screens */}
+          <div className="hidden md:block">
+            <WorkspaceSelector />
+          </div>
 
           {/* Theme Toggle */}
           <ThemeToggle />
 
-          {/* Language Switcher */}
-          <LanguageSwitcher />
+          {/* Language Switcher - hidden on smallest screens */}
+          <div className="hidden sm:block">
+            <LanguageSwitcher />
+          </div>
 
-          {/* Feedback Button */}
-          <FeedbackDialog />
+          {/* Feedback Button - hidden on smallest screens */}
+          <div className="hidden sm:block">
+            <FeedbackDialog />
+          </div>
 
           {/* Authentication Status - Better mobile touch targets */}
           {!isAuthenticated ? (

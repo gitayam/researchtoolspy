@@ -50,7 +50,7 @@ export function WorkspaceSelector() {
 
   return (
     <Select value={currentWorkspaceId} onValueChange={setCurrentWorkspaceId}>
-      <SelectTrigger className="w-[200px]">
+      <SelectTrigger className="w-full sm:w-[200px]">
         <SelectValue>
           <div className="flex items-center">
             {getWorkspaceIcon(currentWorkspace?.type || 'PERSONAL')}

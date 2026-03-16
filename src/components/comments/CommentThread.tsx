@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
 import { getCopHeaders } from '@/lib/cop-auth'
+import { isUserAuthenticated } from '@/lib/auth-utils'
 
 interface Comment {
   id: string
@@ -61,9 +62,8 @@ export function CommentThread({ entityType, entityId, className }: CommentThread
   const [isAuthenticated, setIsAuthenticated] = useState(false)
 
   useEffect(() => {
-    // Check authentication status
-    const userHash = localStorage.getItem('omnicore_user_hash')
-    setIsAuthenticated(!!userHash)
+    // Check authentication status (supports both hash and OIDC/JWT auth)
+    setIsAuthenticated(isUserAuthenticated())
   }, [])
 
   useEffect(() => {

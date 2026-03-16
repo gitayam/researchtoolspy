@@ -219,15 +219,15 @@ export function ACHAnalysisPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between">
-        <div className="flex items-start gap-4 flex-1">
-          <Button variant="outline" onClick={() => navigate('/dashboard/analysis-frameworks/ach-dashboard')}>
+      <div className="space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+          <Button variant="outline" onClick={() => navigate('/dashboard/analysis-frameworks/ach-dashboard')} className="w-fit">
             <ArrowLeft className="h-4 w-4 mr-2" />
             {t('ach:detail.back')}
           </Button>
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-2">
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-2 mb-2">
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
                 {analysis.title}
               </h1>
               <Badge variant="outline">{t(`ach:status.${analysis.status.toLowerCase()}`)}</Badge>
@@ -243,7 +243,7 @@ export function ACHAnalysisPage() {
             )}
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button
             variant="outline"
             onClick={async () => {
@@ -254,7 +254,7 @@ export function ACHAnalysisPage() {
                 // Fetch each evidence item to get linked actors
                 for (const ev of analysis.evidence) {
                   try {
-                    const response = await fetch(`/api/evidence-items?id=${ev.evidence_id}`)
+                    const response = await fetch(`/api/evidence-items?id=${ev.evidence_id}`, { headers: getCopHeaders() })
                     if (response.ok) {
                       const evidenceData = await response.json()
                       if (evidenceData.linked_actors && Array.isArray(evidenceData.linked_actors)) {

@@ -237,7 +237,7 @@ export default function DeceptionRiskDashboard() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div className="flex-1">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
             <Shield className="h-8 w-8" />
@@ -248,10 +248,10 @@ export default function DeceptionRiskDashboard() {
           </p>
 
           {/* Workspace Selector */}
-          <div className="mt-4 flex items-center gap-3">
-            <FolderKanban className="h-5 w-5 text-muted-foreground" />
+          <div className="mt-4 flex flex-col sm:flex-row sm:items-center gap-3">
+            <FolderKanban className="h-5 w-5 text-muted-foreground hidden sm:block" />
             <Select value={selectedWorkspaceId} onValueChange={setSelectedWorkspaceId}>
-              <SelectTrigger className="w-[300px]">
+              <SelectTrigger className="w-full sm:w-[300px]">
                 <SelectValue placeholder={t('pages.deceptionRisk.selectWorkspace')} />
               </SelectTrigger>
               <SelectContent>
@@ -377,7 +377,7 @@ export default function DeceptionRiskDashboard() {
       )}
 
       {/* Risk Breakdown */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {/* Actors MOM */}
         <RiskBreakdownCard
           title={t('pages.deceptionRisk.cards.actorsMom.title')}

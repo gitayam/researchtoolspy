@@ -318,7 +318,7 @@ export function SocialMediaPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
             {t('socialMedia:title')}
@@ -482,7 +482,7 @@ export function SocialMediaPage() {
 
       {/* Stats Cards */}
       {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
@@ -541,12 +541,12 @@ export function SocialMediaPage() {
 
         {/* Profiles Tab */}
         <TabsContent value="profiles" className="space-y-4">
-          <div className="flex gap-4">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
             <Select value={selectedPlatform} onValueChange={(value) => {
               setSelectedPlatform(value)
               setTimeout(loadProfiles, 0)
             }}>
-              <SelectTrigger className="w-48">
+              <SelectTrigger className="w-full sm:w-48">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -835,7 +835,7 @@ export function SocialMediaPage() {
                           </div>
                         </div>
                       )}
-                      <div className="grid grid-cols-3 gap-4 text-sm">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
                         <div>
                           <div className="text-gray-600 dark:text-gray-400">{t('socialMedia:jobs.found')}</div>
                           <div className="font-semibold">{job.items_found}</div>

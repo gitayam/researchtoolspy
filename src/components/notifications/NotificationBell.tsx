@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
 import { getCopHeaders } from '@/lib/cop-auth'
+import { getAuthIdentifier } from '@/lib/auth-utils'
 
 interface Notification {
   id: string
@@ -42,8 +43,8 @@ export function NotificationBell() {
   }, [])
 
   const fetchNotifications = async () => {
-    const userHash = localStorage.getItem('omnicore_user_hash')
-    if (!userHash || userHash === 'guest') return
+    const authId = getAuthIdentifier()
+    if (!authId) return
 
     try {
       const response = await fetch('/api/notifications?limit=10', {
@@ -60,8 +61,7 @@ export function NotificationBell() {
   }
 
   const markAsRead = async (notificationId: string) => {
-    const userHash = localStorage.getItem('omnicore_user_hash')
-    if (!userHash) return
+    if (!getAuthIdentifier()) return
 
     try {
       const response = await fetch('/api/notifications', {
@@ -81,8 +81,7 @@ export function NotificationBell() {
   }
 
   const markAllAsRead = async () => {
-    const userHash = localStorage.getItem('omnicore_user_hash')
-    if (!userHash) return
+    if (!getAuthIdentifier()) return
 
     setLoading(true)
     try {
@@ -102,8 +101,7 @@ export function NotificationBell() {
   }
 
   const deleteNotification = async (notificationId: string) => {
-    const userHash = localStorage.getItem('omnicore_user_hash')
-    if (!userHash) return
+    if (!getAuthIdentifier()) return
 
     try {
       const response = await fetch(`/api/notifications?ids=${notificationId}`, {

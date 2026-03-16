@@ -21,6 +21,7 @@ import {
 import { Label } from '@/components/ui/label'
 import { useToast } from '@/components/ui/use-toast'
 import { getCopHeaders } from '@/lib/cop-auth'
+import { getAuthIdentifier } from '@/lib/auth-utils'
 
 interface PublishDialogProps {
   open: boolean
@@ -50,8 +51,7 @@ export function PublishDialog({
   })
 
   const handlePublish = async () => {
-    const userHash = localStorage.getItem('omnicore_user_hash')
-    if (!userHash) {
+    if (!getAuthIdentifier()) {
       toast({
         title: t('common:errors.error'),
         description: t('common:errors.loginRequired'),
