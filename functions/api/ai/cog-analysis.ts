@@ -3,11 +3,19 @@
  *
  * Provides AI-powered assistance for Center of Gravity analysis
  * POST: Generate COG components (identification, capabilities, requirements, vulnerabilities, impact)
+ *
+ * Modes:
+ *   suggest-cog             → 2-3 COG suggestions from operational context
+ *   validate-cog            → Validate a proposed COG against JP 3-0 doctrine
+ *   generate-capabilities   → 3-5 critical capabilities for a COG
+ *   generate-requirements   → 2-4 critical requirements for a capability
+ *   generate-vulnerabilities → 2-3 critical vulnerabilities for a requirement
+ *   generate-impact         → Impact analysis for a vulnerability
  */
 
 import { callOpenAIViaGateway, getOptimalCacheTTL } from '../_shared/ai-gateway'
-import { getUserFromRequest } from '../_shared/auth-helpers'
-import { JSON_HEADERS } from '../_shared/api-utils'
+import { requireAuth } from '../_shared/auth-helpers'
+import { JSON_HEADERS, optionsResponse } from '../_shared/api-utils'
 
 interface Env {
   DB: D1Database
@@ -15,6 +23,7 @@ interface Env {
   OPENAI_API_KEY?: string
   OPENAI_ORGANIZATION?: string
   AI_GATEWAY_ACCOUNT_ID?: string
+  SESSIONS?: KVNamespace
 }
 
 type AnalysisMode =
@@ -61,26 +70,124 @@ interface COGAnalysisRequest {
   }
 }
 
+// Token limits per mode — vulnerabilities need more tokens for scoring objects
+const MODE_TOKEN_LIMITS: Record<AnalysisMode, number> = {
+  'suggest-cog': 1000,
+  'validate-cog': 800,
+  'generate-capabilities': 1000,
+  'generate-requirements': 800,
+  'generate-vulnerabilities': 1500,
+  'generate-impact': 1200,
+}
+
 const MODEL_PRICING = {
-  'gpt-5': {
-    input: 1.25,
-    output: 10.0
-  },
-  'gpt-4o-mini': {
-    input: 0.25,
-    output: 2.0
-  },
-  'gpt-5-nano': {
-    input: 0.05,
-    output: 0.40
-  }
+  'gpt-5': { input: 1.25, output: 10.0 },
+  'gpt-4o-mini': { input: 0.25, output: 2.0 },
+  'gpt-5-nano': { input: 0.05, output: 0.40 },
 }
 
 function estimateCost(model: string, inputTokens: number, outputTokens: number): number {
   const pricing = MODEL_PRICING[model as keyof typeof MODEL_PRICING] || MODEL_PRICING['gpt-4o-mini']
-  const inputCost = (inputTokens / 1_000_000) * pricing.input
-  const outputCost = (outputTokens / 1_000_000) * pricing.output
-  return inputCost + outputCost
+  return (inputTokens / 1_000_000) * pricing.input + (outputTokens / 1_000_000) * pricing.output
+}
+
+// --- Response validators (field-by-field, never trust raw AI JSON) ---
+
+const str = (v: any, fb = '') => typeof v === 'string' ? v : fb
+const bool = (v: any, fb = false) => typeof v === 'boolean' ? v : fb
+const arr = (v: any) => Array.isArray(v) ? v.filter((s: any) => typeof s === 'string') : []
+const num = (v: any, min: number, max: number, fb: number) => {
+  const n = typeof v === 'number' ? v : fb
+  return Math.max(min, Math.min(max, n))
+}
+
+function validateSuggestedCOGs(raw: any): any[] {
+  const items = Array.isArray(raw) ? raw : (raw?.suggestions || raw?.COGs || raw?.cogs || raw?.potential_centers_of_gravity || [])
+  return items.map((item: any) => ({
+    description: str(item?.description),
+    actor: str(item?.actor, 'Adversary'),
+    domain: str(item?.domain, 'Military'),
+    rationale: str(item?.rationale),
+  })).filter((c: any) => c.description)
+}
+
+function validateCOGValidation(raw: any): any {
+  const criterion = (c: any) => ({
+    passes: bool(c?.passes),
+    explanation: str(c?.explanation),
+  })
+  return {
+    isValid: bool(raw?.isValid),
+    overallAssessment: str(raw?.overallAssessment),
+    criteria: {
+      criticalDegradation: criterion(raw?.criteria?.criticalDegradation),
+      sourceOfPower: criterion(raw?.criteria?.sourceOfPower),
+      appropriateLevel: criterion(raw?.criteria?.appropriateLevel),
+      exploitable: criterion(raw?.criteria?.exploitable),
+    },
+    recommendations: arr(raw?.recommendations),
+  }
+}
+
+function validateCapabilities(raw: any): any[] {
+  const items = Array.isArray(raw) ? raw : (raw?.capabilities || raw?.critical_capabilities || [])
+  return items.map((item: any) => ({
+    capability: str(item?.capability),
+    description: str(item?.description),
+  })).filter((c: any) => c.capability)
+}
+
+function validateRequirements(raw: any): any[] {
+  const items = Array.isArray(raw) ? raw : (raw?.requirements || raw?.critical_requirements || [])
+  return items.map((item: any) => ({
+    requirement: str(item?.requirement),
+    type: str(item?.type, 'other'),
+    description: str(item?.description),
+  })).filter((r: any) => r.requirement)
+}
+
+function validateVulnerabilities(raw: any): any[] {
+  const items = Array.isArray(raw) ? raw : (raw?.vulnerabilities || raw?.critical_vulnerabilities || [])
+  return items.map((item: any) => ({
+    vulnerability: str(item?.vulnerability),
+    type: str(item?.type, 'other'),
+    description: str(item?.description),
+    expectedEffect: str(item?.expectedEffect),
+    recommendedActions: arr(item?.recommendedActions),
+    confidence: ['low', 'medium', 'high'].includes(item?.confidence) ? item.confidence : 'medium',
+    scoring: {
+      impact_on_cog: num(item?.scoring?.impact_on_cog, 1, 5, 3),
+      attainability: num(item?.scoring?.attainability, 1, 5, 3),
+      follow_up_potential: num(item?.scoring?.follow_up_potential, 1, 5, 3),
+    },
+  })).filter((v: any) => v.vulnerability)
+}
+
+function validateImpact(raw: any): any {
+  return {
+    expectedEffect: str(raw?.expectedEffect),
+    cascadingEffects: arr(raw?.cascadingEffects),
+    recommendedActions: arr(raw?.recommendedActions),
+    confidence: ['low', 'medium', 'high'].includes(raw?.confidence) ? raw.confidence : 'medium',
+    confidenceRationale: str(raw?.confidenceRationale),
+    timeToEffect: str(raw?.timeToEffect, 'days'),
+    reversibility: str(raw?.reversibility, 'moderate'),
+    riskToFriendlyForces: ['low', 'medium', 'high'].includes(raw?.riskToFriendlyForces) ? raw.riskToFriendlyForces : 'medium',
+    considerations: arr(raw?.considerations),
+  }
+}
+
+// Validate result based on mode
+function validateResult(mode: AnalysisMode, raw: any): any {
+  switch (mode) {
+    case 'suggest-cog': return validateSuggestedCOGs(raw)
+    case 'validate-cog': return validateCOGValidation(raw)
+    case 'generate-capabilities': return validateCapabilities(raw)
+    case 'generate-requirements': return validateRequirements(raw)
+    case 'generate-vulnerabilities': return validateVulnerabilities(raw)
+    case 'generate-impact': return validateImpact(raw)
+    default: return raw
+  }
 }
 
 /**
@@ -112,16 +219,17 @@ Based on the operational context above, suggest 2-3 potential Centers of Gravity
 3. Primary DIMEFIL domain (Diplomatic/Information/Military/Economic/Financial/Intelligence/Law Enforcement/Cyber/Space)
 4. Brief rationale (why this is a COG)
 
-Format your response as JSON (return an array directly):
-[
-  {
-    "description": "COG description here",
-    "actor": "Adversary",
-    "domain": "Military",
-    "rationale": "Brief explanation of why this meets COG criteria"
-  },
-  ...
-]
+Return JSON with a "suggestions" array:
+{
+  "suggestions": [
+    {
+      "description": "COG description here",
+      "actor": "Adversary",
+      "domain": "Military",
+      "rationale": "Brief explanation of why this meets COG criteria"
+    }
+  ]
+}
 
 Ensure each suggested COG:
 - Is a true source of power (not just important)
@@ -130,9 +238,7 @@ Ensure each suggested COG:
 - Can be protected/exploited through vulnerabilities`
 
     case 'validate-cog':
-      if (!cog) {
-        throw new Error('COG data required for validation')
-      }
+      if (!cog) throw new Error('COG data required for validation')
 
       return `You are a military intelligence analyst expert in Center of Gravity (COG) analysis following JP 3-0 and JP 5-0 doctrine.
 
@@ -152,33 +258,19 @@ Validate this proposed COG against the four criteria:
 
 Provide your assessment in JSON format:
 {
-  "isValid": true/false,
+  "isValid": true,
   "overallAssessment": "Brief overall assessment",
   "criteria": {
-    "criticalDegradation": {
-      "passes": true/false,
-      "explanation": "Brief explanation"
-    },
-    "sourceOfPower": {
-      "passes": true/false,
-      "explanation": "Brief explanation"
-    },
-    "appropriateLevel": {
-      "passes": true/false,
-      "explanation": "Brief explanation"
-    },
-    "exploitable": {
-      "passes": true/false,
-      "explanation": "Brief explanation"
-    }
+    "criticalDegradation": { "passes": true, "explanation": "Brief explanation" },
+    "sourceOfPower": { "passes": true, "explanation": "Brief explanation" },
+    "appropriateLevel": { "passes": true, "explanation": "Brief explanation" },
+    "exploitable": { "passes": true, "explanation": "Brief explanation" }
   },
   "recommendations": ["Specific recommendation 1", "Specific recommendation 2"]
 }`
 
     case 'generate-capabilities':
-      if (!cog) {
-        throw new Error('COG data required for capability generation')
-      }
+      if (!cog) throw new Error('COG data required for capability generation')
 
       return `You are a military intelligence analyst expert in Center of Gravity (COG) analysis following JP 3-0 and JP 5-0 doctrine.
 
@@ -196,27 +288,19 @@ Requirements:
 - Each capability should be a primary action or function
 - Capabilities should support the actor's objectives
 - Be specific to this COG and domain
-- Consider DIMEFIL aspects relevant to the domain
 
-Format your response as JSON (return an array directly):
-[
-  {
-    "capability": "Verb-focused capability statement",
-    "description": "How this capability works and supports objectives"
-  },
-  ...
-]
-
-Example capabilities:
-- Military: "Conduct integrated air defense operations", "Project power beyond territorial borders"
-- Information: "Control narrative across multiple media platforms", "Conduct coordinated disinformation campaigns"
-- Economic: "Manipulate currency exchange rates", "Control critical supply chains"
-- Cyber: "Disrupt critical infrastructure networks", "Maintain persistent network access"`
+Return JSON with a "capabilities" array:
+{
+  "capabilities": [
+    {
+      "capability": "Verb-focused capability statement",
+      "description": "How this capability works and supports objectives"
+    }
+  ]
+}`
 
     case 'generate-requirements':
-      if (!capability) {
-        throw new Error('Capability data required for requirements generation')
-      }
+      if (!capability) throw new Error('Capability data required for requirements generation')
 
       return `You are a military intelligence analyst expert in Center of Gravity (COG) analysis following JP 3-0 and JP 5-0 doctrine.
 
@@ -238,29 +322,20 @@ Requirements:
 - Each requirement should be essential for the capability to function
 - Identify single points of failure where possible
 - Classify by type: Personnel, Equipment, Logistics, Information, Infrastructure, Other
-- Be specific and targetable
 
-Format your response as JSON (return an array directly):
-[
-  {
-    "requirement": "Specific noun-focused requirement",
-    "type": "Personnel|Equipment|Logistics|Information|Infrastructure|Other",
-    "description": "Why this is critical for the capability"
-  },
-  ...
-]
-
-Example requirements:
-- Personnel: "Trained radar operators with air battle management experience"
-- Equipment: "Long-range surveillance radar network with 360-degree coverage"
-- Logistics: "Continuous electrical power supply from protected grid"
-- Information: "Real-time intelligence feed from satellite reconnaissance"
-- Infrastructure: "Underground command and control facility with redundant communications"`
+Return JSON with a "requirements" array:
+{
+  "requirements": [
+    {
+      "requirement": "Specific noun-focused requirement",
+      "type": "Personnel|Equipment|Logistics|Information|Infrastructure|Other",
+      "description": "Why this is critical for the capability"
+    }
+  ]
+}`
 
     case 'generate-vulnerabilities':
-      if (!requirement) {
-        throw new Error('Requirement data required for vulnerability generation')
-      }
+      if (!requirement) throw new Error('Requirement data required for vulnerability generation')
 
       return `You are a military intelligence analyst expert in Center of Gravity (COG) analysis following JP 3-0 and JP 5-0 doctrine.
 
@@ -280,42 +355,36 @@ ${cog ? `## Center of Gravity
 
 Generate 2-3 Critical Vulnerabilities for this requirement. Critical Vulnerabilities answer: "What is the WEAKNESS?"
 
-Requirements:
-- Identify specific exploitable weaknesses in this requirement
-- Vulnerabilities should be actionable and targetable
-- Consider multiple exploitation methods (Physical, Cyber, Human, Logistical, Informational)
-- Provide realistic assessment of exploitability
-- Include both direct and indirect approaches
-
-Format your response as JSON (return an array directly):
-[
-  {
-    "vulnerability": "Specific exploitable weakness",
-    "type": "Physical|Cyber|Human|Logistical|Informational|Other",
-    "description": "Detailed description of the weakness",
-    "expectedEffect": "What happens if this vulnerability is exploited",
-    "recommendedActions": ["Action 1", "Action 2", "Action 3"],
-    "confidence": "low|medium|high",
-    "scoring": {
-      "impact_on_cog": 1-5,
-      "attainability": 1-5,
-      "follow_up_potential": 1-5
+Return JSON with a "vulnerabilities" array:
+{
+  "vulnerabilities": [
+    {
+      "vulnerability": "Specific exploitable weakness",
+      "type": "Physical|Cyber|Human|Logistical|Informational|Other",
+      "description": "Detailed description of the weakness",
+      "expectedEffect": "What happens if this vulnerability is exploited",
+      "recommendedActions": ["Action 1", "Action 2", "Action 3"],
+      "confidence": "low|medium|high",
+      "scoring": {
+        "impact_on_cog": 3,
+        "attainability": 3,
+        "follow_up_potential": 3
+      }
     }
-  },
-  ...
-]
+  ]
+}
 
-Scoring guidance:
-- Impact (1-5): 5 = Catastrophic effect on COG, 1 = Minimal effect
-- Attainability (1-5): 5 = Easy to exploit, 1 = Nearly impossible
-- Follow-up (1-5): 5 = Enables many follow-on actions, 1 = Isolated effect`
+Scoring guidance (1-5 scale):
+- Impact: 5=Catastrophic effect on COG, 1=Minimal effect
+- Attainability: 5=Easy to exploit, 1=Nearly impossible
+- Follow-up: 5=Enables many follow-on actions, 1=Isolated effect`
 
     case 'generate-impact':
       if (!request.requirement || !capabilities || capabilities.length === 0) {
         throw new Error('Requirements and capabilities data required for impact generation')
       }
 
-      const vulnerabilitiesSection = requirements && requirements.length > 0
+      const reqSection = requirements?.length
         ? `\n## Current Requirements\n${requirements.map(r => `- ${r.requirement}`).join('\n')}`
         : ''
 
@@ -330,24 +399,24 @@ ${cog ? `## Center of Gravity
 
 ` : ''}## Critical Capabilities
 ${capabilities.map(c => `- ${c.capability}`).join('\n')}
-${vulnerabilitiesSection}
+${reqSection}
 
 ## Vulnerability Being Analyzed
 - Vulnerability: ${request.requirement.requirement}
 
-Generate a comprehensive impact analysis for exploiting this vulnerability. Focus on "SO WHAT?" - why does this matter?
+Generate a comprehensive impact analysis. Focus on "SO WHAT?" - why does this matter?
 
-Format your response as JSON:
+Return JSON:
 {
-  "expectedEffect": "Detailed description of what happens when this vulnerability is exploited",
-  "cascadingEffects": ["Effect on requirement", "Effect on capability", "Effect on COG", "Effect on actor's objectives"],
+  "expectedEffect": "What happens when this vulnerability is exploited",
+  "cascadingEffects": ["Effect on requirement", "Effect on capability", "Effect on COG", "Effect on objectives"],
   "recommendedActions": ["Specific action 1", "Specific action 2", "Specific action 3"],
   "confidence": "low|medium|high",
   "confidenceRationale": "Why this confidence level",
   "timeToEffect": "immediate|hours|days|weeks|months",
   "reversibility": "irreversible|difficult|moderate|easy",
   "riskToFriendlyForces": "low|medium|high",
-  "considerations": ["Legal/policy consideration", "Operational consideration", "Strategic consideration"]
+  "considerations": ["Legal/policy consideration", "Operational consideration"]
 }`
 
     default:
@@ -357,143 +426,109 @@ Format your response as JSON:
 
 /**
  * POST /api/ai/cog-analysis
- * Generate COG analysis components
  */
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
-    const authUserId = await getUserFromRequest(context.request, context.env)
-    if (!authUserId) {
-      return Response.json({ error: 'Authentication required' }, { status: 401 })
-    }
+    const userId = await requireAuth(context.request, context.env)
 
-    // Check API key availability (same as content-intelligence)
     if (!context.env.OPENAI_API_KEY) {
       console.error('[COG AI] OpenAI API key not available')
-      return Response.json({
-        error: 'OpenAI API key not configured'
-      }, { status: 500 })
+      return Response.json({ error: 'AI service not configured' }, { status: 500 })
     }
 
     const request = await context.request.json() as COGAnalysisRequest
 
     if (!request.mode) {
-      return Response.json({
-        error: 'Missing mode parameter'
-      }, { status: 400 })
+      return Response.json({ error: 'Missing mode parameter' }, { status: 400 })
     }
 
-    // Build prompt based on mode
+    // Validate mode
+    const validModes: AnalysisMode[] = ['suggest-cog', 'validate-cog', 'generate-capabilities', 'generate-requirements', 'generate-vulnerabilities', 'generate-impact']
+    if (!validModes.includes(request.mode)) {
+      return Response.json({ error: `Invalid mode: ${request.mode}` }, { status: 400 })
+    }
+
+    // Build prompt
     let prompt: string
     try {
       prompt = buildPrompt(request)
-    } catch (error) {
-      return Response.json({
-        error: 'Invalid request',
-        message: 'AI request failed'
-      }, { status: 400 })
+    } catch (error: any) {
+      return Response.json({ error: error.message || 'Invalid request' }, { status: 400 })
     }
 
-    // Use gpt-4o-mini for COG analysis (cost optimization while maintaining quality)
     const model = 'gpt-4o-mini'
+    const maxTokens = MODE_TOKEN_LIMITS[request.mode]
 
-    // Build OpenAI request
-    const openaiRequest = {
-      model,
-      messages: [
+    let data
+    try {
+      data = await callOpenAIViaGateway(
+        context.env,
         {
-          role: 'system',
-          content: `You are an expert military intelligence analyst specializing in Center of Gravity (COG) analysis following JP 3-0 and JP 5-0 doctrine.
+          model,
+          messages: [
+            {
+              role: 'system',
+              content: `You are an expert military intelligence analyst specializing in Center of Gravity (COG) analysis following JP 3-0 and JP 5-0 doctrine.
 
 Your analysis must be:
 - Evidence-based and analytically rigorous
 - Consistent with joint doctrine and COG methodology
 - Clear, concise, and actionable
 - Focused on identifying true sources of power and critical vulnerabilities
-- Formatted exactly as requested (JSON when specified)
-
-Always provide specific, targetable recommendations that support operational planning.`
+- Formatted exactly as requested (valid JSON only)`
+            },
+            { role: 'user', content: prompt }
+          ],
+          max_completion_tokens: maxTokens,
+          response_format: { type: 'json_object' }
         },
         {
-          role: 'user',
-          content: prompt
-        }
-      ],
-      max_completion_tokens: 800, // Optimized for structured responses
-      response_format: { type: 'json_object' } // Ensure JSON responses for structured modes
-    }
-
-    // Call OpenAI via AI Gateway (same approach as content-intelligence)
-
-    let data
-    try {
-      data = await callOpenAIViaGateway(
-        context.env,
-        openaiRequest,
-        {
           cacheTTL: getOptimalCacheTTL('cog-analysis'),
-          metadata: {
-            endpoint: 'cog-analysis',
-            mode: request.mode
-          },
-          timeout: 30000 // 30s timeout for COG analysis
+          metadata: { endpoint: 'cog-analysis', mode: request.mode, userId },
+          timeout: 30000
         }
       )
     } catch (error) {
       console.error('[COG AI] OpenAI API error:', error)
-      return Response.json({
-        error: 'AI generation failed',
-        message: 'AI request failed'
-      }, { status: 500 })
+      return Response.json({ error: 'AI generation failed' }, { status: 500 })
     }
 
-    // Extract response
-    const content = data.choices[0].message.content
+    // Extract content
+    const content = data?.choices?.[0]?.message?.content
+    if (!content) {
+      return Response.json({ error: 'Empty AI response' }, { status: 500 })
+    }
+
     const tokensUsed = {
-      input: data.usage.prompt_tokens,
-      output: data.usage.completion_tokens,
-      total: data.usage.total_tokens
+      input: data.usage?.prompt_tokens || 0,
+      output: data.usage?.completion_tokens || 0,
+      total: data.usage?.total_tokens || 0,
     }
 
-    // Calculate cost
+    // Parse JSON
+    let rawContent = content.trim()
+    if (rawContent.startsWith('```')) {
+      rawContent = rawContent.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '')
+    }
+
+    let parsed: any
+    try {
+      parsed = JSON.parse(rawContent)
+    } catch (parseError) {
+      console.error('[COG AI] Failed to parse AI response:', rawContent.slice(0, 200))
+      return Response.json({ error: 'AI returned invalid response format' }, { status: 500 })
+    }
+
+    // Validate result per mode (field-by-field, never trust raw LLM output)
+    const result = validateResult(request.mode, parsed)
+
+    // Cost tracking
     const cost = estimateCost(model, tokensUsed.input, tokensUsed.output)
 
-    // Parse JSON response
-    let result
-    try {
-      result = JSON.parse(content)
-    } catch (parseError) {
-      console.error('Failed to parse AI response as JSON:', content)
-      return Response.json({
-        error: 'Invalid AI response format',
-        message: 'AI returned non-JSON response',
-        rawContent: content
-      }, { status: 500 })
+    // Update usage stats async
+    if (context.env.AI_CONFIG) {
+      context.waitUntil(updateUsageStats(context.env.AI_CONFIG, tokensUsed.total, cost))
     }
-
-    // Normalize response format - GPT sometimes wraps arrays in objects
-    // Extract the actual data from wrapper objects
-    if (result && typeof result === 'object') {
-      // Check if it's wrapped in a common key name
-      const wrapperKeys = [
-        'COGs',
-        'capabilities',
-        'requirements',
-        'vulnerabilities',
-        'potential_centers_of_gravity',
-        'critical_capabilities',
-        'critical_requirements',
-        'critical_vulnerabilities'
-      ]
-      for (const key of wrapperKeys) {
-        if (Array.isArray(result[key])) {
-          result = result[key]
-          break
-        }
-      }
-    }
-
-    // Update usage statistics (async, don't wait)
-    context.waitUntil(updateUsageStats(context.env.AI_CONFIG, tokensUsed.total, cost))
 
     return Response.json({
       mode: request.mode,
@@ -504,20 +539,14 @@ Always provide specific, targetable recommendations that support operational pla
       finishReason: data.choices[0].finish_reason
     })
   } catch (error) {
-    console.error('COG Analysis error:', error)
+    if (error instanceof Response) return error
+    console.error('[COG AI] Error:', error)
 
-    // Handle timeout and other errors
     if (error instanceof Error && error.name === 'AbortError') {
-      return Response.json({
-        error: 'Request timeout',
-        message: 'AI analysis took too long (>30s). Please try again.'
-      }, { status: 504 })
+      return Response.json({ error: 'Request timeout. Please try again.' }, { status: 504 })
     }
 
-    return Response.json({
-      error: 'Analysis failed',
-      message: 'AI analysis failed'
-    }, { status: 500 })
+    return Response.json({ error: 'Analysis failed' }, { status: 500 })
   }
 }
 
@@ -530,37 +559,30 @@ async function updateUsageStats(kv: KVNamespace, tokens: number, cost: number) {
     if (!config) return
 
     if (!config.costs) {
-      config.costs = {
-        totalTokensUsed: 0,
-        estimatedCost: 0,
-        lastReset: new Date().toISOString()
-      }
+      config.costs = { totalTokensUsed: 0, estimatedCost: 0, lastReset: new Date().toISOString() }
     }
 
-    // Reset daily counters if needed
-    const lastReset = new Date(config.costs.lastReset)
-    const now = new Date()
-    const daysSinceReset = (now.getTime() - lastReset.getTime()) / (1000 * 60 * 60 * 24)
-
+    const daysSinceReset = (Date.now() - new Date(config.costs.lastReset).getTime()) / (1000 * 60 * 60 * 24)
     if (daysSinceReset >= 1) {
       config.costs.totalTokensUsed = 0
       config.costs.estimatedCost = 0
-      config.costs.lastReset = now.toISOString()
+      config.costs.lastReset = new Date().toISOString()
     }
 
-    // Update counters
     config.costs.totalTokensUsed += tokens
     config.costs.estimatedCost += cost
-
     await kv.put('default', JSON.stringify(config))
   } catch (error) {
-    console.error('Failed to update usage stats:', error)
+    console.error('[COG AI] Failed to update usage stats:', error)
   }
 }
 
-// Reject GET requests (POST-only endpoint)
 export const onRequestGet: PagesFunction = async () => {
   return new Response(JSON.stringify({ error: 'Method not allowed. Use POST.' }), {
     status: 405, headers: JSON_HEADERS,
   })
+}
+
+export const onRequestOptions: PagesFunction = async () => {
+  return optionsResponse()
 }
