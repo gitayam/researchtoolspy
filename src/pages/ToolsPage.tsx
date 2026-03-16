@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Search, Globe, FileText, Link as LinkIcon, Code, Database, Share2, FileStack, ArrowLeft, Grid3x3, Sparkles, TableProperties } from 'lucide-react'
+import { Search, Globe, FileText, Link as LinkIcon, Code, Database, Share2, FileStack, ArrowLeft, Grid3x3, Sparkles, TableProperties, Brain } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -25,6 +25,20 @@ export function ToolsPage() {
         'Null/alternative hypothesis formulation'
       ],
       path: '/dashboard/tools/research-question-generator',
+      available: true
+    },
+    {
+      id: 'behavior-analysis',
+      name: 'Behavior Analysis',
+      description: 'Diagnose why someone behaves a certain way using the COM-B model. Works for intelligence (adversary analysis) and product (user research).',
+      icon: Brain,
+      features: [
+        'COM-B diagnostic (6 dimensions)',
+        'Intelligence & product contexts',
+        'AI-powered intervention recommendations',
+        'Motivation analysis (reflective vs automatic)'
+      ],
+      path: '/dashboard/tools/behavior-analysis',
       available: true
     },
     {

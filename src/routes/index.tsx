@@ -35,6 +35,7 @@ const PageLoader = () => (
 const LandingPage = lazy(() => import('@/pages/LandingPage'))
 const LoginPage = lazy(() => import('@/pages/LoginPage').then(m => ({ default: m.LoginPage })))
 const RegisterPage = lazy(() => import('@/pages/RegisterPage').then(m => ({ default: m.RegisterPage })))
+const AuthCallbackPage = lazy(() => import('@/pages/AuthCallbackPage').then(m => ({ default: m.AuthCallbackPage })))
 const DashboardPage = lazy(() => import('@/pages/DashboardPage').then(m => ({ default: m.DashboardPage })))
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage').then(m => ({ default: m.NotFoundPage })))
 
@@ -68,6 +69,7 @@ const URLProcessingPage = lazy(() => import('@/pages/tools/URLProcessingPage').t
 const BatchProcessingPage = lazy(() => import('@/pages/tools/BatchProcessingPage').then(m => ({ default: m.BatchProcessingPage })))
 const ContentIntelligencePage = lazy(() => import('@/pages/tools/ContentIntelligencePage'))
 const ResearchQuestionGeneratorPage = lazy(() => import('@/pages/ResearchQuestionGeneratorPage'))
+const BehaviorAnalysisToolPage = lazy(() => import('@/pages/BehaviorAnalysisToolPage'))
 const ResearchWorkspacePage = lazy(() => import('@/pages/ResearchWorkspacePage'))
 const EvidenceSubmissionsPage = lazy(() => import('@/pages/EvidenceSubmissionsPage'))
 const CreateSubmissionFormPage = lazy(() => import('@/pages/CreateSubmissionFormPage'))
@@ -140,6 +142,10 @@ export const router = createBrowserRouter([
   {
     path: '/register',
     element: <LazyPage Component={RegisterPage} />,
+  },
+  {
+    path: '/auth/callback',
+    element: <LazyPage Component={AuthCallbackPage} />,
   },
   {
     path: '/invite/:inviteToken',
@@ -463,6 +469,10 @@ export const router = createBrowserRouter([
       {
         path: 'tools/research-question-generator',
         element: <LazyPage Component={ResearchQuestionGeneratorPage} />,
+      },
+      {
+        path: 'tools/behavior-analysis',
+        element: <LazyPage Component={BehaviorAnalysisToolPage} />,
       },
       {
         path: 'research/workspace/:id',
