@@ -219,6 +219,15 @@ export default function CopWorkspacePage() {
     open_rfis?: number
     blocker_count?: number
     hypothesis_count?: number
+    relationship_count?: number
+    claim_count?: number
+    alert_count?: number
+    timeline_count?: number
+    task_count?: number
+    persona_count?: number
+    marker_count?: number
+    submission_count?: number
+    poo_count?: number
   }>({})
 
   // ── Mobile sidebar toggle ───────────────────────────────────
@@ -286,7 +295,15 @@ export default function CopWorkspacePage() {
     return () => controller.abort()
   }, [fetchSession])
 
-  // Fetch workspace stats (shared by sidebar + entities panel)
+  // Fetch workspace stats (shared by sidebar + entities panel + isEmpty checks)
+  const refetchStats = useCallback(() => {
+    if (!id) return
+    fetch(`/api/cop/${id}/stats`, { headers: getCopHeaders() })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data?.stats) setWorkspaceStats(data.stats) })
+      .catch((err) => { if (err.name !== 'AbortError') console.error('Failed to fetch workspace stats:', err) })
+  }, [id])
+
   useEffect(() => {
     if (!id) return
     const controller = new AbortController()
@@ -294,8 +311,10 @@ export default function CopWorkspacePage() {
       .then(r => r.ok ? r.json() : null)
       .then(data => { if (data?.stats) setWorkspaceStats(data.stats) })
       .catch((err) => { if (err.name !== 'AbortError') console.error('Failed to fetch workspace stats:', err) })
-    return () => controller.abort()
-  }, [id])
+    // Refresh stats every 30s to keep isEmpty panels responsive to changes
+    const interval = setInterval(refetchStats, 30000)
+    return () => { controller.abort(); clearInterval(interval) }
+  }, [id, refetchStats])
 
   // ── Fetch a single layer as GeoJSON ────────────────────────────
 
@@ -935,6 +954,12 @@ interface PanelDef {
   render: (expanded: boolean) => ReactNode
   /** If true, hide on 2xl (shown in sidebar instead) */
   hideOn2xl?: boolean
+  /** When true, panel renders as minimized slim bar */
+  isEmpty?: boolean
+  /** Callback for "+ Add" button shown on empty panels */
+  onAdd?: () => void
+  /** Label for the add button */
+  addLabel?: string
 }
 
 function ProgressLayout({
@@ -965,6 +990,10 @@ function ProgressLayout({
   const is2xl = useMediaQuery('(min-width: 1536px)')
   const [forceOpenPanel, setForceOpenPanel] = useState<{ panelId: string; entityId: string } | null>(null)
 
+  // Don't collapse panels to minimized state until stats have loaded
+  // (prevents flash of minimized → expanded on initial page load)
+  const statsLoaded = stats != null && Object.keys(stats).length > 0
+
   const handleScrollToPanel = useCallback((panelId: string, entityId: string) => {
     setForceOpenPanel({ panelId, entityId })
     setTimeout(() => {
@@ -983,6 +1012,9 @@ function ProgressLayout({
       icon: <Network className="h-4 w-4 text-purple-400" />,
       height: 'standard',
       badge: relationshipCount > 0 ? relationshipCount : undefined,
+      isEmpty: statsLoaded && (stats?.relationship_count ?? relationshipCount) === 0 && (stats?.entity_count ?? 0) === 0,
+      onAdd: () => onOpenEntityDrawer?.('actors'),
+      addLabel: 'Add Entity',
       render: (expanded) => (
         <CopMiniGraph
           sessionId={sessionId}
@@ -1004,6 +1036,8 @@ function ProgressLayout({
       title: 'Timeline',
       icon: <Clock className="h-4 w-4 text-blue-400" />,
       height: 'standard',
+      isEmpty: statsLoaded && (stats?.timeline_count ?? 0) === 0,
+      addLabel: 'Add Event',
       render: (expanded) => (
         <CopTimelinePanel sessionId={sessionId} expanded={expanded} onScrollToPanel={handleScrollToPanel} />
       ),
@@ -1013,6 +1047,7 @@ function ProgressLayout({
       title: 'Global Alerts',
       icon: <Radio className="h-4 w-4 text-red-400" />,
       height: 'tall',
+      isEmpty: statsLoaded && (stats?.alert_count ?? 0) === 0 && !(session as any).global_alerts_enabled,
       render: (expanded) => (
         <CopGlobalAlertPanel sessionId={sessionId} expanded={expanded} onScrollToPanel={handleScrollToPanel} />
       ),
@@ -1022,6 +1057,8 @@ function ProgressLayout({
       title: 'Actors',
       icon: <Users className="h-4 w-4 text-purple-400" />,
       height: 'standard',
+      isEmpty: statsLoaded && (stats?.persona_count ?? 0) === 0,
+      addLabel: 'Add Actor',
       render: (expanded) => (
         <LazyPanel><CopPersonaPanel sessionId={sessionId} expanded={expanded} /></LazyPanel>
       ),
@@ -1033,6 +1070,8 @@ function ProgressLayout({
       height: 'tall',
       badge: rfiCount > 0 ? rfiCount : undefined,
       badgeVariant: 'destructive' as const,
+      isEmpty: statsLoaded && rfiCount === 0 && (session.key_questions?.length ?? 0) === 0,
+      addLabel: 'New RFI',
       render: (expanded) => (
         <div className="flex flex-col h-full gap-4">
           <CopQuestionsTab session={session} />
@@ -1055,6 +1094,8 @@ function ProgressLayout({
       title: 'Analysis & Hypotheses',
       icon: <Brain className="h-4 w-4 text-emerald-400" />,
       height: 'tall',
+      isEmpty: statsLoaded && (stats?.hypothesis_count ?? 0) === 0,
+      addLabel: 'Add Hypothesis',
       render: (expanded) => (
         <div className="flex flex-col h-full gap-4">
           <CopAnalysisSummary sessionId={sessionId} expanded={expanded} />
@@ -1069,6 +1110,8 @@ function ProgressLayout({
       title: 'POO Estimates',
       icon: <Target className="h-4 w-4 text-red-400" />,
       height: 'standard',
+      isEmpty: statsLoaded && (stats?.poo_count ?? 0) === 0,
+      addLabel: 'New Estimate',
       render: () => (
         <LazyPanel>
           <CopPooPanel
@@ -1085,6 +1128,8 @@ function ProgressLayout({
       title: 'Task Board',
       icon: <ClipboardList className="h-4 w-4 text-orange-400" />,
       height: 'standard',
+      isEmpty: statsLoaded && (stats?.task_count ?? 0) === 0,
+      addLabel: 'Add Task',
       render: (expanded) => (
         <LazyPanel><CopTaskBoard sessionId={sessionId} expanded={expanded} /></LazyPanel>
       ),
@@ -1094,6 +1139,7 @@ function ProgressLayout({
       title: 'Submission Inbox',
       icon: <Inbox className="h-4 w-4 text-cyan-400" />,
       height: 'standard',
+      isEmpty: statsLoaded && (stats?.submission_count ?? 0) === 0,
       render: (expanded) => (
         <LazyPanel><CopSubmissionInbox sessionId={sessionId} expanded={expanded} /></LazyPanel>
       ),
@@ -1121,6 +1167,8 @@ function ProgressLayout({
       title: 'Claims Analysis',
       icon: <FileWarning className="h-4 w-4 text-indigo-400" />,
       height: 'tall',
+      isEmpty: statsLoaded && (stats?.claim_count ?? 0) === 0,
+      addLabel: 'Add Claim',
       render: (expanded) => (
         <LazyPanel><CopClaimsPanel sessionId={sessionId} expanded={expanded} highlightEntityId={forceOpenPanel?.panelId === 'claims' ? forceOpenPanel.entityId : undefined} /></LazyPanel>
       ),
@@ -1248,7 +1296,7 @@ function ProgressLayout({
           if (row.length === 2) {
             // Two half-width panels in a grid
             return (
-              <div key={`row-${row[0]?.id ?? rowIdx}-${row[1]?.id ?? `${rowIdx}b`}`} className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+              <div key={`row-${row[0]?.id ?? rowIdx}-${row[1]?.id ?? `${rowIdx}b`}`} className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
                 {row.map((def) => {
                   if (!def?.id) return null
                   if (def.hideOn2xl && is2xl) return null
@@ -1263,6 +1311,9 @@ function ProgressLayout({
                         height={def.height}
                         badge={def.badge}
                         badgeVariant={def.badgeVariant}
+                        isEmpty={def.isEmpty}
+                        onAdd={def.onAdd}
+                        addLabel={def.addLabel}
                         panelWidth={panelCfg?.width}
                         onMoveUp={() => movePanel(def.id, 'up')}
                         onMoveDown={() => movePanel(def.id, 'down')}
@@ -1296,6 +1347,9 @@ function ProgressLayout({
                 height={def.height}
                 badge={def.badge}
                 badgeVariant={def.badgeVariant}
+                isEmpty={def.isEmpty}
+                onAdd={def.onAdd}
+                addLabel={def.addLabel}
                 panelWidth={panelCfg?.width}
                 onMoveUp={() => movePanel(def.id, 'up')}
                 onMoveDown={() => movePanel(def.id, 'down')}

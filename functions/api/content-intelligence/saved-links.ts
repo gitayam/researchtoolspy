@@ -11,7 +11,7 @@
 
 import type { PagesFunction } from '@cloudflare/workers-types'
 
-import { getUserIdOrDefault, getUserFromRequest } from '../_shared/auth-helpers'
+import { getUserFromRequest } from '../_shared/auth-helpers'
 import { JSON_HEADERS, safeJsonParse } from '../_shared/api-utils'
 
 interface Env {
@@ -25,7 +25,12 @@ interface Env {
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   const { request, env, params } = context
   const url = new URL(request.url)
-  const userId = await getUserIdOrDefault(request, env)
+  const userId = await getUserFromRequest(request, env)
+  if (!userId) {
+    return new Response(JSON.stringify({ error: 'Authentication required' }), {
+      status: 401, headers: JSON_HEADERS,
+    })
+  }
 
   // If ID provided, get single link
   if (params.id) {
@@ -488,6 +493,17 @@ function detectSocialMedia(url: string): { platform: string } | null {
 // ========================================
 async function fetchUrlTitle(url: string): Promise<string | null> {
   try {
+    // SSRF protection: only allow http(s) and block private/internal IPs
+    const parsed = new URL(url)
+    if (!['http:', 'https:'].includes(parsed.protocol)) {
+      return null
+    }
+    const hostname = parsed.hostname
+    // Block private IP ranges and localhost
+    if (/^(127\.|10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|169\.254\.|0\.|localhost|::1|\[::1\])/.test(hostname)) {
+      return null
+    }
+
     const response = await fetch(url, {
       method: 'GET',
       headers: {

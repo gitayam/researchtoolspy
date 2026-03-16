@@ -3,7 +3,7 @@
  * CRUD operations for ACH analyses
  */
 
-import { getUserIdOrDefault, getUserFromRequest } from '../_shared/auth-helpers'
+import { getUserFromRequest } from '../_shared/auth-helpers'
 import { JSON_HEADERS } from '../_shared/api-utils'
 
 interface Env {
@@ -31,7 +31,12 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   try {
     const url = new URL(context.request.url)
     const id = url.searchParams.get('id')
-    const userId = await getUserIdOrDefault(context.request, context.env)
+    const userId = await getUserFromRequest(context.request, context.env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: JSON_HEADERS,
+      })
+    }
 
     const workspaceId = url.searchParams.get('workspace_id') || context.request.headers.get('X-Workspace-ID') || null
 
@@ -294,10 +299,10 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       })
     }
 
-    // WORKSPACE ISOLATION: Delete only if in current workspace (CASCADE will handle related tables)
+    // WORKSPACE ISOLATION: Delete only if owned by user in current workspace (CASCADE will handle related tables)
     const result = await context.env.DB.prepare(
-      'DELETE FROM ach_analyses WHERE id = ? AND workspace_id = ?'
-    ).bind(id, workspaceId).run()
+      'DELETE FROM ach_analyses WHERE id = ? AND user_id = ? AND workspace_id = ?'
+    ).bind(id, userId, workspaceId).run()
 
     if (result.meta.changes === 0) {
       return new Response(JSON.stringify({ error: 'Analysis not found in workspace or unauthorized' }), {

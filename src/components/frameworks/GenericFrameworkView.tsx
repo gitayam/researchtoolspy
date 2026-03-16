@@ -495,8 +495,8 @@ export function GenericFrameworkView({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
           <Button
             variant="outline"
             onClick={() => navigate(backPath)}
@@ -505,8 +505,8 @@ export function GenericFrameworkView({
             Back to List
           </Button>
           <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            <div className="flex items-center gap-3 flex-wrap">
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
                 {data.title}
               </h1>
               <EvidenceBadge
@@ -527,7 +527,7 @@ export function GenericFrameworkView({
             )}
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline">
@@ -585,7 +585,7 @@ export function GenericFrameworkView({
                 } else if (evidence.entity_type === 'data') {
                   // For data (evidence items), try to fetch linked actors
                   try {
-                    const response = await fetch(`/api/evidence-items?id=${evidence.entity_id}`)
+                    const response = await fetch(`/api/evidence-items?id=${evidence.entity_id}`, { headers: getCopHeaders() })
                     if (response.ok) {
                       const evidenceData = await response.json()
                       if (evidenceData.linked_actors && Array.isArray(evidenceData.linked_actors)) {
@@ -680,7 +680,7 @@ export function GenericFrameworkView({
           <CardTitle>Analysis Summary</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className={`grid grid-cols-${sections.length} gap-4 text-center`}>
+          <div className="grid grid-cols-2 gap-4 text-center sm:[grid-template-columns:repeat(var(--section-count),minmax(0,1fr))]" style={{ '--section-count': sections.length } as React.CSSProperties}>
             {sections.map(section => (
               <div key={section.key} className={`p-4 rounded-lg ${section.bgColor}`}>
                 <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">

@@ -81,7 +81,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   }
 }
 
-// POST — Create unified workspace
+// POST — Create workspace (team-only or full investigation+COP)
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   const { request, env } = context
 
@@ -100,6 +100,44 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       return new Response(
         JSON.stringify({ error: 'Title is required' }),
         { status: 400, headers: JSON_HEADERS }
+      )
+    }
+
+    // ── TEAM-ONLY mode: create workspace without investigation/COP ──
+    if (!body.investigation_type && !body.cop_template) {
+      const workspaceId = crypto.randomUUID()
+      const now = new Date().toISOString()
+      const wsType = 'TEAM'
+
+      const memberId = crypto.randomUUID()
+      await env.DB.batch([
+        env.DB.prepare(`
+          INSERT INTO workspaces (id, name, description, type, owner_id, is_public, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, 0, ?, ?)
+        `).bind(workspaceId, body.title.trim(), body.description?.trim() || null, wsType, userId, now, now),
+        env.DB.prepare(`
+          INSERT INTO workspace_members (id, workspace_id, user_id, role, joined_at)
+          VALUES (?, ?, ?, 'ADMIN', ?)
+        `).bind(memberId, workspaceId, userId, now),
+      ])
+
+      try {
+        await logActivity(env.DB, {
+          workspaceId,
+          actorUserId: userId.toString(),
+          actionType: 'CREATED',
+          entityType: 'WORKSPACE',
+          entityId: workspaceId,
+          entityTitle: body.title,
+          details: { type: wsType },
+        })
+      } catch (logErr) {
+        console.error('[workspaces] Activity log error (non-fatal):', logErr)
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, workspace_id: workspaceId, type: wsType }),
+        { status: 201, headers: JSON_HEADERS }
       )
     }
 

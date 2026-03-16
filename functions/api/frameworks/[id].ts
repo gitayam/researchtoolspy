@@ -3,7 +3,7 @@
  * Get and update specific framework sessions with auth + ownership checks
  */
 
-import { getUserFromRequest, getUserIdOrDefault } from '../_shared/auth-helpers'
+import { getUserFromRequest } from '../_shared/auth-helpers'
 import { JSON_HEADERS } from '../_shared/api-utils'
 
 interface Env {
@@ -16,17 +16,22 @@ interface Env {
  */
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   try {
-    const userId = await getUserIdOrDefault(context.request, context.env)
+    const userId = await getUserFromRequest(context.request, context.env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: JSON_HEADERS,
+      })
+    }
     const sessionId = context.params.id as string
 
-    // Get framework session
+    // Get framework session (ownership check + public access)
     const result = await context.env.DB.prepare(`
       SELECT
         id, user_id, title, description, framework_type, status,
         data, created_at, updated_at, workspace_id
       FROM framework_sessions
-      WHERE id = ?
-    `).bind(sessionId).first()
+      WHERE id = ? AND (user_id = ? OR is_public = 1)
+    `).bind(sessionId, userId).first()
 
     if (!result) {
       return new Response(JSON.stringify({
@@ -92,10 +97,15 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       })
     }
 
-    // Verify ownership — user_id must match or workspace must match
-    const workspaceId = context.request.headers.get('X-Workspace-ID')
+    // Verify ownership — user_id must match or user must be a verified workspace member
     const isOwner = String(existing.user_id) === String(userId)
-    const inWorkspace = workspaceId && existing.workspace_id === workspaceId
+    let inWorkspace = false
+    if (!isOwner && existing.workspace_id) {
+      const member = await context.env.DB.prepare(
+        'SELECT id FROM workspace_members WHERE workspace_id = ? AND user_id = ?'
+      ).bind(existing.workspace_id, userId).first()
+      inWorkspace = !!member
+    }
     if (!isOwner && !inWorkspace) {
       return new Response(JSON.stringify({ error: 'Not authorized to update this session' }), {
         status: 403, headers: JSON_HEADERS,
