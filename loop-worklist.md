@@ -170,3 +170,4 @@ Cross-referenced with `docs/LESSONS_LEARNED.md` and `docs/CLOUDFLARE_LESSONS_LEA
 | 2026-03-16 | #4,#7,#15,#16,#17,#19,#22 | Cycle 2: Token expiry, OIDC email verify, sidebar UX, cleanup (17/26 items) |
 | 2026-03-16 | #13,#20,#21,#26 | Cycle 3: XSS sanitize, prompt→Dialog, inline CSS→index.css, auth magic string (21/26 items) |
 | 2026-03-16 | #18,#23 | Cycle 4: Stats polling 30s→60s, PKCE S256 for OIDC flow (23/26 items) |
+| 2026-03-16 | — | Cycle 5: Committed remaining OIDC/auth/responsive work (57 files) + auth/me + migrations. Clean tree. |
