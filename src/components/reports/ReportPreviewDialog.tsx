@@ -4,7 +4,7 @@
  * Displays generated report content inline with options to copy or download
  */
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { X, Copy, Download, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -94,7 +94,7 @@ export function ReportPreviewDialog({
         <div className="flex-1 overflow-y-auto border rounded-lg p-6 bg-white dark:bg-gray-900">
           <div
             className="prose prose-sm dark:prose-invert max-w-none"
-            dangerouslySetInnerHTML={{ __html: htmlContent }}
+            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(htmlContent) }}
           />
         </div>
       </DialogContent>

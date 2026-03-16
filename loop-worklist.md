@@ -87,7 +87,7 @@ Cross-referenced with `docs/LESSONS_LEARNED.md` and `docs/CLOUDFLARE_LESSONS_LEA
 - **File:** `src/pages/CollaborationPage.tsx:~210`
 - **Issue:** Jarring, unstyled, blocked by some browsers. Inconsistent with rest of app.
 - **Approach:** Replace with Dialog-based input matching CreateWorkspaceDialog pattern.
-- **Status:** [ ] TODO
+- **Status:** [x] DONE — added Join Team dialog with Input + validation
 
 ### 14. [ARCH] Hardcoded Authentik end-session URL
 - **File:** `functions/api/auth/oidc/logout.ts:11`
@@ -129,12 +129,12 @@ Cross-referenced with `docs/LESSONS_LEARNED.md` and `docs/CLOUDFLARE_LESSONS_LEA
 ### 20. [QUALITY] Inline `<style>` blocks in React components
 - **Files:** `src/layouts/DashboardLayout.tsx:24-35`, `src/components/layout/dashboard-sidebar.tsx:281-284`
 - **Approach:** Move to `src/index.css` alongside existing keyframes.
-- **Status:** [ ] TODO
+- **Status:** [x] DONE — moved layout + hamburger CSS to index.css, removed inline &lt;style&gt; blocks
 
 ### 21. [QUALITY] `getAuthIdentifier` returns magic string 'jwt_authenticated'
 - **File:** `src/lib/auth-utils.ts:30`
 - **Approach:** Extract user ID from JWT payload instead of generic fallback.
-- **Status:** [ ] TODO
+- **Status:** [x] DONE — extracts sub from JWT, returns null if invalid
 
 ### 22. [CHORE] Redundant `const userId = authUserId` in social-media endpoints
 - **Files:** `functions/api/social-media/jobs.ts:71`, posts.ts:61, profiles.ts:75
@@ -158,7 +158,7 @@ Cross-referenced with `docs/LESSONS_LEARNED.md` and `docs/CLOUDFLARE_LESSONS_LEA
 ### 26. [QUALITY] dangerouslySetInnerHTML without sanitization
 - **File:** `src/components/reports/ReportPreviewDialog.tsx:97`
 - **Approach:** Add DOMPurify sanitization before rendering.
-- **Status:** [ ] TODO
+- **Status:** [x] DONE — DOMPurify.sanitize() wraps htmlContent
 
 ---
 
@@ -168,3 +168,4 @@ Cross-referenced with `docs/LESSONS_LEARNED.md` and `docs/CLOUDFLARE_LESSONS_LEA
 |------|----------------|-------|
 | 2026-03-16 | #1,#2,#3,#5,#6,#9,#10,#11,#12,#14 | Cycle 1: Security + arch + UX fixes (10/26 items) |
 | 2026-03-16 | #4,#7,#15,#16,#17,#19,#22 | Cycle 2: Token expiry, OIDC email verify, sidebar UX, cleanup (17/26 items) |
+| 2026-03-16 | #13,#20,#21,#26 | Cycle 3: XSS sanitize, prompt→Dialog, inline CSS→index.css, auth magic string (21/26 items) |

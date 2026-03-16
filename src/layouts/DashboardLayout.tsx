@@ -10,23 +10,24 @@ import { SkipToContent } from '@/components/accessibility/SkipToContent'
 export function DashboardLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
-  // No authentication required - tools and frameworks are publicly accessible
-  // Users can optionally log in to save their work
   return (
     <div className="min-h-screen bg-background">
+      {/* Responsive layout classes defined in index.css */}
       <SkipToContent />
       <ScrollToTop />
       <DashboardSidebar mobileMenuOpen={mobileMenuOpen} onMobileMenuChange={setMobileMenuOpen} />
-      <div className="lg:pl-64">
+      <div className="desktop-sidebar-offset">
         <DashboardHeader />
-        <main id="main-content" className="py-3 sm:py-4 md:py-6 lg:py-8 pb-20 lg:pb-8" role="main" aria-label="Main content">
-          <div className="mx-auto max-w-7xl px-2 sm:px-4 md:px-6 lg:px-8">
+        <main id="main-content" className="py-3 sm:py-4 md:py-6 lg:py-8 mobile-bottom-spacer" role="main" aria-label="Main content">
+          <div className="mx-auto max-w-7xl px-3 sm:px-4 md:px-6 lg:px-8">
             <GuestModeBanner />
             <Outlet />
           </div>
         </main>
       </div>
-      <MobileBottomTabs onMoreClick={() => setMobileMenuOpen(true)} />
+      <div className="mobile-bottom-tabs">
+        <MobileBottomTabs onMoreClick={() => setMobileMenuOpen(true)} />
+      </div>
     </div>
   )
 }

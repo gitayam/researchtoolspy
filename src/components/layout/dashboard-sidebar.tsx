@@ -294,10 +294,6 @@ export function DashboardSidebar({ mobileMenuOpen: controlledOpen, onMobileMenuC
     <>
       {/* Mobile: hamburger button (CSS-controlled via .desktop-sidebar parent) */}
       <div className="mobile-hamburger">
-        <style>{`
-          .mobile-hamburger { display: block; }
-          @media (min-width: 1024px) { .mobile-hamburger { display: none; } }
-        `}</style>
         <button
           type="button"
           className="fixed top-3 left-3 z-50 rounded-lg bg-white dark:bg-gray-800 p-2.5 text-gray-700 dark:text-gray-200 shadow-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border border-gray-200 dark:border-gray-700"
