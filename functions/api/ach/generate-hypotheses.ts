@@ -1,14 +1,20 @@
 /**
- * GPT-4o-mini Hypothesis Generation for ACH
- * Generates 4-6 competing hypotheses based on intelligence question
+ * ACH Hypothesis Generation API
+ * POST /api/ach/generate-hypotheses
+ *
+ * Generates 4-6 competing hypotheses for an intelligence question
+ * using ACH methodology principles.
  */
 
-import { getUserFromRequest } from '../_shared/auth-helpers'
+import { requireAuth } from '../_shared/auth-helpers'
+import { callOpenAIViaGateway } from '../_shared/ai-gateway'
 import { JSON_HEADERS, optionsResponse } from '../_shared/api-utils'
 
 interface Env {
   DB: D1Database
   OPENAI_API_KEY: string
+  AI_GATEWAY_ACCOUNT_ID?: string
+  SESSIONS?: KVNamespace
 }
 
 interface GenerateRequest {
@@ -17,144 +23,108 @@ interface GenerateRequest {
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
-    const authUserId = await getUserFromRequest(context.request, context.env)
-    if (!authUserId) {
-      return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401,
-        headers: JSON_HEADERS,
+    const userId = await requireAuth(context.request, context.env)
+
+    const body = await context.request.json() as GenerateRequest
+
+    if (!body.question || !body.question.trim()) {
+      return new Response(JSON.stringify({ error: 'Question is required' }), {
+        status: 400, headers: JSON_HEADERS
       })
     }
 
-    const data = await context.request.json() as GenerateRequest
-
-    if (!data.question) {
-      return new Response(JSON.stringify({
-        error: 'Question is required'
-      }), {
-        status: 400,
-        headers: JSON_HEADERS
-      })
-    }
-
-    const apiKey = context.env.OPENAI_API_KEY
-    if (!apiKey) {
-      return new Response(JSON.stringify({
-        error: 'OpenAI API key not configured'
-      }), {
-        status: 500,
-        headers: JSON_HEADERS
-      })
-    }
-
-    // Call GPT-4o-mini for hypothesis generation
-    const gptResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
+    const data = await callOpenAIViaGateway(
+      context.env,
+      {
         model: 'gpt-4o-mini',
         messages: [
           {
             role: 'system',
-            content: `You are an expert intelligence analyst skilled in the Analysis of Competing Hypotheses (ACH) methodology.
+            content: `You are an expert intelligence analyst skilled in Analysis of Competing Hypotheses (ACH) methodology.
 
-Your task is to generate 4-6 competing hypotheses for intelligence questions. Follow these ACH principles:
+Generate 4-6 competing hypotheses for intelligence questions. Follow ACH principles:
 
-1. **Mutually Exclusive**: Hypotheses should be distinct alternatives where possible
+1. **Mutually Exclusive**: Hypotheses should be distinct alternatives
 2. **Comprehensive Coverage**: Cover the full spectrum of plausible explanations
 3. **Include Contrarian Views**: At least one hypothesis should challenge conventional thinking
-4. **Specific & Testable**: Each hypothesis must be specific enough to evaluate with evidence
+4. **Specific & Testable**: Each must be specific enough to evaluate with evidence
 5. **Intelligence-Relevant**: Focus on intentions, capabilities, and strategic implications
 
-Return ONLY a JSON array of hypothesis strings, no other text.`
+Return JSON with a "hypotheses" array of strings:
+{
+  "hypotheses": ["hypothesis 1", "hypothesis 2", "hypothesis 3", "hypothesis 4"]
+}`
           },
           {
             role: 'user',
-            content: `Generate 4-6 competing hypotheses for this intelligence question:
-
-"${data.question}"
-
-Return format: ["hypothesis 1", "hypothesis 2", ...]`
+            content: `Generate 4-6 competing hypotheses for this intelligence question:\n\n"${body.question}"`
           }
         ],
         temperature: 0.7,
         max_completion_tokens: 800,
         response_format: { type: 'json_object' }
-      }),
-      signal: AbortSignal.timeout(30000)
-    })
+      },
+      {
+        cacheTTL: 1800, // 30 min — same question likely yields similar hypotheses
+        metadata: { endpoint: 'ach-generate-hypotheses', userId },
+        timeout: 30000
+      }
+    )
 
-    if (!gptResponse.ok) {
-      const errorData = await gptResponse.json()
-      console.error('[ACH] OpenAI API error:', errorData)
-      throw new Error('OpenAI API request failed')
+    if (!data?.choices?.[0]?.message?.content) {
+      throw new Error('Empty AI response')
     }
 
-    const gptData = await gptResponse.json()
-    const content = gptData.choices?.[0]?.message?.content
-
-    if (!content) {
-      throw new Error('No content in OpenAI response')
+    let content = data.choices[0].message.content.trim()
+    if (content.startsWith('```')) {
+      content = content.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '')
     }
 
-    // Parse the JSON response
-    let parsed
-    try {
-      parsed = JSON.parse(content)
-    } catch (e) {
-      console.error('[ACH] Failed to parse GPT response:', content)
-      throw new Error('Invalid JSON from GPT')
-    }
+    const parsed = JSON.parse(content)
 
     // Extract hypotheses array (handle different response formats)
-    let hypotheses: string[]
+    let raw: any[]
     if (Array.isArray(parsed)) {
-      hypotheses = parsed
-    } else if (parsed.hypotheses && Array.isArray(parsed.hypotheses)) {
-      hypotheses = parsed.hypotheses
+      raw = parsed
+    } else if (Array.isArray(parsed.hypotheses)) {
+      raw = parsed.hypotheses
     } else {
-      throw new Error('Unexpected response format from GPT')
+      // Try any array-valued key
+      const arrayKey = Object.keys(parsed).find(k => Array.isArray(parsed[k]))
+      raw = arrayKey ? parsed[arrayKey] : []
     }
 
-    // Validate hypotheses
+    // Validate: must be strings, non-empty, 2-8 items
+    const hypotheses = raw
+      .filter((h: any) => typeof h === 'string' && h.trim())
+      .map((h: string) => h.trim())
+      .slice(0, 6) // Cap at 6
+
     if (hypotheses.length < 2) {
-      throw new Error('GPT generated fewer than 2 hypotheses')
-    }
-
-    if (hypotheses.length > 8) {
-      hypotheses = hypotheses.slice(0, 6) // Limit to 6
+      throw new Error('AI generated fewer than 2 valid hypotheses')
     }
 
     return new Response(JSON.stringify({
       hypotheses,
-      question: data.question,
+      question: body.question,
       generated_at: new Date().toISOString(),
       model: 'gpt-4o-mini'
-    }), {
-      headers: JSON_HEADERS
-    })
+    }), { headers: JSON_HEADERS })
   } catch (error) {
+    if (error instanceof Response) return error
     console.error('[ACH] Hypothesis generation error:', error)
-    return new Response(JSON.stringify({
-      error: 'Failed to generate hypotheses'
-
-    }), {
-      status: 500,
-      headers: JSON_HEADERS
+    return new Response(JSON.stringify({ error: 'Failed to generate hypotheses' }), {
+      status: 500, headers: JSON_HEADERS
     })
   }
 }
 
-// Reject GET requests (POST-only endpoint)
 export const onRequestGet: PagesFunction = async () => {
   return new Response(JSON.stringify({ error: 'Method not allowed. Use POST.' }), {
     status: 405, headers: JSON_HEADERS,
   })
 }
 
-// CORS preflight
 export const onRequestOptions: PagesFunction = async () => {
   return optionsResponse()
 }
