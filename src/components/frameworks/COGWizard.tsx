@@ -493,7 +493,7 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
 
   return (
     <TooltipProvider>
-      <div className="container mx-auto py-8 px-4 max-w-5xl">
+      <div className="mx-auto py-8 px-4 max-w-5xl">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-4">

@@ -343,7 +343,7 @@ export const SwotPage = () => {
   const frameworkNotIdealFor = t(`frameworkDescriptions.${frameworkKey}.notIdealFor`, { returnObjects: true, defaultValue: [] }) as string[]
 
   return (
-    <div className="container mx-auto py-8 px-4 max-w-7xl">
+    <div className="mx-auto py-8 px-4 max-w-7xl">
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">SWOT Analysis</h1>
@@ -826,7 +826,7 @@ const GenericFrameworkPage = ({ frameworkKey }: { frameworkKey: string }) => {
   const frameworkNotIdealFor = t(`frameworkDescriptions.${frameworkKey}.notIdealFor`, { returnObjects: true, defaultValue: [] }) as string[]
 
   return (
-    <div className="container mx-auto py-8 px-4 max-w-7xl">
+    <div className="mx-auto py-8 px-4 max-w-7xl">
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{frameworkTitle}</h1>
@@ -1018,7 +1018,7 @@ const FrameworkListPage = ({ title, description, frameworkType }: { title: strin
   }
 
   return (
-    <div className="container mx-auto py-8 px-4 max-w-7xl">
+    <div className="mx-auto py-8 px-4 max-w-7xl">
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{title}</h1>
@@ -1332,7 +1332,7 @@ export const CogPage = () => {
   const cogDescription = t(`frameworkDescriptions.cog.context`, { defaultValue: config.description })
 
   return (
-    <div className="container mx-auto py-8 px-4 max-w-7xl">
+    <div className="mx-auto py-8 px-4 max-w-7xl">
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{cogTitle}</h1>
@@ -1765,7 +1765,7 @@ export const DeceptionPage = () => {
   const frameworkNotIdealFor = t(`frameworkDescriptions.${frameworkKey}.notIdealFor`, { returnObjects: true, defaultValue: [] }) as string[]
 
   return (
-    <div className="container mx-auto py-8 px-4 max-w-7xl">
+    <div className="mx-auto py-8 px-4 max-w-7xl">
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{tDeception('title')} (SATS)</h1>

@@ -143,7 +143,7 @@ export function ContentLibraryPage() {
   const uniqueDomains = Array.from(new Set(content.map(c => c.domain).filter(Boolean)))
 
   return (
-    <div className="container mx-auto py-8 space-y-6">
+    <div className="w-full max-w-7xl mx-auto py-8 space-y-6">
       {/* Header */}
       <div className="space-y-2">
         <h1 className="text-3xl font-bold flex items-center gap-2">

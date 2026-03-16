@@ -105,7 +105,7 @@ export function AISettingsPage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto py-8 px-4 max-w-7xl">
+      <div className="mx-auto py-8 px-4 max-w-7xl">
         <div className="flex items-center justify-center h-64">
           <div className="text-gray-600 dark:text-gray-400">{t('aiSettings:loading')}</div>
         </div>
@@ -115,7 +115,7 @@ export function AISettingsPage() {
 
   if (!config) {
     return (
-      <div className="container mx-auto py-8 px-4 max-w-7xl">
+      <div className="mx-auto py-8 px-4 max-w-7xl">
         <Card className="border-red-200 bg-red-50 dark:bg-red-900/20">
           <CardContent className="pt-6">
             <div className="flex items-center gap-2 text-red-800 dark:text-red-200">
@@ -129,7 +129,7 @@ export function AISettingsPage() {
   }
 
   return (
-    <div className="container mx-auto py-8 px-4 max-w-7xl">
+    <div className="mx-auto py-8 px-4 max-w-7xl">
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-2">

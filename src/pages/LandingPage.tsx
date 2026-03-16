@@ -192,7 +192,7 @@ export default function LandingPage() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       {/* Public Access Banner */}
       <div className="bg-green-50 dark:bg-green-900/20 border-b border-green-200 dark:border-green-800">
-        <div className="container mx-auto px-4 py-3 text-center">
+        <div className="w-full max-w-7xl mx-auto px-4 py-3 text-center">
           <p className="text-green-800 dark:text-green-300 font-medium text-sm sm:text-base">
             ✨ {t('landing.publicBanner')}
           </p>
@@ -201,7 +201,7 @@ export default function LandingPage() {
 
       {/* Header - Improved mobile responsiveness */}
       <header className="border-b border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm sticky top-0 z-30">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 sm:h-18">
             <div className="flex items-center gap-2">
               <img src="/logo.png" alt="ResearchTools Logo" className="h-8 w-8 sm:h-10 sm:w-10 rounded" />
@@ -325,7 +325,7 @@ export default function LandingPage() {
 
       {/* Features Grid - Optimized for mobile */}
       <section className="py-12 sm:py-16 px-4 sm:px-6 lg:px-8">
-        <div className="container mx-auto">
+        <div className="w-full max-w-7xl mx-auto">
           <div className="text-center mb-8 sm:mb-12 px-4">
             <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-3 sm:mb-4">
               {t('landing.everythingYouNeed')}
@@ -355,7 +355,7 @@ export default function LandingPage() {
 
       {/* Frameworks Showcase - Improved mobile grid */}
       <section className="py-12 sm:py-16 px-4 sm:px-6 lg:px-8 bg-gray-50 dark:bg-gray-800/50">
-        <div className="container mx-auto">
+        <div className="w-full max-w-7xl mx-auto">
           <div className="text-center mb-8 sm:mb-12 px-4">
             <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-3 sm:mb-4">
               {t('landing.professionalFrameworks')}
@@ -397,7 +397,7 @@ export default function LandingPage() {
 
       {/* CTA Section - Enhanced for mobile */}
       <section className="py-12 sm:py-16 px-4 sm:px-6 lg:px-8">
-        <div className="container mx-auto">
+        <div className="w-full max-w-7xl mx-auto">
           <div className="bg-gradient-to-r from-blue-600 to-blue-800 dark:from-blue-700 dark:to-blue-900 rounded-lg p-6 sm:p-8 lg:p-10 text-center">
             <h2 className="text-2xl sm:text-3xl font-bold mb-3 sm:mb-4 text-white px-4">
               {t('landing.readyToTransform')}
@@ -426,7 +426,7 @@ export default function LandingPage() {
 
       {/* Footer */}
       <footer className="border-t border-gray-200 dark:border-gray-700 py-8 px-4 sm:px-6 lg:px-8">
-        <div className="container mx-auto text-center">
+        <div className="w-full max-w-7xl mx-auto text-center">
           <div className="flex items-center justify-center gap-2 mb-4">
             <img src="/logo.png" alt="ResearchTools Logo" className="h-6 w-6 rounded" />
             <span className="font-bold text-gray-900 dark:text-white">ResearchTools</span>

@@ -97,7 +97,7 @@ export default function InvestigationsPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-6 max-w-7xl">
+    <div className="mx-auto px-4 sm:px-6 py-4 sm:py-6 max-w-7xl">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 mb-6">
         <div>

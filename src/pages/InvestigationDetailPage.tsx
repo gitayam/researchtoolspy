@@ -166,7 +166,7 @@ export function InvestigationDetailPage() {
   // Show loading while checking for linked COP
   if (checkingCop) {
     return (
-      <div className="container mx-auto p-6">
+      <div className="w-full max-w-7xl mx-auto p-6">
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
         </div>
@@ -176,7 +176,7 @@ export function InvestigationDetailPage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto p-6">
+      <div className="w-full max-w-7xl mx-auto p-6">
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
         </div>
@@ -186,7 +186,7 @@ export function InvestigationDetailPage() {
 
   if (error || !investigation) {
     return (
-      <div className="container mx-auto p-6">
+      <div className="w-full max-w-7xl mx-auto p-6">
         <Alert variant="destructive" className="mb-4">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>{error || t('investigation:notFound')}</AlertDescription>
@@ -200,7 +200,7 @@ export function InvestigationDetailPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6 max-w-7xl">
+    <div className="mx-auto px-4 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6 max-w-7xl">
       {/* Header */}
       <div className="space-y-4">
         <Button onClick={() => navigate('/dashboard/investigations')} variant="outline" size="sm">

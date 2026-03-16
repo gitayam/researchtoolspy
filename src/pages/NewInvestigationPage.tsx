@@ -118,7 +118,7 @@ export default function NewInvestigationPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-6 max-w-4xl">
+    <div className="mx-auto px-4 sm:px-6 py-4 sm:py-6 max-w-4xl">
       {/* Header */}
       <div className="mb-6">
         <Button variant="outline" onClick={() => step === 'type' ? navigate('/dashboard/investigations') : setStep('type')} size="sm" className="mb-4">

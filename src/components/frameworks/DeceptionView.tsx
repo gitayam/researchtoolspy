@@ -449,7 +449,7 @@ export function DeceptionView({
   }
 
   return (
-    <div className="container mx-auto py-8 px-4 max-w-7xl">
+    <div className="mx-auto py-8 px-4 max-w-7xl">
       {/* Header */}
       <div className="mb-8">
         <Button

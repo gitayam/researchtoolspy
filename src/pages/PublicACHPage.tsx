@@ -86,7 +86,7 @@ export function PublicACHPage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto py-12">
+      <div className="w-full max-w-7xl mx-auto py-12">
         <div className="text-center">
           <p className="text-gray-600 dark:text-gray-400">{t('publicAch:page.loading')}</p>
         </div>
@@ -96,7 +96,7 @@ export function PublicACHPage() {
 
   if (error || !analysis) {
     return (
-      <div className="container mx-auto py-12">
+      <div className="w-full max-w-7xl mx-auto py-12">
         <Card>
           <CardContent className="p-12 text-center">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
@@ -116,7 +116,7 @@ export function PublicACHPage() {
   }
 
   return (
-    <div className="container mx-auto py-8">
+    <div className="w-full max-w-7xl mx-auto py-8">
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-start justify-between mb-4">

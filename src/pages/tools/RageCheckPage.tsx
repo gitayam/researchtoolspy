@@ -97,7 +97,7 @@ export function RageCheckPage() {
   }
 
   return (
-    <div className="container mx-auto py-12 px-4 max-w-4xl">
+    <div className="mx-auto py-12 px-4 max-w-4xl">
       <div className="text-center mb-12">
         <div className="flex items-center justify-center gap-3 mb-4">
           <div className="p-3 bg-red-100 dark:bg-red-900/30 rounded-full">

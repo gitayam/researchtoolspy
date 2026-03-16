@@ -146,6 +146,21 @@ Cross-referenced with `docs/LESSONS_LEARNED.md` and `docs/CLOUDFLARE_LESSONS_LEA
 - **Approach:** Add `code_challenge` + `code_verifier` for defense-in-depth per OAuth 2.1.
 - **Status:** [x] DONE — PKCE S256 with code_verifier in KV, backwards-compatible callback
 
+### 27. [UX] Workspace wizard auth guard — late 401 wastes user time
+- **File:** `src/pages/NewWorkspacePage.tsx`
+- **Issue:** Users could fill out the entire multi-step wizard without being logged in, only to get a 401 on submit.
+- **Status:** [x] DONE — auth check on mount redirects to login; 401 on submit also redirects with return URL
+
+### 28. [QUALITY] `container mx-auto` broken in Tailwind v4 — 19 files
+- **Files:** 19 pages/components still use `container mx-auto` which doesn't set max-width in Tailwind v4
+- **Approach:** Replace with `w-full max-w-7xl mx-auto` or appropriate max-w per context. Cloudflare lessons doc flags this.
+- **Status:** [x] DONE — removed `container` from all 19 files; added max-w where missing
+
+### 29. [UX] Workspace wizard streamlined from 5→3 steps
+- **File:** `src/pages/NewWorkspacePage.tsx`
+- **Issue:** 5-step wizard with mandatory-looking optional steps created "fake friction"
+- **Status:** [x] DONE — collapsed to 3 steps, auto-advance, smart defaults, collapsible optional sections
+
 ### 24. [QUALITY] NetworkGraphPage hides controls on mobile with no alternative
 - **File:** `src/pages/NetworkGraphPage.tsx`
 - **Approach:** Add mobile drawer/toggle for controls, metrics, and node details.
@@ -171,3 +186,4 @@ Cross-referenced with `docs/LESSONS_LEARNED.md` and `docs/CLOUDFLARE_LESSONS_LEA
 | 2026-03-16 | #13,#20,#21,#26 | Cycle 3: XSS sanitize, prompt→Dialog, inline CSS→index.css, auth magic string (21/26 items) |
 | 2026-03-16 | #18,#23 | Cycle 4: Stats polling 30s→60s, PKCE S256 for OIDC flow (23/26 items) |
 | 2026-03-16 | — | Cycle 5: Committed remaining OIDC/auth/responsive work (57 files) + auth/me + migrations. Clean tree. |
+| 2026-03-16 | #27,#28,#29 | Cycle 6: Wizard UX overhaul (5→3 steps), auth guard, Tailwind v4 container fix (19 files) |

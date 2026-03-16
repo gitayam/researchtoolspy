@@ -137,7 +137,7 @@ export function SettingsPage() {
   // Show loading state
   if (loading) {
     return (
-      <div className="container mx-auto py-8 px-4 max-w-7xl">
+      <div className="mx-auto py-8 px-4 max-w-7xl">
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-200 dark:border-gray-700 border-t-blue-600 mx-auto mb-4"></div>
@@ -151,7 +151,7 @@ export function SettingsPage() {
   // Show error state
   if (error) {
     return (
-      <div className="container mx-auto py-8 px-4 max-w-7xl">
+      <div className="mx-auto py-8 px-4 max-w-7xl">
         <Card className="border-red-200 bg-red-50 dark:bg-red-900/20">
           <CardContent className="pt-6">
             <div className="flex items-center gap-2 text-red-800 dark:text-red-200">
@@ -170,7 +170,7 @@ export function SettingsPage() {
   // Show warning if no hash
   if (!userHash) {
     return (
-      <div className="container mx-auto py-8 px-4 max-w-7xl">
+      <div className="mx-auto py-8 px-4 max-w-7xl">
         <Card className="border-yellow-200 bg-yellow-50 dark:bg-yellow-900/20">
           <CardContent className="pt-6">
             <div className="flex items-center gap-2 text-yellow-800 dark:text-yellow-200">
@@ -189,7 +189,7 @@ export function SettingsPage() {
   }
 
   return (
-    <div className="container mx-auto py-8 px-4 max-w-7xl">
+    <div className="mx-auto py-8 px-4 max-w-7xl">
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-2">

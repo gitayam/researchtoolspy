@@ -69,7 +69,7 @@ export function PublicFrameworkPage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto py-8">
+      <div className="w-full max-w-7xl mx-auto py-8">
         <div className="flex items-center justify-center h-64">
           <p className="text-gray-500">{t('publicFramework:loading')}</p>
         </div>
@@ -79,7 +79,7 @@ export function PublicFrameworkPage() {
 
   if (error || !framework) {
     return (
-      <div className="container mx-auto py-8">
+      <div className="w-full max-w-7xl mx-auto py-8">
         <Alert variant="destructive">
           <AlertDescription>
             {error || t('publicFramework:notFound')}
@@ -98,7 +98,7 @@ export function PublicFrameworkPage() {
   })
 
   return (
-    <div className="container mx-auto py-8 max-w-6xl">
+    <div className="mx-auto py-8 max-w-6xl">
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center gap-2 mb-2">
