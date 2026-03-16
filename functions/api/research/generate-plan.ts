@@ -2,34 +2,37 @@
  * Generate Research Plan API
  * POST /api/research/generate-plan
  *
- * Uses AI to generate a comprehensive research plan based on a research question.
- * Includes methodology, timeline, resources, literature review strategy, data analysis plan.
+ * Generates a comprehensive research plan from a selected research question.
+ * Includes methodology, timeline, resources, literature review, data analysis,
+ * ethical considerations, and dissemination strategy.
+ * Adapts to research context (academic, OSINT, investigation, etc.).
  */
 
-import { getUserFromRequest } from '../_shared/auth-helpers'
-import { CORS_HEADERS, JSON_HEADERS, optionsResponse } from '../_shared/api-utils'
+import { requireAuth } from '../_shared/auth-helpers'
+import { callOpenAIViaGateway } from '../_shared/ai-gateway'
+import { JSON_HEADERS, optionsResponse } from '../_shared/api-utils'
 
 interface Env {
   DB?: D1Database
   OPENAI_API_KEY: string
   SESSIONS?: KVNamespace
+  AI_GATEWAY_ACCOUNT_ID?: string
 }
 
 interface GeneratePlanRequest {
-  researchQuestionId: string // ID from research_questions table
+  researchQuestionId?: string
   researchQuestion: string
-  duration: string
-  resources: string[]
-  experienceLevel: string
-  projectType: string
-  fiveWs: {
-    who: { population: string; subgroups?: string }
-    what: { variables: string; expectedOutcome?: string }
-    where: { location: string; specificSettings?: string }
-    when: { timePeriod: string; studyType: string }
-    why: { importance: string; beneficiaries?: string }
+  duration?: string
+  resources?: string[]
+  experienceLevel?: string
+  projectType?: string
+  fiveWs?: {
+    who?: { population: string; subgroups?: string }
+    what?: { variables: string; expectedOutcome?: string }
+    where?: { location: string; specificSettings?: string }
+    when?: { timePeriod: string; studyType?: string }
+    why?: { importance: string; beneficiaries?: string }
   }
-  // NEW: Research context and team structure
   researchContext?: 'academic' | 'osint' | 'investigation' | 'business' | 'journalism' | 'personal'
   teamSize?: 'solo' | 'small-team' | 'large-team'
   teamRoles?: string[]
@@ -44,8 +47,8 @@ interface Milestone {
 
 interface ResearchPlan {
   methodology: {
-    approach: string // "Quantitative", "Qualitative", "Mixed Methods"
-    design: string // "Experimental", "Survey", "Case Study", etc.
+    approach: string
+    design: string
     rationale: string
     dataCollection: string[]
     sampling: string
@@ -89,7 +92,6 @@ interface ResearchPlan {
     stakeholders: string[]
     formats: string[]
   }
-  // NEW: Team collaboration (optional, for team-based research)
   teamCollaboration?: {
     roles: Array<{ role: string; responsibilities: string[] }>
     communicationPlan: string
@@ -98,7 +100,6 @@ interface ResearchPlan {
   }
 }
 
-// Helper function to get context-specific prompts
 function getContextSpecificGuidance(context?: string): string {
   switch (context) {
     case 'osint':
@@ -108,7 +109,6 @@ OSINT-Specific Requirements:
 - Add OPSEC (Operational Security) considerations for researchers
 - Include digital footprint management guidelines
 - Provide attribution methodology for sources
-- Include threat modeling for sensitive investigations
 - Recommend specific OSINT tools and platforms (Maltego, Shodan, OSINT Framework, etc.)
 - Include data privacy and legal compliance measures`
 
@@ -119,7 +119,6 @@ Private Investigation Requirements:
 - Establish chain of custody procedures for evidence
 - Include client reporting schedules and deliverables
 - Add surveillance protocol guidelines (legal and ethical)
-- Include confidentiality and privacy protection measures
 - Provide documentation standards for court admissibility
 - Include risk assessment for investigator safety`
 
@@ -131,8 +130,7 @@ Business Research Requirements:
 - Include competitive intelligence gathering methods
 - Provide risk mitigation strategies
 - Add executive summary requirements
-- Include market sizing and validation approaches
-- Provide actionable business recommendations framework`
+- Include market sizing and validation approaches`
 
     case 'journalism':
       return `
@@ -142,7 +140,6 @@ Investigative Journalism Requirements:
 - Include editorial standards compliance
 - Provide public interest justification
 - Add legal review checkpoints
-- Include ethical consideration for sensitive topics
 - Provide publication timeline and format recommendations`
 
     case 'personal':
@@ -152,9 +149,7 @@ Personal/Hobby Research Requirements:
 - Recommend community resources and free tools
 - Include skill-building objectives
 - Provide low-cost or no-cost alternatives
-- Include passion-driven motivational elements
-- Suggest collaboration with hobbyist communities
-- Allow for exploratory and iterative approaches`
+- Suggest collaboration with hobbyist communities`
 
     case 'academic':
     default:
@@ -164,36 +159,125 @@ Academic Research Requirements:
 - Add comprehensive literature review strategy
 - Include peer review preparation guidelines
 - Provide academic publication targeting
-- Include conference presentation opportunities
 - Add academic rigor and methodology standards`
+  }
+}
+
+// Validate plan fields from AI response
+function validatePlan(raw: any): ResearchPlan {
+  const arr = (v: any) => Array.isArray(v) ? v.filter((s: any) => typeof s === 'string') : []
+  const str = (v: any, fb = '') => typeof v === 'string' ? v : fb
+  const bool = (v: any, fb = false) => typeof v === 'boolean' ? v : fb
+  const num = (v: any, fb = 0) => typeof v === 'number' ? v : fb
+
+  return {
+    methodology: {
+      approach: str(raw.methodology?.approach, 'Mixed Methods'),
+      design: str(raw.methodology?.design),
+      rationale: str(raw.methodology?.rationale),
+      dataCollection: arr(raw.methodology?.dataCollection),
+      sampling: str(raw.methodology?.sampling),
+      sampleSize: str(raw.methodology?.sampleSize),
+    },
+    timeline: {
+      totalDuration: str(raw.timeline?.totalDuration),
+      milestones: Array.isArray(raw.timeline?.milestones)
+        ? raw.timeline.milestones.map((m: any) => ({
+            phase: str(m?.phase),
+            tasks: arr(m?.tasks),
+            duration: str(m?.duration),
+            deliverables: arr(m?.deliverables),
+          }))
+        : [],
+      criticalPath: arr(raw.timeline?.criticalPath),
+    },
+    resources: {
+      personnel: arr(raw.resources?.personnel),
+      equipment: arr(raw.resources?.equipment),
+      software: arr(raw.resources?.software),
+      funding: str(raw.resources?.funding),
+      facilities: arr(raw.resources?.facilities),
+    },
+    literatureReview: {
+      databases: arr(raw.literatureReview?.databases),
+      searchTerms: arr(raw.literatureReview?.searchTerms),
+      inclusionCriteria: arr(raw.literatureReview?.inclusionCriteria),
+      exclusionCriteria: arr(raw.literatureReview?.exclusionCriteria),
+      expectedSources: num(raw.literatureReview?.expectedSources, 20),
+    },
+    dataAnalysis: {
+      quantitativeTests: arr(raw.dataAnalysis?.quantitativeTests),
+      qualitativeApproaches: arr(raw.dataAnalysis?.qualitativeApproaches),
+      software: arr(raw.dataAnalysis?.software),
+      validationMethods: arr(raw.dataAnalysis?.validationMethods),
+    },
+    ethicalConsiderations: {
+      irbRequired: bool(raw.ethicalConsiderations?.irbRequired),
+      riskLevel: str(raw.ethicalConsiderations?.riskLevel, 'Minimal'),
+      consentRequired: bool(raw.ethicalConsiderations?.consentRequired),
+      privacyMeasures: arr(raw.ethicalConsiderations?.privacyMeasures),
+      potentialRisks: arr(raw.ethicalConsiderations?.potentialRisks),
+    },
+    dissemination: {
+      targetJournals: arr(raw.dissemination?.targetJournals),
+      conferences: arr(raw.dissemination?.conferences),
+      stakeholders: arr(raw.dissemination?.stakeholders),
+      formats: arr(raw.dissemination?.formats),
+    },
+    ...(raw.teamCollaboration ? {
+      teamCollaboration: {
+        roles: Array.isArray(raw.teamCollaboration?.roles)
+          ? raw.teamCollaboration.roles.map((r: any) => ({
+              role: str(r?.role),
+              responsibilities: arr(r?.responsibilities),
+            }))
+          : [],
+        communicationPlan: str(raw.teamCollaboration?.communicationPlan),
+        taskDistribution: arr(raw.teamCollaboration?.taskDistribution),
+        collaborationTools: arr(raw.teamCollaboration?.collaborationTools),
+      }
+    } : {}),
   }
 }
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
-    const userId = await getUserFromRequest(context.request, context.env)
-    if (!userId) {
-      return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: JSON_HEADERS,
-      })
-    }
+    const userId = await requireAuth(context.request, context.env)
 
     const body = await context.request.json() as GeneratePlanRequest
 
-    if (!body.researchQuestion || !body.duration) {
+    if (!body.researchQuestion) {
       return new Response(JSON.stringify({
-        error: 'Missing required fields: researchQuestion, duration'
+        error: 'Missing required field: researchQuestion'
       }), {
         status: 400,
         headers: JSON_HEADERS
       })
     }
 
+    // Defaults for optional fields
+    const duration = body.duration || '3-6 months'
+    const resources = body.resources || []
+    const experienceLevel = body.experienceLevel || 'intermediate'
+    const projectType = body.projectType || 'General research'
+    const fiveWs = {
+      who: body.fiveWs?.who?.population ? body.fiveWs.who : { population: 'To be determined' },
+      what: body.fiveWs?.what?.variables ? body.fiveWs.what : { variables: 'To be determined' },
+      where: body.fiveWs?.where?.location ? body.fiveWs.where : { location: 'To be determined' },
+      when: body.fiveWs?.when?.timePeriod ? body.fiveWs.when : { timePeriod: 'To be determined', studyType: 'cross-sectional' },
+      why: body.fiveWs?.why?.importance ? body.fiveWs.why : { importance: 'As specified in research question' },
+    }
 
-    // Build AI prompt
     const contextGuidance = getContextSpecificGuidance(body.researchContext)
+    const contextLabel = body.researchContext
+      ? body.researchContext.charAt(0).toUpperCase() + body.researchContext.slice(1)
+      : 'General'
 
-    const systemPrompt = `You are an expert research methodologist and project manager. Generate a comprehensive, actionable research plan that follows best practices and is tailored to the researcher's experience level and available resources.
+    const teamInfo = body.teamSize && body.teamSize !== 'solo'
+      ? `\nTEAM STRUCTURE:\n- Team Size: ${body.teamSize === 'small-team' ? 'Small Team (2-5 people)' : 'Large Team (6+ people)'}${body.teamRoles?.length ? `\n- Team Roles: ${body.teamRoles.join(', ')}` : ''}\n`
+      : '\nTEAM STRUCTURE: Solo Researcher\n'
+
+    const systemPrompt = `You are an expert research methodologist and project manager. Generate a comprehensive, actionable research plan tailored to the researcher's context, experience level, and available resources.
 
 Your plan should be:
 - Realistic given the timeline and resources
@@ -228,18 +312,18 @@ Return ONLY valid JSON in this exact structure (no markdown, no explanation):
     "criticalPath": ["critical task 1", "critical task 2"]
   },
   "resources": {
-    "personnel": ["role 1", "role 2"],
+    "personnel": ["role 1"],
     "equipment": ["equipment 1"],
     "software": ["software 1"],
     "funding": "estimated budget range with breakdown",
     "facilities": ["facility 1"]
   },
   "literatureReview": {
-    "databases": ["database 1", "database 2"],
-    "searchTerms": ["term 1", "term 2"],
+    "databases": ["database 1"],
+    "searchTerms": ["term 1"],
     "inclusionCriteria": ["criterion 1"],
     "exclusionCriteria": ["criterion 1"],
-    "expectedSources": number
+    "expectedSources": 30
   },
   "dataAnalysis": {
     "quantitativeTests": ["test 1"],
@@ -248,9 +332,9 @@ Return ONLY valid JSON in this exact structure (no markdown, no explanation):
     "validationMethods": ["method 1"]
   },
   "ethicalConsiderations": {
-    "irbRequired": boolean,
+    "irbRequired": false,
     "riskLevel": "Minimal|Low|Moderate|High",
-    "consentRequired": boolean,
+    "consentRequired": false,
     "privacyMeasures": ["measure 1"],
     "potentialRisks": ["risk 1"]
   },
@@ -259,28 +343,14 @@ Return ONLY valid JSON in this exact structure (no markdown, no explanation):
     "conferences": ["conference 1"],
     "stakeholders": ["stakeholder 1"],
     "formats": ["format 1"]
-  },
+  }${body.teamSize && body.teamSize !== 'solo' ? `,
   "teamCollaboration": {
-    "roles": [{"role": "role name", "responsibilities": ["responsibility 1", "responsibility 2"]}],
-    "communicationPlan": "how team will communicate and coordinate",
-    "taskDistribution": ["distribution strategy 1", "distribution strategy 2"],
-    "collaborationTools": ["tool 1", "tool 2"]
-  }
-}
-
-NOTE: Only include "teamCollaboration" if this is team-based research (not solo). Omit it entirely for solo researchers.`
-
-    const contextLabel = body.researchContext
-      ? `${body.researchContext.charAt(0).toUpperCase() + body.researchContext.slice(1)}`
-      : 'General'
-
-    const teamInfo = body.teamSize && body.teamSize !== 'solo'
-      ? `
-TEAM STRUCTURE:
-- Team Size: ${body.teamSize === 'small-team' ? 'Small Team (2-5 people)' : 'Large Team (6+ people)'}
-${body.teamRoles && body.teamRoles.length > 0 ? `- Team Roles: ${body.teamRoles.join(', ')}` : ''}
-`
-      : '\nTEAM STRUCTURE: Solo Researcher\n'
+    "roles": [{"role": "role name", "responsibilities": ["responsibility 1"]}],
+    "communicationPlan": "how team will coordinate",
+    "taskDistribution": ["strategy 1"],
+    "collaborationTools": ["tool 1"]
+  }` : ''}
+}`
 
     const userPrompt = `Generate a comprehensive research plan for:
 
@@ -289,100 +359,83 @@ RESEARCH QUESTION: ${body.researchQuestion}
 RESEARCH TYPE: ${contextLabel}
 
 PROJECT DETAILS:
-- Type: ${body.projectType}
-- Duration: ${body.duration}
-- Experience Level: ${body.experienceLevel}
-- Available Resources: ${body.resources.join(', ')}
+- Type: ${projectType}
+- Duration: ${duration}
+- Experience Level: ${experienceLevel}
+${resources.length ? `- Available Resources: ${resources.join(', ')}` : ''}
 ${teamInfo}
 RESEARCH CONTEXT:
-- Population: ${body.fiveWs.who.population}${body.fiveWs.who.subgroups ? ` (subgroups: ${body.fiveWs.who.subgroups})` : ''}
-- Variables: ${body.fiveWs.what.variables}
-- Location: ${body.fiveWs.where.location}${body.fiveWs.where.specificSettings ? ` (${body.fiveWs.where.specificSettings})` : ''}
-- Time Period: ${body.fiveWs.when.timePeriod} (${body.fiveWs.when.studyType})
-- Importance: ${body.fiveWs.why.importance}
+- Population: ${fiveWs.who.population}${(fiveWs.who as any).subgroups ? ` (subgroups: ${(fiveWs.who as any).subgroups})` : ''}
+- Variables: ${fiveWs.what.variables}
+- Location: ${fiveWs.where.location}${(fiveWs.where as any).specificSettings ? ` (${(fiveWs.where as any).specificSettings})` : ''}
+- Time Period: ${fiveWs.when.timePeriod} (${(fiveWs.when as any).studyType || 'cross-sectional'})
+- Importance: ${fiveWs.why.importance}
 
-Generate a detailed, actionable research plan that:
-1. Recommends appropriate methodology (quantitative/qualitative/mixed)
-2. Provides realistic timeline with specific milestones
-3. Lists required resources and estimated budget
-4. Suggests literature review strategy
-5. Outlines data analysis approach
-6. Addresses ethical considerations
-7. Proposes dissemination strategy
-${body.teamSize && body.teamSize !== 'solo' ? '8. Includes team collaboration plan with role assignments and communication strategy' : ''}
+Make the plan specific to THIS research question and context, not generic advice.`
 
-Make the plan specific to THIS research question and research type, not generic advice. Consider the ${body.experienceLevel} experience level and ${body.duration} duration.${body.teamSize && body.teamSize !== 'solo' ? ` Include specific guidance for coordinating a ${body.teamSize === 'small-team' ? 'small' : 'large'} team.` : ''}`
-
-    // Call OpenAI API directly
-    const apiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${context.env.OPENAI_API_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
+    const response = await callOpenAIViaGateway(
+      context.env,
+      {
         model: 'gpt-4o-mini',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
         temperature: 0.6,
-        max_tokens: 3500,
+        max_completion_tokens: 3500,
         response_format: { type: 'json_object' }
-      }),
-      signal: AbortSignal.timeout(45000)
-    })
+      },
+      {
+        cacheTTL: 0, // Don't cache plans — they're personalized
+        metadata: { endpoint: 'generate-plan', userId },
+        timeout: 45000
+      }
+    )
 
-    if (!apiResponse.ok) {
-      const errorText = await apiResponse.text()
-      console.error('[generate-plan] OpenAI API error:', errorText)
-      throw new Error(`OpenAI API error ${apiResponse.status}: ${errorText}`)
+    if (!response?.choices?.[0]?.message?.content) {
+      throw new Error('No content in AI response')
     }
 
-    const response = await apiResponse.json()
-    let planContent = (response.choices?.[0]?.message?.content || '').trim()
-    // Strip markdown code fences if AI wraps JSON in ```json ... ```
+    let planContent = response.choices[0].message.content.trim()
     if (planContent.startsWith('```')) {
       planContent = planContent.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '')
     }
-    let plan: ResearchPlan
+
+    let rawPlan: any
     try {
-      plan = JSON.parse(planContent)
+      rawPlan = JSON.parse(planContent)
     } catch (parseError) {
       console.error('[generate-plan] Failed to parse AI response:', planContent.slice(0, 200))
       throw new Error('AI returned invalid JSON for research plan')
     }
 
+    const plan = validatePlan(rawPlan)
 
-    // Save plan to database if research question ID provided and DB is available
+    // Save plan to database if research question ID provided
     if (body.researchQuestionId && context.env.DB) {
       try {
         await context.env.DB.prepare(`
           UPDATE research_questions
-          SET custom_edits = ?
+          SET custom_edits = ?, updated_at = datetime('now')
           WHERE id = ?
         `).bind(
           JSON.stringify({ generatedPlan: plan, generatedAt: new Date().toISOString() }),
           body.researchQuestionId
         ).run()
-
-      } catch (error) {
-        console.error('[generate-plan] Failed to save plan:', error)
-        // Non-fatal - continue
+      } catch (dbError) {
+        console.error('[generate-plan] Failed to save plan:', dbError)
+        // Non-fatal — still return the plan
       }
     }
 
-    return new Response(JSON.stringify({
-      success: true,
-      plan
-    }), {
+    return new Response(JSON.stringify({ success: true, plan }), {
       headers: JSON_HEADERS
     })
   } catch (error) {
+    if (error instanceof Response) return error
     console.error('[generate-plan] Error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to generate research plan'
-
     }), {
       status: 500,
       headers: JSON_HEADERS
@@ -390,14 +443,12 @@ Make the plan specific to THIS research question and research type, not generic 
   }
 }
 
-// Reject GET requests (POST-only endpoint)
 export const onRequestGet: PagesFunction = async () => {
   return new Response(JSON.stringify({ error: 'Method not allowed. Use POST.' }), {
     status: 405, headers: JSON_HEADERS,
   })
 }
 
-// CORS preflight
 export const onRequestOptions: PagesFunction = async () => {
   return optionsResponse()
 }

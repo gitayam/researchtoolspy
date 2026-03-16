@@ -91,15 +91,22 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     const body = await context.request.json() as GenerateQuestionRequest
 
-    // Validate required fields
-    if (!body.topic || !body.who || !body.what || !body.where || !body.when || !body.why) {
+    // Validate required fields — only topic is truly required
+    if (!body.topic) {
       return new Response(JSON.stringify({
-        error: 'Missing required fields: topic, who, what, where, when, why'
+        error: 'Missing required field: topic'
       }), {
         status: 400,
         headers: JSON_HEADERS
       })
     }
+
+    // Default optional 5 W's so the prompt is always well-formed
+    const who = body.who?.population ? body.who : { population: 'To be determined', subgroups: '' }
+    const what = body.what?.variables ? body.what : { variables: 'To be determined', expectedOutcome: '' }
+    const where = body.where?.location ? body.where : { location: 'To be determined', specificSettings: '' }
+    const when = body.when?.timePeriod ? body.when : { timePeriod: 'To be determined', studyType: 'cross-sectional' as const }
+    const why = body.why?.importance ? body.why : { importance: 'To be determined', beneficiaries: '' }
 
 
     // Build AI prompt
@@ -158,22 +165,22 @@ Return ONLY valid JSON in this exact structure:
     const userPrompt = `Generate 3 research questions (broad, moderate, narrow scope) based on:
 
 TOPIC: ${body.topic}
-PURPOSE: ${body.purpose.join(', ')}
-PROJECT TYPE: ${body.projectType}
+${body.purpose?.length ? `PURPOSE: ${body.purpose.join(', ')}` : ''}
+${body.projectType ? `PROJECT TYPE: ${body.projectType}` : ''}
 
 5 W'S:
-- WHO: ${body.who.population}${body.who.subgroups ? ` (comparing ${body.who.subgroups})` : ''}
-- WHAT: ${body.what.variables}${body.what.expectedOutcome ? ` (expected: ${body.what.expectedOutcome})` : ''}
-- WHERE: ${body.where.location}${body.where.specificSettings ? ` (settings: ${body.where.specificSettings})` : ''}
-- WHEN: ${body.when.timePeriod} (${body.when.studyType})
-- WHY: ${body.why.importance}${body.why.beneficiaries ? ` (beneficiaries: ${body.why.beneficiaries})` : ''}
+- WHO: ${who.population}${who.subgroups ? ` (comparing ${who.subgroups})` : ''}
+- WHAT: ${what.variables}${what.expectedOutcome ? ` (expected: ${what.expectedOutcome})` : ''}
+- WHERE: ${where.location}${where.specificSettings ? ` (settings: ${where.specificSettings})` : ''}
+- WHEN: ${when.timePeriod} (${when.studyType})
+- WHY: ${why.importance}${why.beneficiaries ? ` (beneficiaries: ${why.beneficiaries})` : ''}
 
-CONSTRAINTS:
-- Duration: ${body.duration}
-- Resources: ${body.resources.join(', ')}
-- Experience Level: ${body.experienceLevel}
+${body.duration || body.resources?.length || body.experienceLevel ? `CONSTRAINTS:
+${body.duration ? `- Duration: ${body.duration}` : ''}
+${body.resources?.length ? `- Resources: ${body.resources.join(', ')}` : ''}
+${body.experienceLevel ? `- Experience Level: ${body.experienceLevel}` : ''}
 ${body.constraints ? `- Areas to Avoid: ${body.constraints}` : ''}
-${body.ethicalConsiderations ? `- Ethical Considerations: ${body.ethicalConsiderations}` : ''}
+${body.ethicalConsiderations ? `- Ethical Considerations: ${body.ethicalConsiderations}` : ''}` : ''}
 
 Generate 3 research questions with varying scope that are SMART and FINER compliant.`
 
@@ -221,7 +228,17 @@ Generate 3 research questions with varying scope that are SMART and FINER compli
       console.error('[generate-question] Failed to parse AI response:', aiContent.slice(0, 200))
       throw new Error('AI returned invalid JSON')
     }
-    const generatedQuestions: GeneratedQuestion[] = aiResponse.questions || []
+    const generatedQuestions: GeneratedQuestion[] = (aiResponse.questions || []).map((raw: any) => ({
+      question: typeof raw.question === 'string' ? raw.question : '',
+      smartAssessment: raw.smartAssessment && typeof raw.smartAssessment === 'object' ? raw.smartAssessment : {},
+      finerAssessment: raw.finerAssessment && typeof raw.finerAssessment === 'object' ? raw.finerAssessment : {},
+      nullHypothesis: typeof raw.nullHypothesis === 'string' ? raw.nullHypothesis : '',
+      alternativeHypothesis: typeof raw.alternativeHypothesis === 'string' ? raw.alternativeHypothesis : '',
+      keyVariables: Array.isArray(raw.keyVariables) ? raw.keyVariables.filter((v: any) => typeof v === 'string') : [],
+      dataCollectionMethods: Array.isArray(raw.dataCollectionMethods) ? raw.dataCollectionMethods.filter((v: any) => typeof v === 'string') : [],
+      potentialChallenges: Array.isArray(raw.potentialChallenges) ? raw.potentialChallenges.filter((v: any) => typeof v === 'string') : [],
+      overallScore: typeof raw.overallScore === 'number' ? Math.min(100, Math.max(0, raw.overallScore)) : 0,
+    })).filter((q: GeneratedQuestion) => q.question)
 
 
     // Optionally save to database
@@ -260,13 +277,7 @@ Generate 3 research questions with varying scope that are SMART and FINER compli
         body.topic,
         JSON.stringify(body.purpose),
         body.projectType,
-        JSON.stringify({
-          who: body.who,
-          what: body.what,
-          where: body.where,
-          when: body.when,
-          why: body.why
-        }),
+        JSON.stringify({ who, what, where, when, why }),
         body.duration,
         JSON.stringify(body.resources),
         body.experienceLevel,
@@ -284,11 +295,11 @@ Generate 3 research questions with varying scope that are SMART and FINER compli
       questions: generatedQuestions,
       summary: {
         topic: body.topic,
-        who: body.who.population,
-        what: body.what.variables,
-        where: body.where.location,
-        when: body.when.timePeriod,
-        why: body.why.importance
+        who: who.population,
+        what: what.variables,
+        where: where.location,
+        when: when.timePeriod,
+        why: why.importance
       }
     }), {
       headers: JSON_HEADERS
