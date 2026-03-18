@@ -224,10 +224,10 @@ export function BehaviourChangeWheel({
   }
 
   return (
-    <div className="flex h-full w-full" style={{ minHeight: '500px' }}>
+    <div className="flex h-full w-full overflow-x-hidden" style={{ minHeight: '500px' }}>
       {/* Wheel area */}
       <div
-        className="flex flex-1 flex-col items-center justify-center px-6 py-4 transition-all duration-400"
+        className="flex flex-1 flex-col items-center justify-center px-4 sm:px-6 py-4 motion-safe:transition-all motion-safe:duration-400"
         style={{ flex: panelMode ? 0.6 : 1 }}
       >
         <h2 className="mb-1 text-sm font-semibold uppercase tracking-wider text-[#94a3b8]">

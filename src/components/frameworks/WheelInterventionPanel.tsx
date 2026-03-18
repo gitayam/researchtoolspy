@@ -60,11 +60,11 @@ export function WheelInterventionPanel({
 }: WheelInterventionPanelProps) {
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      if (e.key === 'Escape' && isOpen) {
         onClose()
       }
     },
-    [onClose]
+    [isOpen, onClose]
   )
 
   useEffect(() => {
@@ -84,18 +84,18 @@ export function WheelInterventionPanel({
       aria-label={detail ? `${detail.name} intervention details` : 'Intervention details'}
       className={`
         h-full border-l border-[#2d3348] bg-[#1a1d27]
-        transition-all duration-300 ease-in-out
-        ${isOpen ? 'w-[420px]' : 'w-0 overflow-hidden'}
+        motion-safe:transition-all motion-safe:duration-300 motion-safe:ease-in-out
+        ${isOpen ? 'w-full sm:w-[420px]' : 'w-0 overflow-hidden'}
       `}
     >
       {detail && intervention && (
-        <div className="flex h-full w-[420px] flex-col">
+        <div className="flex h-full w-full sm:w-[420px] flex-col">
           {/* Header */}
           <div className="flex items-center justify-between border-b border-[#2d3348] px-5 py-4">
             <h2 className="text-lg font-semibold text-white">{detail.name}</h2>
             <button
               onClick={onClose}
-              className="rounded p-1 text-[#94a3b8] transition-colors hover:bg-[#2d3348] hover:text-white"
+              className="rounded p-2.5 text-[#94a3b8] transition-colors hover:bg-[#2d3348] hover:text-white focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 focus-visible:ring-offset-[#1a1d27]"
               aria-label="Close panel"
             >
               <X className="h-5 w-5" />

@@ -1,7 +1,7 @@
 import { useState, memo, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { ArrowLeft, Save, Plus, X, Link2, Sparkles, Loader2, Edit2, Check, Download, FileJson, Users, MapPin, Calendar } from 'lucide-react'
+import { ArrowLeft, Save, Plus, X, Link2, Sparkles, Loader2, Edit2, Check, Download, FileJson, Users, MapPin, Calendar, AlertTriangle } from 'lucide-react'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
 import { getCopHeaders } from '@/lib/cop-auth'
 import { createLogger } from '@/lib/logger'
@@ -233,7 +233,8 @@ const SectionCard = memo(({
                 onClick={() => onDeficitChange('adequate')}
                 className={deficitLevel === 'adequate' ? 'bg-green-600 hover:bg-green-700' : ''}
               >
-                ✓ Adequate
+                <Check className="mr-1 inline h-3.5 w-3.5" />
+                Adequate
               </Button>
               <Button
                 type="button"
@@ -242,7 +243,8 @@ const SectionCard = memo(({
                 onClick={() => onDeficitChange('deficit')}
                 className={deficitLevel === 'deficit' ? 'bg-orange-600 hover:bg-orange-700' : ''}
               >
-                ⚠ Deficit
+                <AlertTriangle className="mr-1 inline h-3.5 w-3.5" />
+                Deficit
               </Button>
               <Button
                 type="button"
@@ -251,7 +253,8 @@ const SectionCard = memo(({
                 onClick={() => onDeficitChange('major_barrier')}
                 className={deficitLevel === 'major_barrier' ? 'bg-red-600 hover:bg-red-700' : ''}
               >
-                ✖ Major Barrier
+                <X className="mr-1 inline h-3.5 w-3.5" />
+                Major Barrier
               </Button>
             </div>
           </div>

@@ -2,63 +2,65 @@ import { useState, useEffect, useCallback } from 'react'
 import type { ComBComponent, DeficitLevel } from '@/types/behavior-change-wheel'
 import type { ComBComponentAssessment } from '@/types/comb-analysis'
 import { Button } from '@/components/ui/button'
+import type { LucideIcon } from 'lucide-react'
+import { Dumbbell, Brain, Globe, Users, Target, Zap, Check, AlertTriangle, X } from 'lucide-react'
 
-const COMB_METADATA: Record<ComBComponent, { icon: string; name: string; description: string; color: string }> = {
+const COMB_METADATA: Record<ComBComponent, { icon: LucideIcon; name: string; description: string; color: string }> = {
   physical_capability: {
-    icon: '\u{1F4AA}',
+    icon: Dumbbell,
     name: 'Physical Capability',
     description: 'Physical skills, strength, and stamina needed to perform the behavior.',
     color: '#f97316',
   },
   psychological_capability: {
-    icon: '\u{1F9E0}',
+    icon: Brain,
     name: 'Psychological Capability',
     description: 'Knowledge, cognitive and interpersonal skills, memory, and behavioral regulation.',
     color: '#f59e0b',
   },
   physical_opportunity: {
-    icon: '\u{1F30D}',
+    icon: Globe,
     name: 'Physical Opportunity',
     description: 'Opportunity afforded by the environment — time, resources, locations, accessibility.',
     color: '#14b8a6',
   },
   social_opportunity: {
-    icon: '\u{1F465}',
+    icon: Users,
     name: 'Social Opportunity',
     description: 'Interpersonal influences, social cues, cultural norms, and group dynamics.',
     color: '#06b6d4',
   },
   reflective_motivation: {
-    icon: '\u{1F3AF}',
+    icon: Target,
     name: 'Reflective Motivation',
     description: 'Plans, evaluations, intentions, beliefs about identity, and conscious decisions.',
     color: '#6366f1',
   },
   automatic_motivation: {
-    icon: '\u26A1',
+    icon: Zap,
     name: 'Automatic Motivation',
     description: 'Emotional reactions, desires, impulses, inhibitions, and habitual patterns.',
     color: '#a855f7',
   },
 }
 
-const DEFICIT_OPTIONS: { value: DeficitLevel; label: string; icon: string; activeClass: string }[] = [
+const DEFICIT_OPTIONS: { value: DeficitLevel; label: string; icon: LucideIcon; activeClass: string }[] = [
   {
     value: 'adequate',
     label: 'Adequate',
-    icon: '\u2713',
+    icon: Check,
     activeClass: 'border-green-500 bg-green-500/10 text-green-500',
   },
   {
     value: 'deficit',
     label: 'Deficit',
-    icon: '\u26A0',
+    icon: AlertTriangle,
     activeClass: 'border-amber-500 bg-amber-500/10 text-amber-500',
   },
   {
     value: 'major_barrier',
     label: 'Major Barrier',
-    icon: '\u2716',
+    icon: X,
     activeClass: 'border-red-500 bg-red-500/10 text-red-500',
   },
 ]
@@ -181,18 +183,23 @@ export function WheelAssessmentPanel({
     <div
       role="dialog"
       aria-label={meta ? `${meta.name} Assessment` : 'COM-B Assessment'}
-      className={`relative flex-shrink-0 border-l border-[#2d3348] bg-[#1a1d27] transition-all duration-[400ms] ease-[cubic-bezier(0.4,0,0.2,1)] ${
-        isOpen ? 'w-[420px]' : 'w-0 overflow-hidden'
+      className={`relative flex-shrink-0 border-l border-[#2d3348] bg-[#1a1d27] motion-safe:transition-all motion-safe:duration-[400ms] ease-[cubic-bezier(0.4,0,0.2,1)] ${
+        isOpen ? 'w-full sm:w-[420px]' : 'w-0 overflow-hidden'
       }`}
     >
+      {!component && isOpen && (
+        <div className="flex h-full w-full sm:w-[420px] items-center justify-center text-sm text-[#64748b]">
+          Select a COM-B segment
+        </div>
+      )}
       {component && meta && (
-        <div className="flex h-full w-[420px] flex-col">
+        <div className="flex h-full w-full sm:w-[420px] flex-col">
           {/* Header */}
           <div className="flex items-center justify-between border-b border-[#2d3348] px-5 py-4">
             <h2 className="text-base font-semibold text-white">{meta.name}</h2>
             <button
               onClick={onClose}
-              className="flex h-8 w-8 items-center justify-center rounded-md text-[#94a3b8] transition-colors hover:bg-[#2d3348] hover:text-white"
+              className="flex h-8 w-8 items-center justify-center rounded-md text-[#94a3b8] transition-colors hover:bg-[#2d3348] hover:text-white focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 focus-visible:ring-offset-[#1a1d27]"
               aria-label="Close panel"
             >
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
@@ -205,7 +212,7 @@ export function WheelAssessmentPanel({
           <div className="flex-1 overflow-y-auto px-5 py-5">
             {/* Component info */}
             <div className="mb-5">
-              <span className="text-[32px] leading-none">{meta.icon}</span>
+              <meta.icon className="h-8 w-8" style={{ color: meta.color }} />
               <h3 className="mt-2 text-[20px] font-bold text-white">{meta.name}</h3>
               <p className="mt-1 text-[13px] leading-relaxed text-[#94a3b8]">{meta.description}</p>
             </div>

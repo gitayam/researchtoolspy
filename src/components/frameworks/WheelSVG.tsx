@@ -139,10 +139,8 @@ export function WheelSVG({
       <g
         role="group"
         aria-label="Policy Categories"
-        style={{
-          opacity: hasAnySelectedIntervention ? 1 : 0.12,
-          transition: 'opacity 0.6s ease',
-        }}
+        className="ring-transition"
+        style={{ opacity: hasAnySelectedIntervention ? 1 : 0.12 }}
       >
         {policyPaths.map((seg) => {
           const isActive = activePolicyIds.has(seg.id)
@@ -152,9 +150,9 @@ export function WheelSVG({
               <path
                 d={seg.d}
                 fill={isActive ? seg.activeColor : seg.color}
+                className="cursor-pointer segment-transition"
                 style={{
                   opacity: hasAnySelectedIntervention ? (isActive ? 1 : 0.3) : 1,
-                  transition: 'opacity 0.4s ease, fill 0.3s ease',
                   filter: isActive ? 'drop-shadow(0 0 6px rgba(14,165,233,0.4))' : 'none',
                 }}
                 role="button"
@@ -188,10 +186,8 @@ export function WheelSVG({
       <g
         role="group"
         aria-label="Intervention Functions"
-        style={{
-          opacity: hasAnyDeficit ? 1 : 0.12,
-          transition: 'opacity 0.6s ease',
-        }}
+        className="ring-transition"
+        style={{ opacity: hasAnyDeficit ? 1 : 0.12 }}
       >
         {interventionPaths.map((seg) => {
           const isRecommended = activeInterventionIds.has(seg.id)
@@ -202,9 +198,9 @@ export function WheelSVG({
               <path
                 d={seg.d}
                 fill={isSelected ? '#818cf8' : isRecommended ? seg.activeColor : seg.color}
+                className="cursor-pointer segment-transition"
                 style={{
                   opacity: hasAnyDeficit ? (isRecommended || isSelected ? 1 : 0.3) : 1,
-                  transition: 'opacity 0.4s ease, fill 0.3s ease',
                   filter: isSelected
                     ? 'drop-shadow(0 0 10px rgba(99,102,241,0.5))'
                     : isRecommended
@@ -250,8 +246,8 @@ export function WheelSVG({
               <path
                 d={seg.d}
                 fill={fill}
+                className="cursor-pointer segment-transition"
                 style={{
-                  transition: 'fill 0.3s ease, filter 0.3s ease',
                   filter: isActive ? 'brightness(1.3)' : 'none',
                 }}
                 role="button"
@@ -313,6 +309,16 @@ export function WheelSVG({
 
       {/* Pulse animation style for active COM-B segment */}
       <style>{`
+        .ring-transition { transition: opacity 0.3s ease; }
+        .segment-transition { transition: opacity 0.3s ease, fill 0.3s ease; }
+        @media (prefers-reduced-motion: reduce) {
+          .ring-transition, .segment-transition { transition: none; }
+        }
+        path:focus-visible {
+          outline: none;
+          stroke: #818cf8;
+          stroke-width: 3;
+        }
         @media (prefers-reduced-motion: no-preference) {
           @keyframes pulse-segment {
             0%, 100% { filter: brightness(1); }
