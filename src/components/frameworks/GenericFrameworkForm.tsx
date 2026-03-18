@@ -18,6 +18,7 @@ import { EvidenceLinker, EvidenceItemBadge, type LinkedEvidence } from '@/compon
 import { ExportButton } from '@/components/reports/ExportButton'
 import { BehaviorTimeline, type TimelineEvent } from '@/components/frameworks/BehaviorTimeline'
 import { BCWRecommendations } from '@/components/frameworks/BCWRecommendations'
+import { BehaviourChangeWheel } from '@/components/frameworks/BehaviourChangeWheel'
 import { BehaviorSelector } from '@/components/frameworks/BehaviorSelector'
 import { BehaviorBasicInfoForm } from '@/components/frameworks/BehaviorBasicInfoForm'
 import { AITimelineGenerator } from '@/components/frameworks/AITimelineGenerator'
@@ -748,6 +749,11 @@ export function GenericFrameworkForm({
     (initialData as any)?.selected_interventions || []
   )
 
+  // COM-B per-component assessments (evidence notes, supporting evidence)
+  const [comBAssessments, setComBAssessments] = useState<Record<string, { evidence_notes: string; supporting_evidence: string[] }>>(
+    (initialData as any)?.comb_assessments || {}
+  )
+
   // URL Import state for PMESII-PT and other frameworks
   const [importedSources, setImportedSources] = useState<Array<{
     id: string
@@ -1463,12 +1469,14 @@ export function GenericFrameworkForm({
         complexity,
         com_b_deficits: comBDeficits,
         selected_interventions: selectedInterventions,
+        comb_assessments: comBAssessments,
       }),
       ...(frameworkType === 'comb-analysis' && {
         linked_behavior_id: linkedBehaviorId,
         linked_behavior_title: linkedBehaviorTitle,
         com_b_deficits: comBDeficits,
         selected_interventions: selectedInterventions,
+        comb_assessments: comBAssessments,
       }),
     }
 
@@ -1606,6 +1614,7 @@ export function GenericFrameworkForm({
           complexity,
           com_b_deficits: comBDeficits,
           selected_interventions: selectedInterventions,
+          comb_assessments: comBAssessments,
         }),
         // Add linked behavior for COM-B Analysis
         ...(frameworkType === 'comb-analysis' && {
@@ -1613,6 +1622,7 @@ export function GenericFrameworkForm({
           linked_behavior_title: linkedBehaviorTitle,
           com_b_deficits: comBDeficits,
           selected_interventions: selectedInterventions,
+          comb_assessments: comBAssessments,
         }),
         // Add geographic context for PMESII-PT
         ...(frameworkType === 'pmesii-pt' && {
@@ -2068,13 +2078,28 @@ export function GenericFrameworkForm({
         })}
       </div>
 
-      {/* BCW Recommendations (Behaviour Change Wheel) - Only for behavior framework */}
-      {frameworkType === 'behavior' && (
-        <BCWRecommendations
-          deficits={comBDeficits}
-          selectedInterventions={selectedInterventions}
-          onInterventionSelect={setSelectedInterventions}
-        />
+      {/* Behaviour Change Wheel — interactive COM-B assessment */}
+      {(frameworkType === 'behavior' || frameworkType === 'comb-analysis') && (
+        <div className="rounded-xl border border-[#2d3348] bg-[#0f1117] overflow-hidden">
+          <BehaviourChangeWheel
+            deficits={comBDeficits}
+            assessments={comBAssessments}
+            selectedInterventions={selectedInterventions}
+            onDeficitChange={(component, level) =>
+              setComBDeficits((prev) => ({ ...prev, [component]: level }))
+            }
+            onAssessmentChange={(component, assessment) =>
+              setComBAssessments((prev) => ({
+                ...prev,
+                [component]: {
+                  evidence_notes: assessment.evidence_notes,
+                  supporting_evidence: assessment.supporting_evidence ?? [],
+                },
+              }))
+            }
+            onInterventionSelect={setSelectedInterventions}
+          />
+        </div>
       )}
 
       {/* Evidence Linker Modal */}

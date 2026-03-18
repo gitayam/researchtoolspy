@@ -22,6 +22,7 @@ import { generateRelationshipsFromCOG, generateRelationshipsFromCauseway } from 
 import { ExportButton } from '@/components/reports/ExportButton'
 import { BehaviorTimeline, type TimelineEvent } from '@/components/frameworks/BehaviorTimeline'
 import { BCWRecommendations } from '@/components/frameworks/BCWRecommendations'
+import { BehaviourChangeWheel } from '@/components/frameworks/BehaviourChangeWheel'
 import { LocationBadge } from '@/components/behavior/LocationBadge'
 import { CommentThread } from '@/components/comments/CommentThread'
 import { ShareButton } from './ShareButton'
@@ -785,13 +786,16 @@ export function GenericFrameworkView({
         })}
       </div>
 
-      {/* BCW Recommendations (Behaviour Change Wheel) - Only for COM-B Analysis framework */}
-      {frameworkType === 'comb-analysis' && data.com_b_deficits && (
-        <BCWRecommendations
-          deficits={data.com_b_deficits as ComBDeficits}
-          selectedInterventions={(data.selected_interventions as InterventionFunction[]) || []}
-          readOnly={true}
-        />
+      {/* Behaviour Change Wheel — read-only view */}
+      {(frameworkType === 'comb-analysis' || frameworkType === 'behavior') && data.com_b_deficits && (
+        <div className="rounded-xl border border-[#2d3348] bg-[#0f1117] overflow-hidden">
+          <BehaviourChangeWheel
+            deficits={data.com_b_deficits as ComBDeficits}
+            assessments={(data as any).comb_assessments || {}}
+            selectedInterventions={(data.selected_interventions as InterventionFunction[]) || []}
+            readOnly={true}
+          />
+        </div>
       )}
 
       {/* COM-B Analyses (for Behavior framework) */}

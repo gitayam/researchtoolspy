@@ -62,6 +62,8 @@ export interface COMBAnalysis {
   limitations?: string[] // Limitations of this analysis
 }
 
+export type ComBAssessmentsMap = COMBAnalysis['assessments']
+
 export interface BehaviorSelector {
   behavior_id: string
   behavior_title: string
