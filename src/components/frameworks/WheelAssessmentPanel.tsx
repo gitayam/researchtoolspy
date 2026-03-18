@@ -87,6 +87,10 @@ export function WheelAssessmentPanel({
   const [deficitLevel, setDeficitLevel] = useState<DeficitLevel>('adequate')
   const [evidenceNotes, setEvidenceNotes] = useState('')
   const [supportingEvidence, setSupportingEvidence] = useState('')
+  const [facilitators, setFacilitators] = useState<string[]>([])
+  const [barriers, setBarriers] = useState<string[]>([])
+  const [newFacilitator, setNewFacilitator] = useState('')
+  const [newBarrier, setNewBarrier] = useState('')
 
   // Reset local state when the active component changes
   useEffect(() => {
@@ -94,11 +98,17 @@ export function WheelAssessmentPanel({
       setDeficitLevel(assessment.deficit_level)
       setEvidenceNotes(assessment.evidence_notes)
       setSupportingEvidence(assessment.supporting_evidence?.join('\n') ?? '')
+      setFacilitators(assessment.facilitators ?? [])
+      setBarriers(assessment.barriers ?? [])
     } else {
       setDeficitLevel('adequate')
       setEvidenceNotes('')
       setSupportingEvidence('')
+      setFacilitators([])
+      setBarriers([])
     }
+    setNewFacilitator('')
+    setNewBarrier('')
   }, [component, assessment])
 
   // Escape key closes the panel
@@ -108,13 +118,37 @@ export function WheelAssessmentPanel({
         onClose()
       }
     },
-    [isOpen, onClose]
+    [isOpen, onClose],
   )
 
   useEffect(() => {
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [handleKeyDown])
+
+  const addFacilitator = () => {
+    const val = newFacilitator.trim()
+    if (val) {
+      setFacilitators((prev) => [...prev, val])
+      setNewFacilitator('')
+    }
+  }
+
+  const addBarrier = () => {
+    const val = newBarrier.trim()
+    if (val) {
+      setBarriers((prev) => [...prev, val])
+      setNewBarrier('')
+    }
+  }
+
+  const removeFacilitator = (idx: number) => {
+    setFacilitators((prev) => prev.filter((_, i) => i !== idx))
+  }
+
+  const removeBarrier = (idx: number) => {
+    setBarriers((prev) => prev.filter((_, i) => i !== idx))
+  }
 
   const handleSaveAndContinue = () => {
     if (!component) return
@@ -129,11 +163,17 @@ export function WheelAssessmentPanel({
       deficit_level: deficitLevel,
       evidence_notes: evidenceNotes,
       supporting_evidence: evidenceLines.length > 0 ? evidenceLines : undefined,
+      facilitators: facilitators.length > 0 ? facilitators : undefined,
+      barriers: barriers.length > 0 ? barriers : undefined,
     }
 
     onAssessmentChange(component, updated)
     onNext()
   }
+
+  // Compute visual balance
+  const totalFactors = facilitators.length + barriers.length
+  const balancePercent = totalFactors > 0 ? Math.round((facilitators.length / totalFactors) * 100) : 50
 
   const meta = component ? COMB_METADATA[component] : null
 
@@ -164,15 +204,131 @@ export function WheelAssessmentPanel({
           {/* Body (scrollable) */}
           <div className="flex-1 overflow-y-auto px-5 py-5">
             {/* Component info */}
-            <div className="mb-6">
+            <div className="mb-5">
               <span className="text-[32px] leading-none">{meta.icon}</span>
               <h3 className="mt-2 text-[20px] font-bold text-white">{meta.name}</h3>
               <p className="mt-1 text-[13px] leading-relaxed text-[#94a3b8]">{meta.description}</p>
             </div>
 
-            {/* Deficit Assessment */}
-            <div className="mb-6">
-              <label className="mb-2 block text-sm font-medium text-[#cbd5e1]">Deficit Assessment</label>
+            {/* Facilitators (Strengths) */}
+            <div className="mb-4">
+              <label className="mb-2 flex items-center gap-2 text-sm font-medium text-[#cbd5e1]">
+                <span className="inline-flex h-5 w-5 items-center justify-center rounded bg-green-500/20 text-xs text-green-400">+</span>
+                Facilitators
+                <span className="text-xs text-[#64748b]">— strengths that support this component</span>
+              </label>
+              <div className="flex gap-2">
+                <input
+                  value={newFacilitator}
+                  onChange={(e) => setNewFacilitator(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addFacilitator() } }}
+                  placeholder="e.g., Strong existing knowledge base"
+                  className="flex-1 rounded-lg border border-[#2d3348] bg-[#0f1117] px-3 py-2 text-sm text-white placeholder-[#475569] transition-colors focus:border-green-500 focus:outline-none"
+                />
+                <button
+                  onClick={addFacilitator}
+                  className="rounded-lg border border-green-500/30 bg-green-500/10 px-3 py-2 text-sm font-medium text-green-400 transition-colors hover:bg-green-500/20"
+                >
+                  Add
+                </button>
+              </div>
+              {facilitators.length > 0 && (
+                <ul className="mt-2 space-y-1">
+                  {facilitators.map((f, i) => (
+                    <li key={i} className="group flex items-start gap-2 rounded-md bg-green-500/5 px-3 py-1.5 text-sm text-green-300">
+                      <span className="mt-0.5 text-green-500">+</span>
+                      <span className="flex-1">{f}</span>
+                      <button
+                        onClick={() => removeFacilitator(i)}
+                        className="mt-0.5 text-[#475569] opacity-0 transition-opacity group-hover:opacity-100 hover:text-red-400"
+                        aria-label="Remove facilitator"
+                      >
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M3 3l6 6M9 3l-6 6" />
+                        </svg>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            {/* Barriers (Weaknesses) */}
+            <div className="mb-4">
+              <label className="mb-2 flex items-center gap-2 text-sm font-medium text-[#cbd5e1]">
+                <span className="inline-flex h-5 w-5 items-center justify-center rounded bg-red-500/20 text-xs text-red-400">-</span>
+                Barriers
+                <span className="text-xs text-[#64748b]">— weaknesses that hinder this component</span>
+              </label>
+              <div className="flex gap-2">
+                <input
+                  value={newBarrier}
+                  onChange={(e) => setNewBarrier(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addBarrier() } }}
+                  placeholder="e.g., Limited access to training materials"
+                  className="flex-1 rounded-lg border border-[#2d3348] bg-[#0f1117] px-3 py-2 text-sm text-white placeholder-[#475569] transition-colors focus:border-red-500 focus:outline-none"
+                />
+                <button
+                  onClick={addBarrier}
+                  className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/20"
+                >
+                  Add
+                </button>
+              </div>
+              {barriers.length > 0 && (
+                <ul className="mt-2 space-y-1">
+                  {barriers.map((b, i) => (
+                    <li key={i} className="group flex items-start gap-2 rounded-md bg-red-500/5 px-3 py-1.5 text-sm text-red-300">
+                      <span className="mt-0.5 text-red-500">-</span>
+                      <span className="flex-1">{b}</span>
+                      <button
+                        onClick={() => removeBarrier(i)}
+                        className="mt-0.5 text-[#475569] opacity-0 transition-opacity group-hover:opacity-100 hover:text-red-400"
+                        aria-label="Remove barrier"
+                      >
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M3 3l6 6M9 3l-6 6" />
+                        </svg>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            {/* Balance Indicator */}
+            {totalFactors > 0 && (
+              <div className="mb-5 rounded-lg border border-[#2d3348] bg-[#0f1117] p-3">
+                <div className="mb-2 flex items-center justify-between text-xs text-[#64748b]">
+                  <span>Facilitators ({facilitators.length})</span>
+                  <span>Barriers ({barriers.length})</span>
+                </div>
+                <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-[#1e2130]">
+                  <div
+                    className="rounded-l-full bg-green-500 transition-all duration-300"
+                    style={{ width: `${balancePercent}%` }}
+                  />
+                  <div
+                    className="rounded-r-full bg-red-500 transition-all duration-300"
+                    style={{ width: `${100 - balancePercent}%` }}
+                  />
+                </div>
+                <p className="mt-2 text-center text-xs text-[#94a3b8]">
+                  {balancePercent > 65
+                    ? 'Balance suggests adequate capability'
+                    : balancePercent < 35
+                      ? 'Balance suggests significant barriers'
+                      : 'Mixed — weigh the evidence below'}
+                </p>
+              </div>
+            )}
+
+            {/* Overall Deficit Judgment */}
+            <div className="mb-5">
+              <label className="mb-2 block text-sm font-medium text-[#cbd5e1]">
+                Overall Judgment
+                <span className="ml-1 text-xs text-[#64748b]">— your weighted assessment</span>
+              </label>
               <div className="grid grid-cols-3 gap-2">
                 {DEFICIT_OPTIONS.map((option) => {
                   const isActive = deficitLevel === option.value
@@ -196,14 +352,15 @@ export function WheelAssessmentPanel({
             {/* Evidence Notes */}
             <div className="mb-5">
               <label htmlFor="evidence-notes" className="mb-2 block text-sm font-medium text-[#cbd5e1]">
-                Evidence Notes
+                Reasoning
+                <span className="ml-1 text-xs text-[#64748b]">— why this judgment given the balance?</span>
               </label>
               <textarea
                 id="evidence-notes"
                 value={evidenceNotes}
                 onChange={(e) => setEvidenceNotes(e.target.value)}
-                placeholder="Why did you assess this component at this level? What evidence supports your assessment?"
-                rows={5}
+                placeholder="Despite some facilitators, the barriers are more critical because..."
+                rows={3}
                 className="w-full resize-none rounded-lg border border-[#2d3348] bg-[#0f1117] px-3 py-2.5 text-sm text-white placeholder-[#475569] transition-colors focus:border-indigo-500 focus:outline-none"
               />
             </div>
@@ -211,14 +368,14 @@ export function WheelAssessmentPanel({
             {/* Supporting Evidence */}
             <div className="mb-6">
               <label htmlFor="supporting-evidence" className="mb-2 block text-sm font-medium text-[#cbd5e1]">
-                Supporting Evidence
+                References
               </label>
               <textarea
                 id="supporting-evidence"
                 value={supportingEvidence}
                 onChange={(e) => setSupportingEvidence(e.target.value)}
-                placeholder="Links or references to supporting evidence (one per line)"
-                rows={3}
+                placeholder="Links or references (one per line)"
+                rows={2}
                 className="w-full resize-none rounded-lg border border-[#2d3348] bg-[#0f1117] px-3 py-2.5 text-sm text-white placeholder-[#475569] transition-colors focus:border-indigo-500 focus:outline-none"
               />
             </div>

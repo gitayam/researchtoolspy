@@ -28,7 +28,7 @@ import { COMB_SEGMENTS } from './wheel-geometry'
 
 export interface BehaviourChangeWheelProps {
   deficits: ComBDeficits
-  assessments?: Record<string, { evidence_notes: string; supporting_evidence: string[] }>
+  assessments?: Record<string, { evidence_notes: string; supporting_evidence: string[]; facilitators?: string[]; barriers?: string[] }>
   selectedInterventions?: InterventionFunction[]
   onDeficitChange?: (component: ComBComponent, level: DeficitLevel) => void
   onAssessmentChange?: (component: ComBComponent, assessment: ComBComponentAssessment) => void
@@ -140,6 +140,8 @@ export function BehaviourChangeWheel({
       deficit_level: deficits[activeComBComponent],
       evidence_notes: saved?.evidence_notes ?? '',
       supporting_evidence: saved?.supporting_evidence,
+      facilitators: (saved as any)?.facilitators,
+      barriers: (saved as any)?.barriers,
     }
   }, [activeComBComponent, deficits, assessments])
 

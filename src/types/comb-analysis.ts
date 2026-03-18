@@ -25,6 +25,8 @@ export interface ComBComponentAssessment {
   deficit_level: 'adequate' | 'deficit' | 'major_barrier'
   evidence_notes: string // Why did you assess this way?
   supporting_evidence?: string[] // Links to evidence items
+  facilitators?: string[] // Strengths / factors that support this component
+  barriers?: string[] // Weaknesses / factors that hinder this component
 }
 
 export interface COMBAnalysis {

@@ -749,8 +749,8 @@ export function GenericFrameworkForm({
     (initialData as any)?.selected_interventions || []
   )
 
-  // COM-B per-component assessments (evidence notes, supporting evidence)
-  const [comBAssessments, setComBAssessments] = useState<Record<string, { evidence_notes: string; supporting_evidence: string[] }>>(
+  // COM-B per-component assessments (evidence notes, supporting evidence, facilitators, barriers)
+  const [comBAssessments, setComBAssessments] = useState<Record<string, { evidence_notes: string; supporting_evidence: string[]; facilitators: string[]; barriers: string[] }>>(
     (initialData as any)?.comb_assessments || {}
   )
 
@@ -2094,6 +2094,8 @@ export function GenericFrameworkForm({
                 [component]: {
                   evidence_notes: assessment.evidence_notes,
                   supporting_evidence: assessment.supporting_evidence ?? [],
+                  facilitators: assessment.facilitators ?? [],
+                  barriers: assessment.barriers ?? [],
                 },
               }))
             }
