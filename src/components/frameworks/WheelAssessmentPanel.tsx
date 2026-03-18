@@ -178,6 +178,7 @@ export function WheelAssessmentPanel({
   const balancePercent = totalFactors > 0 ? Math.round((facilitators.length / totalFactors) * 100) : 50
 
   const meta = component ? COMB_METADATA[component] : null
+  const MetaIcon = meta?.icon ?? null
 
   return (
     <div
@@ -212,7 +213,7 @@ export function WheelAssessmentPanel({
           <div className="flex-1 overflow-y-auto px-5 py-5">
             {/* Component info */}
             <div className="mb-5">
-              <meta.icon className="h-8 w-8" style={{ color: meta.color }} />
+              {MetaIcon && <MetaIcon className="h-8 w-8" style={{ color: meta.color }} />}
               <h3 className="mt-2 text-[20px] font-bold text-white">{meta.name}</h3>
               <p className="mt-1 text-[13px] leading-relaxed text-[#94a3b8]">{meta.description}</p>
             </div>
@@ -247,7 +248,7 @@ export function WheelAssessmentPanel({
                       <span className="flex-1">{f}</span>
                       <button
                         onClick={() => removeFacilitator(i)}
-                        className="mt-0.5 text-[#475569] opacity-0 transition-opacity group-hover:opacity-100 hover:text-red-400"
+                        className="mt-0.5 p-3 -m-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-[#475569] opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-1 focus-visible:ring-red-400 hover:text-red-400"
                         aria-label="Remove facilitator"
                       >
                         <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2">
@@ -290,7 +291,7 @@ export function WheelAssessmentPanel({
                       <span className="flex-1">{b}</span>
                       <button
                         onClick={() => removeBarrier(i)}
-                        className="mt-0.5 text-[#475569] opacity-0 transition-opacity group-hover:opacity-100 hover:text-red-400"
+                        className="mt-0.5 p-3 -m-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-[#475569] opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-1 focus-visible:ring-red-400 hover:text-red-400"
                         aria-label="Remove barrier"
                       >
                         <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2">
@@ -310,7 +311,14 @@ export function WheelAssessmentPanel({
                   <span>Facilitators ({facilitators.length})</span>
                   <span>Barriers ({barriers.length})</span>
                 </div>
-                <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-[#1e2130]">
+                <div
+                  className="flex h-2.5 w-full overflow-hidden rounded-full bg-[#1e2130]"
+                  role="meter"
+                  aria-valuenow={balancePercent}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-label={`Facilitator-barrier balance: ${balancePercent}% facilitators, ${100 - balancePercent}% barriers`}
+                >
                   <div
                     className="rounded-l-full bg-green-500 transition-all duration-300"
                     style={{ width: `${balancePercent}%` }}
@@ -339,6 +347,7 @@ export function WheelAssessmentPanel({
               <div className="grid grid-cols-3 gap-2">
                 {DEFICIT_OPTIONS.map((option) => {
                   const isActive = deficitLevel === option.value
+                  const Icon = option.icon
                   return (
                     <button
                       key={option.value}
@@ -348,7 +357,7 @@ export function WheelAssessmentPanel({
                         isActive ? option.activeClass : 'border-[#2d3348] text-[#94a3b8] hover:border-[#475569]'
                       }`}
                     >
-                      <span className="mr-1">{option.icon}</span>
+                      <Icon className="mr-1 inline h-3.5 w-3.5" />
                       {option.label}
                     </button>
                   )
