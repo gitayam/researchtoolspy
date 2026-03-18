@@ -93,6 +93,8 @@ export default function LandingPage() {
       { pattern: /^rage(\s+check)?$/i, route: '/dashboard/tools/rage-check', name: 'RageCheck' },
       { pattern: /^behavior(\s+analysis)?(\s+framework)?$/i, route: '/dashboard/analysis-frameworks/behavior', name: 'Behavior' },
       { pattern: /^com(-|\s)?b(\s+analysis)?(\s+framework)?$/i, route: '/dashboard/analysis-frameworks/comb-analysis', name: 'COM-B' },
+      { pattern: /^bcw(\s+framework)?$/i, route: '/dashboard/analysis-frameworks/comb-analysis', name: 'Behaviour Change Wheel' },
+      { pattern: /^behavio(u)?r(\s+)?change(\s+)?wheel$/i, route: '/dashboard/analysis-frameworks/comb-analysis', name: 'Behaviour Change Wheel' },
       { pattern: /^starbursting(\s+framework)?$/i, route: '/dashboard/analysis-frameworks/starbursting', name: 'Starbursting' },
       { pattern: /^causeway(\s+framework)?$/i, route: '/dashboard/analysis-frameworks/causeway', name: 'Causeway' },
       { pattern: /^stakeholder(\s+analysis)?(\s+framework)?$/i, route: '/dashboard/analysis-frameworks/stakeholder', name: 'Stakeholder' },
@@ -374,6 +376,7 @@ export default function LandingPage() {
               { name: t('frameworks.dotmlpf'), route: '/dashboard/analysis-frameworks/dotmlpf' },
               { name: t('frameworks.deception'), route: '/dashboard/analysis-frameworks/deception' },
               { name: t('frameworks.behavior'), route: '/dashboard/analysis-frameworks/behavior' },
+              { name: 'COM-B / BCW', route: '/dashboard/analysis-frameworks/comb-analysis' },
               { name: t('frameworks.starbursting'), route: '/dashboard/analysis-frameworks/starbursting' },
               { name: t('frameworks.causeway'), route: '/dashboard/analysis-frameworks/causeway' },
               { name: t('frameworks.dime'), route: '/dashboard/analysis-frameworks/dime' }
