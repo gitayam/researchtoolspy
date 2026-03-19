@@ -16,7 +16,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
+      - run: npm ci --legacy-peer-deps
       - run: npx tsc -b --noEmit
 
   lint:
@@ -28,7 +28,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
+      - run: npm ci --legacy-peer-deps
       - run: npx eslint . --max-warnings 0
     continue-on-error: true
 
@@ -42,7 +42,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
+      - run: npm ci --legacy-peer-deps
       - run: npx vite build
       - uses: actions/upload-artifact@v4
         with:
@@ -61,7 +61,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
+      - run: npm ci --legacy-peer-deps
       - run: npx playwright install --with-deps chromium
       - run: npx playwright test --grep @smoke --reporter=list
         continue-on-error: true
