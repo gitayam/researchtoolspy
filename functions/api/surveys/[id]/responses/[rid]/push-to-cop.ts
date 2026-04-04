@@ -42,7 +42,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     // Get the response
     const response = await env.DB.prepare(
-      'SELECT * FROM survey_responses WHERE id = ? AND survey_id = ?'
+      `SELECT id, survey_id, form_data, submitter_name, submitter_contact,
+              lat, lon, submitter_country, submitter_city, status,
+              cop_session_id, linked_evidence_id, created_at
+       FROM survey_responses WHERE id = ? AND survey_id = ?`
     ).bind(responseId, surveyId).first<any>()
 
     if (!response) {

@@ -46,7 +46,11 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       return new Response(JSON.stringify({ error: 'Invalid status filter' }), { status: 400, headers: JSON_HEADERS })
     }
 
-    let query = 'SELECT * FROM survey_responses WHERE survey_id = ?'
+    let query = `SELECT id, survey_id, form_data, submitter_name, submitter_contact,
+             lat, lon, submitter_country, submitter_city, status,
+             triaged_by, rejection_reason, cop_session_id, linked_evidence_id,
+             created_at, updated_at
+      FROM survey_responses WHERE survey_id = ?`
     const bindings: any[] = [surveyId]
 
     if (statusFilter) {

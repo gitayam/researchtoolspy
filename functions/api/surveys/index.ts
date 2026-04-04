@@ -33,7 +33,13 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       return new Response(JSON.stringify({ error: 'Invalid status filter' }), { status: 400, headers: JSON_HEADERS })
     }
 
-    let query = 'SELECT * FROM survey_drops WHERE created_by = ?'
+    let query = `SELECT id, title, description, form_schema, share_token, status,
+             access_level, allowed_countries, rate_limit_per_hour, custom_slug,
+             expires_at, theme_color, logo_url, success_message, redirect_url,
+             auto_tag_category, require_location, require_contact, submission_count,
+             cop_session_id, workspace_id, created_by, created_at, updated_at,
+             CASE WHEN password_hash IS NOT NULL THEN 1 ELSE 0 END as has_password
+      FROM survey_drops WHERE created_by = ?`
     const bindings: any[] = [userId]
 
     if (statusFilter) {
@@ -46,6 +52,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     const result = await env.DB.prepare(query).bind(...bindings).all()
     const surveys = (result.results || []).map((row: any) => ({
       ...row,
+      has_password: !!row.has_password,
       form_schema: safeJsonParse(row.form_schema, []),
       allowed_countries: safeJsonParse(row.allowed_countries, []),
     }))
