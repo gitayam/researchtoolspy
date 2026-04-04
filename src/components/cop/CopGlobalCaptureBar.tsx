@@ -1,12 +1,12 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { getCopHeaders } from '@/lib/cop-auth'
-import { Link, Brain, Loader2, Sparkles, Command, MapPin } from 'lucide-react'
+import { Link, Brain, Loader2, Sparkles, Command, MapPin, ClipboardList } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
 interface CopGlobalCaptureBarProps {
   sessionId: string
-  onSuccess?: (type: 'evidence' | 'hypothesis' | 'note') => void
+  onSuccess?: (type: 'evidence' | 'hypothesis' | 'note' | 'survey') => void
   onLocationDetected?: (location: string, evidenceId: string) => void
 }
 
@@ -20,6 +20,7 @@ export default function CopGlobalCaptureBar({ sessionId, onSuccess, onLocationDe
   // Detect type based on input
   const isUrl = input.trim().match(/^https?:\/\//)
   const isHypothesis = input.trim().toLowerCase().startsWith('hypothesis:') || input.trim().toLowerCase().startsWith('maybe:')
+  const isSurvey = input.trim().toLowerCase().startsWith('survey:') || input.trim().toLowerCase().startsWith('form:')
 
   const handleCapture = useCallback(async () => {
     const trimmed = input.trim()
@@ -32,9 +33,14 @@ export default function CopGlobalCaptureBar({ sessionId, onSuccess, onLocationDe
     try {
       let endpoint = '/api/content-intelligence/analyze-url'
       let body: any = { url: trimmed, workspace_id: sessionId }
-      let type: 'evidence' | 'hypothesis' | 'note' = 'evidence'
+      let type: 'evidence' | 'hypothesis' | 'note' | 'survey' = 'evidence'
 
-      if (isHypothesis) {
+      if (isSurvey) {
+        const surveyTitle = trimmed.replace(/^(survey|form):/i, '').trim() || 'Untitled Survey'
+        endpoint = '/api/surveys'
+        body = { title: surveyTitle, status: 'active', cop_session_id: sessionId }
+        type = 'survey'
+      } else if (isHypothesis) {
         endpoint = `/api/cop/${sessionId}/hypotheses`
         body = { statement: trimmed.replace(/^(hypothesis|maybe):/i, '').trim() }
         type = 'hypothesis'
@@ -62,12 +68,19 @@ export default function CopGlobalCaptureBar({ sessionId, onSuccess, onLocationDe
       }
 
       const data = await res.json()
-      const evidenceId = data.id ?? data.analysis_id ?? data.evidence_id
 
-      // Simplified geocoding detection from analysis result
-      const locationMatch = (data.summary ?? data.title ?? '').match(/in ([\w\s,]{3,30})/i)
-      if (locationMatch && evidenceId) {
-        setDetection({ location: locationMatch[1], evidenceId: String(evidenceId) })
+      // For surveys, show the share link
+      if (type === 'survey' && data.share_token) {
+        const shareUrl = `${window.location.origin}/drop/${data.share_token}`
+        navigator.clipboard.writeText(shareUrl).catch(() => {})
+        setDetection({ location: `Survey link copied: ${shareUrl}`, evidenceId: '' })
+      } else {
+        const evidenceId = data.id ?? data.analysis_id ?? data.evidence_id
+        // Simplified geocoding detection from analysis result
+        const locationMatch = (data.summary ?? data.title ?? '').match(/in ([\w\s,]{3,30})/i)
+        if (locationMatch && evidenceId) {
+          setDetection({ location: locationMatch[1], evidenceId: String(evidenceId) })
+        }
       }
 
       setInput('')
@@ -77,7 +90,7 @@ export default function CopGlobalCaptureBar({ sessionId, onSuccess, onLocationDe
     } finally {
       setLoading(false)
     }
-  }, [input, sessionId, isUrl, isHypothesis, onSuccess])
+  }, [input, sessionId, isUrl, isHypothesis, isSurvey, onSuccess])
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
@@ -107,6 +120,8 @@ export default function CopGlobalCaptureBar({ sessionId, onSuccess, onLocationDe
           <div className="absolute left-3 flex items-center gap-1.5 pointer-events-none">
             {loading ? (
               <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />
+            ) : isSurvey ? (
+              <ClipboardList className="h-4 w-4 text-cyan-500 dark:text-cyan-400" />
             ) : isUrl ? (
               <Link className="h-4 w-4 text-blue-500 dark:text-blue-400" />
             ) : isHypothesis ? (
@@ -122,11 +137,12 @@ export default function CopGlobalCaptureBar({ sessionId, onSuccess, onLocationDe
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Drop a URL, type a quick note, or start with 'Hypothesis:'..."
+            placeholder="URL, note, 'Hypothesis:', or 'Survey: title' to create a form..."
             className={cn(
               "w-full bg-gray-50 dark:bg-gray-800/50 border border-gray-300 dark:border-gray-700 rounded-lg pl-10 pr-24 py-2.5 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/50",
+              isSurvey && "focus:ring-cyan-500/50",
               isHypothesis && "focus:ring-emerald-500/50",
-              !isUrl && !isHypothesis && input.trim() && "focus:ring-purple-500/50"
+              !isUrl && !isHypothesis && !isSurvey && input.trim() && "focus:ring-purple-500/50"
             )}
           />
 
@@ -143,7 +159,7 @@ export default function CopGlobalCaptureBar({ sessionId, onSuccess, onLocationDe
               disabled={loading || !input.trim()}
               className={cn(
                 "h-7 text-[10px] px-3 font-bold uppercase tracking-tighter transition-all cursor-pointer",
-                isHypothesis ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "bg-blue-600 hover:bg-blue-700 text-white"
+                isSurvey ? "bg-cyan-600 hover:bg-cyan-700 text-white" : isHypothesis ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "bg-blue-600 hover:bg-blue-700 text-white"
               )}
             >
               {loading ? "Capturing..." : "Capture"}
@@ -161,7 +177,7 @@ export default function CopGlobalCaptureBar({ sessionId, onSuccess, onLocationDe
           <div className="flex items-center gap-3 ml-10 animate-in fade-in slide-in-from-top-1">
              <span className="text-[10px] text-gray-500 dark:text-gray-400">
                Routing to: <span className="font-bold text-gray-700 dark:text-gray-300">
-                 {isUrl ? "Evidence Feed (URL Analysis)" : isHypothesis ? "Hypothesis Ledger" : "Evidence Feed (Quick Note)"}
+                 {isSurvey ? "Create Survey Drop" : isUrl ? "Evidence Feed (URL Analysis)" : isHypothesis ? "Hypothesis Ledger" : "Evidence Feed (Quick Note)"}
                </span>
              </span>
              <span className="text-[10px] text-gray-500 dark:text-gray-400">Press Cmd+Enter to send</span>

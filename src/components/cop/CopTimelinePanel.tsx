@@ -493,16 +493,16 @@ export default function CopTimelinePanel({ sessionId, expanded, onScrollToPanel 
             >
               {pendingClassification.importance}
             </button>
-            <button
-              type="button"
-              onClick={() => {
-                const newDate = prompt('Event date (YYYY-MM-DD):', pendingClassification.eventDate)
-                if (newDate) setPendingClassification(prev => prev ? { ...prev, eventDate: newDate } : null)
+            <input
+              type="date"
+              value={pendingClassification.eventDate}
+              onChange={(e) => {
+                if (e.target.value) {
+                  setPendingClassification(prev => prev ? { ...prev, eventDate: e.target.value } : null)
+                }
               }}
-              className="px-1.5 py-0.5 text-[10px] rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 cursor-pointer font-mono"
-            >
-              {pendingClassification.eventDate}
-            </button>
+              className="px-1.5 py-0.5 text-[10px] rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 cursor-pointer font-mono border-none outline-none focus:ring-1 focus:ring-indigo-500"
+            />
             <Button
               size="sm"
               onClick={() => handleManualEntry(pendingClassification.text)}

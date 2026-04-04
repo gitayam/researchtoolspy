@@ -576,7 +576,11 @@ export const EXPORT_FORMAT_CONFIG: Record<ExportFormat, { label: string; ext: st
 
 // -- COP Intake Forms & Submissions (Phase 2: Crowdsource/Ingest) --
 
-export type IntakeFormFieldType = 'text' | 'textarea' | 'number' | 'datetime' | 'select' | 'multiselect' | 'file' | 'checkbox'
+export type IntakeFormFieldType =
+  | 'text' | 'textarea' | 'number' | 'datetime' | 'select' | 'multiselect' | 'file' | 'checkbox'
+  // OSINT field types
+  | 'url' | 'email' | 'phone' | 'ip_address' | 'onion' | 'crypto_address'
+  | 'geopoint' | 'rating' | 'likert' | 'country' | 'handle'
 
 export interface IntakeFormField {
   name: string
@@ -584,12 +588,17 @@ export interface IntakeFormField {
   label: string
   required?: boolean
   placeholder?: string
-  options?: string[]  // For select/multiselect
-  accept?: string     // For file (e.g., "image/*")
+  options?: string[]     // For select/multiselect/likert
+  accept?: string        // For file (e.g., "image/*")
+  min?: number           // For number/rating
+  max?: number           // For number/rating
+  help_text?: string     // Shown below the field
 }
 
 export type IntakeFormStatus = 'draft' | 'active' | 'closed'
 export type SubmissionStatus = 'pending' | 'triaged' | 'accepted' | 'rejected'
+
+export type IntakeAccessLevel = 'public' | 'password' | 'internal'
 
 export interface CopIntakeForm {
   id: string
@@ -607,6 +616,16 @@ export interface CopIntakeForm {
   workspace_id: string
   created_at: string
   updated_at: string
+  // Survey Drops extensions
+  access_level: IntakeAccessLevel
+  allowed_countries: string[]
+  rate_limit_per_hour: number
+  custom_slug: string | null
+  expires_at: string | null
+  theme_color: string | null
+  logo_url: string | null
+  success_message: string | null
+  redirect_url: string | null
 }
 
 export interface CopSubmission {
@@ -624,6 +643,60 @@ export interface CopSubmission {
   linked_evidence_id: string | null
   linked_task_id: string | null
   created_at: string
+  // Survey Drops extensions
+  submitter_country: string | null
+  submitter_city: string | null
+  content_hash: string | null
+  updated_at: string | null
+}
+
+// -- Survey Drops (Standalone) --
+
+export interface SurveyDrop {
+  id: string
+  title: string
+  description: string | null
+  form_schema: IntakeFormField[]
+  share_token: string
+  status: IntakeFormStatus
+  access_level: IntakeAccessLevel
+  allowed_countries: string[]
+  rate_limit_per_hour: number
+  custom_slug: string | null
+  expires_at: string | null
+  theme_color: string | null
+  logo_url: string | null
+  success_message: string | null
+  redirect_url: string | null
+  auto_tag_category: string | null
+  require_location: number
+  require_contact: number
+  submission_count: number
+  cop_session_id: string | null
+  workspace_id: string
+  created_by: number
+  created_at: string
+  updated_at: string
+}
+
+export interface SurveyResponse {
+  id: string
+  survey_id: string
+  form_data: Record<string, unknown>
+  submitter_name: string | null
+  submitter_contact: string | null
+  lat: number | null
+  lon: number | null
+  submitter_country: string | null
+  submitter_city: string | null
+  content_hash: string | null
+  status: SubmissionStatus
+  triaged_by: number | null
+  rejection_reason: string | null
+  cop_session_id: string | null
+  linked_evidence_id: string | null
+  created_at: string
+  updated_at: string | null
 }
 
 // -- COP Playbooks (Phase 6: Playbook Engine) --

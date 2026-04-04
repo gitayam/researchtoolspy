@@ -26,6 +26,7 @@ export const CORS_HEADERS = {
 export const JSON_HEADERS = {
   ...CORS_HEADERS,
   'Content-Type': 'application/json',
+  'X-Content-Type-Options': 'nosniff',
 } as const
 
 /** Safe JSON.parse — returns fallback on malformed data instead of throwing */

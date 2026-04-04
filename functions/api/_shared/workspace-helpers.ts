@@ -27,12 +27,17 @@ export async function checkWorkspaceAccess(
   // Default workspace "1" — auto-grant for all authenticated users
   if (workspaceId === '1') return true
 
-  // COP session workspaces — access controlled by session sharing, not workspace ACL
+  // COP session workspaces — verify user owns or collaborates on the session
   if (workspaceId.startsWith('cop-')) {
     const session = await env.DB.prepare(
-      'SELECT id FROM cop_sessions WHERE workspace_id = ?'
-    ).bind(workspaceId).first()
-    if (session) return true
+      'SELECT id, created_by FROM cop_sessions WHERE workspace_id = ?'
+    ).bind(workspaceId).first<{ id: string; created_by: number }>()
+    if (!session) return false
+    if (String(session.created_by) === String(userId)) return true
+    const collab = await env.DB.prepare(
+      'SELECT 1 FROM cop_collaborators WHERE cop_session_id = ? AND user_id = ?'
+    ).bind(session.id, userId).first()
+    return !!collab
   }
 
   const workspace = await env.DB.prepare(

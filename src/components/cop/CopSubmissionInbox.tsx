@@ -1,7 +1,9 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useEffect, useRef, lazy, Suspense } from 'react'
 import { getCopHeaders } from '../../lib/cop-auth'
-import { Inbox, Check, X, FileText, MapPin, Clock, ChevronDown, ChevronUp } from 'lucide-react'
+import { Inbox, Check, X, FileText, MapPin, Clock, ChevronDown, ChevronUp, Plus, Link2, Copy } from 'lucide-react'
 import type { CopSubmission } from '../../types/cop'
+
+const CopIntakeFormBuilder = lazy(() => import('./CopIntakeFormBuilder'))
 
 interface CopSubmissionInboxProps {
   sessionId: string
@@ -21,6 +23,9 @@ export default function CopSubmissionInbox({ sessionId, expanded }: CopSubmissio
   const [filter, setFilter] = useState<string>('pending')
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const intervalRef = useRef<ReturnType<typeof setInterval>>(undefined)
+  const [tab, setTab] = useState<'inbox' | 'forms'>('inbox')
+  const [showBuilder, setShowBuilder] = useState(false)
+  const [createdLink, setCreatedLink] = useState<string | null>(null)
 
   const fetchSubmissions = useCallback(async (signal?: AbortSignal) => {
     try {
@@ -81,13 +86,81 @@ export default function CopSubmissionInbox({ sessionId, expanded }: CopSubmissio
 
   return (
     <div className="flex flex-col h-full">
+      {/* Tab bar + actions */}
+      <div className="flex items-center justify-between px-2 py-1.5 border-b border-slate-200 dark:border-slate-800">
+        <div className="flex items-center gap-1">
+          {(['inbox', 'forms'] as const).map(t => (
+            <button
+              key={t}
+              onClick={() => { setTab(t); setShowBuilder(false); setCreatedLink(null) }}
+              className={`text-[10px] px-2 py-0.5 rounded-full transition-colors cursor-pointer ${
+                tab === t ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'
+              }`}
+            >
+              {t === 'inbox' ? 'Submissions' : 'Forms'}
+            </button>
+          ))}
+        </div>
+        {tab === 'forms' && (
+          <button
+            onClick={() => { setShowBuilder(!showBuilder); setCreatedLink(null) }}
+            className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30 transition-colors cursor-pointer"
+          >
+            <Plus className="h-3 w-3" /> New Form
+          </button>
+        )}
+      </div>
+
+      {/* Forms tab */}
+      {tab === 'forms' && (
+        <div className="flex-1 overflow-y-auto">
+          {createdLink && (
+            <div className="mx-2 mt-2 p-2 rounded bg-emerald-500/10 border border-emerald-500/20 space-y-1">
+              <p className="text-[10px] font-medium text-emerald-400">Form created! Share link:</p>
+              <div className="flex items-center gap-1">
+                <code className="text-[10px] text-emerald-300 bg-emerald-500/10 px-1.5 py-0.5 rounded flex-1 truncate">{createdLink}</code>
+                <button
+                  onClick={() => { navigator.clipboard.writeText(createdLink); }}
+                  className="shrink-0 p-1 rounded hover:bg-emerald-500/20 text-emerald-400 cursor-pointer"
+                  title="Copy link"
+                >
+                  <Copy className="h-3 w-3" />
+                </button>
+              </div>
+            </div>
+          )}
+          {showBuilder && (
+            <Suspense fallback={<div className="p-4 text-xs text-muted-foreground text-center">Loading builder...</div>}>
+              <CopIntakeFormBuilder
+                sessionId={sessionId}
+                onSaved={(_id, shareToken) => {
+                  const link = `${window.location.origin}/drop/${shareToken}`
+                  setCreatedLink(link)
+                  setShowBuilder(false)
+                  navigator.clipboard.writeText(link).catch(() => {})
+                }}
+              />
+            </Suspense>
+          )}
+          {!showBuilder && !createdLink && (
+            <div className="p-4 text-center text-xs text-muted-foreground">
+              <p>Create intake forms to crowdsource data from contributors.</p>
+              <p className="mt-1 text-[10px]">Or type <code className="px-1 py-0.5 rounded bg-muted">survey: Title</code> in the capture bar.</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Inbox tab */}
+      {tab === 'inbox' && (
+        <>
       {/* Filter bar */}
       <div className="flex items-center gap-1 px-2 py-1.5 border-b border-slate-200 dark:border-slate-800">
         {['pending', 'accepted', 'rejected', ''].map(s => (
           <button
             key={s || 'all'}
             onClick={() => setFilter(s)}
-            className={`text-[10px] px-2 py-0.5 rounded-full transition-colors ${
+            className={`text-[10px] px-2 py-0.5 rounded-full transition-colors cursor-pointer ${
               filter === s
                 ? 'bg-primary text-primary-foreground'
                 : 'text-muted-foreground hover:bg-muted'
@@ -171,6 +244,8 @@ export default function CopSubmissionInbox({ sessionId, expanded }: CopSubmissio
           ))
         )}
       </div>
+        </>
+      )}
     </div>
   )
 }

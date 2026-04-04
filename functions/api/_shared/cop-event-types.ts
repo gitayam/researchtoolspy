@@ -54,6 +54,8 @@ export const SHARE_CREATED = 'share.created' as const
 export const INGEST_SUBMISSION_RECEIVED = 'ingest.submission_received' as const
 export const INGEST_SUBMISSION_TRIAGED = 'ingest.submission_triaged' as const
 export const INGEST_SUBMISSION_REJECTED = 'ingest.submission_rejected' as const
+export const INGEST_SUBMISSION_BLOCKED = 'ingest.submission_blocked' as const
+export const INGEST_SUBMISSION_RATE_LIMITED = 'ingest.submission_rate_limited' as const
 
 // -- Domain: asset (Phase 4) --
 export const ASSET_CREATED = 'asset.created' as const
@@ -106,6 +108,7 @@ export type CopEventType =
   | typeof COLLABORATOR_ADDED | typeof COLLABORATOR_REMOVED
   | typeof SHARE_CREATED
   | typeof INGEST_SUBMISSION_RECEIVED | typeof INGEST_SUBMISSION_TRIAGED | typeof INGEST_SUBMISSION_REJECTED
+  | typeof INGEST_SUBMISSION_BLOCKED | typeof INGEST_SUBMISSION_RATE_LIMITED
   | typeof ASSET_CREATED | typeof ASSET_UPDATED | typeof ASSET_STATUS_CHANGED | typeof ASSET_QUOTA_LOW
   | typeof ALERT_DISMISSED | typeof ALERT_ACTIONED | typeof ALERT_LINKED
   | typeof EXPORT_REQUESTED | typeof EXPORT_COMPLETED | typeof EXPORT_FAILED

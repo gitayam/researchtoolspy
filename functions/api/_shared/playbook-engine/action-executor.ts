@@ -69,9 +69,12 @@ const createTask: ActionHandler = async (db, sessionId, params, userId) => {
   return { id, title: params.title }
 }
 
+const ALLOWED_STATUS_TABLES = ['cop_tasks', 'cop_rfis', 'cop_hypotheses', 'cop_markers'] as const
+
 const updateStatus: ActionHandler = async (db, sessionId, params, _userId) => {
   const now = new Date().toISOString()
-  const table = String(params.table || 'cop_tasks')
+  const requestedTable = String(params.table || 'cop_tasks')
+  const table = (ALLOWED_STATUS_TABLES as readonly string[]).includes(requestedTable) ? requestedTable : 'cop_tasks'
   const entityId = String(params.entity_id || '')
   const newStatus = String(params.status || '')
 

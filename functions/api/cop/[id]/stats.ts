@@ -75,7 +75,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       safeCount(`SELECT COUNT(*) as cnt FROM cop_tasks WHERE cop_session_id = ?`, sessionId),
       safeCount(`SELECT COUNT(*) as cnt FROM cop_personas WHERE cop_session_id = ?`, sessionId),
       safeCount(`SELECT COUNT(*) as cnt FROM cop_markers WHERE cop_session_id = ?`, sessionId),
-      safeCount(`SELECT COUNT(*) as cnt FROM cop_submissions WHERE cop_session_id = ?`, sessionId),
+      safeCount(`SELECT COUNT(*) as cnt FROM survey_responses WHERE cop_session_id = ?`, sessionId),
       safeCount(`SELECT COUNT(*) as cnt FROM cop_poo_estimates WHERE cop_session_id = ?`, sessionId),
     ])
 

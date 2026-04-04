@@ -263,6 +263,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     })
   }
 
+  // Verify session access
+  const workspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId)
+  if (!workspaceId) {
+    return new Response(JSON.stringify({ error: 'Access denied' }), {
+      status: 403, headers: JSON_HEADERS,
+    })
+  }
+
   try {
     const body = await request.json() as any
 
@@ -278,19 +286,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         status: 400, headers: JSON_HEADERS,
       })
     }
-
-    // Verify session exists
-    const session = await env.DB.prepare(
-      `SELECT id, workspace_id FROM cop_sessions WHERE id = ?`
-    ).bind(sessionId).first<{ id: string; workspace_id: string }>()
-
-    if (!session) {
-      return new Response(JSON.stringify({ error: 'COP session not found' }), {
-        status: 404, headers: JSON_HEADERS,
-      })
-    }
-
-    const workspaceId = session.workspace_id ?? sessionId
     const now = new Date().toISOString()
 
     // Map action to status

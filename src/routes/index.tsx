@@ -83,6 +83,10 @@ const IntelligenceSynthesisPage = lazy(() => import('@/pages/IntelligenceSynthes
 const CopListPage = lazy(() => import('@/pages/CopListPage'))
 const CopWorkspacePage = lazy(() => import('@/pages/CopWorkspacePage'))
 
+// Survey pages (lazy loaded)
+const SurveyListPage = lazy(() => import('@/pages/SurveyListPage'))
+const SurveyDetailPage = lazy(() => import('@/pages/SurveyDetailPage'))
+
 // Heavy pages (lazy loaded - only when needed)
 const ReportsPage = lazy(() => import('@/pages/ReportsPage').then(m => ({ default: m.ReportsPage })))
 const NetworkGraphPage = lazy(() => import('@/pages/NetworkGraphPage').then(m => ({ default: m.NetworkGraphPage })))
@@ -177,6 +181,14 @@ export const router = createBrowserRouter([
   },
   {
     path: '/public/intake/:token',
+    element: <LazyPage Component={PublicIntakePage} />,
+  },
+  {
+    path: '/drop/:slugOrToken',
+    element: <LazyPage Component={PublicIntakePage} />,
+  },
+  {
+    path: '/survey/:slugOrToken',
     element: <LazyPage Component={PublicIntakePage} />,
   },
   {
@@ -585,6 +597,15 @@ export const router = createBrowserRouter([
       {
         path: 'intelligence',
         element: <LazyPage Component={IntelligenceSynthesisPage} />,
+      },
+      // Survey Routes
+      {
+        path: 'surveys',
+        element: <LazyPage Component={SurveyListPage} />,
+      },
+      {
+        path: 'surveys/:id',
+        element: <LazyPage Component={SurveyDetailPage} />,
       },
       // COP Routes
       {

@@ -7,6 +7,7 @@
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-helpers'
 import { generatePrefixedId , JSON_HEADERS } from '../../_shared/api-utils'
+import { hashPassword, isValidAccessLevel, isValidSlug } from '../../_shared/survey-drops'
 
 interface Env {
   DB: D1Database
@@ -89,7 +90,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    // Look up workspace_id from session
     const session = await env.DB.prepare(
       'SELECT workspace_id FROM cop_sessions WHERE id = ?'
     ).bind(sessionId).first() as any
@@ -100,25 +100,81 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
+    // Validate access_level
+    const accessLevel = body.access_level || 'public'
+    if (!isValidAccessLevel(accessLevel)) {
+      return new Response(JSON.stringify({ error: 'access_level must be public, password, or internal' }), {
+        status: 400, headers: JSON_HEADERS,
+      })
+    }
+
+    // Hash password if provided
+    let passwordHash: string | null = null
+    if (accessLevel === 'password') {
+      if (!body.password) {
+        return new Response(JSON.stringify({ error: 'Password is required for password-protected forms' }), {
+          status: 400, headers: JSON_HEADERS,
+        })
+      }
+      passwordHash = await hashPassword(body.password)
+    }
+
+    // Validate custom slug
+    if (body.custom_slug) {
+      if (!isValidSlug(body.custom_slug)) {
+        return new Response(JSON.stringify({ error: 'Slug must be 3-50 lowercase alphanumeric characters with hyphens' }), {
+          status: 400, headers: JSON_HEADERS,
+        })
+      }
+      const slugExists = await env.DB.prepare(
+        'SELECT id FROM cop_intake_forms WHERE custom_slug = ?'
+      ).bind(body.custom_slug).first()
+      if (slugExists) {
+        return new Response(JSON.stringify({ error: 'This slug is already in use' }), {
+          status: 409, headers: JSON_HEADERS,
+        })
+      }
+    }
+
+    // Validate allowed_countries (must be array of strings)
+    let allowedCountries = '[]'
+    if (body.allowed_countries && Array.isArray(body.allowed_countries)) {
+      allowedCountries = JSON.stringify(body.allowed_countries.map((c: string) => String(c).toUpperCase()))
+    }
+
     const id = generatePrefixedId('ifm')
     const shareToken = generateToken()
     const formSchema = JSON.stringify(body.form_schema || [])
 
     await env.DB.prepare(`
-      INSERT INTO cop_intake_forms (id, cop_session_id, title, description, form_schema, share_token, status, auto_tag_category, require_location, require_contact, created_by, workspace_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO cop_intake_forms (
+        id, cop_session_id, title, description, form_schema, share_token, status,
+        auto_tag_category, require_location, require_contact, created_by, workspace_id,
+        access_level, password_hash, allowed_countries, rate_limit_per_hour,
+        custom_slug, expires_at, theme_color, logo_url, success_message, redirect_url
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
       id, sessionId, body.title.trim(), body.description?.trim() || null,
       formSchema, shareToken, body.status || 'draft',
       body.auto_tag_category || null,
       body.require_location ? 1 : 0,
       body.require_contact ? 1 : 0,
-      userId, session.workspace_id
+      userId, session.workspace_id,
+      accessLevel, passwordHash, allowedCountries,
+      body.rate_limit_per_hour ?? 0,
+      body.custom_slug || null,
+      body.expires_at || null,
+      body.theme_color || null,
+      body.logo_url || null,
+      body.success_message || null,
+      body.redirect_url || null
     ).run()
 
-    return new Response(JSON.stringify({ id, share_token: shareToken, message: 'Intake form created' }), {
-      status: 201, headers: JSON_HEADERS,
-    })
+    return new Response(JSON.stringify({
+      id, share_token: shareToken,
+      custom_slug: body.custom_slug || null,
+      message: 'Intake form created',
+    }), { status: 201, headers: JSON_HEADERS })
   } catch (error) {
     console.error('[COP Intake Forms] Create error:', error)
     return new Response(JSON.stringify({ error: 'Failed to create intake form' }), {

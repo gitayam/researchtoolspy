@@ -98,6 +98,8 @@ export default function LandingPage() {
       { pattern: /^starbursting(\s+framework)?$/i, route: '/dashboard/analysis-frameworks/starbursting', name: 'Starbursting' },
       { pattern: /^causeway(\s+framework)?$/i, route: '/dashboard/analysis-frameworks/causeway', name: 'Causeway' },
       { pattern: /^stakeholder(\s+analysis)?(\s+framework)?$/i, route: '/dashboard/analysis-frameworks/stakeholder', name: 'Stakeholder' },
+      { pattern: /^survey(s)?(\s+drop)?$/i, route: '/dashboard/surveys', name: 'Survey Drops' },
+      { pattern: /^(intake\s+)?form(s)?$/i, route: '/dashboard/surveys', name: 'Intake Forms' },
       { pattern: /^surveillance(\s+framework)?$/i, route: '/dashboard/analysis-frameworks/surveillance', name: 'Surveillance' },
       { pattern: /^fundamental(\s+|-)?flow(\s+framework)?$/i, route: '/dashboard/analysis-frameworks/fundamental-flow', name: 'Fundamental Flow' },
     ]

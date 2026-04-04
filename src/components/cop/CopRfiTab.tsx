@@ -137,7 +137,7 @@ export default function CopRfiTab({ sessionId, onRfiCountChange }: CopRfiTabProp
     } finally {
       setSubmitting(false)
     }
-  }, [newQuestion, newPriority, sessionId, fetchRfis])
+  }, [newQuestion, newPriority, isBlocker, newRequester, sessionId, fetchRfis])
 
   // ── Accept answer ───────────────────────────────────────────
 
@@ -265,7 +265,14 @@ export default function CopRfiTab({ sessionId, onRfiCountChange }: CopRfiTabProp
   // ── Toggle expand ───────────────────────────────────────────
 
   const toggleExpand = (rfiId: string) => {
-    setExpandedRfi(prev => (prev === rfiId ? null : rfiId))
+    setExpandedRfi(prev => {
+      if (prev !== rfiId) {
+        setAnswerText('')
+        setAnswerSource('')
+        setAnswerResponder('')
+      }
+      return prev === rfiId ? null : rfiId
+    })
   }
 
   const openCount = rfis.filter(r => r.status === 'open').length

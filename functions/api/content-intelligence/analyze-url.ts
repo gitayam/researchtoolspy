@@ -303,8 +303,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    // Normal/Full mode: Extract entities, generate summary, and run full analysis with GPT
-    let entitiesData = {
+    // Normal/Full mode: Run all GPT analyses in parallel for speed
+    const defaultEntities = {
       people: [],
       organizations: [],
       locations: [],
@@ -314,50 +314,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       products: [],
       percentages: []
     }
-    let summary = ''
-
-    try {
-
-      entitiesData = await extractEntities(contentData.text, env, contentData.author)
-    } catch (error) {
-      console.error('[DEBUG] Entity extraction failed:', error)
-      console.error('[DEBUG] Continuing with empty entities...')
-      // Continue with empty entities rather than failing
-    }
-
-    try {
-
-      // For large PDFs (>2000 words), use intelligent chunking
-      const textWordCount = countWords(contentData.text)
-      if (contentData.isPDF && textWordCount > 2000) {
-        const intelligentResult = await intelligentPDFSummary(
-          contentData.text,
-          textWordCount,
-          env.OPENAI_API_KEY
-        )
-        summary = intelligentResult.summary
-
-        // Store additional PDF metadata if available
-        if (intelligentResult.chapters) {
-          contentData.pdfMetadata = {
-            ...contentData.pdfMetadata,
-            chapters: intelligentResult.chapters,
-            keyPoints: intelligentResult.keyPoints
-          }
-        }
-
-      } else {
-        summary = await generateSummary(contentData.text, env)
-      }
-
-    } catch (error) {
-      console.error('[DEBUG] Summary generation failed:', error)
-      console.error('[DEBUG] Continuing without summary...')
-      // Continue without summary rather than failing
-    }
-
-    // Sentiment analysis - initialize with fallback to ensure always available
-    let sentimentData = {
+    const defaultSentiment = {
       overall: 'neutral' as const,
       score: 0,
       confidence: 0,
@@ -365,37 +322,49 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       controversialClaims: [],
       keyInsights: ['Sentiment analysis unavailable']
     }
-    try {
-      sentimentData = await analyzeSentiment(contentData.text, env)
-    } catch (error) {
-      console.error('[DEBUG] Sentiment analysis failed:', error)
-      console.error('[DEBUG] Using fallback neutral sentiment')
-      // sentimentData already has fallback value
-    }
 
-    // Keyphrase extraction
-    let keyphrases
-    try {
-      keyphrases = await extractKeyphrases(contentData.text, env)
-    } catch (error) {
-      console.error('[DEBUG] Keyphrase extraction failed:', error)
-      console.error('[DEBUG] Continuing without keyphrases...')
-      // Continue without keyphrases rather than failing
-    }
+    // Build summary promise (PDF large docs use chunked approach)
+    const textWordCount = countWords(contentData.text)
+    const summaryPromise = (contentData.isPDF && textWordCount > 2000)
+      ? intelligentPDFSummary(contentData.text, textWordCount, env.OPENAI_API_KEY)
+          .then(result => {
+            if (result.chapters) {
+              contentData.pdfMetadata = {
+                ...contentData.pdfMetadata,
+                chapters: result.chapters,
+                keyPoints: result.keyPoints
+              }
+            }
+            return result.summary
+          })
+      : generateSummary(contentData.text, env)
 
-    // Topic modeling
-    let topics
-    try {
-      topics = await extractTopics(contentData.text, env)
-    } catch (error) {
-      console.error('[DEBUG] Topic extraction failed:', error)
-      console.error('[DEBUG] Continuing without topics...')
-      // Continue without topics rather than failing
-    }
+    // Fire all GPT calls in parallel
+    const [entitiesResult, summaryResult, sentimentResult, keyphrasesResult, topicsResult] =
+      await Promise.allSettled([
+        extractEntities(contentData.text, env, contentData.author),
+        summaryPromise,
+        analyzeSentiment(contentData.text, env),
+        extractKeyphrases(contentData.text, env),
+        extractTopics(contentData.text, env),
+      ])
 
-    // Claim extraction and deception detection - DISABLED for performance
-    // Claims analysis is now a manual tool (like DIME/Starbursting) to improve initial analysis speed
-    // Users can run claims analysis separately via the Claims tab
+    const entitiesData = entitiesResult.status === 'fulfilled' ? entitiesResult.value : defaultEntities
+    if (entitiesResult.status === 'rejected') console.error('[DEBUG] Entity extraction failed:', entitiesResult.reason)
+
+    const summary = summaryResult.status === 'fulfilled' ? summaryResult.value : ''
+    if (summaryResult.status === 'rejected') console.error('[DEBUG] Summary generation failed:', summaryResult.reason)
+
+    const sentimentData = sentimentResult.status === 'fulfilled' ? sentimentResult.value : defaultSentiment
+    if (sentimentResult.status === 'rejected') console.error('[DEBUG] Sentiment analysis failed:', sentimentResult.reason)
+
+    const keyphrases = keyphrasesResult.status === 'fulfilled' ? keyphrasesResult.value : undefined
+    if (keyphrasesResult.status === 'rejected') console.error('[DEBUG] Keyphrase extraction failed:', keyphrasesResult.reason)
+
+    const topics = topicsResult.status === 'fulfilled' ? topicsResult.value : undefined
+    if (topicsResult.status === 'rejected') console.error('[DEBUG] Topic extraction failed:', topicsResult.reason)
+
+    // Claim extraction - DISABLED for performance (manual tool via Claims tab)
     let claimAnalysis = null
 
     // Save to database

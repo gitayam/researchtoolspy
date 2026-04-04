@@ -10,7 +10,7 @@
  * as a downloadable blob.
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserFromRequest } from '../../_shared/auth-helpers'
+import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-helpers'
 import { emitCopEvent } from '../../_shared/cop-events'
 import { EXPORT_REQUESTED, EXPORT_COMPLETED, EXPORT_FAILED } from '../../_shared/cop-event-types'
 import { JSON_HEADERS } from '../../_shared/api-utils'
@@ -226,6 +226,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   if (!userId) {
     return new Response(JSON.stringify({ error: 'Authentication required' }), {
       status: 401, headers: JSON_HEADERS,
+    })
+  }
+
+  // Verify session access
+  const verifiedWsId = await verifyCopSessionAccess(env.DB, sessionId, userId)
+  if (!verifiedWsId) {
+    return new Response(JSON.stringify({ error: 'Access denied' }), {
+      status: 403, headers: JSON_HEADERS,
     })
   }
 

@@ -35,11 +35,11 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     const status = url.searchParams.get('status')
     const formId = url.searchParams.get('form_id')
 
-    let query = 'SELECT * FROM cop_submissions WHERE cop_session_id = ?'
+    let query = 'SELECT * FROM survey_responses WHERE cop_session_id = ?'
     const bindings: any[] = [sessionId]
 
     if (status) { query += ' AND status = ?'; bindings.push(status) }
-    if (formId) { query += ' AND intake_form_id = ?'; bindings.push(formId) }
+    if (formId) { query += ' AND survey_id = ?'; bindings.push(formId) }
 
     query += ' ORDER BY created_at DESC LIMIT 200'
 
@@ -85,7 +85,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     }
 
     const existing = await env.DB.prepare(
-      'SELECT * FROM cop_submissions WHERE id = ? AND cop_session_id = ?'
+      'SELECT * FROM survey_responses WHERE id = ? AND cop_session_id = ?'
     ).bind(subId, sessionId).first() as any
 
     if (!existing) {
@@ -108,18 +108,15 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     if (body.linked_evidence_id !== undefined) {
       updates.push('linked_evidence_id = ?'); bindings.push(body.linked_evidence_id)
     }
-    if (body.linked_task_id !== undefined) {
-      updates.push('linked_task_id = ?'); bindings.push(body.linked_task_id)
-    }
-
     if (updates.length === 0) {
       return new Response(JSON.stringify({ message: 'No changes' }), { headers: JSON_HEADERS })
     }
 
+    updates.push("updated_at = datetime('now')")
     bindings.push(subId, sessionId)
 
     await env.DB.prepare(
-      `UPDATE cop_submissions SET ${updates.join(', ')} WHERE id = ? AND cop_session_id = ?`
+      `UPDATE survey_responses SET ${updates.join(', ')} WHERE id = ? AND cop_session_id = ?`
     ).bind(...bindings).run()
 
     // Emit event based on triage decision
