@@ -1207,6 +1207,11 @@ interface AnalyticsData {
   by_tag: Record<string, number>
   distributions: Record<string, Record<string, number>>
   fields: { name: string; label: string }[]
+  enrichment?: {
+    total_enriched: number
+    urls: { url: string; title?: string; summary?: string; analysis_id?: string }[]
+    content_sources: Record<string, number>
+  }
 }
 
 interface SummaryData {
@@ -1354,6 +1359,80 @@ function AnalyticsTab({ surveyId }: { surveyId: string }) {
           </div>
         </div>
       )}
+
+      {/* Enriched URLs / Content Analysis */}
+      {analytics.enrichment && analytics.enrichment.urls.length > 0 && (
+        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 p-4 space-y-3">
+          <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+            Analyzed Content ({analytics.enrichment.total_enriched})
+          </h3>
+          {Object.keys(analytics.enrichment.content_sources).length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {Object.entries(analytics.enrichment.content_sources).sort((a, b) => b[1] - a[1]).map(([src, count]) => (
+                <span key={src} className="text-xs px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400">
+                  {src} <span className="font-bold">{count}</span>
+                </span>
+              ))}
+            </div>
+          )}
+          <div className="space-y-2 max-h-64 overflow-y-auto">
+            {analytics.enrichment.urls.map((u, i) => (
+              <div key={i} className="flex items-start gap-2 text-sm">
+                <span className="text-slate-400 shrink-0 mt-0.5">&#8226;</span>
+                <div className="min-w-0 flex-1">
+                  <a
+                    href={u.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 dark:text-blue-400 hover:underline break-all text-xs"
+                  >
+                    {u.title || u.url}
+                  </a>
+                  {u.summary && (
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">{u.summary}</p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Export */}
+      <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 p-4 space-y-3">
+        <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Export Data</h3>
+        <p className="text-xs text-slate-400">Download responses with enrichment data for analyst tools.</p>
+        <div className="flex flex-wrap gap-2">
+          {[
+            { format: 'csv', label: 'CSV', desc: 'Excel, Google Sheets' },
+            { format: 'json', label: 'JSON', desc: 'Programmatic use' },
+            { format: 'stix', label: 'STIX 2.1', desc: 'OpenCTI, MISP, Maltego' },
+          ].map(({ format, label, desc }) => (
+            <a
+              key={format}
+              href={`/api/surveys/${surveyId}/export?format=${format}`}
+              download
+              onClick={(e) => {
+                e.preventDefault()
+                fetch(`/api/surveys/${surveyId}/export?format=${format}`, { headers: getCopHeaders() })
+                  .then(r => r.blob())
+                  .then(blob => {
+                    const url = URL.createObjectURL(blob)
+                    const a = document.createElement('a')
+                    a.href = url
+                    a.download = `drop-export.${format === 'stix' ? 'stix.json' : format}`
+                    a.click()
+                    URL.revokeObjectURL(url)
+                  })
+              }}
+              className="flex flex-col items-center gap-0.5 px-4 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer min-w-[100px]"
+            >
+              <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">{label}</span>
+              <span className="text-[10px] text-slate-400">{desc}</span>
+            </a>
+          ))}
+        </div>
+      </div>
 
       {/* AI Summary */}
       <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 p-4 space-y-3">

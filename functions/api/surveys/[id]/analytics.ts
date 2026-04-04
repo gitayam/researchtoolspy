@@ -92,11 +92,36 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     // Tag distribution from _tags metadata
     const tagBreakdown: Record<string, number> = {}
+    // Enrichment aggregation: URLs analyzed, content sources, claims
+    const enrichedUrls: { url: string; title?: string; summary?: string; analysis_id?: string }[] = []
+    const contentSources: Record<string, number> = {}
+    let enrichedCount = 0
+
     for (const data of parsedRows) {
       const tags = (data as any)._tags
       if (Array.isArray(tags)) {
         for (const tag of tags) {
           tagBreakdown[String(tag)] = (tagBreakdown[String(tag)] || 0) + 1
+        }
+      }
+
+      // Collect enrichment data from _enriched_* fields
+      for (const [key, val] of Object.entries(data)) {
+        if (key.startsWith('_enriched_') && val && typeof val === 'object') {
+          enrichedCount++
+          const e = val as Record<string, unknown>
+          if (e.url) {
+            enrichedUrls.push({
+              url: String(e.url),
+              title: e.title ? String(e.title) : undefined,
+              summary: e.summary ? String(e.summary) : undefined,
+              analysis_id: e.analysis_id ? String(e.analysis_id) : undefined,
+            })
+          }
+          if (e.content_source) {
+            const src = String(e.content_source)
+            contentSources[src] = (contentSources[src] || 0) + 1
+          }
         }
       }
     }
@@ -109,6 +134,11 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       by_tag: tagBreakdown,
       distributions,
       fields: formSchema.map(f => ({ name: f.name, label: f.label, type: f.type })),
+      enrichment: {
+        total_enriched: enrichedCount,
+        urls: enrichedUrls.slice(0, 50),
+        content_sources: contentSources,
+      },
     }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[Survey Analytics] Error:', error)
