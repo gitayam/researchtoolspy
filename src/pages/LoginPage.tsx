@@ -189,7 +189,7 @@ export function LoginPage() {
             }}
           >
             <ShieldCheck className="mr-2 h-5 w-5 text-gray-500 dark:text-gray-400" />
-            Login with SSO
+            IrregularChat Login
           </Button>
         </CardContent>
       </Card>
