@@ -145,7 +145,7 @@ export default function CopSubmissionInbox({ sessionId, expanded }: CopSubmissio
           {!showBuilder && !createdLink && (
             <div className="p-4 text-center text-xs text-muted-foreground">
               <p>Create intake forms to crowdsource data from contributors.</p>
-              <p className="mt-1 text-[10px]">Or type <code className="px-1 py-0.5 rounded bg-muted">survey: Title</code> in the capture bar.</p>
+              <p className="mt-1 text-[10px]">Or type <code className="px-1 py-0.5 rounded bg-muted">drop: Title</code> in the capture bar.</p>
             </div>
           )}
         </div>

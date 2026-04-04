@@ -33,6 +33,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
              expires_at, theme_color, logo_url, success_message, redirect_url,
              auto_tag_category, require_location, require_contact, submission_count,
              cop_session_id, workspace_id, created_by, created_at, updated_at,
+             facts, changelog,
              CASE WHEN password_hash IS NOT NULL THEN 1 ELSE 0 END as has_password
       FROM survey_drops WHERE id = ? AND created_by = ?
     `).bind(surveyId, userId).first()
@@ -48,6 +49,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       has_password: !!(survey as any).has_password,
       form_schema: safeJsonParse((survey as any).form_schema, []),
       allowed_countries: safeJsonParse((survey as any).allowed_countries, []),
+      facts: safeJsonParse((survey as any).facts, []),
+      changelog: safeJsonParse((survey as any).changelog, []),
     }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[Surveys] GET detail error:', error)
@@ -107,6 +110,18 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
         sets.push(`${field} = ?`)
         bindings.push(body[field] || null)
       }
+    }
+
+    // facts (array -> JSON string)
+    if (body.facts !== undefined) {
+      sets.push('facts = ?')
+      bindings.push(Array.isArray(body.facts) ? JSON.stringify(body.facts) : '[]')
+    }
+
+    // changelog (array -> JSON string)
+    if (body.changelog !== undefined) {
+      sets.push('changelog = ?')
+      bindings.push(Array.isArray(body.changelog) ? JSON.stringify(body.changelog) : '[]')
     }
 
     // form_schema (array -> JSON string)

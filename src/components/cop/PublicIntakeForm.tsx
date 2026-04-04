@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Send, CheckCircle2, AlertCircle, MapPin, Upload, Camera, X, ClipboardPaste } from 'lucide-react'
+import { Send, CheckCircle2, AlertCircle, MapPin, Upload, Camera, X, ClipboardPaste, ChevronDown, ChevronRight, Clock, FileText } from 'lucide-react'
 import type { IntakeFormField } from '../../types/cop'
 
 // Auto-detect platform from URL domain
@@ -77,6 +77,8 @@ export default function PublicIntakeForm({ token }: PublicIntakeFormProps) {
     title: string; description: string | null
     form_schema: IntakeFormField[]
     require_location: boolean; require_contact: boolean
+    facts: { text: string; as_of: string }[]
+    changelog: { date: string; entry: string }[]
   } | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -121,6 +123,8 @@ export default function PublicIntakeForm({ token }: PublicIntakeFormProps) {
           form_schema: data.form_schema || [],
           require_location: data.require_location,
           require_contact: data.require_contact,
+          facts: data.facts || [],
+          changelog: data.changelog || [],
         })
         setThemeColor(data.theme_color || null)
         setLogoUrl(data.logo_url || null)
@@ -162,6 +166,8 @@ export default function PublicIntakeForm({ token }: PublicIntakeFormProps) {
         form_schema: data.form_schema || [],
         require_location: data.require_location,
         require_contact: data.require_contact,
+        facts: data.facts || [],
+        changelog: data.changelog || [],
       })
       setSuccessMessage(data.success_message || null)
       setFormPassword(passwordInput)
@@ -323,11 +329,11 @@ export default function PublicIntakeForm({ token }: PublicIntakeFormProps) {
         {logoUrl && <img src={logoUrl} alt="" className="h-10 mx-auto mb-2" />}
         <div className="space-y-3">
           <h1 className="text-2xl sm:text-xl font-bold tracking-tight">{formMeta.title}</h1>
-          {formMeta.description && (
-            <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/50">
-              <p className="text-sm text-blue-900 dark:text-blue-200 leading-relaxed whitespace-pre-line">{formMeta.description}</p>
-            </div>
-          )}
+          <ExpandableContext
+            description={formMeta.description}
+            facts={formMeta.facts}
+            changelog={formMeta.changelog}
+          />
           <p className="text-xs text-slate-400">
             {formMeta.form_schema.filter(f => f.required).length} required field{formMeta.form_schema.filter(f => f.required).length !== 1 ? 's' : ''}
             {' \u00b7 '}All submissions reviewed by research team
@@ -879,6 +885,104 @@ export default function PublicIntakeForm({ token }: PublicIntakeFormProps) {
           </div>
         </form>
       </div>
+    </div>
+  )
+}
+
+// ── Expandable Context — facts list + changelog ─────────────────
+
+function ExpandableContext({ description, facts, changelog }: {
+  description: string | null
+  facts: { text: string; as_of: string }[]
+  changelog: { date: string; entry: string }[]
+}) {
+  const [expanded, setExpanded] = useState(false)
+  const hasFacts = facts.length > 0
+  const hasChangelog = changelog.length > 0
+  const hasContent = !!description || hasFacts || hasChangelog
+
+  if (!hasContent) return null
+
+  // If we have structured facts, show those. Otherwise fall back to description.
+  return (
+    <div className="rounded-xl border border-blue-200 dark:border-blue-900/50 bg-blue-50 dark:bg-blue-950/30 overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-blue-100/50 dark:hover:bg-blue-900/20 transition-colors"
+      >
+        <span className="text-sm font-semibold text-blue-900 dark:text-blue-200 flex items-center gap-2">
+          <FileText className="h-4 w-4 shrink-0" />
+          Situation Context
+          {hasFacts && (
+            <span className="text-[10px] font-normal px-1.5 py-0.5 rounded-full bg-blue-200 dark:bg-blue-800 text-blue-700 dark:text-blue-300">
+              {facts.length} fact{facts.length !== 1 ? 's' : ''}
+            </span>
+          )}
+        </span>
+        {expanded
+          ? <ChevronDown className="h-4 w-4 text-blue-500 shrink-0" />
+          : <ChevronRight className="h-4 w-4 text-blue-500 shrink-0" />
+        }
+      </button>
+
+      {expanded && (
+        <div className="px-4 pb-4 space-y-4">
+          {/* Description (narrative context, if present) */}
+          {description && !hasFacts && (
+            <p className="text-sm text-blue-900 dark:text-blue-200 leading-relaxed whitespace-pre-line">{description}</p>
+          )}
+
+          {/* Brief description above facts */}
+          {description && hasFacts && (
+            <p className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed">{description}</p>
+          )}
+
+          {/* Structured Facts */}
+          {hasFacts && (
+            <div className="space-y-1.5">
+              <h3 className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
+                Known Facts
+              </h3>
+              <ul className="space-y-1.5">
+                {facts.map((fact, i) => (
+                  <li key={i} className="flex gap-2 text-sm">
+                    <span className="text-blue-400 dark:text-blue-600 mt-0.5 shrink-0">&#8226;</span>
+                    <div className="flex-1">
+                      <span className="text-blue-900 dark:text-blue-200">{fact.text}</span>
+                      {fact.as_of && (
+                        <span className="ml-1.5 inline-flex items-center gap-0.5 text-[10px] text-blue-500 dark:text-blue-400">
+                          <Clock className="h-2.5 w-2.5" />
+                          as of {fact.as_of}
+                        </span>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Changelog */}
+          {hasChangelog && (
+            <div className="space-y-1.5 border-t border-blue-200 dark:border-blue-900/50 pt-3">
+              <h3 className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
+                Changelog
+              </h3>
+              <div className="space-y-1">
+                {changelog.map((entry, i) => (
+                  <div key={i} className="flex gap-2 text-xs">
+                    <span className="font-mono text-blue-500 dark:text-blue-400 whitespace-nowrap shrink-0">
+                      {entry.date}
+                    </span>
+                    <span className="text-blue-800 dark:text-blue-300">{entry.entry}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

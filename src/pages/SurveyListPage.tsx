@@ -236,7 +236,7 @@ export default function SurveyListPage() {
         throw new Error(errData.error || `Failed to create survey (${res.status})`)
       }
       const data = await res.json() as { id: string }
-      navigate(`/dashboard/surveys/${data.id}`)
+      navigate(`/dashboard/drops/${data.id}`)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to create survey')
     } finally {
@@ -284,7 +284,7 @@ export default function SurveyListPage() {
       })
       if (!res.ok) throw new Error('Failed to duplicate survey')
       const data = await res.json() as { id: string }
-      navigate(`/dashboard/surveys/${data.id}`)
+      navigate(`/dashboard/drops/${data.id}`)
     } catch (err) { setError(err instanceof Error ? err.message : 'Duplicate failed') }
   }, [navigate])
 
@@ -293,14 +293,14 @@ export default function SurveyListPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Survey Drops</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Drops</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Create and manage data collection surveys
+            Create and manage data collection drops
           </p>
         </div>
         <Button onClick={() => { setShowCreate(true); setSelectedTemplate(null); setTitle('') }} className="gap-2">
           <Plus className="h-4 w-4" />
-          Create Survey
+          Create Drop
         </Button>
       </div>
 
@@ -342,7 +342,7 @@ export default function SurveyListPage() {
                     className="text-left p-3 rounded-lg border border-dashed border-gray-300 dark:border-gray-600 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50/50 dark:hover:bg-blue-900/20 transition-colors min-h-[80px]"
                   >
                     <span className="block text-sm font-semibold text-gray-900 dark:text-white">
-                      Blank Survey
+                      Blank Drop
                     </span>
                     <span className="block text-xs text-gray-500 dark:text-gray-400 mt-1">
                       Start from scratch with no pre-built fields
@@ -388,7 +388,7 @@ export default function SurveyListPage() {
                     type="text"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    placeholder="Survey title"
+                    placeholder="Drop title"
                     className="w-full px-3 py-2 text-base rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     autoFocus
                   />
@@ -449,7 +449,7 @@ export default function SurveyListPage() {
         <div className="text-center py-16">
           <ClipboardList className="h-12 w-12 mx-auto text-gray-300 dark:text-gray-600 mb-4" />
           <p className="text-gray-500 dark:text-gray-400">
-            No surveys yet. Create your first survey to start collecting data.
+            No drops yet. Create your first drop to start collecting data.
           </p>
         </div>
       )}
@@ -461,7 +461,7 @@ export default function SurveyListPage() {
             <Card
               key={survey.id}
               className="cursor-pointer hover:shadow-md transition-shadow dark:hover:border-gray-600"
-              onClick={() => navigate(`/dashboard/surveys/${survey.id}`)}
+              onClick={() => navigate(`/dashboard/drops/${survey.id}`)}
             >
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between gap-2">
@@ -502,7 +502,7 @@ export default function SurveyListPage() {
                   <button
                     onClick={(e) => handleDuplicate(survey, e)}
                     className="text-xs px-3 py-1.5 min-h-[36px] sm:text-[10px] sm:px-2 sm:py-0.5 sm:min-h-0 rounded-full border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                    title="Duplicate survey"
+                    title="Duplicate drop"
                   >
                     Duplicate
                   </button>

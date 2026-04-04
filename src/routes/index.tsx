@@ -83,7 +83,7 @@ const IntelligenceSynthesisPage = lazy(() => import('@/pages/IntelligenceSynthes
 const CopListPage = lazy(() => import('@/pages/CopListPage'))
 const CopWorkspacePage = lazy(() => import('@/pages/CopWorkspacePage'))
 
-// Survey pages (lazy loaded)
+// Drop pages (lazy loaded)
 const SurveyListPage = lazy(() => import('@/pages/SurveyListPage'))
 const SurveyDetailPage = lazy(() => import('@/pages/SurveyDetailPage'))
 
@@ -598,14 +598,23 @@ export const router = createBrowserRouter([
         path: 'intelligence',
         element: <LazyPage Component={IntelligenceSynthesisPage} />,
       },
-      // Survey Routes
+      // Drop Routes
       {
-        path: 'surveys',
+        path: 'drops',
         element: <LazyPage Component={SurveyListPage} />,
       },
       {
-        path: 'surveys/:id',
+        path: 'drops/:id',
         element: <LazyPage Component={SurveyDetailPage} />,
+      },
+      // Legacy survey routes (redirect)
+      {
+        path: 'surveys',
+        element: <Navigate to="/dashboard/drops" replace />,
+      },
+      {
+        path: 'surveys/:id',
+        element: <Navigate to="/dashboard/drops" replace />,
       },
       // COP Routes
       {

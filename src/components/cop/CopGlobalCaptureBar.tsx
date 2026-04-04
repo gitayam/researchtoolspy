@@ -20,7 +20,7 @@ export default function CopGlobalCaptureBar({ sessionId, onSuccess, onLocationDe
   // Detect type based on input
   const isUrl = input.trim().match(/^https?:\/\//)
   const isHypothesis = input.trim().toLowerCase().startsWith('hypothesis:') || input.trim().toLowerCase().startsWith('maybe:')
-  const isSurvey = input.trim().toLowerCase().startsWith('survey:') || input.trim().toLowerCase().startsWith('form:')
+  const isSurvey = input.trim().toLowerCase().startsWith('survey:') || input.trim().toLowerCase().startsWith('form:') || input.trim().toLowerCase().startsWith('drop:')
 
   const handleCapture = useCallback(async () => {
     const trimmed = input.trim()
@@ -36,7 +36,7 @@ export default function CopGlobalCaptureBar({ sessionId, onSuccess, onLocationDe
       let type: 'evidence' | 'hypothesis' | 'note' | 'survey' = 'evidence'
 
       if (isSurvey) {
-        const surveyTitle = trimmed.replace(/^(survey|form):/i, '').trim() || 'Untitled Survey'
+        const surveyTitle = trimmed.replace(/^(survey|form|drop):/i, '').trim() || 'Untitled Drop'
         endpoint = '/api/surveys'
         body = { title: surveyTitle, status: 'active', cop_session_id: sessionId }
         type = 'survey'

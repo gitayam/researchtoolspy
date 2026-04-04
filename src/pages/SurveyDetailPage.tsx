@@ -216,11 +216,11 @@ export default function SurveyDetailPage() {
   if (error || !survey) {
     return (
       <div className="max-w-5xl mx-auto px-4 py-8 space-y-4">
-        <Button variant="outline" onClick={() => navigate('/dashboard/surveys')} className="gap-2">
+        <Button variant="outline" onClick={() => navigate('/dashboard/drops')} className="gap-2">
           <ArrowLeft className="h-4 w-4" />
           Back
         </Button>
-        <p className="text-sm text-red-600 dark:text-red-400">{error || 'Survey not found'}</p>
+        <p className="text-sm text-red-600 dark:text-red-400">{error || 'Drop not found'}</p>
       </div>
     )
   }
@@ -233,7 +233,7 @@ export default function SurveyDetailPage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => navigate('/dashboard/surveys')}
+            onClick={() => navigate('/dashboard/drops')}
             className="gap-1.5"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -1088,7 +1088,7 @@ function SettingsTab({
                       headers: getCopHeaders(),
                     })
                     if (!res.ok) throw new Error('Failed to delete')
-                    navigate('/dashboard/surveys')
+                    navigate('/dashboard/drops')
                   } catch {
                     setSaveError('Failed to delete survey')
                     setDeleting(false)

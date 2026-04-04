@@ -51,7 +51,7 @@ export default function PublicIntakePage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
-        <div className="animate-pulse text-sm text-slate-500">Loading survey...</div>
+        <div className="animate-pulse text-sm text-slate-500">Loading...</div>
       </div>
     )
   }

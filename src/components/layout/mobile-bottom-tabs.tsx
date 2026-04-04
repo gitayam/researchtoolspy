@@ -48,14 +48,14 @@ interface Tab {
 const GLOBAL_TABS: Tab[] = [
   { id: 'home', label: 'Home', href: '/dashboard', icon: Home, exact: true },
   { id: 'tools', label: 'Tools', href: '/dashboard/tools', icon: Wrench },
-  { id: 'surveys', label: 'Surveys', href: '/dashboard/surveys', icon: ClipboardList },
+  { id: 'drops', label: 'Drops', href: '/dashboard/drops', icon: ClipboardList },
   { id: 'cop', label: 'Spaces', href: '/dashboard/cop', icon: Map },
   { id: 'analysis', label: 'Analysis', href: '/dashboard/analysis-frameworks', icon: Brain },
 ]
 
-// Survey detail tabs — shown on /dashboard/surveys/:id
+// Drop detail tabs — shown on /dashboard/drops/:id
 const SURVEY_DETAIL_TABS: Tab[] = [
-  { id: 'back', label: 'Surveys', href: '/dashboard/surveys', icon: ArrowLeft },
+  { id: 'back', label: 'Drops', href: '/dashboard/drops', icon: ArrowLeft },
   { id: 'builder', label: 'Builder', action: 'builder', icon: Wrench },
   { id: 'responses', label: 'Responses', action: 'responses', icon: Inbox },
   { id: 'analytics', label: 'Analytics', action: 'analytics', icon: BarChart3 },
@@ -76,8 +76,8 @@ const COP_TABS: Tab[] = [
 type TabContext = 'global' | 'survey-detail' | 'cop-workspace'
 
 function detectContext(pathname: string): TabContext {
-  // /dashboard/surveys/:id (but not /dashboard/surveys alone)
-  if (/^\/dashboard\/surveys\/[^/]+/.test(pathname)) return 'survey-detail'
+  // /dashboard/drops/:id (but not /dashboard/drops alone)
+  if (/^\/dashboard\/drops\/[^/]+/.test(pathname)) return 'survey-detail'
   // /dashboard/cop/:id (COP workspace — has its own layout, but we support it)
   if (/^\/dashboard\/cop\/[^/]+/.test(pathname)) return 'cop-workspace'
   return 'global'

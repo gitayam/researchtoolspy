@@ -26,7 +26,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     const form = await env.DB.prepare(
       `SELECT id, title, description, form_schema, require_location, require_contact,
-              status, access_level, password_hash, expires_at, theme_color, logo_url, success_message
+              status, access_level, password_hash, expires_at, theme_color, logo_url, success_message,
+              facts, changelog
        FROM survey_drops WHERE share_token = ?`
     ).bind(token).first() as any
 
@@ -69,10 +70,18 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     let form_schema = []
     try { form_schema = form.form_schema ? JSON.parse(form.form_schema) : [] } catch { form_schema = [] }
 
+    let facts = []
+    try { facts = form.facts ? JSON.parse(form.facts) : [] } catch { facts = [] }
+
+    let changelog = []
+    try { changelog = form.changelog ? JSON.parse(form.changelog) : [] } catch { changelog = [] }
+
     return new Response(JSON.stringify({
       title: form.title,
       description: form.description,
       form_schema,
+      facts,
+      changelog,
       require_location: form.require_location === 1,
       require_contact: form.require_contact === 1,
       theme_color: form.theme_color,

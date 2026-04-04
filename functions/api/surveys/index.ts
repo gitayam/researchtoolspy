@@ -38,6 +38,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
              expires_at, theme_color, logo_url, success_message, redirect_url,
              auto_tag_category, require_location, require_contact, submission_count,
              cop_session_id, workspace_id, created_by, created_at, updated_at,
+             facts, changelog,
              CASE WHEN password_hash IS NOT NULL THEN 1 ELSE 0 END as has_password
       FROM survey_drops WHERE created_by = ?`
     const bindings: any[] = [userId]
@@ -55,6 +56,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       has_password: !!row.has_password,
       form_schema: safeJsonParse(row.form_schema, []),
       allowed_countries: safeJsonParse(row.allowed_countries, []),
+      facts: safeJsonParse(row.facts, []),
+      changelog: safeJsonParse(row.changelog, []),
     }))
 
     return new Response(JSON.stringify({ surveys }), { headers: JSON_HEADERS })
@@ -149,6 +152,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     // Process form_schema
     const formSchema = Array.isArray(body.form_schema) ? JSON.stringify(body.form_schema) : '[]'
 
+    // Process facts and changelog
+    const facts = Array.isArray(body.facts) ? JSON.stringify(body.facts) : '[]'
+    const changelog = Array.isArray(body.changelog) ? JSON.stringify(body.changelog) : '[]'
+
     const id = generatePrefixedId('srv')
     const shareToken = crypto.randomUUID().replace(/-/g, '')
 
@@ -157,8 +164,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         id, title, description, form_schema, share_token, status,
         access_level, password_hash, allowed_countries, rate_limit_per_hour,
         custom_slug, expires_at, theme_color, logo_url, success_message, redirect_url,
-        auto_tag_category, require_location, require_contact, cop_session_id, created_by
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        auto_tag_category, require_location, require_contact, cop_session_id, facts, changelog, created_by
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
       id,
       title,
@@ -180,6 +187,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       body.require_location ? 1 : 0,
       body.require_contact ? 1 : 0,
       body.cop_session_id || null,
+      facts,
+      changelog,
       userId,
     ).run()
 

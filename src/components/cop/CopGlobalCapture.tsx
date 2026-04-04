@@ -55,7 +55,7 @@ function detectInputType(input: string): InputType {
   if (trimmed.startsWith('!')) return 'hypothesis'
   if (/^@([\w]+:)?[\w.]{1,30}$/.test(trimmed)) return 'persona'
   if (/^\+(actor|event|place|source|behavior)\s/i.test(trimmed)) return 'entity'
-  if (/^(survey|form):/i.test(trimmed)) return 'survey'
+  if (/^(survey|form|drop):/i.test(trimmed)) return 'survey'
   return 'note'
 }
 
@@ -65,7 +65,7 @@ const TYPE_META: Record<InputType, { icon: typeof Search; label: string; color: 
   hypothesis: { icon: Lightbulb,    label: 'Hypothesis', color: 'text-emerald-400' },
   persona:    { icon: AtSign,       label: 'Persona',    color: 'text-purple-400' },
   entity:     { icon: Database,      label: 'Entity',     color: 'text-cyan-400' },
-  survey:     { icon: ClipboardList, label: 'Survey',    color: 'text-teal-400' },
+  survey:     { icon: ClipboardList, label: 'Drop',      color: 'text-teal-400' },
   note:       { icon: FileText,     label: 'Note',       color: 'text-gray-400' },
 }
 
@@ -240,7 +240,7 @@ export default function CopGlobalCapture({
           break
         }
         case 'survey': {
-          const surveyTitle = trimmed.replace(/^(survey|form):/i, '').trim() || 'Untitled Survey'
+          const surveyTitle = trimmed.replace(/^(survey|form|drop):/i, '').trim() || 'Untitled Drop'
           res = await fetch('/api/surveys', {
             method: 'POST',
             headers: getCopHeaders(),
@@ -335,7 +335,7 @@ export default function CopGlobalCapture({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="URL, ?question, !hypothesis, @handle, +actor, survey: title, or text..."
+            placeholder="URL, ?question, !hypothesis, @handle, +actor, drop: title, or text..."
             disabled={submitting || success}
             className={cn(
               'flex-1 bg-transparent text-base text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500',
@@ -365,7 +365,7 @@ export default function CopGlobalCapture({
               {detectedType === 'hypothesis' && 'Will propose a new hypothesis'}
               {detectedType === 'persona' && 'Will create a persona (@handle or @platform:handle)'}
               {detectedType === 'entity' && `Will open the entity drawer to create a new ${entityLabel?.toLowerCase() ?? 'entity'}`}
-              {detectedType === 'survey' && 'Will create a new Survey Drop and copy the share link'}
+              {detectedType === 'survey' && 'Will create a new Drop and copy the share link'}
               {detectedType === 'note' && 'Will add as a text evidence note'}
             </span>
           </div>

@@ -672,6 +672,8 @@ export interface SurveyDrop {
   require_location: number
   require_contact: number
   submission_count: number
+  facts: { text: string; as_of: string }[]
+  changelog: { date: string; entry: string }[]
   cop_session_id: string | null
   workspace_id: string
   created_by: number
