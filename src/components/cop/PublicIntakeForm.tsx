@@ -1019,6 +1019,24 @@ function SubmittedScreen({ token, successMessage, onSubmitAnother }: {
           </div>
         )}
 
+        {/* Tags */}
+        {results.stats?.by_tag && Object.keys(results.stats.by_tag).length > 0 && (
+          <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 p-4">
+            <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
+              Topics detected
+            </h3>
+            <div className="flex flex-wrap gap-1.5">
+              {Object.entries(results.stats.by_tag)
+                .sort((a, b) => (b[1] as number) - (a[1] as number))
+                .map(([tag, count]) => (
+                  <span key={tag} className="text-xs px-2.5 py-1 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">
+                    {tag} <span className="font-semibold">{count as number}</span>
+                  </span>
+                ))}
+            </div>
+          </div>
+        )}
+
         {/* Individual responses */}
         <div className="space-y-2">
           <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
@@ -1040,6 +1058,9 @@ function SubmittedScreen({ token, successMessage, onSubmitAnother }: {
               <div className="flex items-center gap-3 text-[10px] text-slate-400 pt-1">
                 {r.country && <span>{r.country}</span>}
                 <span>{new Date(r.created_at).toLocaleString()}</span>
+                {r.tags?.length > 0 && r.tags.map((tag: string) => (
+                  <span key={tag} className="px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">{tag}</span>
+                ))}
               </div>
             </div>
           ))}

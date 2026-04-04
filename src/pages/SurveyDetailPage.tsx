@@ -1109,6 +1109,7 @@ interface AnalyticsData {
   by_country: Record<string, number>
   by_day: Record<string, number>
   by_status: Record<string, number>
+  by_tag: Record<string, number>
   distributions: Record<string, Record<string, number>>
   fields: { name: string; label: string }[]
 }
@@ -1239,6 +1240,22 @@ function AnalyticsTab({ surveyId }: { surveyId: string }) {
                 {code} <span className="font-bold">{count}</span>
               </span>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Auto-tags */}
+      {analytics.by_tag && Object.keys(analytics.by_tag).length > 0 && (
+        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 p-4">
+          <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Topics Detected</h3>
+          <div className="flex flex-wrap gap-2">
+            {Object.entries(analytics.by_tag as Record<string, number>)
+              .sort((a, b) => b[1] - a[1])
+              .map(([tag, count]) => (
+                <span key={tag} className="text-sm px-3 py-1 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">
+                  {tag} <span className="font-bold">{count}</span>
+                </span>
+              ))}
           </div>
         </div>
       )}

@@ -57,9 +57,16 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       let formData: Record<string, unknown> = {}
       try { formData = JSON.parse(r.form_data) } catch { /* */ }
 
+      // Extract tags (internal metadata) and clean data for display
+      const tags = Array.isArray(formData._tags) ? formData._tags : []
+      const cleanData = Object.fromEntries(
+        Object.entries(formData).filter(([k]) => !k.startsWith('_'))
+      )
+
       return {
         id: r.id,
-        data: formData,
+        data: cleanData,
+        tags,
         country: r.submitter_country,
         lat: r.lat,
         lon: r.lon,
@@ -96,6 +103,14 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       }
     }
 
+    // Tag distribution
+    const tagBreakdown: Record<string, number> = {}
+    for (const r of results) {
+      for (const tag of (r.tags || [])) {
+        tagBreakdown[String(tag)] = (tagBreakdown[String(tag)] || 0) + 1
+      }
+    }
+
     return new Response(JSON.stringify({
       title: survey.title,
       description: survey.description,
@@ -105,6 +120,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       results,
       stats: {
         by_country: countryBreakdown,
+        by_tag: tagBreakdown,
         distributions,
       },
     }), {

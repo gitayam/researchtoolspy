@@ -250,6 +250,52 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
             console.error(`[Survey Process] URL enrichment failed for ${url}:`, e)
           }
         }
+        // Auto-tagging: classify the response based on content keywords
+        try {
+          const allText = Object.values(formData)
+            .filter(v => typeof v === 'string')
+            .join(' ')
+            .toLowerCase()
+
+          const tags: string[] = []
+          const tagRules: [string, string[]][] = [
+            ['military', ['military', 'army', 'troops', 'soldier', 'weapon', 'missile', 'tank', 'airstrike', 'artillery', 'battalion']],
+            ['aviation', ['aircraft', 'plane', 'jet', 'helicopter', 'pilot', 'f-15', 'f-16', 'f-35', 'drone', 'uav', 'flight', 'airspace']],
+            ['naval', ['ship', 'vessel', 'navy', 'submarine', 'carrier', 'naval', 'maritime', 'strait', 'fleet']],
+            ['explosion', ['explosion', 'blast', 'bomb', 'strike', 'missile', 'shelling', 'detonation']],
+            ['humanitarian', ['civilian', 'humanitarian', 'hospital', 'refugee', 'casualty', 'casualties', 'wounded', 'dead', 'killed']],
+            ['infrastructure', ['bridge', 'road', 'power', 'electricity', 'water', 'internet', 'communication', 'port', 'airport']],
+            ['cyber', ['cyber', 'hack', 'malware', 'ddos', 'phishing', 'breach', 'ransomware']],
+            ['financial', ['bitcoin', 'crypto', 'wallet', 'transaction', 'sanctions', 'funds', 'money']],
+            ['geolocation', ['coordinates', 'latitude', 'longitude', 'mgrs', 'location', 'satellite', 'imagery']],
+            ['official', ['official', 'government', 'ministry', 'statement', 'spokesperson', 'press', 'confirmed']],
+            ['social-media', ['telegram', 'twitter', 'tiktok', 'instagram', 'reddit', 'discord', 'channel', 'account']],
+            ['rescue', ['rescue', 'search', 'missing', 'ejected', 'parachute', 'recovery', 'survivor']],
+            ['disinformation', ['fake', 'disinformation', 'propaganda', 'misleading', 'manipulated', 'fabricated', 'deepfake']],
+          ]
+
+          for (const [tag, keywords] of tagRules) {
+            if (keywords.some(kw => allText.includes(kw))) {
+              tags.push(tag)
+            }
+          }
+
+          if (tags.length > 0) {
+            const currentData = await env.DB.prepare(
+              'SELECT form_data FROM survey_responses WHERE id = ?'
+            ).bind(id).first<{ form_data: string }>()
+
+            if (currentData) {
+              const data = JSON.parse(currentData.form_data)
+              data._tags = tags
+              await env.DB.prepare(
+                'UPDATE survey_responses SET form_data = ? WHERE id = ?'
+              ).bind(JSON.stringify(data), id).run()
+            }
+          }
+        } catch (e) {
+          console.error('[Survey Process] Auto-tagging failed:', e)
+        }
       } catch (e) {
         console.error('[Survey Process] Post-processing failed:', e)
       }

@@ -81,11 +81,25 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       }
     }
 
+    // Tag distribution from _tags metadata
+    const tagBreakdown: Record<string, number> = {}
+    for (const row of (responses.results || [])) {
+      try {
+        const data = JSON.parse((row as any).form_data)
+        if (Array.isArray(data._tags)) {
+          for (const tag of data._tags) {
+            tagBreakdown[String(tag)] = (tagBreakdown[String(tag)] || 0) + 1
+          }
+        }
+      } catch { /* */ }
+    }
+
     return new Response(JSON.stringify({
       total: survey.submission_count,
       by_country: Object.fromEntries((byCountry.results || []).map((r: any) => [r.country, r.count])),
       by_day: Object.fromEntries((byDay.results || []).map((r: any) => [r.day, r.count])),
       by_status: Object.fromEntries((byStatus.results || []).map((r: any) => [r.status, r.count])),
+      by_tag: tagBreakdown,
       distributions,
       fields: formSchema.map(f => ({ name: f.name, label: f.label, type: f.type })),
     }), { headers: JSON_HEADERS })
