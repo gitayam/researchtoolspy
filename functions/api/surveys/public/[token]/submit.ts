@@ -222,29 +222,46 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           if (!url || typeof url !== 'string' || !url.startsWith('http')) continue
 
           try {
+            // Quick scrape for title/excerpt
             const scraped = await scrapeUrl(url, env.APIFY_API_KEY)
-            if (scraped.title || scraped.content) {
-              // Store enrichment as JSON alongside the response
-              const enrichment = {
-                field: field.name,
-                url,
-                title: scraped.title,
-                excerpt: scraped.content?.substring(0, 500),
-                fetched_at: new Date().toISOString(),
-              }
+            const enrichment: Record<string, unknown> = {
+              field: field.name,
+              url,
+              title: scraped.title,
+              excerpt: scraped.content?.substring(0, 500),
+              fetched_at: new Date().toISOString(),
+            }
 
-              // Append to response metadata
-              const currentData = await env.DB.prepare(
-                'SELECT form_data FROM survey_responses WHERE id = ?'
-              ).bind(id).first<{ form_data: string }>()
-
-              if (currentData) {
-                const data = JSON.parse(currentData.form_data)
-                data[`_enriched_${field.name}`] = enrichment
-                await env.DB.prepare(
-                  'UPDATE survey_responses SET form_data = ? WHERE id = ?'
-                ).bind(JSON.stringify(data), id).run()
+            // Full content analysis via internal API call (entities, claims, sentiment, topics)
+            try {
+              const origin = new URL(request.url).origin
+              const analysisRes = await fetch(`${origin}/api/content-intelligence/analyze-url`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-User-Hash': '0000000000000000' },
+                body: JSON.stringify({ url, mode: 'quick' }),
+              })
+              if (analysisRes.ok) {
+                const analysis = await analysisRes.json() as any
+                enrichment.analysis_id = analysis.id ?? analysis.analysis_id
+                enrichment.summary = analysis.summary?.substring(0, 300)
+                enrichment.word_count = analysis.word_count
+                enrichment.content_source = analysis.content_source
               }
+            } catch (e) {
+              console.error(`[Survey Process] Content analysis failed for ${url}:`, e)
+            }
+
+            // Store enrichment alongside the response
+            const currentData = await env.DB.prepare(
+              'SELECT form_data FROM survey_responses WHERE id = ?'
+            ).bind(id).first<{ form_data: string }>()
+
+            if (currentData) {
+              const data = JSON.parse(currentData.form_data)
+              data[`_enriched_${field.name}`] = enrichment
+              await env.DB.prepare(
+                'UPDATE survey_responses SET form_data = ? WHERE id = ?'
+              ).bind(JSON.stringify(data), id).run()
             }
           } catch (e) {
             console.error(`[Survey Process] URL enrichment failed for ${url}:`, e)

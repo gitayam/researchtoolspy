@@ -704,14 +704,36 @@ function ResponsesTab({
                 <div className="px-4 pb-4 border-t border-gray-100 dark:border-gray-700/50 space-y-3">
                   {/* Form data */}
                   <div className="mt-3 space-y-2">
-                    {Object.entries(response.form_data).map(([key, value]) => (
+                    {Object.entries(response.form_data)
+                      .filter(([key]) => !key.startsWith('_'))
+                      .map(([key, value]) => (
                       <div key={key} className="flex flex-col sm:flex-row sm:gap-2">
                         <span className="font-medium text-muted-foreground text-xs">
                           {key}:
                         </span>
                         <span className="text-sm break-all text-gray-900 dark:text-white">
-                          {String(value ?? '')}
+                          {Array.isArray(value) ? value.join(', ') : String(value ?? '')}
                         </span>
+                      </div>
+                    ))}
+                    {/* Auto-tags */}
+                    {Array.isArray((response.form_data as any)._tags) && (response.form_data as any)._tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1 pt-1">
+                        {(response.form_data as any)._tags.map((tag: string) => (
+                          <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">{tag}</span>
+                        ))}
+                      </div>
+                    )}
+                    {/* URL enrichment */}
+                    {Object.entries(response.form_data)
+                      .filter(([key]) => key.startsWith('_enriched_'))
+                      .map(([key, enrichment]: [string, any]) => (
+                      <div key={key} className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 space-y-1">
+                        <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Enriched from URL</p>
+                        {enrichment.title && <p className="text-xs font-medium text-slate-700 dark:text-slate-300">{enrichment.title}</p>}
+                        {enrichment.summary && <p className="text-xs text-slate-500 dark:text-slate-400">{enrichment.summary}</p>}
+                        {enrichment.excerpt && !enrichment.summary && <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2">{enrichment.excerpt}</p>}
+                        {enrichment.analysis_id && <p className="text-[10px] text-blue-500">Analysis ID: {enrichment.analysis_id}</p>}
                       </div>
                     ))}
                   </div>
