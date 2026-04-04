@@ -31,7 +31,68 @@ export async function getUserFromRequest(
   request: Request,
   env: Env
 ): Promise<number | null> {
-  // Check X-User-Hash header first (COP pattern)
+  // 1. Try Bearer token first (JWT/session — SSO users take priority over hash-auth)
+  const authHeader = request.headers.get('Authorization')
+  if (authHeader?.startsWith('Bearer ')) {
+    const token = authHeader.substring(7)
+
+    // 1a. Try JWT Auth
+    if (token.includes('.') && env.JWT_SECRET) {
+      const payload = await verifyToken(token, env.JWT_SECRET)
+      if (payload?.sub) {
+        return Number(payload.sub)
+      }
+    }
+
+    // 1b. Try session-based auth (KV store)
+    if (env.SESSIONS) {
+      const sessionData = await env.SESSIONS.get(token)
+      if (sessionData) {
+        try {
+          const session = JSON.parse(sessionData)
+          if (session.user_id) {
+            return Number(session.user_id)
+          }
+        } catch (err) {
+          console.error('[Auth] Failed to parse session data:', err)
+        }
+      }
+    }
+
+    // 1c. Fallback: raw hash in Bearer (Mullvad direct access)
+    if (token.length >= 16 && env.DB) {
+      try {
+        const existingUser = await env.DB.prepare(
+          'SELECT id FROM users WHERE user_hash = ?'
+        ).bind(token).first()
+
+        if (existingUser) {
+          return Number(existingUser.id)
+        }
+
+        const result = await env.DB.prepare(`
+          INSERT INTO users (username, email, user_hash, full_name, hashed_password, created_at, is_active, is_verified, role)
+          VALUES (?, ?, ?, ?, ?, ?, 1, 0, 'guest')
+          RETURNING id
+        `).bind(
+          `guest_${token.substring(0, 8)}`,
+          `${token.substring(0, 8)}@guest.local`,
+          token,
+          'Guest User',
+          'HASH_AUTH_LEGACY',
+          new Date().toISOString()
+        ).first() as { id: number } | null
+
+        if (result?.id) {
+          return Number(result.id)
+        }
+      } catch (err) {
+        console.error('[Auth] Failed to create/retrieve hash-based user:', err)
+      }
+    }
+  }
+
+  // 2. Fallback to X-User-Hash header (no Bearer token present)
   const userHash = request.headers.get('X-User-Hash')
   if (userHash && userHash !== 'default' && userHash.length >= 16 && env.DB) {
     try {
@@ -42,7 +103,6 @@ export async function getUserFromRequest(
         return Number(existingUser.id)
       }
 
-      // Auto-create guest user for valid hash (matches Bearer token path behavior)
       const result = await env.DB.prepare(`
         INSERT INTO users (username, email, user_hash, full_name, hashed_password, created_at, is_active, is_verified, role)
         VALUES (?, ?, ?, ?, ?, ?, 1, 0, 'guest')
@@ -61,71 +121,6 @@ export async function getUserFromRequest(
       }
     } catch (err) {
       console.error('[Auth] Failed to resolve X-User-Hash:', err)
-    }
-  }
-
-  const authHeader = request.headers.get('Authorization')
-  if (!authHeader?.startsWith('Bearer ')) {
-    return null
-  }
-
-  const token = authHeader.substring(7)
-
-  // 1. Try JWT Auth first (Primary for new implementation)
-  if (token.includes('.') && env.JWT_SECRET) {
-    const payload = await verifyToken(token, env.JWT_SECRET)
-    if (payload?.sub) {
-      return Number(payload.sub)
-    }
-  }
-
-  // 2. Try session-based auth (KV store - legacy/standard)
-  if (env.SESSIONS) {
-    const sessionData = await env.SESSIONS.get(token)
-    if (sessionData) {
-      try {
-        const session = JSON.parse(sessionData)
-        if (session.user_id) {
-          return Number(session.user_id)
-        }
-      } catch (err) {
-        console.error('[Auth] Failed to parse session data:', err)
-      }
-    }
-  }
-
-  // 3. Fallback to raw hash-based auth (Mullvad direct access)
-  // For hash-based auth (16+ chars), create/retrieve guest user
-  if (token.length >= 16 && env.DB) {
-    try {
-      // Try to find existing user with this hash
-      const existingUser = await env.DB.prepare(
-        'SELECT id FROM users WHERE user_hash = ?'
-      ).bind(token).first()
-
-      if (existingUser) {
-        return Number(existingUser.id)
-      }
-
-      // Create new guest user with hash if not found
-      const result = await env.DB.prepare(`
-        INSERT INTO users (username, email, user_hash, full_name, hashed_password, created_at, is_active, is_verified, role)
-        VALUES (?, ?, ?, ?, ?, ?, 1, 0, 'guest')
-        RETURNING id
-      `).bind(
-        `guest_${token.substring(0, 8)}`,
-        `${token.substring(0, 8)}@guest.local`,
-        token,
-        'Guest User',
-        'HASH_AUTH_LEGACY',
-        new Date().toISOString()
-      ).first() as { id: number } | null
-
-      if (result?.id) {
-        return Number(result.id)
-      }
-    } catch (err) {
-      console.error('[Auth] Failed to create/retrieve hash-based user:', err)
     }
   }
 
