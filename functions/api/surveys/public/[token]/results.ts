@@ -43,7 +43,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     const responses = await env.DB.prepare(
       `SELECT id, form_data, submitter_country, lat, lon, status, created_at
        FROM survey_responses
-       WHERE survey_id = ? AND status = 'accepted'
+       WHERE survey_id = ? AND status != 'rejected'
        ORDER BY created_at DESC
        LIMIT 200`
     ).bind(survey.id).all()
