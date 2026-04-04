@@ -8,7 +8,7 @@ import { INGEST_SUBMISSION_RECEIVED, INGEST_SUBMISSION_BLOCKED, INGEST_SUBMISSIO
 import { generatePrefixedId, JSON_HEADERS } from '../../../../_shared/api-utils'
 import {
   extractGeoFromRequest, isCountryAllowed, verifyPassword,
-  hashSubmitterIP, hashFormData, checkSubmitRateLimit,
+  hashSubmitterIP, hashFormData, checkSurveyResponseRateLimit,
 } from '../../../../_shared/survey-drops'
 
 interface Env {
@@ -93,7 +93,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const ipHash = await hashSubmitterIP(clientIP, form.id)
 
     if (form.rate_limit_per_hour > 0) {
-      const rateCheck = await checkSubmitRateLimit(env.DB, form.id, ipHash, form.rate_limit_per_hour)
+      const rateCheck = await checkSurveyResponseRateLimit(env.DB, form.id, ipHash, form.rate_limit_per_hour)
       if (!rateCheck.allowed) {
         await emitCopEvent(env.DB, {
           copSessionId: form.cop_session_id,
@@ -143,7 +143,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     // Content dedup
     const contentHash = await hashFormData(formData)
     const existing = await env.DB.prepare(
-      'SELECT id FROM cop_submissions WHERE intake_form_id = ? AND content_hash = ? LIMIT 1'
+      'SELECT id FROM survey_responses WHERE survey_id = ? AND content_hash = ? LIMIT 1'
     ).bind(form.id, contentHash).first()
 
     if (existing) {
@@ -157,8 +157,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const now = new Date().toISOString()
 
     await env.DB.prepare(`
-      INSERT INTO cop_submissions (
-        id, intake_form_id, cop_session_id, form_data,
+      INSERT INTO survey_responses (
+        id, survey_id, cop_session_id, form_data,
         submitter_name, submitter_contact, lat, lon,
         submitter_country, submitter_city, submitter_ip_hash, content_hash, updated_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -172,9 +172,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       geo.country, geo.city, ipHash, contentHash, now
     ).run()
 
-    // Increment submission count
+    // Increment submission count on both tables for backward compat
     await env.DB.prepare(
       'UPDATE cop_intake_forms SET submission_count = submission_count + 1 WHERE id = ?'
+    ).bind(form.id).run()
+    await env.DB.prepare(
+      'UPDATE survey_drops SET submission_count = submission_count + 1 WHERE id = ?'
     ).bind(form.id).run()
 
     // Emit event
@@ -184,7 +187,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       entityType: 'submission',
       entityId: id,
       payload: {
-        intake_form_id: form.id,
+        survey_id: form.id,
         submitter_name: body.submitter_name || null,
         submitter_country: geo.country,
         has_location: body.lat != null || geo.lat != null,

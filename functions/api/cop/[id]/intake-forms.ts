@@ -127,8 +127,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         })
       }
       const slugExists = await env.DB.prepare(
-        'SELECT id FROM cop_intake_forms WHERE custom_slug = ?'
-      ).bind(body.custom_slug).first()
+        `SELECT id FROM cop_intake_forms WHERE custom_slug = ?
+         UNION ALL
+         SELECT id FROM survey_drops WHERE custom_slug = ?
+         LIMIT 1`
+      ).bind(body.custom_slug, body.custom_slug).first()
       if (slugExists) {
         return new Response(JSON.stringify({ error: 'This slug is already in use' }), {
           status: 409, headers: JSON_HEADERS,
