@@ -17,7 +17,8 @@ import {
   Folder,
   Zap,
   ArrowRight,
-  Loader2
+  Loader2,
+  ClipboardList
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -173,6 +174,13 @@ export function DashboardPage() {
       href: '/dashboard/cop',
       icon: Map,
       color: 'bg-orange-500 hover:bg-orange-600'
+    },
+    {
+      title: 'Drops',
+      description: 'Crowdsource data collection',
+      href: '/dashboard/drops',
+      icon: ClipboardList,
+      color: 'bg-teal-500 hover:bg-teal-600'
     },
     {
       title: t('dashboard.viewReports'),
