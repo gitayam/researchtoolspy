@@ -1212,6 +1212,13 @@ interface AnalyticsData {
     urls: { url: string; title?: string; summary?: string; analysis_id?: string }[]
     content_sources: Record<string, number>
   }
+  intelligence?: {
+    analyzed_urls: number
+    entities: { name: string; type: string; count: number }[]
+    claims: { claim: string; confidence?: number }[]
+    sentiment: Record<string, number>
+    topics: Record<string, number>
+  }
 }
 
 interface SummaryData {
@@ -1395,6 +1402,104 @@ function AnalyticsTab({ surveyId }: { surveyId: string }) {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Extracted Entities */}
+      {analytics.intelligence && analytics.intelligence.entities.length > 0 && (
+        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 p-4 space-y-3">
+          <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+            Extracted Entities ({analytics.intelligence.entities.length})
+          </h3>
+          <div className="flex flex-wrap gap-1.5">
+            {analytics.intelligence.entities.map((e, i) => {
+              const typeColors: Record<string, string> = {
+                PERSON: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400',
+                ORGANIZATION: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400',
+                ORG: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400',
+                LOCATION: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
+                GPE: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
+                EVENT: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400',
+                WEAPON: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400',
+                MILITARY: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400',
+                DATE: 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400',
+                NORP: 'bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-400',
+              }
+              const color = typeColors[e.type.toUpperCase()] || 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+              return (
+                <span key={i} className={`text-xs px-2 py-1 rounded-full ${color}`}>
+                  {e.name}
+                  <span className="opacity-60 ml-1 text-[10px]">{e.type}{e.count > 1 ? ` ×${e.count}` : ''}</span>
+                </span>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Extracted Claims */}
+      {analytics.intelligence && analytics.intelligence.claims.length > 0 && (
+        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 p-4 space-y-3">
+          <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+            Claims Extracted ({analytics.intelligence.claims.length})
+          </h3>
+          <ul className="space-y-2">
+            {analytics.intelligence.claims.map((c, i) => (
+              <li key={i} className="flex gap-2 text-sm">
+                <span className="text-slate-400 shrink-0 mt-0.5">&#8226;</span>
+                <div className="flex-1">
+                  <span className="text-slate-800 dark:text-slate-200">{c.claim}</span>
+                  {c.confidence != null && (
+                    <span className={`ml-1.5 text-[10px] px-1.5 py-0.5 rounded-full ${
+                      c.confidence >= 70 ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                        : c.confidence >= 40 ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
+                        : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
+                    }`}>
+                      {c.confidence}%
+                    </span>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Sentiment & Topics from content analysis */}
+      {analytics.intelligence && (Object.keys(analytics.intelligence.sentiment).length > 0 || Object.keys(analytics.intelligence.topics).length > 0) && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {Object.keys(analytics.intelligence.sentiment).length > 0 && (
+            <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 p-4 space-y-2">
+              <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Source Sentiment</h3>
+              <div className="flex flex-wrap gap-1.5">
+                {Object.entries(analytics.intelligence.sentiment).sort((a, b) => b[1] - a[1]).map(([label, count]) => {
+                  const sentColors: Record<string, string> = {
+                    positive: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
+                    negative: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400',
+                    neutral: 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400',
+                    mixed: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400',
+                  }
+                  return (
+                    <span key={label} className={`text-xs px-2.5 py-1 rounded-full ${sentColors[label.toLowerCase()] || sentColors.neutral}`}>
+                      {label} <span className="font-bold">{count}</span>
+                    </span>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+          {Object.keys(analytics.intelligence.topics).length > 0 && (
+            <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 p-4 space-y-2">
+              <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Content Topics</h3>
+              <div className="flex flex-wrap gap-1.5">
+                {Object.entries(analytics.intelligence.topics).sort((a, b) => b[1] - a[1]).map(([topic, count]) => (
+                  <span key={topic} className="text-xs px-2.5 py-1 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400">
+                    {topic} <span className="font-bold">{count}</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

@@ -126,6 +126,97 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       }
     }
 
+    // Cross-reference submitted URLs with content_analysis table for deep intel
+    const submittedUrls: string[] = []
+    for (const data of parsedRows) {
+      for (const field of formSchema) {
+        if (field.type === 'url' && data[field.name]) {
+          submittedUrls.push(String(data[field.name]))
+        }
+      }
+    }
+
+    // Fetch content analysis for submitted URLs (batch lookup)
+    const entities: { name: string; type: string; count: number }[] = []
+    const claims: { claim: string; confidence?: number }[] = []
+    const sentimentCounts: Record<string, number> = {}
+    const topicCounts: Record<string, number> = {}
+    let analyzedUrlCount = 0
+
+    if (submittedUrls.length > 0) {
+      // Batch in groups of 10 to avoid query size limits
+      const batches = []
+      for (let i = 0; i < Math.min(submittedUrls.length, 50); i += 10) {
+        batches.push(submittedUrls.slice(i, i + 10))
+      }
+
+      for (const batch of batches) {
+        const placeholders = batch.map(() => '?').join(',')
+        const analyses = await env.DB.prepare(
+          `SELECT url, entities, claim_analysis, sentiment_analysis, topics, keyphrases
+           FROM content_analysis WHERE url IN (${placeholders}) LIMIT 50`
+        ).bind(...batch).all()
+
+        for (const row of (analyses.results || []) as any[]) {
+          analyzedUrlCount++
+
+          // Parse entities
+          try {
+            const ents = row.entities ? JSON.parse(row.entities) : []
+            if (Array.isArray(ents)) {
+              for (const e of ents) {
+                const name = e.name || e.text || e.entity || String(e)
+                const type = e.type || e.label || 'unknown'
+                if (typeof name === 'string' && name.length > 1) {
+                  const existing = entities.find(x => x.name.toLowerCase() === name.toLowerCase())
+                  if (existing) { existing.count++ }
+                  else { entities.push({ name, type: String(type), count: 1 }) }
+                }
+              }
+            }
+          } catch { /* */ }
+
+          // Parse claims
+          try {
+            const ca = row.claim_analysis ? JSON.parse(row.claim_analysis) : null
+            if (ca) {
+              const claimList = ca.claims || ca.key_claims || (Array.isArray(ca) ? ca : [])
+              for (const c of claimList.slice(0, 10)) {
+                const text = c.claim || c.text || c.statement || (typeof c === 'string' ? c : null)
+                if (text) {
+                  claims.push({ claim: String(text).substring(0, 300), confidence: c.confidence })
+                }
+              }
+            }
+          } catch { /* */ }
+
+          // Parse sentiment
+          try {
+            const sa = row.sentiment_analysis ? JSON.parse(row.sentiment_analysis) : null
+            if (sa?.overall_sentiment) {
+              const label = String(sa.overall_sentiment)
+              sentimentCounts[label] = (sentimentCounts[label] || 0) + 1
+            }
+          } catch { /* */ }
+
+          // Parse topics
+          try {
+            const tp = row.topics ? JSON.parse(row.topics) : null
+            if (tp) {
+              const topicList = tp.topics || tp.main_topics || (Array.isArray(tp) ? tp : [])
+              for (const t of topicList) {
+                const name = t.name || t.topic || (typeof t === 'string' ? t : null)
+                if (name) topicCounts[String(name)] = (topicCounts[String(name)] || 0) + 1
+              }
+            }
+          } catch { /* */ }
+        }
+      }
+    }
+
+    // Sort entities by count
+    entities.sort((a, b) => b.count - a.count)
+
     return new Response(JSON.stringify({
       total: survey.submission_count,
       by_country: Object.fromEntries((byCountry.results || []).map((r: any) => [r.country, r.count])),
@@ -138,6 +229,13 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         total_enriched: enrichedCount,
         urls: enrichedUrls.slice(0, 50),
         content_sources: contentSources,
+      },
+      intelligence: {
+        analyzed_urls: analyzedUrlCount,
+        entities: entities.slice(0, 30),
+        claims: claims.slice(0, 20),
+        sentiment: sentimentCounts,
+        topics: topicCounts,
       },
     }), { headers: JSON_HEADERS })
   } catch (error) {
