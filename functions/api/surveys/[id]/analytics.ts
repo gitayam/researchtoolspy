@@ -55,7 +55,19 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     // Compute field value distributions from form_data
     let formSchema: { name: string; type: string; label: string }[] = []
-    try { formSchema = JSON.parse(survey.form_schema) } catch { /* */ }
+    try {
+      const parsed = survey.form_schema ? JSON.parse(survey.form_schema) : []
+      if (Array.isArray(parsed)) formSchema = parsed
+    } catch { /* malformed schema */ }
+
+    // Pre-parse form_data once per row (avoid double-parsing for distributions + tags)
+    const parsedRows: Record<string, unknown>[] = []
+    for (const row of (responses.results || [])) {
+      try {
+        const data = JSON.parse((row as any).form_data)
+        if (data && typeof data === 'object') parsedRows.push(data)
+      } catch { /* skip malformed row */ }
+    }
 
     const distributions: Record<string, Record<string, number>> = {}
     const distributableTypes = ['select', 'multiselect', 'likert', 'rating', 'country']
@@ -63,18 +75,15 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     for (const field of formSchema) {
       if (!distributableTypes.includes(field.type)) continue
       const dist: Record<string, number> = {}
-      for (const row of (responses.results || [])) {
-        try {
-          const data = JSON.parse((row as any).form_data)
-          const val = data[field.name]
-          if (val) {
-            const values = field.type === 'multiselect' ? String(val).split(',') : [String(val)]
-            for (const v of values) {
-              const trimmed = v.trim()
-              if (trimmed) dist[trimmed] = (dist[trimmed] || 0) + 1
-            }
+      for (const data of parsedRows) {
+        const val = data[field.name]
+        if (val) {
+          const values = field.type === 'multiselect' ? String(val).split(',') : [String(val)]
+          for (const v of values) {
+            const trimmed = v.trim()
+            if (trimmed) dist[trimmed] = (dist[trimmed] || 0) + 1
           }
-        } catch { /* */ }
+        }
       }
       if (Object.keys(dist).length > 0) {
         distributions[field.name] = dist
@@ -83,15 +92,13 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     // Tag distribution from _tags metadata
     const tagBreakdown: Record<string, number> = {}
-    for (const row of (responses.results || [])) {
-      try {
-        const data = JSON.parse((row as any).form_data)
-        if (Array.isArray(data._tags)) {
-          for (const tag of data._tags) {
-            tagBreakdown[String(tag)] = (tagBreakdown[String(tag)] || 0) + 1
-          }
+    for (const data of parsedRows) {
+      const tags = (data as any)._tags
+      if (Array.isArray(tags)) {
+        for (const tag of tags) {
+          tagBreakdown[String(tag)] = (tagBreakdown[String(tag)] || 0) + 1
         }
-      } catch { /* */ }
+      }
     }
 
     return new Response(JSON.stringify({

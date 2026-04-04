@@ -234,8 +234,10 @@ function parseMGRS(
   if (bandIdx < 0) return { lat: null, lon: null, precision: '~100km' }
 
   // Base coordinates: center of the UTM zone and latitude band
+  // Band X (index 19) spans 72N-84N (12 degrees), all others span 8 degrees
+  const bandHeight = bandIdx === 19 ? 12 : 8
   const lonBase = (zone - 1) * 6 - 180 + 3
-  const latBase = -80 + bandIdx * 8 + 4
+  const latBase = -80 + bandIdx * 8 + bandHeight / 2
 
   // No easting/northing digits — return zone/band center
   if (!eastingStr && !northingStr) {
@@ -261,8 +263,8 @@ function parseMGRS(
   const easting = eastingStr ? parseInt(eastingStr) / Math.pow(10, eastingStr.length) : 0.5
   const northing = northingStr ? parseInt(northingStr) / Math.pow(10, northingStr.length) : 0.5
 
-  // Apply offset within zone (6 deg lon) and band (8 deg lat)
-  const lat = latBase - 4 + northing * 8
+  // Apply offset within zone (6 deg lon) and band (bandHeight deg lat)
+  const lat = latBase - bandHeight / 2 + northing * bandHeight
   const lon = lonBase - 3 + easting * 6
 
   return {

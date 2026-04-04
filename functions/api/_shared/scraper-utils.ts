@@ -16,7 +16,11 @@ export async function scrapeUrl(url: string, apifyApiKey?: string): Promise<Scra
   // 1. Try Apify for Twitter/X and TikTok (richer content with engagement metrics)
   if (apifyApiKey) {
     try {
-      const socialResult = await fetchSocialViaApify(url, apifyApiKey)
+      // Race Apify against a 20s deadline to avoid hanging the Worker
+      const socialResult = await Promise.race([
+        fetchSocialViaApify(url, apifyApiKey),
+        new Promise<null>((_, reject) => setTimeout(() => reject(new Error('Apify timeout (20s)')), 20000)),
+      ])
       if (socialResult?.success && socialResult.text.length > 20) {
         return {
           title: socialResult.title || `${socialResult.platform} post`,
@@ -36,7 +40,7 @@ export async function scrapeUrl(url: string, apifyApiKey?: string): Promise<Scra
     try {
       const twitterUrl = url.replace('https://x.com/', 'https://twitter.com/')
       const oembedUrl = `https://publish.twitter.com/oembed?url=${encodeURIComponent(twitterUrl)}`
-      const twitterResponse = await fetch(oembedUrl)
+      const twitterResponse = await fetch(oembedUrl, { signal: AbortSignal.timeout(10000) })
 
       if (twitterResponse.ok) {
         const data = await twitterResponse.json() as any

@@ -38,8 +38,13 @@ export async function verifyPassword(password: string, storedHash: string): Prom
   const [saltHex, expectedHex] = storedHash.split(':')
   if (!saltHex || !expectedHex) return false
 
+  // Validate hex format before parsing
+  if (!/^[0-9a-f]+$/i.test(saltHex) || saltHex.length % 2 !== 0) return false
+
   const encoder = new TextEncoder()
-  const salt = new Uint8Array(saltHex.match(/.{2}/g)!.map(b => parseInt(b, 16)))
+  const hexPairs = saltHex.match(/.{2}/g)
+  if (!hexPairs) return false
+  const salt = new Uint8Array(hexPairs.map(b => parseInt(b, 16)))
   const keyMaterial = await crypto.subtle.importKey(
     'raw', encoder.encode(password), 'PBKDF2', false, ['deriveBits']
   )

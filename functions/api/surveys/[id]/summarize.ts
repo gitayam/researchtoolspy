@@ -70,6 +70,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       }`
     }).join('\n\n')
 
+    // Truncate to ~12k chars to stay within token limits (gpt-4o-mini context)
+    const maxPromptChars = 12000
+    const truncatedResponses = formattedResponses.length > maxPromptChars
+      ? formattedResponses.substring(0, maxPromptChars) + `\n\n[... truncated, showing ${Math.round(maxPromptChars / formattedResponses.length * 100)}% of ${responses.results.length} responses]`
+      : formattedResponses
+
     // Call GPT
     const systemPrompt = `You are an open source research analyst reviewing crowdsourced submissions to a data collection survey titled "${survey.title}".
 
@@ -77,7 +83,7 @@ Survey context: ${survey.description || 'No description provided.'}
 
 Analyze the submissions below and provide a structured analysis. Be concise and actionable. Focus on patterns, contradictions, and gaps in the data.`
 
-    const userPrompt = `Here are the ${responses.results.length} most recent submissions:\n\n${formattedResponses}\n\nProvide your analysis as JSON with these fields:
+    const userPrompt = `Here are the ${responses.results.length} most recent submissions:\n\n${truncatedResponses}\n\nProvide your analysis as JSON with these fields:
 {
   "summary": "2-3 sentence overview of what the submissions collectively tell us",
   "key_themes": ["theme 1", "theme 2", ...],

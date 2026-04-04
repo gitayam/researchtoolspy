@@ -237,8 +237,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
               const origin = new URL(request.url).origin
               const analysisRes = await fetch(`${origin}/api/content-intelligence/analyze-url`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-User-Hash': '0000000000000000' },
+                headers: { 'Content-Type': 'application/json', 'X-User-Hash': 'system-survey-drops' },
                 body: JSON.stringify({ url, mode: 'quick' }),
+                signal: AbortSignal.timeout(25000),
               })
               if (analysisRes.ok) {
                 const analysis = await analysisRes.json() as any
@@ -246,6 +247,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
                 enrichment.summary = analysis.summary?.substring(0, 300)
                 enrichment.word_count = analysis.word_count
                 enrichment.content_source = analysis.content_source
+              } else {
+                console.warn(`[Survey Process] Content analysis returned ${analysisRes.status} for ${url}`)
               }
             } catch (e) {
               console.error(`[Survey Process] Content analysis failed for ${url}:`, e)
