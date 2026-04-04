@@ -816,6 +816,8 @@ function SettingsTab({
   const [themeColor, setThemeColor] = useState(survey.theme_color || '#3b82f6')
   const [successMessage, setSuccessMessage] = useState(survey.success_message || '')
   const [copSessionId, setCopSessionId] = useState(survey.cop_session_id || '')
+  const [allowedCountries, setAllowedCountries] = useState<string[]>(survey.allowed_countries || [])
+  const [countryInput, setCountryInput] = useState('')
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [saveSuccess, setSaveSuccess] = useState(false)
@@ -836,6 +838,7 @@ function SettingsTab({
         theme_color: themeColor || null,
         success_message: successMessage || null,
         cop_session_id: copSessionId || null,
+        allowed_countries: allowedCountries,
       }
       if (accessLevel === 'password' && password) {
         body.password = password
@@ -870,6 +873,7 @@ function SettingsTab({
     themeColor,
     successMessage,
     copSessionId,
+    allowedCountries,
     onSaved,
   ])
 
@@ -939,11 +943,80 @@ function SettingsTab({
       {/* Country Restrictions */}
       <div className={sectionClass}>
         <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Country Restrictions</h3>
-        <p className="text-sm text-gray-600 dark:text-gray-400">
-          {survey.allowed_countries.length > 0
-            ? `Allowed: ${survey.allowed_countries.join(', ')}`
-            : 'No country restrictions (all countries allowed)'}
+        <p className="text-xs text-gray-500 dark:text-gray-400">
+          Only allow submissions from specific countries. Leave empty to allow all.
         </p>
+        <div className="flex gap-2">
+          <select
+            value={countryInput}
+            onChange={(e) => setCountryInput(e.target.value)}
+            className={cn(inputClass, 'flex-1')}
+          >
+            <option value="">Select country to add...</option>
+            {([
+              ['US','United States'],['GB','United Kingdom'],['CA','Canada'],['AU','Australia'],
+              ['DE','Germany'],['FR','France'],['UA','Ukraine'],['RU','Russia'],
+              ['CN','China'],['IR','Iran'],['IQ','Iraq'],['SY','Syria'],
+              ['IL','Israel'],['PS','Palestine'],['SA','Saudi Arabia'],['AE','UAE'],
+              ['TR','Turkey'],['IN','India'],['PK','Pakistan'],['AF','Afghanistan'],
+              ['KP','North Korea'],['KR','South Korea'],['JP','Japan'],['TW','Taiwan'],
+              ['BR','Brazil'],['MX','Mexico'],['NG','Nigeria'],['ZA','South Africa'],
+              ['EG','Egypt'],['KE','Kenya'],['PL','Poland'],['RO','Romania'],
+              ['NL','Netherlands'],['SE','Sweden'],['NO','Norway'],['FI','Finland'],
+              ['IT','Italy'],['ES','Spain'],['PT','Portugal'],['GR','Greece'],
+              ['BY','Belarus'],['GE','Georgia'],['AM','Armenia'],['AZ','Azerbaijan'],
+              ['KZ','Kazakhstan'],['UZ','Uzbekistan'],['LB','Lebanon'],['JO','Jordan'],
+              ['YE','Yemen'],['LY','Libya'],['SD','Sudan'],['SO','Somalia'],
+              ['ET','Ethiopia'],['PH','Philippines'],['ID','Indonesia'],['MY','Malaysia'],
+            ] as [string,string][])
+              .filter(([code]) => !allowedCountries.includes(code))
+              .map(([code, name]) => (
+                <option key={code} value={code}>{name} ({code})</option>
+              ))}
+          </select>
+          <Button
+            type="button"
+            size="sm"
+            disabled={!countryInput}
+            onClick={() => {
+              if (countryInput && !allowedCountries.includes(countryInput)) {
+                setAllowedCountries(prev => [...prev, countryInput])
+                setCountryInput('')
+              }
+            }}
+          >
+            Add
+          </Button>
+        </div>
+        {allowedCountries.length > 0 ? (
+          <div className="flex flex-wrap gap-1.5">
+            {allowedCountries.map((code) => (
+              <span
+                key={code}
+                className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400"
+              >
+                {code}
+                <button
+                  type="button"
+                  onClick={() => setAllowedCountries(prev => prev.filter(c => c !== code))}
+                  className="hover:text-red-500 transition-colors"
+                  aria-label={`Remove ${code}`}
+                >
+                  &times;
+                </button>
+              </span>
+            ))}
+            <button
+              type="button"
+              onClick={() => setAllowedCountries([])}
+              className="text-[10px] text-gray-400 hover:text-red-500 transition-colors px-1"
+            >
+              Clear all
+            </button>
+          </div>
+        ) : (
+          <p className="text-xs text-gray-400 italic">All countries allowed</p>
+        )}
       </div>
 
       {/* Rate Limiting */}
