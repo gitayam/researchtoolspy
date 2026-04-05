@@ -176,7 +176,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     // rate_limit_per_hour
     if (body.rate_limit_per_hour !== undefined) {
       sets.push('rate_limit_per_hour = ?')
-      bindings.push(Number(body.rate_limit_per_hour) ?? 0)
+      bindings.push(Number(body.rate_limit_per_hour) || 0)
     }
 
     // custom_slug with validation + uniqueness

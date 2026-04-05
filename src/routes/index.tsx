@@ -1,6 +1,12 @@
 import { lazy, Suspense } from 'react'
-import { createBrowserRouter, Navigate } from 'react-router-dom'
+import { createBrowserRouter, Navigate, useParams } from 'react-router-dom'
 import { DashboardLayout, DashboardFullBleedLayout } from '@/layouts/DashboardLayout'
+
+// Legacy redirect: /dashboard/surveys/:id → /dashboard/drops/:id
+function LegacySurveyRedirect() {
+  const { id } = useParams()
+  return <Navigate to={`/dashboard/drops/${id}`} replace />
+}
 
 // Enhanced loading fallback component with progress indicator
 const PageLoader = () => (
@@ -614,7 +620,7 @@ export const router = createBrowserRouter([
       },
       {
         path: 'surveys/:id',
-        element: <Navigate to="/dashboard/drops" replace />,
+        element: <LegacySurveyRedirect />,
       },
       // COP Routes
       {

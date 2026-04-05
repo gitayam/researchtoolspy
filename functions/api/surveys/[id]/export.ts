@@ -163,10 +163,15 @@ function buildCsvResponse(
 }
 
 function esc(s: string): string {
-  if (s.includes(',') || s.includes('"') || s.includes('\n')) {
-    return `"${s.replace(/"/g, '""')}"`
+  let safe = s
+  // Neutralize CSV formula injection (Excel/Sheets execute =, +, -, @, \t, \r prefixes)
+  if (/^[=+\-@\t\r]/.test(safe)) {
+    safe = "'" + safe
   }
-  return s
+  if (safe.includes(',') || safe.includes('"') || safe.includes('\n')) {
+    return `"${safe.replace(/"/g, '""')}"`
+  }
+  return safe
 }
 
 function buildStixResponse(
@@ -176,6 +181,7 @@ function buildStixResponse(
 ): Response {
   const bundle: any = {
     type: 'bundle',
+    spec_version: '2.1',
     id: `bundle--${crypto.randomUUID()}`,
     objects: [],
   }
@@ -193,21 +199,45 @@ function buildStixResponse(
     object_refs: [],
   })
 
+  const report = bundle.objects[0]
+
   for (const row of rows) {
-    // Each response becomes an observed-data
-    const obsId = `observed-data--${crypto.randomUUID()}`
-    bundle.objects.push({
+    // Each response: create note first so observed-data always has a ref
+    const noteId = `note--${crypto.randomUUID()}`
+    const formText = Object.entries(row.form_data)
+      .map(([k, v]) => `${k}: ${v}`)
+      .join('\n')
+
+    const obsObj: any = {
       type: 'observed-data',
       spec_version: '2.1',
-      id: obsId,
+      id: `observed-data--${crypto.randomUUID()}`,
       created: row.created_at || new Date().toISOString(),
       modified: row.created_at || new Date().toISOString(),
       first_observed: row.created_at,
       last_observed: row.created_at,
       number_observed: 1,
-      object_refs: [],
+      object_refs: [noteId],
+    }
+
+    // Tags as labels
+    if (row.tags?.length > 0) {
+      obsObj.labels = row.tags
+    }
+
+    bundle.objects.push(obsObj)
+    report.object_refs.push(obsObj.id)
+
+    // Note with the submission content
+    bundle.objects.push({
+      type: 'note',
+      spec_version: '2.1',
+      id: noteId,
+      content: formText || '(empty submission)',
+      created: row.created_at,
+      object_refs: [obsObj.id],
+      authors: row.submitter_name ? [String(row.submitter_name).substring(0, 200)] : undefined,
     })
-    bundle.objects[0].object_refs.push(obsId)
 
     // URLs from enrichments become URL SCOs
     for (const enrichment of (row.enrichments || [])) {
@@ -219,7 +249,7 @@ function buildStixResponse(
           id: urlId,
           value: enrichment.url,
         })
-        bundle.objects.find((o: any) => o.id === obsId).object_refs.push(urlId)
+        obsObj.object_refs.push(urlId)
       }
     }
 
@@ -234,29 +264,7 @@ function buildStixResponse(
         longitude: row.lon,
         country: row.submitter_country || undefined,
       })
-      bundle.objects.find((o: any) => o.id === obsId).object_refs.push(locId)
-    }
-
-    // Tags become labels on the observed-data
-    if (row.tags?.length > 0) {
-      bundle.objects.find((o: any) => o.id === obsId).labels = row.tags
-    }
-
-    // Note for the actual text content
-    const formText = Object.entries(row.form_data)
-      .map(([k, v]) => `${k}: ${v}`)
-      .join('\n')
-    if (formText) {
-      const noteId = `note--${crypto.randomUUID()}`
-      bundle.objects.push({
-        type: 'note',
-        spec_version: '2.1',
-        id: noteId,
-        content: formText,
-        created: row.created_at,
-        object_refs: [obsId],
-        authors: row.submitter_name ? [row.submitter_name] : undefined,
-      })
+      obsObj.object_refs.push(locId)
     }
   }
 

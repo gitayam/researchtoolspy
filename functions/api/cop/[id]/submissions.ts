@@ -35,7 +35,11 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     const status = url.searchParams.get('status')
     const formId = url.searchParams.get('form_id')
 
-    let query = 'SELECT * FROM survey_responses WHERE cop_session_id = ?'
+    let query = `SELECT id, survey_id, form_data, submitter_name, submitter_contact,
+             lat, lon, submitter_country, submitter_city, status,
+             triaged_by, rejection_reason, cop_session_id, linked_evidence_id,
+             created_at, updated_at
+      FROM survey_responses WHERE cop_session_id = ?`
     const bindings: any[] = [sessionId]
 
     if (status) { query += ' AND status = ?'; bindings.push(status) }
@@ -85,7 +89,9 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     }
 
     const existing = await env.DB.prepare(
-      'SELECT * FROM survey_responses WHERE id = ? AND cop_session_id = ?'
+      `SELECT id, survey_id, form_data, submitter_name, submitter_country,
+              status, triaged_by, cop_session_id, linked_evidence_id, created_at
+       FROM survey_responses WHERE id = ? AND cop_session_id = ?`
     ).bind(subId, sessionId).first() as any
 
     if (!existing) {

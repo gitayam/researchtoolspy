@@ -909,6 +909,8 @@ function ExpandableContext({ description, facts, changelog }: {
       <button
         type="button"
         onClick={() => setExpanded(!expanded)}
+        aria-expanded={expanded}
+        aria-controls="drop-context-panel"
         className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-blue-100/50 dark:hover:bg-blue-900/20 transition-colors"
       >
         <span className="text-sm font-semibold text-blue-900 dark:text-blue-200 flex items-center gap-2">
@@ -927,7 +929,7 @@ function ExpandableContext({ description, facts, changelog }: {
       </button>
 
       {expanded && (
-        <div className="px-4 pb-4 space-y-4">
+        <div id="drop-context-panel" className="px-4 pb-4 space-y-4">
           {/* Description (narrative context, if present) */}
           {description && !hasFacts && (
             <p className="text-sm text-blue-900 dark:text-blue-200 leading-relaxed whitespace-pre-line">{description}</p>

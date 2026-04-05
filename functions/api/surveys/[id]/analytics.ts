@@ -150,13 +150,15 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         batches.push(submittedUrls.slice(i, i + 10))
       }
 
-      for (const batch of batches) {
+      const batchResults = await Promise.all(batches.map(batch => {
         const placeholders = batch.map(() => '?').join(',')
-        const analyses = await env.DB.prepare(
+        return env.DB.prepare(
           `SELECT url, entities, claim_analysis, sentiment_analysis, topics, keyphrases
            FROM content_analysis WHERE url IN (${placeholders}) LIMIT 50`
         ).bind(...batch).all()
+      }))
 
+      for (const analyses of batchResults) {
         for (const row of (analyses.results || []) as any[]) {
           analyzedUrlCount++
 

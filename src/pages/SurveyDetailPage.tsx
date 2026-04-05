@@ -383,7 +383,7 @@ function BuilderTab({
       <div className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Survey Title
+            Title
           </label>
           <input
             type="text"
@@ -439,7 +439,7 @@ function BuilderTab({
 
         {fields.length === 0 && (
           <p className="text-sm text-gray-500 dark:text-gray-400 py-4 text-center">
-            No fields yet. Add fields to build your survey form.
+            No fields yet. Add fields to build your drop form.
           </p>
         )}
 
@@ -1142,12 +1142,12 @@ function SettingsTab({
             className="text-red-600 dark:text-red-400 border-red-300 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/20 gap-2"
           >
             <Trash2 className="h-4 w-4" />
-            Delete Survey
+            Delete Drop
           </Button>
         ) : (
           <div className="p-4 rounded-lg border border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-900/10 space-y-3">
             <p className="text-sm text-red-700 dark:text-red-300">
-              This will permanently delete this survey and all its responses. This cannot be undone.
+              This will permanently delete this drop and all its responses. This cannot be undone.
             </p>
             <div className="flex gap-2">
               <Button
@@ -1163,7 +1163,7 @@ function SettingsTab({
                     if (!res.ok) throw new Error('Failed to delete')
                     navigate('/dashboard/drops')
                   } catch {
-                    setSaveError('Failed to delete survey')
+                    setSaveError('Failed to delete drop')
                     setDeleting(false)
                     setConfirmDelete(false)
                   }
@@ -1247,7 +1247,10 @@ function AnalyticsTab({ surveyId }: { surveyId: string }) {
       headers: getCopHeaders(),
       signal: controller.signal,
     })
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) throw new Error(`Failed (${r.status})`)
+        return r.json()
+      })
       .then(data => { setAnalytics(data as AnalyticsData); setLoading(false) })
       .catch(err => { if (err.name !== 'AbortError') setLoading(false) })
     return () => controller.abort()
@@ -1520,7 +1523,10 @@ function AnalyticsTab({ surveyId }: { surveyId: string }) {
               onClick={(e) => {
                 e.preventDefault()
                 fetch(`/api/surveys/${surveyId}/export?format=${format}`, { headers: getCopHeaders() })
-                  .then(r => r.blob())
+                  .then(r => {
+                    if (!r.ok) throw new Error(`Export failed (${r.status})`)
+                    return r.blob()
+                  })
                   .then(blob => {
                     const url = URL.createObjectURL(blob)
                     const a = document.createElement('a')
@@ -1529,6 +1535,7 @@ function AnalyticsTab({ surveyId }: { surveyId: string }) {
                     a.click()
                     URL.revokeObjectURL(url)
                   })
+                  .catch(err => alert(err.message || 'Export failed'))
               }}
               className="flex flex-col items-center gap-0.5 px-4 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer min-w-[100px]"
             >
