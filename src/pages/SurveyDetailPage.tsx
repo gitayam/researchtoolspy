@@ -1385,6 +1385,12 @@ function AnalyticsTab({ surveyId }: { surveyId: string }) {
               ))}
             </div>
           )}
+          {(!analytics.intelligence || analytics.intelligence.analyzed_urls === 0) && (
+            <p className="text-xs text-amber-600 dark:text-amber-400">
+              No deep analysis found for these URLs.{' '}
+              <a href="/dashboard/tools" className="underline">Analyze them in Content Intelligence</a> to extract entities, claims, and sentiment — they'll automatically appear here.
+            </p>
+          )}
           <div className="space-y-2 max-h-64 overflow-y-auto">
             {analytics.enrichment.urls.map((u, i) => (
               <div key={i} className="flex items-start gap-2 text-sm">

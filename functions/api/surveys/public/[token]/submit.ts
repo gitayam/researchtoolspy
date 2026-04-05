@@ -15,6 +15,7 @@ import { scrapeUrl } from '../../../_shared/scraper-utils'
 interface Env {
   DB: D1Database
   APIFY_API_KEY?: string
+  SYSTEM_USER_HASH?: string
 }
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
@@ -237,7 +238,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
               const origin = new URL(request.url).origin
               const analysisRes = await fetch(`${origin}/api/content-intelligence/analyze-url`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-User-Hash': 'system-survey-drops' },
+                headers: { 'Content-Type': 'application/json', 'X-User-Hash': env.SYSTEM_USER_HASH || 'system-internal' },
                 body: JSON.stringify({ url, mode: 'quick' }),
                 signal: AbortSignal.timeout(25000),
               })
