@@ -127,6 +127,7 @@ const PublicContentAnalysisPage = lazy(() => import('@/pages/PublicContentAnalys
 const PublicCopPage = lazy(() => import('@/pages/PublicCopPage'))
 const PublicCrossTablePage = lazy(() => import('@/pages/tools/PublicCrossTablePage'))
 const PublicIntakePage = lazy(() => import('@/pages/PublicIntakePage'))
+const DropLandingPage = lazy(() => import('@/pages/DropLandingPage'))
 const SubmitEvidencePage = lazy(() => import('@/pages/SubmitEvidencePage'))
 
 // Library pages (lazy loaded)
@@ -188,6 +189,10 @@ export const router = createBrowserRouter([
   {
     path: '/public/intake/:token',
     element: <LazyPage Component={PublicIntakePage} />,
+  },
+  {
+    path: '/drop',
+    element: <LazyPage Component={DropLandingPage} />,
   },
   {
     path: '/drop/:slugOrToken',
