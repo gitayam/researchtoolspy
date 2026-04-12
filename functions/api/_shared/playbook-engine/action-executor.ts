@@ -141,9 +141,12 @@ const sendNotification: ActionHandler = async (db, sessionId, params, userId) =>
   return { id, message: params.message }
 }
 
+const ALLOWED_PRIORITY_TABLES = ['cop_tasks', 'cop_rfis', 'cop_hypotheses', 'cop_markers'] as const
+
 const updatePriority: ActionHandler = async (db, sessionId, params, _userId) => {
   const now = new Date().toISOString()
-  const table = String(params.table || 'cop_tasks')
+  const requestedTable = String(params.table || 'cop_tasks')
+  const table = (ALLOWED_PRIORITY_TABLES as readonly string[]).includes(requestedTable) ? requestedTable : 'cop_tasks'
   const entityId = String(params.entity_id || '')
   const newPriority = String(params.priority || '')
 

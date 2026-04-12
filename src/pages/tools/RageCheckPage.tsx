@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
-import { AlertCircle, CheckCircle, Search, Flame, Loader2, ArrowRight, Github } from 'lucide-react'
+import { AlertCircle, CheckCircle, Search, Flame, Loader2, ArrowRight, GitFork } from 'lucide-react'
 
 interface RageCheckResult {
   score: number
@@ -109,9 +109,9 @@ export function RageCheckPage() {
             target="_blank" 
             rel="noopener noreferrer" 
             className="p-2 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors"
-            title={t('tool.viewOnGithub')}
+            title={t('tool.viewOnGitFork')}
           >
-            <Github className="h-6 w-6" />
+            <GitFork className="h-6 w-6" />
           </a>
         </div>
         <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
@@ -261,7 +261,7 @@ export function RageCheckPage() {
             className="text-muted-foreground hover:text-foreground transition-colors"
             title={t('tool.viewRepo')}
           >
-            <Github className="h-5 w-5" />
+            <GitFork className="h-5 w-5" />
           </a>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground space-y-2">

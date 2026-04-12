@@ -23,6 +23,7 @@
     },
 
     /* Linting */
+    "ignoreDeprecations": "6.0",
     "strict": false,
     "noUnusedLocals": false,
     "noUnusedParameters": false,

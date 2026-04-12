@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  Instagram, Youtube, Twitter, Smartphone, Facebook, Linkedin,
+  Camera, Video, MessageCircle, Smartphone, Globe, Briefcase,
   Plus, Search, Download, BarChart3, RefreshCw, ExternalLink,
   AlertCircle, CheckCircle2, Clock, XCircle, Loader2, ArrowLeft,
   FileDown, Trash2, Eye, Terminal
@@ -87,12 +87,12 @@ interface Stats {
 }
 
 const platformIcons: Record<string, any> = {
-  INSTAGRAM: Instagram,
-  YOUTUBE: Youtube,
-  TWITTER: Twitter,
+  INSTAGRAM: Camera,
+  YOUTUBE: Video,
+  TWITTER: MessageCircle,
   TIKTOK: Smartphone,
-  FACEBOOK: Facebook,
-  LINKEDIN: Linkedin
+  FACEBOOK: Globe,
+  LINKEDIN: Briefcase
 }
 
 const platformColors: Record<string, string> = {
@@ -567,7 +567,7 @@ export function SocialMediaPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {profiles.map((profile) => {
-              const Icon = platformIcons[profile.platform] || Instagram
+              const Icon = platformIcons[profile.platform] || Camera
               const colorClass = platformColors[profile.platform] || 'bg-gray-600'
 
               return (
@@ -643,7 +643,7 @@ export function SocialMediaPage() {
           {profiles.length === 0 && !loading && (
             <Card>
               <CardContent className="p-12 text-center">
-                <Instagram className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <Camera className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
                   {t('socialMedia:profiles.empty.title')}
                 </h3>
@@ -793,7 +793,7 @@ export function SocialMediaPage() {
 
           <div className="space-y-2">
             {jobs.map((job) => {
-              const Icon = platformIcons[job.platform] || Instagram
+              const Icon = platformIcons[job.platform] || Camera
 
               return (
                 <Card key={job.id}>
@@ -893,7 +893,7 @@ export function SocialMediaPage() {
               <div className="space-y-4">
                 <div className="border-l-4 border-blue-600 pl-4">
                   <h4 className="font-semibold flex items-center gap-2">
-                    <Instagram className="h-5 w-5" />
+                    <Camera className="h-5 w-5" />
                     {t('socialMedia:tools.instagram.title')}
                   </h4>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
@@ -913,7 +913,7 @@ export function SocialMediaPage() {
 
                 <div className="border-l-4 border-red-600 pl-4">
                   <h4 className="font-semibold flex items-center gap-2">
-                    <Youtube className="h-5 w-5" />
+                    <Video className="h-5 w-5" />
                     {t('socialMedia:tools.youtube.title')}
                   </h4>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
@@ -935,7 +935,7 @@ export function SocialMediaPage() {
 
                 <div className="border-l-4 border-blue-400 pl-4">
                   <h4 className="font-semibold flex items-center gap-2">
-                    <Twitter className="h-5 w-5" />
+                    <MessageCircle className="h-5 w-5" />
                     {t('socialMedia:tools.twitter.title')}
                   </h4>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
