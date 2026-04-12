@@ -77,6 +77,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     const now = new Date().toISOString()
 
+    const ALLOWED_SOURCE_TYPES = ['observation', 'document', 'image', 'video', 'testimony', 'signal']
+    const ALLOWED_CREDIBILITY = ['confirmed', 'probable', 'possible', 'doubtful', 'unverified']
+    const sourceType = ALLOWED_SOURCE_TYPES.includes(body.source_type) ? body.source_type : 'observation'
+    const credibility = ALLOWED_CREDIBILITY.includes(body.credibility) ? body.credibility : 'unverified'
+
     const result = await env.DB.prepare(`
       INSERT INTO evidence_items (
         title, description, source_url, evidence_type, confidence_level,
@@ -87,9 +92,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       body.title.trim(),
       (body.content ?? '').trim(),
       body.url ?? null,
-      body.source_type ?? 'observation',
+      sourceType,
       body.confidence ?? 'medium',
-      body.credibility ?? 'unverified',
+      credibility,
       body.reliability ?? 'unknown',
       workspaceId,
       userId,

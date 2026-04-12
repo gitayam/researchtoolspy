@@ -5,7 +5,7 @@
  */
 
 import { callOpenAIViaGateway, getOptimalCacheTTL } from '../_shared/ai-gateway'
-import { JSON_HEADERS } from '../_shared/api-utils'
+import { JSON_HEADERS, isPrivateUrl } from '../_shared/api-utils'
 import { getUserFromRequest } from '../_shared/auth-helpers'
 import { fetchSocialViaApify } from '../_shared/apify-social'
 
@@ -334,6 +334,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       parsedUrl = new URL(url)
     } catch {
       return new Response(JSON.stringify({ error: 'Invalid URL format' }), {
+        status: 400,
+        headers: JSON_HEADERS
+      })
+    }
+
+    // SSRF protection — block private/internal addresses
+    if (isPrivateUrl(url)) {
+      return new Response(JSON.stringify({ error: 'URLs pointing to private/internal addresses are not allowed' }), {
         status: 400,
         headers: JSON_HEADERS
       })

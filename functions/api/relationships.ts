@@ -26,6 +26,11 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     // GET /api/relationships?workspace_id=xxx[&cop_session_id=yyy]
     if (method === 'GET' && url.pathname === '/api/relationships') {
       const userId = await getUserIdOrDefault(request, env)
+      if (!userId) {
+        return new Response(JSON.stringify({ error: 'Authentication required' }), {
+          status: 401, headers: JSON_HEADERS,
+        })
+      }
       const workspaceId = url.searchParams.get('workspace_id')
       if (!workspaceId) {
         return new Response(

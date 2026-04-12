@@ -198,9 +198,19 @@ All build-verified, no code changes required:
 | Finding | Status |
 |---------|--------|
 | #1 SQL injection in updatePriority | **FIXED** — added ALLOWED_PRIORITY_TABLES allowlist |
-| #2 getUserIdOrDefault fallback | Tracked — requires endpoint-by-endpoint audit |
-| #3 AI rate limiting | Tracked — requires KV-based rate limiter implementation |
-| #4-14 | Tracked for future work |
+| #2 getUserIdOrDefault fallback to user 1 | **FIXED** — returns null, all 24 call sites now return 401 |
+| #3 AI rate limiting | **FIXED** — 30 req/min per user in middleware |
+| #4 Wildcard CORS | **FIXED** — dynamic origin allowlist (researchtools.net, pages.dev, localhost) |
+| #5 SSRF in URL scraping | **FIXED** — `isPrivateUrl()` blocks private/internal IPs in 3 endpoints |
+| #6 No CSP header | **FIXED** — added Content-Security-Policy to `public/_headers` |
+| #7 Unrestricted guest creation | **FIXED** — 10 req/min per IP rate limit in middleware |
+| #8 Password brute force | **FIXED** — 10 req/min per IP rate limit in middleware |
+| #9 Entity type validation | **FIXED** — allowlist validation in actors, events, sources, places, behaviors |
+| #10 Evidence enum validation | **FIXED** — sanitized source_type and credibility to allowed values |
+| #11 Placeholder refresh token | **FIXED** — removed from auth response |
+| #12 Account hash in response | **FIXED** — removed from auth response |
+| #13 Dynamic SQL in activity logger | **FIXED** — runtime validation of event_type against allowlist |
+| #14 Dynamic SQL in collaborators | **FIXED** — hardcoded column constants, documented as non-user-derived |
 
 ## Verification
 

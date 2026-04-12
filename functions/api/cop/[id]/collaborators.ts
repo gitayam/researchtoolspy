@@ -43,9 +43,10 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     ).bind(sessionId).first<{ created_by: number }>()
     const isOwner = session && String(session.created_by) === String(userId)
 
-    const columns = isOwner
-      ? '*'
-      : 'id, cop_session_id, user_id, email, role, invited_by, invited_at, accepted_at, skills, max_concurrent, timezone, availability'
+    // Hardcoded column lists — never derived from user input
+    const OWNER_COLUMNS = '*'
+    const NON_OWNER_COLUMNS = 'id, cop_session_id, user_id, email, role, invited_by, invited_at, accepted_at, skills, max_concurrent, timezone, availability'
+    const columns = isOwner ? OWNER_COLUMNS : NON_OWNER_COLUMNS
 
     const { results } = await env.DB.prepare(
       `SELECT ${columns} FROM cop_collaborators WHERE cop_session_id = ? ORDER BY invited_at DESC LIMIT 200`

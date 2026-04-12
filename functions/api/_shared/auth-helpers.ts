@@ -128,19 +128,21 @@ export async function getUserFromRequest(
 }
 
 /**
- * Get user ID or default to 1 for backward compatibility
- * Use this for endpoints that don't strictly require auth
+ * Get user ID from request, returning null if not authenticated.
+ *
+ * Previously fell back to user ID 1 for unauthenticated requests,
+ * which was a security vulnerability (leaked user 1's data to anyone).
+ * All call sites must now handle the null case explicitly.
  *
  * @param request - The incoming request
  * @param env - Cloudflare environment
- * @returns User ID (always returns a number)
+ * @returns User ID or null if not authenticated
  */
 export async function getUserIdOrDefault(
   request: Request,
   env: Env
-): Promise<number> {
-  const userId = await getUserFromRequest(request, env)
-  return userId || 1
+): Promise<number | null> {
+  return await getUserFromRequest(request, env)
 }
 
 /**
@@ -179,7 +181,7 @@ export async function requireAuth(
         status: 401,
         headers: {
           'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*'
+          'Access-Control-Allow-Origin': 'https://researchtools.net'
         }
       }
     )
@@ -252,7 +254,7 @@ export async function verifyCopLayerAccess(
   if (!session) {
     return new Response(JSON.stringify({ error: 'COP session not found' }), {
       status: 404,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': 'https://researchtools.net' },
     })
   }
 
@@ -264,7 +266,7 @@ export async function verifyCopLayerAccess(
   if (!userId) {
     return new Response(JSON.stringify({ error: 'Authentication required' }), {
       status: 401,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': 'https://researchtools.net' },
     })
   }
 
@@ -279,6 +281,6 @@ export async function verifyCopLayerAccess(
 
   return new Response(JSON.stringify({ error: 'Access denied' }), {
     status: 403,
-    headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+    headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': 'https://researchtools.net' },
   })
 }

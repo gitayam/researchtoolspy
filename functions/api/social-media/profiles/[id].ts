@@ -20,6 +20,11 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
   try {
     const userId = await getUserIdOrDefault(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: JSON_HEADERS,
+      })
+    }
 
     const profile = await env.DB.prepare(
       'SELECT * FROM social_media_profiles WHERE id = ? AND created_by = ?'
@@ -64,6 +69,11 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     }
 
     const userId = await getUserIdOrDefault(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: JSON_HEADERS,
+      })
+    }
 
     await env.DB.prepare(
       'DELETE FROM social_media_profiles WHERE id = ? AND created_by = ?'

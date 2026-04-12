@@ -24,6 +24,11 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
   try {
     const userId = await getUserIdOrDefault(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: JSON_HEADERS,
+      })
+    }
 
     // GET /api/behaviors?workspace_id=xxx
     if (method === 'GET' && url.pathname === '/api/behaviors') {
@@ -103,6 +108,14 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       if (!body.name || !body.behavior_type || !body.workspace_id) {
         return new Response(
           JSON.stringify({ error: 'Missing required fields: name, behavior_type, workspace_id' }),
+          { status: 400, headers: JSON_HEADERS }
+        )
+      }
+
+      const ALLOWED_BEHAVIOR_TYPES = ['TTP', 'PATTERN', 'TACTIC', 'TECHNIQUE', 'PROCEDURE']
+      if (!ALLOWED_BEHAVIOR_TYPES.includes(body.behavior_type)) {
+        return new Response(
+          JSON.stringify({ error: `Invalid behavior_type. Must be one of: ${ALLOWED_BEHAVIOR_TYPES.join(', ')}` }),
           { status: 400, headers: JSON_HEADERS }
         )
       }

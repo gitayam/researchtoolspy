@@ -115,6 +115,8 @@ export async function notifySubscribers(
 ): Promise<void> {
   try {
     // Find all subscribers for this entity who want notifications for this event type
+    const ALLOWED_EVENT_TYPES = ['update', 'comment', 'fork', 'vote', 'rating'] as const
+    if (!ALLOWED_EVENT_TYPES.includes(event_type)) return
     const field = `notify_on_${event_type}`
     const subscribers = await db.prepare(`
       SELECT user_hash, ${field} as enabled

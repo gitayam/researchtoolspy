@@ -8,6 +8,11 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   const { request, env } = context
   try {
     const userId = await getUserIdOrDefault(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: JSON_HEADERS,
+      })
+    }
 
     const [profileCount, postCount, jobStats] = await Promise.all([
       env.DB.prepare('SELECT COUNT(*) as count FROM social_media_profiles WHERE created_by = ?').bind(userId).first(),

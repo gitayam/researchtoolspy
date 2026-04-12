@@ -16,6 +16,11 @@ export async function onRequest(context: any) {
   }
 
   const userId = await getUserIdOrDefault(request, env)
+  if (!userId) {
+    return new Response(JSON.stringify({ error: 'Authentication required' }), {
+      status: 401, headers: JSON_HEADERS,
+    })
+  }
 
   try {
     // Verify table access

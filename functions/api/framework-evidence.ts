@@ -15,6 +15,11 @@ export async function onRequest(context: any) {
     const frameworkId = url.searchParams.get('framework_id')
     const evidenceId = url.searchParams.get('evidence_id')
     const userId = await getUserIdOrDefault(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: JSON_HEADERS,
+      })
+    }
 
     // GET - Get linked evidence for a framework or frameworks for an evidence item
     if (request.method === 'GET') {

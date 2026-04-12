@@ -67,10 +67,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     return Response.json({
       access_token: token,
-      refresh_token: 'refresh_' + crypto.randomUUID(), // Placeholder
       token_type: 'bearer',
       expires_in: 3600,
-      account_hash: user.user_hash,
       role: user.role
     }, { headers: JSON_HEADERS })
 

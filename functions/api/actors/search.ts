@@ -16,6 +16,11 @@ interface Env {
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   try {
     const userId = await getUserIdOrDefault(context.request, context.env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: JSON_HEADERS,
+      })
+    }
     const url = new URL(context.request.url)
 
     const workspaceId = url.searchParams.get('workspace_id') || context.request.headers.get('X-Workspace-ID') || null

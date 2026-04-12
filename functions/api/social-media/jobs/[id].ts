@@ -20,6 +20,11 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
   try {
     const userId = await getUserIdOrDefault(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: JSON_HEADERS,
+      })
+    }
 
     const job = await env.DB.prepare(
       'SELECT * FROM social_media_jobs WHERE id = ? AND created_by = ?'
@@ -56,6 +61,11 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     }
 
     const userId = await getUserIdOrDefault(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: JSON_HEADERS,
+      })
+    }
     const body = await request.json() as any
 
     await env.DB.prepare(`

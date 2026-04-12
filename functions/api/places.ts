@@ -24,6 +24,11 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
   try {
     const userId = await getUserIdOrDefault(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: JSON_HEADERS,
+      })
+    }
 
     // GET /api/places?workspace_id=xxx
     if (method === 'GET' && url.pathname === '/api/places') {
@@ -110,6 +115,14 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       if (!body.coordinates.lat || !body.coordinates.lng) {
         return new Response(
           JSON.stringify({ error: 'Coordinates must include lat and lng' }),
+          { status: 400, headers: JSON_HEADERS }
+        )
+      }
+
+      const ALLOWED_PLACE_TYPES = ['FACILITY', 'CITY', 'REGION', 'COUNTRY', 'INSTALLATION', 'OTHER']
+      if (!ALLOWED_PLACE_TYPES.includes(body.place_type)) {
+        return new Response(
+          JSON.stringify({ error: `Invalid place_type. Must be one of: ${ALLOWED_PLACE_TYPES.join(', ')}` }),
           { status: 400, headers: JSON_HEADERS }
         )
       }

@@ -24,6 +24,11 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
   try {
     const userId = await getUserIdOrDefault(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: JSON_HEADERS,
+      })
+    }
 
     // GET /api/events?workspace_id=xxx
     if (method === 'GET' && url.pathname === '/api/events') {
@@ -109,6 +114,14 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       if (!body.name || !body.event_type || !body.date_start || !body.workspace_id) {
         return new Response(
           JSON.stringify({ error: 'Missing required fields: name, event_type, date_start, workspace_id' }),
+          { status: 400, headers: JSON_HEADERS }
+        )
+      }
+
+      const ALLOWED_EVENT_TYPES = ['OPERATION', 'INCIDENT', 'MEETING', 'ACTIVITY', 'OTHER']
+      if (!ALLOWED_EVENT_TYPES.includes(body.event_type)) {
+        return new Response(
+          JSON.stringify({ error: `Invalid event_type. Must be one of: ${ALLOWED_EVENT_TYPES.join(', ')}` }),
           { status: 400, headers: JSON_HEADERS }
         )
       }

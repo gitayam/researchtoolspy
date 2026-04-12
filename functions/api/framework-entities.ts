@@ -17,6 +17,11 @@ export async function onRequest(context: any) {
     const entityType = url.searchParams.get('entity_type')
     const entityId = url.searchParams.get('entity_id')
     const userId = await getUserIdOrDefault(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: JSON_HEADERS,
+      })
+    }
 
     // GET - Get linked entities for a framework
     if (request.method === 'GET') {

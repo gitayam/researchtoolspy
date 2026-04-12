@@ -17,7 +17,7 @@ export function generatePrefixedId(prefix: string): string {
 
 /** Standard CORS headers for all API endpoints */
 export const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': 'https://researchtools.net',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Workspace-ID',
 } as const
@@ -38,4 +38,34 @@ export function safeJsonParse(value: any, fallback: any = null): any {
 /** Return a preflight (OPTIONS) response */
 export function optionsResponse(): Response {
   return new Response(null, { status: 204, headers: CORS_HEADERS })
+}
+
+/** Block requests to private/internal IP ranges (SSRF protection) */
+export function isPrivateUrl(urlString: string): boolean {
+  try {
+    const url = new URL(urlString)
+    const hostname = url.hostname
+
+    // Block private IP ranges
+    if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1') return true
+    if (hostname.startsWith('10.')) return true
+    if (hostname.startsWith('192.168.')) return true
+    if (hostname.startsWith('169.254.')) return true
+    if (hostname === '0.0.0.0') return true
+
+    // Block 172.16.0.0 - 172.31.255.255
+    const parts = hostname.split('.')
+    if (parts[0] === '172') {
+      const second = parseInt(parts[1], 10)
+      if (second >= 16 && second <= 31) return true
+    }
+
+    // Block metadata endpoints
+    if (hostname === 'metadata.google.internal') return true
+    if (hostname === '169.254.169.254') return true
+
+    return false
+  } catch {
+    return true // Invalid URL = block
+  }
 }

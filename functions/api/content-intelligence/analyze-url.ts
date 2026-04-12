@@ -14,7 +14,7 @@
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest } from '../_shared/auth-helpers'
 import { callOpenAIViaGateway, getOptimalCacheTTL } from '../_shared/ai-gateway'
-import { JSON_HEADERS } from '../_shared/api-utils'
+import { JSON_HEADERS, isPrivateUrl } from '../_shared/api-utils'
 import { normalizeClaims } from './normalize-claims'
 import { fetchSocialViaApify } from '../_shared/apify-social'
 import { extractAndSaveClaimEntities } from './extract-claim-entities'
@@ -133,6 +133,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!url) {
       console.error('[DEBUG] No URL provided')
       return new Response(JSON.stringify({ error: 'URL is required' }), {
+        status: 400,
+        headers: JSON_HEADERS
+      })
+    }
+
+    // SSRF protection — block private/internal addresses
+    if (isPrivateUrl(url)) {
+      return new Response(JSON.stringify({ error: 'URLs pointing to private/internal addresses are not allowed' }), {
         status: 400,
         headers: JSON_HEADERS
       })

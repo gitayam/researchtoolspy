@@ -1,7 +1,7 @@
 // Cloudflare Pages Function for Web Scraping API
 import { enhancedFetch } from '../utils/browser-profiles'
 import { getUserFromRequest } from './_shared/auth-helpers'
-import { CORS_HEADERS, JSON_HEADERS } from './_shared/api-utils'
+import { CORS_HEADERS, JSON_HEADERS, isPrivateUrl } from './_shared/api-utils'
 
 interface ScrapingRequest {
   url: string
@@ -75,6 +75,14 @@ export async function onRequest(context: any) {
       }
     } catch (error) {
       return new Response(JSON.stringify({ error: 'Invalid URL' }), {
+        status: 400,
+        headers: JSON_HEADERS,
+      })
+    }
+
+    // SSRF protection — block private/internal addresses
+    if (isPrivateUrl(body.url)) {
+      return new Response(JSON.stringify({ error: 'URLs pointing to private/internal addresses are not allowed' }), {
         status: 400,
         headers: JSON_HEADERS,
       })

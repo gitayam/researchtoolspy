@@ -44,6 +44,11 @@ export async function onRequest(context: any) {
     const url = new URL(request.url)
     const evidenceId = url.searchParams.get('id')
     const userId = await getUserIdOrDefault(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: JSON_HEADERS,
+      })
+    }
 
     // GET - List evidence or get single evidence
     if (request.method === 'GET') {

@@ -16,6 +16,11 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   try {
     // Get user ID (supports hash-based auth and session auth)
     const userId = await getUserIdOrDefault(context.request, context.env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: JSON_HEADERS,
+      })
+    }
 
     // Get content_analysis_id from URL path parameter
     const contentAnalysisId = context.params.id as string

@@ -95,8 +95,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
  */
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   try {
-    // Allow unauthenticated access - will show only public frameworks if not logged in
     const userId = await getUserIdOrDefault(context.request, context.env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: JSON_HEADERS,
+      })
+    }
 
     const url = new URL(context.request.url)
     const frameworkType = url.searchParams.get('type')

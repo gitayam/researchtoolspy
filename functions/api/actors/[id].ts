@@ -21,6 +21,11 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     const { request, env } = context
     const actorId = context.params.id as string
     const userId = await getUserIdOrDefault(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: JSON_HEADERS,
+      })
+    }
 
     const actor = await env.DB.prepare(`
       SELECT * FROM actors WHERE id = ?

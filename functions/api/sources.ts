@@ -24,8 +24,13 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   }
 
   try {
-    // Get authenticated user (allows guest access with default user)
+    // Get authenticated user
     const userId = await getUserIdOrDefault(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: JSON_HEADERS,
+      })
+    }
 
     // GET /api/sources?workspace_id=xxx
     if (method === 'GET' && url.pathname === '/api/sources') {
@@ -93,6 +98,14 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       if (!body.name || !body.type || !body.workspace_id) {
         return new Response(
           JSON.stringify({ error: 'Missing required fields: name, type, workspace_id' }),
+          { status: 400, headers: JSON_HEADERS }
+        )
+      }
+
+      const ALLOWED_SOURCE_TYPES = ['HUMINT', 'SIGINT', 'IMINT', 'OSINT', 'TECHINT', 'MASINT']
+      if (!ALLOWED_SOURCE_TYPES.includes(body.type)) {
+        return new Response(
+          JSON.stringify({ error: `Invalid source type. Must be one of: ${ALLOWED_SOURCE_TYPES.join(', ')}` }),
           { status: 400, headers: JSON_HEADERS }
         )
       }
