@@ -190,11 +190,12 @@ Generate 3 research questions with varying scope that are SMART and FINER compli
       response = await callOpenAIViaGateway(
         context.env, // Pass full environment object
         {
-          model: 'gpt-4o-mini',
+          model: 'gpt-5.4-mini',
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userPrompt }
           ],
+          reasoning_effort: 'none',
           temperature: 0.7,
           max_completion_tokens: 3000,
           response_format: { type: 'json_object' }

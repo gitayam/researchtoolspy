@@ -61,7 +61,7 @@ const DEFAULT_SETTINGS: Omit<UserSettings, 'user_hash'> = {
     animation_enabled: true,
   },
   ai: {
-    default_model: 'gpt-5-mini',
+    default_model: 'gpt-5.4-mini',
     temperature: 0.7,
     max_tokens: 2048,
     show_cost_tracking: true,
@@ -131,6 +131,18 @@ async function loadSettings(db: D1Database, userHash: string): Promise<UserSetti
     } catch (error) {
       console.error(`Failed to parse setting ${category}.${setting_key}:`, error)
     }
+  }
+
+  // Normalize deprecated model names to gpt-5.4-* format
+  const modelMap: Record<string, string> = {
+    'gpt-5-mini': 'gpt-5.4-mini',
+    'gpt-5-nano': 'gpt-5.4-nano',
+    'gpt-5': 'gpt-5.4',
+    'gpt-4o-mini': 'gpt-5.4-mini',
+    'gpt-4o': 'gpt-5.4-mini',
+  }
+  if (settings.ai?.default_model && modelMap[settings.ai.default_model]) {
+    settings.ai.default_model = modelMap[settings.ai.default_model]
   }
 
   return settings

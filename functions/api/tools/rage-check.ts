@@ -85,11 +85,12 @@ Return ONLY valid JSON in this structure:
 }`
 
     const aiData = await callOpenAIViaGateway(context.env, {
-      model: 'gpt-4o-mini',
+      model: 'gpt-5.4-mini',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: `Analyze this content:\n\n${content}` }
       ],
+      reasoning_effort: 'none',
       temperature: 0.0, // Deterministic for scoring
       max_completion_tokens: 1500
     }, {

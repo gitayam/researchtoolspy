@@ -566,7 +566,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       : 'You are a concise summarization assistant. Summarize articles in 2-3 sentences.'
 
     const summaryData = await callOpenAIViaGateway(context.env, {
-      model: 'gpt-4o-mini',
+      model: 'gpt-5.4-mini',
       messages: [
         {
           role: 'system',
@@ -613,7 +613,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
       try {
         const extractData = await callOpenAIViaGateway(context.env, {
-          model: 'gpt-4o-mini',
+          model: 'gpt-5.4-mini',
           messages: [
             {
               role: 'system',
@@ -625,7 +625,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
             }
           ],
           max_completion_tokens: 3000
-          // Note: gpt-4o-mini only supports temperature=1 (default), so we omit it
+          // Note: gpt-5.4-mini requires reasoning_effort='none' to use temperature, so we omit it
         }, {
           cacheTTL: getOptimalCacheTTL('content-intelligence'),
           metadata: {
@@ -645,7 +645,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
             _error: 'Invalid API response structure',
             _raw: JSON.stringify(extractData),
             _framework: framework,
-            _model: 'gpt-4o-mini'
+            _model: 'gpt-5.4-mini'
           }
         } else {
           const extractedText = extractData.choices[0].message.content || ''
@@ -690,7 +690,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
               _raw: extractedText || '(empty response)',
               _parseError: 'JSON parse failed',
               _framework: framework,
-              _model: 'gpt-4o-mini'
+              _model: 'gpt-5.4-mini'
             }
           }
         }
@@ -698,7 +698,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         console.error(`OpenAI extraction API error for ${framework}:`, extractError)
         extractedData = {
           _error: `Failed to extract ${framework} data`,
-          _model: 'gpt-4o-mini',
+          _model: 'gpt-5.4-mini',
           _framework: framework
         }
       }
@@ -757,7 +757,7 @@ Return ONLY JSON:
 
       try {
         const unansweredData = await callOpenAIViaGateway(context.env, {
-          model: 'gpt-4o-mini',
+          model: 'gpt-5.4-mini',
           messages: [
             {
               role: 'system',

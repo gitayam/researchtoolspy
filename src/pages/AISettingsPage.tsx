@@ -40,7 +40,10 @@ export function AISettingsPage() {
     try {
       setLoading(true)
       const response = await fetch('/api/ai/config')
-      if (!response.ok) throw new Error(t('aiSettings:loadFailed'))
+      if (!response.ok) {
+        if (response.status === 401) throw new Error('Please log in to access this feature.')
+        throw new Error(t('aiSettings:loadFailed'))
+      }
 
       const data = await response.json()
       setConfig(data)
@@ -66,6 +69,7 @@ export function AISettingsPage() {
       })
 
       if (!response.ok) {
+        if (response.status === 401) throw new Error('Please log in to access this feature.')
         const errorData = await response.json()
         throw new Error(errorData.message || t('aiSettings:saveFailed'))
       }
@@ -90,7 +94,10 @@ export function AISettingsPage() {
         method: 'POST'
       })
 
-      if (!response.ok) throw new Error(t('aiSettings:resetFailed'))
+      if (!response.ok) {
+        if (response.status === 401) throw new Error('Please log in to access this feature.')
+        throw new Error(t('aiSettings:resetFailed'))
+      }
 
       const data = await response.json()
       setConfig(data.config)
@@ -222,7 +229,7 @@ export function AISettingsPage() {
               <div className="space-y-2">
                 <Label htmlFor="defaultModel">{t('aiSettings:modelConfig.defaultModel')}</Label>
                 <Select
-                  value={config.defaultModel || 'gpt-5-mini'}
+                  value={config.defaultModel || 'gpt-5.4-mini'}
                   onValueChange={(value: AIModel) =>
                     setConfig({ ...config, defaultModel: value })
                   }
@@ -231,19 +238,19 @@ export function AISettingsPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="gpt-5">
+                    <SelectItem value="gpt-5.4">
                       <div className="flex items-center justify-between gap-4">
                         <span>{t('aiSettings:modelConfig.models.gpt5')}</span>
                         <span className="text-xs text-muted-foreground">{t('aiSettings:modelConfig.models.deepAnalysis')}</span>
                       </div>
                     </SelectItem>
-                    <SelectItem value="gpt-5-mini">
+                    <SelectItem value="gpt-5.4-mini">
                       <div className="flex items-center justify-between gap-4">
                         <span>{t('aiSettings:modelConfig.models.gpt5mini')}</span>
                         <span className="text-xs text-muted-foreground">{t('aiSettings:modelConfig.models.balanced')}</span>
                       </div>
                     </SelectItem>
-                    <SelectItem value="gpt-5-nano">
+                    <SelectItem value="gpt-5.4-nano">
                       <div className="flex items-center justify-between gap-4">
                         <span>{t('aiSettings:modelConfig.models.gpt5nano')}</span>
                         <span className="text-xs text-muted-foreground">{t('aiSettings:modelConfig.models.fastCheap')}</span>
@@ -276,9 +283,9 @@ export function AISettingsPage() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="gpt-5">{t('aiSettings:modelConfig.models.gpt5')}</SelectItem>
-                        <SelectItem value="gpt-5-mini">{t('aiSettings:modelConfig.models.gpt5mini')}</SelectItem>
-                        <SelectItem value="gpt-5-nano">{t('aiSettings:modelConfig.models.gpt5nano')}</SelectItem>
+                        <SelectItem value="gpt-5.4">{t('aiSettings:modelConfig.models.gpt5')}</SelectItem>
+                        <SelectItem value="gpt-5.4-mini">{t('aiSettings:modelConfig.models.gpt5mini')}</SelectItem>
+                        <SelectItem value="gpt-5.4-nano">{t('aiSettings:modelConfig.models.gpt5nano')}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

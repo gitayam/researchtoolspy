@@ -182,6 +182,7 @@ export function CitationsGeneratorPage() {
       })
 
       if (!response.ok) {
+        if (response.status === 401) throw new Error('Please log in to access this feature.')
         throw new Error('Failed to scrape URL')
       }
 
@@ -217,7 +218,7 @@ export function CitationsGeneratorPage() {
 
     } catch (error) {
       console.error('Scraping error:', error)
-      alert('Failed to scrape URL. Please check the URL and try again.')
+      alert(error instanceof Error ? error.message : 'Failed to scrape URL. Please check the URL and try again.')
     } finally {
       setScraping(false)
     }

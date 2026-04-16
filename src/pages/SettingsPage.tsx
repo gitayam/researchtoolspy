@@ -45,7 +45,10 @@ export function SettingsPage() {
           body: JSON.stringify({ name, type, description }),
         })
 
-        if (!response.ok) throw new Error('Failed to create workspace')
+        if (!response.ok) {
+          if (response.status === 401) throw new Error('Please log in to access this feature.')
+          throw new Error('Failed to create workspace')
+        }
 
         const newWorkspace = await response.json()
         setWorkspaces([...workspaces, newWorkspace])
@@ -67,7 +70,10 @@ export function SettingsPage() {
           headers: getCopHeaders(),
         })
 
-        if (!response.ok) throw new Error('Failed to delete workspace')
+        if (!response.ok) {
+          if (response.status === 401) throw new Error('Please log in to access this feature.')
+          throw new Error('Failed to delete workspace')
+        }
 
         setWorkspaces(workspaces.filter((w) => w.id !== workspaceId))
 
@@ -97,7 +103,10 @@ export function SettingsPage() {
           body: JSON.stringify({ name, description }),
         })
 
-        if (!response.ok) throw new Error('Failed to update workspace')
+        if (!response.ok) {
+          if (response.status === 401) throw new Error('Please log in to access this feature.')
+          throw new Error('Failed to update workspace')
+        }
 
         const updated = await response.json()
         setWorkspaces(workspaces.map((w) => (w.id === workspaceId ? updated : w)))

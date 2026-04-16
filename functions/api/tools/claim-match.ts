@@ -103,11 +103,12 @@ ${candidateList}
 Score each candidate's relevance to the claim and its broader topic.`
 
     const aiData = await callOpenAIViaGateway(context.env, {
-      model: 'gpt-4o-mini',
+      model: 'gpt-5.4-mini',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt }
       ],
+      reasoning_effort: 'none',
       temperature: 0.0,
       max_completion_tokens: 2000,
       response_format: { type: 'json_object' }
@@ -137,7 +138,7 @@ Score each candidate's relevance to the claim and its broader topic.`
     return new Response(JSON.stringify({
       claim: body.claim,
       results,
-      model: 'gpt-4o-mini',
+      model: 'gpt-5.4-mini',
       cached: false
     }), {
       status: 200,

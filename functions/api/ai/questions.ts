@@ -73,7 +73,7 @@ No explanations, just the JSON array.`
 
     // Get model for question generation
     const config = await context.env.AI_CONFIG.get('default', { type: 'json' }) as any
-    const model = config?.useCases?.questionGeneration || 'gpt-5-nano'
+    const model = config?.useCases?.questionGeneration || 'gpt-5.4-nano'
     const modelSettings = config?.models?.[model] || {
       verbosity: 'low',
       reasoningEffort: 'minimal',
@@ -96,7 +96,6 @@ No explanations, just the JSON array.`
           { role: 'user', content: prompt }
         ],
         max_completion_tokens: modelSettings.maxTokens,
-        verbosity: modelSettings.verbosity,
         ...(modelSettings.reasoningEffort && { reasoning_effort: modelSettings.reasoningEffort })
       }),
       signal: AbortSignal.timeout(30000)

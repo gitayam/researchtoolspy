@@ -193,7 +193,10 @@ export default function ResearchQuestionGeneratorPage() {
           headers: getCopHeaders(),
           body: JSON.stringify({ ...formData, saveToDatabase: true })
         })
-        if (!response.ok) throw new Error('Failed to generate questions')
+        if (!response.ok) {
+          if (response.status === 401) throw new Error('Please log in to generate research questions.')
+          throw new Error('Failed to generate questions')
+        }
         const data = await response.json()
         setGeneratedQuestions(data.questions || [])
         setResearchQuestionId(data.researchQuestionId || null)
@@ -207,7 +210,10 @@ export default function ResearchQuestionGeneratorPage() {
             count: 3
           })
         })
-        if (!response.ok) throw new Error('Failed to generate questions')
+        if (!response.ok) {
+          if (response.status === 401) throw new Error('Please log in to generate research questions.')
+          throw new Error('Failed to generate questions')
+        }
         const data = await response.json()
         setGeneratedQuestions(data.questions || [])
       }
@@ -247,7 +253,10 @@ export default function ResearchQuestionGeneratorPage() {
         })
       })
 
-      if (!response.ok) throw new Error('Failed to generate plan')
+      if (!response.ok) {
+        if (response.status === 401) throw new Error('Please log in to generate research plans.')
+        throw new Error('Failed to generate plan')
+      }
       const data = await response.json()
       setResearchPlan(data.plan)
     } catch (err: any) {

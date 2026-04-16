@@ -265,7 +265,7 @@ Return ONLY valid JSON:
   try {
 
     const data = await callOpenAIViaGateway(env, {
-      model: 'gpt-4o-mini',
+      model: 'gpt-5.4-mini',
       messages: [
         {
           role: 'system',
@@ -274,6 +274,7 @@ Return ONLY valid JSON:
         { role: 'user', content: prompt }
       ],
       max_completion_tokens: 3000,
+      reasoning_effort: 'none',
       temperature: 0.3
     }, {
       cacheTTL: getOptimalCacheTTL('claim-analysis'),

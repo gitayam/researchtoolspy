@@ -180,7 +180,7 @@ ${STARBURSTING_JSON_SCHEMA}
 
   try {
     const data = await callOpenAIViaGateway(env, {
-      model: 'gpt-4o-mini',
+      model: 'gpt-5.4-mini',
       messages: [
         {
           role: 'system',
@@ -189,6 +189,7 @@ ${STARBURSTING_JSON_SCHEMA}
         { role: 'user', content: prompt }
       ],
       max_completion_tokens: 2500,
+      reasoning_effort: 'none',
       temperature: 0.7
     }, {
       cacheTTL: getOptimalCacheTTL('starbursting-questions'),

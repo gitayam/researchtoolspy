@@ -342,12 +342,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const data = await callOpenAIViaGateway(
       context.env,
       {
-        model: 'gpt-4o-mini',
+        model: 'gpt-5.4-mini',
         messages: [
           { role: 'system', content: system },
           { role: 'user', content: user }
         ],
         max_completion_tokens: MODE_TOKENS[req.mode],
+        reasoning_effort: 'none',
         temperature: 0.6,
         response_format: { type: 'json_object' }
       },
@@ -390,7 +391,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       mode: req.mode,
       context: req.context,
       result,
-      model: 'gpt-4o-mini',
+      model: 'gpt-5.4-mini',
       tokensUsed: {
         input: data.usage?.prompt_tokens || 0,
         output: data.usage?.completion_tokens || 0,

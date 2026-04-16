@@ -98,10 +98,8 @@ export class AIClient {
             { role: 'system', content: systemPrompt },
             { role: 'user', content: params.prompt }
           ],
-          max_tokens: params.maxTokens || settings.maxTokens,
-          // Note: temperature is NOT supported in GPT-5 reasoning models
-          // verbosity and reasoning_effort are the control parameters
-          ...(params.verbosity && { verbosity: params.verbosity }),
+          max_completion_tokens: params.maxTokens || settings.maxTokens,
+          // Note: temperature is NOT supported in gpt-5.4-* models unless reasoning_effort is 'none'
           ...(params.reasoningEffort && { reasoning_effort: params.reasoningEffort })
         })
       })
@@ -159,9 +157,8 @@ export class AIClient {
             { role: 'system', content: settings.systemPrompt },
             { role: 'user', content: batchPrompt }
           ],
-          max_tokens: settings.maxTokens * params.prompts.length,
-          response_format: { type: 'json_object' },  // Request JSON response
-          verbosity: settings.verbosity
+          max_completion_tokens: settings.maxTokens * params.prompts.length,
+          response_format: { type: 'json_object' }
         })
       })
 

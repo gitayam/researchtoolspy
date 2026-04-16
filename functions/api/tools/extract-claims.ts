@@ -412,7 +412,7 @@ Article text:
 ${truncated}`
 
   const aiData = await callOpenAIViaGateway(env, {
-    model: 'gpt-4o-mini',
+    model: 'gpt-5.4-mini',
     messages: [
       {
         role: 'system',
@@ -421,6 +421,7 @@ ${truncated}`
       { role: 'user', content: prompt }
     ],
     max_completion_tokens: 3000,
+    reasoning_effort: 'none',
     temperature: 0.1,
     response_format: { type: 'json_object' }
   }, {
@@ -564,7 +565,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       claims: analysis.claims || [],
       entities: analysis.entities || null,
       summary: analysis.summary || null,
-      model: 'gpt-4o-mini',
+      model: 'gpt-5.4-mini',
       processing_ms: Date.now() - startTime
     }), {
       status: 200,

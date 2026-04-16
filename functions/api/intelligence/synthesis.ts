@@ -93,11 +93,12 @@ ${JSON.stringify(frameworkSummaries, null, 2)}
 Identify cross-framework patterns, agreements, contradictions, and provide an overall confidence assessment.`
 
     const response = await callOpenAIViaGateway(env, {
-      model: 'gpt-4o-mini',
+      model: 'gpt-5.4-mini',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt }
       ],
+      reasoning_effort: 'none',
       temperature: 0.3,
       max_completion_tokens: 4000,
       response_format: { type: 'json_object' }

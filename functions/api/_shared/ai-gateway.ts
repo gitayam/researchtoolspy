@@ -59,8 +59,9 @@ interface AIGatewayOptions {
  * @example
  * ```typescript
  * const response = await callOpenAIViaGateway(env, {
- *   model: 'gpt-4o-mini',
+ *   model: 'gpt-5.4-mini',
  *   messages: [{role: 'user', content: 'Hello'}],
+ *   reasoning_effort: 'none',
  *   temperature: 0.7
  * }, {
  *   cacheTTL: 3600,

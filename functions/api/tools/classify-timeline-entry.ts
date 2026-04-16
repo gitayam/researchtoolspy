@@ -39,7 +39,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const today = body.today || new Date().toISOString().slice(0, 10)
 
     const aiData = await callOpenAIViaGateway(context.env, {
-      model: 'gpt-4o-mini',
+      model: 'gpt-5.4-mini',
       messages: [
         {
           role: 'system',
@@ -55,6 +55,7 @@ Return ONLY valid JSON: { "category": "...", "importance": "...", "event_date_hi
         { role: 'user', content: body.text.slice(0, 500) }
       ],
       max_completion_tokens: 100,
+      reasoning_effort: 'none',
       temperature: 0.1,
       response_format: { type: 'json_object' }
     }, {

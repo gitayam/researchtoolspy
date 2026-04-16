@@ -72,7 +72,7 @@ Article text:
 ${truncated}`
 
   const aiData = await callOpenAIViaGateway(env, {
-    model: 'gpt-4o-mini',
+    model: 'gpt-5.4-mini',
     messages: [
       {
         role: 'system',
@@ -81,6 +81,7 @@ ${truncated}`
       { role: 'user', content: prompt }
     ],
     max_completion_tokens: 3000,
+    reasoning_effort: 'none',
     temperature: 0.1,
     response_format: { type: 'json_object' }
   }, {

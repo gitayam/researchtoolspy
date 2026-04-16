@@ -77,8 +77,9 @@ Provide analysis as a JSON object with these fields:
 - "blind_spots": array of 2-3 factors that may not be captured by the current criteria`
 
     const aiResponse = await callOpenAIViaGateway(env, {
-      model: 'gpt-4o-mini',
+      model: 'gpt-5.4-mini',
       messages: [{ role: 'user', content: prompt }],
+      reasoning_effort: 'none',
       temperature: 0.7,
       response_format: { type: 'json_object' },
     }, {

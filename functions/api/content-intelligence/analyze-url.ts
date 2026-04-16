@@ -405,7 +405,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       bypass_urls: bypassUrls,
       processing_mode: mode,
       processing_duration_ms: Date.now() - startTime,
-      gpt_model_used: 'gpt-4o-mini'
+      gpt_model_used: 'gpt-5.4-mini'
     })
 
       // Create deduplication entry for new content (use INSERT OR IGNORE to handle race conditions)
@@ -568,7 +568,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       bypass_urls: bypassUrls,
       processing_mode: mode,
       processing_duration_ms: Date.now() - startTime,
-      gpt_model_used: 'gpt-4o-mini',
+      gpt_model_used: 'gpt-5.4-mini',
       content_source: contentData.source || 'original',
       fallback_attempts: contentData.fallback_attempts || []
     }
@@ -1754,12 +1754,13 @@ Return ONLY valid JSON in this exact format:
   try {
 
     const data = await callOpenAIViaGateway(env, {
-      model: 'gpt-4o-mini',  // Using gpt-4o-mini as fallback until GPT-5 is available
+      model: 'gpt-5.4-mini',
       messages: [
         { role: 'system', content: 'You are a named entity recognition expert. Extract entities by type: people, organizations, locations, dates, money, events, products, and percentages. Exclude article authors from people. Normalize similar entities. Return ONLY valid JSON.' },
         { role: 'user', content: prompt }
       ],
       max_completion_tokens: 1200,
+      reasoning_effort: 'none',
       temperature: 0.7
     }, {
       cacheTTL: getOptimalCacheTTL('entity-extraction'),
@@ -1813,12 +1814,13 @@ ${truncated}`
 
   try {
     const data = await callOpenAIViaGateway(env, {
-      model: 'gpt-4o-mini',  // Using gpt-4o-mini as fallback until GPT-5 is available
+      model: 'gpt-5.4-mini',
       messages: [
         { role: 'system', content: 'You are a professional summarizer.' },
         { role: 'user', content: prompt }
       ],
       max_completion_tokens: 500,
+      reasoning_effort: 'none',
       temperature: 0.7
     }, {
       cacheTTL: getOptimalCacheTTL('content-intelligence'),
@@ -1889,12 +1891,13 @@ Return ONLY valid JSON in this exact format:
 
   try {
     const data = await callOpenAIViaGateway(env, {
-      model: 'gpt-4o-mini',
+      model: 'gpt-5.4-mini',
       messages: [
         { role: 'system', content: 'You are a topic modeling expert using LDA principles. Identify distinct, coherent topics with accurate coverage distributions. Return ONLY valid JSON.' },
         { role: 'user', content: prompt }
       ],
       max_completion_tokens: 1000,
+      reasoning_effort: 'none',
       temperature: 0.3 // Lower temperature for consistent topic identification
     }, {
       cacheTTL: getOptimalCacheTTL('content-intelligence'),
@@ -1973,12 +1976,13 @@ Return ONLY valid JSON in this exact format:
 
   try {
     const data = await callOpenAIViaGateway(env, {
-      model: 'gpt-4o-mini',
+      model: 'gpt-5.4-mini',
       messages: [
         { role: 'system', content: 'You are a keyphrase extraction expert. Identify important concepts, terminology, and themes using graph-based importance ranking. Return ONLY valid JSON.' },
         { role: 'user', content: prompt }
       ],
       max_completion_tokens: 800,
+      reasoning_effort: 'none',
       temperature: 0.3 // Lower temperature for consistent extraction
     }, {
       cacheTTL: getOptimalCacheTTL('content-intelligence'),
@@ -2110,12 +2114,13 @@ Return ONLY valid JSON in this exact format:
 
   try {
     const data = await callOpenAIViaGateway(env, {
-      model: 'gpt-4o-mini',
+      model: 'gpt-5.4-mini',
       messages: [
         { role: 'system', content: 'You are an expert media analyst specializing in sentiment analysis, manipulation detection, and factual claim extraction. Analyze content objectively and return only valid JSON.' },
         { role: 'user', content: prompt }
       ],
       max_completion_tokens: 1800,
+      reasoning_effort: 'none',
       temperature: 0.2 // Low temperature for consistent scoring
     }, {
       cacheTTL: getOptimalCacheTTL('sentiment-analysis'),
@@ -2464,7 +2469,7 @@ Return ONLY valid JSON array:
 
   try {
     const data = await callOpenAIViaGateway(env, {
-      model: 'gpt-4o-mini',
+      model: 'gpt-5.4-mini',
       messages: [
         {
           role: 'system',
@@ -2473,6 +2478,7 @@ Return ONLY valid JSON array:
         { role: 'user', content: prompt }
       ],
       max_completion_tokens: 1500,
+      reasoning_effort: 'none',
       temperature: 0.2 // Low temperature for consistent, factual extraction
     }, {
       cacheTTL: getOptimalCacheTTL('claim-analysis'),
@@ -2652,7 +2658,7 @@ Return ONLY valid JSON:
   try {
 
     const data = await callOpenAIViaGateway(env, {
-      model: 'gpt-4o-mini',
+      model: 'gpt-5.4-mini',
       messages: [
         {
           role: 'system',
@@ -2661,6 +2667,7 @@ Return ONLY valid JSON:
         { role: 'user', content: prompt }
       ],
       max_completion_tokens: 3000,
+      reasoning_effort: 'none',
       temperature: 0.3 // Moderate temperature for balanced analysis
     }, {
       cacheTTL: getOptimalCacheTTL('claim-analysis'),

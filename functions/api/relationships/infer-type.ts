@@ -203,7 +203,7 @@ Respond with ONLY the relationship type, no explanation.`
         'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-5.4-nano',
         messages: [
           {
             role: 'system',
@@ -214,8 +214,9 @@ Respond with ONLY the relationship type, no explanation.`
             content: prompt
           }
         ],
+        reasoning_effort: 'none',
         temperature: 0.3,
-        max_tokens: 50
+        max_completion_tokens: 50
       }),
       signal: AbortSignal.timeout(30000)
     })
@@ -261,7 +262,7 @@ Provide a brief 1-2 sentence explanation of why this relationship type fits, bas
         'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-5.4-nano',
         messages: [
           {
             role: 'system',
@@ -272,8 +273,9 @@ Provide a brief 1-2 sentence explanation of why this relationship type fits, bas
             content: prompt
           }
         ],
+        reasoning_effort: 'none',
         temperature: 0.7,
-        max_tokens: 150
+        max_completion_tokens: 150
       }),
       signal: AbortSignal.timeout(30000)
     })

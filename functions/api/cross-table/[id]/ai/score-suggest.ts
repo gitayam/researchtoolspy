@@ -65,8 +65,9 @@ Respond with a JSON object with a "scores" array. Each entry should have:
 - "confidence": 0.0 to 1.0 (how confident in this score)`
 
     const aiResponse = await callOpenAIViaGateway(env, {
-      model: 'gpt-4o-mini',
+      model: 'gpt-5.4-mini',
       messages: [{ role: 'user', content: prompt }],
+      reasoning_effort: 'none',
       temperature: 0.5,
       response_format: { type: 'json_object' },
     }, {

@@ -296,6 +296,7 @@ export default function ContentIntelligencePage() {
       })
 
       if (!response.ok) {
+        if (response.status === 401) throw new Error('Please log in to access this feature.')
         throw new Error('Failed to generate summary')
       }
 
@@ -623,6 +624,7 @@ export default function ContentIntelligencePage() {
       })
 
       if (!response.ok) {
+        if (response.status === 401) throw new Error('Please log in to access this feature.')
         throw new Error('Failed to create share link')
       }
 
@@ -1075,6 +1077,7 @@ ${shortSummary}`
       })
 
       if (!response.ok) {
+        if (response.status === 401) throw new Error('Please log in to access this feature.')
         throw new Error('DIME analysis failed')
       }
 
@@ -1118,6 +1121,7 @@ ${shortSummary}`
       })
 
       if (!response.ok) {
+        if (response.status === 401) throw new Error('Please log in to access this feature.')
         const errorData = await response.json().catch((e) => { console.error('[ContentIntelligencePage] JSON parse error:', e); return {} })
         console.error('[Claims] API error:', errorData)
         throw new Error(errorData.details || errorData.error || 'Claims analysis failed')
@@ -1207,6 +1211,7 @@ ${shortSummary}`
       })
 
       if (!response.ok) {
+        if (response.status === 401) throw new Error('Please log in to access this feature.')
         throw new Error('Failed to save analysis')
       }
 
@@ -1270,6 +1275,7 @@ ${shortSummary}`
         })
 
         if (!response.ok) {
+          if (response.status === 401) throw new Error('Please log in to access this feature.')
           // Handle 409 Conflict (link already saved)
           if (response.status === 409) {
             toast({
@@ -1384,6 +1390,7 @@ ${shortSummary}`
       if (progressInterval) clearInterval(progressInterval)
 
       if (!response.ok) {
+        if (response.status === 401) throw new Error('Please log in to access this feature.')
         // Handle different error types
         if (response.status === 524) {
           throw new Error('Analysis timed out. The content may be too large or complex. Try using "quick" mode or a shorter article.')
@@ -1583,6 +1590,7 @@ ${shortSummary}`
       })
 
       if (!response.ok) {
+        if (response.status === 401) throw new Error('Please log in to access this feature.')
         const errorData = await response.json().catch((e) => { console.error('[ContentIntelligencePage] JSON parse error:', e); return {} })
         throw new Error(errorData.details || errorData.error || 'Failed to create ACH')
       }
@@ -1826,6 +1834,7 @@ ${shortSummary}`
       })
 
       if (!response.ok) {
+        if (response.status === 401) throw new Error('Please log in to access this feature.')
         throw new Error('Failed to auto-extract entities')
       }
 
@@ -1919,6 +1928,7 @@ ${shortSummary}`
       })
 
       if (!response.ok) {
+        if (response.status === 401) throw new Error('Please log in to access this feature.')
         const errorData = await response.json().catch((e) => { console.error('[ContentIntelligencePage] JSON parse error:', e); return {} })
         console.error('[Starbursting] API error:', errorData)
         throw new Error(errorData.details || errorData.error || 'Failed to create Starbursting session')
@@ -1961,6 +1971,7 @@ ${shortSummary}`
       })
 
       if (!response.ok) {
+        if (response.status === 401) throw new Error('Please log in to access this feature.')
         const errorData = await response.json().catch((e) => { console.error('[ContentIntelligencePage] JSON parse error:', e); return {} })
         throw new Error(errorData.details || errorData.error || 'Failed to generate more questions')
       }
@@ -2111,6 +2122,7 @@ ${shortSummary}`
       })
 
       if (!response.ok) {
+        if (response.status === 401) throw new Error('Please log in to access this feature.')
         const error = await response.json().catch(() => ({ error: 'Unknown error' }))
         throw new Error(error.error || 'Failed to answer question')
       }
@@ -2164,6 +2176,7 @@ ${shortSummary}`
       })
 
       if (!response.ok) {
+        if (response.status === 401) throw new Error('Please log in to access this feature.')
         const error = await response.json().catch(() => ({ error: 'Unknown error' }))
         throw new Error(error.error || 'Social media extraction failed')
       }
@@ -2221,6 +2234,7 @@ ${shortSummary}`
       })
 
       if (!response.ok) {
+        if (response.status === 401) throw new Error('Please log in to access this feature.')
         const error = await response.json().catch(() => ({ error: 'Unknown error' }))
         throw new Error(error.error || 'Git repository extraction failed')
       }
@@ -5262,6 +5276,7 @@ ${shortSummary}`
                                 })
 
                                 if (!response.ok) {
+                                  if (response.status === 401) throw new Error('Please log in to access this feature.')
                                   throw new Error('Failed to create Starbursting session')
                                 }
 

@@ -73,11 +73,12 @@ Return ONLY the question text, no other formatting.`
         'Authorization': `Bearer ${context.env.OPENAI_API_KEY}`
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-5.4-mini',
         messages: [
           { role: 'system', content: 'You are an intelligence analyst creating ACH questions.' },
           { role: 'user', content: questionPrompt }
         ],
+        reasoning_effort: 'none',
         temperature: 0.7,
         max_completion_tokens: 200
       }),
@@ -103,11 +104,12 @@ Return ONLY a JSON array of hypothesis strings: ["hypothesis 1", "hypothesis 2",
         'Authorization': `Bearer ${context.env.OPENAI_API_KEY}`
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-5.4-mini',
         messages: [
           { role: 'system', content: 'You are an intelligence analyst using ACH methodology.' },
           { role: 'user', content: hypothesesPrompt }
         ],
+        reasoning_effort: 'none',
         temperature: 0.7,
         max_completion_tokens: 600,
         response_format: { type: 'json_object' }
@@ -169,7 +171,7 @@ Return ONLY a JSON array of hypothesis strings: ["hypothesis 1", "hypothesis 2",
         achId,
         hypotheses[i],
         'Generated from content analysis',
-        'Content Intelligence + GPT-4o-mini',
+        'Content Intelligence + GPT-5.4-mini',
         i,
         now
       ).run()

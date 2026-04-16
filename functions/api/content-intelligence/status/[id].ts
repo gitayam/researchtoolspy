@@ -7,14 +7,24 @@
 
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { JSON_HEADERS } from '../../_shared/api-utils'
+import { getUserFromRequest } from '../../_shared/auth-helpers'
 
 interface Env {
   DB: D1Database
   SESSIONS?: KVNamespace
+  JWT_SECRET?: string
 }
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   try {
+    const userId = await getUserFromRequest(context.request, context.env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401,
+        headers: JSON_HEADERS
+      })
+    }
+
     const analysisId = context.params.id as string
 
     if (!analysisId) {
@@ -50,8 +60,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         created_at,
         updated_at
       FROM content_analysis
-      WHERE id = ?
-    `).bind(analysisId).first()
+      WHERE id = ? AND user_id = ?
+    `).bind(analysisId, userId).first()
 
     if (!analysis) {
       return new Response(JSON.stringify({ error: 'Analysis not found' }), {

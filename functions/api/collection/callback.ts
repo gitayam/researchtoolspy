@@ -99,7 +99,7 @@ function normalizeCallback(body: AgentCallback): AgentCallbackOriginal {
         results_count: 0
       })),
       error: osintPayload.error || undefined,
-      llm_used: 'gpt-4o-mini'  // From OSINT Agent config
+      llm_used: 'gpt-5.4-mini'  // From OSINT Agent config
     }
   }
   return body as AgentCallbackOriginal

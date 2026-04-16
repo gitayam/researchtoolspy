@@ -5,7 +5,7 @@
  */
 
 import { useCallback } from 'react'
-import { Sparkles, DollarSign, Zap, AlertCircle, BarChart3 } from 'lucide-react'
+import { Sparkles, DollarSign, Zap, BarChart3 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -21,25 +21,20 @@ interface AIPreferencesProps {
 }
 
 const MODEL_INFO: Record<AIModel, { name: string; description: string; cost: string }> = {
-  'gpt-5': {
-    name: 'GPT-5',
+  'gpt-5.4': {
+    name: 'GPT-5.4',
     description: 'Most capable model for deep analysis and complex reasoning',
-    cost: 'Highest cost, best quality',
+    cost: '$2.50/$15.00 per 1M tokens',
   },
-  'gpt-5-mini': {
-    name: 'GPT-5 Mini',
+  'gpt-5.4-mini': {
+    name: 'GPT-5.4 Mini',
     description: 'Balanced performance and cost - ideal for most tasks',
-    cost: 'Medium cost, great quality',
+    cost: '$0.75/$4.50 per 1M tokens',
   },
-  'gpt-5-nano': {
-    name: 'GPT-5 Nano',
+  'gpt-5.4-nano': {
+    name: 'GPT-5.4 Nano',
     description: 'Fast and efficient for simple tasks and suggestions',
-    cost: 'Lowest cost, good quality',
-  },
-  'gpt-4o-mini': {
-    name: 'GPT-4o Mini',
-    description: 'Fallback model while GPT-5 is in development',
-    cost: 'Low cost, proven quality',
+    cost: '$0.20/$1.25 per 1M tokens',
   },
 }
 
@@ -107,33 +102,18 @@ export function AIPreferences({ settings, onUpdate, updating = false }: AIPrefer
           </Select>
 
           {/* Model Info Card */}
-          <div className="bg-muted/50 rounded-lg p-4 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">
-                {MODEL_INFO[settings.default_model].name}
-              </span>
-              <Badge variant="secondary" className="text-xs">
-                {MODEL_INFO[settings.default_model].cost}
-              </Badge>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              {MODEL_INFO[settings.default_model].description}
-            </p>
-          </div>
-
-          {settings.default_model === 'gpt-4o-mini' && (
-            <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3">
-              <div className="flex items-start gap-2">
-                <AlertCircle className="h-4 w-4 text-yellow-600 dark:text-yellow-400 mt-0.5" />
-                <div className="text-sm text-yellow-800 dark:text-yellow-200">
-                  <p className="font-medium">Temporary Fallback Model</p>
-                  <p className="mt-1">
-                    GPT-5 models are not yet available. Using GPT-4o Mini as fallback.
-                  </p>
+          {(() => {
+            const info = MODEL_INFO[settings.default_model as AIModel] ?? MODEL_INFO['gpt-5.4-mini']
+            return (
+              <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">{info.name}</span>
+                  <Badge variant="secondary" className="text-xs">{info.cost}</Badge>
                 </div>
+                <p className="text-sm text-muted-foreground">{info.description}</p>
               </div>
-            </div>
-          )}
+            )
+          })()}
         </CardContent>
       </Card>
 

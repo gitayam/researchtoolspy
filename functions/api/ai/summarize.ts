@@ -70,7 +70,7 @@ ${mode === 'comprehensive' ? 'Use markdown headings (##) to organize sections.' 
 
     // Get model for summarization
     const config = await context.env.AI_CONFIG.get('default', { type: 'json' }) as any
-    const model = config?.useCases?.summarization || 'gpt-4o-mini'
+    const model = config?.useCases?.summarization || 'gpt-5.4-mini'
     const modelSettings = config?.models?.[model] || {
       verbosity: 'medium',
       maxTokens: 2048,
@@ -91,8 +91,7 @@ ${mode === 'comprehensive' ? 'Use markdown headings (##) to organize sections.' 
           { role: 'system', content: modelSettings.systemPrompt },
           { role: 'user', content: prompt }
         ],
-        max_completion_tokens: modelSettings.maxTokens,
-        verbosity
+        max_completion_tokens: modelSettings.maxTokens
       }),
       signal: AbortSignal.timeout(30000)
     })

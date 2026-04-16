@@ -54,8 +54,9 @@ Respond with ONLY a JSON object with this shape:
 }`
 
     const aiResponse = await callOpenAIViaGateway(env, {
-      model: 'gpt-4o-mini',
+      model: 'gpt-5.4-mini',
       messages: [{ role: 'user', content: prompt }],
+      reasoning_effort: 'none',
       temperature: 0.7,
       response_format: { type: 'json_object' },
     }, {

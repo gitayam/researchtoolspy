@@ -116,7 +116,7 @@ export async function analyzeDeceptionWithAI(
     const languageInstruction = getLanguageInstruction(scenario.outputLanguage)
 
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: 'gpt-5.4-mini',
       messages: [
         {
           role: 'system',
@@ -136,8 +136,9 @@ ${languageInstruction}`
           content: prompt
         }
       ],
+      reasoning_effort: 'none' as any,  // Required for temperature on gpt-5.4-* models
       temperature: 0.2,  // Low temperature for analytical consistency
-      max_tokens: 3000
+      max_completion_tokens: 3000
     })
 
     const content = response.choices[0]?.message?.content
@@ -406,9 +407,9 @@ export async function checkAIAvailability(): Promise<boolean> {
     }
 
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: 'gpt-5.4-mini',
       messages: [{ role: 'user', content: 'Test' }],
-      max_tokens: 1
+      max_completion_tokens: 1
     })
 
     return !!response.choices[0]

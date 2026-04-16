@@ -10,7 +10,7 @@ export type Density = 'compact' | 'comfortable' | 'spacious'
 export type SidebarBehavior = 'always_open' | 'auto_collapse' | 'manual'
 export type FontSize = 'small' | 'medium' | 'large' | 'x-large'
 
-export type AIModel = 'gpt-5' | 'gpt-5-mini' | 'gpt-5-nano' | 'gpt-4o-mini'
+export type AIModel = 'gpt-5.4' | 'gpt-5.4-mini' | 'gpt-5.4-nano'
 
 export interface DisplaySettings {
   theme: Theme
@@ -186,7 +186,7 @@ export const DEFAULT_DISPLAY_SETTINGS: DisplaySettings = {
 }
 
 export const DEFAULT_AI_SETTINGS: AISettings = {
-  default_model: 'gpt-5-mini',
+  default_model: 'gpt-5.4-mini',
   temperature: 0.7,
   max_tokens: 2048,
   show_cost_tracking: true,

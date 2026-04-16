@@ -158,7 +158,7 @@ export async function intelligentPDFSummary(
     }
   })
 
-  // Step 3: Generate questions using GPT-4o
+  // Step 3: Generate questions using AI
   const questions = await generateQuestions(chapterSummaries, openaiApiKey)
 
   // Step 4: Search full text for answers
@@ -247,7 +247,8 @@ Example: ["What is the main argument?", "What evidence supports this?"]`
       'Authorization': `Bearer ${apiKey}`
     },
     body: JSON.stringify({
-      model: 'gpt-4o-mini',
+      model: 'gpt-5.4-mini',
+      reasoning_effort: 'none',
       temperature: 0.7,
       messages: [
         { role: 'system', content: 'You are an expert analyst who generates insightful questions about documents.' },
@@ -327,9 +328,10 @@ Provide a concise, evidence-based answer (2-3 sentences max).`
       'Authorization': `Bearer ${apiKey}`
     },
     body: JSON.stringify({
-      model: 'gpt-4o-mini',
+      model: 'gpt-5.4-nano',
+      reasoning_effort: 'none',
       temperature: 0.3,
-      max_tokens: 150,
+      max_completion_tokens: 150,
       messages: [
         { role: 'system', content: 'You are a precise analyst who answers questions based only on provided evidence.' },
         { role: 'user', content: prompt }
@@ -368,9 +370,10 @@ Generate a 250-word summary that:
       'Authorization': `Bearer ${apiKey}`
     },
     body: JSON.stringify({
-      model: 'gpt-4o-mini',
+      model: 'gpt-5.4-nano',
+      reasoning_effort: 'none',
       temperature: 0.5,
-      max_tokens: 500,
+      max_completion_tokens: 500,
       messages: [
         {
           role: 'system',
@@ -394,9 +397,10 @@ async function generateStandardSummary(text: string, apiKey: string): Promise<st
       'Authorization': `Bearer ${apiKey}`
     },
     body: JSON.stringify({
-      model: 'gpt-4o-mini',
+      model: 'gpt-5.4-nano',
+      reasoning_effort: 'none',
       temperature: 0.5,
-      max_tokens: 400,
+      max_completion_tokens: 400,
       messages: [
         { role: 'system', content: 'You are an expert at creating concise, informative summaries.' },
         { role: 'user', content: `Summarize this text in 250 words:\n\n${text.slice(0, 8000)}` }

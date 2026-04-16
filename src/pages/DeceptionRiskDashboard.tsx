@@ -147,6 +147,7 @@ export default function DeceptionRiskDashboard() {
       })
 
       if (!response.ok) {
+        if (response.status === 401) throw new Error('Please log in to access this feature.')
         throw new Error('Failed to load deception risk data')
       }
 

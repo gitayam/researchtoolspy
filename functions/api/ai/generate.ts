@@ -18,7 +18,7 @@ interface Env {
 
 interface GenerateRequest {
   prompt: string
-  model?: 'gpt-5' | 'gpt-4o-mini' | 'gpt-5-nano'
+  model?: 'gpt-5.4' | 'gpt-5.4-mini' | 'gpt-5.4-nano'
   useCase?: 'summarization' | 'questionGeneration' | 'deepAnalysis' | 'fieldSuggestions' | 'formatting' | 'guidance'
   maxTokens?: number
   verbosity?: 'low' | 'medium' | 'high'
@@ -26,22 +26,22 @@ interface GenerateRequest {
 }
 
 const MODEL_PRICING = {
-  'gpt-5': {
-    input: 1.25,  // $1.25 per 1M tokens
-    output: 10.0  // $10.00 per 1M tokens
+  'gpt-5.4': {
+    input: 2.50,  // $2.50 per 1M tokens
+    output: 15.0  // $15.00 per 1M tokens
   },
-  'gpt-4o-mini': {
-    input: 0.25,
-    output: 2.0
+  'gpt-5.4-mini': {
+    input: 0.75,
+    output: 4.50
   },
-  'gpt-5-nano': {
-    input: 0.05,
-    output: 0.40
+  'gpt-5.4-nano': {
+    input: 0.20,
+    output: 1.25
   }
 }
 
 function estimateCost(model: string, inputTokens: number, outputTokens: number): number {
-  const pricing = MODEL_PRICING[model as keyof typeof MODEL_PRICING] || MODEL_PRICING['gpt-4o-mini']
+  const pricing = MODEL_PRICING[model as keyof typeof MODEL_PRICING] || MODEL_PRICING['gpt-5.4-mini']
   const inputCost = (inputTokens / 1_000_000) * pricing.input
   const outputCost = (outputTokens / 1_000_000) * pricing.output
   return inputCost + outputCost
@@ -96,7 +96,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       model = config.useCases[request.useCase]
     }
     if (!model) {
-      model = config?.defaultModel || 'gpt-4o-mini'
+      model = config?.defaultModel || 'gpt-5.4-mini'
     }
 
     // Get model settings
@@ -120,7 +120,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         }
       ],
       max_completion_tokens: request.maxTokens || modelSettings.maxTokens,
-      ...(request.verbosity && { verbosity: request.verbosity }),
       ...(request.reasoningEffort && { reasoning_effort: request.reasoningEffort })
     }
 

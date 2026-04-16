@@ -70,7 +70,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       }`
     }).join('\n\n')
 
-    // Truncate to ~12k chars to stay within token limits (gpt-4o-mini context)
+    // Truncate to ~12k chars to stay within token limits (gpt-5.4-mini context)
     const maxPromptChars = 12000
     const truncatedResponses = formattedResponses.length > maxPromptChars
       ? formattedResponses.substring(0, maxPromptChars) + `\n\n[... truncated, showing ${Math.round(maxPromptChars / formattedResponses.length * 100)}% of ${responses.results.length} responses]`
@@ -96,7 +96,7 @@ Analyze the submissions below and provide a structured analysis. Be concise and 
 }`
 
     const gptResponse = await callOpenAIViaGateway(env, {
-      model: 'gpt-4o-mini',
+      model: 'gpt-5.4-mini',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt },

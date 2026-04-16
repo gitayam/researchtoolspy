@@ -77,7 +77,7 @@ Provide a concise, informative summary in 2-3 sentences.`
         },
         signal: controller.signal,
         body: JSON.stringify({
-          model: 'gpt-4o-mini',
+          model: 'gpt-5.4-mini',
           messages: [
             {
               role: 'system',
@@ -86,6 +86,7 @@ Provide a concise, informative summary in 2-3 sentences.`
             { role: 'user', content: prompt }
           ],
           max_completion_tokens: 300,
+          reasoning_effort: 'none',
           temperature: 0.7
         })
       })

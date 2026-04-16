@@ -93,15 +93,16 @@ Return ONLY valid JSON with this exact structure:
 
   try {
     const response = await callOpenAIViaGateway(
-      env.OPENAI_API_KEY,
-      'gpt-4o-mini',
-      [{ role: 'user', content: prompt }],
+      env,
       {
+        model: 'gpt-5.4-nano',
+        messages: [{ role: 'user', content: prompt }],
+        reasoning_effort: 'none',
         temperature: 0.3,
-        max_tokens: 800,
+        max_completion_tokens: 800,
         response_format: { type: 'json_object' }
       },
-      env.AI_GATEWAY_ACCOUNT_ID
+      { cacheTTL: 3600, metadata: { endpoint: 'extract-claim-entities' } }
     )
 
     let content = (response.choices[0].message.content || '').trim()
@@ -115,9 +116,7 @@ Return ONLY valid JSON with this exact structure:
       result = JSON.parse(content)
     } catch (parseError) {
       console.error('[extract-claim-entities] Failed to parse AI response:', content.slice(0, 200))
-      return new Response(JSON.stringify({ entities: [], error: 'AI returned invalid JSON' }), {
-        headers: JSON_HEADERS
-      })
+      return []
     }
     const entities = result.entities || []
 

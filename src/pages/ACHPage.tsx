@@ -103,7 +103,10 @@ export function ACHPage() {
             status: formData.status
           })
         })
-        if (!response.ok) throw new Error('Failed to update analysis')
+        if (!response.ok) {
+          if (response.status === 401) throw new Error('Please log in to access this feature.')
+          throw new Error('Failed to update analysis')
+        }
 
         // Update hypotheses
         // First, delete existing hypotheses that are not in the new list
@@ -184,7 +187,10 @@ export function ACHPage() {
             status: formData.status
           })
         })
-        if (!response.ok) throw new Error('Failed to create analysis')
+        if (!response.ok) {
+          if (response.status === 401) throw new Error('Please log in to access this feature.')
+          throw new Error('Failed to create analysis')
+        }
 
         const newAnalysis = await response.json()
 
@@ -239,7 +245,10 @@ export function ACHPage() {
         body: JSON.stringify(data)
       })
 
-      if (!response.ok) throw new Error('Failed to create ACH')
+      if (!response.ok) {
+        if (response.status === 401) throw new Error('Please log in to access this feature.')
+        throw new Error('Failed to create ACH')
+      }
 
       const result = await response.json()
       return result.id

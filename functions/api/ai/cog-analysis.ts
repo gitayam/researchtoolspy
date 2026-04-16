@@ -81,13 +81,13 @@ const MODE_TOKEN_LIMITS: Record<AnalysisMode, number> = {
 }
 
 const MODEL_PRICING = {
-  'gpt-5': { input: 1.25, output: 10.0 },
-  'gpt-4o-mini': { input: 0.25, output: 2.0 },
-  'gpt-5-nano': { input: 0.05, output: 0.40 },
+  'gpt-5.4': { input: 2.50, output: 15.0 },
+  'gpt-5.4-mini': { input: 0.75, output: 4.50 },
+  'gpt-5.4-nano': { input: 0.20, output: 1.25 },
 }
 
 function estimateCost(model: string, inputTokens: number, outputTokens: number): number {
-  const pricing = MODEL_PRICING[model as keyof typeof MODEL_PRICING] || MODEL_PRICING['gpt-4o-mini']
+  const pricing = MODEL_PRICING[model as keyof typeof MODEL_PRICING] || MODEL_PRICING['gpt-5.4-mini']
   return (inputTokens / 1_000_000) * pricing.input + (outputTokens / 1_000_000) * pricing.output
 }
 
@@ -456,7 +456,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       return Response.json({ error: error.message || 'Invalid request' }, { status: 400 })
     }
 
-    const model = 'gpt-4o-mini'
+    const model = 'gpt-5.4-mini'
     const maxTokens = MODE_TOKEN_LIMITS[request.mode]
 
     let data

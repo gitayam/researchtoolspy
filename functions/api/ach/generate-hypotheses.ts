@@ -36,7 +36,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const data = await callOpenAIViaGateway(
       context.env,
       {
-        model: 'gpt-4o-mini',
+        model: 'gpt-5.4-mini',
         messages: [
           {
             role: 'system',
@@ -60,6 +60,7 @@ Return JSON with a "hypotheses" array of strings:
             content: `Generate 4-6 competing hypotheses for this intelligence question:\n\n"${body.question}"`
           }
         ],
+        reasoning_effort: 'none',
         temperature: 0.7,
         max_completion_tokens: 800,
         response_format: { type: 'json_object' }
@@ -108,7 +109,7 @@ Return JSON with a "hypotheses" array of strings:
       hypotheses,
       question: body.question,
       generated_at: new Date().toISOString(),
-      model: 'gpt-4o-mini'
+      model: 'gpt-5.4-mini'
     }), { headers: JSON_HEADERS })
   } catch (error) {
     if (error instanceof Response) return error

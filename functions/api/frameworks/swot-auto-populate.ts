@@ -115,7 +115,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const data = await callOpenAIViaGateway(
       context.env,
       {
-        model: 'gpt-4o-mini',
+        model: 'gpt-5.4-mini',
         messages: [
           {
             role: 'system',
@@ -164,6 +164,7 @@ ${c.content}
 Extract 3-5 items per SWOT quadrant. Focus on actionable insights.`
           }
         ],
+        reasoning_effort: 'none',
         temperature: 0.7,
         max_completion_tokens: 2000,
         response_format: { type: 'json_object' }
@@ -208,7 +209,7 @@ Extract 3-5 items per SWOT quadrant. Focus on actionable insights.`
         contentCount: results.length,
         totalItems: strengths.length + weaknesses.length + opportunities.length + threats.length,
         processingTime: Date.now() - startTime,
-        model: 'gpt-4o-mini'
+        model: 'gpt-5.4-mini'
       }
     }
 

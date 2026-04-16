@@ -132,7 +132,7 @@ Return a JSON object with this structure:
 For dimensions where the content provides no relevant information, return an empty array [].`
 
   const gptData = await callOpenAIViaGateway(env, {
-    model: 'gpt-4o-mini',
+    model: 'gpt-5.4-mini',
     messages: [
       {
         role: 'system',
@@ -143,8 +143,9 @@ For dimensions where the content provides no relevant information, return an emp
         content: prompt
       }
     ],
+    reasoning_effort: 'none',
     temperature: 0.7,
-    max_tokens: 2000,
+    max_completion_tokens: 2000,
     response_format: { type: 'json_object' }
   }, {
     cacheTTL: getOptimalCacheTTL('pmesii-import'),

@@ -638,7 +638,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     // Get model configuration
     const config = await context.env.AI_CONFIG.get('default', { type: 'json' }) as any
-    const model = config?.useCases?.summarization || 'gpt-4o-mini'
+    const model = config?.useCases?.summarization || 'gpt-5.4-mini'
 
     const enhancement: ReportEnhancement = {}
 
@@ -659,8 +659,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
             { role: 'system', content: 'You are an expert intelligence analyst. Provide clear, concise analysis using IC standards. Always start with the bottom line (BLUF).' },
             { role: 'user', content: summaryPrompt }
           ],
-          max_completion_tokens: verbosity === 'executive' ? 500 : verbosity === 'comprehensive' ? 2000 : 1000,
-          verbosity: verbosity === 'executive' ? 'low' : verbosity === 'comprehensive' ? 'high' : 'medium'
+          max_completion_tokens: verbosity === 'executive' ? 500 : verbosity === 'comprehensive' ? 2000 : 1000
         }),
         signal: AbortSignal.timeout(30000)
       })
@@ -683,14 +682,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           ...(context.env.OPENAI_ORGANIZATION && { 'OpenAI-Organization': context.env.OPENAI_ORGANIZATION })
         },
         body: JSON.stringify({
-          model: 'gpt-5-nano', // Use faster model for structured extraction
+          model: 'gpt-5.4-nano', // Use faster model for structured extraction
           messages: [
             { role: 'system', content: 'You are an analytical pattern recognition expert. Return ONLY valid JSON arrays, no other text.' },
             { role: 'user', content: insightsPrompt }
           ],
           max_completion_tokens: 1500,
-          verbosity: 'low',
-          reasoning_effort: 'minimal'
+          reasoning_effort: 'low'
         }),
         signal: AbortSignal.timeout(30000)
       })
@@ -719,14 +717,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           ...(context.env.OPENAI_ORGANIZATION && { 'OpenAI-Organization': context.env.OPENAI_ORGANIZATION })
         },
         body: JSON.stringify({
-          model: 'gpt-5-nano',
+          model: 'gpt-5.4-nano',
           messages: [
             { role: 'system', content: 'You are a strategic advisor. Provide specific, actionable recommendations. Return ONLY valid JSON arrays.' },
             { role: 'user', content: recommendationsPrompt }
           ],
           max_completion_tokens: 1500,
-          verbosity: 'low',
-          reasoning_effort: 'minimal'
+          reasoning_effort: 'low'
         }),
         signal: AbortSignal.timeout(30000)
       })

@@ -101,11 +101,12 @@ Evidence items: ${evidenceCount?.cnt ?? 0}
 Provide actionable, forward-looking intelligence recommendations.`
 
     const response = await callOpenAIViaGateway(env, {
-      model: 'gpt-4o-mini',
+      model: 'gpt-5.4-mini',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt }
       ],
+      reasoning_effort: 'none',
       temperature: 0.4,
       max_completion_tokens: 3000,
       response_format: { type: 'json_object' }

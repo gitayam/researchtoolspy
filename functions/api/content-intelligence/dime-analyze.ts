@@ -91,7 +91,7 @@ Generate a JSON response with this structure:
 Focus on aspects that are actually present in the content. If a dimension has no relevant information, include 1-2 questions about why it might be absent or what related aspects to consider.`
 
     const gptData = await callOpenAIViaGateway(context.env, {
-      model: 'gpt-4o-mini',
+      model: 'gpt-5.4-mini',
       messages: [
         {
           role: 'system',
@@ -102,8 +102,9 @@ Focus on aspects that are actually present in the content. If a dimension has no
           content: dimePrompt
         }
       ],
+      reasoning_effort: 'none',
       temperature: 0.7,
-      max_tokens: 2000,
+      max_completion_tokens: 2000,
       response_format: { type: 'json_object' }
     }, {
       cacheTTL: getOptimalCacheTTL('dime-analysis'),
