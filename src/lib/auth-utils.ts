@@ -1,3 +1,5 @@
+import { generateAccountHash } from '@/lib/hash-auth'
+
 /**
  * Get a stable auth identifier for the current user.
  * Works for both hash-based auth (omnicore_user_hash) and OIDC/JWT auth.
@@ -46,4 +48,20 @@ export function getAuthIdentifier(): string | null {
  */
 export function isUserAuthenticated(): boolean {
   return getAuthIdentifier() !== null
+}
+
+/**
+ * Ensure the user has a hash bookmark for API access.
+ * If no auth identifier exists, auto-generates a hash and stores it.
+ * This enables seamless guest access without requiring explicit "login".
+ * Returns the auth identifier (existing or newly created).
+ */
+export function ensureAuthIdentifier(): string {
+  const existing = getAuthIdentifier()
+  if (existing) return existing
+
+  const hash = generateAccountHash()
+  localStorage.setItem('omnicore_user_hash', hash)
+  localStorage.setItem('omnicore_authenticated', 'true')
+  return hash
 }

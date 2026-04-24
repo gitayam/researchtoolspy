@@ -79,7 +79,7 @@ export default function DropLandingPage() {
             <span className="font-semibold text-sm">ResearchTools</span>
           </Link>
           <Button variant="ghost" size="sm" className="text-xs" asChild>
-            <Link to="/login">Sign in</Link>
+            <Link to="/login">Access Work</Link>
           </Button>
         </div>
       </header>

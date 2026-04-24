@@ -6,8 +6,7 @@ import {
   LogOut,
   Settings,
   User,
-  Save,
-  LogIn
+  Save
 } from 'lucide-react'
 import {
   DropdownMenu,
@@ -97,21 +96,21 @@ export function DashboardHeader() {
 
           {/* Authentication Status - Better mobile touch targets */}
           {!isAuthenticated ? (
-            // Not logged in - show login button with save benefit
+            // Not authenticated - show bookmark/save button
             <div className="flex items-center gap-2 sm:gap-3">
               <div className="hidden md:flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
                 <Save className="h-4 w-4" />
-                <span>{t('auth.login_to_save')}</span>
+                <span>{t('auth.bookmark_to_save')}</span>
               </div>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => navigate('/login')}
                 className="flex items-center gap-1.5 sm:gap-2 h-10 px-3 sm:px-4"
-                aria-label="Log in to save your work"
+                aria-label="Save your work with a bookmark hash"
               >
-                <LogIn className="h-4 w-4" aria-hidden="true" />
-                <span className="text-sm">{t('auth.login')}</span>
+                <Save className="h-4 w-4" aria-hidden="true" />
+                <span className="text-sm">{t('auth.save_bookmark')}</span>
               </Button>
             </div>
           ) : (

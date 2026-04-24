@@ -28,7 +28,7 @@ import { ClaimAnalysisDisplay } from '@/components/content-intelligence/ClaimAna
 import { AnalysisLayout } from '@/components/content-intelligence/AnalysisLayout'
 import { createLogger } from '@/lib/logger'
 import { getCopHeaders } from '@/lib/cop-auth'
-import { getAuthIdentifier } from '@/lib/auth-utils'
+import { getAuthIdentifier, ensureAuthIdentifier } from '@/lib/auth-utils'
 import { StarburstingEntityLinker } from '@/components/content-intelligence/StarburstingEntityLinker'
 // New extracted components from refactor
 import {
@@ -296,7 +296,7 @@ export default function ContentIntelligencePage() {
       })
 
       if (!response.ok) {
-        if (response.status === 401) throw new Error('Please log in to access this feature.')
+        if (response.status === 401) throw new Error('Session expired. Please refresh to continue.')
         throw new Error('Failed to generate summary')
       }
 
@@ -624,7 +624,7 @@ export default function ContentIntelligencePage() {
       })
 
       if (!response.ok) {
-        if (response.status === 401) throw new Error('Please log in to access this feature.')
+        if (response.status === 401) throw new Error('Session expired. Please refresh to continue.')
         throw new Error('Failed to create share link')
       }
 
@@ -1018,6 +1018,11 @@ ${shortSummary}`
     }
   }
 
+  // Ensure guest users have a hash bookmark for API access
+  useEffect(() => {
+    ensureAuthIdentifier()
+  }, [])
+
   // Load saved links and check for pending URL from landing page
   useEffect(() => {
     loadSavedLinks()
@@ -1077,7 +1082,7 @@ ${shortSummary}`
       })
 
       if (!response.ok) {
-        if (response.status === 401) throw new Error('Please log in to access this feature.')
+        if (response.status === 401) throw new Error('Session expired. Please refresh to continue.')
         throw new Error('DIME analysis failed')
       }
 
@@ -1121,7 +1126,7 @@ ${shortSummary}`
       })
 
       if (!response.ok) {
-        if (response.status === 401) throw new Error('Please log in to access this feature.')
+        if (response.status === 401) throw new Error('Session expired. Please refresh to continue.')
         const errorData = await response.json().catch((e) => { console.error('[ContentIntelligencePage] JSON parse error:', e); return {} })
         console.error('[Claims] API error:', errorData)
         throw new Error(errorData.details || errorData.error || 'Claims analysis failed')
@@ -1211,7 +1216,7 @@ ${shortSummary}`
       })
 
       if (!response.ok) {
-        if (response.status === 401) throw new Error('Please log in to access this feature.')
+        if (response.status === 401) throw new Error('Session expired. Please refresh to continue.')
         throw new Error('Failed to save analysis')
       }
 
@@ -1275,7 +1280,7 @@ ${shortSummary}`
         })
 
         if (!response.ok) {
-          if (response.status === 401) throw new Error('Please log in to access this feature.')
+          if (response.status === 401) throw new Error('Session expired. Please refresh to continue.')
           // Handle 409 Conflict (link already saved)
           if (response.status === 409) {
             toast({
@@ -1390,7 +1395,7 @@ ${shortSummary}`
       if (progressInterval) clearInterval(progressInterval)
 
       if (!response.ok) {
-        if (response.status === 401) throw new Error('Please log in to access this feature.')
+        if (response.status === 401) throw new Error('Session expired. Please refresh to continue.')
         // Handle different error types
         if (response.status === 524) {
           throw new Error('Analysis timed out. The content may be too large or complex. Try using "quick" mode or a shorter article.')
@@ -1590,7 +1595,7 @@ ${shortSummary}`
       })
 
       if (!response.ok) {
-        if (response.status === 401) throw new Error('Please log in to access this feature.')
+        if (response.status === 401) throw new Error('Session expired. Please refresh to continue.')
         const errorData = await response.json().catch((e) => { console.error('[ContentIntelligencePage] JSON parse error:', e); return {} })
         throw new Error(errorData.details || errorData.error || 'Failed to create ACH')
       }
@@ -1689,17 +1694,8 @@ ${shortSummary}`
   const saveEntityToEvidence = async (entityName: string, entityType: 'person' | 'organization' | 'location') => {
     try {
       if (!getAuthIdentifier()) {
-        // Prompt user to login and return to this page
-        const shouldLogin = window.confirm(
-          'You need to be logged in to save entities.\n\nWould you like to login or create an account now?'
-        )
-
-        if (shouldLogin) {
-          // Save current URL to return after login
-          localStorage.setItem('redirect_after_login', window.location.pathname + window.location.search)
-          navigate('/login')
-        }
-        return
+        // Auto-generate a hash bookmark so the user can save entities
+        ensureAuthIdentifier()
       }
 
       // Check if entity already exists for this user
@@ -1834,7 +1830,7 @@ ${shortSummary}`
       })
 
       if (!response.ok) {
-        if (response.status === 401) throw new Error('Please log in to access this feature.')
+        if (response.status === 401) throw new Error('Session expired. Please refresh to continue.')
         throw new Error('Failed to auto-extract entities')
       }
 
@@ -1928,7 +1924,7 @@ ${shortSummary}`
       })
 
       if (!response.ok) {
-        if (response.status === 401) throw new Error('Please log in to access this feature.')
+        if (response.status === 401) throw new Error('Session expired. Please refresh to continue.')
         const errorData = await response.json().catch((e) => { console.error('[ContentIntelligencePage] JSON parse error:', e); return {} })
         console.error('[Starbursting] API error:', errorData)
         throw new Error(errorData.details || errorData.error || 'Failed to create Starbursting session')
@@ -1971,7 +1967,7 @@ ${shortSummary}`
       })
 
       if (!response.ok) {
-        if (response.status === 401) throw new Error('Please log in to access this feature.')
+        if (response.status === 401) throw new Error('Session expired. Please refresh to continue.')
         const errorData = await response.json().catch((e) => { console.error('[ContentIntelligencePage] JSON parse error:', e); return {} })
         throw new Error(errorData.details || errorData.error || 'Failed to generate more questions')
       }
@@ -2122,7 +2118,7 @@ ${shortSummary}`
       })
 
       if (!response.ok) {
-        if (response.status === 401) throw new Error('Please log in to access this feature.')
+        if (response.status === 401) throw new Error('Session expired. Please refresh to continue.')
         const error = await response.json().catch(() => ({ error: 'Unknown error' }))
         throw new Error(error.error || 'Failed to answer question')
       }
@@ -2176,7 +2172,7 @@ ${shortSummary}`
       })
 
       if (!response.ok) {
-        if (response.status === 401) throw new Error('Please log in to access this feature.')
+        if (response.status === 401) throw new Error('Session expired. Please refresh to continue.')
         const error = await response.json().catch(() => ({ error: 'Unknown error' }))
         throw new Error(error.error || 'Social media extraction failed')
       }
@@ -2234,7 +2230,7 @@ ${shortSummary}`
       })
 
       if (!response.ok) {
-        if (response.status === 401) throw new Error('Please log in to access this feature.')
+        if (response.status === 401) throw new Error('Session expired. Please refresh to continue.')
         const error = await response.json().catch(() => ({ error: 'Unknown error' }))
         throw new Error(error.error || 'Git repository extraction failed')
       }
@@ -5276,7 +5272,7 @@ ${shortSummary}`
                                 })
 
                                 if (!response.ok) {
-                                  if (response.status === 401) throw new Error('Please log in to access this feature.')
+                                  if (response.status === 401) throw new Error('Session expired. Please refresh to continue.')
                                   throw new Error('Failed to create Starbursting session')
                                 }
 

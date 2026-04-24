@@ -28,7 +28,7 @@
     "contentTypePlaceholder": "Selecciona el tipo de contenido",
     "contentDescription": "Descripción del Contenido",
     "contentDescriptionPlaceholder": "¿Cómo se relaciona este contenido con la investigación? ¿Qué lo hace relevante?",
-    "loginRequired": "Se requiere iniciar sesión para ver este contenido",
+    "loginRequired": "Se requiere marcador para ver este contenido",
     "keywords": "Palabras Clave",
     "keywordsPlaceholder": "palabraclave1, palabraclave2, palabraclave3",
     "keywordsHint": "Separa las palabras clave con comas",

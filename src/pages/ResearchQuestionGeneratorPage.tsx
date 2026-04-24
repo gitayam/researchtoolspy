@@ -194,7 +194,7 @@ export default function ResearchQuestionGeneratorPage() {
           body: JSON.stringify({ ...formData, saveToDatabase: true })
         })
         if (!response.ok) {
-          if (response.status === 401) throw new Error('Please log in to generate research questions.')
+          if (response.status === 401) throw new Error('Session expired. Please refresh to continue.')
           throw new Error('Failed to generate questions')
         }
         const data = await response.json()
@@ -211,7 +211,7 @@ export default function ResearchQuestionGeneratorPage() {
           })
         })
         if (!response.ok) {
-          if (response.status === 401) throw new Error('Please log in to generate research questions.')
+          if (response.status === 401) throw new Error('Session expired. Please refresh to continue.')
           throw new Error('Failed to generate questions')
         }
         const data = await response.json()
@@ -254,7 +254,7 @@ export default function ResearchQuestionGeneratorPage() {
       })
 
       if (!response.ok) {
-        if (response.status === 401) throw new Error('Please log in to generate research plans.')
+        if (response.status === 401) throw new Error('Session expired. Please refresh to continue.')
         throw new Error('Failed to generate plan')
       }
       const data = await response.json()

@@ -90,13 +90,15 @@
     "loading_data": "Loading data..."
   },
   "auth": {
-    "login": "Login",
+    "login": "Bookmark",
     "logout": "Sign out",
-    "login_to_save": "Login to save your work",
+    "login_to_save": "Bookmark to save your work",
+    "bookmark_to_save": "Bookmark to save your work",
+    "save_bookmark": "Save Bookmark",
     "guest": "Guest",
     "guestMode": "Guest Mode",
     "guestModeMessage": "You're exploring as a guest. Your work is saved locally for 7 days.",
-    "signInToSave": "Sign in to save permanently",
+    "signInToSave": "Bookmark to save permanently",
     "returnToWork": "Return to Your Work",
     "returnToWorkDesc": "Enter your bookmark hash to return to saved work or collaborate",
     "bookmarkHash": "Bookmark Hash",
@@ -109,7 +111,7 @@
     "hashRequired": "Bookmark hash is required",
     "invalidHashFormat": "Invalid hash format. Please enter a 16-digit number or 32-character hex hash.",
     "invalidHash": "Invalid bookmark hash",
-    "loginError": "An error occurred during login"
+    "loginError": "An error occurred. Please try again."
   },
   "frameworks": {
     "swot": "SWOT Analysis",
@@ -462,8 +464,8 @@
     "forCommunity": "for the IrregularChat community.",
     "browseFrameworks": "Browse Frameworks",
     "accessSavedWork": "Access Saved Work",
-    "createAccount": "Create Account",
-    "login": "Login",
+    "createAccount": "Get Bookmark Hash",
+    "login": "Access Work",
     "everythingYouNeed": "Everything You Need for Research Analysis",
     "providesTools": "From strategic planning to threat assessment, ResearchTools provides the tools and frameworks professional analysts trust.",
     "analysisFrameworks": "13 Analysis Frameworks",

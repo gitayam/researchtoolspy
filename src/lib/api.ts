@@ -67,7 +67,7 @@ export class APIClient {
       (response) => response,
       async (error: AxiosError) => {
         if (error.response?.status === 401) {
-          // Token expired or invalid, redirect to login
+          // Token expired or invalid, redirect to bookmark page
           this.clearTokens()
           if (typeof window !== 'undefined') {
             window.location.href = '/login'

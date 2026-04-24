@@ -176,7 +176,7 @@ export async function requireAuth(
 
   if (!userId) {
     throw new Response(
-      JSON.stringify({ error: 'Unauthorized. Please login or register.' }),
+      JSON.stringify({ error: 'Authentication required. Please use a bookmark hash.' }),
       {
         status: 401,
         headers: {

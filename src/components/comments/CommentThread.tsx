@@ -363,17 +363,17 @@ export function CommentThread({ entityType, entityId, className }: CommentThread
         <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6 text-center">
           <MessageCircle className="h-12 w-12 mx-auto mb-3 text-gray-400" />
           <h4 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white">
-            {t('loginRequired', 'Sign in to comment')}
+            {t('loginRequired', 'Bookmark required to comment')}
           </h4>
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-            {t('loginMessage', 'Create a bookmark or sign in to join the discussion')}
+            {t('loginMessage', 'Create a bookmark hash to join the discussion')}
           </p>
           <div className="flex gap-2 justify-center">
             <Button
               onClick={() => window.location.href = '/login'}
               variant="default"
             >
-              {t('signIn', 'Sign In')}
+              {t('signIn', 'Get Bookmark')}
             </Button>
             <Button
               onClick={() => window.location.href = '/dashboard/settings'}

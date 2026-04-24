@@ -107,7 +107,7 @@ export default function CreateSubmissionFormPage() {
       const data = await response.json()
 
       if (!response.ok) {
-        if (response.status === 401) throw new Error('Please log in to access this feature.')
+        if (response.status === 401) throw new Error('Session expired. Please refresh to continue.')
         throw new Error(data.error || t('submissionForm:alerts.createFailed'))
       }
 

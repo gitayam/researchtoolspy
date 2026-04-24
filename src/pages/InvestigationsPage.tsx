@@ -52,7 +52,7 @@ export default function InvestigationsPage() {
         const data = await response.json()
         setInvestigations(data.investigations || [])
       } else if (response.status === 401) {
-        setError('Authentication required. Please log in to view your investigations.')
+        setError('Authentication required. Please refresh the page or use a bookmark hash.')
       } else {
         const errorData = await response.json().catch((e) => { console.error('[InvestigationsPage] JSON parse error:', e); return {} })
         setError(errorData.error || 'Failed to load investigations')

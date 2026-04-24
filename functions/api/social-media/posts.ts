@@ -55,7 +55,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
-      return new Response(JSON.stringify({ error: 'Unauthorized. Please login or register.' }), { status: 401, headers: JSON_HEADERS })
+      return new Response(JSON.stringify({ error: 'Authentication required. Please use a bookmark hash.' }), { status: 401, headers: JSON_HEADERS })
     }
     const body = await request.json() as any
 

@@ -89,13 +89,15 @@
     "loading_data": "Cargando datos..."
   },
   "auth": {
-    "login": "Iniciar sesión",
+    "login": "Marcador",
     "logout": "Cerrar sesión",
-    "login_to_save": "Inicia sesión para guardar tu trabajo",
+    "login_to_save": "Guarda un marcador para conservar tu trabajo",
+    "bookmark_to_save": "Guarda un marcador para conservar tu trabajo",
+    "save_bookmark": "Guardar Marcador",
     "guest": "Invitado",
     "guestMode": "Modo Invitado",
     "guestModeMessage": "Estás explorando como invitado. Tu trabajo se guarda localmente por 7 días.",
-    "signInToSave": "Inicia sesión para guardar permanentemente",
+    "signInToSave": "Guarda un marcador para conservar permanentemente",
     "returnToWork": "Volver a Tu Trabajo",
     "returnToWorkDesc": "Ingresa tu código de marcador para volver a tu trabajo guardado o colaborar",
     "bookmarkHash": "Código de Marcador",
@@ -108,7 +110,7 @@
     "hashRequired": "El código de marcador es obligatorio",
     "invalidHashFormat": "Formato de código inválido. Por favor, ingresa un número de 16 dígitos o un hash hexadecimal de 32 caracteres.",
     "invalidHash": "Código de marcador inválido",
-    "loginError": "Ocurrió un error durante el inicio de sesión"
+    "loginError": "Ocurrió un error. Por favor, intenta de nuevo."
   },
   "frameworks": {
     "swot": "Análisis FODA",
@@ -461,8 +463,8 @@
     "forCommunity": "para la comunidad IrregularChat.",
     "browseFrameworks": "Explorar Marcos",
     "accessSavedWork": "Acceder a Tu Trabajo",
-    "createAccount": "Crear Cuenta",
-    "login": "Iniciar Sesión",
+    "createAccount": "Obtener Código de Marcador",
+    "login": "Acceder al Trabajo",
     "everythingYouNeed": "Todo lo que Necesitas para Análisis de Investigación",
     "providesTools": "Desde planificación estratégica hasta evaluación de amenazas, ResearchTools proporciona las herramientas y marcos en los que confían los analistas profesionales.",
     "analysisFrameworks": "13 Marcos de Análisis",

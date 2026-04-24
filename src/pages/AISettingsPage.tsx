@@ -41,7 +41,7 @@ export function AISettingsPage() {
       setLoading(true)
       const response = await fetch('/api/ai/config')
       if (!response.ok) {
-        if (response.status === 401) throw new Error('Please log in to access this feature.')
+        if (response.status === 401) throw new Error('Session expired. Please refresh to continue.')
         throw new Error(t('aiSettings:loadFailed'))
       }
 
@@ -69,7 +69,7 @@ export function AISettingsPage() {
       })
 
       if (!response.ok) {
-        if (response.status === 401) throw new Error('Please log in to access this feature.')
+        if (response.status === 401) throw new Error('Session expired. Please refresh to continue.')
         const errorData = await response.json()
         throw new Error(errorData.message || t('aiSettings:saveFailed'))
       }
@@ -95,7 +95,7 @@ export function AISettingsPage() {
       })
 
       if (!response.ok) {
-        if (response.status === 401) throw new Error('Please log in to access this feature.')
+        if (response.status === 401) throw new Error('Session expired. Please refresh to continue.')
         throw new Error(t('aiSettings:resetFailed'))
       }
 

@@ -28,7 +28,7 @@
     "contentTypePlaceholder": "Select content type",
     "contentDescription": "Content Description",
     "contentDescriptionPlaceholder": "How does this content relate to the research? What makes it relevant?",
-    "loginRequired": "Login required to view this content",
+    "loginRequired": "Bookmark required to view this content",
     "keywords": "Keywords",
     "keywordsPlaceholder": "keyword1, keyword2, keyword3",
     "keywordsHint": "Separate keywords with commas",

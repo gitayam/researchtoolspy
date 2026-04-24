@@ -28,7 +28,7 @@ export function AuthCallbackPage() {
 
     if (!token || !userParam) {
       setError(
-        'Missing authentication parameters. The SSO login may have failed or the link is invalid.'
+        'Missing authentication parameters. The SSO authentication may have failed or the link is invalid.'
       )
       return
     }
@@ -56,7 +56,7 @@ export function AuthCallbackPage() {
     } catch (err) {
       console.error('Failed to process SSO callback:', err)
       setError(
-        'Failed to process the authentication response. Please try logging in again.'
+        'Failed to process the authentication response. Please try again.'
       )
     }
   }, [searchParams, navigate, loginWithOidc])
@@ -79,7 +79,7 @@ export function AuthCallbackPage() {
               <Button asChild variant="outline" className="w-full">
                 <Link to="/login">
                   <ShieldCheck className="mr-2 h-4 w-4" />
-                  Back to Login
+                  Back to Access Page
                 </Link>
               </Button>
             </div>
@@ -96,7 +96,7 @@ export function AuthCallbackPage() {
         <CardContent className="flex flex-col items-center justify-center py-12">
           <Loader2 className="h-10 w-10 animate-spin text-blue-600 dark:text-blue-400 mb-4" />
           <p className="text-lg font-medium text-gray-900 dark:text-gray-100">
-            Completing sign-in...
+            Completing authentication...
           </p>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
             Please wait while we verify your credentials.
