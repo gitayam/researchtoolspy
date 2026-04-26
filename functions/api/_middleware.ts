@@ -47,7 +47,7 @@ export async function onRequest(context: any) {
     }
 
     if (record.count >= limit) {
-      return new Response(JSON.stringify({ error: 'Too many requests. Please try again later.' }), {
+      return new Response(JSON.stringify({ error: 'Too many login attempts. Please try again later.' }), {
         status: 429,
         headers: {
           'Content-Type': 'application/json',
@@ -91,12 +91,14 @@ export async function onRequest(context: any) {
     rateLimit.set(rateLimitKey, record)
   }
 
-  // Rate limiting for guest user creation (prevent DB flooding)
-  if (request.headers.get('X-User-Hash') && !request.headers.get('Authorization')) {
+  // Rate limiting for guest user registration (prevent DB flooding via /hash-auth/register)
+  // Only fires on the actual write endpoint — earlier this block fired on every
+  // guest API call, which broke normal browsing once auto-provisioning landed.
+  if (url.pathname.includes('/hash-auth/register') && request.method === 'POST') {
     const clientIp = request.headers.get('CF-Connecting-IP') || 'unknown'
-    const rateLimitKey = `guest:${clientIp}`
+    const rateLimitKey = `register:${clientIp}`
     const now = Date.now()
-    const limit = 10 // 10 new guest sessions per minute per IP
+    const limit = 10
     const windowMs = 60 * 1000
 
     const record = rateLimit.get(rateLimitKey) || { count: 0, resetTime: now + windowMs }
@@ -107,7 +109,7 @@ export async function onRequest(context: any) {
     }
 
     if (record.count >= limit) {
-      return new Response(JSON.stringify({ error: 'Too many requests. Please try again later.' }), {
+      return new Response(JSON.stringify({ error: 'Too many registration attempts. Please try again later.' }), {
         status: 429,
         headers: {
           'Content-Type': 'application/json',
