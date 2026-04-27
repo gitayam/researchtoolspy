@@ -368,7 +368,25 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       content = content.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '')
     }
 
-    const parsed = JSON.parse(content)
+    // C2 — guard against malformed AI output (refusal/safety filter/truncated JSON).
+    // response_format: json_object does not guarantee parseable JSON in all edge cases.
+    let parsed: any
+    try {
+      parsed = JSON.parse(content)
+    } catch (parseError) {
+      console.error('[behavior-analysis] AI returned malformed JSON', {
+        mode: req.mode,
+        contentPreview: content.slice(0, 200),
+        error: parseError instanceof Error ? parseError.message : String(parseError),
+      })
+      return new Response(JSON.stringify({
+        error: 'AI returned malformed response. Please retry.',
+        mode: req.mode,
+      }), {
+        status: 502,
+        headers: JSON_HEADERS,
+      })
+    }
 
     // Validate per mode
     let result: any

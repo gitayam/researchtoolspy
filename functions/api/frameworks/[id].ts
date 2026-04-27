@@ -119,6 +119,24 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       status?: string
     }
 
+    // W2 — for COM-B Analysis updates, enforce that linked_behavior_id remains set.
+    // Mirrors the validation in functions/api/frameworks.ts; the per-id PUT path
+    // previously bypassed it. See docs/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md (P1-4).
+    const existingType = await context.env.DB.prepare(
+      'SELECT framework_type FROM framework_sessions WHERE id = ?'
+    ).bind(sessionId).first()
+    if (existingType?.framework_type === 'comb-analysis' && body.data !== undefined) {
+      const linkedId = (body.data as any)?.linked_behavior_id
+      if (!linkedId || typeof linkedId !== 'string' || linkedId.trim().length === 0) {
+        return new Response(JSON.stringify({
+          error: 'COM-B Analysis must keep linked_behavior_id set. Cannot save without a linked Behavior Analysis.'
+        }), {
+          status: 400,
+          headers: JSON_HEADERS,
+        })
+      }
+    }
+
     // Build update query dynamically
     const updates: string[] = []
     const params: any[] = []
@@ -152,15 +170,26 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     updates.push('updated_at = datetime("now")')
     params.push(sessionId)
     params.push(userId)
+    params.push(userId)
 
+    // W1 — honor the workspace-membership authorization check above. Previously the
+    // membership check at lines 100-113 was effectively dead because the UPDATE
+    // filtered by user_id only. Now the UPDATE accepts owner OR a verified
+    // workspace member of the framework's workspace.
     const result = await context.env.DB.prepare(`
       UPDATE framework_sessions
       SET ${updates.join(', ')}
-      WHERE id = ? AND user_id = ?
+      WHERE id = ?
+        AND (
+          user_id = ?
+          OR (workspace_id IS NOT NULL AND workspace_id IN (
+            SELECT workspace_id FROM workspace_members WHERE user_id = ?
+          ))
+        )
     `).bind(...params).run()
 
     if (!result.meta.changes) {
-      return new Response(JSON.stringify({ error: 'Session not found or not owned by you' }), {
+      return new Response(JSON.stringify({ error: 'Session not found or not authorized' }), {
         status: 404, headers: JSON_HEADERS,
       })
     }
