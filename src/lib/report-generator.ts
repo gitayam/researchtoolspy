@@ -140,6 +140,8 @@ export class ReportGenerator {
     // Framework-specific content
     if (frameworkType === 'behavior') {
       markdown += this.generateBehaviorMarkdown(data, aiEnhancements)
+    } else if (frameworkType === 'comb-analysis') {
+      markdown += this.generateCombAnalysisMarkdown(data, aiEnhancements)
     } else {
       markdown += this.generateGenericMarkdown(frameworkType, frameworkTitle, data)
     }
@@ -398,6 +400,160 @@ export class ReportGenerator {
     }
 
     return markdown
+  }
+
+  /**
+   * Generate markdown for COM-B Analysis framework.
+   *
+   * Includes the user's diagnosis (deficits + evidence), selected intervention
+   * functions, APEASE evaluation, selected BCTs, mode of delivery, AND a
+   * canon-recommendations section grounded in BCW Guide Tables 2.3, 2.9, 3.3.
+   *
+   * Citations to Michie/Atkins/West 2014 are emitted at the bottom so the
+   * exported document is self-contained for sharing.
+   *
+   * See docs/COM_B_API.md and irregularpedia.org/general/behavior-analysis/.
+   */
+  private static generateCombAnalysisMarkdown(data: any, aiEnhancements?: AIEnhancements): string {
+    let md = ''
+
+    md += `## 🧭 COM-B Analysis\n\n`
+    if (data.linked_behavior_title) {
+      md += `**Linked behavior:** ${data.linked_behavior_title}  \n`
+    }
+    if (data.target_audience?.name) {
+      md += `**Target audience:** ${data.target_audience.name}\n\n`
+    }
+
+    // ── 1. COM-B diagnosis ────────────────────────────────────────────
+    const deficits = (data.com_b_deficits || {}) as ComBDeficits
+    const assessments = (data.comb_assessments || {}) as Record<string, any>
+    const COMP_LABELS: Record<string, string> = {
+      physical_capability: 'Physical Capability',
+      psychological_capability: 'Psychological Capability',
+      physical_opportunity: 'Physical Opportunity',
+      social_opportunity: 'Social Opportunity',
+      reflective_motivation: 'Reflective Motivation',
+      automatic_motivation: 'Automatic Motivation',
+    }
+    const SEV_LABELS: Record<string, string> = {
+      adequate: '✅ Adequate',
+      deficit: '⚠️ Deficit',
+      major_barrier: '🚨 Major barrier',
+    }
+
+    if (Object.keys(deficits).length > 0) {
+      md += `### COM-B Diagnosis\n\n`
+      md += `| Component | Severity | Evidence notes |\n`
+      md += `|---|---|---|\n`
+      for (const [comp, label] of Object.entries(COMP_LABELS)) {
+        const sev = (deficits as any)[comp] || 'adequate'
+        const note = assessments[comp]?.evidence_notes || '—'
+        md += `| ${label} | ${SEV_LABELS[sev] || sev} | ${String(note).replace(/\|/g, '\\|').slice(0, 140)} |\n`
+      }
+      md += `\n`
+    }
+
+    // ── 2. Selected intervention functions ────────────────────────────
+    const selectedFns: InterventionFunction[] = data.selected_interventions || []
+    if (selectedFns.length > 0) {
+      md += `### Selected Intervention Functions (BCW Step 5)\n\n`
+      for (const fn of selectedFns) {
+        const info = INTERVENTION_DESCRIPTIONS[fn]
+        md += `- **${info?.name || fn}** — ${info?.definition || ''}\n`
+      }
+      md += `\n`
+    }
+
+    // ── 3. APEASE evaluation ──────────────────────────────────────────
+    const apease = data.apease_assessment
+    if (apease && typeof apease === 'object') {
+      const order = ['affordability', 'practicability', 'effectiveness', 'acceptability', 'sideEffects', 'equity'] as const
+      const labels: Record<string, string> = {
+        affordability: 'Affordability',
+        practicability: 'Practicability',
+        effectiveness: 'Effectiveness',
+        acceptability: 'Acceptability',
+        sideEffects: 'Side-effects/safety',
+        equity: 'Equity',
+      }
+      const filled = order.filter((k) => apease[k]?.rating)
+      if (filled.length > 0) {
+        md += `### APEASE Evaluation (BCW Guide Table 1)\n\n`
+        md += `| Criterion | Rating | Rationale |\n|---|---|---|\n`
+        for (const k of order) {
+          const c = apease[k]
+          if (!c) continue
+          const rating = c.rating ? c.rating.toUpperCase() : '—'
+          const rationale = (c.rationale || '—').replace(/\|/g, '\\|').slice(0, 140)
+          md += `| ${labels[k]} | ${rating} | ${rationale} |\n`
+        }
+        md += `\n`
+      }
+    }
+
+    // ── 4. Selected BCTs ──────────────────────────────────────────────
+    const selectedBcts: string[] = data.selected_bcts || []
+    if (selectedBcts.length > 0) {
+      md += `### Behaviour Change Techniques (BCW Step 7)\n\n`
+      md += `${selectedBcts.length} BCTs selected from BCTTv1 (93 BCTs in 16 groupings):\n\n`
+      // Group by leading number
+      const byGroup: Record<string, string[]> = {}
+      for (const id of selectedBcts) {
+        const g = id.split('.')[0]
+        if (!byGroup[g]) byGroup[g] = []
+        byGroup[g].push(id)
+      }
+      for (const g of Object.keys(byGroup).sort((a, b) => Number(a) - Number(b))) {
+        md += `- Group ${g}: ${byGroup[g].sort((a, b) => a.localeCompare(b, undefined, { numeric: true })).join(', ')}\n`
+      }
+      md += `\n`
+    }
+
+    // ── 5. Mode of delivery (BCW Step 8) ─────────────────────────────
+    const mode = data.mode_of_delivery
+    if (mode && typeof mode === 'object') {
+      const allFields: Array<[string, string]> = [
+        ['Modes', Array.isArray(mode.delivery_modes) ? mode.delivery_modes.join(', ') : ''],
+        ['Group size', mode.group_size || ''],
+        ['Frequency', mode.frequency || ''],
+        ['Setting', mode.setting || ''],
+        ['Typical duration', mode.duration_typical || ''],
+        ['Deliverer', mode.deliverer || ''],
+      ]
+      const fields = allFields.filter(([, v]) => v && String(v).trim().length > 0)
+      if (fields.length > 0) {
+        md += `### Mode of Delivery (BCW Step 8 / Box 2.9)\n\n`
+        for (const [k, v] of fields) md += `- **${k}:** ${v}\n`
+        md += `\n`
+      }
+    }
+
+    // ── 6. Canon recommendations grounded in BCW Tables 2.3 + 2.9 ────
+    if (Object.keys(deficits).length > 0) {
+      const recs = generateInterventionRecommendations(deficits)
+      if (recs.length > 0) {
+        md += `### What the canon recommends for these deficits\n\n`
+        md += `Per BCW Guide Tables 2.3 (COM-B → intervention function) and 2.9 (intervention function → policy category), the following are canonical candidates given the diagnosis above. The user's actual selection is documented in §2 above.\n\n`
+        for (const rec of recs) {
+          md += `**${COMP_LABELS[rec.component_code] || rec.component} — ${SEV_LABELS[rec.severity] || rec.severity}**\n\n`
+          for (const i of rec.interventions) {
+            md += `- *${INTERVENTION_DESCRIPTIONS[i.name]?.name || i.name}* — ${i.description}\n`
+          }
+          md += `\n`
+        }
+      }
+    }
+
+    // ── 7. Citations ──────────────────────────────────────────────────
+    md += `### Citations\n\n`
+    md += `- Michie, S., Atkins, L., West, R. (2014). *The Behaviour Change Wheel: A Guide to Designing Interventions.* Silverback Publishing. ISBN 978-1-912141-08-1. (Tables 1, 2.1, 2.3, 2.7, 2.9, 3.3.)\n`
+    md += `- Michie, S., van Stralen, M.M., West, R. (2011). The behaviour change wheel: A new method for characterising and designing behaviour change interventions. *Implementation Science* 6:42.\n`
+    md += `- Michie, S., Richardson, M., Johnston, M., et al. (2013). The Behavior Change Technique Taxonomy (v1) of 93 hierarchically clustered techniques. *Annals of Behavioral Medicine* 46(1):81–95.\n`
+    md += `- Wiki summary with worked examples: <https://irregularpedia.org/general/behavior-analysis/>\n`
+    md += `- Live API for canon-grounded recommendations: <https://researchtools.net/api/frameworks/comb-analysis/canon>\n\n`
+
+    return md
   }
 
   /**
