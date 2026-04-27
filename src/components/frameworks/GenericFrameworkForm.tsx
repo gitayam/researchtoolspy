@@ -828,6 +828,36 @@ export function GenericFrameworkForm({
           )
         if (fns.length > 0) setSelectedInterventions(fns)
       }
+      // Pre-populate the COM-B per-dimension diagnosis (deficit_level + evidence_notes)
+      // from the AI tool's structured output. The AI tool emits a CombDiagnosis with
+      // 6 dimensions, each having deficit_level ('adequate'|'deficit'|'major_barrier')
+      // and evidence_notes. Map directly into the form state.
+      if (prefill.ai_diagnosis && typeof prefill.ai_diagnosis === 'object') {
+        const dims = ['physical_capability', 'psychological_capability', 'physical_opportunity', 'social_opportunity', 'reflective_motivation', 'automatic_motivation']
+        const newDeficits: Partial<ComBDeficits> = {}
+        const newAssessments: Record<string, { evidence_notes: string; supporting_evidence: string[]; facilitators: string[]; barriers: string[] }> = {}
+        for (const dim of dims) {
+          const d = prefill.ai_diagnosis[dim]
+          if (!d || typeof d !== 'object') continue
+          if (['adequate', 'deficit', 'major_barrier'].includes(d.deficit_level)) {
+            (newDeficits as any)[dim] = d.deficit_level as DeficitLevel
+          }
+          if (typeof d.evidence_notes === 'string' && d.evidence_notes) {
+            newAssessments[dim] = {
+              evidence_notes: d.evidence_notes,
+              supporting_evidence: Array.isArray(d.indicators) ? d.indicators.map(String) : [],
+              facilitators: [],
+              barriers: [],
+            }
+          }
+        }
+        if (Object.keys(newDeficits).length > 0) {
+          setComBDeficits((prev) => ({ ...prev, ...newDeficits }))
+        }
+        if (Object.keys(newAssessments).length > 0) {
+          setComBAssessments((prev) => ({ ...prev, ...newAssessments }))
+        }
+      }
       logger.info('Prefilled COM-B Analysis from AI tool preview', { context: prefill.ai_context })
     } catch (error) {
       logger.warn('Failed to parse comb-analysis-prefill from sessionStorage', error)
