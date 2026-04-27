@@ -23,6 +23,9 @@ import { ExportButton } from '@/components/reports/ExportButton'
 import { BehaviorTimeline, type TimelineEvent } from '@/components/frameworks/BehaviorTimeline'
 import { BCWRecommendations } from '@/components/frameworks/BCWRecommendations'
 import { BehaviourChangeWheel } from '@/components/frameworks/BehaviourChangeWheel'
+// Behavior + COM-B canonical components (read-only) — see docs/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md
+import { APEASEEvaluation, EMPTY_APEASE, type APEASEAssessment } from '@/components/frameworks/APEASEEvaluation'
+import { ModeOfDeliveryForm, EMPTY_MODE_OF_DELIVERY, type ModeOfDelivery } from '@/components/frameworks/ModeOfDeliveryForm'
 import { LocationBadge } from '@/components/behavior/LocationBadge'
 import { CommentThread } from '@/components/comments/CommentThread'
 import { ShareButton } from './ShareButton'
@@ -771,6 +774,32 @@ export function GenericFrameworkView({
                   />
                 </CardContent>
               </Card>
+            )
+          }
+
+          // Read-only APEASE evaluation (P1-1)
+          if (frameworkType === 'comb-analysis' && section.key === 'apease_evaluation') {
+            const assessment: APEASEAssessment = (data as any).apease_assessment || EMPTY_APEASE
+            const interventions: string[] = (data as any).selected_interventions || []
+            return (
+              <div key={section.key}>
+                <APEASEEvaluation
+                  interventionName={interventions.length > 0 ? interventions.join(', ') : 'Selected intervention(s)'}
+                  assessment={assessment}
+                  onChange={() => {}}
+                  readOnly
+                />
+              </div>
+            )
+          }
+
+          // Read-only Mode of Delivery (P2-4)
+          if (frameworkType === 'comb-analysis' && section.key === 'mode_of_delivery') {
+            const mode: ModeOfDelivery = (data as any).mode_of_delivery || EMPTY_MODE_OF_DELIVERY
+            return (
+              <div key={section.key}>
+                <ModeOfDeliveryForm mode={mode} onChange={() => {}} readOnly />
+              </div>
             )
           }
 

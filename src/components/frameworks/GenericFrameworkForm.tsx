@@ -31,6 +31,12 @@ import { PlaceLinker, PlaceBadge, type LinkedPlace } from '@/components/places/P
 import { EventLinker, EventBadge, type LinkedEvent } from '@/components/events/EventLinker'
 import { StarburstingEntityLinker } from '@/components/content-intelligence/StarburstingEntityLinker'
 import type { LocationContext, BehaviorSettings, TemporalContext, EligibilityRequirements, BehaviorComplexity, ConsequenceItem, SymbolItem } from '@/types/behavior'
+// Behavior + COM-B canonical components — see docs/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md
+import { APEASEEvaluation, EMPTY_APEASE, type APEASEAssessment } from '@/components/frameworks/APEASEEvaluation'
+import { ModeOfDeliveryForm, EMPTY_MODE_OF_DELIVERY, type ModeOfDelivery } from '@/components/frameworks/ModeOfDeliveryForm'
+import { BCWStepper, type BCWStepKey } from '@/components/frameworks/BCWStepper'
+import { COMBCentralTenet } from '@/components/frameworks/COMBCentralTenet'
+import { BehaviourTheoryGlossary } from '@/components/frameworks/BehaviourTheoryGlossary'
 import type { FrameworkItem, QuestionAnswerItem, TextFrameworkItem } from '@/types/frameworks'
 import { isQuestionAnswerItem, normalizeItem } from '@/types/frameworks'
 import { frameworkConfigs } from '@/config/framework-configs'
@@ -656,6 +662,15 @@ export function GenericFrameworkForm({
   // For COM-B Analysis: linked behavior
   const [linkedBehaviorId, setLinkedBehaviorId] = useState<string | undefined>((initialData as any)?.linked_behavior_id)
   const [linkedBehaviorTitle, setLinkedBehaviorTitle] = useState<string | undefined>((initialData as any)?.linked_behavior_title)
+
+  // For COM-B Analysis: APEASE evaluation + Mode of Delivery (BCW Steps 7-8)
+  // See docs/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md (P1-1, P2-4)
+  const [apeaseAssessment, setApeaseAssessment] = useState<APEASEAssessment>(
+    (initialData as any)?.apease_assessment || EMPTY_APEASE
+  )
+  const [modeOfDelivery, setModeOfDelivery] = useState<ModeOfDelivery>(
+    (initialData as any)?.mode_of_delivery || EMPTY_MODE_OF_DELIVERY
+  )
 
   // For Behavior Analysis: enhanced context fields
   const [locationContext, setLocationContext] = useState<LocationContext>((initialData as any)?.location_context || {
@@ -1629,13 +1644,15 @@ export function GenericFrameworkForm({
           selected_interventions: selectedInterventions,
           comb_assessments: comBAssessments,
         }),
-        // Add linked behavior for COM-B Analysis
+        // Add linked behavior for COM-B Analysis (P1-4) + APEASE + Mode of Delivery (P1-1, P2-4)
         ...(frameworkType === 'comb-analysis' && {
           linked_behavior_id: linkedBehaviorId,
           linked_behavior_title: linkedBehaviorTitle,
           com_b_deficits: comBDeficits,
           selected_interventions: selectedInterventions,
           comb_assessments: comBAssessments,
+          apease_assessment: apeaseAssessment,
+          mode_of_delivery: modeOfDelivery,
         }),
         // Add geographic context for PMESII-PT
         ...(frameworkType === 'pmesii-pt' && {
@@ -1956,6 +1973,24 @@ export function GenericFrameworkForm({
         />
       )}
 
+      {/* COM-B Analysis intro: BCW stepper + central tenet + glossary
+          P2-3, P3-1, P3-2 — see docs/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md */}
+      {frameworkType === 'comb-analysis' && (
+        <div className="space-y-2">
+          <BCWStepper
+            currentStep={'identify-changes' as BCWStepKey}
+            completedSteps={linkedBehaviorId ? ['define-problem', 'select-target', 'specify-target'] : []}
+          />
+          <COMBCentralTenet />
+          <BehaviourTheoryGlossary />
+        </div>
+      )}
+
+      {/* Behavior Analysis intro: Behaviour & Theory glossary (P3-1) */}
+      {frameworkType === 'behavior' && (
+        <BehaviourTheoryGlossary />
+      )}
+
       {/* Framework Sections */}
       <div className={`grid grid-cols-1 ${sections.length === 4 ? 'md:grid-cols-2' : 'md:grid-cols-1'} gap-6`}>
         {sections
@@ -2026,6 +2061,35 @@ export function GenericFrameworkForm({
                   onChange={(updated) => {
                     setSectionData(prev => ({ ...prev, [section.key]: updated as any[] }))
                   }}
+                />
+              </div>
+            )
+          }
+
+          // Special handling for COM-B Analysis APEASE evaluation (BCW Step 7 / Table 1)
+          // P1-1 — see docs/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md
+          if (frameworkType === 'comb-analysis' && section.key === 'apease_evaluation') {
+            return (
+              <div key={section.key}>
+                <APEASEEvaluation
+                  interventionName={selectedInterventions.length > 0
+                    ? selectedInterventions.join(', ')
+                    : 'Selected intervention(s)'}
+                  assessment={apeaseAssessment}
+                  onChange={setApeaseAssessment}
+                />
+              </div>
+            )
+          }
+
+          // Special handling for COM-B Analysis Mode of Delivery (BCW Step 8 / Box 2.9)
+          // P2-4 — see docs/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md
+          if (frameworkType === 'comb-analysis' && section.key === 'mode_of_delivery') {
+            return (
+              <div key={section.key}>
+                <ModeOfDeliveryForm
+                  mode={modeOfDelivery}
+                  onChange={setModeOfDelivery}
                 />
               </div>
             )
