@@ -887,6 +887,26 @@ export function GenericFrameworkForm({
         title,
         description,
         sectionData,
+        // Include framework-specific state so unsaved COM-B / behavior work
+        // survives browser refresh. See docs/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md
+        // (post-ship review-fix iteration).
+        ...(frameworkType === 'comb-analysis' && {
+          linked_behavior_id: linkedBehaviorId,
+          linked_behavior_title: linkedBehaviorTitle,
+          com_b_deficits: comBDeficits,
+          comb_assessments: comBAssessments,
+          selected_interventions: selectedInterventions,
+          apease_assessment: apeaseAssessment,
+          mode_of_delivery: modeOfDelivery,
+          selected_bcts: selectedBcts,
+        }),
+        ...(frameworkType === 'behavior' && {
+          location_context: locationContext,
+          behavior_settings: behaviorSettings,
+          temporal_context: temporalContext,
+          eligibility,
+          complexity,
+        }),
         timestamp: new Date().toISOString()
       }
       try {
@@ -928,6 +948,24 @@ export function GenericFrameworkForm({
                 setTitle(draft.title || '')
                 setDescription(draft.description || '')
                 setSectionData(draft.sectionData || {})
+                // Restore framework-specific state if present in the draft
+                if (frameworkType === 'comb-analysis') {
+                  if (draft.linked_behavior_id) setLinkedBehaviorId(draft.linked_behavior_id)
+                  if (draft.linked_behavior_title) setLinkedBehaviorTitle(draft.linked_behavior_title)
+                  if (draft.com_b_deficits) setComBDeficits((prev) => ({ ...prev, ...draft.com_b_deficits }))
+                  if (draft.comb_assessments) setComBAssessments(draft.comb_assessments)
+                  if (Array.isArray(draft.selected_interventions)) setSelectedInterventions(draft.selected_interventions)
+                  if (draft.apease_assessment) setApeaseAssessment(draft.apease_assessment)
+                  if (draft.mode_of_delivery) setModeOfDelivery(draft.mode_of_delivery)
+                  if (Array.isArray(draft.selected_bcts)) setSelectedBcts(draft.selected_bcts)
+                }
+                if (frameworkType === 'behavior') {
+                  if (draft.location_context) setLocationContext(draft.location_context)
+                  if (draft.behavior_settings) setBehaviorSettings(draft.behavior_settings)
+                  if (draft.temporal_context) setTemporalContext(draft.temporal_context)
+                  if (draft.eligibility) setEligibility(draft.eligibility)
+                  if (draft.complexity) setComplexity(draft.complexity)
+                }
               } else {
                 // User declined, clean up the draft
                 localStorage.removeItem(draftKey)
