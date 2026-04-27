@@ -4,6 +4,11 @@
  * Single-screen AI-powered COM-B behavior analysis.
  * Two contexts: Intelligence (adversary) and Product (user/stakeholder).
  * Progressive disclosure: describe behavior → get COM-B diagnosis → view interventions.
+ *
+ * P0-1 layering enforcement (see docs/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md).
+ * Canon: irregularpedia.org/general/behavior-analysis/ — every COM-B Analysis must
+ * link to a Behavior Analysis. This page is a preview-only tool; saved analyses
+ * must go through the Behavior Analysis -> COM-B Analysis flow.
  */
 
 import { useState, useRef, useEffect } from 'react'
@@ -274,6 +279,21 @@ export default function BehaviorAnalysisToolPage() {
         </p>
       </div>
 
+      {/* Preview Tool Banner */}
+      <Card className="mb-6 border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/10">
+        <CardContent className="p-4">
+          <h3 className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-2">
+            Quick-Look Preview Tool
+          </h3>
+          <p className="text-sm text-blue-800 dark:text-blue-200 mb-3">
+            This tool produces a fast COM-B diagnosis for exploration. It does NOT save a reusable analysis. For a full audience-agnostic Behavior Analysis (which can then be linked to many COM-B analyses), use the <a href="/dashboard/analysis-frameworks/behavior" className="text-blue-600 dark:text-blue-400 underline font-medium">Behavior Analysis framework</a>. To save the diagnosis below as a reusable COM-B Analysis, click Save as COM-B Analysis.
+          </p>
+          <p className="text-sm text-blue-800 dark:text-blue-200">
+            Learn more about the <a href="/dashboard/analysis-frameworks/comb-analysis" className="text-blue-600 dark:text-blue-400 underline font-medium">COM-B Analysis framework</a>.
+          </p>
+        </CardContent>
+      </Card>
+
       {/* === MAIN INPUT === */}
       <Card className="mb-6">
         <CardContent className="pt-6 space-y-4">
@@ -485,6 +505,39 @@ export default function BehaviorAnalysisToolPage() {
               </h2>
               <InterventionCards interventions={result.interventions} context={context} />
             </div>
+          )}
+
+          {/* Save Analysis Card */}
+          {result && (
+            <Card className="border">
+              <CardContent className="p-4">
+                <h3 className="text-sm font-medium mb-2">Save This Analysis</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  To preserve this diagnosis as a reusable COM-B Analysis, link it to a Behavior Analysis. Each COM-B Analysis must be anchored to a specific behavior + location.
+                </p>
+                <Button
+                  onClick={() => {
+                    const prefillData = {
+                      behavior_description: behavior.description,
+                      actor: behavior.actor,
+                      setting: behavior.setting,
+                      frequency: behavior.frequency,
+                      consequences: behavior.consequences,
+                      ai_diagnosis: result.diagnosis,
+                      ai_motivation_insights: result.motivation_insights,
+                      ai_interventions: result.interventions,
+                      ai_overall_assessment: result.overall_assessment,
+                      ai_context: context
+                    }
+                    sessionStorage.setItem('comb-analysis-prefill', JSON.stringify(prefillData))
+                    navigate('/dashboard/analysis-frameworks/comb-analysis/create?prefill=ai-tool')
+                  }}
+                  className="w-full bg-purple-600 hover:bg-purple-700"
+                >
+                  Save as COM-B Analysis
+                </Button>
+              </CardContent>
+            </Card>
           )}
         </div>
       )}

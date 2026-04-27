@@ -402,12 +402,12 @@ export const frameworkConfigs: Record<string, FrameworkConfig> = {
   'behavior': {
     type: 'behavior',
     title: 'Behavior Analysis',
-    description: 'Objective documentation of behaviors in specific locations/contexts (based on U.S. Army FM TM 3-53.11)',
+    description: 'Audience-agnostic documentation of a specific behavior in a specific location/context. Based on U.S. Army TM 3-53.11 Chapter 2. NOTE: Keep this analysis objective — audience-specific COM, deficits go in a separate COM-B Analysis that links back to this one.',
     sections: [
       {
         key: 'basic_info',
         label: 'Basic Information',
-        description: 'Define the behavior and context being analyzed (WHAT behavior, WHERE, WHEN)',
+        description: 'Define the behavior and context being analyzed (WHAT behavior, WHERE, WHEN) — Keep this audience-agnostic: describe the behavior and its context, not who performs it.',
         color: 'border-blue-500',
         bgColor: 'bg-blue-50 dark:bg-blue-900/20',
         icon: '📋'
@@ -415,7 +415,7 @@ export const frameworkConfigs: Record<string, FrameworkConfig> = {
       {
         key: 'timeline',
         label: 'Behavior Timeline',
-        description: 'Document when, where, and how long the behavior occurs (interactive timeline with forks)',
+        description: 'Document when, where, and how long the behavior occurs (interactive timeline with forks) — Describe what the behavior looks like in sequence, not what any particular audience experiences.',
         color: 'border-green-500',
         bgColor: 'bg-green-50 dark:bg-green-900/20',
         icon: '📅'
@@ -423,7 +423,7 @@ export const frameworkConfigs: Record<string, FrameworkConfig> = {
       {
         key: 'environmental_factors',
         label: 'Environmental Factors',
-        description: 'Physical and environmental context. What infrastructure, resources, and accessibility factors exist?',
+        description: 'Physical and environmental context. What infrastructure, resources, and accessibility factors exist? — Describe the environment objectively — audience-specific access claims (X cant get to Y) belong in a downstream COM-B Analysis.',
         color: 'border-teal-500',
         bgColor: 'bg-teal-50 dark:bg-teal-900/20',
         icon: '🌍',
@@ -438,7 +438,7 @@ export const frameworkConfigs: Record<string, FrameworkConfig> = {
       {
         key: 'social_context',
         label: 'Social and Cultural Context',
-        description: 'Cultural norms, social influences, and community dynamics around this behavior.',
+        description: 'Cultural norms, social influences, and community dynamics around this behavior. — Cultural norms and group dynamics around the behavior — not any one audiences relationship to those norms.',
         color: 'border-cyan-500',
         bgColor: 'bg-cyan-50 dark:bg-cyan-900/20',
         icon: '👥',
@@ -453,7 +453,7 @@ export const frameworkConfigs: Record<string, FrameworkConfig> = {
       {
         key: 'consequences',
         label: 'Consequences and Outcomes',
-        description: 'What happens after someone performs this behavior? Rewards, costs, outcomes.',
+        description: 'What happens after someone performs this behavior? Rewards, costs, outcomes. — What happens after the behavior is performed — for actors, third parties, and the broader community.',
         color: 'border-pink-500',
         bgColor: 'bg-pink-50 dark:bg-pink-900/20',
         icon: '⚖️',
@@ -468,7 +468,7 @@ export const frameworkConfigs: Record<string, FrameworkConfig> = {
       {
         key: 'symbols',
         label: 'Symbols and Signals',
-        description: 'Visual, auditory, or social cues associated with this behavior.',
+        description: 'Visual, auditory, or social cues associated with this behavior. — Visual, auditory, or social cues associated with the behavior itself, regardless of who performs it.',
         color: 'border-yellow-500',
         bgColor: 'bg-yellow-50 dark:bg-yellow-900/20',
         icon: '🎭',
@@ -483,7 +483,7 @@ export const frameworkConfigs: Record<string, FrameworkConfig> = {
       {
         key: 'observed_patterns',
         label: 'Observed Patterns',
-        description: 'Variations and patterns in how different people perform this behavior.',
+        description: 'Variations and patterns in how different people perform this behavior. — Variations in how the behavior is performed — subgroups identified here become candidates for the next section.',
         color: 'border-purple-500',
         bgColor: 'bg-purple-50 dark:bg-purple-900/20',
         icon: '🔄',
@@ -498,7 +498,7 @@ export const frameworkConfigs: Record<string, FrameworkConfig> = {
       {
         key: 'potential_audiences',
         label: 'Potential Target Audiences',
-        description: 'Who performs this behavior? Who could but doesn\'t? Identify audience segments for COM-B Analysis.',
+        description: 'Who performs this behavior? Who could but doesn\'t? Identify audience segments for COM-B Analysis. — Candidates only — do NOT diagnose here. Each candidate becomes a separate COM-B Analysis linked to this behavior.',
         color: 'border-violet-500',
         bgColor: 'bg-violet-50 dark:bg-violet-900/20',
         icon: '🎯',
@@ -509,23 +509,23 @@ export const frameworkConfigs: Record<string, FrameworkConfig> = {
           'What psychographic differences exist between groups?',
           'Who influences whether others perform this?'
         ]
-      }
+     }
     ]
   },
 
   'comb-analysis': {
     type: 'comb-analysis',
     title: 'COM-B Analysis (Behaviour Change Wheel)',
-    description: 'Target-audience-specific assessment using the COM-B model and Behaviour Change Wheel methodology',
+    description: 'Target-audience-specific assessment using the COM-B model and Behaviour Change Wheel methodology. REQUIRES a linked Behavior Analysis — every COM-B Analysis is anchored to one specific behavior in one specific location/context.',
     sections: [
-      {
-        key: 'setup',
-        label: 'Analysis Setup',
-        description: 'Link to behavior and define target audience',
-        color: 'border-blue-500',
-        bgColor: 'bg-blue-50 dark:bg-blue-900/20',
-        icon: '🎯'
-      },
+        {
+          key: 'setup',
+          label: 'Analysis Setup',
+          description: 'REQUIRED: Link this analysis to a Behavior Analysis (the WHAT/WHERE) and define the target audience (the WHO). A COM-B Analysis without a linked Behavior cannot be saved.',
+          color: 'border-blue-500',
+          bgColor: 'bg-blue-50 dark:bg-blue-900/20',
+          icon: '🎯'
+        },
       {
         key: 'target_audience',
         label: 'Target Audience Definition',
@@ -594,6 +594,23 @@ export const frameworkConfigs: Record<string, FrameworkConfig> = {
         icon: '⚡',
         hasDeficitAssessment: true,
         comBComponent: 'automatic_motivation'
+      },
+      // APEASE EVALUATION
+      {
+        key: 'apease_evaluation',
+        label: 'APEASE Evaluation',
+        description: 'Score each candidate intervention on the 6 APEASE criteria (Affordability, Practicability, Effectiveness, Acceptability, Side-effects, Equity). A candidate that fails any single criterion should be reworked or discarded — see Michie/Atkins/West 2014 Table 1.',
+        color: 'border-emerald-500',
+        bgColor: 'bg-emerald-50 dark:bg-emerald-900/20',
+        icon: '⚖️'
+      },
+      {
+        key: 'mode_of_delivery',
+        label: 'Mode of Delivery',
+        description: 'Specify HOW the intervention will be delivered: in-person vs broadcast vs internet, individual vs group, frequency, setting, and who delivers. BCW Step 8 (Michie/Atkins/West 2014, Box 2.9).',
+        color: 'border-violet-500',
+        bgColor: 'bg-violet-50 dark:bg-violet-900/20',
+        icon: '📡'
       },
       // ADDITIONAL CONTEXT
       {

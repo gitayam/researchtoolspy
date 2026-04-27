@@ -1597,6 +1597,16 @@ export function GenericFrameworkForm({
         alert('Please add a description or at least one item before saving')
         return
       }
+
+      // P1-4: COM-B Analysis must have a linked Behavior Analysis
+      // See docs/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md. Canon: irregularpedia.org/general/behavior-analysis/
+      if (frameworkType === 'comb-analysis') {
+        if (!linkedBehaviorId || !linkedBehaviorTitle) {
+          setSaveError('A COM-B Analysis must be linked to a Behavior Analysis. Please select or create one.')
+          alert('A COM-B Analysis must be linked to a Behavior Analysis. Please select or create one.')
+          return
+        }
+      }
     }
 
     setSaving(true)

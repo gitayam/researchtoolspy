@@ -25,6 +25,13 @@ export interface ComBComponentAssessment {
   deficit_level: 'adequate' | 'deficit' | 'major_barrier'
   evidence_notes: string // Why did you assess this way?
   supporting_evidence?: string[] // Links to evidence items
+  /** Optional evidence source typing per BCW Guide Box 1.9 (COM-B-D form).
+   *  P2-5 — see docs/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md.
+   */
+  evidence_sources?: Array<{
+    type: 'rct' | 'observational_study' | 'interview' | 'focus_group' | 'literature_review' | 'theoretical_analysis' | 'expert_judgement' | 'other'
+    description: string
+  }>
   facilitators?: string[] // Strengths / factors that support this component
   barriers?: string[] // Weaknesses / factors that hinder this component
 }
@@ -37,9 +44,9 @@ export interface COMBAnalysis {
   updated_at?: string
   source_url?: string
 
-  // Link to Behavior Analysis
-  linked_behavior_id?: string
-  linked_behavior_title?: string
+  // Link to Behavior Analysis (P1-4 — see docs/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md. Canon: irregularpedia.org/general/behavior-analysis/)
+  linked_behavior_id: string
+  linked_behavior_title: string
 
   // Target Audience Definition
   target_audience: TargetAudience

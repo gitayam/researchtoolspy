@@ -786,6 +786,33 @@ export function GenericFrameworkView({
         })}
       </div>
 
+      {/* P2-2 — Next Step CTA: COM-B Analysis handoff from Behavior Analysis */}
+      {/* See docs/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md. Canon: irregularpedia.org/general/behavior-analysis/ */}
+      {frameworkType === 'behavior' && (
+        <Card className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <span className="text-xl">→</span>
+              Next step: Start a COM-B Analysis
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+              A Behavior Analysis describes WHAT happens, WHERE, and HOW. To analyze WHY a specific audience does or does not perform this behavior — and design an intervention — create a linked COM-B Analysis. Each candidate audience from the Potential Target Audiences section can have its own COM-B Analysis.
+            </p>
+            <Button
+              onClick={() => {
+                navigate(`/dashboard/analysis-frameworks/comb-analysis/create?behavior_id=${data.id}&behavior_title=${encodeURIComponent(data.title)}`)
+              }}
+              className="w-full bg-blue-600 hover:bg-blue-700"
+            >
+              <span className="mr-2">→</span>
+              Create COM-B Analysis for this Behavior
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Behaviour Change Wheel — read-only view */}
       {(frameworkType === 'comb-analysis' || frameworkType === 'behavior') && data.com_b_deficits && (
         <div className="rounded-xl border border-[#2d3348] bg-[#0f1117] overflow-hidden">

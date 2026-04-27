@@ -317,9 +317,9 @@ export function BehaviorBasicInfoForm({
             </div>
           )}
 
-          <div>
-            <Label>Geographic Scope *</Label>
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-2 mt-2">
+           <div>
+             <Label>Geographic Scope * <Badge variant="destructive" className="ml-1">Required</Badge></Label>
+             <div className="grid grid-cols-1 md:grid-cols-5 gap-2 mt-2">
               {geographicScopes.map(scope => (
                 <button
                   key={scope.value}
@@ -338,9 +338,9 @@ export function BehaviorBasicInfoForm({
             </div>
           </div>
 
-          <div>
-            <Label>Specific Locations * (City, State, Country, Region)</Label>
-            <div className="flex gap-2 mt-2">
+           <div>
+             <Label>Specific Locations * (City, State, Country, Region) <Badge variant="destructive" className="ml-1">Required</Badge></Label>
+             <div className="flex gap-2 mt-2">
               <Input
                 value={newLocation}
                 onChange={(e) => setNewLocation(e.target.value)}
@@ -366,19 +366,24 @@ export function BehaviorBasicInfoForm({
             </div>
           </div>
 
-          <div>
-            <Label htmlFor="location_notes">Location-Specific Notes (Optional)</Label>
-            <Textarea
-              id="location_notes"
-              value={locationContext.location_notes || ''}
-              onChange={(e) => onLocationContextChange({ ...locationContext, location_notes: e.target.value })}
-              placeholder="Any important location-specific context? (regulations, cultural factors, infrastructure)"
-              rows={2}
-              className="mt-1"
-            />
-          </div>
-        </CardContent>
-      </Card>
+           <div>
+             <Label htmlFor="location_notes">Location-Specific Notes (Optional)</Label>
+             <Textarea
+               id="location_notes"
+               value={locationContext.location_notes || ''}
+               onChange={(e) => onLocationContextChange({ ...locationContext, location_notes: e.target.value })}
+               placeholder="Any important location-specific context? (regulations, cultural factors, infrastructure)"
+               rows={2}
+               className="mt-1"
+             />
+           </div>
+           <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-300 dark:border-blue-700 rounded-md">
+             <p className="text-sm text-blue-800 dark:text-blue-200">
+               <strong>Important:</strong> Behaviors vary enormously by location — voting in California is not the same behavior as voting in Lagos. Lock in scope and at least one specific location before continuing.
+             </p>
+           </div>
+         </CardContent>
+       </Card>
 
       {/* Behavior Settings */}
       <Card className={showSettingsWarning ? 'border-orange-400 bg-orange-50 dark:bg-orange-900/10' : ''}>
