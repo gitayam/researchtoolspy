@@ -793,6 +793,45 @@ export function GenericFrameworkForm({
     }
   }, [frameworkId, mode])
 
+  // W1 — receive AI preview tool prefill from sessionStorage when ?prefill=ai-tool
+  // Set by BehaviorAnalysisToolPage Save-as-COM-B-Analysis CTA.
+  // See docs/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md (P0-1).
+  useEffect(() => {
+    if (mode !== 'create' || frameworkType !== 'comb-analysis') return
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('prefill') !== 'ai-tool') return
+
+    const raw = sessionStorage.getItem('comb-analysis-prefill')
+    if (!raw) return
+
+    try {
+      const prefill = JSON.parse(raw)
+      // Pre-populate title and description from the AI preview
+      if (prefill.behavior_description && !title) {
+        setTitle(`COM-B: ${String(prefill.behavior_description).slice(0, 60)}`)
+        setDescription(String(prefill.behavior_description))
+      }
+      // Pre-populate selected interventions from AI suggestions
+      if (Array.isArray(prefill.ai_interventions)) {
+        const fns = prefill.ai_interventions
+          .map((i: any) => i?.target_component)
+          .filter((v: any): v is InterventionFunction =>
+            typeof v === 'string' &&
+            ['education', 'persuasion', 'incentivisation', 'coercion', 'training', 'restriction', 'environmental_restructuring', 'modelling', 'enablement'].includes(v)
+          )
+        if (fns.length > 0) setSelectedInterventions(fns)
+      }
+      logger.info('Prefilled COM-B Analysis from AI tool preview', { context: prefill.ai_context })
+    } catch (error) {
+      logger.warn('Failed to parse comb-analysis-prefill from sessionStorage', error)
+    } finally {
+      // Always clear after read so back-navigation does not re-prefill
+      sessionStorage.removeItem('comb-analysis-prefill')
+    }
+    // Intentionally not depending on title — only run on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [frameworkType, mode])
+
   // Auto-save draft to localStorage every 30 seconds
   // Only auto-save in create mode to avoid overwriting existing analyses
   useEffect(() => {

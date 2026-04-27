@@ -73,7 +73,7 @@ export function BCWStepper(props: BCWStepperProps){
               <div className="text-xs font-medium text-gray-500 dark:text-gray-400">
                 {getStageLabel(stage)}
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 {steps.map((step, index) => {
                   const state = getStepState(step)
                   const meta = STEP_META[step]
@@ -85,6 +85,8 @@ export function BCWStepper(props: BCWStepperProps){
                         type="button"
                         onClick={() => onStepClick?.(step)}
                         disabled={!isClickable}
+                        aria-current={state === 'current' ? 'step' : undefined}
+                        aria-label={`Step ${meta.number}: ${meta.label}${state === 'completed' ? ' (completed)' : state === 'current' ? ' (current)' : ''}`}
                         className={`flex items-center gap-2 px-3 py-2 rounded-full text-sm transition-colors ${
                           isClickable ? 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800' : 'cursor-default'
                         } ${

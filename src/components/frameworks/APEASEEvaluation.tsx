@@ -81,18 +81,20 @@ export function APEASEEvaluation({ interventionName, assessment, onChange, readO
           <Card key={key} className="p-4">
             <div className="flex items-start gap-3">
               <div className="mt-1"><Icon className="h-5 w-5" /></div>
-              <div className="flex-1">
-                <div className="flex items-baseline gap-2">
+              <div className="flex-1 min-w-0">
+                <div className="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-2">
                   <h3 className="font-semibold">{label}</h3>
                   <span className="text-sm text-muted-foreground">{question}</span>
                 </div>
-                <div className="mt-3 flex gap-2">
+                <div className="mt-3 flex flex-wrap gap-2">
                   <Button
                     type="button"
                     variant={assessment[key].rating === 'high' ? 'default' : 'outline'}
                     size="sm"
                     onClick={() => setRating(key, 'high')}
                     disabled={readOnly}
+                    aria-pressed={assessment[key].rating === 'high'}
+                    aria-label={`${label}: High`}
                     className="bg-green-500 hover:bg-green-600"
                   >
                     High
@@ -103,6 +105,8 @@ export function APEASEEvaluation({ interventionName, assessment, onChange, readO
                     size="sm"
                     onClick={() => setRating(key, 'medium')}
                     disabled={readOnly}
+                    aria-pressed={assessment[key].rating === 'medium'}
+                    aria-label={`${label}: Medium`}
                     className="bg-amber-500 hover:bg-amber-600"
                   >
                     Medium
@@ -113,6 +117,8 @@ export function APEASEEvaluation({ interventionName, assessment, onChange, readO
                     size="sm"
                     onClick={() => setRating(key, 'low')}
                     disabled={readOnly}
+                    aria-pressed={assessment[key].rating === 'low'}
+                    aria-label={`${label}: Low`}
                     className="bg-red-500 hover:bg-red-600"
                   >
                     Low

@@ -1,6 +1,35 @@
 # Behavior Framework Improvement Plan
 
-> **Status:** Research output. Severity-prioritized findings on the gap between the live tool and the canonical sources. Not yet a build plan — every P0/P1 item should be brainstormed before implementation.
+> **Status:** ✅ Shipped. All 12 prioritized findings (P0-1, P1-1 through P1-4, P2-1 through P2-5, P3-1, P3-2) implemented across commits `c0f8250bb`, `1cb573a18`, `a434edcd7`, and follow-up review-fix commits. See the **Implementation Status** table below.
+>
+> **Original status:** Research output. Severity-prioritized findings on the gap between the live tool and the canonical sources.
+
+## Implementation Status
+
+| ID | Severity | Item | Status | Commit |
+|---|---|---|---|---|
+| P0-1 | P0 | AI tool layering banner + Save-as-COM-B CTA + sessionStorage prefill receiver | ✅ Shipped | `c0f8250bb`, prefill receiver in review-fix |
+| P1-1 | P1 | APEASE Evaluation component + form integration | ✅ Shipped + wired | `c0f8250bb`, `a434edcd7` |
+| P1-2 | P1 | BCT Taxonomy v1 (93 BCTs, 16 groupings, function map) | ✅ Shipped | `c0f8250bb` |
+| P1-3 | P1 | Audience-agnostic helper text on all 8 Behavior sections | ✅ Shipped | `c0f8250bb` |
+| P1-4 | P1 | `linked_behavior_id` required (client + server validation) | ✅ Shipped | `c0f8250bb`, server check in review-fix |
+| P2-1 | P2 | Location required visual badges + helper text | ✅ Shipped | `c0f8250bb` |
+| P2-2 | P2 | "Create COM-B Analysis for this Behavior" handoff CTA | ✅ Shipped | `c0f8250bb` |
+| P2-3 | P2 | BCW 8-Step Stepper component | ✅ Shipped + wired | `c0f8250bb`, `a434edcd7` |
+| P2-4 | P2 | Mode of Delivery component + form integration | ✅ Shipped + wired | `c0f8250bb`, `a434edcd7` |
+| P2-5 | P2 | `evidence_sources` typed enum on COM-B assessments | ✅ Shipped | `c0f8250bb` |
+| P3-1 | P3 | Behaviour & Theory glossary + form integration | ✅ Shipped + wired | `c0f8250bb`, `a434edcd7` |
+| P3-2 | P3 | COM-B central tenet quote + form integration | ✅ Shipped + wired | `c0f8250bb`, `a434edcd7` |
+
+## Post-Ship Review Fixes (this iteration)
+
+After integration, /team-review surfaced these gaps that have been addressed:
+
+- **W1**: AI tool's "Save as COM-B Analysis" button was orphan (sessionStorage write with no receiver) → added `useEffect` reader in `GenericFrameworkForm.tsx` that pre-populates title, description, and selected interventions when navigating with `?prefill=ai-tool`.
+- **W2**: P1-4 was client-only validation, bypassable → added server-side check in `functions/api/frameworks.ts` for both POST and PUT paths that enforces `data.linked_behavior_id` on `comb-analysis` framework type.
+- **S1**: APEASE rating buttons missing `aria-pressed` → added on all 18 buttons (3 ratings × 6 criteria).
+- **S2**: BCWStepper current step missing `aria-current="step"` → added.
+- **S3**: APEASE + BCWStepper not mobile-responsive → APEASE label/question now stacks at <640px, ratings wrap; Stepper steps wrap on small screens.
 
 ## Sources
 

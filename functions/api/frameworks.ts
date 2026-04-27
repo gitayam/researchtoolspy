@@ -144,6 +144,20 @@ export async function onRequest(context: any) {
         })
       }
 
+      // W2: COM-B Analysis must be linked to a Behavior Analysis
+      // See docs/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md (P1-4). Canon: irregularpedia.org/general/behavior-analysis/
+      if (body.framework_type === 'comb-analysis') {
+        const linkedId = body.data?.linked_behavior_id
+        if (!linkedId || typeof linkedId !== 'string' || linkedId.trim().length === 0) {
+          return new Response(JSON.stringify({
+            error: 'COM-B Analysis must be linked to a Behavior Analysis. Provide data.linked_behavior_id.'
+          }), {
+            status: 400,
+            headers: JSON_HEADERS,
+          })
+        }
+      }
+
       const effectiveUserId = userId
 
       // Validate and sanitize data field
@@ -208,6 +222,24 @@ export async function onRequest(context: any) {
       }
 
       const body = await request.json()
+
+      // W2: For COM-B Analysis updates, look up the existing record's framework_type
+      // and enforce that linked_behavior_id remains set on update.
+      // See docs/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md (P1-4).
+      const existing = await env.DB.prepare(
+        `SELECT framework_type FROM framework_sessions WHERE id = ? AND workspace_id = ? AND user_id = ?`
+      ).bind(frameworkId, workspaceId, userId).first()
+      if (existing?.framework_type === 'comb-analysis') {
+        const linkedId = body.data?.linked_behavior_id
+        if (!linkedId || typeof linkedId !== 'string' || linkedId.trim().length === 0) {
+          return new Response(JSON.stringify({
+            error: 'COM-B Analysis must keep linked_behavior_id set. Cannot save without a linked Behavior Analysis.'
+          }), {
+            status: 400,
+            headers: JSON_HEADERS,
+          })
+        }
+      }
 
       // WORKSPACE ISOLATION + OWNERSHIP: Only allow updating own frameworks in current workspace
       const result = await env.DB.prepare(
