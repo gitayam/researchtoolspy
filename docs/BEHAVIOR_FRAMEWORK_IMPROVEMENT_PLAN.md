@@ -30,6 +30,22 @@ After integration, /team-review surfaced these gaps that have been addressed:
 - **S1**: APEASE rating buttons missing `aria-pressed` → added on all 18 buttons (3 ratings × 6 criteria).
 - **S2**: BCWStepper current step missing `aria-current="step"` → added.
 - **S3**: APEASE + BCWStepper not mobile-responsive → APEASE label/question now stacks at <640px, ratings wrap; Stepper steps wrap on small screens.
+- **S4**: No tests for new components → added `tests/e2e/smoke/comb-analysis-form.spec.ts` covering BCWStepper, COMBCentralTenet, BehaviourTheoryGlossary, APEASEEvaluation, ModeOfDeliveryForm, BCTSelector, plus aria-pressed and aria-current="step" verification.
+
+## Follow-on Improvement: BCT taxonomy now wired (P1-2 v2)
+
+The original P1-2 shipped the **data**: `src/utils/bct-taxonomy.ts` with all 93 BCTs and the
+function-to-BCT map. But no UI surfaced it. This is now closed:
+
+- New component `src/components/frameworks/BCTSelector.tsx` — picks BCTs grouped by the 16 BCTTv1
+  groupings, with a "Recommended for your selected intervention functions" panel surfacing the
+  most-frequently-used BCTs per BCW Guide Table 3.3 first.
+- New section `bct_selection` in `comb-analysis` framework config (between APEASE and Mode of Delivery).
+- Wired into both `GenericFrameworkForm` (interactive) and `GenericFrameworkView` (read-only).
+- State persists as `data.selected_bcts: string[]` (BCT ids like `'1.1'`, `'2.3'`).
+
+Now BCW Steps 5 → 6 → 7 → 8 are all walkable in one form: pick functions, pick policies (existing),
+score APEASE, pick BCTs, define Mode of Delivery.
 
 ## Sources
 

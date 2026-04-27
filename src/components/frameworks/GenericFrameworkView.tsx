@@ -26,6 +26,8 @@ import { BehaviourChangeWheel } from '@/components/frameworks/BehaviourChangeWhe
 // Behavior + COM-B canonical components (read-only) — see docs/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md
 import { APEASEEvaluation, EMPTY_APEASE, type APEASEAssessment } from '@/components/frameworks/APEASEEvaluation'
 import { ModeOfDeliveryForm, EMPTY_MODE_OF_DELIVERY, type ModeOfDelivery } from '@/components/frameworks/ModeOfDeliveryForm'
+import { BCTSelector } from '@/components/frameworks/BCTSelector'
+// InterventionFunction already imported below from @/types/behavior-change-wheel
 import { LocationBadge } from '@/components/behavior/LocationBadge'
 import { CommentThread } from '@/components/comments/CommentThread'
 import { ShareButton } from './ShareButton'
@@ -786,6 +788,23 @@ export function GenericFrameworkView({
                 <APEASEEvaluation
                   interventionName={interventions.length > 0 ? interventions.join(', ') : 'Selected intervention(s)'}
                   assessment={assessment}
+                  onChange={() => {}}
+                  readOnly
+                />
+              </div>
+            )
+          }
+
+          // Read-only BCT Selector (BCW Step 7 / Table 3.3)
+          // P1-2 follow-through — see docs/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md
+          if (frameworkType === 'comb-analysis' && section.key === 'bct_selection') {
+            const bcts: string[] = (data as any).selected_bcts || []
+            const fns: InterventionFunction[] = (data as any).selected_interventions || []
+            return (
+              <div key={section.key}>
+                <BCTSelector
+                  selectedInterventions={fns}
+                  selectedBcts={bcts}
                   onChange={() => {}}
                   readOnly
                 />

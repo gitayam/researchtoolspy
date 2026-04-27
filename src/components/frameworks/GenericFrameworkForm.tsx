@@ -37,6 +37,7 @@ import { ModeOfDeliveryForm, EMPTY_MODE_OF_DELIVERY, type ModeOfDelivery } from 
 import { BCWStepper, type BCWStepKey } from '@/components/frameworks/BCWStepper'
 import { COMBCentralTenet } from '@/components/frameworks/COMBCentralTenet'
 import { BehaviourTheoryGlossary } from '@/components/frameworks/BehaviourTheoryGlossary'
+import { BCTSelector } from '@/components/frameworks/BCTSelector'
 import type { FrameworkItem, QuestionAnswerItem, TextFrameworkItem } from '@/types/frameworks'
 import { isQuestionAnswerItem, normalizeItem } from '@/types/frameworks'
 import { frameworkConfigs } from '@/config/framework-configs'
@@ -670,6 +671,12 @@ export function GenericFrameworkForm({
   )
   const [modeOfDelivery, setModeOfDelivery] = useState<ModeOfDelivery>(
     (initialData as any)?.mode_of_delivery || EMPTY_MODE_OF_DELIVERY
+  )
+
+  // For COM-B Analysis: Behaviour Change Techniques (BCW Step 7)
+  // P1-2 follow-through — see docs/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md
+  const [selectedBcts, setSelectedBcts] = useState<string[]>(
+    (initialData as any)?.selected_bcts || []
   )
 
   // For Behavior Analysis: enhanced context fields
@@ -1692,6 +1699,7 @@ export function GenericFrameworkForm({
           comb_assessments: comBAssessments,
           apease_assessment: apeaseAssessment,
           mode_of_delivery: modeOfDelivery,
+          selected_bcts: selectedBcts,
         }),
         // Add geographic context for PMESII-PT
         ...(frameworkType === 'pmesii-pt' && {
@@ -2116,6 +2124,20 @@ export function GenericFrameworkForm({
                     : 'Selected intervention(s)'}
                   assessment={apeaseAssessment}
                   onChange={setApeaseAssessment}
+                />
+              </div>
+            )
+          }
+
+          // Special handling for COM-B Analysis BCT Selector (BCW Step 7 / Table 3.3)
+          // P1-2 follow-through — see docs/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md
+          if (frameworkType === 'comb-analysis' && section.key === 'bct_selection') {
+            return (
+              <div key={section.key}>
+                <BCTSelector
+                  selectedInterventions={selectedInterventions}
+                  selectedBcts={selectedBcts}
+                  onChange={setSelectedBcts}
                 />
               </div>
             )

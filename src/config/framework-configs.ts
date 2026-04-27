@@ -604,6 +604,15 @@ export const frameworkConfigs: Record<string, FrameworkConfig> = {
         bgColor: 'bg-emerald-50 dark:bg-emerald-900/20',
         icon: '⚖️'
       },
+      // BCT SELECTION (BCW Step 7)
+      {
+        key: 'bct_selection',
+        label: 'Behaviour Change Techniques',
+        description: 'Pick the active ingredients of the intervention from BCTTv1 — 93 BCTs in 16 groupings. When intervention functions are selected, recommended BCTs (per BCW Guide Table 3.3) surface first.',
+        color: 'border-amber-500',
+        bgColor: 'bg-amber-50 dark:bg-amber-900/20',
+        icon: '🧩'
+      },
       {
         key: 'mode_of_delivery',
         label: 'Mode of Delivery',
