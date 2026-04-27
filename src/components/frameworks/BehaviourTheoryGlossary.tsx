@@ -10,7 +10,7 @@
 
 import { BookOpen } from 'lucide-react'
 
-export function BehaviourTheoryGlossary(): JSX.Element {
+export function BehaviourTheoryGlossary(){
   return (
     <details className="my-3 rounded-md border border-gray-200 dark:border-gray-800">
       <summary className="cursor-pointer p-3 flex items-center gap-2 text-sm font-medium">

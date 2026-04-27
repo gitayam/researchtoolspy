@@ -36,7 +36,7 @@ const STEP_META: Record<BCWStepKey, { number: number; stage: 1 | 2 | 3; label: s
   'mode-of-delivery':       { number: 8, stage: 3, label: 'Mode of delivery',       description: 'When, how often, in what setting' }
 }
 
-export function BCWStepper(props: BCWStepperProps): JSX.Element {
+export function BCWStepper(props: BCWStepperProps){
   const { currentStep, completedSteps = [], onStepClick } = props
 
   const isCompleted = (step: BCWStepKey) => completedSteps.includes(step)

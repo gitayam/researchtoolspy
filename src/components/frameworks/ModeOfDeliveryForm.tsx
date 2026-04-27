@@ -12,10 +12,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
-import { Button } from '@/components/ui/button'
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { Info } from 'lucide-react'
 
 export type DeliveryMode = 'face_to_face' | 'broadcast' | 'internet' | 'app' | 'print' | 'phone' | 'mail' | 'other'
 export type DeliveryGroupSize = 'individual' | 'small_group' | 'large_group' | 'population'
@@ -38,11 +34,16 @@ export const EMPTY_MODE_OF_DELIVERY: ModeOfDelivery = {
   setting: '',
   duration_typical: '',
   deliverer: '',
-  notes: ''
+  notes: '',
 }
 
 export function isModeOfDeliveryComplete(m: ModeOfDelivery): boolean {
-  return m.delivery_modes.length > 0 && m.group_size !== undefined && m.frequency !== undefined && m.deliverer.trim().length > 0
+  return (
+    m.delivery_modes.length > 0 &&
+    m.group_size !== undefined &&
+    m.frequency !== undefined &&
+    m.deliverer.trim().length > 0
+  )
 }
 
 interface Props {
@@ -51,33 +52,41 @@ interface Props {
   readOnly?: boolean
 }
 
-export function ModeOfDeliveryForm({ mode, onChange, readOnly = false }: Props): JSX.Element {
-  const handleDeliveryModesChange = (value: string[]) => {
-    onChange({ ...mode, delivery_modes: value as DeliveryMode[] })
-  }
+const DELIVERY_MODE_OPTIONS: Array<{ value: DeliveryMode; label: string; icon: string }> = [
+  { value: 'face_to_face', label: 'Face to face', icon: '👤' },
+  { value: 'broadcast', label: 'Broadcast media', icon: '📺' },
+  { value: 'internet', label: 'Internet', icon: '🌐' },
+  { value: 'app', label: 'Mobile app', icon: '📱' },
+  { value: 'print', label: 'Print', icon: '📄' },
+  { value: 'phone', label: 'Phone', icon: '📞' },
+  { value: 'mail', label: 'Mail', icon: '📬' },
+  { value: 'other', label: 'Other', icon: '•' },
+]
 
-  const handleGroupSizeChange = (value: string) => {
-    onChange({ ...mode, group_size: value as DeliveryGroupSize })
-  }
+const GROUP_SIZE_OPTIONS: Array<{ value: DeliveryGroupSize; label: string; description: string }> = [
+  { value: 'individual', label: 'Individual', description: 'One person at a time' },
+  { value: 'small_group', label: 'Small group', description: 'Up to ~12 people' },
+  { value: 'large_group', label: 'Large group', description: 'Workshops, classes, audiences' },
+  { value: 'population', label: 'Population', description: 'Mass-reach delivery' },
+]
 
-  const handleFrequencyChange = (value: string) => {
-    onChange({ ...mode, frequency: value as DeliveryFrequency })
-  }
+const FREQUENCY_OPTIONS: Array<{ value: DeliveryFrequency; label: string; description: string }> = [
+  { value: 'one_off', label: 'One-off', description: 'A single delivery event' },
+  { value: 'sequence', label: 'Sequence', description: 'A defined series of sessions' },
+  { value: 'periodic', label: 'Periodic', description: 'Recurring on a schedule' },
+  { value: 'continuous', label: 'Continuous', description: 'Always-on / ambient' },
+]
 
-  const handleSettingChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    onChange({ ...mode, setting: e.target.value })
-  }
-
-  const handleDurationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    onChange({ ...mode, duration_typical: e.target.value })
-  }
-
-  const handleDelivererChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    onChange({ ...mode, deliverer: e.target.value })
-  }
-
-  const handleNotesChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    onChange({ ...mode, notes: e.target.value })
+export function ModeOfDeliveryForm({ mode, onChange, readOnly = false }: Props) {
+  const toggleDeliveryMode = (value: DeliveryMode) => {
+    if (readOnly) return
+    const has = mode.delivery_modes.includes(value)
+    onChange({
+      ...mode,
+      delivery_modes: has
+        ? mode.delivery_modes.filter((v) => v !== value)
+        : [...mode.delivery_modes, value],
+    })
   }
 
   return (
@@ -88,122 +97,87 @@ export function ModeOfDeliveryForm({ mode, onChange, readOnly = false }: Props):
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Delivery modes */}
+        {/* Delivery modes (multi-select) */}
         <div className="space-y-2">
-          <Label htmlFor="delivery-modes">Delivery modes</Label>
-          <ToggleGroup
-            type="multiple"
-            variant="outline"
-            value={mode.delivery_modes}
-            onValueChange={handleDeliveryModesChange}
-            disabled={readOnly}
-            className="grid grid-cols-2 gap-2 w-full"
-          >
-            <ToggleGroupItem value="face_to_face" aria-label="Face to face">
-              <span className="flex items-center gap-1">
-                <span>👤</span> Face to face
-              </span>
-            </ToggleGroupItem>
-            <ToggleGroupItem value="broadcast" aria-label="Broadcast media">
-              <span className="flex items-center gap-1">
-                <span>📺</span> Broadcast media
-              </span>
-            </ToggleGroupItem>
-            <ToggleGroupItem value="internet" aria-label="Internet">
-              <span className="flex items-center gap-1">
-                <span>🌐</span> Internet
-              </span>
-            </ToggleGroupItem>
-            <ToggleGroupItem value="app" aria-label="Mobile app">
-              <span className="flex items-center gap-1">
-                <span>📱</span> Mobile app
-              </span>
-            </ToggleGroupItem>
-            <ToggleGroupItem value="print" aria-label="Print">
-              <span className="flex items-center gap-1">
-                <span>📄</span> Print
-              </span>
-            </ToggleGroupItem>
-            <ToggleGroupItem value="phone" aria-label="Phone">
-              <span className="flex items-center gap-1">
-                <span>📞</span> Phone
-              </span>
-            </ToggleGroupItem>
-            <ToggleGroupItem value="mail" aria-label="Mail">
-              <span className="flex items-center gap-1">
-                <span>📬</span> Mail
-              </span>
-            </ToggleGroupItem>
-            <ToggleGroupItem value="other" aria-label="Other">
-              <span className="flex items-center gap-1">
-                <span>•</span> Other
-              </span>
-            </ToggleGroupItem>
-          </ToggleGroup>
+          <Label>Delivery modes — select all that apply</Label>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            {DELIVERY_MODE_OPTIONS.map((opt) => {
+              const active = mode.delivery_modes.includes(opt.value)
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  disabled={readOnly}
+                  onClick={() => toggleDeliveryMode(opt.value)}
+                  className={`p-3 rounded-lg border-2 text-left transition-colors ${
+                    active
+                      ? 'border-violet-500 bg-violet-50 dark:bg-violet-900/20'
+                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
+                  } ${readOnly ? 'opacity-60 cursor-not-allowed' : ''}`}
+                  aria-pressed={active}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">{opt.icon}</span>
+                    <span className="text-sm font-medium">{opt.label}</span>
+                  </div>
+                </button>
+              )
+            })}
+          </div>
         </div>
 
-        {/* Group size */}
+        {/* Group size (single-select) */}
         <div className="space-y-2">
           <Label>Group size</Label>
-          <RadioGroup
-            value={mode.group_size}
-            onValueChange={handleGroupSizeChange}
-            disabled={readOnly}
-            className="flex gap-4"
-          >
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="individual" id="individual" />
-              <Label htmlFor="individual">Individual</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="small_group" id="small_group" />
-              <Label htmlFor="small_group">Small group</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="large_group" id="large_group" />
-              <Label htmlFor="large_group">Large group</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="population" id="population" />
-              <Label htmlFor="population">Population</Label>
-            </div>
-          </RadioGroup>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+            {GROUP_SIZE_OPTIONS.map((opt) => {
+              const active = mode.group_size === opt.value
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  disabled={readOnly}
+                  onClick={() => onChange({ ...mode, group_size: opt.value })}
+                  className={`p-3 rounded-lg border-2 text-left transition-colors ${
+                    active
+                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
+                  } ${readOnly ? 'opacity-60 cursor-not-allowed' : ''}`}
+                  aria-pressed={active}
+                >
+                  <div className="font-medium text-sm">{opt.label}</div>
+                  <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">{opt.description}</div>
+                </button>
+              )
+            })}
+          </div>
         </div>
 
-        {/* Frequency */}
+        {/* Frequency (single-select) */}
         <div className="space-y-2">
           <Label>Frequency</Label>
-          <RadioGroup
-            value={mode.frequency}
-            onValueChange={handleFrequencyChange}
-            disabled={readOnly}
-            className="space-y-2"
-          >
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="one_off" id="one_off" />
-              <Label htmlFor="one_off" className="flex items-center gap-1">
-                One-off <Info size={14} className="text-gray-400" />
-              </Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="sequence" id="sequence" />
-              <Label htmlFor="sequence" className="flex items-center gap-1">
-                Sequence <Info size={14} className="text-gray-400" />
-              </Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="periodic" id="periodic" />
-              <Label htmlFor="periodic" className="flex items-center gap-1">
-                Periodic <Info size={14} className="text-gray-400" />
-              </Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="continuous" id="continuous" />
-              <Label htmlFor="continuous" className="flex items-center gap-1">
-                Continuous <Info size={14} className="text-gray-400" />
-              </Label>
-            </div>
-          </RadioGroup>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+            {FREQUENCY_OPTIONS.map((opt) => {
+              const active = mode.frequency === opt.value
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  disabled={readOnly}
+                  onClick={() => onChange({ ...mode, frequency: opt.value })}
+                  className={`p-3 rounded-lg border-2 text-left transition-colors ${
+                    active
+                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
+                  } ${readOnly ? 'opacity-60 cursor-not-allowed' : ''}`}
+                  aria-pressed={active}
+                >
+                  <div className="font-medium text-sm">{opt.label}</div>
+                  <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">{opt.description}</div>
+                </button>
+              )
+            })}
+          </div>
         </div>
 
         {/* Setting */}
@@ -212,7 +186,7 @@ export function ModeOfDeliveryForm({ mode, onChange, readOnly = false }: Props):
           <Input
             id="setting"
             value={mode.setting}
-            onChange={handleSettingChange}
+            onChange={(e) => onChange({ ...mode, setting: e.target.value })}
             readOnly={readOnly}
             placeholder="e.g., Hospital ward, Community centre, Online"
           />
@@ -224,7 +198,7 @@ export function ModeOfDeliveryForm({ mode, onChange, readOnly = false }: Props):
           <Input
             id="duration"
             value={mode.duration_typical}
-            onChange={handleDurationChange}
+            onChange={(e) => onChange({ ...mode, duration_typical: e.target.value })}
             readOnly={readOnly}
             placeholder="e.g., 30 minutes, 6 weekly sessions, Ongoing"
           />
@@ -236,7 +210,7 @@ export function ModeOfDeliveryForm({ mode, onChange, readOnly = false }: Props):
           <Input
             id="deliverer"
             value={mode.deliverer}
-            onChange={handleDelivererChange}
+            onChange={(e) => onChange({ ...mode, deliverer: e.target.value })}
             readOnly={readOnly}
             placeholder="Who delivers it? — e.g., Trained nurse, GP, Peer educator, Self-directed"
           />
@@ -248,7 +222,7 @@ export function ModeOfDeliveryForm({ mode, onChange, readOnly = false }: Props):
           <Textarea
             id="notes"
             value={mode.notes}
-            onChange={handleNotesChange}
+            onChange={(e) => onChange({ ...mode, notes: e.target.value })}
             readOnly={readOnly}
             placeholder="Additional notes about mode of delivery"
             className="min-h-[100px]"

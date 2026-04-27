@@ -10,7 +10,7 @@
 
 import { Quote } from 'lucide-react'
 
-export function COMBCentralTenet(): JSX.Element {
+export function COMBCentralTenet(){
   return (
     <div className="my-4 p-4 rounded-lg border border-purple-200 dark:border-purple-800 bg-purple-50/50 dark:bg-purple-950/20">
       <div className="flex items-start gap-3">

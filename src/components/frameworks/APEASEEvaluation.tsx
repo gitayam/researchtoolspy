@@ -53,7 +53,7 @@ interface Props {
   readOnly?: boolean
 }
 
-export function APEASEEvaluation({ interventionName, assessment, onChange, readOnly }: Props): JSX.Element {
+export function APEASEEvaluation({ interventionName, assessment, onChange, readOnly }: Props){
   const criteria = [
     { key: 'affordability' as const, label: 'Affordability', icon: DollarSign, question: 'Can it be delivered within budget?' },
     { key: 'practicability' as const, label: 'Practicability', icon: Wrench, question: 'Can it be delivered as designed at the intended scale?' },
