@@ -64,11 +64,26 @@ const VALID_COMPONENTS = [
   'automatic_motivation',
 ] as const
 
+/**
+ * Direction parameter — Stage 1 of the Operational Frame integration.
+ * Per the spec at irregularchat-monorepo:docs/superpowers/specs/2026-04-27-bcw-operational-frame-design.md:
+ * - Stage 1 (this work): server validates + logs direction; recommendations
+ *   are still produced via the standard Table 2.3 mapping.
+ * - Stage 2 (deferred): direction-inverted ranking per BCW Guide Box 2.6.
+ *   For ↓ behaviors, restriction/restructuring/coercion get high priority
+ *   on adequate components; for ↑/introduce, education/modelling/training.
+ */
+const VALID_DIRECTIONS = ['increase', 'decrease', 'shift', 'introduce'] as const
+type Direction = (typeof VALID_DIRECTIONS)[number]
+
 export const onRequestOptions: PagesFunction<Env> = async () => optionsResponse()
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
-    const body = await context.request.json() as { deficits?: Partial<ComBDeficits> }
+    const body = (await context.request.json()) as {
+      deficits?: Partial<ComBDeficits>
+      direction?: string
+    }
 
     if (!body || typeof body !== 'object' || !body.deficits || typeof body.deficits !== 'object') {
       return new Response(JSON.stringify({
@@ -93,10 +108,32 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       cleaned[k as keyof ComBDeficits] = v as DeficitLevel
     }
 
+    // Stage 1: validate direction if supplied; log it for telemetry. Reject
+    // unknown values so the contract stays honest. Stage 2 will use this
+    // value to invert Table 2.3 ranking.
+    let direction: Direction | undefined
+    if (body.direction !== undefined) {
+      if (typeof body.direction !== 'string' || !VALID_DIRECTIONS.includes(body.direction as Direction)) {
+        return new Response(
+          JSON.stringify({
+            error: `Invalid direction "${body.direction}". Valid: ${VALID_DIRECTIONS.join(', ')}.`,
+          }),
+          { status: 400, headers: JSON_HEADERS },
+        )
+      }
+      direction = body.direction as Direction
+      console.log(
+        `[comb-analysis/recommend] direction=${direction} (Stage 1 — logged; Stage 2 ranking inversion deferred)`,
+      )
+    }
+
     const recommendations = recommendInterventions(cleaned)
 
     return new Response(JSON.stringify({
       recommendations,
+      // Echo the validated direction back so clients can assert the contract
+      // is honored. Omitted when the client didn't supply one.
+      ...(direction ? { direction_received: direction } : {}),
       citation: 'Michie, Atkins & West (2014). The Behaviour Change Wheel: A Guide to Designing Interventions. Silverback Publishing. Tables 2.1, 2.3, 2.7, 2.9.',
       wiki: 'https://irregularpedia.org/general/behavior-analysis/',
     }), { status: 200, headers: JSON_HEADERS })

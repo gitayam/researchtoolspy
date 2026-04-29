@@ -11,6 +11,13 @@
  */
 
 import type { ComBDeficits, InterventionFunction } from './behavior-change-wheel'
+import type {
+  AudienceBaseline,
+  BehaviorDelta,
+  ComBComponent as FrameComBComponent,
+  Direction,
+  DirectionAwareLeverage,
+} from './operational-frame'
 
 export interface TargetAudience {
   name: string
@@ -69,7 +76,50 @@ export interface COMBAnalysis {
   contextual_factors?: string[] // Environmental/cultural context for this TA
   assumptions?: string[] // Assumptions made during assessment
   limitations?: string[] // Limitations of this analysis
+
+  // ───────────────────────────────────────────────────────────────────────
+  // Operational Frame integration (Spec Section C — direction-aware diagnosis)
+  // ───────────────────────────────────────────────────────────────────────
+  // All fields are OPTIONAL — analyses authored before Operational Frame
+  // existed (or via UI flows that don't elicit direction) keep working
+  // unchanged. Consumers should treat absence as "direction-blind diagnosis,
+  // legacy shape" and not assume any default direction.
+  //
+  // Design spec: irregularchat-monorepo:docs/superpowers/specs/2026-04-27-bcw-operational-frame-design.md
+
+  /** Anchor to the Operational Frame this COM-B was diagnosed under. */
+  linked_frame_id?: string
+
+  /** Denormalized direction (from the linked Frame) for query efficiency.
+   *  Always derivable from linked_frame_id but stored to avoid join. */
+  direction?: Direction
+
+  /** Concrete restatement of what the audience does if the objective
+   *  succeeds — copied from the Frame's desired_behavior for self-containment. */
+  desired_behavior?: string
+
+  /** Audience-specific baseline — Michie's behavior-frequency framework
+   *  specialized to THIS audience (narrower than the Frame's population
+   *  baseline). */
+  audience_baseline?: AudienceBaseline
+
+  /** Concrete gap between the audience's current and desired behavior. */
+  behavior_delta?: BehaviorDelta
+
+  /** Direction-aware interpretation of the deficits map per BCW Guide Box 2.6.
+   *  The deficits stay objective (audience's COM-B state); this layer flips
+   *  the intervention IMPLICATION by direction. */
+  direction_aware_leverage?: DirectionAwareLeverage[]
+
+  /** Audience-specific MOE candidates (specialization of the Frame's
+   *  general MOEs to this audience's profile). */
+  audience_specific_moe?: string[]
 }
+
+/** COM-B component name as used by both COMBAnalysis.assessments keys and
+ *  the Frame's DirectionAwareLeverage. Re-exported here for callers that
+ *  only import from comb-analysis.ts. */
+export type COMBAnalysisComponent = FrameComBComponent
 
 export type ComBAssessmentsMap = COMBAnalysis['assessments']
 
