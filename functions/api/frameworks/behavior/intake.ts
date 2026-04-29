@@ -230,12 +230,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   //   l2 → 'comb-analysis' (audience-specific COM-B is a different type)
   const frameworkType = payloadKind === 'l2' ? 'comb-analysis' : 'behavior'
 
-  // Build the data blob for the framework_sessions row. The shape is the
-  // bot payload as-is, lightly normalized to fit the existing UI's
-  // expectations where possible. Extra bot-specific fields (decisionType,
-  // psychological_state, etc.) stay in the JSON for forward compat — the
-  // existing UI ignores unknown fields, our future PublicSharedBehaviorPage
-  // / new UI work renders them.
+  // Build the data blob for the framework_sessions row. The bot emits
+  // camelCase + flat structure (geographicScope, behaviorSettings: []);
+  // rt's BehaviorAnalysis form expects snake_case + nested objects
+  // (location_context.geographic_scope, behavior_settings.settings: []).
+  // mapBotL1ToRt() does the conversion so the rt UI renders all fields.
   const payloadObj = body.payload as Record<string, unknown>
   let frameworkData: Record<string, unknown>
   let derivedTitle: string
@@ -243,19 +242,21 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
   if (payloadKind === 'l1') {
     const l1 = (payloadObj.l1 ?? payloadObj) as Record<string, unknown>
-    frameworkData = { ...l1, _bot_source: source, _bot_user_hint: sourceUserHint || null }
+    frameworkData = mapBotL1ToRt(l1, {
+      _bot_source: source,
+      _bot_user_hint: sourceUserHint || null,
+    })
     derivedTitle = String(l1.title || payloadObj.behavior || '(Untitled Behavior)')
     derivedDescription = (l1.description as string | undefined) ?? null
   } else if (payloadKind === 'pipeline') {
     const l1 = (payloadObj.l1 ?? {}) as Record<string, unknown>
     const frame = (payloadObj.frame ?? {}) as Record<string, unknown>
-    frameworkData = {
-      ...l1,
+    frameworkData = mapBotL1ToRt(l1, {
       operational_frame: frame,
       _bot_source: source,
       _bot_objective: payloadObj.objective ?? null,
       _bot_user_hint: sourceUserHint || null,
-    }
+    })
     derivedTitle = String(l1.title || payloadObj.behavior || '(Untitled Behavior)')
     derivedDescription = (l1.description as string | undefined) ?? null
   } else if (payloadKind === 'frame') {
@@ -270,7 +271,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         '(Untitled Operational Frame)',
     )
   } else {
-    // l2
+    // l2 — keep camelCase for now; comb-analysis form is its own work
     frameworkData = {
       ...payloadObj,
       _bot_source: source,
@@ -344,4 +345,270 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }),
     { status: 201, headers: JSON_HEADERS },
   )
+}
+
+// ─── Bot → rt shape mapper ────────────────────────────────────────────────
+//
+// The signal-bot emits a flat camelCase L1 payload (geographicScope,
+// behaviorSettings, eligibility: [{type, requirement}], ...). The rt
+// frontend's BehaviorAnalysis form expects a nested snake_case shape
+// (location_context.geographic_scope, behavior_settings.settings: [],
+// eligibility: { has_requirements, age_requirements: [], legal_requirements: [], ... }).
+// Without this conversion the form fields stay empty even though the data
+// is present in the row.
+
+const VALID_FREQUENCY_PATTERNS = new Set([
+  'daily',
+  'weekly',
+  'monthly',
+  'quarterly',
+  'semi_annual',
+  'annual',
+  'biennial',
+  'seasonal',
+  'one_time',
+  'irregular',
+  'as_needed',
+  'custom',
+])
+
+const VALID_TIME_OF_DAY = new Set(['morning', 'afternoon', 'evening', 'night', 'any_time'])
+
+const VALID_BEHAVIOR_SETTINGS = new Set([
+  'in_person',
+  'online',
+  'hybrid',
+  'phone',
+  'mail',
+  'app',
+])
+
+const VALID_ELIGIBILITY_TYPES = new Set(['age', 'legal', 'skill', 'resource', 'other'])
+const VALID_TIMEFRAMES = new Set(['immediate', 'long_term', 'generational'])
+const VALID_VALENCES = new Set(['positive', 'negative', 'neutral', 'mixed'])
+const VALID_SYMBOL_TYPES = new Set(['visual', 'auditory', 'social', 'other'])
+
+/**
+ * Map a free-text frequency phrase from the bot to a canonical frequency_pattern.
+ * Falls back to 'irregular' if no known keyword is present (the original text
+ * is preserved in `timing_notes` for human reference).
+ */
+function mapFrequencyToPattern(input: unknown): string {
+  if (typeof input !== 'string') return 'irregular'
+  const s = input.toLowerCase()
+  if (s.includes('daily') || s.includes('every day')) return 'daily'
+  if (s.includes('weekly') || s.includes('every week')) return 'weekly'
+  if (s.includes('monthly')) return 'monthly'
+  if (s.includes('quarterly')) return 'quarterly'
+  if (s.includes('semi_annual') || s.includes('semi-annual') || s.includes('half-year')) return 'semi_annual'
+  if (s.includes('biennial')) return 'biennial'
+  if (s.includes('annual') || s.includes('yearly')) return 'annual'
+  if (s.includes('seasonal') || s.includes('season')) return 'seasonal'
+  if (s.includes('one-time') || s.includes('one_time') || s.includes('once')) return 'one_time'
+  if (s.includes('as needed') || s.includes('as_needed') || s.includes('on demand')) return 'as_needed'
+  return 'irregular'
+}
+
+/**
+ * Group bot's flat eligibility array [{type, requirement}, ...] into the rt
+ * EligibilityRequirements shape with grouped arrays per type.
+ */
+function mapEligibility(input: unknown): Record<string, unknown> {
+  const groups: Record<string, string[]> = {
+    age_requirements: [],
+    legal_requirements: [],
+    skill_requirements: [],
+    resource_requirements: [],
+    other_requirements: [],
+  }
+  if (Array.isArray(input)) {
+    for (const item of input) {
+      if (!item || typeof item !== 'object') continue
+      const it = item as Record<string, unknown>
+      const type = typeof it.type === 'string' && VALID_ELIGIBILITY_TYPES.has(it.type)
+        ? it.type
+        : 'other'
+      const requirement = typeof it.requirement === 'string' ? it.requirement : ''
+      if (requirement.length === 0) continue
+      const key = `${type}_requirements`
+      if (groups[key]) groups[key].push(requirement)
+    }
+  }
+  const total = Object.values(groups).reduce((sum, arr) => sum + arr.length, 0)
+  return {
+    has_requirements: total > 0,
+    ...groups,
+  }
+}
+
+/**
+ * Filter a string array to only canonical enum values.
+ */
+function filterEnum(input: unknown, valid: Set<string>): string[] {
+  if (!Array.isArray(input)) return []
+  return input.filter((x): x is string => typeof x === 'string' && valid.has(x))
+}
+
+/**
+ * Map bot's timeline event (camelCase + extra fields) to rt's TimelineEvent
+ * shape. Preserves the goal-oriented decision typology fields under their
+ * snake_case names (matches the rt type extensions in src/types/behavior.ts).
+ */
+function mapTimelineEvent(event: unknown, idx: number): Record<string, unknown> {
+  if (!event || typeof event !== 'object') return { id: `step-${idx + 1}`, label: '' }
+  const e = event as Record<string, unknown>
+  const out: Record<string, unknown> = {
+    id: typeof e.id === 'string' ? e.id : `step-${typeof e.step === 'number' ? e.step : idx + 1}`,
+    label: typeof e.label === 'string' ? e.label : '',
+    description: typeof e.description === 'string' ? e.description : undefined,
+    location: typeof e.location === 'string' ? e.location : undefined,
+  }
+  // Decision typology — convert camelCase → snake_case
+  if (typeof e.decisionType === 'string') out.decision_type = e.decisionType
+  if (e.psychologicalState && typeof e.psychologicalState === 'object') {
+    const ps = e.psychologicalState as Record<string, unknown>
+    out.psychological_state = {
+      stage: ps.stage,
+      phase: ps.phase,
+      motivation_mode: ps.motivationMode ?? ps.motivation_mode,
+    }
+  }
+  if (typeof e.comBTarget === 'string') out.com_b_target = e.comBTarget
+  if (Array.isArray(e.copingBranches)) out.coping_branches = e.copingBranches
+  if (Array.isArray(e.competingBehaviours)) out.competing_behaviours = e.competingBehaviours
+  if (Array.isArray(e.forks)) out.forks = e.forks
+  // Back-compat: rt's existing UI may still read is_decision_point
+  if (typeof e.decisionType === 'string') {
+    out.is_decision_point = e.decisionType !== 'administrative_gate'
+  }
+  return out
+}
+
+/**
+ * Map a single audience candidate from camelCase to snake_case.
+ */
+function mapAudience(a: unknown): Record<string, unknown> {
+  if (!a || typeof a !== 'object') return { name: '', rationale: '' }
+  const o = a as Record<string, unknown>
+  return {
+    name: typeof o.name === 'string' ? o.name : '',
+    rationale: typeof o.rationale === 'string' ? o.rationale : '',
+    com_b_hypothesis: typeof o.comBHypothesis === 'string'
+      ? o.comBHypothesis
+      : typeof o.com_b_hypothesis === 'string'
+        ? o.com_b_hypothesis
+        : '',
+  }
+}
+
+/**
+ * Convert the bot's L1 payload to rt's BehaviorAnalysis-compatible shape.
+ * Preserves any extra bot-only fields (e.g. operational_frame nested in the
+ * pipeline case) by spreading the `extras` parameter. The original camelCase
+ * fields are intentionally NOT preserved — keeping both shapes leads to UI
+ * confusion when the form picks the wrong key.
+ */
+function mapBotL1ToRt(
+  l1: Record<string, unknown>,
+  extras: Record<string, unknown> = {},
+): Record<string, unknown> {
+  const timingNotesPieces: string[] = []
+  if (typeof l1.timingNotes === 'string' && l1.timingNotes.length > 0) {
+    timingNotesPieces.push(l1.timingNotes)
+  }
+  // Preserve the bot's free-text frequency in timing_notes (rt's pattern is
+  // an enum, doesn't fit "Daily during fishing seasons" cleanly)
+  if (typeof l1.frequency === 'string' && l1.frequency.length > 0) {
+    timingNotesPieces.push(`(observed: ${l1.frequency})`)
+  }
+
+  const consequences = Array.isArray(l1.consequences)
+    ? (l1.consequences as Array<Record<string, unknown>>).map((c, i) => ({
+        id: `c-${i + 1}`,
+        consequence: typeof c.description === 'string' ? c.description : '',
+        timeframe: typeof c.timeframe === 'string' && VALID_TIMEFRAMES.has(c.timeframe)
+          ? c.timeframe
+          : 'immediate',
+        valence: typeof c.valence === 'string' && VALID_VALENCES.has(c.valence) ? c.valence : 'neutral',
+        description: typeof c.description === 'string' ? c.description : undefined,
+        who_affected: typeof c.whoIsAffected === 'string'
+          ? c.whoIsAffected
+          : typeof c.who_is_affected === 'string'
+            ? c.who_is_affected
+            : undefined,
+      }))
+    : []
+
+  const symbols = Array.isArray(l1.symbols)
+    ? (l1.symbols as Array<Record<string, unknown>>).map((s, i) => ({
+        id: `s-${i + 1}`,
+        name: typeof s.name === 'string' ? s.name : '',
+        symbol_type: typeof s.type === 'string' && VALID_SYMBOL_TYPES.has(s.type)
+          ? s.type
+          : 'other',
+        description: typeof s.description === 'string' ? s.description : undefined,
+        context: typeof s.context === 'string' ? s.context : undefined,
+      }))
+    : []
+
+  const timeline = Array.isArray(l1.timeline)
+    ? (l1.timeline as unknown[]).map((event, i) => mapTimelineEvent(event, i))
+    : []
+
+  const audiencesIn = (l1.potentialAudiences ?? l1.potential_audiences) as
+    | { increaseLeverage?: unknown[]; decreaseLeverage?: unknown[] }
+    | undefined
+  const potentialAudiences = audiencesIn
+    ? {
+        increase_leverage: Array.isArray(audiencesIn.increaseLeverage)
+          ? audiencesIn.increaseLeverage.map(mapAudience)
+          : [],
+        decrease_leverage: Array.isArray(audiencesIn.decreaseLeverage)
+          ? audiencesIn.decreaseLeverage.map(mapAudience)
+          : [],
+      }
+    : undefined
+
+  return {
+    title: typeof l1.title === 'string' ? l1.title : '',
+    description: typeof l1.description === 'string' ? l1.description : '',
+
+    location_context: {
+      geographic_scope: typeof l1.geographicScope === 'string' ? l1.geographicScope : 'national',
+      specific_locations: Array.isArray(l1.specificLocations)
+        ? (l1.specificLocations as unknown[]).filter((x): x is string => typeof x === 'string')
+        : [],
+      location_notes: typeof l1.locationNotes === 'string' ? l1.locationNotes : '',
+    },
+
+    behavior_settings: {
+      settings: filterEnum(l1.behaviorSettings, VALID_BEHAVIOR_SETTINGS),
+      setting_details: '',
+    },
+
+    temporal_context: {
+      frequency_pattern: mapFrequencyToPattern(l1.frequency),
+      time_of_day: filterEnum(l1.timeOfDay, VALID_TIME_OF_DAY),
+      duration_typical: typeof l1.typicalDuration === 'string' ? l1.typicalDuration : '',
+      timing_notes: timingNotesPieces.join(' '),
+    },
+
+    eligibility: mapEligibility(l1.eligibility),
+
+    complexity: typeof l1.complexity === 'string' ? l1.complexity : 'simple_sequence',
+
+    timeline,
+
+    environmental_factors: Array.isArray(l1.environmentalFactors) ? l1.environmentalFactors : [],
+    social_context: Array.isArray(l1.socialCulturalContext) ? l1.socialCulturalContext : [],
+    consequences,
+    symbols,
+    observed_patterns: Array.isArray(l1.observedPatterns) ? l1.observedPatterns : [],
+    potential_audiences: potentialAudiences,
+
+    is_public: true,
+    tags: ['signal-bot'],
+
+    ...extras,
+  }
 }
