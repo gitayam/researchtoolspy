@@ -95,17 +95,41 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
  */
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   try {
+    // userId may be null for anonymous viewers — that's fine; they get
+    // public-only rows. Required to make `is_public=1` analyses (e.g.
+    // signal-bot's `!bcw` round-trip) viewable without forcing recipients
+    // to log in.
     const userId = await getUserIdOrDefault(context.request, context.env)
-    if (!userId) {
-      return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: JSON_HEADERS,
-      })
-    }
 
     const url = new URL(context.request.url)
     const frameworkType = url.searchParams.get('type')
-    const limit = parseInt(url.searchParams.get('limit') || '50')
-    const offset = parseInt(url.searchParams.get('offset') || '0')
+    const idFilter = url.searchParams.get('id')
+    const limit = parseInt(url.searchParams.get('limit') || '50', 10)
+    const offset = parseInt(url.searchParams.get('offset') || '0', 10)
+
+    // Single-row mode: when ?id=N is supplied, return the matching row
+    // (including its `data` JSON) wrapped in {sessions: [row]}. Frontend's
+    // loadAnalysis() expects this shape.
+    if (idFilter) {
+      const row = await context.env.DB.prepare(
+        `SELECT id, user_id, title, description, framework_type, status,
+                data, is_public, created_at, updated_at, workspace_id
+         FROM framework_sessions
+         WHERE id = ? AND (is_public = 1 OR user_id = ?)`,
+      )
+        .bind(idFilter, userId ?? -1)
+        .first()
+      if (!row) {
+        return new Response(
+          JSON.stringify({ error: 'Framework session not found' }),
+          { status: 404, headers: JSON_HEADERS },
+        )
+      }
+      return new Response(JSON.stringify(row), {
+        status: 200,
+        headers: JSON_HEADERS,
+      })
+    }
 
     let query = `
       SELECT

@@ -13,25 +13,27 @@ interface Env {
 
 /**
  * GET - Retrieve specific framework session
+ *
+ * Anonymous users can read PUBLIC rows (is_public=1) — required for the
+ * Signal-bot's `!bcw` round-trip share URLs to work without forcing every
+ * recipient to log in. Authenticated users additionally see their own
+ * non-public rows.
  */
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   try {
     const userId = await getUserFromRequest(context.request, context.env)
-    if (!userId) {
-      return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: JSON_HEADERS,
-      })
-    }
     const sessionId = context.params.id as string
 
-    // Get framework session (ownership check + public access)
+    // Public-or-owned read. Unauth users (userId=null) only see public rows;
+    // we pass -1 as a never-matching user_id placeholder so the SQL still
+    // parameter-binds cleanly.
     const result = await context.env.DB.prepare(`
       SELECT
         id, user_id, title, description, framework_type, status,
-        data, created_at, updated_at, workspace_id
+        data, is_public, created_at, updated_at, workspace_id
       FROM framework_sessions
-      WHERE id = ? AND (user_id = ? OR is_public = 1)
-    `).bind(sessionId, userId).first()
+      WHERE id = ? AND (is_public = 1 OR user_id = ?)
+    `).bind(sessionId, userId ?? -1).first()
 
     if (!result) {
       return new Response(JSON.stringify({
