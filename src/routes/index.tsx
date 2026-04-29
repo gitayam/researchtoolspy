@@ -121,6 +121,7 @@ const ACHAnalysisPage = lazy(() => import('@/pages/ACHAnalysisPage').then(m => (
 
 // Public pages (lazy loaded - no auth required)
 const PublicFrameworkPage = lazy(() => import('@/pages/PublicFrameworkPage').then(m => ({ default: m.PublicFrameworkPage })))
+const PublicSharedBehaviorPage = lazy(() => import('@/pages/PublicSharedBehaviorPage').then(m => ({ default: m.PublicSharedBehaviorPage })))
 const PublicACHPage = lazy(() => import('@/pages/PublicACHPage').then(m => ({ default: m.PublicACHPage })))
 const PublicACHLibraryPage = lazy(() => import('@/pages/PublicACHLibraryPage').then(m => ({ default: m.PublicACHLibraryPage })))
 const PublicContentAnalysisPage = lazy(() => import('@/pages/PublicContentAnalysisPage').then(m => ({ default: m.PublicContentAnalysisPage })))
@@ -165,6 +166,12 @@ export const router = createBrowserRouter([
   {
     path: '/public/framework/:token',
     element: <LazyPage Component={PublicFrameworkPage} />,
+  },
+  {
+    // Public read-only viewer for behavior analyses stored via the
+    // signal-bot's `!bcw` round-trip. UUID is the access token.
+    path: '/shared/behavior/:id',
+    element: <LazyPage Component={PublicSharedBehaviorPage} />,
   },
   {
     path: '/public/ach',

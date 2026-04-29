@@ -200,10 +200,16 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       (sourceUserHint ? ` hint="${sourceUserHint}"` : ''),
   )
 
-  // Build the canonical view URL. `Origin` may not be present (curl, MCP);
-  // fall back to a conventional production host.
+  // Build the canonical view URL. Points at the FRONTEND viewer route
+  // (PublicSharedBehaviorPage) which fetches /api/frameworks/behavior/shared/<id>
+  // and renders the analysis as readable HTML. The API URL is still
+  // accessible for raw-JSON consumers (curl, MCP, integrations) but the
+  // human-facing share link goes through the React page.
+  //
+  // `Origin` may not be present (curl, MCP); fall back to a conventional
+  // production host.
   const origin = request.headers.get('origin') || 'https://researchtools.net'
-  const viewUrl = `${origin}/api/frameworks/behavior/shared/${id}`
+  const viewUrl = `${origin}/shared/behavior/${id}`
 
   return new Response(
     JSON.stringify({
