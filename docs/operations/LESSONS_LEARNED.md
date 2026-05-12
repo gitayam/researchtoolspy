@@ -657,7 +657,7 @@ Applied to **9 locations** across:
 - DeceptionPage (edit/view modes + list view)
 
 ### Files Modified
-- `/Users/sac/Git/researchtoolspy/frontend-react/src/pages/frameworks/index.tsx` - Fixed 9 instances
+- `src/pages/frameworks/index.tsx` - Fixed 9 instances
 - Lines: 159, 178, 301, 523, 546, 669, 1003, 1019, 1097, 1408, 1428, 1548
 
 ### Lessons Learned

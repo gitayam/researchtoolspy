@@ -34,7 +34,7 @@ We provide two ready-to-use analysis scripts:
 ```r
 # Download the script
 download.file(
-  "https://raw.githubusercontent.com/gitayam/researchtoolspy/main/frontend-react/docs/r-scripts/network_analysis.R",
+  "https://raw.githubusercontent.com/gitayam/researchtoolspy/main/docs/r-scripts/network_analysis.R",
   "network_analysis.R"
 )
 
@@ -53,7 +53,7 @@ source("network_analysis.R")
 ```r
 # Download the script
 download.file(
-  "https://raw.githubusercontent.com/gitayam/researchtoolspy/main/frontend-react/docs/r-scripts/time_series_analysis.R",
+  "https://raw.githubusercontent.com/gitayam/researchtoolspy/main/docs/r-scripts/time_series_analysis.R",
   "time_series_analysis.R"
 )
 

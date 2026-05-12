@@ -16,7 +16,6 @@
 ### Step 1: Run the Migration
 
 ```bash
-cd frontend-react
 
 # For LOCAL development database:
 wrangler d1 execute researchtoolspy-dev --file=schema/migrations/044-rename-content-analysis-to-intelligence.sql
