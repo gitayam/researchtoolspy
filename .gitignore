@@ -116,3 +116,13 @@ test-results/
 
 # Python
 __pycache__/
+
+# Local SQLite databases (D1 dev shadow copies)
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# Stray backup directories
+frontend-react/
+frontend_backup_*/

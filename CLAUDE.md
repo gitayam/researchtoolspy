@@ -174,3 +174,17 @@ npx vite                              # Frontend on 5173, proxies /api to 8788
 - Remote: `npx wrangler d1 execute researchtoolspy-db --remote --command "SQL"`
 - Entity tables use `created_by` (not `user_id`), `workspace_id`, TEXT IDs
 - Actor/place types MUST be uppercase (D1 CHECK constraints)
+
+## Docs Layout
+
+`docs/` is organized by domain:
+
+- `docs/api/` — endpoint reference (COP workspace, COM-B, research-question generator)
+- `docs/frameworks/` — ACH, behavior/COM-B, framework auto-population
+- `docs/integrations/` — Gephi, Neo4j, Maltego, i2 ANB, R, Instagram extraction, COP plan
+- `docs/operations/` — D1 migration instructions, accessibility, Cloudflare/general lessons learned, CHANGELOG
+- `docs/plans/` — phase / design docs (dated)
+- `docs/upgrades/` — dependency upgrade reports
+
+When adding new docs, put them in the right subdir. Root-level Markdown is only
+`README.md` and `CLAUDE.md`.

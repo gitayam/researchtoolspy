@@ -1,134 +1,138 @@
-# Research Tools Platform
+# ResearchToolsPy
 
-A comprehensive intelligence analysis and research platform built with React, TypeScript, and Cloudflare Pages.
+Intelligence analysis and research platform built on Cloudflare Pages.
+Live at [researchtools.net](https://researchtools.net).
 
-## Overview
+Provides analysts a workspace for structured analytic techniques (ACH, COG, COM-B,
+Starbursting, SWOT, PEST, PMESII-PT, DIME, DOTMLPF, Stakeholder, Causeway,
+Deception/SATS), content intelligence (URL/PDF/social-media extraction with AI
+entity extraction), evidence and entity management, network analysis with exports
+to Gephi/Neo4j/Maltego/i2 ANB, and a Common Operating Picture (COP) workspace
+for multi-source incident analysis.
 
-This application provides military intelligence analysts and researchers with a suite of analytical tools and frameworks including:
+## Stack
 
-- **Analysis Frameworks**:
-  - COG Analysis with network visualization
-  - ACH (Analysis of Competing Hypotheses) with inconsistency scoring
-  - Behavior Change Wheel (COM-B Analysis)
-  - Deception Detection (SATS framework)
-  - Starbursting (5W1H question generation)
-  - SWOT, PEST, PMESII-PT, DIME, DOTMLPF
-  - Stakeholder Analysis, Causeway Analysis
-  - Surveillance/ISR Planning, Fundamental Flow Analysis
+- **Frontend** — React 19 · TypeScript 6 · Vite 7 · Tailwind 4 · shadcn/ui (Radix)
+- **Backend** — Cloudflare Pages Functions (Workers runtime)
+- **Database** — Cloudflare D1 (SQLite at the edge)
+- **Storage** — Cloudflare R2 (images, exports)
+- **AI** — OpenAI (gpt-5.4-mini default) via AI Gateway
+- **i18n** — `react-i18next` (English, Spanish)
+- **Tests** — Playwright (E2E)
 
-- **Content Intelligence**:
-  - URL analysis with AI-powered entity extraction
-  - Automatic Q&A generation from content
-  - Word cloud and phrase frequency analysis
-  - Citation generation (APA, MLA, Chicago)
-  - Social media extraction (Twitter, Instagram, TikTok)
-  - PDF text extraction and analysis
-
-- **Intelligence Management**:
-  - Evidence collection and linking
-  - **Anonymous Evidence Submission Forms** - Create hash-based forms for crowdsourced evidence
-  - Actor/entity relationship mapping
-  - Source credibility tracking
-  - Event timeline management
-  - Investigation team collaboration
-  - Review and process submitted evidence
-
-- **Network Analysis**:
-  - Interactive network graph visualization
-  - Auto-relationship generation from frameworks
-  - Export to Gephi, Neo4j, Maltego, i2 ANB
-
-- **Report Generation**:
-  - Professional PDF exports with charts
-  - PowerPoint presentations
-  - Excel data exports
-  - Framework-specific report templates
-
-- **Multi-workspace Support**:
-  - Isolated workspaces for different projects
-  - Public/private framework sharing
-  - Activity feed and notifications
-  - Hash-based authentication for guest access
-
-## Tech Stack
-
-- **Frontend**: React 18 + TypeScript + Vite
-- **UI Components**: shadcn/ui (Radix UI + Tailwind CSS)
-- **Backend**: Cloudflare Pages Functions (Workers)
-- **Database**: Cloudflare D1 (SQLite at the edge)
-- **AI Integration**: OpenAI GPT-4o-mini for analysis
-- **i18n**: react-i18next for multi-language support
-
-## Development
+## Quick start
 
 ```bash
-# Install dependencies
 npm install
 
-# Run development server
-npm run dev
+# Dev runs two processes — wrangler proxies API on :8788, vite serves UI on :5173
+npm run dev:wrangler     # terminal 1 — Pages Functions
+npm run dev:vite         # terminal 2 — frontend (proxies /api to 8788)
 
-# Build for production
-npm run build
-
-# Preview production build
-npm run preview
-
-# Deploy to Cloudflare Pages
-npx wrangler pages deploy dist
+# Verify
+npm run type-check
+npm run lint
+npm run test:e2e:smoke
 ```
 
-## Documentation
+> The combined `npm run dev` script uses `&` and is unreliable on wrangler 4.40+.
+> Use the two-process form above.
 
-### Essential Docs
-- **Lessons Learned**: `docs/LESSONS_LEARNED.md` - Critical bugs, fixes, and best practices
-- **Cloudflare Lessons**: `docs/CLOUDFLARE_LESSONS_LEARNED.md` - Workers, Pages, D1 database tips
-- **Roadmap**: `ROADMAP_2025.md` - Feature roadmap and future plans
-- **Project Status**: `PROJECT_ROADMAP_STATUS.md` - Current development status
+## Project layout
 
-### Integration Guides
-- `docs/GEPHI_IMPORT_GUIDE.md` - Export to Gephi for network visualization
-- `docs/NEO4J_IMPORT_GUIDE.md` - Import data into Neo4j graph database
-- `docs/MALTEGO_INTEGRATION_GUIDE.md` - Export to Maltego transforms
-- `docs/I2ANB_INTEGRATION_GUIDE.md` - Export to IBM i2 Analyst's Notebook
-- `docs/RSTUDIO_INTEGRATION_GUIDE.md` - R integration for statistical analysis
+```
+.
+├── src/                  React app
+│   ├── components/       UI components (grouped by domain: ach, cop, frameworks, ...)
+│   ├── pages/            Route components
+│   ├── lib/              Client-side libraries (ai, api, exports, reports)
+│   ├── hooks/            React hooks
+│   ├── stores/           Zustand stores
+│   └── locales/          en, es translations
+├── functions/            Cloudflare Pages Functions (server)
+│   └── api/              REST endpoints grouped by domain
+├── schema/               D1 schema + migrations
+├── public/               Static assets, _headers, _redirects, _routes.json
+├── containers/           Containerized services (osint-agent, searxng)
+├── scripts/              Shell utilities (cop-api.sh, pre-deployment-check.sh)
+├── tests/                Playwright E2E
+└── docs/                 Documentation (see below)
+```
 
-### Feature Documentation
-- `docs/COLLABORATION_SYSTEM_DESIGN.md` - Collaboration features architecture
-- `docs/INSTAGRAM_EXTRACTION.md` - Social media extraction implementation
-- `docs/COG_IMPLEMENTATION_STATUS.md` - Center of Gravity analysis details
-- `docs/ACCESSIBILITY.md` - Accessibility features and WCAG compliance
-
-### Archive
-Historical documentation has been organized into the `archive/` directory:
-- `archive/planning/` - Feature planning documents and roadmaps
-- `archive/implementations/` - Completed implementation summaries
-- `archive/status-updates/` - Historical status reports and progress updates
-- `archive/working-docs-2025/` - Working documents from 2025 development sessions
-
-## Environment Variables
-
-See `.dev.vars.example` for required environment variables:
-- `OPENAI_API_KEY` - OpenAI API key for GPT features
-- `VIRUSTOTAL_API_KEY` - Optional, for security lookups
-
-## Database
-
-Database schema and migrations are in `schema/migrations/`. The application uses Cloudflare D1 for edge database functionality.
-
-## Deployment
-
-The application is deployed to Cloudflare Pages with automatic deployments on push to main branch.
+## Deploy
 
 ```bash
-# Deploy to production
-npm run build
-npx wrangler pages deploy dist
+./deploy.sh                  # migrate + build + deploy (recommended)
+./deploy.sh --dry-run        # build + verify, no deploy
+./deploy.sh --skip-migrate   # build + deploy, no D1 migrations
 
-# Watch deployment logs
+# Watch logs
 npx wrangler pages deployment tail --project-name=researchtoolspy
 ```
 
+The deploy script handles a subtle gotcha: Cloudflare Pages bundles `functions/`
+relative to the deploy directory, so the script copies `functions/` into `dist/`
+before `wrangler pages deploy dist/`. Do **not** deploy from repo root.
+
+## Environment
+
+Local: `.env` (gitignored). See `.env.example` if added.
+
+Production secrets are stored as Cloudflare environment variables and bindings
+in `wrangler.toml`:
+- `OPENAI_API_KEY` (secret) — required for AI features
+- D1 binding `DB` → `researchtoolspy-prod`
+- R2 binding `R2_BUCKET` → image storage
+- AI Gateway endpoint for cached/observable OpenAI calls
+
+## Documentation
+
+| Area | Path |
+|---|---|
+| API reference | [`docs/api/`](docs/api/) |
+| Framework guides | [`docs/frameworks/`](docs/frameworks/) — ACH, COM-B / behavior, framework auto-population |
+| Integrations | [`docs/integrations/`](docs/integrations/) — Gephi, Neo4j, Maltego, i2 ANB, R, social-media extraction |
+| Operations | [`docs/operations/`](docs/operations/) — D1 migrations, accessibility, Cloudflare/general lessons learned, changelog |
+| Implementation plans | [`docs/plans/`](docs/plans/) — phase plans, design docs |
+| Upgrades | [`docs/upgrades/`](docs/upgrades/) — dependency upgrade reports |
+| Cypher queries | [`docs/neo4j-queries/`](docs/neo4j-queries/) |
+| R scripts | [`docs/r-scripts/`](docs/r-scripts/) |
+
+For Claude Code workflows, see [`CLAUDE.md`](CLAUDE.md) — covers the `cop-api.sh`
+shell helpers (`cop_sessions`, `cop_add_rfi`, `cop_add_evidence`, etc.) and the
+key API conventions.
+
+## Database
+
+D1 (SQLite). Schema lives in [`schema/d1-schema.sql`](schema/d1-schema.sql) with
+incremental changes in [`schema/migrations/`](schema/migrations/).
+
+```bash
+# Apply migrations remotely
+npm run migrate:prod
+
+# Ad-hoc query (remote)
+npx wrangler d1 execute researchtoolspy-prod --remote --command "SELECT name FROM sqlite_master WHERE type='table'"
+```
+
+Conventions:
+- Tables and columns are `lowercase_snake_case` (PascalCase causes silent FK
+  failures in D1).
+- Entity types (`actors.type`, `places.type`, ...) must be **uppercase** — D1
+  CHECK constraints enforce this.
+- Entity tables (`actors`, `sources`, `events`, `places`, `behaviors`,
+  `evidence_items`, relationships) use `created_by` and `workspace_id`.
+- Framework tables (`framework_sessions`, `mom_assessments`) use `user_id`.
+
+## Contributing
+
+- **Commits** — conventional commits (`feat(scope):`, `fix(scope):`,
+  `chore(scope):`, ...).
+- **Branches** — short-lived, named for the work (`fix/cop-share-auth`).
+- **Before pushing** — `npm run type-check && npm run lint && npm run test:e2e:smoke`.
+- **PRs** — Renovate handles dependency updates; security CVEs block CI via
+  `audit-ci` (high/critical).
+
 ## License
 
-Proprietary - All Rights Reserved
+Proprietary — All rights reserved.
