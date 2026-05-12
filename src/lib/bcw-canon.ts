@@ -20,7 +20,7 @@
  *     Medicine 46(1):81–95.
  *
  * Wiki summary: https://irregularpedia.org/general/behavior-analysis/
- * API docs: docs/COM_B_API.md
+ * API docs: docs/api/COM_B_API.md
  */
 
 export type ComBComponent =

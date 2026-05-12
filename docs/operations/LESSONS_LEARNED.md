@@ -1112,12 +1112,10 @@ Tests that timeout (30s) almost always mean a selector doesn't match the current
 
 ## References
 
-- [Instagram Extraction Guide](./INSTAGRAM_EXTRACTION.md)
-- [Maltego Integration Guide](./MALTEGO_INTEGRATION_GUIDE.md)
-- [i2 ANB Integration Guide](./I2ANB_INTEGRATION_GUIDE.md)
-- [Project Roadmap Status](../PROJECT_ROADMAP_STATUS.md)
-- [COP Workspace API](./COP-WORKSPACE-API.md)
-- [COP Workspace Issues](./COP-WORKSPACE-ISSUES.md)
+- [Instagram Extraction Guide](../integrations/INSTAGRAM_EXTRACTION.md)
+- [Maltego Integration Guide](../integrations/MALTEGO_INTEGRATION_GUIDE.md)
+- [i2 ANB Integration Guide](../integrations/I2ANB_INTEGRATION_GUIDE.md)
+- [COP Workspace API](../api/COP-WORKSPACE-API.md)
 
 ---
 

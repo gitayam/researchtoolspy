@@ -412,7 +412,7 @@ export class ReportGenerator {
    * Citations to Michie/Atkins/West 2014 are emitted at the bottom so the
    * exported document is self-contained for sharing.
    *
-   * See docs/COM_B_API.md and irregularpedia.org/general/behavior-analysis/.
+   * See docs/api/COM_B_API.md and irregularpedia.org/general/behavior-analysis/.
    */
   private static generateCombAnalysisMarkdown(data: any, aiEnhancements?: AIEnhancements): string {
     let md = ''
