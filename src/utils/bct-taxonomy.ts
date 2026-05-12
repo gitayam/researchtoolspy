@@ -11,7 +11,7 @@
  * Used in BCW Step 7 — see Michie, Atkins, West (2014) Table 3.3 for the
  * function-to-BCT mapping that BCT_BY_FUNCTION encodes.
  *
- * Cited in: docs/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md (P1-2);
+ * Cited in: docs/frameworks/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md (P1-2);
  * irregularpedia.org/general/behavior-analysis/ (Behaviour Change Techniques section).
  */
 

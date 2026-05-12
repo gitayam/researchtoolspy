@@ -346,7 +346,7 @@ If Maltego doesn't fit your workflow:
 - Use Research Tools' **i2 ANB** export instead
 - Law enforcement-focused analysis tool
 - Better for case management and reporting
-- See: `docs/I2ANB_INTEGRATION_GUIDE.md`
+- See: `docs/integrations/I2ANB_INTEGRATION_GUIDE.md`
 
 ## Maltego Resources
 

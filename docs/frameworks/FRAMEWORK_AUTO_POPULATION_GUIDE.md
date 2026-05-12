@@ -394,7 +394,7 @@ Auto-population pulls from:
 **Documentation:**
 - Full API docs: `/docs/api`
 - Developer guide: `/docs/development`
-- Lessons learned: `/docs/LESSONS_LEARNED.md`
+- Lessons learned: `/docs/operations/LESSONS_LEARNED.md`
 
 ---
 

@@ -123,7 +123,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
     // W2 — for COM-B Analysis updates, enforce that linked_behavior_id remains set.
     // Mirrors the validation in functions/api/frameworks.ts; the per-id PUT path
-    // previously bypassed it. See docs/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md (P1-4).
+    // previously bypassed it. See docs/frameworks/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md (P1-4).
     const existingType = await context.env.DB.prepare(
       'SELECT framework_type FROM framework_sessions WHERE id = ?'
     ).bind(sessionId).first()

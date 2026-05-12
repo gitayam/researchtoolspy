@@ -5,7 +5,7 @@
  * render in the create form: BCWStepper, COMBCentralTenet, BehaviourTheoryGlossary,
  * APEASEEvaluation, ModeOfDeliveryForm.
  *
- * See docs/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md (S4 follow-up).
+ * See docs/frameworks/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md (S4 follow-up).
  */
 import { test, expect } from '../fixtures/base-test'
 

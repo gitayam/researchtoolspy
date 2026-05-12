@@ -4,7 +4,7 @@
  * Source: Michie, S., West, R., Campbell, R., Brown, J., Gainforth, H. (2014).
  *   ABC of Behaviour Change Theories. Silverback Publishing. Chapter 1.
  *
- * P3-1 — see docs/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md.
+ * P3-1 — see docs/frameworks/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md.
  * Canon: irregularpedia.org/general/behavior-analysis/
  */
 

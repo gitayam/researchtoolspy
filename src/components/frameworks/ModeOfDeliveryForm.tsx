@@ -4,7 +4,7 @@
  * Source: Michie, S., Atkins, L., West, R. (2014). The Behaviour Change Wheel:
  *   A Guide to Designing Interventions, Step 8 / Box 2.9.
  *
- * P2-4 — see docs/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md.
+ * P2-4 — see docs/frameworks/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md.
  * Canon: irregularpedia.org/general/behavior-analysis/ (The 8-Step Intervention Design Process).
  */
 

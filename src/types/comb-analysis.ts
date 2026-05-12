@@ -33,7 +33,7 @@ export interface ComBComponentAssessment {
   evidence_notes: string // Why did you assess this way?
   supporting_evidence?: string[] // Links to evidence items
   /** Optional evidence source typing per BCW Guide Box 1.9 (COM-B-D form).
-   *  P2-5 — see docs/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md.
+   *  P2-5 — see docs/frameworks/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md.
    */
   evidence_sources?: Array<{
     type: 'rct' | 'observational_study' | 'interview' | 'focus_group' | 'literature_review' | 'theoretical_analysis' | 'expert_judgement' | 'other'
@@ -51,7 +51,7 @@ export interface COMBAnalysis {
   updated_at?: string
   source_url?: string
 
-  // Link to Behavior Analysis (P1-4 — see docs/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md. Canon: irregularpedia.org/general/behavior-analysis/)
+  // Link to Behavior Analysis (P1-4 — see docs/frameworks/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md. Canon: irregularpedia.org/general/behavior-analysis/)
   linked_behavior_id: string
   linked_behavior_title: string
 

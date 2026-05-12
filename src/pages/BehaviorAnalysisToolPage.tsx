@@ -5,7 +5,7 @@
  * Two contexts: Intelligence (adversary) and Product (user/stakeholder).
  * Progressive disclosure: describe behavior → get COM-B diagnosis → view interventions.
  *
- * P0-1 layering enforcement (see docs/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md).
+ * P0-1 layering enforcement (see docs/frameworks/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md).
  * Canon: irregularpedia.org/general/behavior-analysis/ — every COM-B Analysis must
  * link to a Behavior Analysis. This page is a preview-only tool; saved analyses
  * must go through the Behavior Analysis -> COM-B Analysis flow.

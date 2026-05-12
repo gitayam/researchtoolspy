@@ -7,7 +7,7 @@
  * APEASE = Affordability, Practicability, Effectiveness/cost-effectiveness,
  *          Acceptability, Side-effects/safety, Equity.
  *
- * P1-1 — see docs/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md.
+ * P1-1 — see docs/frameworks/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md.
  * Canon: irregularpedia.org/general/behavior-analysis/ (APEASE: Evaluating Candidate Interventions).
  */
 

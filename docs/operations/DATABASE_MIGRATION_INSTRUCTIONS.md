@@ -218,7 +218,7 @@ FROM content_intelligence
 ## Files Modified
 
 - `schema/migrations/044-rename-content-analysis-to-intelligence.sql` (NEW)
-- `docs/DATABASE_MIGRATION_INSTRUCTIONS.md` (NEW)
+- `docs/operations/DATABASE_MIGRATION_INSTRUCTIONS.md` (NEW)
 
 ## Files That Need Updates
 

@@ -5,7 +5,7 @@
  *   A Guide to Designing Interventions. Steps 1-8 are the canonical intervention
  *   design process described in Chapters 1-3.
  *
- * P2-3 — see docs/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md.
+ * P2-3 — see docs/frameworks/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md.
  * Canon: irregularpedia.org/general/behavior-analysis/ (The 8-Step Intervention Design Process).
  */
 

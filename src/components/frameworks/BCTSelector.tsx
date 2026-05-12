@@ -10,7 +10,7 @@
  *   (per BCW Guide Table 3.3), then offer the full taxonomy grouped by
  *   the 16 expert card-sort categories.
  *
- * P1-2 follow-through — see docs/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md.
+ * P1-2 follow-through — see docs/frameworks/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md.
  * Canon: irregularpedia.org/general/behavior-analysis/ (Behaviour Change Techniques).
  */
 

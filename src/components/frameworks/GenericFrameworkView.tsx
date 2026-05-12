@@ -23,7 +23,7 @@ import { ExportButton } from '@/components/reports/ExportButton'
 import { BehaviorTimeline, type TimelineEvent } from '@/components/frameworks/BehaviorTimeline'
 import { BCWRecommendations } from '@/components/frameworks/BCWRecommendations'
 import { BehaviourChangeWheel } from '@/components/frameworks/BehaviourChangeWheel'
-// Behavior + COM-B canonical components (read-only) — see docs/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md
+// Behavior + COM-B canonical components (read-only) — see docs/frameworks/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md
 import { APEASEEvaluation, EMPTY_APEASE, type APEASEAssessment } from '@/components/frameworks/APEASEEvaluation'
 import { ModeOfDeliveryForm, EMPTY_MODE_OF_DELIVERY, type ModeOfDelivery } from '@/components/frameworks/ModeOfDeliveryForm'
 import { BCTSelector } from '@/components/frameworks/BCTSelector'
@@ -796,7 +796,7 @@ export function GenericFrameworkView({
           }
 
           // Read-only BCT Selector (BCW Step 7 / Table 3.3)
-          // P1-2 follow-through — see docs/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md
+          // P1-2 follow-through — see docs/frameworks/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md
           if (frameworkType === 'comb-analysis' && section.key === 'bct_selection') {
             const bcts: string[] = (data as any).selected_bcts || []
             const fns: InterventionFunction[] = (data as any).selected_interventions || []
@@ -835,7 +835,7 @@ export function GenericFrameworkView({
       </div>
 
       {/* P2-2 — Next Step CTA: COM-B Analysis handoff from Behavior Analysis */}
-      {/* See docs/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md. Canon: irregularpedia.org/general/behavior-analysis/ */}
+      {/* See docs/frameworks/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md. Canon: irregularpedia.org/general/behavior-analysis/ */}
       {frameworkType === 'behavior' && (
         <Card className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
           <CardHeader>

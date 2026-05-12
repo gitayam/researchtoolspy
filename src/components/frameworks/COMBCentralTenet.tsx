@@ -4,7 +4,7 @@
  * Source: Michie, S., Atkins, L., West, R. (2014). The Behaviour Change Wheel:
  *   A Guide to Designing Interventions, p. 50.
  *
- * P3-2 — see docs/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md.
+ * P3-2 — see docs/frameworks/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md.
  * Canon: irregularpedia.org/general/behavior-analysis/
  */
 

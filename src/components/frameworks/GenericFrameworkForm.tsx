@@ -31,7 +31,7 @@ import { PlaceLinker, PlaceBadge, type LinkedPlace } from '@/components/places/P
 import { EventLinker, EventBadge, type LinkedEvent } from '@/components/events/EventLinker'
 import { StarburstingEntityLinker } from '@/components/content-intelligence/StarburstingEntityLinker'
 import type { LocationContext, BehaviorSettings, TemporalContext, EligibilityRequirements, BehaviorComplexity, ConsequenceItem, SymbolItem } from '@/types/behavior'
-// Behavior + COM-B canonical components — see docs/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md
+// Behavior + COM-B canonical components — see docs/frameworks/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md
 import { APEASEEvaluation, EMPTY_APEASE, type APEASEAssessment } from '@/components/frameworks/APEASEEvaluation'
 import { ModeOfDeliveryForm, EMPTY_MODE_OF_DELIVERY, type ModeOfDelivery } from '@/components/frameworks/ModeOfDeliveryForm'
 import { BCWStepper, type BCWStepKey } from '@/components/frameworks/BCWStepper'
@@ -665,7 +665,7 @@ export function GenericFrameworkForm({
   const [linkedBehaviorTitle, setLinkedBehaviorTitle] = useState<string | undefined>((initialData as any)?.linked_behavior_title)
 
   // For COM-B Analysis: APEASE evaluation + Mode of Delivery (BCW Steps 7-8)
-  // See docs/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md (P1-1, P2-4)
+  // See docs/frameworks/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md (P1-1, P2-4)
   const [apeaseAssessment, setApeaseAssessment] = useState<APEASEAssessment>(
     (initialData as any)?.apease_assessment || EMPTY_APEASE
   )
@@ -674,7 +674,7 @@ export function GenericFrameworkForm({
   )
 
   // For COM-B Analysis: Behaviour Change Techniques (BCW Step 7)
-  // P1-2 follow-through — see docs/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md
+  // P1-2 follow-through — see docs/frameworks/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md
   const [selectedBcts, setSelectedBcts] = useState<string[]>(
     (initialData as any)?.selected_bcts || []
   )
@@ -802,7 +802,7 @@ export function GenericFrameworkForm({
 
   // W1 — receive AI preview tool prefill from sessionStorage when ?prefill=ai-tool
   // Set by BehaviorAnalysisToolPage Save-as-COM-B-Analysis CTA.
-  // See docs/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md (P0-1).
+  // See docs/frameworks/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md (P0-1).
   useEffect(() => {
     if (mode !== 'create' || frameworkType !== 'comb-analysis') return
     const params = new URLSearchParams(window.location.search)
@@ -888,7 +888,7 @@ export function GenericFrameworkForm({
         description,
         sectionData,
         // Include framework-specific state so unsaved COM-B / behavior work
-        // survives browser refresh. See docs/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md
+        // survives browser refresh. See docs/frameworks/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md
         // (post-ship review-fix iteration).
         ...(frameworkType === 'comb-analysis' && {
           linked_behavior_id: linkedBehaviorId,
@@ -1728,7 +1728,7 @@ export function GenericFrameworkForm({
       }
 
       // P1-4: COM-B Analysis must have a linked Behavior Analysis
-      // See docs/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md. Canon: irregularpedia.org/general/behavior-analysis/
+      // See docs/frameworks/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md. Canon: irregularpedia.org/general/behavior-analysis/
       if (frameworkType === 'comb-analysis') {
         if (!linkedBehaviorId || !linkedBehaviorTitle) {
           setSaveError('A COM-B Analysis must be linked to a Behavior Analysis. Please select or create one.')
@@ -2089,7 +2089,7 @@ export function GenericFrameworkForm({
       )}
 
       {/* COM-B Analysis intro: BCW stepper + central tenet + glossary
-          P2-3, P3-1, P3-2 — see docs/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md */}
+          P2-3, P3-1, P3-2 — see docs/frameworks/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md */}
       {frameworkType === 'comb-analysis' && (
         <div className="space-y-2">
           <BCWStepper
@@ -2182,7 +2182,7 @@ export function GenericFrameworkForm({
           }
 
           // Special handling for COM-B Analysis APEASE evaluation (BCW Step 7 / Table 1)
-          // P1-1 — see docs/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md
+          // P1-1 — see docs/frameworks/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md
           if (frameworkType === 'comb-analysis' && section.key === 'apease_evaluation') {
             return (
               <div key={section.key}>
@@ -2198,7 +2198,7 @@ export function GenericFrameworkForm({
           }
 
           // Special handling for COM-B Analysis BCT Selector (BCW Step 7 / Table 3.3)
-          // P1-2 follow-through — see docs/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md
+          // P1-2 follow-through — see docs/frameworks/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md
           if (frameworkType === 'comb-analysis' && section.key === 'bct_selection') {
             return (
               <div key={section.key}>
@@ -2212,7 +2212,7 @@ export function GenericFrameworkForm({
           }
 
           // Special handling for COM-B Analysis Mode of Delivery (BCW Step 8 / Box 2.9)
-          // P2-4 — see docs/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md
+          // P2-4 — see docs/frameworks/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md
           if (frameworkType === 'comb-analysis' && section.key === 'mode_of_delivery') {
             return (
               <div key={section.key}>

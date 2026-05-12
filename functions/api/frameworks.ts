@@ -145,7 +145,7 @@ export async function onRequest(context: any) {
       }
 
       // W2: COM-B Analysis must be linked to a Behavior Analysis
-      // See docs/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md (P1-4). Canon: irregularpedia.org/general/behavior-analysis/
+      // See docs/frameworks/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md (P1-4). Canon: irregularpedia.org/general/behavior-analysis/
       if (body.framework_type === 'comb-analysis') {
         const linkedId = body.data?.linked_behavior_id
         if (!linkedId || typeof linkedId !== 'string' || linkedId.trim().length === 0) {
@@ -225,7 +225,7 @@ export async function onRequest(context: any) {
 
       // W2: For COM-B Analysis updates, look up the existing record's framework_type
       // and enforce that linked_behavior_id remains set on update.
-      // See docs/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md (P1-4).
+      // See docs/frameworks/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md (P1-4).
       const existing = await env.DB.prepare(
         `SELECT framework_type FROM framework_sessions WHERE id = ? AND workspace_id = ? AND user_id = ?`
       ).bind(frameworkId, workspaceId, userId).first()
