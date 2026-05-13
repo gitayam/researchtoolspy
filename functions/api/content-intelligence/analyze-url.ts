@@ -1061,12 +1061,9 @@ async function extractUrlContent(url: string, apiKey?: string, pdfCoApiKey?: str
     } catch (pdfError) {
       const reason = pdfError instanceof Error ? pdfError.message : String(pdfError)
       console.error('[Content Extract] PDF extraction failed:', reason)
-      const userError = reason.includes('PDF_CO_API_KEY not configured')
-        ? 'PDF extraction service is not configured on this deployment. Contact the administrator.'
-        : `PDF extraction failed: ${reason}`
       return {
         success: false,
-        error: userError,
+        error: `PDF extraction failed: ${reason}`,
         text: '',
         isPDF: true
       }

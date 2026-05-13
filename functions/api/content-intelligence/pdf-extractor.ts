@@ -1,31 +1,35 @@
 /**
  * PDF Extractor for Content Intelligence
  *
- * Downloads and extracts text from PDF URLs
- * Uses pdf.js for text extraction
+ * Primary: unpdf (serverless-edge pdf.js fork, runs in-Worker, no external API).
+ * Optional fallback: pdf.co — only attempted when PDF_CO_API_KEY is set and unpdf failed.
  */
+import { extractText, getDocumentProxy, getMeta } from 'unpdf'
+
+type PdfMetadata = {
+  title?: string
+  author?: string
+  pageCount?: number
+  keywords?: string[]
+}
 
 /**
- * Extract text from PDF URL
+ * Extract text from PDF URL.
  *
  * @param url - PDF URL to extract from
- * @returns Extracted text content
+ * @param pdfCoApiKey - optional; if set, used as a fallback when in-Worker extraction fails
  */
 export async function extractPDFText(url: string, pdfCoApiKey?: string): Promise<{
   text: string
-  metadata?: {
-    title?: string
-    author?: string
-    pageCount?: number
-    keywords?: string[]
-  }
+  metadata?: PdfMetadata
 }> {
-
-  // Download PDF
+  // Realistic UA — observed that some hosts (e.g. w3.org) 403 the default Workers fetch
   const response = await fetch(url, {
     headers: {
-      'User-Agent': 'Mozilla/5.0 (compatible; ResearchToolsBot/1.0)'
-    }
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+      'Accept': 'application/pdf,*/*;q=0.8'
+    },
+    signal: AbortSignal.timeout(30000)
   })
 
   if (!response.ok) {
@@ -34,22 +38,60 @@ export async function extractPDFText(url: string, pdfCoApiKey?: string): Promise
 
   const pdfBuffer = await response.arrayBuffer()
 
-  return await extractPDFViaExternalService(pdfBuffer, pdfCoApiKey)
+  try {
+    return await extractViaUnpdf(pdfBuffer)
+  } catch (unpdfError) {
+    const reason = unpdfError instanceof Error ? unpdfError.message : String(unpdfError)
+    console.warn('[PDF Extractor] unpdf failed:', reason)
+
+    if (pdfCoApiKey) {
+      return await extractPDFViaExternalService(pdfBuffer, pdfCoApiKey)
+    }
+
+    throw new Error(`PDF text extraction failed (${reason}). The PDF may be encrypted, scanned, or image-only.`)
+  }
 }
 
 /**
- * Extract PDF text using external service (fallback for Cloudflare Workers)
+ * In-Worker extraction via unpdf. Handles standard text-based PDFs without any external service.
+ * Image-only / scanned PDFs return empty text — caller falls back to pdf.co if configured.
  */
-async function extractPDFViaExternalService(pdfBuffer: ArrayBuffer, pdfCoApiKey?: string): Promise<{
-  text: string
-  metadata?: any
-}> {
-  if (!pdfCoApiKey) {
-    throw new Error('PDF extraction unavailable: PDF_CO_API_KEY not configured')
+async function extractViaUnpdf(pdfBuffer: ArrayBuffer): Promise<{ text: string; metadata?: PdfMetadata }> {
+  const pdf = await getDocumentProxy(new Uint8Array(pdfBuffer))
+  const [textResult, metaResult] = await Promise.all([
+    extractText(pdf, { mergePages: true }),
+    getMeta(pdf).catch(() => null)
+  ])
+
+  const text = Array.isArray(textResult.text) ? textResult.text.join('\n\n') : textResult.text
+
+  if (!text || text.trim().length === 0) {
+    throw new Error('No text extracted (PDF may be image-only or scanned)')
   }
 
+  const info: any = metaResult?.info ?? {}
+  const keywordsRaw = typeof info.Keywords === 'string' ? info.Keywords : undefined
+
+  return {
+    text,
+    metadata: {
+      title: typeof info.Title === 'string' ? info.Title : undefined,
+      author: typeof info.Author === 'string' ? info.Author : undefined,
+      pageCount: textResult.totalPages,
+      keywords: keywordsRaw ? keywordsRaw.split(/[,;]\s*/).filter(Boolean) : undefined
+    }
+  }
+}
+
+/**
+ * pdf.co fallback — only invoked when unpdf failed and the API key is configured.
+ * Handles scanned/image-only PDFs via OCR.
+ */
+async function extractPDFViaExternalService(pdfBuffer: ArrayBuffer, pdfCoApiKey: string): Promise<{
+  text: string
+  metadata?: PdfMetadata
+}> {
   try {
-    // Upload PDF to pdf.co
     const uploadResponse = await fetch('https://api.pdf.co/v1/file/upload', {
       method: 'POST',
       headers: {
@@ -67,17 +109,13 @@ async function extractPDFViaExternalService(pdfBuffer: ArrayBuffer, pdfCoApiKey?
     const uploadData = await uploadResponse.json() as any
     const fileUrl = uploadData.url
 
-    // Extract text
     const extractResponse = await fetch('https://api.pdf.co/v1/pdf/convert/to/text', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': pdfCoApiKey,
       },
-      body: JSON.stringify({
-        url: fileUrl,
-        inline: true
-      }),
+      body: JSON.stringify({ url: fileUrl, inline: true }),
       signal: AbortSignal.timeout(30000)
     })
 
@@ -93,15 +131,12 @@ async function extractPDFViaExternalService(pdfBuffer: ArrayBuffer, pdfCoApiKey?
 
     return {
       text: extractData.body,
-      metadata: {
-        pageCount: extractData.pageCount
-      }
+      metadata: { pageCount: extractData.pageCount }
     }
   } catch (pdfCoError) {
-    console.error('[PDF Extractor] pdf.co API failed:', pdfCoError)
-
-    // Final fallback: Return error
-    throw new Error('PDF text extraction failed. The PDF may be encrypted, scanned, or corrupted.')
+    const reason = pdfCoError instanceof Error ? pdfCoError.message : String(pdfCoError)
+    console.error('[PDF Extractor] pdf.co fallback failed:', reason)
+    throw new Error(`PDF text extraction failed via fallback (${reason}). The PDF may be encrypted, scanned, or corrupted.`)
   }
 }
 
