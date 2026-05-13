@@ -160,7 +160,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const archiveUrls = generateArchiveUrls(normalizedUrl)
 
     // Extract content with automatic fallback to archives if blocked
-    const contentData = await extractUrlContentWithFallback(normalizedUrl, env.OPENAI_API_KEY, env.APIFY_API_KEY)
+    const contentData = await extractUrlContentWithFallback(normalizedUrl, env.OPENAI_API_KEY, env.APIFY_API_KEY, env.PDF_CO_API_KEY)
 
     if (!contentData.success) {
       console.error(`[DEBUG] Content extraction failed: ${contentData.error}`)
@@ -857,7 +857,7 @@ function isContentBlocked(result: {
 /**
  * Extract URL content with automatic fallback to archives if blocked
  */
-async function extractUrlContentWithFallback(url: string, apiKey?: string, apifyApiKey?: string): Promise<{
+async function extractUrlContentWithFallback(url: string, apiKey?: string, apifyApiKey?: string, pdfCoApiKey?: string): Promise<{
   success: boolean
   error?: string
   text: string
@@ -900,7 +900,7 @@ async function extractUrlContentWithFallback(url: string, apiKey?: string, apify
 
   // Try original URL first
   fallbackAttempts.push('original')
-  const originalResult = await extractUrlContent(url, apiKey)
+  const originalResult = await extractUrlContent(url, apiKey, pdfCoApiKey)
 
   // If successful and not blocked, return immediately
   if (originalResult.success && !isContentBlocked(originalResult)) {
@@ -917,7 +917,7 @@ async function extractUrlContentWithFallback(url: string, apiKey?: string, apify
     const archivePhUrl = await checkArchivePh(url)
     if (archivePhUrl) {
       fallbackAttempts.push('archive.ph')
-      const archivePhResult = await extractUrlContent(archivePhUrl, apiKey)
+      const archivePhResult = await extractUrlContent(archivePhUrl, apiKey, pdfCoApiKey)
 
       if (archivePhResult.success && !isContentBlocked(archivePhResult)) {
         return {
@@ -936,7 +936,7 @@ async function extractUrlContentWithFallback(url: string, apiKey?: string, apify
     const waybackUrl = await checkWaybackMachine(url)
     if (waybackUrl) {
       fallbackAttempts.push('wayback')
-      const waybackResult = await extractUrlContent(waybackUrl, apiKey)
+      const waybackResult = await extractUrlContent(waybackUrl, apiKey, pdfCoApiKey)
 
       if (waybackResult.success && !isContentBlocked(waybackResult)) {
         return {
@@ -954,7 +954,7 @@ async function extractUrlContentWithFallback(url: string, apiKey?: string, apify
   try {
     const smryUrl = `https://smry.ai/${encodeURIComponent(url)}`
     fallbackAttempts.push('smry.ai')
-    const smryResult = await extractUrlContent(smryUrl, apiKey)
+    const smryResult = await extractUrlContent(smryUrl, apiKey, pdfCoApiKey)
 
     if (smryResult.success && !isContentBlocked(smryResult)) {
       return {
@@ -1015,7 +1015,7 @@ function classifyFacebookContentType(url: string): string {
   return 'page'
 }
 
-async function extractUrlContent(url: string, apiKey?: string): Promise<{
+async function extractUrlContent(url: string, apiKey?: string, pdfCoApiKey?: string): Promise<{
   success: boolean
   error?: string
   text: string
@@ -1045,7 +1045,7 @@ async function extractUrlContent(url: string, apiKey?: string): Promise<{
   // Check if URL is a PDF
   if (isPDFUrl(resolvedUrl)) {
     try {
-      const pdfResult = await extractPDFText(resolvedUrl, context.env.PDF_CO_API_KEY)
+      const pdfResult = await extractPDFText(resolvedUrl, pdfCoApiKey)
 
       return {
         success: true,
