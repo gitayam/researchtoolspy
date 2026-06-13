@@ -41,7 +41,7 @@ summarize, generate-title/questions/timeline, keyphrases, topics, sentiment, SWO
 - ✅ All direct-OpenAI callers (11) migrated onto `callOpenAIViaGateway` — they now inherit caching, fallback, `_refusal`, and (for sensitive ones) framing. Gateway forwards the `OpenAI-Organization` header when set.
 
 **Remaining:**
-1. **`pdf-extractor.ts`** still calls OpenAI directly — left out of the migration (large inputs / its own timeout budget); migrate separately with care.
+1. ✅ `pdf-extractor.ts` migrated too (2026-06-13) — **all 4 calls now route through the gateway; only `ai-gateway.ts` calls OpenAI directly.**
 2. **Provider routing / Surface Hopping**: if any intel function is ever moved to Claude, route it to a permissive surface (Mistral/Vibe or Gemini) or keep it on OpenAI. Don't switch the Tier-2 cluster to Anthropic blindly.
 3. **Gate Tier-1 behind explicit auth + ToS ack**, and re-evaluate PimEyes/face-match and any remaining identity-profiling features on policy + legal grounds.
 4. Minor: dead `AbortController`/`timeoutId` left in `ai/generate-timeline.ts` after migration (gateway owns the timeout now) — harmless, clean up opportunistically.
