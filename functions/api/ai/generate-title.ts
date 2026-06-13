@@ -7,6 +7,7 @@
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest } from '../_shared/auth-helpers'
 import { JSON_HEADERS, optionsResponse } from '../_shared/api-utils'
+import { callOpenAIViaGateway, REFUSAL_BODY } from '../_shared/ai-gateway'
 
 interface Env {
   DB: D1Database
@@ -73,47 +74,33 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       }
     }
 
-    // Generate title using OpenAI
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${env.OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: 'gpt-5.4-nano',
-        messages: [
-          {
-            role: 'system',
-            content: `You are an expert analyst who creates concise, meaningful titles for analytical frameworks. Generate a clear, professional title that captures the essence of the analysis. The title should be:
+    // Generate title using OpenAI via AI Gateway
+    const aiResponse = await callOpenAIViaGateway(env, {
+      model: 'gpt-5.4-nano',
+      messages: [
+        {
+          role: 'system',
+          content: `You are an expert analyst who creates concise, meaningful titles for analytical frameworks. Generate a clear, professional title that captures the essence of the analysis. The title should be:
 - Concise (3-8 words)
 - Descriptive and specific
 - Professional
 - Action-oriented when appropriate
 
 Return ONLY the title, nothing else.`
-          },
-          {
-            role: 'user',
-            content: `Generate a title for this ${frameworkType} analysis:\n\n${context}`
-          }
-        ],
-        reasoning_effort: 'low',
-        max_completion_tokens: 50
-      }),
-      signal: AbortSignal.timeout(30000)
-    })
+        },
+        {
+          role: 'user',
+          content: `Generate a title for this ${frameworkType} analysis:\n\n${context}`
+        }
+      ],
+      reasoning_effort: 'low',
+      max_completion_tokens: 50
+    }, { metadata: { endpoint: 'generate-title' }, cacheTTL: 3600 })
 
-    if (!response.ok) {
-      const errorData = await response.json()
-      console.error('OpenAI API error:', errorData)
-      return new Response(
-        JSON.stringify({ error: 'Failed to generate title' }),
-        { status: 500, headers: JSON_HEADERS }
-      )
+    if (aiResponse?._refusal) {
+      return new Response(JSON.stringify(REFUSAL_BODY), { status: 200, headers: JSON_HEADERS })
     }
 
-    const aiResponse = await response.json()
     const title = aiResponse.choices[0]?.message?.content?.trim() || 'Untitled Analysis'
 
     return new Response(

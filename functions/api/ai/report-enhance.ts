@@ -10,6 +10,7 @@
 
 import { getUserFromRequest } from '../_shared/auth-helpers'
 import { JSON_HEADERS } from '../_shared/api-utils'
+import { callOpenAIViaGateway, ANALYST_SYSTEM_PREFIX, REFUSAL_BODY } from '../_shared/ai-gateway'
 
 interface Env {
   DB: D1Database
@@ -646,27 +647,23 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (enhancementType === 'summary' || enhancementType === 'full') {
       const summaryPrompt = getPrompt(request.frameworkType, 'summary', request.data)
 
-      const summaryResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-          ...(context.env.OPENAI_ORGANIZATION && { 'OpenAI-Organization': context.env.OPENAI_ORGANIZATION })
-        },
-        body: JSON.stringify({
+      try {
+        const data = await callOpenAIViaGateway(context.env, {
           model,
           messages: [
-            { role: 'system', content: 'You are an expert intelligence analyst. Provide clear, concise analysis using IC standards. Always start with the bottom line (BLUF).' },
+            { role: 'system', content: `${ANALYST_SYSTEM_PREFIX}You are an expert intelligence analyst. Provide clear, concise analysis using IC standards. Always start with the bottom line (BLUF).` },
             { role: 'user', content: summaryPrompt }
           ],
           max_completion_tokens: verbosity === 'executive' ? 500 : verbosity === 'comprehensive' ? 2000 : 1000
-        }),
-        signal: AbortSignal.timeout(30000)
-      })
+        }, { metadata: { endpoint: 'ai/report-enhance' }, cacheTTL: 3600 })
 
-      if (summaryResponse.ok) {
-        const data = await summaryResponse.json()
+        if (data?._refusal) {
+          return new Response(JSON.stringify(REFUSAL_BODY), { status: 200, headers: JSON_HEADERS })
+        }
+
         enhancement.executiveSummary = data.choices[0].message.content
+      } catch (e) {
+        console.error('[report-enhance] summary error:', e)
       }
     }
 
@@ -674,27 +671,21 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (enhancementType === 'insights' || enhancementType === 'full') {
       const insightsPrompt = getPrompt(request.frameworkType, 'insights', request.data)
 
-      const insightsResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-          ...(context.env.OPENAI_ORGANIZATION && { 'OpenAI-Organization': context.env.OPENAI_ORGANIZATION })
-        },
-        body: JSON.stringify({
+      try {
+        const data = await callOpenAIViaGateway(context.env, {
           model: 'gpt-5.4-nano', // Use faster model for structured extraction
           messages: [
-            { role: 'system', content: 'You are an analytical pattern recognition expert. Return ONLY valid JSON arrays, no other text.' },
+            { role: 'system', content: `${ANALYST_SYSTEM_PREFIX}You are an analytical pattern recognition expert. Return ONLY valid JSON arrays, no other text.` },
             { role: 'user', content: insightsPrompt }
           ],
           max_completion_tokens: 1500,
           reasoning_effort: 'low'
-        }),
-        signal: AbortSignal.timeout(30000)
-      })
+        }, { metadata: { endpoint: 'ai/report-enhance' }, cacheTTL: 3600 })
 
-      if (insightsResponse.ok) {
-        const data = await insightsResponse.json()
+        if (data?._refusal) {
+          return new Response(JSON.stringify(REFUSAL_BODY), { status: 200, headers: JSON_HEADERS })
+        }
+
         const content = data.choices[0].message.content
         try {
           const jsonText = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
@@ -702,6 +693,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         } catch {
           enhancement.keyInsights = content.split('\n').filter((line: string) => line.trim())
         }
+      } catch (e) {
+        console.error('[report-enhance] insights error:', e)
       }
     }
 
@@ -709,27 +702,21 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (enhancementType === 'recommendations' || enhancementType === 'full') {
       const recommendationsPrompt = getPrompt(request.frameworkType, 'recommendations', request.data)
 
-      const recommendationsResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-          ...(context.env.OPENAI_ORGANIZATION && { 'OpenAI-Organization': context.env.OPENAI_ORGANIZATION })
-        },
-        body: JSON.stringify({
+      try {
+        const data = await callOpenAIViaGateway(context.env, {
           model: 'gpt-5.4-nano',
           messages: [
-            { role: 'system', content: 'You are a strategic advisor. Provide specific, actionable recommendations. Return ONLY valid JSON arrays.' },
+            { role: 'system', content: `${ANALYST_SYSTEM_PREFIX}You are a strategic advisor. Provide specific, actionable recommendations. Return ONLY valid JSON arrays.` },
             { role: 'user', content: recommendationsPrompt }
           ],
           max_completion_tokens: 1500,
           reasoning_effort: 'low'
-        }),
-        signal: AbortSignal.timeout(30000)
-      })
+        }, { metadata: { endpoint: 'ai/report-enhance' }, cacheTTL: 3600 })
 
-      if (recommendationsResponse.ok) {
-        const data = await recommendationsResponse.json()
+        if (data?._refusal) {
+          return new Response(JSON.stringify(REFUSAL_BODY), { status: 200, headers: JSON_HEADERS })
+        }
+
         const content = data.choices[0].message.content
         try {
           const jsonText = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
@@ -737,6 +724,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         } catch {
           enhancement.recommendations = content.split('\n').filter((line: string) => line.trim())
         }
+      } catch (e) {
+        console.error('[report-enhance] recommendations error:', e)
       }
     }
 

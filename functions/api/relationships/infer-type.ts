@@ -5,6 +5,7 @@
 
 import { getUserFromRequest } from '../_shared/auth-helpers'
 import { CORS_HEADERS, JSON_HEADERS } from '../_shared/api-utils'
+import { callOpenAIViaGateway, ANALYST_SYSTEM_PREFIX } from '../_shared/ai-gateway'
 
 interface Env {
   DB: D1Database
@@ -86,10 +87,10 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
     const contextText = buildContextText(sourceEntity, targetEntity, body.context, body.evidence_text)
 
     // Call GPT to infer relationship type
-    const inferredType = await inferRelationshipType(env.OPENAI_API_KEY, contextText, sourceEntity, targetEntity)
+    const inferredType = await inferRelationshipType(env, contextText, sourceEntity, targetEntity)
 
     // Generate confidence explanation
-    const explanation = await generateExplanation(env.OPENAI_API_KEY, contextText, sourceEntity, targetEntity, inferredType)
+    const explanation = await generateExplanation(env, contextText, sourceEntity, targetEntity, inferredType)
 
     return new Response(JSON.stringify({
       inferred_type: inferredType,
@@ -163,7 +164,7 @@ function buildContextText(
 }
 
 async function inferRelationshipType(
-  apiKey: string,
+  env: Env,
   contextText: string,
   sourceEntity: any,
   targetEntity: any
@@ -196,37 +197,23 @@ Relationship Type Guidelines:
 Respond with ONLY the relationship type, no explanation.`
 
   try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: 'gpt-5.4-nano',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are an intelligence analyst expert at identifying relationship types between entities. Respond only with the relationship type from the provided list.'
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        reasoning_effort: 'none',
-        temperature: 0.3,
-        max_completion_tokens: 50
-      }),
-      signal: AbortSignal.timeout(30000)
-    })
+    const data = await callOpenAIViaGateway(env, {
+      model: 'gpt-5.4-nano',
+      messages: [
+        {
+          role: 'system',
+          content: `${ANALYST_SYSTEM_PREFIX}You are an intelligence analyst expert at identifying relationship types between entities. Respond only with the relationship type from the provided list.`
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      reasoning_effort: 'none',
+      temperature: 0.3,
+      max_completion_tokens: 50
+    }, { metadata: { endpoint: 'relationships/infer-type' }, cacheTTL: 3600 })
 
-    if (!response.ok) {
-      console.error('OpenAI API error:', await response.text())
-      return 'MENTIONED_WITH'  // Fallback
-    }
-
-    const data = await response.json()
     const inferredType = data.choices[0].message.content.trim().toUpperCase()
 
     // Validate it's one of our types
@@ -242,7 +229,7 @@ Respond with ONLY the relationship type, no explanation.`
 }
 
 async function generateExplanation(
-  apiKey: string,
+  env: Env,
   contextText: string,
   sourceEntity: any,
   targetEntity: any,
@@ -255,36 +242,23 @@ The relationship type has been determined as: ${inferredType}
 Provide a brief 1-2 sentence explanation of why this relationship type fits, based on the available information.`
 
   try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: 'gpt-5.4-nano',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are an intelligence analyst. Provide clear, concise explanations.'
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        reasoning_effort: 'none',
-        temperature: 0.7,
-        max_completion_tokens: 150
-      }),
-      signal: AbortSignal.timeout(30000)
-    })
+    const data = await callOpenAIViaGateway(env, {
+      model: 'gpt-5.4-nano',
+      messages: [
+        {
+          role: 'system',
+          content: `${ANALYST_SYSTEM_PREFIX}You are an intelligence analyst. Provide clear, concise explanations.`
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      reasoning_effort: 'none',
+      temperature: 0.7,
+      max_completion_tokens: 150
+    }, { metadata: { endpoint: 'relationships/infer-type' }, cacheTTL: 3600 })
 
-    if (!response.ok) {
-      return 'Relationship type inferred from available context.'
-    }
-
-    const data = await response.json()
     return data.choices[0].message.content.trim()
   } catch (error) {
     return 'Relationship type inferred from available context.'

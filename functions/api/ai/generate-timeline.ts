@@ -11,6 +11,7 @@
 
 import { getUserFromRequest } from '../_shared/auth-helpers'
 import { JSON_HEADERS } from '../_shared/api-utils'
+import { callOpenAIViaGateway, REFUSAL_BODY } from '../_shared/ai-gateway'
 
 interface Env {
   DB: D1Database
@@ -165,39 +166,22 @@ Keep it brief.`
     const timeoutId = setTimeout(() => controller.abort(), 25000) // 25 second timeout
 
     try {
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-          ...(context.env.OPENAI_ORGANIZATION && { 'OpenAI-Organization': context.env.OPENAI_ORGANIZATION })
-        },
-        signal: controller.signal,
-        body: JSON.stringify({
-          model,
-          messages: [
-            { role: 'system', content: 'Respond with valid JSON only.' },
-            { role: 'user', content: prompt }
-          ],
-          reasoning_effort: 'none',
-          temperature: 0.7,
-          max_completion_tokens: 800,
-          response_format: { type: "json_object" }
-        })
-      })
+      const data = await callOpenAIViaGateway(context.env, {
+        model,
+        messages: [
+          { role: 'system', content: 'Respond with valid JSON only.' },
+          { role: 'user', content: prompt }
+        ],
+        reasoning_effort: 'none',
+        temperature: 0.7,
+        max_completion_tokens: 800,
+        response_format: { type: "json_object" }
+      }, { metadata: { endpoint: 'generate-timeline' }, cacheTTL: 3600, timeout: 25000 })
 
-      if (!response.ok) {
-        const errorText = await response.text()
-        console.error('OpenAI API error:', errorText)
-        try {
-          const errorData = JSON.parse(errorText)
-          throw new Error(errorData.error?.message || 'AI request failed')
-        } catch {
-          throw new Error(`AI request failed: ${response.status} ${response.statusText}`)
-        }
+      if (data?._refusal) {
+        return Response.json(REFUSAL_BODY, { status: 200 })
       }
 
-      const data = await response.json()
       const content = data.choices[0]?.message?.content
 
       if (!content) {

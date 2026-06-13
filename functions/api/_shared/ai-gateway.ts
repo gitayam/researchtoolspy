@@ -15,7 +15,22 @@ declare type KVNamespace = any
 interface Env {
   AI_GATEWAY_ACCOUNT_ID?: string
   OPENAI_API_KEY: string
+  OPENAI_ORGANIZATION?: string
   RATE_LIMIT?: KVNamespace
+}
+
+/**
+ * Build the auth headers, forwarding the OpenAI-Organization header when configured.
+ * (Some callers previously sent this directly; centralizing it here preserves org
+ * scoping for every gateway-routed call.)
+ */
+function openaiAuthHeaders(env: Env): Record<string, string> {
+  const headers: Record<string, string> = {
+    'Authorization': `Bearer ${env.OPENAI_API_KEY}`,
+    'Content-Type': 'application/json',
+  }
+  if (env.OPENAI_ORGANIZATION) headers['OpenAI-Organization'] = env.OPENAI_ORGANIZATION
+  return headers
 }
 
 interface AIGatewayOptions {
@@ -174,8 +189,7 @@ async function callViaGateway(
     const response = await fetch(gatewayUrl, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${env.OPENAI_API_KEY}`,
-        'Content-Type': 'application/json',
+        ...openaiAuthHeaders(env),
         // Caching headers
         'cf-aig-cache-ttl': String(cacheTTL),
         // Metadata for analytics
@@ -218,10 +232,7 @@ async function callDirectOpenAI(
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${env.OPENAI_API_KEY}`,
-        'Content-Type': 'application/json'
-      },
+      headers: openaiAuthHeaders(env),
       body: JSON.stringify(openaiRequest),
       signal: controller.signal
     })

@@ -6,6 +6,7 @@
 
 import { JSON_HEADERS } from '../_shared/api-utils'
 import { getUserFromRequest } from '../_shared/auth-helpers'
+import { callOpenAIViaGateway, REFUSAL_BODY } from '../_shared/ai-gateway'
 
 interface Env {
   DB: D1Database
@@ -228,38 +229,29 @@ ${jsonFormat}`
 
     // Log API call details
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: 'gpt-5.4-mini',
-        messages: [
-          {
-            role: 'system',
-            content: hasExistingQuestions
-              ? 'You are an expert intelligence analyst specializing in identifying critical information gaps. Generate SPECIFIC, CONTEXTUAL follow-up questions that build upon existing analysis. CRITICAL: Your questions must include specific names, dates, entities, and events - NEVER use pronouns like "this", "it", "the topic". Questions must be self-contained and understandable without seeing the original analysis. Be concrete, actionable, and reference specific details by name. Return ONLY valid JSON with no other text.'
-              : 'You are an expert intelligence analyst specializing in generating insightful questions for analysis. Generate SPECIFIC, TARGETED initial questions based on the topic description. CRITICAL: Your questions must include specific names, dates, entities, and events from the topic - NEVER use pronouns like "this", "it", "the subject". Questions must be self-contained and understandable without seeing the topic description. Be concrete, actionable, and directly related to the topic. Return ONLY valid JSON with no other text.'
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        max_completion_tokens: maxTokens
-      }),
-      signal: AbortSignal.timeout(30000)
-    })
+    const data = await callOpenAIViaGateway(context.env, {
+      model: 'gpt-5.4-mini',
+      messages: [
+        {
+          role: 'system',
+          content: hasExistingQuestions
+            ? 'You are an expert intelligence analyst specializing in identifying critical information gaps. Generate SPECIFIC, CONTEXTUAL follow-up questions that build upon existing analysis. CRITICAL: Your questions must include specific names, dates, entities, and events - NEVER use pronouns like "this", "it", "the topic". Questions must be self-contained and understandable without seeing the original analysis. Be concrete, actionable, and reference specific details by name. Return ONLY valid JSON with no other text.'
+            : 'You are an expert intelligence analyst specializing in generating insightful questions for analysis. Generate SPECIFIC, TARGETED initial questions based on the topic description. CRITICAL: Your questions must include specific names, dates, entities, and events from the topic - NEVER use pronouns like "this", "it", "the subject". Questions must be self-contained and understandable without seeing the topic description. Be concrete, actionable, and directly related to the topic. Return ONLY valid JSON with no other text.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      max_completion_tokens: maxTokens
+    }, { metadata: { endpoint: 'generate-questions' }, cacheTTL: 3600 })
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
-      console.error('OpenAI API error:', errorData)
-      throw new Error(`AI generation failed: ${JSON.stringify(errorData)}`)
+    if (data?._refusal) {
+      return new Response(JSON.stringify(REFUSAL_BODY), {
+        status: 200,
+        headers: JSON_HEADERS
+      })
     }
-
-    const data = await response.json()
 
     // Log full response for debugging
 

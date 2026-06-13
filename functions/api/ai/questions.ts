@@ -6,6 +6,7 @@
 
 import { getUserFromRequest } from '../_shared/auth-helpers'
 import { JSON_HEADERS } from '../_shared/api-utils'
+import { callOpenAIViaGateway, REFUSAL_BODY } from '../_shared/ai-gateway'
 
 interface Env {
   DB: D1Database
@@ -81,34 +82,21 @@ No explanations, just the JSON array.`
       systemPrompt: 'You are a research assistant.'
     }
 
-    // Call OpenAI
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-        ...(context.env.OPENAI_ORGANIZATION && { 'OpenAI-Organization': context.env.OPENAI_ORGANIZATION })
-      },
-      body: JSON.stringify({
-        model,
-        messages: [
-          { role: 'system', content: 'You are an analytical quality assurance assistant. Generate probing questions that help analysts identify gaps, biases, and alternative hypotheses. Be specific and encourage critical thinking.' },
-          { role: 'user', content: prompt }
-        ],
-        max_completion_tokens: modelSettings.maxTokens,
-        ...(modelSettings.reasoningEffort && { reasoning_effort: modelSettings.reasoningEffort })
-      }),
-      signal: AbortSignal.timeout(30000)
-    })
+    // Call OpenAI via AI Gateway
+    const data = await callOpenAIViaGateway(context.env, {
+      model,
+      messages: [
+        { role: 'system', content: 'You are an analytical quality assurance assistant. Generate probing questions that help analysts identify gaps, biases, and alternative hypotheses. Be specific and encourage critical thinking.' },
+        { role: 'user', content: prompt }
+      ],
+      max_completion_tokens: modelSettings.maxTokens,
+      ...(modelSettings.reasoningEffort && { reasoning_effort: modelSettings.reasoningEffort })
+    }, { metadata: { endpoint: 'questions' }, cacheTTL: 3600 })
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: { message: 'Unknown error' } }))
-      return Response.json({
-        error: 'Question generation failed',
-      }, { status: response.status })
+    if (data?._refusal) {
+      return Response.json(REFUSAL_BODY, { status: 200 })
     }
 
-    const data = await response.json()
     const content = data.choices[0].message.content
 
     // Try to parse as JSON

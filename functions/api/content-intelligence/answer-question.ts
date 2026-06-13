@@ -12,6 +12,7 @@ import type { PagesFunction } from '@cloudflare/workers-types'
 
 import { getUserFromRequest } from '../_shared/auth-helpers'
 import { JSON_HEADERS, safeJsonParse } from '../_shared/api-utils'
+import { callOpenAIViaGateway, ANALYST_SYSTEM_PREFIX } from '../_shared/ai-gateway'
 
 interface Env {
   DB: D1Database
@@ -73,7 +74,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       summary,
       entities,
       question,
-      env.OPENAI_API_KEY
+      env
     )
 
     // Step 3: Combine results
@@ -190,7 +191,7 @@ async function semanticSearch(
   summary: string,
   entities: any,
   question: string,
-  apiKey: string
+  env: Env
 ): Promise<{
   answer: string
   confidence: number
@@ -220,38 +221,19 @@ Return ONLY valid JSON:
 }`
 
   try {
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 15000)
-
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
-      },
-      signal: controller.signal,
-      body: JSON.stringify({
-        model: 'gpt-5.4-mini',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a question-answering assistant. Extract precise answers from provided content. Return ONLY valid JSON.'
-          },
-          { role: 'user', content: prompt }
-        ],
-        max_completion_tokens: 600,
-        reasoning_effort: 'none',
-        temperature: 0.7
-      })
-    })
-
-    clearTimeout(timeoutId)
-
-    if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.status}`)
-    }
-
-    const data = await response.json() as any
+    const data = await callOpenAIViaGateway(env, {
+      model: 'gpt-5.4-mini',
+      messages: [
+        {
+          role: 'system',
+          content: `${ANALYST_SYSTEM_PREFIX}You are a question-answering assistant. Extract precise answers from provided content. Return ONLY valid JSON.`
+        },
+        { role: 'user', content: prompt }
+      ],
+      max_completion_tokens: 600,
+      reasoning_effort: 'none',
+      temperature: 0.7
+    }, { metadata: { endpoint: 'content-intelligence/answer-question' }, cacheTTL: 3600, timeout: 15000 }) as any
 
     if (!data.choices?.[0]?.message?.content) {
       throw new Error('Invalid API response')

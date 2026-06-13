@@ -6,6 +6,7 @@
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest } from '../_shared/auth-helpers'
 import { JSON_HEADERS, CORS_HEADERS, optionsResponse } from '../_shared/api-utils'
+import { callOpenAIViaGateway, ANALYST_SYSTEM_PREFIX, REFUSAL_BODY } from '../_shared/ai-gateway'
 
 interface Env {
   DB: D1Database
@@ -66,38 +67,26 @@ ${excerpts.length === 0 ? `Full context (first 2000 chars):\n${truncatedContent.
 Provide a concise, informative summary in 2-3 sentences.`
 
     try {
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 20000)
+      const data = await callOpenAIViaGateway(env, {
+        model: 'gpt-5.4-mini',
+        messages: [
+          {
+            role: 'system',
+            content: `${ANALYST_SYSTEM_PREFIX}You are a research assistant that summarizes entities mentioned in documents. Provide clear, factual 2-3 sentence summaries focusing on the entity's role and significance in the given content.`
+          },
+          { role: 'user', content: prompt }
+        ],
+        max_completion_tokens: 300,
+        reasoning_effort: 'none',
+        temperature: 0.7
+      }, { metadata: { endpoint: 'content-intelligence/summarize-entity' }, cacheTTL: 3600, timeout: 20000 }) as any
 
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${env.OPENAI_API_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        signal: controller.signal,
-        body: JSON.stringify({
-          model: 'gpt-5.4-mini',
-          messages: [
-            {
-              role: 'system',
-              content: `You are a research assistant that summarizes entities mentioned in documents. Provide clear, factual 2-3 sentence summaries focusing on the entity's role and significance in the given content.`
-            },
-            { role: 'user', content: prompt }
-          ],
-          max_completion_tokens: 300,
-          reasoning_effort: 'none',
-          temperature: 0.7
+      if (data?._refusal) {
+        return new Response(JSON.stringify(REFUSAL_BODY), {
+          status: 200,
+          headers: JSON_HEADERS
         })
-      })
-
-      clearTimeout(timeoutId)
-
-      if (!response.ok) {
-        throw new Error(`OpenAI API error: ${response.status}`)
       }
-
-      const data = await response.json() as any
 
       if (!data.choices?.[0]?.message?.content) {
         throw new Error('Invalid API response')

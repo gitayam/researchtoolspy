@@ -7,6 +7,7 @@
 
 import { getUserFromRequest } from '../_shared/auth-helpers'
 import { JSON_HEADERS } from '../_shared/api-utils'
+import { callOpenAIViaGateway, ANALYST_SYSTEM_PREFIX, REFUSAL_BODY } from '../_shared/ai-gateway'
 
 interface Env {
   DB: D1Database
@@ -112,7 +113,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       messages: [
         {
           role: 'system',
-          content: modelSettings.systemPrompt
+          content: `${ANALYST_SYSTEM_PREFIX}${modelSettings.systemPrompt}`
         },
         {
           role: 'user',
@@ -123,29 +124,15 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       ...(request.reasoningEffort && { reasoning_effort: request.reasoningEffort })
     }
 
-    // Call OpenAI API
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-        ...(context.env.OPENAI_ORGANIZATION && {
-          'OpenAI-Organization': context.env.OPENAI_ORGANIZATION
-        })
-      },
-      body: JSON.stringify(openaiRequest),
-      signal: AbortSignal.timeout(30000)
+    // Call OpenAI via AI Gateway (no caching for arbitrary user generation)
+    const data = await callOpenAIViaGateway(context.env, openaiRequest, {
+      metadata: { endpoint: 'ai/generate' },
+      cacheTTL: 0
     })
 
-    if (!response.ok) {
-      const error = await response.json().catch((e) => { console.error('[ai/generate] JSON parse error:', e); return { error: { message: 'Unknown error' } } })
-      console.error('OpenAI API error:', error)
-      return Response.json({
-        error: 'AI generation failed',
-      }, { status: response.status })
+    if (data?._refusal) {
+      return new Response(JSON.stringify(REFUSAL_BODY), { status: 200, headers: JSON_HEADERS })
     }
-
-    const data = await response.json()
 
     // Extract response
     const content = data.choices[0].message.content

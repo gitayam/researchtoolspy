@@ -6,6 +6,7 @@
 
 import { getUserFromRequest } from '../_shared/auth-helpers'
 import { JSON_HEADERS } from '../_shared/api-utils'
+import { callOpenAIViaGateway, REFUSAL_BODY } from '../_shared/ai-gateway'
 
 interface Env {
   DB: D1Database
@@ -77,33 +78,19 @@ ${mode === 'comprehensive' ? 'Use markdown headings (##) to organize sections.' 
       systemPrompt: 'You are an intelligence analyst assistant.'
     }
 
-    // Call OpenAI
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-        ...(context.env.OPENAI_ORGANIZATION && { 'OpenAI-Organization': context.env.OPENAI_ORGANIZATION })
-      },
-      body: JSON.stringify({
-        model,
-        messages: [
-          { role: 'system', content: modelSettings.systemPrompt },
-          { role: 'user', content: prompt }
-        ],
-        max_completion_tokens: modelSettings.maxTokens
-      }),
-      signal: AbortSignal.timeout(30000)
-    })
+    // Call OpenAI via AI Gateway
+    const data = await callOpenAIViaGateway(context.env, {
+      model,
+      messages: [
+        { role: 'system', content: modelSettings.systemPrompt },
+        { role: 'user', content: prompt }
+      ],
+      max_completion_tokens: modelSettings.maxTokens
+    }, { metadata: { endpoint: 'summarize' }, cacheTTL: 3600 })
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: { message: 'Unknown error' } }))
-      return Response.json({
-        error: 'Summarization failed',
-      }, { status: response.status })
+    if (data?._refusal) {
+      return Response.json(REFUSAL_BODY, { status: 200 })
     }
-
-    const data = await response.json()
 
     return Response.json({
       summary: data.choices[0].message.content,

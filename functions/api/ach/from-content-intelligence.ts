@@ -5,6 +5,7 @@
 
 import { getUserFromRequest } from '../_shared/auth-helpers'
 import { JSON_HEADERS, optionsResponse, safeJsonParse } from '../_shared/api-utils'
+import { callOpenAIViaGateway, ANALYST_SYSTEM_PREFIX, REFUSAL_BODY } from '../_shared/ai-gateway'
 
 interface Env {
   DB: D1Database
@@ -66,26 +67,21 @@ The question should:
 
 Return ONLY the question text, no other formatting.`
 
-    const questionResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${context.env.OPENAI_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: 'gpt-5.4-mini',
-        messages: [
-          { role: 'system', content: 'You are an intelligence analyst creating ACH questions.' },
-          { role: 'user', content: questionPrompt }
-        ],
-        reasoning_effort: 'none',
-        temperature: 0.7,
-        max_completion_tokens: 200
-      }),
-      signal: AbortSignal.timeout(30000)
-    })
+    const questionData = await callOpenAIViaGateway(context.env, {
+      model: 'gpt-5.4-mini',
+      messages: [
+        { role: 'system', content: `${ANALYST_SYSTEM_PREFIX}You are an intelligence analyst creating ACH questions.` },
+        { role: 'user', content: questionPrompt }
+      ],
+      reasoning_effort: 'none',
+      temperature: 0.7,
+      max_completion_tokens: 200
+    }, { metadata: { endpoint: 'ach/from-content-intelligence' }, cacheTTL: 3600 })
 
-    const questionData = await questionResponse.json()
+    if (questionData?._refusal) {
+      return new Response(JSON.stringify(REFUSAL_BODY), { status: 200, headers: JSON_HEADERS })
+    }
+
     const question = questionData.choices?.[0]?.message?.content?.trim() || `What are the key implications of: ${analysis.title}?`
 
     // Generate hypotheses from content
@@ -97,27 +93,22 @@ Entities: ${analysis.entities ? Object.keys(safeJsonParse(analysis.entities, {})
 
 Return ONLY a JSON array of hypothesis strings: ["hypothesis 1", "hypothesis 2", ...]`
 
-    const hypothesesResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${context.env.OPENAI_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: 'gpt-5.4-mini',
-        messages: [
-          { role: 'system', content: 'You are an intelligence analyst using ACH methodology.' },
-          { role: 'user', content: hypothesesPrompt }
-        ],
-        reasoning_effort: 'none',
-        temperature: 0.7,
-        max_completion_tokens: 600,
-        response_format: { type: 'json_object' }
-      }),
-      signal: AbortSignal.timeout(30000)
-    })
+    const hypothesesData = await callOpenAIViaGateway(context.env, {
+      model: 'gpt-5.4-mini',
+      messages: [
+        { role: 'system', content: `${ANALYST_SYSTEM_PREFIX}You are an intelligence analyst using ACH methodology.` },
+        { role: 'user', content: hypothesesPrompt }
+      ],
+      reasoning_effort: 'none',
+      temperature: 0.7,
+      max_completion_tokens: 600,
+      response_format: { type: 'json_object' }
+    }, { metadata: { endpoint: 'ach/from-content-intelligence' }, cacheTTL: 3600 })
 
-    const hypothesesData = await hypothesesResponse.json()
+    if (hypothesesData?._refusal) {
+      return new Response(JSON.stringify(REFUSAL_BODY), { status: 200, headers: JSON_HEADERS })
+    }
+
     const hypothesesContent = hypothesesData.choices?.[0]?.message?.content
 
     let hypotheses: string[]
