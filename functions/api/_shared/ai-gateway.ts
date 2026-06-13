@@ -87,17 +87,51 @@ export async function callOpenAIViaGateway(
   // Determine if we should use gateway
   const useGateway = !forceDirect && !!env.AI_GATEWAY_ACCOUNT_ID
 
+  let data: any
   if (useGateway) {
     try {
-      return await callViaGateway(env, openaiRequest, cacheTTL, metadata, timeout)
+      data = await callViaGateway(env, openaiRequest, cacheTTL, metadata, timeout)
     } catch (error) {
       console.warn('[AI Gateway] Gateway failed, falling back to direct OpenAI:', error)
       // Automatic fallback to direct OpenAI
-      return await callDirectOpenAI(env, openaiRequest, timeout)
+      data = await callDirectOpenAI(env, openaiRequest, timeout)
     }
   } else {
-    return await callDirectOpenAI(env, openaiRequest, timeout)
+    data = await callDirectOpenAI(env, openaiRequest, timeout)
   }
+
+  // Annotate (don't throw) when the model declined on content-policy grounds.
+  // Callers that ignore `_refusal` behave exactly as before; callers that check it
+  // can surface a clean "declined by model" state instead of an opaque JSON-parse error.
+  const content = data?.choices?.[0]?.message?.content
+  if (typeof content === 'string' && detectRefusal(content)) {
+    console.warn(`[AI Gateway] model refusal detected (endpoint=${metadata?.endpoint || 'unknown'})`)
+    data._refusal = true
+  }
+  return data
+}
+
+/**
+ * Detect a model content-policy refusal in an assistant message.
+ *
+ * Conservative by design — anchored to how refusals actually begin so analytical
+ * content that merely *discusses* policy/violations isn't flagged. Covers both
+ * OpenAI-style ("I'm sorry, but I can't…") and Anthropic-style ("…appears to
+ * violate…Usage Policy") refusals so it keeps working under provider routing.
+ */
+export function detectRefusal(content: string): boolean {
+  if (!content) return false
+  const head = content.trim().slice(0, 240).toLowerCase()
+  const refusalStarts = [
+    "i'm sorry", 'i am sorry', 'sorry, but', "i can't", 'i cannot', 'i can not',
+    "i won't", 'i will not', "i'm unable", 'i am unable', "i'm not able", 'i am not able',
+    "i'm not going to", 'i must decline', 'i am not able to assist',
+  ]
+  if (refusalStarts.some(s => head.startsWith(s))) return true
+  // Explicit policy-refusal phrasing anywhere in a short message
+  if (content.length < 800 && /\b(?:violates?|against|breach(?:es)?)\b[^.]{0,40}\b(?:usage |content )?(?:policy|policies|guidelines)\b/i.test(content)) return true
+  if (/\bappears to violate\b|cyber-?related safeguards|cyber verification/i.test(content)) return true
+  return false
 }
 
 /**

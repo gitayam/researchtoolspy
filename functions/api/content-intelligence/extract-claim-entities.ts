@@ -57,16 +57,16 @@ Extract entities with these details:
    - mentioned: Other entities referenced
    - affected: Who is impacted by this claim?
 
-4. **credibility_impact** - How does this entity affect claim credibility? (-50 to +50)
-   Guidelines:
-   - Politicians with known partisan bias: -30 to -40
-   - Political party spokespersons: -25 to -35
-   - Industry representatives with financial interest: -20 to -30
-   - Anonymous sources: -15 to -25
-   - Neutral experts/academics: +20 to +30
-   - Official government agencies: +30 to +40
-   - Peer-reviewed studies: +40 to +50
-   - Fact-checking organizations: +35 to +45
+4. **credibility_impact** - How does this entity's RELATIONSHIP TO THE CLAIM affect its reliability? (-50 to +50)
+   Score on evidence-based factors, NOT political affiliation, ideology, or institutional identity:
+   - Strong conflict of interest / direct stake in the claim being true: -25 to -40
+   - Anonymous or unverifiable source: -15 to -25
+   - Secondhand / unattributed relay (no first-hand knowledge): -10 to -20
+   - Independent party with no apparent stake in the outcome: 0 to +15
+   - Primary source with direct first-hand knowledge: +15 to +30
+   - Independently corroborated or peer-reviewed evidence: +30 to +50
+   Any entity (including governments and officials) can be the source of a deceptive claim —
+   judge by stake, independence, and proximity to the evidence, never by partisan label.
 
 5. **context** - Brief note explaining why this entity is relevant
 
@@ -75,8 +75,8 @@ IMPORTANT RULES:
 - If claim_maker is not explicitly stated, mark as "Unattributed Source" with role=claim_maker and credibility_impact=-20
 - Extract ALL mentioned entities, not just the main ones
 - Be specific with names (full names, not abbreviations unless that's how they appear)
-- Political entities get negative credibility impact due to bias
-- Official sources get positive credibility impact
+- Do NOT assign credibility based on political party, ideology, or whether a source is governmental
+- Base credibility_impact only on conflict of interest, independence, and proximity to first-hand evidence
 
 Return ONLY valid JSON with this exact structure:
 {

@@ -98,6 +98,14 @@ Return ONLY valid JSON in this structure:
       metadata: { endpoint: 'rage-check', url }
     })
 
+    // Model declined on content-policy grounds — surface a clean state, not an opaque 502
+    if (aiData?._refusal) {
+      return new Response(JSON.stringify({
+        declined: true,
+        reason: 'The model declined to analyze this content (content-policy refusal).',
+      }), { status: 200, headers: JSON_HEADERS })
+    }
+
     const rawContent = aiData.choices[0].message.content
     const jsonContent = rawContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
     let analysis: any
