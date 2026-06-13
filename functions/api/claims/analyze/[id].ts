@@ -5,7 +5,7 @@
  */
 
 import { getUserFromRequest } from '../../_shared/auth-helpers'
-import { callOpenAIViaGateway, getOptimalCacheTTL } from '../../_shared/ai-gateway'
+import { callOpenAIViaGateway, getOptimalCacheTTL, ANALYST_SYSTEM_PREFIX } from '../../_shared/ai-gateway'
 import { CORS_HEADERS, JSON_HEADERS, optionsResponse } from '../../_shared/api-utils'
 
 interface Env {
@@ -201,7 +201,7 @@ Return ONLY valid JSON array:
     const data = await callOpenAIViaGateway(env, {
       model: 'gpt-5.4-mini',
       messages: [
-        { role: 'system', content: 'You are an expert at extracting factual claims from text. Return only valid JSON.' },
+        { role: 'system', content: ANALYST_SYSTEM_PREFIX + 'You are an expert at extracting factual claims from text. Return only valid JSON.' },
         { role: 'user', content: prompt }
       ],
       max_completion_tokens: 2000,
@@ -380,7 +380,7 @@ Return ONLY valid JSON:
       messages: [
         {
           role: 'system',
-          content: 'You are a deception detection expert trained in multiple analytical methods. Analyze claims objectively using: internal consistency, source credibility, evidence quality, logical coherence, temporal consistency, and specificity. Provide detailed reasoning for each score. Return ONLY valid JSON.'
+          content: ANALYST_SYSTEM_PREFIX + 'You are a deception detection expert trained in multiple analytical methods. Analyze claims objectively using: internal consistency, source credibility, evidence quality, logical coherence, temporal consistency, and specificity. Provide detailed reasoning for each score. Return ONLY valid JSON.'
         },
         { role: 'user', content: prompt }
       ],

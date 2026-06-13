@@ -6,7 +6,7 @@
  */
 
 import { getUserFromRequest } from '../_shared/auth-helpers'
-import { callOpenAIViaGateway, getOptimalCacheTTL } from '../_shared/ai-gateway'
+import { callOpenAIViaGateway, getOptimalCacheTTL, ANALYST_SYSTEM_PREFIX, REFUSAL_BODY } from '../_shared/ai-gateway'
 import { JSON_HEADERS } from '../_shared/api-utils'
 
 interface Env {
@@ -95,7 +95,7 @@ Focus on aspects that are actually present in the content. If a dimension has no
       messages: [
         {
           role: 'system',
-          content: 'You are a strategic analyst expert in DIME framework analysis. Provide thoughtful, evidence-based analysis.'
+          content: ANALYST_SYSTEM_PREFIX + 'You are a strategic analyst expert in DIME framework analysis. Provide thoughtful, evidence-based analysis.'
         },
         {
           role: 'user',
@@ -115,6 +115,10 @@ Focus on aspects that are actually present in the content. If a dimension has no
       },
       timeout: 20000
     })
+
+    if (gptData?._refusal) {
+      return new Response(JSON.stringify(REFUSAL_BODY), { status: 200, headers: JSON_HEADERS })
+    }
 
     const dimeAnalysis = JSON.parse(gptData.choices[0].message.content)
 

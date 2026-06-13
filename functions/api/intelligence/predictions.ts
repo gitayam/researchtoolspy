@@ -1,5 +1,5 @@
 import { getUserFromRequest } from '../_shared/auth-helpers'
-import { callOpenAIViaGateway } from '../_shared/ai-gateway'
+import { callOpenAIViaGateway, ANALYST_SYSTEM_PREFIX, REFUSAL_BODY } from '../_shared/ai-gateway'
 import { JSON_HEADERS } from '../_shared/api-utils'
 
 interface Env {
@@ -71,7 +71,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       }
     })
 
-    const systemPrompt = `You are an intelligence analyst generating forward-looking predictive indicators based on analytical framework data.
+    const systemPrompt = ANALYST_SYSTEM_PREFIX + `You are an intelligence analyst generating forward-looking predictive indicators based on analytical framework data.
 
 Given a set of completed analyses, identify:
 1. Watch list: entities or topics that warrant increased monitoring/collection
@@ -114,6 +114,10 @@ Provide actionable, forward-looking intelligence recommendations.`
       cacheTTL: 600,
       metadata: { endpoint: 'intelligence-predictions', user_id: String(authUserId) }
     })
+
+    if (response?._refusal) {
+      return new Response(JSON.stringify(REFUSAL_BODY), { status: 200, headers: JSON_HEADERS })
+    }
 
     const content = response.choices?.[0]?.message?.content || '{}'
     let raw: any

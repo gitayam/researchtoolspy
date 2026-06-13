@@ -1,5 +1,5 @@
 import { getUserFromRequest } from '../_shared/auth-helpers'
-import { callOpenAIViaGateway } from '../_shared/ai-gateway'
+import { callOpenAIViaGateway, ANALYST_SYSTEM_PREFIX, REFUSAL_BODY } from '../_shared/ai-gateway'
 import { JSON_HEADERS } from '../_shared/api-utils'
 
 interface Env {
@@ -63,7 +63,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       }
     })
 
-    const systemPrompt = `You are an intelligence analyst performing cross-framework synthesis. You are given structured analysis data from multiple analytical frameworks (ACH, COG, SWOT, Deception Detection, etc.) applied to the same subject.
+    const systemPrompt = ANALYST_SYSTEM_PREFIX + `You are an intelligence analyst performing cross-framework synthesis. You are given structured analysis data from multiple analytical frameworks (ACH, COG, SWOT, Deception Detection, etc.) applied to the same subject.
 
 Your job is to synthesize findings across frameworks to identify:
 1. Key findings that emerge when combining insights from multiple frameworks
@@ -106,6 +106,10 @@ Identify cross-framework patterns, agreements, contradictions, and provide an ov
       cacheTTL: 300,
       metadata: { endpoint: 'intelligence-synthesis', user_id: String(authUserId) }
     })
+
+    if (response?._refusal) {
+      return new Response(JSON.stringify(REFUSAL_BODY), { status: 200, headers: JSON_HEADERS })
+    }
 
     const content = response.choices?.[0]?.message?.content || '{}'
     let raw: any

@@ -15,7 +15,7 @@
  */
 
 import { requireAuth } from '../_shared/auth-helpers'
-import { callOpenAIViaGateway } from '../_shared/ai-gateway'
+import { callOpenAIViaGateway, ANALYST_SYSTEM_PREFIX, REFUSAL_BODY } from '../_shared/ai-gateway'
 import { JSON_HEADERS, optionsResponse } from '../_shared/api-utils'
 
 interface Env {
@@ -344,7 +344,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       {
         model: 'gpt-5.4-mini',
         messages: [
-          { role: 'system', content: system },
+          { role: 'system', content: ANALYST_SYSTEM_PREFIX + system },
           { role: 'user', content: user }
         ],
         max_completion_tokens: MODE_TOKENS[req.mode],
@@ -358,6 +358,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         timeout: 45000
       }
     )
+
+    if (data?._refusal) {
+      return new Response(JSON.stringify(REFUSAL_BODY), { status: 200, headers: JSON_HEADERS })
+    }
 
     if (!data?.choices?.[0]?.message?.content) {
       throw new Error('Empty AI response')

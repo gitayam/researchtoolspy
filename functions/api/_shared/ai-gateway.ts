@@ -135,6 +135,26 @@ export function detectRefusal(content: string): boolean {
 }
 
 /**
+ * Defensive-framing preamble for intelligence/security-adjacent prompts (COG, behavior,
+ * deception, DIME, synthesis, predictions). Prepend to the system message. This lowers
+ * spurious content-policy refusals on legitimate analytical tasks WITHOUT changing what
+ * the model is asked to do — it establishes the authorized, defensive, analytical context.
+ */
+export const ANALYST_SYSTEM_PREFIX =
+  'You are an analyst supporting authorized, defensive intelligence analysis, open-source research, and education. ' +
+  'Provide objective, evidence-based assessment to help understand, detect, and explain behavior — not to cause harm. ' +
+  'Do not produce operational instructions for carrying out attacks or harming specific people; focus on analysis and understanding.\n\n'
+
+/**
+ * Standard JSON body for a model content-policy refusal, so callers surface a clean
+ * "declined" state instead of an opaque parse error. Callers wrap this in their Response.
+ */
+export const REFUSAL_BODY = {
+  declined: true,
+  reason: 'The model declined to analyze this content (content-policy refusal).',
+}
+
+/**
  * Call OpenAI via AI Gateway
  */
 async function callViaGateway(

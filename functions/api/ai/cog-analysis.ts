@@ -13,7 +13,7 @@
  *   generate-impact         → Impact analysis for a vulnerability
  */
 
-import { callOpenAIViaGateway, getOptimalCacheTTL } from '../_shared/ai-gateway'
+import { callOpenAIViaGateway, getOptimalCacheTTL, ANALYST_SYSTEM_PREFIX, REFUSAL_BODY } from '../_shared/ai-gateway'
 import { requireAuth } from '../_shared/auth-helpers'
 import { JSON_HEADERS, optionsResponse } from '../_shared/api-utils'
 
@@ -468,7 +468,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           messages: [
             {
               role: 'system',
-              content: `You are an expert military intelligence analyst specializing in Center of Gravity (COG) analysis following JP 3-0 and JP 5-0 doctrine.
+              content: ANALYST_SYSTEM_PREFIX + `You are an expert military intelligence analyst specializing in Center of Gravity (COG) analysis following JP 3-0 and JP 5-0 doctrine.
 
 Your analysis must be:
 - Evidence-based and analytically rigorous
@@ -491,6 +491,10 @@ Your analysis must be:
     } catch (error) {
       console.error('[COG AI] OpenAI API error:', error)
       return Response.json({ error: 'AI generation failed' }, { status: 500 })
+    }
+
+    if (data?._refusal) {
+      return Response.json(REFUSAL_BODY, { status: 200 })
     }
 
     // Extract content
