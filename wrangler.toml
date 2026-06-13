@@ -3,9 +3,9 @@ compatibility_date = "2025-09-30"
 compatibility_flags = ["nodejs_compat"]
 pages_build_output_dir = "dist"
 
-# Note: Cron triggers for Pages must be configured via Cloudflare Dashboard
-# or using a separate Worker that calls the cleanup endpoint
-# See CRON_CLEANUP_SETUP.md for instructions
+# Note: Cron triggers for Pages have no native support. The standalone Worker in
+# workers/cron/ fires on a schedule and POSTs to /api/cron/cleanup-content.
+# Setup + verification: docs/operations/CRON_CLEANUP_SETUP.md
 
 # D1 Database binding (using production database for Pages deployment)
 [[d1_databases]]

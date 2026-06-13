@@ -224,6 +224,15 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         await env.DB.prepare(`
           UPDATE saved_links SET analysis_id = ?, is_processed = 1 WHERE id = ?
         `).bind(analysisId, linkId).run()
+
+        // A content_analysis referenced by a saved link must be kept permanently —
+        // mark it saved and clear its expiry so retention cleanup never deletes it
+        // (otherwise the saved link is orphaned and its cascade children are destroyed).
+        if (analysisId) {
+          await env.DB.prepare(`
+            UPDATE content_analysis SET is_saved = TRUE, expires_at = NULL WHERE id = ?
+          `).bind(analysisId).run()
+        }
       }
     }
 

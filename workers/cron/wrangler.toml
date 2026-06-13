@@ -1,0 +1,22 @@
+name = "researchtoolspy-cron"
+main = "src/index.ts"
+compatibility_date = "2025-09-30"
+compatibility_flags = ["nodejs_compat"]
+
+# ==========================================
+# Scheduled maintenance worker
+# ==========================================
+# Pages Functions have no native cron trigger, so this standalone Worker drives
+# periodic maintenance by calling secret-guarded endpoints on the Pages app.
+#
+# Daily at 04:00 UTC (low-traffic window for ENAM).
+[triggers]
+crons = ["0 4 * * *"]
+
+[vars]
+# Canonical prod endpoint for the cascade-safe global content cleanup.
+CLEANUP_URL = "https://researchtools.net/api/cron/cleanup-content"
+
+# Secrets — set via: wrangler secret put <NAME>  (run from this directory)
+# Required:
+# - CRON_SECRET   (MUST match the CRON_SECRET set on the Pages project)

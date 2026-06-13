@@ -1,7 +1,28 @@
 # ResearchTools.net — Issue Tracker
 
-**Last updated:** 2026-03-15
-**Current tag:** v0.20.4-playbook-comments-hardening
+**Last updated:** 2026-06-13
+**Current tag:** v0.21.0-content-retention
+
+---
+
+## Added / Fixed (v0.21.0) — Content-analysis retention & D1 growth control
+
+Derived from a production logs + analytics review (see [docs/operations/TECH_DEBT.md](TECH_DEBT.md) and [docs/plans/2026-06-13-tech-debt-remediation.md](../plans/2026-06-13-tech-debt-remediation.md)). Prod D1 had grown to **225 MB / 10 GB** with **all 6,369 `content_analysis` rows at `expires_at = NULL`** — the retention design existed but was never wired.
+
+### TD-01 — `expires_at` never set on insert (unbounded growth)
+- [x] `analyze-url.ts:2257` — INSERT now sets `expires_at = datetime('now','+7 days')` for new (unsaved) analyses. `save.ts` already nulls it on explicit save.
+- [x] `saved-links.ts` — closed the gap where auto-analyze populated `saved_links.analysis_id` without flipping `content_analysis.is_saved`; the referenced analysis is now marked `is_saved=TRUE` + `expires_at=NULL` so cleanup can never orphan a saved link or cascade-delete its children (`content_qa`, `claim_adjustments`, etc.).
+
+### TD-01 — cascade-safe global cleanup + real schedule
+- [x] **New** `functions/api/cron/cleanup-content.ts` — global, `X-Cron-Secret`-guarded cleanup. Deletes only expired + unsaved rows **not** referenced by `saved_links`/`content_qa`/`starbursting_sources`/`claim_adjustments`. Batched (≤10k/run), `?dry=1` dry-run, 503 fail-safe if secret unset. (The pre-existing `cleanup.ts` is user-scoped and can't be cron-driven.)
+- [x] **New** `workers/cron/` — standalone Worker (`crons=["0 4 * * *"]`) that drives the endpoint, since Pages Functions have no native cron. Setup: [docs/operations/CRON_CLEANUP_SETUP.md](CRON_CLEANUP_SETUP.md).
+
+### TD-02 — oversized per-row JSON
+- [x] `analyze-url.ts:2184` — tightened `MAX_WORD_FREQ_ENTRIES` 500 → 150 (word cloud reads only top ~30). ~halves avg `word_frequency` JSON per row going forward.
+
+### Gated (NOT in this release — require backup + approval)
+- [ ] Backfill `expires_at` on the 6,369 legacy NULL-expiry rows (Phase 1.4) — until then cleanup finds ~0 deletable rows.
+- [ ] Trim 47 legacy oversized rows; drop redundant `content_analysis` indexes; arm the cron Worker secret.
 
 ---
 

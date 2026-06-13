@@ -2181,7 +2181,7 @@ async function saveAnalysis(db: D1Database, data: any): Promise<number> {
   // Size limits to prevent SQLITE_TOOBIG errors
   const MAX_TEXT_SIZE = 100 * 1024  // 100KB for extracted_text
   const MAX_CLAIMS = 50  // Maximum number of claims
-  const MAX_WORD_FREQ_ENTRIES = 500  // Maximum word frequency entries
+  const MAX_WORD_FREQ_ENTRIES = 150  // Max word-frequency entries kept. Readers (WordCloudSection uses top ~30) need far fewer; 150 leaves headroom while ~halving avg row size (was 500 → ~10KB/row JSON).
   const MAX_LINKS = 100  // Maximum links to store
   const CHUNK_SIZE = 50 * 1024  // 50KB chunks for content_chunks table
 
@@ -2253,8 +2253,8 @@ async function saveAnalysis(db: D1Database, data: any): Promise<number> {
       extracted_text, summary, word_count, word_frequency, top_phrases, entities, links_analysis,
       sentiment_analysis, keyphrases, topics, claim_analysis,
       archive_urls, bypass_urls, processing_mode, processing_duration_ms, gpt_model_used,
-      access_count, last_accessed_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, datetime('now'))
+      access_count, last_accessed_at, expires_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, datetime('now'), datetime('now', '+7 days'))
   `).bind(
     toNullable(data.user_id),
     toNullable(data.workspace_id),
