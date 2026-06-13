@@ -5,6 +5,10 @@
  * Optional fallback: pdf.co — only attempted when PDF_CO_API_KEY is set and unpdf failed.
  */
 import { extractText, getDocumentProxy, getMeta } from 'unpdf'
+import { callOpenAIViaGateway } from '../_shared/ai-gateway'
+
+/** Cloudflare env subset needed to route OpenAI calls through the AI gateway. */
+type GatewayEnv = { OPENAI_API_KEY: string; OPENAI_ORGANIZATION?: string; AI_GATEWAY_ACCOUNT_ID?: string }
 
 type PdfMetadata = {
   title?: string
@@ -163,7 +167,7 @@ export function isPDFUrl(url: string): boolean {
 export async function intelligentPDFSummary(
   fullText: string,
   wordCount: number,
-  openaiApiKey: string
+  env: GatewayEnv
 ): Promise<{
   summary: string
   chapters?: string[]
@@ -173,7 +177,7 @@ export async function intelligentPDFSummary(
   if (wordCount <= 2000) {
     // Small document - use standard summarization
     return {
-      summary: await generateStandardSummary(fullText, openaiApiKey)
+      summary: await generateStandardSummary(fullText, env)
     }
   }
 
@@ -194,13 +198,13 @@ export async function intelligentPDFSummary(
   })
 
   // Step 3: Generate questions using AI
-  const questions = await generateQuestions(chapterSummaries, openaiApiKey)
+  const questions = await generateQuestions(chapterSummaries, env)
 
   // Step 4: Search full text for answers
-  const qa = await answerQuestions(questions, fullText, openaiApiKey)
+  const qa = await answerQuestions(questions, fullText, env)
 
   // Step 5: Generate final summary
-  const summary = await generateIntelligentSummary(chapterSummaries, qa, openaiApiKey)
+  const summary = await generateIntelligentSummary(chapterSummaries, qa, env)
 
   return {
     summary,
@@ -260,7 +264,7 @@ function detectChapters(text: string): Array<{ title: string; text: string }> {
 
 async function generateQuestions(
   chapterSummaries: Array<{ title: string; excerpt: string }>,
-  apiKey: string
+  env: GatewayEnv
 ): Promise<string[]> {
   const prompt = `Based on these chapter summaries from a document, generate 5-10 insightful questions that would help understand the key themes and arguments:
 
@@ -275,25 +279,15 @@ Generate questions that:
 Return ONLY a JSON array of questions, nothing else.
 Example: ["What is the main argument?", "What evidence supports this?"]`
 
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
-    },
-    body: JSON.stringify({
-      model: 'gpt-5.4-mini',
-      reasoning_effort: 'none',
-      temperature: 0.7,
-      messages: [
-        { role: 'system', content: 'You are an expert analyst who generates insightful questions about documents.' },
-        { role: 'user', content: prompt }
-      ]
-    }),
-    signal: AbortSignal.timeout(30000)
-  })
-
-  const data = await response.json() as any
+  const data = await callOpenAIViaGateway(env, {
+    model: 'gpt-5.4-mini',
+    reasoning_effort: 'none',
+    temperature: 0.7,
+    messages: [
+      { role: 'system', content: 'You are an expert analyst who generates insightful questions about documents.' },
+      { role: 'user', content: prompt }
+    ]
+  }, { metadata: { endpoint: 'pdf-extractor' }, cacheTTL: 3600, timeout: 30000 }) as any
   const content = data.choices[0].message.content
 
   try {
@@ -313,7 +307,7 @@ Example: ["What is the main argument?", "What evidence supports this?"]`
 async function answerQuestions(
   questions: string[],
   fullText: string,
-  apiKey: string
+  env: GatewayEnv
 ): Promise<Array<{ question: string; answer: string }>> {
   const qa: Array<{ question: string; answer: string }> = []
 
@@ -322,7 +316,7 @@ async function answerQuestions(
     const excerpts = extractRelevantExcerpts(question, fullText)
 
     // Use GPT to answer based on excerpts
-    const answer = await generateAnswer(question, excerpts, apiKey)
+    const answer = await generateAnswer(question, excerpts, env)
     qa.push({ question, answer })
   }
 
@@ -346,7 +340,7 @@ function extractRelevantExcerpts(question: string, text: string, maxExcerpts: nu
     .map(s => s.para)
 }
 
-async function generateAnswer(question: string, excerpts: string[], apiKey: string): Promise<string> {
+async function generateAnswer(question: string, excerpts: string[], env: GatewayEnv): Promise<string> {
   const prompt = `Answer this question based on the provided excerpts:
 
 Question: ${question}
@@ -356,33 +350,23 @@ ${excerpts.join('\n\n---\n\n')}
 
 Provide a concise, evidence-based answer (2-3 sentences max).`
 
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
-    },
-    body: JSON.stringify({
-      model: 'gpt-5.4-nano',
-      reasoning_effort: 'none',
-      temperature: 0.3,
-      max_completion_tokens: 150,
-      messages: [
-        { role: 'system', content: 'You are a precise analyst who answers questions based only on provided evidence.' },
-        { role: 'user', content: prompt }
-      ]
-    }),
-    signal: AbortSignal.timeout(30000)
-  })
-
-  const data = await response.json() as any
+  const data = await callOpenAIViaGateway(env, {
+    model: 'gpt-5.4-nano',
+    reasoning_effort: 'none',
+    temperature: 0.3,
+    max_completion_tokens: 150,
+    messages: [
+      { role: 'system', content: 'You are a precise analyst who answers questions based only on provided evidence.' },
+      { role: 'user', content: prompt }
+    ]
+  }, { metadata: { endpoint: 'pdf-extractor' }, cacheTTL: 3600, timeout: 30000 }) as any
   return data.choices[0].message.content.trim()
 }
 
 async function generateIntelligentSummary(
   chapterSummaries: Array<{ title: string; excerpt: string }>,
   qa: Array<{ question: string; answer: string }>,
-  apiKey: string
+  env: GatewayEnv
 ): Promise<string> {
   const prompt = `Create a comprehensive summary of this document using:
 
@@ -398,53 +382,33 @@ Generate a 250-word summary that:
 - Maintains logical flow
 - Uses specific details from the document`
 
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
-    },
-    body: JSON.stringify({
-      model: 'gpt-5.4-nano',
-      reasoning_effort: 'none',
-      temperature: 0.5,
-      max_completion_tokens: 500,
-      messages: [
-        {
-          role: 'system',
-          content: 'You are an expert analyst who creates precise, insightful summaries of complex documents.'
-        },
-        { role: 'user', content: prompt }
-      ]
-    }),
-    signal: AbortSignal.timeout(30000)
-  })
-
-  const data = await response.json() as any
+  const data = await callOpenAIViaGateway(env, {
+    model: 'gpt-5.4-nano',
+    reasoning_effort: 'none',
+    temperature: 0.5,
+    max_completion_tokens: 500,
+    messages: [
+      {
+        role: 'system',
+        content: 'You are an expert analyst who creates precise, insightful summaries of complex documents.'
+      },
+      { role: 'user', content: prompt }
+    ]
+  }, { metadata: { endpoint: 'pdf-extractor' }, cacheTTL: 3600, timeout: 30000 }) as any
   return data.choices[0].message.content.trim()
 }
 
-async function generateStandardSummary(text: string, apiKey: string): Promise<string> {
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
-    },
-    body: JSON.stringify({
-      model: 'gpt-5.4-nano',
-      reasoning_effort: 'none',
-      temperature: 0.5,
-      max_completion_tokens: 400,
-      messages: [
-        { role: 'system', content: 'You are an expert at creating concise, informative summaries.' },
-        { role: 'user', content: `Summarize this text in 250 words:\n\n${text.slice(0, 8000)}` }
-      ]
-    }),
-    signal: AbortSignal.timeout(30000)
-  })
-
-  const data = await response.json() as any
+async function generateStandardSummary(text: string, env: GatewayEnv): Promise<string> {
+  const data = await callOpenAIViaGateway(env, {
+    model: 'gpt-5.4-nano',
+    reasoning_effort: 'none',
+    temperature: 0.5,
+    max_completion_tokens: 400,
+    messages: [
+      { role: 'system', content: 'You are an expert at creating concise, informative summaries.' },
+      { role: 'user', content: `Summarize this text in 250 words:\n\n${text.slice(0, 8000)}` }
+    ]
+  }, { metadata: { endpoint: 'pdf-extractor' }, cacheTTL: 3600, timeout: 30000 }) as any
   return data.choices[0].message.content.trim()
 }
 

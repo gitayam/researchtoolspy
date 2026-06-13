@@ -161,62 +161,48 @@ JSON format:
 
 Keep it brief.`
 
-    // Add timeout handling per lessons learned
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 25000) // 25 second timeout
+    const data = await callOpenAIViaGateway(context.env, {
+      model,
+      messages: [
+        { role: 'system', content: 'Respond with valid JSON only.' },
+        { role: 'user', content: prompt }
+      ],
+      reasoning_effort: 'none',
+      temperature: 0.7,
+      max_completion_tokens: 800,
+      response_format: { type: "json_object" }
+    }, { metadata: { endpoint: 'generate-timeline' }, cacheTTL: 3600, timeout: 25000 })
 
-    try {
-      const data = await callOpenAIViaGateway(context.env, {
-        model,
-        messages: [
-          { role: 'system', content: 'Respond with valid JSON only.' },
-          { role: 'user', content: prompt }
-        ],
-        reasoning_effort: 'none',
-        temperature: 0.7,
-        max_completion_tokens: 800,
-        response_format: { type: "json_object" }
-      }, { metadata: { endpoint: 'generate-timeline' }, cacheTTL: 3600, timeout: 25000 })
-
-      if (data?._refusal) {
-        return Response.json(REFUSAL_BODY, { status: 200 })
-      }
-
-      const content = data.choices[0]?.message?.content
-
-      if (!content) {
-        console.error('No content in AI response:', { hasChoices: !!data.choices, choicesLength: data.choices?.length })
-        throw new Error('No content returned from AI')
-      }
-
-      // Parse JSON response with error handling
-      let parsed: TimelineGenerationResponse
-      try {
-        parsed = JSON.parse(content) as TimelineGenerationResponse
-      } catch (parseError) {
-        console.error('Failed to parse AI response:', content)
-        throw new Error('Invalid JSON response from AI')
-      }
-
-      const timeline: TimelineEvent[] = parsed.events || []
-
-      // Generate IDs if missing
-      timeline.forEach((event, index) => {
-        if (!event.id) {
-          event.id = `event-${Date.now()}-${index}`
-        }
-      })
-
-      return Response.json({ events: timeline })
-
-    } catch (error) {
-      if (error.name === 'AbortError') {
-        throw new Error('Request timed out after 25 seconds')
-      }
-      throw error
-    } finally {
-      clearTimeout(timeoutId)
+    if (data?._refusal) {
+      return Response.json(REFUSAL_BODY, { status: 200 })
     }
+
+    const content = data.choices[0]?.message?.content
+
+    if (!content) {
+      console.error('No content in AI response:', { hasChoices: !!data.choices, choicesLength: data.choices?.length })
+      throw new Error('No content returned from AI')
+    }
+
+    // Parse JSON response with error handling
+    let parsed: TimelineGenerationResponse
+    try {
+      parsed = JSON.parse(content) as TimelineGenerationResponse
+    } catch (parseError) {
+      console.error('Failed to parse AI response:', content)
+      throw new Error('Invalid JSON response from AI')
+    }
+
+    const timeline: TimelineEvent[] = parsed.events || []
+
+    // Generate IDs if missing
+    timeline.forEach((event, index) => {
+      if (!event.id) {
+        event.id = `event-${Date.now()}-${index}`
+      }
+    })
+
+    return Response.json({ events: timeline })
 
   } catch (error) {
     console.error('Timeline generation error:', error)

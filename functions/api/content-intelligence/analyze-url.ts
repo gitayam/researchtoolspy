@@ -334,7 +334,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     // Build summary promise (PDF large docs use chunked approach)
     const textWordCount = countWords(contentData.text)
     const summaryPromise = (contentData.isPDF && textWordCount > 2000)
-      ? intelligentPDFSummary(contentData.text, textWordCount, env.OPENAI_API_KEY)
+      ? intelligentPDFSummary(contentData.text, textWordCount, env)
           .then(result => {
             if (result.chapters) {
               contentData.pdfMetadata = {
