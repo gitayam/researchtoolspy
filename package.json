@@ -102,5 +102,8 @@
     "typescript-eslint": "^8.58.1",
     "vite": "^7.3.2",
     "wrangler": "^4.81.1"
+  },
+  "overrides": {
+    "uuid": "^11.1.0"
   }
 }
