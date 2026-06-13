@@ -34,8 +34,14 @@ summarize, generate-title/questions/timeline, keyphrases, topics, sentiment, SWO
 - The gateway now annotates `response._refusal = true` and logs `[AI Gateway] model refusal detected` distinctly (observability — ties to TD-03).
 - `tools/rage-check.ts` now checks `_refusal` and returns a clean `200 { declined: true, reason }` instead of an opaque 502.
 
-## Recommendations (remaining)
-1. **Adopt the `_refusal` check in the other Tier-1/2 callers** (claims/analyze, cog-analysis, behavior-analysis, intelligence/*) — the gateway already flags it; callers just need to branch.
-2. **Shared defensive-framing system-prompt prefix** for Tier-2 intel functions ("analyst supporting authorized defensive/educational analysis…") — lowers refusal rate without changing behavior.
-3. **Provider routing / Surface Hopping**: if any intel function is ever moved to Claude, route it to a permissive surface (Mistral/Vibe or Gemini) or keep it on OpenAI. Don't switch the Tier-2 cluster to Anthropic blindly.
-4. **Gate Tier-1 behind explicit auth + ToS ack**, and re-evaluate PimEyes/face-match and any remaining identity-profiling features on policy + legal grounds.
+## Recommendations
+**Done (2026-06-13):**
+- ✅ `_refusal` branch wired into the HTTP-returning intel callers (cog-analysis, behavior-analysis, intelligence/synthesis + predictions, dime-analyze, rage-check).
+- ✅ Defensive `ANALYST_SYSTEM_PREFIX` applied to the intel system prompts (incl. claims/analyze).
+- ✅ All direct-OpenAI callers (11) migrated onto `callOpenAIViaGateway` — they now inherit caching, fallback, `_refusal`, and (for sensitive ones) framing. Gateway forwards the `OpenAI-Organization` header when set.
+
+**Remaining:**
+1. **`pdf-extractor.ts`** still calls OpenAI directly — left out of the migration (large inputs / its own timeout budget); migrate separately with care.
+2. **Provider routing / Surface Hopping**: if any intel function is ever moved to Claude, route it to a permissive surface (Mistral/Vibe or Gemini) or keep it on OpenAI. Don't switch the Tier-2 cluster to Anthropic blindly.
+3. **Gate Tier-1 behind explicit auth + ToS ack**, and re-evaluate PimEyes/face-match and any remaining identity-profiling features on policy + legal grounds.
+4. Minor: dead `AbortController`/`timeoutId` left in `ai/generate-timeline.ts` after migration (gateway owns the timeout now) — harmless, clean up opportunistically.
