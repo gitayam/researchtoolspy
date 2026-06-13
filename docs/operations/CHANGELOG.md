@@ -20,9 +20,14 @@ Derived from a production logs + analytics review (see [docs/operations/TECH_DEB
 ### TD-02 — oversized per-row JSON
 - [x] `analyze-url.ts:2184` — tightened `MAX_WORD_FREQ_ENTRIES` 500 → 150 (word cloud reads only top ~30). ~halves avg `word_frequency` JSON per row going forward.
 
-### Gated (NOT in this release — require backup + approval)
-- [ ] Backfill `expires_at` on the 6,369 legacy NULL-expiry rows (Phase 1.4) — until then cleanup finds ~0 deletable rows.
-- [ ] Trim 47 legacy oversized rows; drop redundant `content_analysis` indexes; arm the cron Worker secret.
+### Rollout (executed 2026-06-13, with full D1 backup)
+- [x] Deployed Pages app + `functions/api/cron/cleanup-content.ts`; deployed `researchtoolspy-cron` Worker (schedule `0 4 * * *`); set matching `CRON_SECRET` on both. Endpoint verified: correct secret → 200, wrong → 401, unset → 503.
+- [x] Backfilled `expires_at = created_at+7d` on 6,369 legacy rows (unsaved, not saved-linked).
+- [x] Ran the global cleanup: **6,164 ephemeral `content_analysis` rows deleted** (+ cascade children), **0 orphans** (all `content_qa`/`starbursting_sources`/`claim_adjustments` parents preserved), 0 deletable remaining.
+- [x] **D1: 225 MB → 17.7 MB.** The daily cron now keeps it bounded.
+
+### Still gated (future pass)
+- [ ] Trim/normalize remaining oversized JSON on surviving rows (minor); drop redundant `content_analysis` indexes (Phase 3).
 
 ---
 

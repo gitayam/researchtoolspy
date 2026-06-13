@@ -1,3 +1,6 @@
+# Database backups (D1 exports — can be hundreds of MB)
+backups/
+
 # Logs
 logs
 *.log

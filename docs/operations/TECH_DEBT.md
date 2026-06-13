@@ -10,7 +10,9 @@ This is a living backlog. Each item has a **severity** (impact if left), rough *
 
 ## P0 — Unbounded growth / silent in production
 
-### TD-01 · `content_analysis` retention is designed but dead — DB grows unbounded `HIGH`
+### TD-01 · `content_analysis` retention — ✅ RESOLVED (2026-06-13) `HIGH`
+> Fixed & rolled out: `expires_at` set on insert, `saved_links` gap closed, cascade-safe global cleanup endpoint + daily cron Worker armed, legacy rows backfilled, 6,164 ephemeral rows purged. **D1 225 MB → 17.7 MB.** Original analysis below.
+
 - **Evidence:** 6,369 rows; **all 6,369 have `expires_at = NULL`** (0 populated). Oldest row `2025-10-11`, newest `2026-06-13` — nothing has ever been purged. An `idx_content_analysis_expires` index and `functions/api/content-intelligence/cleanup.ts` exist, but **no cron is wired** (`wrangler.toml` only notes "Cron triggers for Pages must be configured via Dashboard"; no `[triggers]`/scheduled handler in code).
 - **Impact:** D1 is already **225 MB / 10 GB cap** and climbing one row per analysis. The cleanup design is decorative — `expires_at` is never set on insert, so even if the cron ran it would delete nothing.
 - **Fix:** ✅ (a) `expires_at` now set on insert (+7d for unsaved) and ✅ the `saved_links` auto-analyze gap is closed so referenced analyses are kept (`analyze-url.ts`, `saved-links.ts`, pending deploy); remaining: (b) wire a real scheduled trigger via a separate cron Worker + a **cascade-safe** global cleanup endpoint (the existing `cleanup.ts` is user-scoped and its guard is unsafe — see the remediation plan), (c) GATED backfill of `expires_at`. **Effort: M.** See [remediation plan](../plans/2026-06-13-tech-debt-remediation.md).
