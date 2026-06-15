@@ -39,7 +39,24 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
     // Update state with error info
     this.setState({ errorInfo })
 
-    // TODO: Send to error tracking service (Sentry, etc.)
+    // Report to the server-side event_logs sink (best-effort; never throws)
+    try {
+      fetch('/api/client-error', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: error?.message || String(error),
+          source: 'ErrorBoundary',
+          context: {
+            stack: error?.stack?.slice(0, 1500),
+            componentStack: errorInfo?.componentStack?.slice(0, 1500),
+            url: typeof window !== 'undefined' ? window.location?.href : undefined,
+          },
+        }),
+      }).catch(() => {})
+    } catch {
+      // ignore — an error reporter must not throw
+    }
   }
 
   handleReset = () => {

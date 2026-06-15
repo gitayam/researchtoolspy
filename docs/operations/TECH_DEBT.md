@@ -29,7 +29,7 @@ This is a living backlog. Each item has a **severity** (impact if left), rough *
   - `auth_logs` table = **0 rows**, `rate_limits` table = **0 rows**, `settings_audit_log` = 0 rows — security/audit tables that record nothing.
   - `src/components/ErrorBoundary.tsx:42` → `// TODO: Send to error tracking service (Sentry, etc.)` — never wired. No error tracking anywhere.
 - **Impact:** When something breaks in prod, there is no usable trail — no visible function logs, no error aggregation, empty audit tables.
-- **Fix:** (a) adopt one logging path that writes to a D1 `debug_logs`/`error_logs` table (the documented Pages-Functions workaround) or an external sink; (b) actually write to `auth_logs`/`settings_audit_log` on the relevant paths or drop the tables; (c) wire ErrorBoundary to a real error tracker. **Effort: M.**
+- **Fix:** ✅ (a) DONE (2026-06-13) — `event_logs` D1 sink (migration 105) + `logEvent()` helper; the AI gateway now records model refusals + gateway-fallback failures; read via secret-guarded `GET /api/cron/event-logs` (with a last-24h summary); pruned >30 days by the daily cron. Remaining: (b) populate `auth_logs`/`settings_audit_log` or drop them; (c) wire `ErrorBoundary.tsx` to a `/api/client-error` endpoint that calls `logEvent` (closes the Sentry TODO). **Effort: S remaining.**
 
 ---
 
