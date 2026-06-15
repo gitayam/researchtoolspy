@@ -1582,40 +1582,37 @@ export interface ExtractionQuality {
 function assessExtractionQuality(
   text: string,
   title?: string,
-  author?: string,
-  publishDate?: string
+  _author?: string,
+  _publishDate?: string
 ): ExtractionQuality {
   const wordCount = countWords(text || '')
 
-  // Stub-title signatures from extraction/proxy tools. The tell in the wild: title,
-  // author, and publish_date are all identical and look like "Article from X | Smry".
+  // Word count is the reliable signal: real articles run to hundreds of words, and a
+  // stub/paywall extraction is always short (the AP "| Smry" placeholder was 71 words).
+  // Gating on length avoids false positives on legitimate long articles whose extractor
+  // copied the title into empty author/date fields.
+  if (wordCount >= 150) {
+    return { thin: false, word_count: wordCount }
+  }
+
+  // Below the threshold — distinguish a recognizable extraction-tool stub (so we can say
+  // "the source blocks scraping") from a generic short/paywalled page.
   const t = (title || '').trim()
-  const stubTitle =
-    /\|\s*smry\s*$/i.test(t) ||
-    /^article from .+\|\s*smry/i.test(t) ||
-    (!!t && t === (author || '').trim() && t === (publishDate || '').trim())
+  const isStubTitle = /\|\s*smry\s*$/i.test(t) || /^article from .+\|\s*smry/i.test(t)
 
-  if (stubTitle) {
-    return {
-      thin: true,
-      reason: 'stub_title',
-      word_count: wordCount,
-      message: 'The extractor returned a placeholder instead of the article body (the source likely blocks scraping). Try a different source URL or one of the archive/bypass links below.'
-    }
-  }
-
-  // Real articles run to hundreds of words; claim extraction needs actual prose.
-  // < 150 words almost always means a paywall/login wall or a failed extraction.
-  if (wordCount < 150) {
-    return {
-      thin: true,
-      reason: 'too_short',
-      word_count: wordCount,
-      message: `Only ${wordCount} words were extracted — not enough to analyze reliably. The page may be paywalled or render its content with JavaScript. Try a different source URL or an archive/bypass link below.`
-    }
-  }
-
-  return { thin: false, word_count: wordCount }
+  return isStubTitle
+    ? {
+        thin: true,
+        reason: 'stub_title',
+        word_count: wordCount,
+        message: 'The extractor returned a placeholder instead of the article body (the source likely blocks scraping). Try a different source URL or one of the archive/bypass links below.'
+      }
+    : {
+        thin: true,
+        reason: 'too_short',
+        word_count: wordCount,
+        message: `Only ${wordCount} words were extracted — not enough to analyze reliably. The page may be paywalled or render its content with JavaScript. Try a different source URL or an archive/bypass link below.`
+      }
 }
 
 async function calculateHash(text: string): Promise<string> {
