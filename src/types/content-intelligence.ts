@@ -204,6 +204,15 @@ export interface ContentAnalysis {
   processing_duration_ms: number
   gpt_model_used?: string
 
+  // Extraction quality — flags thin/stub content (paywalls, failed scrapes) so the UI
+  // can warn the user up front instead of after they discover "0 claims".
+  extraction_quality?: {
+    thin: boolean
+    reason?: 'too_short' | 'stub_title' | 'paywall'
+    word_count: number
+    message?: string
+  }
+
   // Timestamps
   created_at: string
   updated_at: string

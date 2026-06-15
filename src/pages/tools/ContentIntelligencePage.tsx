@@ -3147,6 +3147,41 @@ ${shortSummary}`
           {activeTab === 'overview' && (
             <Card className="p-6 space-y-4">
               <div className="space-y-6">
+                {/* Thin/stub-content warning — shown up front so the user can switch
+                    sources before running entity/claim analysis on an empty extraction. */}
+                {analysis.extraction_quality?.thin && (
+                  <Alert variant="destructive" className="bg-red-50 border-red-300 dark:bg-red-950 dark:border-red-800">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription className="text-red-800 dark:text-red-200">
+                      <div className="space-y-2">
+                        <p>
+                          <strong>Content extraction looks incomplete.</strong>{' '}
+                          {analysis.extraction_quality.message ||
+                            'The page may be paywalled or blocked. Analysis results will be unreliable.'}
+                        </p>
+                        {(analysis.bypass_urls?.['12ft'] || analysis.bypass_urls?.archive_is || analysis.archive_urls?.wayback) && (
+                          <div className="flex flex-wrap items-center gap-2 pt-1">
+                            <span className="text-xs font-medium">Try a bypass:</span>
+                            {analysis.bypass_urls?.['12ft'] && (
+                              <a href={analysis.bypass_urls['12ft']} target="_blank" rel="noopener noreferrer"
+                                 className="text-xs underline underline-offset-2 hover:opacity-80">12ft Ladder</a>
+                            )}
+                            {analysis.bypass_urls?.archive_is && (
+                              <a href={analysis.bypass_urls.archive_is} target="_blank" rel="noopener noreferrer"
+                                 className="text-xs underline underline-offset-2 hover:opacity-80">archive.ph</a>
+                            )}
+                            {analysis.archive_urls?.wayback && (
+                              <a href={analysis.archive_urls.wayback} target="_blank" rel="noopener noreferrer"
+                                 className="text-xs underline underline-offset-2 hover:opacity-80">Wayback Machine</a>
+                            )}
+                            <span className="text-xs">— then paste a working source URL above and re-analyze.</span>
+                          </div>
+                        )}
+                      </div>
+                    </AlertDescription>
+                  </Alert>
+                )}
+
                 <div>
                   <h2 className="text-2xl font-bold break-words">{analysis.title || 'Untitled'}</h2>
                   {analysis.author && (

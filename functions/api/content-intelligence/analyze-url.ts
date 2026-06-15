@@ -235,6 +235,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           claim_analysis: existingAnalysis.claim_analysis ? JSON.parse(existingAnalysis.claim_analysis as string) : null,
           archive_urls: JSON.parse(existingAnalysis.archive_urls as string || '{}'),
           bypass_urls: JSON.parse(existingAnalysis.bypass_urls as string || '{}'),
+          extraction_quality: assessExtractionQuality(
+            existingAnalysis.extracted_text as string || '',
+            existingAnalysis.title as string | undefined,
+            existingAnalysis.author as string | undefined,
+            existingAnalysis.publish_date as string | undefined
+          ),
           from_cache: true,
           cache_hit_count: dedupCheck.duplicate_count
         }), {
@@ -302,7 +308,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         processing_duration_ms: Date.now() - startTime,
         saved_link_id: savedLinkId,
         content_source: contentData.source || 'original',
-        fallback_attempts: contentData.fallback_attempts || []
+        fallback_attempts: contentData.fallback_attempts || [],
+        extraction_quality: assessExtractionQuality(
+          contentData.text,
+          contentData.title,
+          contentData.author,
+          contentData.publishDate
+        )
       }
 
       return new Response(JSON.stringify(quickResult), {
@@ -450,6 +462,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
               claim_analysis: existingAnalysis.claim_analysis ? JSON.parse(existingAnalysis.claim_analysis as string) : null,
               archive_urls: JSON.parse(existingAnalysis.archive_urls as string || '{}'),
               bypass_urls: JSON.parse(existingAnalysis.bypass_urls as string || '{}'),
+              extraction_quality: assessExtractionQuality(
+                existingAnalysis.extracted_text as string || '',
+                existingAnalysis.title as string | undefined,
+                existingAnalysis.author as string | undefined,
+                existingAnalysis.publish_date as string | undefined
+              ),
               from_cache: true,
               race_condition_recovery: true
             }), {
@@ -570,7 +588,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       processing_duration_ms: Date.now() - startTime,
       gpt_model_used: 'gpt-5.4-mini',
       content_source: contentData.source || 'original',
-      fallback_attempts: contentData.fallback_attempts || []
+      fallback_attempts: contentData.fallback_attempts || [],
+      extraction_quality: assessExtractionQuality(
+        contentData.text,
+        contentData.title,
+        contentData.author,
+        contentData.publishDate
+      )
     }
 
     return new Response(JSON.stringify(result), {
@@ -1537,6 +1561,61 @@ function extractEmails(text: string): Array<{ email: string; count: number }> {
 
 function countWords(text: string): number {
   return text.split(/\s+/).filter(w => w.length > 0).length
+}
+
+export interface ExtractionQuality {
+  thin: boolean
+  reason?: 'too_short' | 'stub_title' | 'paywall'
+  word_count: number
+  message?: string
+}
+
+/**
+ * Assess whether the extracted content is too thin/stub-like to analyze, so the UI
+ * can warn the user UP FRONT (right when the URL is analyzed) instead of leaving them
+ * to discover "0 claims" after running claim analysis.
+ *
+ * Catches the paywall-stub case that slips past isContentBlocked() (which requires a
+ * paywall keyword): extraction tools like smry.ai return a placeholder such as
+ * "Article from apnews.com | Smry" as the title/author/date with almost no body text.
+ */
+function assessExtractionQuality(
+  text: string,
+  title?: string,
+  author?: string,
+  publishDate?: string
+): ExtractionQuality {
+  const wordCount = countWords(text || '')
+
+  // Stub-title signatures from extraction/proxy tools. The tell in the wild: title,
+  // author, and publish_date are all identical and look like "Article from X | Smry".
+  const t = (title || '').trim()
+  const stubTitle =
+    /\|\s*smry\s*$/i.test(t) ||
+    /^article from .+\|\s*smry/i.test(t) ||
+    (!!t && t === (author || '').trim() && t === (publishDate || '').trim())
+
+  if (stubTitle) {
+    return {
+      thin: true,
+      reason: 'stub_title',
+      word_count: wordCount,
+      message: 'The extractor returned a placeholder instead of the article body (the source likely blocks scraping). Try a different source URL or one of the archive/bypass links below.'
+    }
+  }
+
+  // Real articles run to hundreds of words; claim extraction needs actual prose.
+  // < 150 words almost always means a paywall/login wall or a failed extraction.
+  if (wordCount < 150) {
+    return {
+      thin: true,
+      reason: 'too_short',
+      word_count: wordCount,
+      message: `Only ${wordCount} words were extracted — not enough to analyze reliably. The page may be paywalled or render its content with JavaScript. Try a different source URL or an archive/bypass link below.`
+    }
+  }
+
+  return { thin: false, word_count: wordCount }
 }
 
 async function calculateHash(text: string): Promise<string> {
