@@ -19,7 +19,55 @@ interface Env {
   OPENAI_API_KEY: string
   OPENAI_ORGANIZATION?: string
   RATE_LIMIT?: KVNamespace
+  CACHE?: KVNamespace // reused as the rate-limit counter store when RATE_LIMIT isn't bound
   DB?: any // D1Database — optional; enables event_logs observability when present
+}
+
+/** Thrown by the gateway when an AI call exceeds the rate limit. Callers' existing
+ *  try/catch turns this into their normal error response — the point is to reject
+ *  the call (and save the OpenAI cost), not to crash. */
+export class RateLimitError extends Error {
+  constructor(public scope: string) {
+    super(`AI rate limit exceeded (${scope})`)
+    this.name = 'RateLimitError'
+  }
+}
+
+// Generous caps: meant to stop runaway loops / abuse, NOT to throttle real use.
+// One user action can fan out to ~10 gateway calls (analyze-url runs 4 in parallel),
+// so per-user is high; the global cap is a backstop against a single hammering client.
+const RL_USER_PER_MIN = 100
+const RL_GLOBAL_PER_HOUR = 3000
+
+/**
+ * KV-backed rate limit for AI calls. Fail-open: no store, or any KV error, → allow
+ * (never block a legitimate call because the limiter itself hiccuped). Throws
+ * RateLimitError when a real limit is exceeded.
+ */
+async function enforceRateLimit(env: Env, metadata: any): Promise<void> {
+  const store = env.RATE_LIMIT || env.CACHE
+  if (!store) return // limiter not available → fail open
+  try {
+    const now = Date.now()
+    const minute = Math.floor(now / 60000)
+    const hour = Math.floor(now / 3600000)
+    const uid = metadata?.user_id ? String(metadata.user_id) : null
+
+    if (uid) {
+      const k = `ratelimit:ai:user:${uid}:${minute}`
+      const c = parseInt((await store.get(k)) || '0', 10)
+      if (c >= RL_USER_PER_MIN) throw new RateLimitError('user-per-minute')
+      await store.put(k, String(c + 1), { expirationTtl: 120 })
+    }
+
+    const gk = `ratelimit:ai:global:${hour}`
+    const gc = parseInt((await store.get(gk)) || '0', 10)
+    if (gc >= RL_GLOBAL_PER_HOUR) throw new RateLimitError('global-per-hour')
+    await store.put(gk, String(gc + 1), { expirationTtl: 7200 })
+  } catch (e) {
+    if (e instanceof RateLimitError) throw e
+    // KV failure → fail open (allow the call)
+  }
 }
 
 /**
@@ -106,6 +154,17 @@ export async function callOpenAIViaGateway(
   const useGateway = !forceDirect && !!env.AI_GATEWAY_ACCOUNT_ID
 
   const source = metadata?.endpoint || 'ai-gateway'
+
+  // Enforce rate limiting BEFORE spending an OpenAI call (cost/abuse protection).
+  try {
+    await enforceRateLimit(env, metadata)
+  } catch (e) {
+    if (e instanceof RateLimitError) {
+      await logEvent(env, { level: 'warn', source, message: `rate limit exceeded: ${e.scope}`, context: { user_id: metadata?.user_id ?? null } })
+    }
+    throw e
+  }
+
   let data: any
   if (useGateway) {
     try {
