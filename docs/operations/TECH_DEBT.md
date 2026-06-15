@@ -40,10 +40,11 @@ This is a living backlog. Each item has a **severity** (impact if left), rough *
 - **Impact:** slowest write in the system and the most-run write (170×). Several indexes overlap (`_hash` vs `_hash_workspace`, `_user` vs `_user_workspace`).
 - **Fix:** drop redundant single-column indexes covered by composite ones; keep only indexes backed by real query patterns (cross-check against D1 insights). **Effort: S.**
 
-### TD-05 · Rate limiting — ✅ AI endpoints now throttled (2026-06-13) `MED`
-- **Was:** `checkRateLimit` defined but called nowhere, and `RATE_LIMIT` KV never bound → every AI endpoint unthrottled (OpenAI cost/abuse exposure). The `rate_limits` D1 table is also dead (0 rows).
-- **Fixed:** rate limiting enforced centrally in `ai-gateway.ts` (`enforceRateLimit`, reuses bound `CACHE` KV, fail-open): 100/min per user (when caller passes `metadata.user_id`) + 3000/hr global backstop; exceed → `RateLimitError` (callers degrade gracefully) + `event_logs` record.
-- **Remaining:** thread `metadata.user_id` through more callers so per-user (not just global) applies everywhere; throttle the non-AI scrapers (Apify) separately; drop the dead `rate_limits` D1 table. **Effort: S.**
+### TD-05 · Rate limiting — partial (loose protection live) `MED`
+- **Was:** AI endpoints unthrottled — `ai-gateway.checkRateLimit` was dead code (`RATE_LIMIT` KV unbound), and the middleware limiter used a **per-isolate in-memory Map** that barely held across Pages' many isolates. (`getUserFromRequest` also auto-provisions any 16+char hash, so AI endpoints are effectively open to anyone with a hash — making cost protection important.)
+- **Done (2026-06-13):** two KV-backed layers — middleware per-user (`rl:ai:<hash>`, 40/min, wide AI path coverage) + gateway global backstop (`ratelimit:ai:global`, 3000/hr) + per-user when `metadata.user_id` present; both fail-open; exceed recorded to `event_logs`.
+- **⚠️ Known limitation:** KV is **eventually consistent** — fast sub-minute bursts can read a stale counter and slip through. This protects against *sustained* abuse (the real cost risk) but is **not burst-accurate**. Verified: a 46-request burst was not blocked (expected for KV).
+- **Proper fix (follow-up):** use the **Cloudflare Rate Limiting binding** (`[[ratelimit]]`, strongly consistent) or a **Durable Object** counter for burst-accurate limiting. Also: thread `metadata.user_id` through more gateway callers; throttle Apify scrapers; drop the dead `rate_limits` D1 table. **Effort: M.**
 
 ### TD-06 · Schema sprawl — ~12+ empty/dead tables out of 148 `MED`
 - **Evidence:** 148 user tables; confirmed empty: `content_chunks`, `content_intelligence`, `content_entities`, `research_activity`, `investigation_activity_log`, `social_media_posts`, `settings_audit_log`, `comments`, `user_notifications`, `guest_sessions` (and more likely across the 148). Features scaffolded via migrations, never populated.

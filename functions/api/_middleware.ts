@@ -3,9 +3,16 @@
 //
 // Rate limiting is KV-backed (CACHE namespace), NOT in-memory: Pages runs many
 // isolates, so a per-isolate Map barely limits anything — each request can land on
-// a cold isolate with an empty counter. KV is shared across isolates, so limits
-// actually hold. Fail-open: if CACHE is unbound or KV errors, the request proceeds
-// (never block legitimate traffic because the limiter hiccuped).
+// a cold isolate with an empty counter. KV is shared across isolates, so it holds
+// up against SUSTAINED abuse (a script running for minutes — the real OpenAI-cost
+// risk) once the counter converges.
+//
+// LIMITATION (by design, documented): KV is eventually consistent — reads are
+// edge-cached (~up to 60s), so a fast sub-minute BURST can read a stale 0 and slip
+// through. That's bounded/negligible cost; the gateway's global limiter is the
+// second layer. Precise/burst-accurate limiting needs the Cloudflare Rate Limiting
+// binding or a Durable Object (strongly consistent) — tracked as a follow-up.
+// Fail-open throughout: if CACHE is unbound or KV errors, the request proceeds.
 
 /**
  * Fixed-window KV rate limiter. Returns true if the caller is OVER the limit.
