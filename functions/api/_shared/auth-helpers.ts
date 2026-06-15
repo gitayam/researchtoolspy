@@ -20,6 +20,53 @@ export interface Env {
 }
 
 /**
+ * Resolve a hash to a user id, auto-provisioning a guest user on first sight.
+ *
+ * Hardened against the two failure modes that were intermittently logging users
+ * out as 401 (and permanently locking some out):
+ *  - **UNIQUE collisions:** the guest username/email were derived from only the
+ *    first 8 hash chars, so two distinct hashes sharing those 8 chars collided on
+ *    the UNIQUE username → INSERT failed → that user could NEVER authenticate.
+ *    Now derived from a 32-char prefix (collision is astronomically unlikely;
+ *    existing 8-char guests still resolve by user_hash).
+ *  - **Transient D1 errors / insert races:** retry the SELECT once on error, and
+ *    re-SELECT after a failed INSERT (a concurrent request may have won the race).
+ *
+ * Returns the user id, or null only when the hash genuinely can't be resolved.
+ */
+async function resolveHashUser(db: D1Database, hash: string): Promise<number | null> {
+  const selectId = async (): Promise<number | null> => {
+    const row = await db.prepare('SELECT id FROM users WHERE user_hash = ?')
+      .bind(hash).first<{ id: number }>()
+    return row ? Number(row.id) : null
+  }
+
+  // 1. Existing user? (retry once on a transient D1 read error)
+  try {
+    const id = await selectId()
+    if (id !== null) return id
+  } catch {
+    try { const id = await selectId(); if (id !== null) return id } catch { return null }
+  }
+
+  // 2. Auto-provision a guest. Long-prefix username/email avoids UNIQUE collisions.
+  const label = hash.substring(0, 32)
+  try {
+    const result = await db.prepare(`
+      INSERT INTO users (username, email, user_hash, full_name, hashed_password, created_at, is_active, is_verified, role)
+      VALUES (?, ?, ?, ?, ?, ?, 1, 0, 'guest')
+      RETURNING id
+    `).bind(`guest_${label}`, `${label}@guest.local`, hash, 'Guest User', 'HASH_AUTH', new Date().toISOString())
+      .first<{ id: number }>()
+    if (result?.id) return Number(result.id)
+  } catch {
+    // Lost an insert race or hit a collision — re-SELECT by the (unique) hash.
+    try { return await selectId() } catch { return null }
+  }
+  return null
+}
+
+/**
  * Get user ID from request Authorization header
  * Supports JWT tokens, session-based auth, and hash-based auth
  *
@@ -61,67 +108,16 @@ export async function getUserFromRequest(
 
     // 1c. Fallback: raw hash in Bearer (Mullvad direct access)
     if (token.length >= 16 && env.DB) {
-      try {
-        const existingUser = await env.DB.prepare(
-          'SELECT id FROM users WHERE user_hash = ?'
-        ).bind(token).first()
-
-        if (existingUser) {
-          return Number(existingUser.id)
-        }
-
-        const result = await env.DB.prepare(`
-          INSERT INTO users (username, email, user_hash, full_name, hashed_password, created_at, is_active, is_verified, role)
-          VALUES (?, ?, ?, ?, ?, ?, 1, 0, 'guest')
-          RETURNING id
-        `).bind(
-          `guest_${token.substring(0, 8)}`,
-          `${token.substring(0, 8)}@guest.local`,
-          token,
-          'Guest User',
-          'HASH_AUTH_LEGACY',
-          new Date().toISOString()
-        ).first() as { id: number } | null
-
-        if (result?.id) {
-          return Number(result.id)
-        }
-      } catch (err) {
-        console.error('[Auth] Failed to create/retrieve hash-based user:', err)
-      }
+      const id = await resolveHashUser(env.DB, token)
+      if (id !== null) return id
     }
   }
 
   // 2. Fallback to X-User-Hash header (no Bearer token present)
   const userHash = request.headers.get('X-User-Hash')
   if (userHash && userHash !== 'default' && userHash.length >= 16 && env.DB) {
-    try {
-      const existingUser = await env.DB.prepare(
-        'SELECT id FROM users WHERE user_hash = ?'
-      ).bind(userHash).first()
-      if (existingUser) {
-        return Number(existingUser.id)
-      }
-
-      const result = await env.DB.prepare(`
-        INSERT INTO users (username, email, user_hash, full_name, hashed_password, created_at, is_active, is_verified, role)
-        VALUES (?, ?, ?, ?, ?, ?, 1, 0, 'guest')
-        RETURNING id
-      `).bind(
-        `guest_${userHash.substring(0, 8)}`,
-        `${userHash.substring(0, 8)}@guest.local`,
-        userHash,
-        'Guest User',
-        'HASH_AUTH',
-        new Date().toISOString()
-      ).first() as { id: number } | null
-
-      if (result?.id) {
-        return Number(result.id)
-      }
-    } catch (err) {
-      console.error('[Auth] Failed to resolve X-User-Hash:', err)
-    }
+    const id = await resolveHashUser(env.DB, userHash)
+    if (id !== null) return id
   }
 
   return null
