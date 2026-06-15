@@ -1,11 +1,33 @@
 // Cloudflare Pages Functions Middleware
-// Handles CORS, common request processing, and basic Rate Limiting
+// Handles CORS, common request processing, and rate limiting.
+//
+// Rate limiting is KV-backed (CACHE namespace), NOT in-memory: Pages runs many
+// isolates, so a per-isolate Map barely limits anything — each request can land on
+// a cold isolate with an empty counter. KV is shared across isolates, so limits
+// actually hold. Fail-open: if CACHE is unbound or KV errors, the request proceeds
+// (never block legitimate traffic because the limiter hiccuped).
 
-// Simple in-memory rate limiter (per isolate)
-const rateLimit = new Map<string, { count: number, resetTime: number }>()
+/**
+ * Fixed-window KV rate limiter. Returns true if the caller is OVER the limit.
+ * key: caller-scoped string (e.g. "ai:<hash>"). limit: max events per window.
+ */
+async function kvRateLimit(env: any, key: string, limit: number, windowSec: number): Promise<boolean> {
+  const store = env?.CACHE
+  if (!store) return false // fail-open: limiter store not available
+  try {
+    const bucket = Math.floor(Date.now() / (windowSec * 1000))
+    const k = `rl:${key}:${bucket}`
+    const count = parseInt((await store.get(k)) || '0', 10)
+    if (count >= limit) return true
+    await store.put(k, String(count + 1), { expirationTtl: windowSec * 2 })
+    return false
+  } catch {
+    return false // fail-open on KV error
+  }
+}
 
 export async function onRequest(context: any) {
-  const { request, next } = context
+  const { request, next, env } = context
   const url = new URL(request.url)
 
   // CORS headers for all API requests — dynamic origin check
@@ -24,131 +46,65 @@ export async function onRequest(context: any) {
     'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Workspace-ID',
   }
 
+  const json429 = (msg: string) =>
+    new Response(JSON.stringify({ error: msg }), {
+      status: 429,
+      headers: { 'Content-Type': 'application/json', ...corsHeaders },
+    })
+
   // Handle OPTIONS preflight requests
   if (request.method === 'OPTIONS') {
-    return new Response(null, {
-      status: 204,
-      headers: corsHeaders
-    })
+    return new Response(null, { status: 204, headers: corsHeaders })
   }
 
-  // Basic Rate Limiting for Auth Endpoints
+  const clientIp = request.headers.get('CF-Connecting-IP') || 'unknown'
+
+  // Auth: brute-force protection on login
   if (url.pathname.includes('/hash-auth/authenticate') && request.method === 'POST') {
-    const clientIp = request.headers.get('CF-Connecting-IP') || 'unknown'
-    const now = Date.now()
-    const limit = 5
-    const windowMs = 60 * 1000
-
-    const record = rateLimit.get(clientIp) || { count: 0, resetTime: now + windowMs }
-
-    if (now > record.resetTime) {
-      record.count = 0
-      record.resetTime = now + windowMs
+    if (await kvRateLimit(env, `auth:${clientIp}`, 5, 60)) {
+      return json429('Too many login attempts. Please try again later.')
     }
-
-    if (record.count >= limit) {
-      return new Response(JSON.stringify({ error: 'Too many login attempts. Please try again later.' }), {
-        status: 429,
-        headers: {
-          'Content-Type': 'application/json',
-          ...corsHeaders
-        }
-      })
-    }
-
-    record.count++
-    rateLimit.set(clientIp, record)
   }
 
-  // Rate limiting for AI endpoints (prevent OpenAI billing abuse)
-  const aiPaths = ['/api/ai/', '/api/ach/generate', '/api/ach/from-content', '/api/equilibrium-analysis/analyze', '/api/content-intelligence/analyze-url', '/api/surveys/']
-  const isAiEndpoint = request.method === 'POST' && aiPaths.some(p => url.pathname.includes(p))
-  if (isAiEndpoint) {
-    const userHash = request.headers.get('X-User-Hash') || request.headers.get('CF-Connecting-IP') || 'unknown'
-    const rateLimitKey = `ai:${userHash}`
-    const now = Date.now()
-    const limit = 30 // 30 AI requests per minute per user
-    const windowMs = 60 * 1000
-
-    const record = rateLimit.get(rateLimitKey) || { count: 0, resetTime: now + windowMs }
-
-    if (now > record.resetTime) {
-      record.count = 0
-      record.resetTime = now + windowMs
+  // AI endpoints: prevent OpenAI billing abuse. Per-user (hash), generous so it only
+  // catches abuse/runaway, not normal use. Backstopped by the gateway's global limiter.
+  const aiPaths = [
+    '/api/ai/',
+    '/api/claims/',
+    '/api/tools/',
+    '/api/content-intelligence/',
+    '/api/ach/generate',
+    '/api/ach/from-content',
+    '/api/equilibrium-analysis/analyze',
+    '/api/hamilton-rule/analyze',
+    '/api/relationships/infer-type',
+    '/api/frameworks/swot-auto-populate',
+    '/api/frameworks/pmesii-pt',
+    '/api/frameworks/comb-analysis',
+    '/api/frameworks/behavior',
+    '/api/research/generate',
+    '/api/research/recommend',
+    '/api/surveys/',
+  ]
+  if (request.method === 'POST' && aiPaths.some(p => url.pathname.includes(p))) {
+    const id = request.headers.get('X-User-Hash') || clientIp
+    if (await kvRateLimit(env, `ai:${id}`, 40, 60)) {
+      return json429('AI rate limit exceeded. Please wait before making more requests.')
     }
-
-    if (record.count >= limit) {
-      return new Response(JSON.stringify({ error: 'AI rate limit exceeded. Please wait before making more requests.' }), {
-        status: 429,
-        headers: {
-          'Content-Type': 'application/json',
-          ...corsHeaders
-        }
-      })
-    }
-
-    record.count++
-    rateLimit.set(rateLimitKey, record)
   }
 
-  // Rate limiting for guest user registration (prevent DB flooding via /hash-auth/register)
-  // Only fires on the actual write endpoint — earlier this block fired on every
-  // guest API call, which broke normal browsing once auto-provisioning landed.
+  // Guest registration: prevent DB flooding via /hash-auth/register
   if (url.pathname.includes('/hash-auth/register') && request.method === 'POST') {
-    const clientIp = request.headers.get('CF-Connecting-IP') || 'unknown'
-    const rateLimitKey = `register:${clientIp}`
-    const now = Date.now()
-    const limit = 10
-    const windowMs = 60 * 1000
-
-    const record = rateLimit.get(rateLimitKey) || { count: 0, resetTime: now + windowMs }
-
-    if (now > record.resetTime) {
-      record.count = 0
-      record.resetTime = now + windowMs
+    if (await kvRateLimit(env, `register:${clientIp}`, 10, 60)) {
+      return json429('Too many registration attempts. Please try again later.')
     }
-
-    if (record.count >= limit) {
-      return new Response(JSON.stringify({ error: 'Too many registration attempts. Please try again later.' }), {
-        status: 429,
-        headers: {
-          'Content-Type': 'application/json',
-          ...corsHeaders
-        }
-      })
-    }
-
-    record.count++
-    rateLimit.set(rateLimitKey, record)
   }
 
-  // Rate limiting for public password verification endpoints
-  if ((url.pathname.includes('/intake/') && url.pathname.includes('/verify-password')) && request.method === 'POST') {
-    const clientIp = request.headers.get('CF-Connecting-IP') || 'unknown'
-    const rateLimitKey = `pwd:${clientIp}`
-    const now = Date.now()
-    const limit = 10
-    const windowMs = 60 * 1000
-
-    const record = rateLimit.get(rateLimitKey) || { count: 0, resetTime: now + windowMs }
-
-    if (now > record.resetTime) {
-      record.count = 0
-      record.resetTime = now + windowMs
+  // Public password verification endpoints
+  if (url.pathname.includes('/intake/') && url.pathname.includes('/verify-password') && request.method === 'POST') {
+    if (await kvRateLimit(env, `pwd:${clientIp}`, 10, 60)) {
+      return json429('Too many attempts. Please try again later.')
     }
-
-    if (record.count >= limit) {
-      return new Response(JSON.stringify({ error: 'Too many attempts. Please try again later.' }), {
-        status: 429,
-        headers: {
-          'Content-Type': 'application/json',
-          ...corsHeaders
-        }
-      })
-    }
-
-    record.count++
-    rateLimit.set(rateLimitKey, record)
   }
 
   // Process the request
@@ -156,7 +112,7 @@ export async function onRequest(context: any) {
 
   // Add CORS headers to response
   Object.entries(corsHeaders).forEach(([key, value]) => {
-    response.headers.set(key, value)
+    response.headers.set(key, value as string)
   })
 
   return response
