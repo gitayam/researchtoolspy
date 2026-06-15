@@ -6,6 +6,7 @@
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest } from '../_shared/auth-helpers'
 import { JSON_HEADERS, CORS_HEADERS, optionsResponse } from '../_shared/api-utils'
+import { requireConsent } from '../_shared/consent'
 import { callOpenAIViaGateway, ANALYST_SYSTEM_PREFIX, REFUSAL_BODY } from '../_shared/ai-gateway'
 
 interface Env {
@@ -32,6 +33,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         headers: JSON_HEADERS,
       })
     }
+
+    // Sensitive-use gate: profiling a named entity requires recorded consent
+    const consentGate = await requireConsent(env as any, authUserId)
+    if (consentGate) return consentGate
 
     const body = await request.json() as SummarizeEntityRequest
     const { content, entity_name, entity_type, content_title } = body

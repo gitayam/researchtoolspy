@@ -5,6 +5,7 @@
 
 import { getUserFromRequest } from '../_shared/auth-helpers'
 import { CORS_HEADERS, JSON_HEADERS } from '../_shared/api-utils'
+import { requireConsent } from '../_shared/consent'
 import { callOpenAIViaGateway, ANALYST_SYSTEM_PREFIX } from '../_shared/ai-gateway'
 
 interface Env {
@@ -58,6 +59,10 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
         headers: JSON_HEADERS,
       })
     }
+
+    // Sensitive-use gate: inferring relationships between entities requires recorded consent
+    const consentGate = await requireConsent(env as any, authUserId)
+    if (consentGate) return consentGate
 
     const body: InferTypeRequest = await request.json()
 

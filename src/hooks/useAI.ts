@@ -8,6 +8,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { AIConfiguration, AIModel, AIUseCase } from '@/lib/ai/config'
 import { getCopHeaders } from '@/lib/cop-auth'
+import { fetchWithConsent } from '@/lib/consent'
 
 export interface GenerateParams {
   prompt: string
@@ -85,7 +86,7 @@ export function useAI() {
     setError(null)
 
     try {
-      const response = await fetch('/api/ai/generate', {
+      const response = await fetchWithConsent('/api/ai/generate', {
         method: 'POST',
         headers: getCopHeaders(),
         body: JSON.stringify(params)

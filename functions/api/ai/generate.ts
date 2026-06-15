@@ -6,6 +6,7 @@
  */
 
 import { getUserFromRequest } from '../_shared/auth-helpers'
+import { requireConsent } from '../_shared/consent'
 import { JSON_HEADERS } from '../_shared/api-utils'
 import { callOpenAIViaGateway, ANALYST_SYSTEM_PREFIX, REFUSAL_BODY } from '../_shared/ai-gateway'
 
@@ -58,6 +59,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!authUserId) {
       return Response.json({ error: 'Authentication required' }, { status: 401 })
     }
+
+    // Sensitive-use gate: arbitrary generation requires recorded consent
+    const consentGate = await requireConsent(context.env as any, authUserId)
+    if (consentGate) return consentGate
 
     // Check if AI features are enabled
     if (context.env.ENABLE_AI_FEATURES !== 'true') {

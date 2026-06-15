@@ -3,6 +3,7 @@ import { RouterProvider } from 'react-router-dom'
 import { I18nextProvider } from 'react-i18next'
 import { QueryProvider } from '@/components/providers/QueryProvider'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { SensitiveConsentDialog } from '@/components/consent/SensitiveConsentDialog'
 import { GuestModeProvider } from '@/contexts/GuestModeContext'
 import { WorkspaceProvider } from '@/contexts/WorkspaceContext'
 import { useAuthStore } from '@/stores/auth'
@@ -55,6 +56,7 @@ function App() {
           <WorkspaceProvider>
             <QueryProvider>
               <RouterProvider router={router} />
+              <SensitiveConsentDialog />
             </QueryProvider>
           </WorkspaceProvider>
         </GuestModeProvider>

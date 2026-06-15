@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { getCopHeaders } from '@/lib/cop-auth'
+import { fetchWithConsent } from '@/lib/consent'
 import { Save, X, Search, ArrowRight, Calendar as CalendarIcon, Sparkles, CheckCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -162,7 +163,7 @@ export function RelationshipForm({
     setError(null)
 
     try {
-      const response = await fetch('/api/relationships/infer-type', {
+      const response = await fetchWithConsent('/api/relationships/infer-type', {
         method: 'POST',
         headers: getCopHeaders(),
         body: JSON.stringify({

@@ -1,6 +1,7 @@
 // src/lib/api/content-intelligence.ts
 import { createLogger } from '@/lib/logger'
 import { getCopHeaders } from '@/lib/cop-auth'
+import { fetchWithConsent } from '@/lib/consent'
 import type { ContentAnalysis, SavedLink } from '@/types/content-intelligence'
 
 const logger = createLogger('ContentIntelligenceAPI')
@@ -443,7 +444,7 @@ export const contentIntelligenceAPI = {
     contentTitle?: string
   ): Promise<EntitySummaryResponse> {
     logger.debug('Summarizing entity:', { entityName, entityType })
-    const response = await fetch('/api/content-intelligence/summarize-entity', {
+    const response = await fetchWithConsent('/api/content-intelligence/summarize-entity', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
       body: JSON.stringify({
