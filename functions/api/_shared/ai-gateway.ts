@@ -12,11 +12,14 @@
 // Cloudflare Workers types (globally available at runtime)
 declare type KVNamespace = any
 
+import { logEvent } from './event-log'
+
 interface Env {
   AI_GATEWAY_ACCOUNT_ID?: string
   OPENAI_API_KEY: string
   OPENAI_ORGANIZATION?: string
   RATE_LIMIT?: KVNamespace
+  DB?: any // D1Database — optional; enables event_logs observability when present
 }
 
 /**
@@ -102,12 +105,14 @@ export async function callOpenAIViaGateway(
   // Determine if we should use gateway
   const useGateway = !forceDirect && !!env.AI_GATEWAY_ACCOUNT_ID
 
+  const source = metadata?.endpoint || 'ai-gateway'
   let data: any
   if (useGateway) {
     try {
       data = await callViaGateway(env, openaiRequest, cacheTTL, metadata, timeout)
     } catch (error) {
       console.warn('[AI Gateway] Gateway failed, falling back to direct OpenAI:', error)
+      await logEvent(env, { level: 'warn', source, message: 'gateway failed, fell back to direct OpenAI', context: { error: String(error) } })
       // Automatic fallback to direct OpenAI
       data = await callDirectOpenAI(env, openaiRequest, timeout)
     }
@@ -120,7 +125,8 @@ export async function callOpenAIViaGateway(
   // can surface a clean "declined by model" state instead of an opaque JSON-parse error.
   const content = data?.choices?.[0]?.message?.content
   if (typeof content === 'string' && detectRefusal(content)) {
-    console.warn(`[AI Gateway] model refusal detected (endpoint=${metadata?.endpoint || 'unknown'})`)
+    console.warn(`[AI Gateway] model refusal detected (endpoint=${source})`)
+    await logEvent(env, { level: 'refusal', source, message: 'model content-policy refusal', context: { preview: content.slice(0, 300) } })
     data._refusal = true
   }
   return data

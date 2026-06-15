@@ -102,6 +102,15 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       if (changes < BATCH_SIZE) break // drained
     }
 
+    // Prune the observability sink too (>30 days) so it can't regrow the DB.
+    let eventLogsPruned = 0
+    try {
+      const ev = await context.env.DB.prepare(
+        `DELETE FROM event_logs WHERE created_at < datetime('now','-30 days')`
+      ).run()
+      eventLogsPruned = ev.meta.changes || 0
+    } catch { /* table may not exist yet on older DBs — ignore */ }
+
     // Report whether rows remain (so the cron operator knows if a second run is needed)
     const remainingRow = await context.env.DB.prepare(
       `SELECT COUNT(*) AS n FROM content_analysis ca WHERE ${DELETABLE_WHERE}`
@@ -112,6 +121,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       deleted_count: totalDeleted,
       batches_run: batches + 1,
       remaining_deletable: remainingRow?.n || 0,
+      event_logs_pruned: eventLogsPruned,
     }), { status: 200, headers: JSON_HEADERS })
 
   } catch (error) {
