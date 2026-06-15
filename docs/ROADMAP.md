@@ -24,7 +24,10 @@ This is the living roadmap. Detailed findings live in [`TECH_DEBT.md`](operation
 ## Now (highest priority)
 
 1. **Burst-accurate rate limiting** `TD-05` — replace the KV limiters with the **Cloudflare Rate Limiting binding** (`[[ratelimit]]`, strongly consistent) or a **Durable Object** counter. KV is eventually consistent so sub-minute bursts slip through today. *Deploy-gated attempt; revert cleanly if the binding isn't supported on Pages Functions.*
-2. **Tier-1 access gating** `AI review #3` — gate identity/surveillance endpoints (PimEyes/face-match, person entity-summaries, relationship inference, arbitrary `ai/generate`) behind explicit auth + a one-time ToS acknowledgement. *Needs a product decision on mechanism/UX before building* — note `getUserFromRequest` auto-provisions any 16+char hash, so these are effectively open today.
+2. **Auth resilience** `NEW (found 2026-06-15)` — `getUserFromRequest` wraps its `SELECT`/auto-provision `INSERT` in a try/catch that returns `null` → **a transient D1 error logs the user out (401)** rather than retrying or returning 503. Observed intermittently under load. Make it distinguish "no such user" (401) from "DB error" (503/retry); consider widening the guest `username`/`email` derivation (currently first 8 hash chars → UNIQUE-collision risk).
+
+### ✅ Done — Tier-1 access gating (2026-06-15)
+Recorded, versioned **sensitive-use consent** gate shipped: `user_consents` table (migration 106) + `requireConsent()` 403 + `/api/user/consent` + frontend `fetchWithConsent` dialog. Gates `ai/generate`, `summarize-entity`, `relationships/infer-type`. *Code/build verified + deployed; runtime gate-fire verification was blocked by the intermittent auth issue above (hits untouched endpoints too), so confirm once #2 is addressed.* Follow-up: extend `requireConsent` to PimEyes/face-match + CARVER/COG vuln generation.
 
 ## Next
 
