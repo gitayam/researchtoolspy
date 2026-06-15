@@ -40,10 +40,10 @@ This is a living backlog. Each item has a **severity** (impact if left), rough *
 - **Impact:** slowest write in the system and the most-run write (170×). Several indexes overlap (`_hash` vs `_hash_workspace`, `_user` vs `_user_workspace`).
 - **Fix:** drop redundant single-column indexes covered by composite ones; keep only indexes backed by real query patterns (cross-check against D1 insights). **Effort: S.**
 
-### TD-05 · Rate limiting is designed but not enforced `MED`
-- **Evidence:** `rate_limits` table exists with 0 rows; no code path populates it.
-- **Impact:** AI/scraper/content endpoints (OpenAI, Apify, extraction) have no DB-backed throttle — cost and abuse exposure.
-- **Fix:** either enforce via the table (or KV-based limiter) on expensive endpoints, or remove the dead table. **Effort: M.**
+### TD-05 · Rate limiting — ✅ AI endpoints now throttled (2026-06-13) `MED`
+- **Was:** `checkRateLimit` defined but called nowhere, and `RATE_LIMIT` KV never bound → every AI endpoint unthrottled (OpenAI cost/abuse exposure). The `rate_limits` D1 table is also dead (0 rows).
+- **Fixed:** rate limiting enforced centrally in `ai-gateway.ts` (`enforceRateLimit`, reuses bound `CACHE` KV, fail-open): 100/min per user (when caller passes `metadata.user_id`) + 3000/hr global backstop; exceed → `RateLimitError` (callers degrade gracefully) + `event_logs` record.
+- **Remaining:** thread `metadata.user_id` through more callers so per-user (not just global) applies everywhere; throttle the non-AI scrapers (Apify) separately; drop the dead `rate_limits` D1 table. **Effort: S.**
 
 ### TD-06 · Schema sprawl — ~12+ empty/dead tables out of 148 `MED`
 - **Evidence:** 148 user tables; confirmed empty: `content_chunks`, `content_intelligence`, `content_entities`, `research_activity`, `investigation_activity_log`, `social_media_posts`, `settings_audit_log`, `comments`, `user_notifications`, `guest_sessions` (and more likely across the 148). Features scaffolded via migrations, never populated.
