@@ -2555,13 +2555,13 @@ async function analyzeClaimsForDeception(
 }> {
   const truncatedText = fullText.substring(0, 15000)
 
-  const prompt = `Analyze these claims for potential deception using multiple detection methods.
+  const buildPrompt = (batch: typeof claims) => `Analyze these claims for potential deception using multiple detection methods.
 
 Full Article Context (for reference):
 ${truncatedText.substring(0, 3000)}...
 
 Claims to Analyze:
-${JSON.stringify(claims, null, 2)}
+${JSON.stringify(batch, null, 2)}
 
 For EACH claim, run these deception detection methods:
 
@@ -2656,8 +2656,37 @@ Return ONLY valid JSON:
   }
 }`
 
-  try {
+  // Per-claim deception analysis is token-heavy: 6 reasoning blocks + red_flags +
+  // confidence_assessment per claim. A single batched call for ~13+ claims overflows
+  // the model's output budget (finish_reason: "length"), truncates the JSON mid-string,
+  // and fails JSON.parse — which previously nulled out EVERY claim ("AI analysis failed").
+  // Batch into small groups so each call stays well within budget; a failing batch
+  // degrades only its own claims, not the whole analysis.
+  const BATCH_SIZE = 6
 
+  const fallbackFor = (batch: typeof claims) => batch.map(c => ({
+    ...c,
+    deception_analysis: {
+      overall_risk: 'medium' as const,
+      risk_score: null as any, // Explicitly null to indicate no analysis
+      methods: {
+        internal_consistency: { score: null as any, reasoning: 'AI analysis failed. Please manually assess this claim.' },
+        source_credibility: { score: null as any, reasoning: 'AI analysis failed. Please manually assess this claim.' },
+        evidence_quality: { score: null as any, reasoning: 'AI analysis failed. Please manually assess this claim.' },
+        logical_coherence: { score: null as any, reasoning: 'AI analysis failed. Please manually assess this claim.' },
+        temporal_consistency: { score: null as any, reasoning: 'AI analysis failed. Please manually assess this claim.' },
+        specificity: { score: null as any, reasoning: 'AI analysis failed. Please manually assess this claim.' }
+      },
+      red_flags: [
+        '⚠️ Automated analysis unavailable',
+        'Manual assessment required',
+        'Error: AI analysis unavailable'
+      ],
+      confidence_assessment: 'AI analysis failed - manual review strongly recommended. Edit scores below to provide your assessment.'
+    }
+  }))
+
+  const analyzeBatch = async (batch: typeof claims): Promise<any[]> => {
     const data = await callOpenAIViaGateway(env, {
       model: 'gpt-5.4-mini',
       messages: [
@@ -2665,9 +2694,9 @@ Return ONLY valid JSON:
           role: 'system',
           content: 'You are a deception detection expert trained in multiple analytical methods. Analyze claims objectively using: internal consistency, source credibility, evidence quality, logical coherence, temporal consistency, and specificity. Provide detailed reasoning for each score. Return ONLY valid JSON.'
         },
-        { role: 'user', content: prompt }
+        { role: 'user', content: buildPrompt(batch) }
       ],
-      max_completion_tokens: 3000,
+      max_completion_tokens: 4000, // ample for a 6-claim batch; keeps JSON from truncating
       reasoning_effort: 'none',
       temperature: 0.3 // Moderate temperature for balanced analysis
     }, {
@@ -2679,69 +2708,64 @@ Return ONLY valid JSON:
       timeout: 30000
     })
 
-
-    if (!data.choices?.[0]?.message?.content) {
-      console.error('[DEBUG] Invalid API response structure:', JSON.stringify(data))
+    const content = data.choices?.[0]?.message?.content
+    if (!content) {
       throw new Error('Invalid API response for deception analysis')
     }
 
-    const rawContent = data.choices[0].message.content
-
-    const jsonText = rawContent
+    const jsonText = content
       .replace(/```json\n?/g, '')
       .replace(/```\n?/g, '')
       .trim()
 
-    let result
-    try {
-      result = JSON.parse(jsonText)
-    } catch (parseError) {
-      console.error('[DEBUG] JSON parse error:', parseError)
-      console.error('[DEBUG] Failed to parse text:', jsonText.substring(0, 500))
-      throw new Error('Failed to parse deception analysis JSON')
+    const parsed = JSON.parse(jsonText)
+    if (!parsed || !Array.isArray(parsed.claims)) {
+      throw new Error('Deception analysis returned no claims array')
     }
+    return parsed.claims
+  }
 
-    return result
+  // Split into batches and run concurrently. Each batch's failure is isolated so one
+  // truncated/failed response degrades only its own claims to the manual-assessment state.
+  const batches: Array<typeof claims> = []
+  for (let i = 0; i < claims.length; i += BATCH_SIZE) {
+    batches.push(claims.slice(i, i + BATCH_SIZE))
+  }
 
-  } catch (error) {
-    console.error('[Deception Analysis] Error:', error)
-    console.error('[Deception Analysis] Error type:', error instanceof Error ? error.constructor.name : typeof error)
-    console.error('[Deception Analysis] Error message:', error instanceof Error ? error.message : String(error))
-    console.error('[Deception Analysis] Error stack:', error instanceof Error ? error.stack : 'N/A')
-    console.error('[Deception Analysis] Number of claims attempted:', claims.length)
+  const batchResults = await Promise.all(batches.map(async (batch) => {
+    try {
+      return await analyzeBatch(batch)
+    } catch (error) {
+      console.error('[Deception Analysis] batch failed:', error instanceof Error ? error.message : String(error), '| claims in batch:', batch.length)
+      return fallbackFor(batch)
+    }
+  }))
 
-    // Return claims with NO deception analysis on error
-    // This allows users to manually assess instead of showing misleading "50" scores
-    return {
-      claims: claims.map(c => ({
-        ...c,
-        deception_analysis: {
-          overall_risk: 'medium' as const,
-          risk_score: null as any, // Explicitly null to indicate no analysis
-          methods: {
-            internal_consistency: { score: null as any, reasoning: 'AI analysis failed. Please manually assess this claim.' },
-            source_credibility: { score: null as any, reasoning: 'AI analysis failed. Please manually assess this claim.' },
-            evidence_quality: { score: null as any, reasoning: 'AI analysis failed. Please manually assess this claim.' },
-            logical_coherence: { score: null as any, reasoning: 'AI analysis failed. Please manually assess this claim.' },
-            temporal_consistency: { score: null as any, reasoning: 'AI analysis failed. Please manually assess this claim.' },
-            specificity: { score: null as any, reasoning: 'AI analysis failed. Please manually assess this claim.' }
-          },
-          red_flags: [
-            '⚠️ Automated analysis unavailable',
-            'Manual assessment required',
-            'Error: AI analysis unavailable'
-          ],
-          confidence_assessment: 'AI analysis failed - manual review strongly recommended. Edit scores below to provide your assessment.'
-        }
-      })),
-      summary: {
-        total_claims: claims.length,
-        high_risk_claims: 0,
-        medium_risk_claims: 0,
-        low_risk_claims: 0,
-        most_concerning_claim: 'Unable to determine - manual analysis needed',
-        overall_content_credibility: null as any // Null to indicate no automated assessment
-      }
+  const mergedClaims = batchResults.flat()
+
+  // Recompute the summary from merged per-claim results — per-batch summaries can't be
+  // trusted (they only see their own slice). Risk bands match the prompt: low <30, medium
+  // 30-60, high >60. Credibility ≈ inverse of risk, averaged over successfully scored claims.
+  const scored = mergedClaims.filter((c: any) => typeof c?.deception_analysis?.risk_score === 'number')
+  const high = scored.filter((c: any) => c.deception_analysis.risk_score > 60).length
+  const medium = scored.filter((c: any) => c.deception_analysis.risk_score >= 30 && c.deception_analysis.risk_score <= 60).length
+  const low = scored.filter((c: any) => c.deception_analysis.risk_score < 30).length
+  const overall = scored.length
+    ? Math.round(scored.reduce((s: number, c: any) => s + (100 - c.deception_analysis.risk_score), 0) / scored.length)
+    : null
+  const mostConcerning = scored.length
+    ? scored.reduce((a: any, b: any) => (b.deception_analysis.risk_score > a.deception_analysis.risk_score ? b : a)).claim
+    : 'Unable to determine - manual analysis needed'
+
+  return {
+    claims: mergedClaims as any,
+    summary: {
+      total_claims: mergedClaims.length,
+      high_risk_claims: high,
+      medium_risk_claims: medium,
+      low_risk_claims: low,
+      most_concerning_claim: mostConcerning,
+      overall_content_credibility: overall as any // null when nothing scored
     }
   }
 }
