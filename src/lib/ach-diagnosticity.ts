@@ -30,14 +30,15 @@ export interface DiagnosticityScore {
 export interface HypothesisLikelihood {
   hypothesisId: string
   hypothesis: string
-  rawScore: number
-  weightedScore: number
+  rawScore: number // secondary: net sum of all scores (support + contradiction)
+  weightedScore: number // secondary: net sum (no quality weights in this module)
+  inconsistencyScore: number // PRIMARY ranking metric: sum of negative (contradicting) scores only; <= 0
   rank: number
   isLeastContradicted: boolean
   supportingEvidence: number
   contradictingEvidence: number
   neutralEvidence: number
-  likelihood: number // 0-100 normalized
+  likelihood: number // 0-100 normalized over inconsistency (least disconfirmed = highest)
 }
 
 /**
@@ -136,8 +137,18 @@ export function calculateAllDiagnosticity(
 }
 
 /**
- * Calculate hypothesis likelihood rankings
- * In ACH, the hypothesis with the LEAST contradictory evidence is typically most likely
+ * Calculate hypothesis likelihood rankings.
+ *
+ * Heuer's ACH canon: a hypothesis is ranked by DISCONFIRMATION, not confirmation.
+ * The most likely hypothesis is the one with the LEAST inconsistent (contradicting)
+ * evidence — NOT the one with the most support. Supporting evidence does not
+ * discriminate between hypotheses (many hypotheses can be consistent with the same
+ * supporting evidence); only inconsistent evidence eliminates hypotheses.
+ *
+ * Primary ranking metric: `inconsistencyScore` = sum of negative (contradicting)
+ * scores only (<= 0). Ranked DESCENDING so the value closest to zero (least
+ * disconfirmed) ranks #1. Tie-broken by net `weightedScore` descending.
+ * `rawScore`/`weightedScore` (net sums) are retained for SECONDARY display only.
  */
 export function calculateHypothesisLikelihoods(
   hypotheses: ACHHypothesis[],
@@ -148,12 +159,19 @@ export function calculateHypothesisLikelihoods(
     // Get all scores for this hypothesis
     const hypScores = allScores.filter(s => s.hypothesis_id === hyp.id)
 
-    // Calculate raw score (sum of all scores)
+    // Net raw score (sum of all scores) — secondary display only
     const rawScore = hypScores.reduce((sum, s) => sum + s.score, 0)
 
-    // Calculate weighted score (with evidence quality weights)
-    // For now, use raw score (evidence quality weighting happens in matrix)
+    // This module has no evidence-quality weights; weighted == raw here.
+    // Kept as a separate field so consumers/exports remain stable.
     const weightedScore = rawScore
+
+    // PRIMARY metric: weighted inconsistency = sum of negative (contradicting)
+    // scores only. <= 0. Supporting/positive scores are EXCLUDED — they do not
+    // discriminate between hypotheses in Heuer's method.
+    const inconsistencyScore = hypScores
+      .filter(s => s.score < 0)
+      .reduce((sum, s) => sum + s.score, 0)
 
     // Count supporting, contradicting, neutral
     const supportingEvidence = hypScores.filter(s => s.score > 0).length
@@ -165,6 +183,7 @@ export function calculateHypothesisLikelihoods(
       hypothesis: hyp.text,
       rawScore,
       weightedScore,
+      inconsistencyScore,
       rank: 0, // Set below
       isLeastContradicted: false, // Set below
       supportingEvidence,
@@ -174,28 +193,33 @@ export function calculateHypothesisLikelihoods(
     }
   })
 
-  // Sort by weighted score DESCENDING (least negative = most likely in ACH)
-  // In ACH methodology, we're looking for the hypothesis with the LEAST contradictory evidence
-  // So the hypothesis with the highest score (least negative) is most likely
-  likelihoods.sort((a, b) => b.weightedScore - a.weightedScore)
+  // Sort by inconsistency DESCENDING (least-negative = least disconfirmed = most
+  // likely). Tie-break by net weightedScore descending (secondary signal only).
+  likelihoods.sort((a, b) => {
+    if (b.inconsistencyScore !== a.inconsistencyScore) {
+      return b.inconsistencyScore - a.inconsistencyScore
+    }
+    return b.weightedScore - a.weightedScore
+  })
 
-  // Assign ranks
+  // Assign ranks. rank 0 (index 0) is genuinely the least-contradicted hypothesis.
   likelihoods.forEach((l, index) => {
     l.rank = index + 1
     l.isLeastContradicted = index === 0
   })
 
-  // Normalize likelihood scores to 0-100
-  const maxScore = Math.max(...likelihoods.map(l => l.weightedScore))
-  const minScore = Math.min(...likelihoods.map(l => l.weightedScore))
-  const scoreRange = maxScore - minScore
+  // Normalize likelihood to 0-100 over the INCONSISTENCY ordering (least disconfirmed
+  // = highest), so the displayed bar reflects the disconfirmation ranking, not net support.
+  const maxInconsistency = Math.max(...likelihoods.map(l => l.inconsistencyScore))
+  const minInconsistency = Math.min(...likelihoods.map(l => l.inconsistencyScore))
+  const inconsistencyRange = maxInconsistency - minInconsistency
 
   likelihoods.forEach(l => {
-    if (scoreRange === 0) {
-      l.likelihood = 50 // All equal
+    if (inconsistencyRange === 0) {
+      l.likelihood = 50 // All equally (dis)confirmed
     } else {
-      // Normalize to 0-100
-      l.likelihood = ((l.weightedScore - minScore) / scoreRange) * 100
+      // Least-negative (closest to maxInconsistency) → 100; most-negative → 0
+      l.likelihood = ((l.inconsistencyScore - minInconsistency) / inconsistencyRange) * 100
     }
   })
 
