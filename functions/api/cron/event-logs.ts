@@ -7,7 +7,7 @@
  * data, not public. GET only (read-only).
  *
  *   GET /api/cron/event-logs                 -> 100 most recent events
- *   GET /api/cron/event-logs?level=refusal   -> filter by level (error|warn|refusal)
+ *   GET /api/cron/event-logs?level=refusal   -> filter by level (error|warn|refusal|audit)
  *   GET /api/cron/event-logs?limit=20&since=2026-06-13
  *   (header: X-Cron-Secret: <CRON_SECRET>)
  */
@@ -43,7 +43,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
   const where: string[] = []
   const binds: any[] = []
-  if (level && ['error', 'warn', 'refusal'].includes(level)) { where.push('level = ?'); binds.push(level) }
+  if (level && ['error', 'warn', 'refusal', 'audit'].includes(level)) { where.push('level = ?'); binds.push(level) }
   if (since) { where.push("created_at >= ?"); binds.push(since) }
   const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : ''
 

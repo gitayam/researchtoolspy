@@ -104,24 +104,6 @@ CREATE TABLE IF NOT EXISTS framework_exports (
 CREATE INDEX IF NOT EXISTS idx_framework_exports_session_id ON framework_exports(session_id);
 CREATE INDEX IF NOT EXISTS idx_framework_exports_exported_by_id ON framework_exports(exported_by_id);
 
--- Auth Logs table
-CREATE TABLE IF NOT EXISTS auth_logs (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  user_id INTEGER,
-  action TEXT NOT NULL,
-  ip_address TEXT,
-  user_agent TEXT,
-  success INTEGER NOT NULL DEFAULT 1,
-  error_message TEXT,
-  metadata TEXT, -- JSON
-  created_at TEXT NOT NULL DEFAULT (datetime('now')),
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
-);
-
-CREATE INDEX IF NOT EXISTS idx_auth_logs_user_id ON auth_logs(user_id);
-CREATE INDEX IF NOT EXISTS idx_auth_logs_action ON auth_logs(action);
-CREATE INDEX IF NOT EXISTS idx_auth_logs_created_at ON auth_logs(created_at);
-
 -- Research Tools Results table
 CREATE TABLE IF NOT EXISTS research_tool_results (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

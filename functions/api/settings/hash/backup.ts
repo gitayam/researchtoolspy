@@ -6,6 +6,7 @@
 
 import { requireAuth } from '../../_shared/auth-helpers'
 import { JSON_HEADERS } from '../../_shared/api-utils'
+import { logEvent } from '../../_shared/event-log'
 
 interface Env {
   DB: D1Database
@@ -121,17 +122,17 @@ Questions? Visit https://omnicore.app/help or contact support
 =================================================================
 `.trim()
 
-    // Log backup generation (optional)
-    try {
-      await context.env.DB.prepare(
-        `INSERT INTO settings_audit_log (user_hash, category, setting_key, new_value, changed_at)
-         VALUES (?, 'security', 'hash_backup_generated', ?, CURRENT_TIMESTAMP)`
-      )
-        .bind(userHash, backupCode)
-        .run()
-    } catch {
-      // Table might not exist - continue anyway
-    }
+    // Audit the backup generation via the single canonical sink (event_logs).
+    // SECURITY: never log the backup code (a secret) or the full hash (an auth
+    // credential) — only a short hash prefix for correlation. logEvent swallows
+    // its own errors, so it can never break this request.
+    await logEvent(context.env, {
+      level: 'audit',
+      source: 'settings/hash/backup',
+      message: 'hash_backup_generated',
+      context: { category: 'security', user_hash_prefix: userHash.slice(0, 8) },
+      userId: null,
+    })
 
     // Return as downloadable text file
     const blob = new TextEncoder().encode(backupContent)
