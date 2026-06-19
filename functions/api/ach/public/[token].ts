@@ -3,6 +3,7 @@
  * GET /api/ach/public/:token - View public ACH analysis (no auth required)
  */
 import { JSON_HEADERS } from '../../_shared/api-utils'
+import { serializePublicAnalysis } from './_public-fields'
 
 interface Env {
   DB: D1Database
@@ -100,7 +101,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     }
 
     return new Response(JSON.stringify({
-      ...analysis,
+      ...serializePublicAnalysis(analysis),
       tags,
       hypotheses: hypotheses.results || [],
       evidence: evidenceLinks.results || [],
