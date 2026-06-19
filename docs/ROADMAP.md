@@ -1,6 +1,6 @@
 # ResearchTools.net — Roadmap
 
-**Last updated:** 2026-06-19 · **Current release:** `v0.22.0` (+ content-intel & auth-resilience patches) · **Prod:** [researchtools.net](https://researchtools.net) (Cloudflare Pages + D1)
+**Last updated:** 2026-06-19 · **Current release:** `v0.22.0` (+ hardening patches through `v0.22.4`) · **Prod:** [researchtools.net](https://researchtools.net) (Cloudflare Pages + D1)
 
 This is the living roadmap — the single source of truth for "what's next." Detailed findings live in [`TECH_DEBT.md`](operations/TECH_DEBT.md), the AI-safety review in [`AI_REFUSAL_REVIEW.md`](operations/AI_REFUSAL_REVIEW.md), and dated design/implementation plans in [`plans/`](plans/). Status legend: ✅ done · 🔄 partial · ⬜ planned.
 
@@ -29,6 +29,9 @@ New features are welcome but should ride on top of this hardened base, not aroun
 ---
 
 ## Recently shipped
+
+### v0.22.4 — ACH ranks by Heuer disconfirmation (2026-06-19)
+- ✅ **Flagship ACH correctness fix** — ACH now ranks hypotheses by **weighted inconsistency** (sum of contradicting scores only; least-disconfirmed = most likely), matching Heuer's method, instead of by **net support** (which rewarded confirmation and produced an inverted "Most Likely"). Fixed on all live paths — `ach-diagnosticity.ts` `calculateHypothesisLikelihoods` (consumed by all 4 ACH export components) and the `ACHMatrix` ranking badge + "Key Principle" text; net/raw sums kept as clearly-labeled secondary signals. Canon pinned by a regression test (`tests/e2e/smoke/ach-ranking.spec.ts`, net-sum-vs-disconfirmation disagreement scenario) (`27f9b502b`).
 
 ### v0.22.3 — One canonical audit trail (2026-06-19)
 - ✅ **Consolidated to a single written audit/observability trail (`event_logs`)** — dropped the two dead "audit" tables (`auth_logs`, `settings_audit_log`; both **0 rows** in prod, migration 107) that implied coverage that didn't exist, and rerouted the one real security event (`hash_backup_generated` in `settings/hash/backup.ts`) to `event_logs` via `logEvent()` with a new `'audit'` level (the `/api/cron/event-logs` reader now surfaces it). The reroute also **stopped persisting the backup recovery code and the full user hash** (only an 8-char prefix is logged for correlation). Unit-tested via `tests/e2e/smoke/audit-log-sink.spec.ts` (`d10ea56c8`).
@@ -63,7 +66,7 @@ New features are welcome but should ride on top of this hardened base, not aroun
    - 🔄 *blocked (2026-06-19): needs an architecture call.* The native `[[ratelimit]]` binding is **not** strongly consistent (CF docs: counters are per-machine and updated asynchronously), so it fails the "strongly consistent" acceptance bar, and Pages Functions support for the binding is undocumented. The only mechanism that truly satisfies "strongly consistent" is a **Durable Object** — which on Pages requires standing up a new DO-hosting Worker + a DO migration + a `script_name` binding (a new always-on deployable component + deployment-topology/cost decision the maintainer should own). **Decide:** accept the native binding's per-colo consistency as "good enough" (downgrade the acceptance bar), or invest in the DO Worker.
 
 2. **SAT correctness & safety fixes** `D0` — a 2026-06-19 audit found **bugs in shipped analytic techniques that change the answers analysts get** (theme #1). Full list + file:line + fixes in [`plans/2026-06-19-analytic-capability-expansion.md`](plans/2026-06-19-analytic-capability-expansion.md) → "Workstream D0." Headline items:
-   - **ACH ranks by confirmation, not Heuer disconfirmation** (`ach-diagnosticity.ts:152–180`, `ACHMatrix.tsx:314–336`) — the flagship technique produces an inverted ranking while the only correct engine (`ach-scoring.ts`) is dead code; evidence-credibility weighting is a façade (TEXT-vs-number bug parses the source *name* as a grade).
+   - ✅ **ACH ranking inversion — FIXED** (v0.22.4, `27f9b502b`): now ranks by Heuer disconfirmation (weighted inconsistency) on all live paths; net-sum demoted to secondary. **Residual (still open):** (a) evidence-credibility weighting is a **façade** — `evidence-quality.ts:151–170` hardcodes weights and the TEXT-vs-number bug (`:155`) parses the source *name* as a grade; the real `reliability`/`confidence_level` columns exist but the ACH GET (`functions/api/ach/index.ts:63–75`) never selects them, so the lib/export ranking is currently **unweighted** by evidence quality; (b) `ach-scoring.ts`'s parallel net-sum scoring engine is dead code with the same inversion (delete or align — only its scale constants are used).
    - **Deception AI** runs client-side with a browser-exposed `VITE_OPENAI_API_KEY` (latent key-leak — *verified unset today, no live leak*; move server-side onto the gateway) and **silently returns a fabricated fallback** as if it were real analysis; confidence counts magnitude not coverage; PDF bars render at ⅓ value.
    - **COG** view/matrix/exports **crash** on custom-scored vulnerabilities (unguarded `vuln.scoring.*`); **COM-B** runs two divergent canonical matrices (UI vs `/recommend` API disagree).
    - **AI-endpoint refusal crashes** (`swot-auto-populate`, `pmesii-pt/import-url` don't check `_refusal` → opaque 500) and **ACH public `SELECT *` + spread** (column-leak risk).
@@ -104,7 +107,7 @@ The codebase has three extension tiers — Tier 1 config-only framework (`framew
 ---
 
 ## Known limitations (accept, or fix above)
-- **ACH currently ranks hypotheses by net support, not Heuer disconfirmation** — the flagship technique ships a methodologically inverted ranking until Now/#2 lands; deception AI falls back to a fabricated stub when the (unset) client key is absent. These are live.
+- **ACH ranking is now Heuer-correct** (disconfirmation / weighted-inconsistency, shipped v0.22.4). **Residual:** the credibility weighting feeding it is still a façade, so the lib/export ranking is unweighted by evidence quality (Now/#2). Deception AI still falls back to a fabricated stub when the (unset) client key is absent (Now/#2).
 - **Rate limiting is sustained-abuse only** (KV eventual consistency) — burst-accurate fix is Now/#1.
 - **AI endpoints are open to any 16+ char hash** (`getUserFromRequest` auto-provisions) — mitigated by rate limiting + Tier-1 consent; deeper fix is real accounts.
 - **Tier-1 consent gate's runtime fire is unverified** — the intermittent 401 that blocked this was resolved by the v0.22.2 503 fix (2026-06-19); the runtime fire (403 → consent dialog → success) is now **unblocked but still needs an actual verification pass**.
