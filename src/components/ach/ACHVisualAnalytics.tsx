@@ -50,7 +50,7 @@ export function ACHVisualAnalytics({ analysis }: ACHVisualAnalyticsProps) {
             <Badge variant="outline">{hypotheses.length} hypotheses</Badge>
           </div>
           <p className="text-sm text-muted-foreground mt-2">
-            In ACH methodology, the hypothesis with the <strong>least contradictory evidence</strong> (highest score) is typically most likely
+            In ACH methodology, the hypothesis with the <strong>least inconsistent (contradicting) evidence</strong> is most likely &mdash; ranked by disconfirmation, not by net support
           </p>
         </CardHeader>
         <CardContent className="space-y-4">

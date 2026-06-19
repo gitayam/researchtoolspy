@@ -84,6 +84,20 @@ export function ACHMatrix({
       }, 0)
   }
 
+  // Heuer's ACH ranks by DISCONFIRMATION: the most likely hypothesis is the one
+  // with the LEAST inconsistent (contradicting) evidence — not the most support.
+  // Weighted inconsistency = sum of only the negative weighted contributions (<= 0).
+  // Least-negative (closest to zero) is the most likely.
+  const getWeightedInconsistency = (hypothesisId: string): number => {
+    return scores
+      .filter(s => s.hypothesis_id === hypothesisId && s.score < 0)
+      .reduce((sum, s) => {
+        const quality = evidenceQuality.get(s.evidence_id)
+        const weight = quality?.weight ?? 1.0
+        return sum + (s.score * weight)
+      }, 0)
+  }
+
   if (hypotheses.length === 0) {
     return (
       <Card className="p-12 text-center">
@@ -303,31 +317,62 @@ export function ACHMatrix({
           <CardContent>
             <div className="space-y-2">
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                <strong>Key Principle:</strong> The hypothesis with the LEAST contradictory evidence (highest score) is most likely correct.
+                <strong>Key Principle:</strong> In ACH, the most likely hypothesis is the one with the LEAST inconsistent (contradicting) evidence &mdash; not the one with the most support. Ranking is by weighted inconsistency; net support is shown only as a secondary signal.
               </p>
               <div className="space-y-3 mt-4">
                 <div>
                   <div className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">
-                    Quality-Weighted Ranking:
+                    Disconfirmation Ranking (weighted inconsistency &mdash; least contradicted wins):
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {hypotheses
-                      .map((h, index) => ({ hypothesis: h, index, total: getWeightedColumnTotal(h.id) }))
-                      .sort((a, b) => b.total - a.total)
-                      .map(({ hypothesis, index, total }, rank) => (
+                      .map((h, index) => ({
+                        hypothesis: h,
+                        index,
+                        inconsistency: getWeightedInconsistency(h.id),
+                        net: getWeightedColumnTotal(h.id),
+                      }))
+                      // Rank by inconsistency DESCENDING (least-negative wins),
+                      // tie-broken by net weighted total descending (secondary).
+                      .sort((a, b) =>
+                        b.inconsistency !== a.inconsistency
+                          ? b.inconsistency - a.inconsistency
+                          : b.net - a.net
+                      )
+                      .map(({ hypothesis, index, inconsistency, net }, rank) => (
                         <Badge
                           key={hypothesis.id}
                           variant={rank === 0 ? 'default' : 'secondary'}
                           className="text-sm"
+                          title={`Weighted inconsistency: ${inconsistency.toFixed(1)} (primary) · Net support: ${net.toFixed(1)} (secondary)`}
                         >
-                          H{index + 1}: {total.toFixed(1)} {rank === 0 && '⭐ Most Likely'}
+                          H{index + 1}: inconsistency {inconsistency.toFixed(1)} {rank === 0 && '⭐ Most Likely'}
                         </Badge>
                       ))}
                   </div>
                 </div>
                 <div>
                   <div className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">
-                    Raw Scores (unweighted):
+                    Net Support (secondary signal, weighted):
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {hypotheses
+                      .map((h, index) => ({ hypothesis: h, index, total: getWeightedColumnTotal(h.id) }))
+                      .sort((a, b) => b.total - a.total)
+                      .map(({ hypothesis, index, total }) => (
+                        <Badge
+                          key={hypothesis.id}
+                          variant="outline"
+                          className="text-sm"
+                        >
+                          H{index + 1}: {total.toFixed(1)}
+                        </Badge>
+                      ))}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">
+                    Raw Scores (unweighted, secondary):
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {hypotheses
