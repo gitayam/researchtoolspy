@@ -5,7 +5,7 @@
  * Uses GPT to generate dimension-specific questions and answers
  */
 
-import { callOpenAIViaGateway, getOptimalCacheTTL } from '../../_shared/ai-gateway'
+import { callOpenAIViaGateway, getOptimalCacheTTL, REFUSAL_BODY } from '../../_shared/ai-gateway'
 import { getUserFromRequest } from '../../_shared/auth-helpers'
 import { JSON_HEADERS } from '../../_shared/api-utils'
 
@@ -64,6 +64,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     // Step 2: Use GPT to map content to PMESII-PT dimensions
     const mappedDimensions = await mapToPMESIIPT(context.env, analysis)
+
+    // The model declined (content-policy refusal) — surface a clean declined response.
+    if (mappedDimensions instanceof Response) {
+      return mappedDimensions
+    }
 
     return new Response(JSON.stringify({
       success: true,
@@ -156,6 +161,10 @@ For dimensions where the content provides no relevant information, return an emp
     },
     timeout: 20000
   })
+
+  if (gptData?._refusal) {
+    return new Response(JSON.stringify(REFUSAL_BODY), { status: 200, headers: JSON_HEADERS })
+  }
 
   const dimensions = JSON.parse(gptData.choices[0].message.content)
 

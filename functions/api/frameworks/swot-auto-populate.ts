@@ -8,7 +8,7 @@
  */
 
 import { requireAuth } from '../_shared/auth-helpers'
-import { callOpenAIViaGateway } from '../_shared/ai-gateway'
+import { callOpenAIViaGateway, REFUSAL_BODY } from '../_shared/ai-gateway'
 import { JSON_HEADERS, optionsResponse } from '../_shared/api-utils'
 
 interface Env {
@@ -175,6 +175,10 @@ Extract 3-5 items per SWOT quadrant. Focus on actionable insights.`
         timeout: 30000
       }
     )
+
+    if (data?._refusal) {
+      return new Response(JSON.stringify(REFUSAL_BODY), { status: 200, headers: JSON_HEADERS })
+    }
 
     if (!data?.choices?.[0]?.message?.content) {
       throw new Error('Empty AI response')
