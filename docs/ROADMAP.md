@@ -1,6 +1,6 @@
 # ResearchTools.net — Roadmap
 
-**Last updated:** 2026-06-19 · **Current release:** `v0.22.0` (+ hardening patches through `v0.22.5`) · **Prod:** [researchtools.net](https://researchtools.net) (Cloudflare Pages + D1)
+**Last updated:** 2026-06-19 · **Current release:** `v0.22.0` (+ hardening patches through `v0.22.6`) · **Prod:** [researchtools.net](https://researchtools.net) (Cloudflare Pages + D1)
 
 This is the living roadmap — the single source of truth for "what's next." Detailed findings live in [`TECH_DEBT.md`](operations/TECH_DEBT.md), the AI-safety review in [`AI_REFUSAL_REVIEW.md`](operations/AI_REFUSAL_REVIEW.md), and dated design/implementation plans in [`plans/`](plans/). Status legend: ✅ done · 🔄 partial · ⬜ planned.
 
@@ -29,6 +29,9 @@ New features are welcome but should ride on top of this hardened base, not aroun
 ---
 
 ## Recently shipped
+
+### v0.22.6 — AI endpoints return a clean "declined" on model refusal (2026-06-19)
+- ✅ **No more opaque 500 on content-policy refusal** — `swot-auto-populate` and `pmesii-pt/import-url` now check the gateway's `_refusal` marker and return the standard `REFUSAL_BODY` (`{declined:true}`, 200) instead of `JSON.parse`-ing refusal prose into an opaque 500, matching the established `ai/generate.ts` / `ai/cog-analysis.ts` idiom. Contract pinned by `tests/e2e/smoke/ai-refusal-contract.spec.ts` (`detectRefusal` flags refusals + ignores analytical content; `REFUSAL_BODY` shape) (`a19142904`).
 
 ### v0.22.5 — Explicit public ACH API contract (2026-06-19)
 - ✅ **Public ACH endpoints return an allowlist, not the full row** — the no-auth ACH detail (`public/[token].ts`) and list (`public/index.ts`) endpoints stopped spreading `SELECT *` rows into responses; a dependency-free `serializePublicAnalysis()` (`functions/api/ach/public/_public-fields.ts`) returns only display fields, so the internal `user_id` and any future column are excluded. Prod-verified (public list response carries no `user_id`); unit-tested (`tests/e2e/smoke/ach-public-fields.spec.ts`). `clone.ts` already returned only the new clone's own ids — left as-is (`f08e7f4e3`).
@@ -72,7 +75,7 @@ New features are welcome but should ride on top of this hardened base, not aroun
    - ✅ **ACH ranking inversion — FIXED** (v0.22.4, `27f9b502b`): now ranks by Heuer disconfirmation (weighted inconsistency) on all live paths; net-sum demoted to secondary. **Residual (still open):** (a) evidence-credibility weighting is a **façade** — `evidence-quality.ts:151–170` hardcodes weights and the TEXT-vs-number bug (`:155`) parses the source *name* as a grade; the real `reliability`/`confidence_level` columns exist but the ACH GET (`functions/api/ach/index.ts:63–75`) never selects them, so the lib/export ranking is currently **unweighted** by evidence quality; (b) `ach-scoring.ts`'s parallel net-sum scoring engine is dead code with the same inversion (delete or align — only its scale constants are used).
    - **Deception AI** runs client-side with a browser-exposed `VITE_OPENAI_API_KEY` (latent key-leak — *verified unset today, no live leak*; move server-side onto the gateway) and **silently returns a fabricated fallback** as if it were real analysis; confidence counts magnitude not coverage; PDF bars render at ⅓ value.
    - **COG** view/matrix/exports **crash** on custom-scored vulnerabilities (unguarded `vuln.scoring.*`); **COM-B** runs two divergent canonical matrices (UI vs `/recommend` API disagree).
-   - **AI-endpoint refusal crashes** (`swot-auto-populate`, `pmesii-pt/import-url` don't check `_refusal` → opaque 500). ✅ **ACH public `SELECT *` + spread — FIXED** (v0.22.5, `f08e7f4e3`): public ACH detail+list now return an explicit field allowlist (`serializePublicAnalysis`), excluding `user_id` and future columns.
+   - ✅ **AI-endpoint refusal crashes — FIXED** (v0.22.6, `a19142904`): `swot-auto-populate` + `pmesii-pt/import-url` now check `_refusal` and return a clean `REFUSAL_BODY` (200) instead of an opaque 500. ✅ **ACH public `SELECT *` + spread — FIXED** (v0.22.5, `f08e7f4e3`): public ACH detail+list return an explicit field allowlist (`serializePublicAnalysis`), excluding `user_id`/future columns.
    - *Done when:* each headline bug has a regression test and the technique output matches canon (Heuer disconfirmation, SATS, Eikmeier, BCW Table 3.3).
 
 ## Next
@@ -92,6 +95,7 @@ New features are welcome but should ride on top of this hardened base, not aroun
 12. **CI-on-merge** — deploy `main` automatically so prod and `main` don't drift (TD-09 lagged ~1 month once).
 13. **Lint / type-check gate hardening** `Discovered 2026-06-19` — `npm run lint` is red repo-wide (~6.5k pre-existing `no-explicit-any` / `no-unused-vars`, *including* the `tests/e2e/smoke/*.spec.ts` themselves — `eslint.config.js` ignores only `dist` and has no `tests/`/`functions/` overrides), so the lint gate is effectively **non-enforcing**. Separately, `npm run type-check` (`tsc -b`) covers only `src/` + `vite.config.ts` — it does **not** type-check `functions/` or `tests/`, so Pages-Function TS errors surface only at `wrangler` build/deploy time. Add scoped eslint overrides + a `functions/` typecheck step (feeds CI-on-merge #12).
 14. **Public-endpoint field-allowlist sweep** `Discovered 2026-06-19` — the ACH public endpoints were returning the full DB row (fixed v0.22.5). Audit the other no-auth/public endpoints for the same `SELECT *` + spread pattern and apply explicit allowlists — notably the COP public share endpoints under `functions/api/cop/public/`. Prevents internal columns (and future columns) from being returned to unauthenticated clients.
+15. **Refusal-check sweep across AI gateway callers** `Discovered 2026-06-19` — v0.22.6 fixed `swot-auto-populate` + `pmesii-pt/import-url`, but other `callOpenAIViaGateway` callers that `JSON.parse` the response may still lack a `data?._refusal` guard (→ opaque 500 on refusal). Grep for `callOpenAIViaGateway` + `JSON.parse` without a nearby `_refusal` check and apply the standard `REFUSAL_BODY` guard.
 
 ---
 
