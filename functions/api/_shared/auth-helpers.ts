@@ -7,6 +7,17 @@
 
 import { verifyToken } from '../../utils/jwt'
 
+/** Thrown when a D1 error prevents resolving an otherwise-valid auth hash.
+ *  Callers must map this to a retryable 503 — NOT a 401 — so clients retry
+ *  instead of treating a DB hiccup as an auth failure. */
+export class AuthDbError extends Error {
+  readonly isAuthDbError = true
+  constructor(cause?: unknown) {
+    super('Auth datastore temporarily unavailable', { cause })
+    this.name = 'AuthDbError'
+  }
+}
+
 export interface Env {
   DB?: D1Database
   SESSIONS?: KVNamespace
@@ -32,9 +43,13 @@ export interface Env {
  *  - **Transient D1 errors / insert races:** retry the SELECT once on error, and
  *    re-SELECT after a failed INSERT (a concurrent request may have won the race).
  *
- * Returns the user id, or null only when the hash genuinely can't be resolved.
+ * The hash passed here is ALWAYS already validated as present and >= 16 chars by
+ * the callers (getUserFromRequest branches 1c and 2). So a valid hash that can't
+ * be resolved is never "invalid input" — it means D1 is failing. Therefore this
+ * NEVER returns null: it resolves to a valid user id, or throws {@link AuthDbError}
+ * so callers can map it to a retryable 503 instead of a spurious 401.
  */
-async function resolveHashUser(db: D1Database, hash: string): Promise<number | null> {
+async function resolveHashUser(db: D1Database, hash: string): Promise<number> {
   const selectId = async (): Promise<number | null> => {
     const row = await db.prepare('SELECT id FROM users WHERE user_hash = ?')
       .bind(hash).first<{ id: number }>()
@@ -46,7 +61,13 @@ async function resolveHashUser(db: D1Database, hash: string): Promise<number | n
     const id = await selectId()
     if (id !== null) return id
   } catch {
-    try { const id = await selectId(); if (id !== null) return id } catch { return null }
+    try {
+      const id = await selectId()
+      if (id !== null) return id
+    } catch (err) {
+      // Retry also failed — D1 is the problem, not the hash.
+      throw new AuthDbError(err)
+    }
   }
 
   // 2. Auto-provision a guest. Long-prefix username/email avoids UNIQUE collisions.
@@ -61,9 +82,17 @@ async function resolveHashUser(db: D1Database, hash: string): Promise<number | n
     if (result?.id) return Number(result.id)
   } catch {
     // Lost an insert race or hit a collision — re-SELECT by the (unique) hash.
-    try { return await selectId() } catch { return null }
+    try {
+      const id = await selectId()
+      if (id !== null) return id
+    } catch (err) {
+      throw new AuthDbError(err)
+    }
   }
-  return null
+
+  // INSERT succeeded but returned no id, or the post-collision re-SELECT found
+  // nothing — both anomalous for an already-validated hash. Treat as DB trouble.
+  throw new AuthDbError()
 }
 
 /**
@@ -107,17 +136,17 @@ export async function getUserFromRequest(
     }
 
     // 1c. Fallback: raw hash in Bearer (Mullvad direct access)
+    // resolveHashUser throws AuthDbError on DB trouble — let it propagate so
+    // callers return a retryable 503 instead of a spurious 401.
     if (token.length >= 16 && env.DB) {
-      const id = await resolveHashUser(env.DB, token)
-      if (id !== null) return id
+      return await resolveHashUser(env.DB, token)
     }
   }
 
   // 2. Fallback to X-User-Hash header (no Bearer token present)
   const userHash = request.headers.get('X-User-Hash')
   if (userHash && userHash !== 'default' && userHash.length >= 16 && env.DB) {
-    const id = await resolveHashUser(env.DB, userHash)
-    if (id !== null) return id
+    return await resolveHashUser(env.DB, userHash)
   }
 
   return null
@@ -168,7 +197,25 @@ export async function requireAuth(
   request: Request,
   env: Env
 ): Promise<number> {
-  const userId = await getUserFromRequest(request, env)
+  let userId: number | null
+  try {
+    userId = await getUserFromRequest(request, env)
+  } catch (err) {
+    if (err instanceof AuthDbError || (err as { isAuthDbError?: boolean })?.isAuthDbError) {
+      throw new Response(
+        JSON.stringify({ error: 'Service temporarily unavailable, please retry.', retryable: true }),
+        {
+          status: 503,
+          headers: {
+            'Content-Type': 'application/json',
+            'Retry-After': '2',
+            'Access-Control-Allow-Origin': 'https://researchtools.net'
+          }
+        }
+      )
+    }
+    throw err
+  }
 
   if (!userId) {
     throw new Response(

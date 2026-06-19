@@ -114,8 +114,28 @@ export async function onRequest(context: any) {
     }
   }
 
-  // Process the request
-  const response = await next()
+  // Process the request.
+  // Many endpoints call getUserFromRequest/getUserIdOrDefault directly (not via
+  // requireAuth) and let an AuthDbError propagate. Catch it here so a transient
+  // D1 failure during hash resolution becomes a retryable 503, not an opaque 500.
+  // Everything else (including Responses thrown by requireAuth) is re-thrown so
+  // the Pages runtime handles it exactly as before.
+  let response: Response
+  try {
+    response = await next()
+  } catch (err: unknown) {
+    const authErr = err as { isAuthDbError?: boolean; name?: string } | null | undefined
+    if (authErr?.isAuthDbError === true || authErr?.name === 'AuthDbError') {
+      return new Response(
+        JSON.stringify({ error: 'Service temporarily unavailable, please retry.', retryable: true }),
+        {
+          status: 503,
+          headers: { 'Content-Type': 'application/json', 'Retry-After': '2', ...corsHeaders },
+        }
+      )
+    }
+    throw err
+  }
 
   // Add CORS headers to response
   Object.entries(corsHeaders).forEach(([key, value]) => {
