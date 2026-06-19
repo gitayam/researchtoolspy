@@ -1,8 +1,9 @@
 /**
  * Event-log sink — production observability for Pages Functions.
  *
- * console.* is invisible in `wrangler pages deployment tail`, so warn/error/refusal
- * events go to the `event_logs` D1 table instead (see migration 105). Read them via
+ * console.* is invisible in `wrangler pages deployment tail`, so warn/error/refusal/audit
+ * events (audit = security/audit events that are not errors) go to the `event_logs` D1
+ * table instead (see migration 105). Read them via
  * GET /api/cron/event-logs (secret-guarded); pruned daily by the cron worker.
  *
  * Design rules:
@@ -11,7 +12,7 @@
  * - Bounded: message/context are truncated; retention prunes rows >30 days.
  */
 
-type LogLevel = 'error' | 'warn' | 'refusal'
+type LogLevel = 'error' | 'warn' | 'refusal' | 'audit'
 
 interface LogEventInput {
   level: LogLevel
