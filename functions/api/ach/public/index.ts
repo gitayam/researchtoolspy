@@ -3,6 +3,7 @@
  * GET /api/ach/public - List all public ACH analyses
  */
 import { JSON_HEADERS, safeJsonParse } from '../../_shared/api-utils'
+import { serializePublicAnalysis } from './_public-fields'
 
 interface Env {
   DB: D1Database
@@ -58,7 +59,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     // Parse tags for each analysis
     const analyses = (result.results || []).map((analysis: any) => ({
-      ...analysis,
+      ...serializePublicAnalysis(analysis),
       tags: analysis.tags ? safeJsonParse(analysis.tags, null) : null
     }))
 
