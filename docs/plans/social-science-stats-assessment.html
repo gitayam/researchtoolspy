@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Social-Science Statistics — Feasibility Assessment</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #222535;
+    --border: #2e3147;
+    --accent: #6c8ef7;
+    --accent2: #5cc8a0;
+    --accent3: #f7a26c;
+    --accent4: #e06c75;
+    --text: #d4d8f0;
+    --muted: #7880a0;
+    --tier-a: #3d6e45;
+    --tier-b: #5a5225;
+    --tier-c: #5a2525;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.6;
+    padding: 24px 16px;
+  }
+  .container { max-width: 960px; margin: 0 auto; }
+
+  /* Header */
+  .header {
+    border-bottom: 2px solid var(--border);
+    padding-bottom: 20px;
+    margin-bottom: 28px;
+  }
+  .header h1 {
+    font-size: 22px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 6px;
+  }
+  .header .subtitle { color: var(--muted); font-size: 13px; }
+  .header .meta {
+    display: flex; gap: 16px; margin-top: 10px; flex-wrap: wrap;
+  }
+  .badge {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+  }
+
+  /* Section */
+  .section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 20px;
+    overflow: hidden;
+  }
+  .section-header {
+    padding: 12px 18px;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+  .section-header h2 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .section-header .desc {
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .section-body { padding: 16px 18px; }
+
+  /* Table */
+  .table-wrap { overflow-x: auto; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+    min-width: 700px;
+  }
+  th {
+    text-align: left;
+    padding: 8px 10px;
+    background: var(--surface2);
+    color: var(--muted);
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  td {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--surface2); }
+
+  /* Tier badges */
+  .tier {
+    display: inline-block;
+    border-radius: 3px;
+    padding: 2px 7px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+  }
+  .tier-a { background: var(--tier-a); color: #8fefaa; }
+  .tier-b { background: var(--tier-b); color: #f0d890; }
+  .tier-c { background: var(--tier-c); color: #f0a0a0; }
+
+  /* Value badges */
+  .val {
+    display: inline-block;
+    border-radius: 3px;
+    padding: 1px 6px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .val-high { background: #1e3a5f; color: #6cb8f0; }
+  .val-med { background: #2e3020; color: #a0c060; }
+  .val-low { background: #2a1e1e; color: #a07060; }
+  .val-star { background: #3a2060; color: #c090f0; border: 1px solid #7040c0; }
+
+  /* Comparison grid */
+  .compare-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+  }
+  .compare-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px;
+  }
+  .compare-card h3 {
+    font-size: 13px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 8px;
+  }
+  .compare-card .verdict {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 3px;
+    display: inline-block;
+    margin-bottom: 8px;
+  }
+  .verdict-recommend { background: #1e3a2e; color: #60e0a0; }
+  .verdict-conditional { background: #3a3010; color: #e0c040; }
+  .verdict-avoid { background: #3a1010; color: #e06060; }
+
+  .prop-row { display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 12px; }
+  .prop-label { color: var(--muted); }
+  .prop-val { color: var(--text); font-weight: 500; }
+  .prop-val.good { color: #60e0a0; }
+  .prop-val.warn { color: #e0c040; }
+  .prop-val.bad { color: #e06060; }
+
+  /* Phase timeline */
+  .phase {
+    border-left: 3px solid var(--border);
+    padding-left: 16px;
+    margin-bottom: 20px;
+    position: relative;
+  }
+  .phase::before {
+    content: '';
+    position: absolute;
+    left: -7px;
+    top: 4px;
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid var(--bg);
+  }
+  .phase.stretch::before { background: var(--accent3); }
+  .phase h3 {
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 4px;
+  }
+  .phase .phase-tag {
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 10px;
+    display: block;
+  }
+  ul { padding-left: 18px; }
+  li { margin-bottom: 4px; font-size: 13px; }
+  .highlight { color: var(--accent2); font-weight: 600; }
+  .star { color: #c090f0; font-weight: 600; }
+
+  /* Data model */
+  .code-block {
+    background: #0a0c14;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 14px;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 12px;
+    color: #a0b8d8;
+    overflow-x: auto;
+    white-space: pre;
+    line-height: 1.5;
+  }
+  .code-block .comment { color: var(--muted); }
+  .code-block .key { color: var(--accent2); }
+  .code-block .type { color: var(--accent3); }
+  .code-block .str { color: #e0a060; }
+
+  /* Sources */
+  .sources { font-size: 12px; }
+  .source-item {
+    display: flex;
+    gap: 8px;
+    padding: 5px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .source-item:last-child { border-bottom: none; }
+  .source-num { color: var(--accent); font-weight: 700; min-width: 32px; }
+  .source-item a { color: var(--accent); text-decoration: none; }
+  .source-item a:hover { text-decoration: underline; }
+
+  /* Recommendation box */
+  .rec-box {
+    background: #1a2535;
+    border: 1px solid #2a4060;
+    border-left: 3px solid var(--accent);
+    border-radius: 4px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    font-size: 13px;
+  }
+  .rec-box strong { color: var(--accent); }
+
+  .warn-box {
+    background: #251a10;
+    border: 1px solid #604020;
+    border-left: 3px solid var(--accent3);
+    border-radius: 4px;
+    padding: 10px 14px;
+    margin: 10px 0;
+    font-size: 12.5px;
+    color: #d0a878;
+  }
+
+  .toc {
+    display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 24px;
+  }
+  .toc a {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 12px;
+    padding: 4px 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+  }
+  .toc a:hover { color: var(--accent); border-color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <h1>Social-Science Statistics — Feasibility Assessment</h1>
+    <div class="subtitle">ResearchTools.net / researchtoolspy — roadmap input for a Quantitative Analysis module</div>
+    <div class="meta">
+      <span class="badge">Stack: CF Pages + D1 + R2 + OpenAI</span>
+      <span class="badge">Runtime: Workers (10–30s CPU, JS/WASM only)</span>
+      <span class="badge">Date: 2026-06-19</span>
+    </div>
+  </div>
+
+  <nav class="toc">
+    <a href="#section-a">A: Method Table</a>
+    <a href="#section-b">B: Tooling Verdict</a>
+    <a href="#section-c">C: Phased Proposal</a>
+    <a href="#sources">Sources</a>
+  </nav>
+
+  <!-- SECTION A -->
+  <div class="section" id="section-a">
+    <div class="section-header">
+      <h2>Section A</h2>
+      <span class="desc">Method table — purpose, analyst value, implementation tier, vehicle on this stack</span>
+    </div>
+    <div class="section-body">
+
+      <div class="warn-box">Tier key: <strong>A</strong> = cheap in-browser TS (implement directly) &nbsp;|&nbsp; <strong>B</strong> = medium, TS-feasible via a stats lib &nbsp;|&nbsp; <strong>C</strong> = heavy, extend R-export or WebR-in-browser. Value: <span class="val val-star">CORE</span> = highest-priority for THIS audience.</div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Method</th>
+              <th>Purpose</th>
+              <th>Intel-Platform Value</th>
+              <th>Tier</th>
+              <th>Best Vehicle (this stack)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- DESCRIPTIVE -->
+            <tr>
+              <td><strong>Descriptive stats</strong><br><small>mean, median, SD, IQR, skew, kurtosis, freq table</small></td>
+              <td>Characterise distributions; baseline for any dataset</td>
+              <td><span class="val val-high">HIGH</span></td>
+              <td><span class="tier tier-a">A</span></td>
+              <td>simple-statistics (~8 KB gz) — covers all of these</td>
+            </tr>
+            <tr>
+              <td><strong>Frequency / cross-tab</strong><br><small>counts, percentages, pivot tables</small></td>
+              <td>Summarise categorical coded data</td>
+              <td><span class="val val-high">HIGH</span></td>
+              <td><span class="tier tier-a">A</span></td>
+              <td>Custom TS — trivial groupBy + count logic</td>
+            </tr>
+            <tr>
+              <td><strong>Pearson / Spearman correlation</strong></td>
+              <td>Linear and rank-based association between continuous variables</td>
+              <td><span class="val val-high">HIGH</span></td>
+              <td><span class="tier tier-a">A</span></td>
+              <td>simple-statistics (sampleCorrelation, sampleRankCorrelation)</td>
+            </tr>
+            <tr>
+              <td><strong>Correlation matrix</strong></td>
+              <td>Pairwise relationships across many variables; reveals collinearity</td>
+              <td><span class="val val-high">HIGH</span></td>
+              <td><span class="tier tier-a">A</span></td>
+              <td>Custom TS loop over simple-statistics correlations; render as heat-map</td>
+            </tr>
+            <tr>
+              <td><strong>Chi-square (independence &amp; GoF)</strong></td>
+              <td>Association between categorical variables; test coded-category distributions</td>
+              <td><span class="val val-high">HIGH</span></td>
+              <td><span class="tier tier-a">A</span></td>
+              <td>simple-statistics chiSquaredGoodnessOfFit; add independence test (&lt;30 LOC TS)</td>
+            </tr>
+            <tr>
+              <td><strong>Cramér's V</strong></td>
+              <td>Effect size for chi-square; tells HOW STRONG the association is</td>
+              <td><span class="val val-high">HIGH</span></td>
+              <td><span class="tier tier-a">A</span></td>
+              <td>Simple formula from chi-square result — &lt;5 LOC TS</td>
+            </tr>
+            <tr>
+              <td><strong>Independent t-test / Welch's t</strong></td>
+              <td>Compare means of two groups</td>
+              <td><span class="val val-med">MED</span></td>
+              <td><span class="tier tier-a">A</span></td>
+              <td>simple-statistics tTestTwoSample</td>
+            </tr>
+            <tr>
+              <td><strong>Mann-Whitney U</strong></td>
+              <td>Non-parametric two-group comparison when normality fails</td>
+              <td><span class="val val-med">MED</span></td>
+              <td><span class="tier tier-a">A</span></td>
+              <td>simple-statistics wilcoxonRankSum + custom p-value lookup (&lt;20 LOC)</td>
+            </tr>
+            <tr>
+              <td><strong>One-way ANOVA</strong></td>
+              <td>Compare means across 3+ groups</td>
+              <td><span class="val val-med">MED</span></td>
+              <td><span class="tier tier-b">B</span></td>
+              <td>Implement in TS (~60 LOC: SS_between, SS_within, F, p via chi-sq approx); or jStat F-distribution</td>
+            </tr>
+            <tr>
+              <td><strong>Simple OLS regression</strong></td>
+              <td>Predict continuous outcome from one predictor; trend quantification</td>
+              <td><span class="val val-high">HIGH</span></td>
+              <td><span class="tier tier-a">A</span></td>
+              <td>simple-statistics linearRegression + rSquared; render fitted line on scatter</td>
+            </tr>
+            <tr>
+              <td><strong>Multiple OLS regression</strong></td>
+              <td>Multiple predictors; control for confounders</td>
+              <td><span class="val val-high">HIGH</span></td>
+              <td><span class="tier tier-b">B</span></td>
+              <td>ml-regression-multivariate-linear (mljs ecosystem); or normal-equations in TS with ml-matrix</td>
+            </tr>
+            <tr>
+              <td><strong>Logistic regression (binary)</strong></td>
+              <td>Predict binary outcome (e.g. verified / not-verified, claim true/false)</td>
+              <td><span class="val val-high">HIGH</span></td>
+              <td><span class="tier tier-b">B</span></td>
+              <td>ml-regression (logistic variant) or custom gradient descent in TS; manageable ~150 LOC</td>
+            </tr>
+            <tr>
+              <td><strong>Cronbach's alpha</strong><br><small>internal consistency reliability</small></td>
+              <td>Verify that Likert-scale items (e.g. a SATS dimension) hang together</td>
+              <td><span class="val val-high">HIGH</span></td>
+              <td><span class="tier tier-b">B</span></td>
+              <td>Implement directly in TS — formula is ~10 LOC (variance of sum / sum of variances)</td>
+            </tr>
+            <tr>
+              <td><span class="val val-star">CORE</span> <strong>Cohen's kappa (2-rater)</strong></td>
+              <td>Agreement between two human coders on categorical labels; chance-corrected</td>
+              <td><span class="val val-star">HIGHEST</span></td>
+              <td><span class="tier tier-b">B</span></td>
+              <td><strong>label-score</strong> npm package (TS, zero-dep) — ready to use</td>
+            </tr>
+            <tr>
+              <td><span class="val val-star">CORE</span> <strong>Fleiss' kappa (3+ raters)</strong></td>
+              <td>Multi-rater agreement for categorical data; critical for team evidence-coding</td>
+              <td><span class="val val-star">HIGHEST</span></td>
+              <td><span class="tier tier-b">B</span></td>
+              <td><strong>label-score</strong> npm package (TS, zero-dep)</td>
+            </tr>
+            <tr>
+              <td><span class="val val-star">CORE</span> <strong>Krippendorff's alpha</strong></td>
+              <td>Multi-rater, multi-level (nominal/ordinal/interval); handles missing data; gold standard for content coding</td>
+              <td><span class="val val-star">HIGHEST</span></td>
+              <td><span class="tier tier-b">B</span></td>
+              <td><strong>krippendorff</strong> npm package (TS); or <strong>label-score</strong></td>
+            </tr>
+            <tr>
+              <td><strong>PCA</strong><br><small>principal component analysis</small></td>
+              <td>Dimension reduction; find latent structure in evidence/attribute matrices</td>
+              <td><span class="val val-med">MED</span></td>
+              <td><span class="tier tier-b">B</span></td>
+              <td><strong>ml-pca</strong> (mljs) — browser-safe TS, covers standard PCA + explained variance</td>
+            </tr>
+            <tr>
+              <td><strong>EFA</strong><br><small>exploratory factor analysis</small></td>
+              <td>Discover underlying factor structure in survey instruments</td>
+              <td><span class="val val-med">MED</span></td>
+              <td><span class="tier tier-c">C</span></td>
+              <td>Extend R-export path (psych::fa in R template); WebR if interactive needed</td>
+            </tr>
+            <tr>
+              <td><strong>CFA</strong><br><small>confirmatory factor analysis</small></td>
+              <td>Test theoretical measurement model; used before SEM</td>
+              <td><span class="val val-low">LOW</span></td>
+              <td><span class="tier tier-c">C</span></td>
+              <td>R-export path only (lavaan::cfa); too complex for in-browser TS</td>
+            </tr>
+            <tr>
+              <td><strong>SEM</strong><br><small>structural equation modeling</small></td>
+              <td>Jointly model measurement + structural relationships</td>
+              <td><span class="val val-low">LOW</span></td>
+              <td><span class="tier tier-c">C</span></td>
+              <td>R-export path only (lavaan); not feasible in-browser</td>
+            </tr>
+            <tr>
+              <td><strong>Multilevel / mixed models (LME)</strong></td>
+              <td>Nested data: analysts within teams, events within cases</td>
+              <td><span class="val val-low">LOW</span></td>
+              <td><span class="tier tier-c">C</span></td>
+              <td>R-export path only (lme4::lmer); WASM build of lme4 uncertain</td>
+            </tr>
+            <tr>
+              <td><strong>Survey weighting</strong></td>
+              <td>Correct for over/under-sampling in population surveys</td>
+              <td><span class="val val-low">LOW</span></td>
+              <td><span class="tier tier-c">C</span></td>
+              <td>R-export path (survey package); niche for this audience</td>
+            </tr>
+            <tr>
+              <td><strong>Bayesian basics</strong><br><small>credible intervals, prior/posterior</small></td>
+              <td>Probabilistic belief updating; fits SATS/ACH probability reasoning</td>
+              <td><span class="val val-med">MED</span></td>
+              <td><span class="tier tier-c">C</span></td>
+              <td>Simple conjugate Bayes implementable in TS; full Bayesian (Stan/MCMC) = R-export</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION B -->
+  <div class="section" id="section-b">
+    <div class="section-header">
+      <h2>Section B</h2>
+      <span class="desc">Tooling verdict — in-browser statistics library comparison for this stack</span>
+    </div>
+    <div class="section-body">
+
+      <div class="rec-box" style="margin-bottom:16px;">
+        <strong>Bottom line:</strong> Use <strong>simple-statistics + mljs ecosystem (ml-pca, ml-regression, ml-matrix) + label-score/krippendorff</strong> as a composed in-browser stack. This covers Tiers A and B without any WASM overhead. Reserve WebR for a dedicated "Advanced Analysis" escape hatch rendered in an iframe/panel — do NOT run it in the Worker. Pyodide is not viable here.
+      </div>
+
+      <div class="compare-grid">
+
+        <div class="compare-card">
+          <h3>simple-statistics</h3>
+          <span class="verdict verdict-recommend">Recommend — core stats</span>
+          <div class="prop-row"><span class="prop-label">Bundle (gz)</span><span class="prop-val good">~8 KB</span></div>
+          <div class="prop-row"><span class="prop-label">Worker-safe</span><span class="prop-val good">Yes</span></div>
+          <div class="prop-row"><span class="prop-label">Tree-shakeable</span><span class="prop-val good">Yes (ESM)</span></div>
+          <div class="prop-row"><span class="prop-label">Covers</span><span class="prop-val">Descriptives, correlation, t-test, chi-square GoF, simple linear regression, rank correlation, Wilcoxon</span></div>
+          <div class="prop-row"><span class="prop-label">Missing</span><span class="prop-val warn">No logistic reg, ANOVA, multi-reg, PCA, kappa/alpha</span></div>
+          <div class="prop-row"><span class="prop-label">Maintenance</span><span class="prop-val good">Active, 3.4k stars</span></div>
+        </div>
+
+        <div class="compare-card">
+          <h3>mljs ecosystem<br><small>(ml-pca, ml-regression, ml-matrix)</small></h3>
+          <span class="verdict verdict-recommend">Recommend — fill Tier B gaps</span>
+          <div class="prop-row"><span class="prop-label">Bundle (gz)</span><span class="prop-val good">~15–30 KB per package</span></div>
+          <div class="prop-row"><span class="prop-label">Worker-safe</span><span class="prop-val good">Yes</span></div>
+          <div class="prop-row"><span class="prop-label">Covers</span><span class="prop-val">PCA (ml-pca), multiple OLS (ml-regression-multivariate-linear), matrix ops (ml-matrix), logistic regression (ml-regression)</span></div>
+          <div class="prop-row"><span class="prop-label">Missing</span><span class="prop-val warn">No statistical inference (p-values); must combine with jStat distributions</span></div>
+          <div class="prop-row"><span class="prop-label">Maintenance</span><span class="prop-val good">Active, 238+ dependents for ml-matrix</span></div>
+        </div>
+
+        <div class="compare-card">
+          <h3>label-score / krippendorff</h3>
+          <span class="verdict verdict-recommend">Recommend — IRR is unique value-add</span>
+          <div class="prop-row"><span class="prop-label">Bundle</span><span class="prop-val good">Tiny (&lt;5 KB each)</span></div>
+          <div class="prop-row"><span class="prop-label">Worker-safe</span><span class="prop-val good">Yes</span></div>
+          <div class="prop-row"><span class="prop-label">TypeScript</span><span class="prop-val good">Native TS, zero deps</span></div>
+          <div class="prop-row"><span class="prop-label">Covers</span><span class="prop-val">Cohen's kappa, Fleiss' kappa, Krippendorff's alpha (nominal/ordinal/interval), with interpretation thresholds</span></div>
+          <div class="prop-row"><span class="prop-label">Notes</span><span class="prop-val good">label-score auto-interprets via Landis-Koch / Krippendorff scales — UX-friendly for non-statisticians</span></div>
+        </div>
+
+        <div class="compare-card">
+          <h3>jStat</h3>
+          <span class="verdict verdict-conditional">Conditional — distributions only</span>
+          <div class="prop-row"><span class="prop-label">Bundle (gz)</span><span class="prop-val warn">~25 KB</span></div>
+          <div class="prop-row"><span class="prop-label">Worker-safe</span><span class="prop-val good">Yes</span></div>
+          <div class="prop-row"><span class="prop-label">Covers</span><span class="prop-val">Rich probability distributions (chi-sq, F, t, normal, beta, gamma…)</span></div>
+          <div class="prop-row"><span class="prop-label">Best use</span><span class="prop-val">p-value lookups to complement mljs (which lacks inference)</span></div>
+          <div class="prop-row"><span class="prop-label">Avoid</span><span class="prop-val warn">Regression/linear algebra functions weak vs mljs</span></div>
+        </div>
+
+        <div class="compare-card">
+          <h3>WebR (R → WASM)</h3>
+          <span class="verdict verdict-conditional">Conditional — browser panel only</span>
+          <div class="prop-row"><span class="prop-label">Core bundle</span><span class="prop-val bad">~25–35 MB download</span></div>
+          <div class="prop-row"><span class="prop-label">Packages via CDN</span><span class="prop-val warn">Runtime download at load</span></div>
+          <div class="prop-row"><span class="prop-label">Worker-safe</span><span class="prop-val bad">NO — exceeds 10 MB Worker limit</span></div>
+          <div class="prop-row"><span class="prop-label">Browser panel</span><span class="prop-val good">Yes — runs in Web Worker inside browser</span></div>
+          <div class="prop-row"><span class="prop-label">Package coverage</span><span class="prop-val good">~10,500 WASM-ready CRAN packages; psych, lavaan, lme4, survey likely available via repo.r-wasm.org or R-universe CDN</span></div>
+          <div class="prop-row"><span class="prop-label">Best use</span><span class="prop-val">Stretch goal: embedded R console or "Run in WebR" button for generated R scripts</span></div>
+          <div class="prop-row"><span class="prop-label">Startup time</span><span class="prop-val warn">2–8s cold (package-dependent)</span></div>
+        </div>
+
+        <div class="compare-card">
+          <h3>Pyodide (Python → WASM)</h3>
+          <span class="verdict verdict-avoid">Avoid for this stack</span>
+          <div class="prop-row"><span class="prop-label">Core bundle</span><span class="prop-val bad">~6.4 MB base + per-package</span></div>
+          <div class="prop-row"><span class="prop-label">Worker-safe (CF)</span><span class="prop-val warn">CF Python Workers use Pyodide but only curated packages — scipy/statsmodels NOT in curated list</span></div>
+          <div class="prop-row"><span class="prop-label">Browser-side</span><span class="prop-val warn">Feasible but heavy; NumPy+SciPy adds ~30 MB</span></div>
+          <div class="prop-row"><span class="prop-label">Advantage lost</span><span class="prop-val bad">Platform already has R integration; Python adds no new capability worth the bundle cost</span></div>
+          <div class="prop-row"><span class="prop-label">Verdict</span><span class="prop-val bad">Skip — R-export path and WebR deliver the same heavy-stats story with lower cognitive overhead</span></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION C -->
+  <div class="section" id="section-c">
+    <div class="section-header">
+      <h2>Section C</h2>
+      <span class="desc">Phased proposal — MVP module and stretch capabilities</span>
+    </div>
+    <div class="section-body">
+
+      <div class="phase">
+        <h3>Phase 1 — MVP: "Quantitative Analysis" module</h3>
+        <span class="phase-tag">Estimated: 3–5 weeks · Stack: TS + simple-statistics + ml-pca + label-score · No new backend services</span>
+        <ul>
+          <li><span class="highlight">Dataset entry point:</span> new tab/panel within existing DatasetPage or separate route <code>/analysis</code>; accepts any tabular dataset (CSV upload or select from existing Dataset objects). Parse columns, infer types (numeric vs categorical).</li>
+          <li><span class="highlight">Descriptives tab:</span> per-column mean, median, SD, IQR, min/max, skewness, frequency table for categoricals. Render using existing chart components (bar + box-plot approximation).</li>
+          <li><span class="highlight">Correlation tab:</span> select any N numeric columns → Pearson matrix heat-map + Spearman toggle. Highlight statistically significant pairs (t-distribution p-value via jStat).</li>
+          <li><span class="highlight">Cross-tab / chi-square tab:</span> pick two categorical columns → contingency table, chi-square test, Cramér's V effect size, interpret automatically ("weak / moderate / strong").</li>
+          <li><span class="highlight">Group comparison tab:</span> pick a categorical grouping + numeric variable → Welch t-test (2 groups) or one-way ANOVA (3+) with p-value and effect size (Cohen's d / eta-squared).</li>
+          <li><span class="highlight">Simple regression tab:</span> X and Y picker → scatter + fitted line, slope, R², p-value, residual plot.</li>
+          <li><span class="highlight">Export:</span> analysis result as JSON persisted to D1 (see data model below) + "Download R script" button that generates a pre-populated R template (extends existing R-script pattern).</li>
+        </ul>
+      </div>
+
+      <div class="phase">
+        <h3>Phase 2 — Reliability Engine (highest platform-unique value)</h3>
+        <span class="phase-tag">Estimated: 2 weeks · integrates with COP evidence coding and claims workflows</span>
+        <ul>
+          <li><span class="star">Unique differentiator:</span> The platform codes claims, evidence, and SATS evaluations using multiple analysts. Inter-rater reliability is the methodological backbone for any claim that "coders agreed."</li>
+          <li><span class="highlight">IRR upload:</span> CSV with columns [rater, item, code] → compute Cohen's kappa (2 raters), Fleiss' kappa (3+), or Krippendorff's alpha (any scale type + missing data) via <code>label-score</code> + <code>krippendorff</code> npm packages.</li>
+          <li><span class="highlight">Interpretation layer:</span> label-score already includes Landis-Koch thresholds (kappa &lt;0.2 = poor … &gt;0.8 = almost perfect). Surface these in plain language for non-statistician analysts.</li>
+          <li><span class="highlight">SATS integration:</span> run Cronbach's alpha across the 8 SATS dimensions (reliability/credibility/validity…) for a set of evaluations to measure evaluator consistency — directly actionable for calibration.</li>
+          <li><span class="highlight">COP link:</span> offer IRR calculation on COP session claim codes — "how much do your analysts agree on whether each claim is verified/unverified/deceptive?"</li>
+        </ul>
+      </div>
+
+      <div class="phase">
+        <h3>Phase 3 — Multivariate &amp; Regression</h3>
+        <span class="phase-tag">Estimated: 2–3 weeks · adds mljs packages</span>
+        <ul>
+          <li><span class="highlight">Multiple OLS:</span> ml-regression-multivariate-linear; coefficient table with p-values (jStat t-distribution); VIF for multicollinearity; standardised betas.</li>
+          <li><span class="highlight">Logistic regression:</span> ml-regression logistic; predict binary outcome (e.g. claim verified = 1); ROC/AUC visualization.</li>
+          <li><span class="highlight">PCA:</span> ml-pca; scree plot, biplot, component loadings table. Label each component via AI (OpenAI call: "given these loadings, suggest a name for this component").</li>
+        </ul>
+      </div>
+
+      <div class="phase stretch">
+        <h3>Phase 4 (Stretch) — WebR Integration</h3>
+        <span class="phase-tag">Estimated: 3–4 weeks · browser-side only, never in Worker</span>
+        <ul>
+          <li>Add a "Run in R" toggle on any analysis result: loads WebR runtime in a browser-side Web Worker (not the CF Worker), executes the generated R script against the uploaded data, returns full output.</li>
+          <li>Unlocks: EFA (psych::fa), CFA (lavaan), multilevel models (lme4), survey weighting — anything in the ~10,500 WASM-ready CRAN packages.</li>
+          <li>Implementation pattern: R script template already exists in <code>docs/r-scripts/</code>; WebR renders output (tables, plots as PNG) back into the page via postMessage.</li>
+          <li>Caveat: ~25–35 MB initial download; show loading indicator; gate behind a "Advanced / R analysis" feature flag.</li>
+          <li>Do NOT expand the existing R-script export templates with SEM/CFA until Phase 4 confirms user demand — over-engineering risk is real.</li>
+        </ul>
+      </div>
+
+      <h3 style="color:#fff; margin: 24px 0 12px;">Data Model</h3>
+      <div class="code-block"><span class="comment">-- New D1 tables for Phase 1-3</span>
+
+<span class="comment">-- Tabular dataset (separate from DOCUMENT-type Dataset in d1-schema.sql)</span>
+<span class="key">CREATE TABLE</span> <span class="type">quantitative_datasets</span> (
+  id          <span class="type">TEXT</span> <span class="key">PRIMARY KEY</span>,  <span class="comment">-- 'qds-xxx'</span>
+  workspace_id <span class="type">TEXT</span>,              <span class="comment">-- links to COP session or null for standalone</span>
+  dataset_id  <span class="type">TEXT</span>,              <span class="comment">-- optional link to existing Dataset record</span>
+  title       <span class="type">TEXT NOT NULL</span>,
+  r2_key      <span class="type">TEXT</span>,              <span class="comment">-- R2 object key for the raw CSV</span>
+  columns     <span class="type">TEXT</span>,              <span class="comment">-- JSON: [{name, type: 'numeric'|'categorical'|'text', ...}]</span>
+  row_count   <span class="type">INTEGER</span>,
+  created_by  <span class="type">TEXT NOT NULL</span>,
+  created_at  <span class="type">TEXT DEFAULT</span> (datetime(<span class="str">'now'</span>)),
+  updated_at  <span class="type">TEXT DEFAULT</span> (datetime(<span class="str">'now'</span>))
+);
+
+<span class="comment">-- Persisted analysis run and results</span>
+<span class="key">CREATE TABLE</span> <span class="type">analysis_runs</span> (
+  id            <span class="type">TEXT</span> <span class="key">PRIMARY KEY</span>,  <span class="comment">-- 'run-xxx'</span>
+  dataset_id    <span class="type">TEXT NOT NULL</span>,    <span class="comment">-- FK → quantitative_datasets.id</span>
+  analysis_type <span class="type">TEXT NOT NULL</span>,    <span class="comment">-- 'descriptive'|'correlation'|'chi_square'|'t_test'|'anova'
+                                    -- |'ols'|'logistic'|'pca'|'cronbach'|'kappa'|'krippendorff'</span>
+  parameters    <span class="type">TEXT</span>,             <span class="comment">-- JSON: {columns: [...], groups: ..., alpha: 0.05, ...}</span>
+  results       <span class="type">TEXT</span>,             <span class="comment">-- JSON: full structured output</span>
+  r_script      <span class="type">TEXT</span>,             <span class="comment">-- generated R code for reproducibility</span>
+  created_by    <span class="type">TEXT NOT NULL</span>,
+  created_at    <span class="type">TEXT DEFAULT</span> (datetime(<span class="str">'now'</span>))
+);
+
+<span class="comment">-- IRR coding matrix for Phase 2 (rater × item × code)</span>
+<span class="key">CREATE TABLE</span> <span class="type">irr_coding_matrices</span> (
+  id          <span class="type">TEXT</span> <span class="key">PRIMARY KEY</span>,
+  workspace_id <span class="type">TEXT</span>,
+  title       <span class="type">TEXT NOT NULL</span>,
+  matrix_data <span class="type">TEXT NOT NULL</span>,    <span class="comment">-- JSON: [{rater, item, code}]</span>
+  scale_type  <span class="type">TEXT</span>,             <span class="comment">-- 'nominal'|'ordinal'|'interval'</span>
+  kappa_result <span class="type">TEXT</span>,            <span class="comment">-- JSON: {cohen_kappa, fleiss_kappa, krippendorff_alpha, interpretation}</span>
+  created_by  <span class="type">TEXT NOT NULL</span>,
+  created_at  <span class="type">TEXT DEFAULT</span> (datetime(<span class="str">'now'</span>))
+);
+
+<span class="comment">-- Retention (add at same time as tables per cloudflare-lessons.md rule)</span>
+<span class="comment">-- Cron: DELETE FROM analysis_runs WHERE created_at &lt; datetime('now', '-90 days')</span>
+<span class="comment">-- Large CSVs in R2: lifecycle rule to delete after 90 days</span></div>
+
+      <h3 style="color:#fff; margin: 20px 0 10px;">Priority Ranking for THIS Audience</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Rank</th><th>Method</th><th>Why it fits intel/research analysts</th><th>Phase</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>1</td><td><strong>Inter-rater reliability (kappa / Krippendorff)</strong></td><td>Platform already does multi-analyst claim and evidence coding. IRR is the tool to validate that coding is consistent — no competing product offers this natively for OSINT workflows.</td><td><span class="tier tier-b">Phase 2</span></td></tr>
+            <tr><td>2</td><td><strong>Cross-tab + chi-square + Cramér's V</strong></td><td>Analysts routinely compare categorical attributes: source types vs credibility, actor types vs behaviors. Instantly useful on any exported entity table.</td><td><span class="tier tier-a">Phase 1</span></td></tr>
+            <tr><td>3</td><td><strong>Correlation matrix</strong></td><td>Compare numeric SATS scores, confidence ratings, event frequencies across actor sets. Visual heat-maps are analyst-friendly.</td><td><span class="tier tier-a">Phase 1</span></td></tr>
+            <tr><td>4</td><td><strong>Cronbach's alpha</strong></td><td>Validate SATS instrument quality — are the 8 dimensions measuring a single latent credibility construct? Directly answers a methodological question the platform's users will ask.</td><td><span class="tier tier-b">Phase 2</span></td></tr>
+            <tr><td>5</td><td><strong>Descriptives + frequency tables</strong></td><td>Always useful; lowest implementation cost.</td><td><span class="tier tier-a">Phase 1</span></td></tr>
+            <tr><td>6</td><td><strong>Logistic regression</strong></td><td>Predict claim verification outcome from evidence features — bridges the platform's claim-checking workflow into a quantitative predictive model.</td><td><span class="tier tier-b">Phase 3</span></td></tr>
+            <tr><td>7</td><td><strong>PCA</strong></td><td>Reduce SATS/attribute dimensionality; discover whether source credibility clusters into 2-3 factors. Useful for power users.</td><td><span class="tier tier-b">Phase 3</span></td></tr>
+            <tr><td>8</td><td><strong>EFA / CFA / SEM</strong></td><td>Academic validation of measurement models — relevant only if the platform publishes methodology papers. Not immediate analyst value.</td><td><span class="tier tier-c">Phase 4 / R-export</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- SOURCES -->
+  <div class="section" id="sources">
+    <div class="section-header">
+      <h2>Sources</h2>
+    </div>
+    <div class="section-body sources">
+      <div class="source-item"><span class="source-num">S1</span><div><a href="https://ropensci.org/blog/2023/11/17/runiverse-wasm/">R-universe now builds WASM binaries for all R packages — rOpenSci blog</a><br><small>19,356/20,040 CRAN packages buildable; ~10,483 with all deps available; packages needing external system libs (libcurl, gdal) blocked.</small></div></div>
+      <div class="source-item"><span class="source-num">S2</span><div><a href="https://docs.r-wasm.org/webr/latest/packages.html">Installing R Packages — WebR docs</a><br><small>CDN-based binary repo; install via webr::install(); pre-compiled WASM only; no source compilation in browser.</small></div></div>
+      <div class="source-item"><span class="source-num">S3</span><div><a href="https://blog.cloudflare.com/python-workers/">Bringing Python to Workers using Pyodide and WebAssembly — Cloudflare Blog</a><br><small>Pyodide 6.4 MB; curated package list (FastAPI, NumPy, Langchain); scipy/statsmodels NOT in curated set; cold-start &lt;1s via memory snapshots.</small></div></div>
+      <div class="source-item"><span class="source-num">S4</span><div><a href="https://developers.cloudflare.com/workers/runtime-apis/webassembly/">WebAssembly (Wasm) — Cloudflare Workers docs</a><br><small>3 MB free / 10 MB paid Worker bundle limit; WebR core (~25–35 MB) cannot be bundled in a Worker.</small></div></div>
+      <div class="source-item"><span class="source-num">S5</span><div><a href="https://simple-statistics.github.io/docs/">simple-statistics v7.8.7 docs</a><br><small>Functions confirmed: sampleCorrelation, sampleRankCorrelation, tTestTwoSample, chiSquaredGoodnessOfFit, wilcoxonRankSum, linearRegression, rSquared. Missing: ANOVA, logistic regression, PCA, kappa.</small></div></div>
+      <div class="source-item"><span class="source-num">S6</span><div><a href="https://www.npmjs.com/package/ml-pca">ml-pca — npm (mljs ecosystem)</a><br><small>PCA only (no EFA); exposes explained variance ratios + projection; browser-safe ESM; actively maintained.</small></div></div>
+      <div class="source-item"><span class="source-num">S7</span><div><a href="https://www.npmjs.com/package/ml-regression-multivariate-linear">ml-regression-multivariate-linear — npm</a><br><small>OLS multiple regression in browser-safe TS; part of mljs ecosystem with ml-matrix (238+ dependents).</small></div></div>
+      <div class="source-item"><span class="source-num">S8</span><div><a href="https://github.com/r-wasm/webr-repo-dashboard">webr-repo-dashboard — GitHub</a><br><small>Dashboard for browsing WebR binary package repository; searchable at r-wasm.github.io/webr-repo-dashboard.</small></div></div>
+      <div class="source-item"><span class="source-num">S9</span><div><a href="https://www.statstest.com/inter-rater-reliability-cohen-kappa-krippendorff-alpha">Inter-Rater Reliability: Cohen's Kappa and Krippendorff's Alpha — StatsTest</a><br><small>Cohen's kappa for 2 raters categorical; Fleiss' kappa for 3+ raters; Krippendorff's alpha handles missing data and ordinal/interval scales.</small></div></div>
+      <div class="source-item"><span class="source-num">S10</span><div><a href="https://mbrenndoerfer.com/writing/inter-annotator-agreement-kappa-alpha-reliability">Cohen, Fleiss &amp; Krippendorff: IAA Metrics — Michael Brenndoerfer</a><br><small>Detailed implementation guide for all three metrics with interpretation scales.</small></div></div>
+      <div class="source-item"><span class="source-num">S11</span><div><a href="https://npmtrends.com/jStat-vs-jstat-vs-simple-statistics">npm trends: jStat vs simple-statistics</a><br><small>jStat: 318K weekly downloads, 1.8K stars; simple-statistics: 294K weekly downloads, 3.5K stars. Both actively maintained.</small></div></div>
+      <div class="source-item"><span class="source-num">S12</span><div><a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8321514/">Educating future researchers: trends in analysis methods — PMC/NIH</a><br><small>t-test, ANOVA, linear regression, chi-squared most cited in social sciences; SEM strong in psychology; ML methods growing.</small></div></div>
+      <div class="source-item"><span class="source-num">S13</span><div>Local repo — <code>/Users/sac/Git/researchtoolspy/docs/r-scripts/network_analysis.R</code> and <code>time_series_analysis.R</code><br><small>R integration is static template + RStudio; no dynamic code generation. Templates use igraph + ggplot2. No stats analysis templates exist yet.</small></div></div>
+      <div class="source-item"><span class="source-num">S14</span><div>Local repo — <code>/Users/sac/Git/researchtoolspy/src/types/dataset.ts</code><br><small>Dataset type is document-centric (DOCUMENT, WEB_PAGE, IMAGE…); no TABULAR or SURVEY type exists. DatasetStatistics covers counts, not analysis. New table design needed.</small></div></div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
