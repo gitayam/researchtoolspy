@@ -43,6 +43,13 @@ export const AI_RATE_LIMITED_PATHS = [
   '/api/collection/start',
 ]
 
+/** True for the paid Apify COP scraper endpoint POST (/api/cop/<id>/scrape) — throttled
+ *  separately from AI calls because each run bills Apify. Excludes /tools/scrape-metadata,
+ *  /ai/scrape-url, /web-scraper (cheaper / covered elsewhere). */
+export function isApifyScraperPath(pathname: string): boolean {
+  return pathname.includes('/cop/') && pathname.endsWith('/scrape')
+}
+
 /**
  * Fixed-window KV rate limiter. Returns true if the caller is OVER the limit.
  * key: caller-scoped string (e.g. "ai:<hash>"). limit: max events per window.
@@ -108,6 +115,14 @@ export async function onRequest(context: any) {
     const id = request.headers.get('X-User-Hash') || clientIp
     if (await kvRateLimit(env, `ai:${id}`, 40, 60)) {
       return json429('AI rate limit exceeded. Please wait before making more requests.')
+    }
+  }
+
+  // Apify scrapers cost real money per run — throttle per-user, tighter than AI.
+  if (request.method === 'POST' && isApifyScraperPath(url.pathname)) {
+    const id = request.headers.get('X-User-Hash') || clientIp
+    if (await kvRateLimit(env, `scrape:${id}`, 10, 60)) {
+      return json429('Scraper rate limit exceeded. Please wait before starting more scrapes.')
     }
   }
 
