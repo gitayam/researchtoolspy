@@ -1,6 +1,6 @@
 # ResearchTools.net — Roadmap
 
-**Last updated:** 2026-06-20 · **Current release:** `v0.22.0` (+ hardening patches through `v0.22.14`) · **Prod:** [researchtools.net](https://researchtools.net) (Cloudflare Pages + D1)
+**Last updated:** 2026-06-20 · **Current release:** `v0.22.0` (+ hardening patches through `v0.22.15`) · **Prod:** [researchtools.net](https://researchtools.net) (Cloudflare Pages + D1)
 
 This is the living roadmap — the single source of truth for "what's next." Detailed findings live in [`TECH_DEBT.md`](operations/TECH_DEBT.md), the AI-safety review in [`AI_REFUSAL_REVIEW.md`](operations/AI_REFUSAL_REVIEW.md), and dated design/implementation plans in [`plans/`](plans/). Status legend: ✅ done · 🔄 partial · ⬜ planned.
 
@@ -29,6 +29,9 @@ New features are welcome but should ride on top of this hardened base, not aroun
 ---
 
 ## Recently shipped
+
+### v0.22.15 — URL-extraction failures visible in event_logs (2026-06-20)
+- ✅ **Extraction-failure observability** — `analyze-url.ts` logged extraction hard-failures only via `console.error` (invisible in Pages Functions prod). The 422 failure branch now also emits a low-volume `logEvent('warn', source:'content-intelligence/analyze-url', {url, reason})` to `event_logs`, so failure reasons are visible via `GET /api/cron/event-logs`. Pure context-builder in a zero-dep sibling (`_extraction-log.ts`), unit-tested (`tests/e2e/smoke/extraction-failure-log.spec.ts`) (`28c8515f8`).
 
 ### v0.22.14 — Consent-gate COG/CARVER vulnerability generation (2026-06-20)
 - ✅ **Sensitive-use gate extended** — `functions/api/ai/cog-analysis.ts` (COG/CARVER vulnerability generation) now sits behind the established Tier-1 `requireConsent` gate (shared `sensitive_ai` consent type, placed after `requireAuth`, before the AI call), matching `ai/generate.ts`. Returns the standard 403 `consent_required` so the existing `fetchWithConsent` dialog handles it — no client change. Prod-verified (no-consent → 403). Unit-tested (`tests/e2e/smoke/cog-consent-gate.spec.ts`) (`0ca2b5f26`).
@@ -114,8 +117,8 @@ New features are welcome but should ride on top of this hardened base, not aroun
 
 ## Next
 
-4. **Per-user limiting everywhere** `TD-05` — thread `metadata.user_id` through more gateway callers so per-user (not just global) limits apply; throttle the Apify scrapers separately from AI calls.
-5. **Content-extraction quality** — build on the v0.22.1 thin/paywalled warnings: track extraction-failure reasons in `event_logs`, and decide the fate of the **dead `content_chunks` full-text path** (`analyze-url.ts` writes it, nothing reads it — fix or remove).
+4. **Per-user limiting everywhere** `TD-05` — thread `metadata.user_id` through more gateway callers so per-user (not just global) limits apply; throttle the Apify scrapers separately from AI calls. *Note (2026-06-20): the gateway limiter (`enforceRateLimit`) already keys per-user when `metadata.user_id` is supplied — the remaining work is a **broad sweep** threading `user_id` through the ~40 callers that omit it + a separate Apify throttle. Open-ended acceptance; best done as a defined sweep (or highest-traffic callers first) — not a single crisp change.*
+5. 🔄 **Content-extraction quality** — ✅ **extraction failures now logged to `event_logs`** (v0.22.15, `28c8515f8` — `analyze-url.ts` 422 branch). **Remaining:** decide the fate of the **dead `content_chunks` full-text path** (`analyze-url.ts` writes it, nothing reads it — fix or remove).
 6. ✅ **Extend consent gating — DONE** (v0.22.14, `0ca2b5f26`): the Tier-1 `requireConsent` (`sensitive_ai`) gate now also covers **COG/CARVER vulnerability generation** (`functions/api/ai/cog-analysis.ts`), prod-verified (no-consent → 403). *PimEyes/face-match has no server endpoint (frontend-only tool) — nothing to gate server-side.*
 7. **Schema sprawl cleanup** `TD-06` — inventory the ~148 tables by row count; drop the confirmed-dead ones (incl. the unused `rate_limits` table) with a migration, or document the intentionally-future ones.
 
