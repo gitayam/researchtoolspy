@@ -15,6 +15,7 @@
 
 import { callOpenAIViaGateway, getOptimalCacheTTL, ANALYST_SYSTEM_PREFIX, REFUSAL_BODY } from '../_shared/ai-gateway'
 import { requireAuth } from '../_shared/auth-helpers'
+import { requireConsent } from '../_shared/consent'
 import { JSON_HEADERS, optionsResponse } from '../_shared/api-utils'
 
 interface Env {
@@ -430,6 +431,11 @@ Return JSON:
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
     const userId = await requireAuth(context.request, context.env)
+
+    // Sensitive-use gate: COG vulnerability generation identifies how to attack a
+    // center of gravity — requires recorded acknowledgement of authorized use.
+    const consentGate = await requireConsent(context.env, userId)
+    if (consentGate) return consentGate
 
     if (!context.env.OPENAI_API_KEY) {
       console.error('[COG AI] OpenAI API key not available')
