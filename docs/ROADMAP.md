@@ -1,6 +1,6 @@
 # ResearchTools.net — Roadmap
 
-**Last updated:** 2026-06-19 · **Current release:** `v0.22.0` (+ hardening patches through `v0.22.6`) · **Prod:** [researchtools.net](https://researchtools.net) (Cloudflare Pages + D1)
+**Last updated:** 2026-06-19 · **Current release:** `v0.22.0` (+ hardening patches through `v0.22.7`) · **Prod:** [researchtools.net](https://researchtools.net) (Cloudflare Pages + D1)
 
 This is the living roadmap — the single source of truth for "what's next." Detailed findings live in [`TECH_DEBT.md`](operations/TECH_DEBT.md), the AI-safety review in [`AI_REFUSAL_REVIEW.md`](operations/AI_REFUSAL_REVIEW.md), and dated design/implementation plans in [`plans/`](plans/). Status legend: ✅ done · 🔄 partial · ⬜ planned.
 
@@ -29,6 +29,10 @@ New features are welcome but should ride on top of this hardened base, not aroun
 ---
 
 ## Recently shipped
+
+### v0.22.7 — Agentic Research hardening: rate-limit + stuck-job timeout (2026-06-19)
+- ✅ **`/api/collection/start` is rate-limited** — added to the per-user AI limiter (`AI_RATE_LIMITED_PATHS` in `_middleware.ts`) so spawning an OSINT-agent run counts against the 40/min cap (cost/abuse). Used the exact path, not the broad `/api/collection/` prefix (which would have throttled the IP-keyed callback).
+- ✅ **Stuck collection jobs now time out** — a job left `running`/`pending` past 15 min (agent accepted but never called back) is lazily transitioned to a terminal `error` on status read via a **race-safe** UPDATE (WHERE re-checks status+age, so a late callback still wins), so the polling UI stops. Exported pure helper `isCollectionJobStale()` + `@smoke` test (`2e4e75ff6`).
 
 ### v0.22.6 — AI endpoints return a clean "declined" on model refusal (2026-06-19)
 - ✅ **No more opaque 500 on content-policy refusal** — `swot-auto-populate` and `pmesii-pt/import-url` now check the gateway's `_refusal` marker and return the standard `REFUSAL_BODY` (`{declined:true}`, 200) instead of `JSON.parse`-ing refusal prose into an opaque 500, matching the established `ai/generate.ts` / `ai/cog-analysis.ts` idiom. Contract pinned by `tests/e2e/smoke/ai-refusal-contract.spec.ts` (`detectRefusal` flags refusals + ignores analytical content; `REFUSAL_BODY` shape) (`a19142904`).
@@ -80,8 +84,8 @@ New features are welcome but should ride on top of this hardened base, not aroun
 
 3. **Agentic Research — review & hardening** `Agentic` — the AI source-collection feature ("Agentic Research", `/dashboard/tools/collection`) works end-to-end (job → external OSINT agent → callback → triage → approve → batch-analyze), but a 2026-06-19 code review found security / reliability / cost gaps. *Files:* `functions/api/collection/*` (`start.ts`, `callback.ts`, `[jobId]/{status,results,approve}.ts`), `src/pages/tools/CollectionPage.tsx`, `functions/api/_middleware.ts`, `schema/` (`collection_jobs` / `collection_results` / `collection_queries`).
    - **[HIGH] Unauthenticated callback** — `functions/api/collection/callback.ts` accepts any POST and inserts results / completes a job for any known `jobId` (no secret/signature; only checks the job row exists). → shared-secret/HMAC the OSINT agent includes. **Cross-system:** the external agent (`OSINT_AGENT_URL`) must send it — coordinate, or do a backward-compatible rollout (accept-unsigned-then-tighten).
-   - **[HIGH] Stuck jobs never time out** — `start.ts` fires the agent call and only catches the *initial* connection error; if the agent accepts but never calls back, the job stays `running` forever. → stale-job timeout (transition `running` → `error`/`timed_out` after N min, on status read and/or the daily cron).
-   - **[MED] Collection endpoints not rate-limited** — `/api/collection/start` spawns an LLM agent run but isn't in `_middleware.ts` `aiPaths`, so it bypasses the per-user AI limiter (cost/abuse). → add it.
+   - ✅ **[HIGH] Stuck jobs never time out — FIXED** (v0.22.7, `2e4e75ff6`): jobs `running`/`pending` past 15 min are lazily transitioned to a terminal `error` on status read via a race-safe UPDATE.
+   - ✅ **[MED] Collection endpoints not rate-limited — FIXED** (v0.22.7, `2e4e75ff6`): `/api/collection/start` added to the per-user AI limiter.
    - **[MED] No retention** — `collection_jobs` / `collection_results` / `collection_queries` have no cleanup (violates the project "new tables ship with a retention cron" convention). → `expires_at` + cron window (needs a retention-window decision).
    - **[LOW] Hygiene** — `workspace_id` accepted null (isolation); missing-score fallback `relevanceScore || 0.5`; hardcoded 70% select threshold + no score distribution; approve → batch-process cross-origin call forwards no auth.
    - *Done when:* each HIGH item has a fix + regression test, prod-verified; MED/LOW fixed or explicitly captured.
