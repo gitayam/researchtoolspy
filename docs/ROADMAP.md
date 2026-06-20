@@ -1,6 +1,6 @@
 # ResearchTools.net — Roadmap
 
-**Last updated:** 2026-06-20 · **Current release:** `v0.22.0` (+ hardening patches through `v0.22.15`) · **Prod:** [researchtools.net](https://researchtools.net) (Cloudflare Pages + D1)
+**Last updated:** 2026-06-20 · **Current release:** `v0.22.0` (+ hardening patches through `v0.22.16`) · **Prod:** [researchtools.net](https://researchtools.net) (Cloudflare Pages + D1)
 
 This is the living roadmap — the single source of truth for "what's next." Detailed findings live in [`TECH_DEBT.md`](operations/TECH_DEBT.md), the AI-safety review in [`AI_REFUSAL_REVIEW.md`](operations/AI_REFUSAL_REVIEW.md), and dated design/implementation plans in [`plans/`](plans/). Status legend: ✅ done · 🔄 partial · ⬜ planned.
 
@@ -29,6 +29,10 @@ New features are welcome but should ride on top of this hardened base, not aroun
 ---
 
 ## Recently shipped
+
+### v0.22.16 — Throttle the paid Apify scraper + resolve rate-limit direction (2026-06-20)
+- ✅ **Apify scraper rate-limited** — the COP scraper (`functions/api/cop/[id]/scrape.ts`, a POST that triggers Apify actors billed per run) was the one **unthrottled paid op**. Added a per-user KV limit (`scrape:<id>`, **10/60s**) in `_middleware.ts` via an exported `isApifyScraperPath()` matcher that catches only `/api/cop/<id>/scrape` (not `/tools/scrape-metadata`, `/ai/scrape-url`, `/web-scraper`). Unit-tested (`tests/e2e/smoke/scraper-rate-limit.spec.ts`) (`c9b421bf3`).
+- ✅ **Now#1 (burst-accurate rate limiting) RESOLVED by maintainer decision** — low-traffic community service → KV limiters accepted as good enough; the "strongly consistent" bar is downgraded (no Durable Object / `[[ratelimit]]` binding). Revisit only if traffic grows.
 
 ### v0.22.15 — URL-extraction failures visible in event_logs (2026-06-20)
 - ✅ **Extraction-failure observability** — `analyze-url.ts` logged extraction hard-failures only via `console.error` (invisible in Pages Functions prod). The 422 failure branch now also emits a low-volume `logEvent('warn', source:'content-intelligence/analyze-url', {url, reason})` to `event_logs`, so failure reasons are visible via `GET /api/cron/event-logs`. Pure context-builder in a zero-dep sibling (`_extraction-log.ts`), unit-tested (`tests/e2e/smoke/extraction-failure-log.spec.ts`) (`28c8515f8`).
@@ -94,10 +98,7 @@ New features are welcome but should ride on top of this hardened base, not aroun
 
 ## Now (highest priority)
 
-1. **Burst-accurate rate limiting** `TD-05` — replace the KV limiters with the **Cloudflare Rate Limiting binding** (`[[ratelimit]]`, strongly consistent) or a **Durable Object** counter. KV is eventually consistent so sub-minute bursts slip through today (verified: a 46-request burst was not blocked).
-   - *Files:* `functions/_middleware.ts` (per-user limiter), `functions/utils/ai-gateway.ts` (global backstop), `wrangler.toml`.
-   - *Done when:* a sub-minute burst over the threshold is rejected with 429; limiter is strongly consistent; falls back cleanly if the binding isn't supported on Pages Functions (deploy-gated attempt, revert cleanly if not).
-   - 🔄 *blocked (2026-06-19): needs an architecture call.* The native `[[ratelimit]]` binding is **not** strongly consistent (CF docs: counters are per-machine and updated asynchronously), so it fails the "strongly consistent" acceptance bar, and Pages Functions support for the binding is undocumented. The only mechanism that truly satisfies "strongly consistent" is a **Durable Object** — which on Pages requires standing up a new DO-hosting Worker + a DO migration + a `script_name` binding (a new always-on deployable component + deployment-topology/cost decision the maintainer should own). **Decide:** accept the native binding's per-colo consistency as "good enough" (downgrade the acceptance bar), or invest in the DO Worker.
+1. ✅ **Burst-accurate rate limiting — RESOLVED by maintainer decision** (v0.22.16, 2026-06-20). Low-traffic community service → the **KV limiters are accepted as good enough**; the "strongly consistent" bar is **downgraded** (no Durable Object / `[[ratelimit]]` binding — KV's sub-minute burst staleness is an accepted, documented tradeoff). Limits in place: auth **5/min·IP**, register/pwd **10/min·IP**, **AI 40/min·user** (+ gateway **100/min·user** & **3000/hr global** cost backstop), and **Apify COP scraper 10/min·user** (`c9b421bf3` — the previously-unthrottled paid op). *Revisit a DO/binding only if traffic grows.*
 
 2. **SAT correctness & safety fixes** `D0` — a 2026-06-19 audit found **bugs in shipped analytic techniques that change the answers analysts get** (theme #1). Full list + file:line + fixes in [`plans/2026-06-19-analytic-capability-expansion.md`](plans/2026-06-19-analytic-capability-expansion.md) → "Workstream D0." Headline items:
    - ✅ **ACH fully resolved:** ranking inversion FIXED (v0.22.4, Heuer weighted-inconsistency) · evidence-credibility weighting FIXED (v0.22.12, real reliability/confidence/credibility) · dead net-sum engine removed (v0.22.13, `2ec03af21` — one scoring definition).
@@ -117,7 +118,7 @@ New features are welcome but should ride on top of this hardened base, not aroun
 
 ## Next
 
-4. **Per-user limiting everywhere** `TD-05` — thread `metadata.user_id` through more gateway callers so per-user (not just global) limits apply; throttle the Apify scrapers separately from AI calls. *Note (2026-06-20): the gateway limiter (`enforceRateLimit`) already keys per-user when `metadata.user_id` is supplied — the remaining work is a **broad sweep** threading `user_id` through the ~40 callers that omit it + a separate Apify throttle. Open-ended acceptance; best done as a defined sweep (or highest-traffic callers first) — not a single crisp change.*
+4. **Per-user limiting everywhere** `TD-05` — thread `metadata.user_id` through more gateway callers so per-user (not just global) limits apply. ✅ *Apify scrapers now throttled separately (v0.22.16, 10/min·user).* *Note (2026-06-20): the gateway limiter (`enforceRateLimit`) already keys per-user when `metadata.user_id` is supplied — the remaining work is a **broad sweep** threading `user_id` through the ~40 callers that omit it. Open-ended acceptance; best done as a defined sweep (or highest-traffic callers first) — not a single crisp change.*
 5. 🔄 **Content-extraction quality** — ✅ **extraction failures now logged to `event_logs`** (v0.22.15, `28c8515f8` — `analyze-url.ts` 422 branch). **Remaining:** decide the fate of the **dead `content_chunks` full-text path** (`analyze-url.ts` writes it, nothing reads it — fix or remove).
 6. ✅ **Extend consent gating — DONE** (v0.22.14, `0ca2b5f26`): the Tier-1 `requireConsent` (`sensitive_ai`) gate now also covers **COG/CARVER vulnerability generation** (`functions/api/ai/cog-analysis.ts`), prod-verified (no-consent → 403). *PimEyes/face-match has no server endpoint (frontend-only tool) — nothing to gate server-side.*
 7. **Schema sprawl cleanup** `TD-06` — inventory the ~148 tables by row count; drop the confirmed-dead ones (incl. the unused `rate_limits` table) with a migration, or document the intentionally-future ones.
