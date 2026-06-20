@@ -280,6 +280,9 @@ const CATEGORY_WEIGHTS = {
   rage: 0.10      // 10% - Manipulative Framing (New)
 }
 
+/** Deception category scores (MOM/POP/MOSES/EVE) are 0–5 averages of their 0–5 criteria. */
+export const DECEPTION_CATEGORY_MAX = 5
+
 /**
  * Calculate overall deception likelihood from component scores
  */

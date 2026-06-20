@@ -3,7 +3,7 @@ import { FileText, Loader2 } from 'lucide-react'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import type { DeceptionScores, DeceptionAssessment } from '@/lib/deception-scoring'
-import { calculateDeceptionLikelihood } from '@/lib/deception-scoring'
+import { calculateDeceptionLikelihood, DECEPTION_CATEGORY_MAX } from '@/lib/deception-scoring'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -188,10 +188,10 @@ export function DeceptionPDFExport({
       currentY += 12
 
       const categories = [
-        { name: 'MOM (Motive, Opportunity, Means)', score: assessment.categoryScores.mom, max: 15, color: colors.critical },
-        { name: 'POP (Patterns of Practice)', score: assessment.categoryScores.pop, max: 15, color: colors.high },
-        { name: 'MOSES (Source Vulnerability)', score: assessment.categoryScores.moses, max: 10, color: colors.medium },
-        { name: 'EVE (Evidence Evaluation)', score: assessment.categoryScores.eve, max: 15, color: colors.low }
+        { name: 'MOM (Motive, Opportunity, Means)', score: assessment.categoryScores.mom, max: DECEPTION_CATEGORY_MAX, color: colors.critical },
+        { name: 'POP (Patterns of Practice)', score: assessment.categoryScores.pop, max: DECEPTION_CATEGORY_MAX, color: colors.high },
+        { name: 'MOSES (Source Vulnerability)', score: assessment.categoryScores.moses, max: DECEPTION_CATEGORY_MAX, color: colors.medium },
+        { name: 'EVE (Evidence Evaluation)', score: assessment.categoryScores.eve, max: DECEPTION_CATEGORY_MAX, color: colors.low }
       ]
 
       categories.forEach(cat => {
