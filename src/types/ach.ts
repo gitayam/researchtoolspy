@@ -51,6 +51,8 @@ export interface ACHEvidenceLink {
   source?: string
   date?: string
   credibility_score?: number
+  reliability?: string
+  confidence_level?: string
 }
 
 export interface ACHScore {
