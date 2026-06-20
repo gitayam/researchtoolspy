@@ -36,6 +36,7 @@ import {
   calculateCompositeScore,
   calculateVulnerabilityCompositeScore,
   calculateCustomCompositeScore,
+  aiVulnScoring,
 } from '@/types/cog-analysis'
 
 interface COGFormProps {
@@ -1181,17 +1182,19 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
                                                                         type: req.requirement_type,
                                                                       }}
                                                                       onAccept={(generatedVulnerabilities: any[]) => {
-                                                                        const newVulnerabilities = generatedVulnerabilities.map((vuln: any) => ({
-                                                                          id: crypto.randomUUID(),
-                                                                          requirement_id: req.id,
-                                                                          vulnerability: vuln.vulnerability || '',
-                                                                          vulnerability_type: vuln.type || 'other',
-                                                                          description: vuln.description || '',
-                                                                          feasibility_score: vuln.feasibility || 3,
-                                                                          impact_score: vuln.impact || 3,
-                                                                          composite_score: ((vuln.feasibility || 3) * (vuln.impact || 3)),
-                                                                          linked_evidence: [],
-                                                                        }))
+                                                                        const newVulnerabilities: CriticalVulnerability[] = generatedVulnerabilities.map((vuln: any) => {
+                                                                          const scoring = aiVulnScoring({ feasibility: vuln.feasibility, impact: vuln.impact })
+                                                                          return {
+                                                                            id: crypto.randomUUID(),
+                                                                            requirement_id: req.id,
+                                                                            vulnerability: vuln.vulnerability || '',
+                                                                            vulnerability_type: vuln.type || 'other',
+                                                                            description: vuln.description || '',
+                                                                            scoring,
+                                                                            composite_score: calculateVulnerabilityCompositeScore({ scoring } as CriticalVulnerability),
+                                                                            linked_evidence: [],
+                                                                          }
+                                                                        })
                                                                         setVulnerabilities([...vulnerabilities, ...newVulnerabilities])
                                                                       }}
                                                                       buttonText="{t('form.buttons.generateCapabilities')}"
@@ -1267,7 +1270,7 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
                                                                                   </div>
                                                                                   <div className="flex items-center gap-2">
                                                                                     <Slider
-                                                                                      value={[vuln.scoring.impact_on_cog]}
+                                                                                      value={[vuln.scoring?.impact_on_cog ?? 0]}
                                                                                       onValueChange={([v]) =>
                                                                                         updateVulnerability(vuln.id, {
                                                                                           scoring: { ...vuln.scoring, impact_on_cog: v as any },
@@ -1279,10 +1282,10 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
                                                                                       className="flex-1"
                                                                                     />
                                                                                     <Badge variant="outline" className="min-w-[3rem] justify-center">
-                                                                                      {vuln.scoring.impact_on_cog}
+                                                                                      {vuln.scoring?.impact_on_cog ?? 0}
                                                                                     </Badge>
                                                                                   </div>
-                                                                                  <p className="text-xs text-gray-500 mt-1">{getScoreLabel('impact_on_cog', vuln.scoring.impact_on_cog)}</p>
+                                                                                  <p className="text-xs text-gray-500 mt-1">{getScoreLabel('impact_on_cog', vuln.scoring?.impact_on_cog ?? 0)}</p>
                                                                                 </div>
 
                                                                                 {/* Attainability */}
@@ -1300,7 +1303,7 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
                                                                                   </div>
                                                                                   <div className="flex items-center gap-2">
                                                                                     <Slider
-                                                                                      value={[vuln.scoring.attainability]}
+                                                                                      value={[vuln.scoring?.attainability ?? 0]}
                                                                                       onValueChange={([v]) =>
                                                                                         updateVulnerability(vuln.id, {
                                                                                           scoring: { ...vuln.scoring, attainability: v as any },
@@ -1312,10 +1315,10 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
                                                                                       className="flex-1"
                                                                                     />
                                                                                     <Badge variant="outline" className="min-w-[3rem] justify-center">
-                                                                                      {vuln.scoring.attainability}
+                                                                                      {vuln.scoring?.attainability ?? 0}
                                                                                     </Badge>
                                                                                   </div>
-                                                                                  <p className="text-xs text-gray-500 mt-1">{getScoreLabel('attainability', vuln.scoring.attainability)}</p>
+                                                                                  <p className="text-xs text-gray-500 mt-1">{getScoreLabel('attainability', vuln.scoring?.attainability ?? 0)}</p>
                                                                                 </div>
 
                                                                                 {/* Follow-up Potential */}
@@ -1333,7 +1336,7 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
                                                                                   </div>
                                                                                   <div className="flex items-center gap-2">
                                                                                     <Slider
-                                                                                      value={[vuln.scoring.follow_up_potential]}
+                                                                                      value={[vuln.scoring?.follow_up_potential ?? 0]}
                                                                                       onValueChange={([v]) =>
                                                                                         updateVulnerability(vuln.id, {
                                                                                           scoring: { ...vuln.scoring, follow_up_potential: v as any },
@@ -1345,10 +1348,10 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
                                                                                       className="flex-1"
                                                                                     />
                                                                                     <Badge variant="outline" className="min-w-[3rem] justify-center">
-                                                                                      {vuln.scoring.follow_up_potential}
+                                                                                      {vuln.scoring?.follow_up_potential ?? 0}
                                                                                     </Badge>
                                                                                   </div>
-                                                                                  <p className="text-xs text-gray-500 mt-1">{getScoreLabel('follow_up_potential', vuln.scoring.follow_up_potential)}</p>
+                                                                                  <p className="text-xs text-gray-500 mt-1">{getScoreLabel('follow_up_potential', vuln.scoring?.follow_up_potential ?? 0)}</p>
                                                                                 </div>
                                                                               </>
                                                                             )}

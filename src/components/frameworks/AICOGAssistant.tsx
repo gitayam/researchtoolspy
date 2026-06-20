@@ -278,7 +278,7 @@ export function AICOGAssistant({
               <Badge variant="default">Vulnerability {idx + 1}</Badge>
               <Badge variant="outline">{vuln.type}</Badge>
               {vuln.scoring && (
-                <Badge variant="secondary">Score: {vuln.scoring.impact_on_cog + vuln.scoring.attainability + vuln.scoring.follow_up_potential}</Badge>
+                <Badge variant="secondary">Score: {(vuln.scoring?.impact_on_cog ?? 0) + (vuln.scoring?.attainability ?? 0) + (vuln.scoring?.follow_up_potential ?? 0)}</Badge>
               )}
             </div>
             <h4 className="font-semibold mb-2">⚠️ {vuln.vulnerability}</h4>
