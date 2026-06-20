@@ -1,6 +1,6 @@
 # ResearchTools.net — Roadmap
 
-**Last updated:** 2026-06-20 · **Current release:** `v0.22.0` (+ hardening patches through `v0.22.8`) · **Prod:** [researchtools.net](https://researchtools.net) (Cloudflare Pages + D1)
+**Last updated:** 2026-06-20 · **Current release:** `v0.22.0` (+ hardening patches through `v0.22.9`) · **Prod:** [researchtools.net](https://researchtools.net) (Cloudflare Pages + D1)
 
 This is the living roadmap — the single source of truth for "what's next." Detailed findings live in [`TECH_DEBT.md`](operations/TECH_DEBT.md), the AI-safety review in [`AI_REFUSAL_REVIEW.md`](operations/AI_REFUSAL_REVIEW.md), and dated design/implementation plans in [`plans/`](plans/). Status legend: ✅ done · 🔄 partial · ⬜ planned.
 
@@ -29,6 +29,9 @@ New features are welcome but should ride on top of this hardened base, not aroun
 ---
 
 ## Recently shipped
+
+### v0.22.9 — COG no longer crashes on unscored vulnerabilities (2026-06-20)
+- ✅ **COG vulnerability-scoring robustness** — guarded every `vuln.scoring.*` read in the COG view, vulnerability matrix, and exports (`?? 0`), so custom-scored and AI-generated vulns (which legitimately have no `scoring` object) no longer throw and make the whole analysis unviewable; the matrix sort no longer NaN-corrupts. Fixed the AI vuln handler (`COGForm`) to emit a valid `scoring{}` object via a new testable `aiVulnScoring()` helper (impact→impact_on_cog, feasibility→attainability, follow-up→neutral 3, clamped 1-5) with `composite_score` from `calculateVulnerabilityCompositeScore`. Unit-tested (`tests/e2e/smoke/cog-vuln-scoring.spec.ts`) (`0517fac1f`).
 
 ### v0.22.8 — Agentic Research: callback verification (backward-compatible) (2026-06-20)
 - 🔄 **Per-job callback token + status guard** — the collection callback was unauthenticated (any POST for a known `jobId` could write results / complete a job). Added a nullable `callback_secret` (migration 108) that `start.ts` generates, stores, and forwards to the OSINT agent; `callback.ts` verifies it (`evaluateCallbackAuth`: match → accept, mismatch → **403**) and now **409s late/duplicate callbacks** that target an already-terminal job. **Rollout:** callbacks with no token are still accepted (logged `warn` "unsigned callback accepted (rollout)") so the live agent doesn't break — flip to strict reject once the external agent echoes the token. Unit-tested (`tests/e2e/smoke/collection-callback-auth.spec.ts`) (`3e6b5b02c`).
@@ -81,7 +84,7 @@ New features are welcome but should ride on top of this hardened base, not aroun
 2. **SAT correctness & safety fixes** `D0` — a 2026-06-19 audit found **bugs in shipped analytic techniques that change the answers analysts get** (theme #1). Full list + file:line + fixes in [`plans/2026-06-19-analytic-capability-expansion.md`](plans/2026-06-19-analytic-capability-expansion.md) → "Workstream D0." Headline items:
    - ✅ **ACH ranking inversion — FIXED** (v0.22.4, `27f9b502b`): now ranks by Heuer disconfirmation (weighted inconsistency) on all live paths; net-sum demoted to secondary. **Residual (still open):** (a) evidence-credibility weighting is a **façade** — `evidence-quality.ts:151–170` hardcodes weights and the TEXT-vs-number bug (`:155`) parses the source *name* as a grade; the real `reliability`/`confidence_level` columns exist but the ACH GET (`functions/api/ach/index.ts:63–75`) never selects them, so the lib/export ranking is currently **unweighted** by evidence quality; (b) `ach-scoring.ts`'s parallel net-sum scoring engine is dead code with the same inversion (delete or align — only its scale constants are used).
    - **Deception AI** runs client-side with a browser-exposed `VITE_OPENAI_API_KEY` (latent key-leak — *verified unset today, no live leak*; move server-side onto the gateway) and **silently returns a fabricated fallback** as if it were real analysis; confidence counts magnitude not coverage; PDF bars render at ⅓ value.
-   - **COG** view/matrix/exports **crash** on custom-scored vulnerabilities (unguarded `vuln.scoring.*`); **COM-B** runs two divergent canonical matrices (UI vs `/recommend` API disagree).
+   - ✅ **COG crash on custom-scored vulns — FIXED** (v0.22.9, `0517fac1f`): all `vuln.scoring.*` reads guarded (`?? 0`) + AI handler emits a valid `scoring{}` object. **Still open: COM-B** runs two divergent canonical matrices (UI vs `/recommend` API disagree) — needs reconciliation to BCW Table 3.3. *(Follow-up: the AI COG prompt could return all 3 Eikmeier dims directly instead of the lossy feasibility/impact→3-dim mapping.)*
    - ✅ **AI-endpoint refusal crashes — FIXED** (v0.22.6, `a19142904`): `swot-auto-populate` + `pmesii-pt/import-url` now check `_refusal` and return a clean `REFUSAL_BODY` (200) instead of an opaque 500. ✅ **ACH public `SELECT *` + spread — FIXED** (v0.22.5, `f08e7f4e3`): public ACH detail+list return an explicit field allowlist (`serializePublicAnalysis`), excluding `user_id`/future columns.
    - *Done when:* each headline bug has a regression test and the technique output matches canon (Heuer disconfirmation, SATS, Eikmeier, BCW Table 3.3).
 
