@@ -20,6 +20,8 @@ import { fetchSocialViaApify } from '../_shared/apify-social'
 import { extractAndSaveClaimEntities } from './extract-claim-entities'
 import { matchMultipleClaimsEntities } from './match-entities-to-actors'
 import { isPDFUrl, extractPDFText, intelligentPDFSummary } from './pdf-extractor'
+import { logEvent } from '../_shared/event-log'
+import { extractionFailureLog } from './_extraction-log'
 
 interface Env {
   DB: D1Database
@@ -164,6 +166,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     if (!contentData.success) {
       console.error(`[DEBUG] Content extraction failed: ${contentData.error}`)
+
+      // Prod-visible failure signal: console.* is invisible in Pages Functions, so
+      // record the reason in event_logs (low-volume, only on hard failure). Never throws.
+      await logEvent(env, {
+        ...extractionFailureLog(normalizedUrl, contentData.error),
+        userId,
+      })
 
       // Provide user-friendly error message
       let userMessage = contentData.error || 'Failed to extract content'
