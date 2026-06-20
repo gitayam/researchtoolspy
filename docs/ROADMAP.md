@@ -1,6 +1,6 @@
 # ResearchTools.net — Roadmap
 
-**Last updated:** 2026-06-19 · **Current release:** `v0.22.0` (+ hardening patches through `v0.22.7`) · **Prod:** [researchtools.net](https://researchtools.net) (Cloudflare Pages + D1)
+**Last updated:** 2026-06-20 · **Current release:** `v0.22.0` (+ hardening patches through `v0.22.8`) · **Prod:** [researchtools.net](https://researchtools.net) (Cloudflare Pages + D1)
 
 This is the living roadmap — the single source of truth for "what's next." Detailed findings live in [`TECH_DEBT.md`](operations/TECH_DEBT.md), the AI-safety review in [`AI_REFUSAL_REVIEW.md`](operations/AI_REFUSAL_REVIEW.md), and dated design/implementation plans in [`plans/`](plans/). Status legend: ✅ done · 🔄 partial · ⬜ planned.
 
@@ -29,6 +29,9 @@ New features are welcome but should ride on top of this hardened base, not aroun
 ---
 
 ## Recently shipped
+
+### v0.22.8 — Agentic Research: callback verification (backward-compatible) (2026-06-20)
+- 🔄 **Per-job callback token + status guard** — the collection callback was unauthenticated (any POST for a known `jobId` could write results / complete a job). Added a nullable `callback_secret` (migration 108) that `start.ts` generates, stores, and forwards to the OSINT agent; `callback.ts` verifies it (`evaluateCallbackAuth`: match → accept, mismatch → **403**) and now **409s late/duplicate callbacks** that target an already-terminal job. **Rollout:** callbacks with no token are still accepted (logged `warn` "unsigned callback accepted (rollout)") so the live agent doesn't break — flip to strict reject once the external agent echoes the token. Unit-tested (`tests/e2e/smoke/collection-callback-auth.spec.ts`) (`3e6b5b02c`).
 
 ### v0.22.7 — Agentic Research hardening: rate-limit + stuck-job timeout (2026-06-19)
 - ✅ **`/api/collection/start` is rate-limited** — added to the per-user AI limiter (`AI_RATE_LIMITED_PATHS` in `_middleware.ts`) so spawning an OSINT-agent run counts against the 40/min cap (cost/abuse). Used the exact path, not the broad `/api/collection/` prefix (which would have throttled the IP-keyed callback).
@@ -83,7 +86,7 @@ New features are welcome but should ride on top of this hardened base, not aroun
    - *Done when:* each headline bug has a regression test and the technique output matches canon (Heuer disconfirmation, SATS, Eikmeier, BCW Table 3.3).
 
 3. **Agentic Research — review & hardening** `Agentic` — the AI source-collection feature ("Agentic Research", `/dashboard/tools/collection`) works end-to-end (job → external OSINT agent → callback → triage → approve → batch-analyze), but a 2026-06-19 code review found security / reliability / cost gaps. *Files:* `functions/api/collection/*` (`start.ts`, `callback.ts`, `[jobId]/{status,results,approve}.ts`), `src/pages/tools/CollectionPage.tsx`, `functions/api/_middleware.ts`, `schema/` (`collection_jobs` / `collection_results` / `collection_queries`).
-   - **[HIGH] Unauthenticated callback** — `functions/api/collection/callback.ts` accepts any POST and inserts results / completes a job for any known `jobId` (no secret/signature; only checks the job row exists). → shared-secret/HMAC the OSINT agent includes. **Cross-system:** the external agent (`OSINT_AGENT_URL`) must send it — coordinate, or do a backward-compatible rollout (accept-unsigned-then-tighten).
+   - 🔄 **[HIGH] Unauthenticated callback — rollout SHIPPED** (v0.22.8, `3e6b5b02c`): per-job `callback_secret` (migration 108) verified by `callback.ts` (mismatch → 403) + 409 status-guard on terminal jobs. **Still open (cross-system):** unsigned callbacks are accepted during rollout (logged `warn`); **flip to strict 403 once the external OSINT agent (`OSINT_AGENT_URL`) echoes the token** via the `X-Collection-Secret` header or `callbackSecret` body field — requires updating the agent service (separate repo).
    - ✅ **[HIGH] Stuck jobs never time out — FIXED** (v0.22.7, `2e4e75ff6`): jobs `running`/`pending` past 15 min are lazily transitioned to a terminal `error` on status read via a race-safe UPDATE.
    - ✅ **[MED] Collection endpoints not rate-limited — FIXED** (v0.22.7, `2e4e75ff6`): `/api/collection/start` added to the per-user AI limiter.
    - **[MED] No retention** — `collection_jobs` / `collection_results` / `collection_queries` have no cleanup (violates the project "new tables ship with a retention cron" convention). → `expires_at` + cron window (needs a retention-window decision).
