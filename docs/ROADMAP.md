@@ -78,24 +78,32 @@ New features are welcome but should ride on top of this hardened base, not aroun
    - ✅ **AI-endpoint refusal crashes — FIXED** (v0.22.6, `a19142904`): `swot-auto-populate` + `pmesii-pt/import-url` now check `_refusal` and return a clean `REFUSAL_BODY` (200) instead of an opaque 500. ✅ **ACH public `SELECT *` + spread — FIXED** (v0.22.5, `f08e7f4e3`): public ACH detail+list return an explicit field allowlist (`serializePublicAnalysis`), excluding `user_id`/future columns.
    - *Done when:* each headline bug has a regression test and the technique output matches canon (Heuer disconfirmation, SATS, Eikmeier, BCW Table 3.3).
 
+3. **Agentic Research — review & hardening** `Agentic` — the AI source-collection feature ("Agentic Research", `/dashboard/tools/collection`) works end-to-end (job → external OSINT agent → callback → triage → approve → batch-analyze), but a 2026-06-19 code review found security / reliability / cost gaps. *Files:* `functions/api/collection/*` (`start.ts`, `callback.ts`, `[jobId]/{status,results,approve}.ts`), `src/pages/tools/CollectionPage.tsx`, `functions/api/_middleware.ts`, `schema/` (`collection_jobs` / `collection_results` / `collection_queries`).
+   - **[HIGH] Unauthenticated callback** — `functions/api/collection/callback.ts` accepts any POST and inserts results / completes a job for any known `jobId` (no secret/signature; only checks the job row exists). → shared-secret/HMAC the OSINT agent includes. **Cross-system:** the external agent (`OSINT_AGENT_URL`) must send it — coordinate, or do a backward-compatible rollout (accept-unsigned-then-tighten).
+   - **[HIGH] Stuck jobs never time out** — `start.ts` fires the agent call and only catches the *initial* connection error; if the agent accepts but never calls back, the job stays `running` forever. → stale-job timeout (transition `running` → `error`/`timed_out` after N min, on status read and/or the daily cron).
+   - **[MED] Collection endpoints not rate-limited** — `/api/collection/start` spawns an LLM agent run but isn't in `_middleware.ts` `aiPaths`, so it bypasses the per-user AI limiter (cost/abuse). → add it.
+   - **[MED] No retention** — `collection_jobs` / `collection_results` / `collection_queries` have no cleanup (violates the project "new tables ship with a retention cron" convention). → `expires_at` + cron window (needs a retention-window decision).
+   - **[LOW] Hygiene** — `workspace_id` accepted null (isolation); missing-score fallback `relevanceScore || 0.5`; hardcoded 70% select threshold + no score distribution; approve → batch-process cross-origin call forwards no auth.
+   - *Done when:* each HIGH item has a fix + regression test, prod-verified; MED/LOW fixed or explicitly captured.
+
 ## Next
 
-3. **Per-user limiting everywhere** `TD-05` — thread `metadata.user_id` through more gateway callers so per-user (not just global) limits apply; throttle the Apify scrapers separately from AI calls.
-4. **Content-extraction quality** — build on the v0.22.1 thin/paywalled warnings: track extraction-failure reasons in `event_logs`, and decide the fate of the **dead `content_chunks` full-text path** (`analyze-url.ts` writes it, nothing reads it — fix or remove).
-5. **Extend consent gating** — apply `requireConsent` to the remaining sensitive paths: PimEyes / face-match and CARVER / COG vulnerability generation.
-6. **Schema sprawl cleanup** `TD-06` — inventory the ~148 tables by row count; drop the confirmed-dead ones (incl. the unused `rate_limits` table) with a migration, or document the intentionally-future ones.
+4. **Per-user limiting everywhere** `TD-05` — thread `metadata.user_id` through more gateway callers so per-user (not just global) limits apply; throttle the Apify scrapers separately from AI calls.
+5. **Content-extraction quality** — build on the v0.22.1 thin/paywalled warnings: track extraction-failure reasons in `event_logs`, and decide the fate of the **dead `content_chunks` full-text path** (`analyze-url.ts` writes it, nothing reads it — fix or remove).
+6. **Extend consent gating** — apply `requireConsent` to the remaining sensitive paths: PimEyes / face-match and CARVER / COG vulnerability generation.
+7. **Schema sprawl cleanup** `TD-06` — inventory the ~148 tables by row count; drop the confirmed-dead ones (incl. the unused `rate_limits` table) with a migration, or document the intentionally-future ones.
 
 ## Later
 
-7. **vite 8 / rolldown migration** — clears the 3 remaining build-tooling vulns (esbuild/vite/wrangler). Real migration: `manualChunks` → `advancedChunks` + config types + **browser QA** (maplibre worker risk). Branch-only, when rolldown-vite matures.
-8. **Index hygiene** `TD-04` — drop redundant `content_analysis` single-column indexes covered by composites (write amplification: ~14 index updates per insert). Cross-check D1 insights first.
-9. **Logger consolidation** `TD-07` — merge the two `activity-logger` modules into one canonical module; migrate the 7 callers.
-10. **R2 uploads verification** `TD-08` — confirm `env.UPLOADS` writes land (0 objects despite active write code in `feedback/submit.ts` + `twitter-image-proxy.ts` = likely silent failures; check the Dashboard R2 binding on the Pages project).
-11. **JSON column trimming** `TD-02` — one-time GATED trim of legacy oversized `word_frequency` / `links_analysis` rows; consider moving `extracted_text` to R2 keyed by `content_hash`.
-12. **CI-on-merge** — deploy `main` automatically so prod and `main` don't drift (TD-09 lagged ~1 month once).
-13. **Lint / type-check gate hardening** `Discovered 2026-06-19` — `npm run lint` is red repo-wide (~6.5k pre-existing `no-explicit-any` / `no-unused-vars`, *including* the `tests/e2e/smoke/*.spec.ts` themselves — `eslint.config.js` ignores only `dist` and has no `tests/`/`functions/` overrides), so the lint gate is effectively **non-enforcing**. Separately, `npm run type-check` (`tsc -b`) covers only `src/` + `vite.config.ts` — it does **not** type-check `functions/` or `tests/`, so Pages-Function TS errors surface only at `wrangler` build/deploy time. Add scoped eslint overrides + a `functions/` typecheck step (feeds CI-on-merge #12).
-14. **Public-endpoint field-allowlist sweep** `Discovered 2026-06-19` — the ACH public endpoints were returning the full DB row (fixed v0.22.5). Audit the other no-auth/public endpoints for the same `SELECT *` + spread pattern and apply explicit allowlists — notably the COP public share endpoints under `functions/api/cop/public/`. Prevents internal columns (and future columns) from being returned to unauthenticated clients.
-15. **Refusal-check sweep across AI gateway callers** `Discovered 2026-06-19` — v0.22.6 fixed `swot-auto-populate` + `pmesii-pt/import-url`, but other `callOpenAIViaGateway` callers that `JSON.parse` the response may still lack a `data?._refusal` guard (→ opaque 500 on refusal). Grep for `callOpenAIViaGateway` + `JSON.parse` without a nearby `_refusal` check and apply the standard `REFUSAL_BODY` guard.
+8. **vite 8 / rolldown migration** — clears the 3 remaining build-tooling vulns (esbuild/vite/wrangler). Real migration: `manualChunks` → `advancedChunks` + config types + **browser QA** (maplibre worker risk). Branch-only, when rolldown-vite matures.
+9. **Index hygiene** `TD-04` — drop redundant `content_analysis` single-column indexes covered by composites (write amplification: ~14 index updates per insert). Cross-check D1 insights first.
+10. **Logger consolidation** `TD-07` — merge the two `activity-logger` modules into one canonical module; migrate the 7 callers.
+11. **R2 uploads verification** `TD-08` — confirm `env.UPLOADS` writes land (0 objects despite active write code in `feedback/submit.ts` + `twitter-image-proxy.ts` = likely silent failures; check the Dashboard R2 binding on the Pages project).
+12. **JSON column trimming** `TD-02` — one-time GATED trim of legacy oversized `word_frequency` / `links_analysis` rows; consider moving `extracted_text` to R2 keyed by `content_hash`.
+13. **CI-on-merge** — deploy `main` automatically so prod and `main` don't drift (TD-09 lagged ~1 month once).
+14. **Lint / type-check gate hardening** `Discovered 2026-06-19` — `npm run lint` is red repo-wide (~6.5k pre-existing `no-explicit-any` / `no-unused-vars`, *including* the `tests/e2e/smoke/*.spec.ts` themselves — `eslint.config.js` ignores only `dist` and has no `tests/`/`functions/` overrides), so the lint gate is effectively **non-enforcing**. Separately, `npm run type-check` (`tsc -b`) covers only `src/` + `vite.config.ts` — it does **not** type-check `functions/` or `tests/`, so Pages-Function TS errors surface only at `wrangler` build/deploy time. Add scoped eslint overrides + a `functions/` typecheck step (feeds CI-on-merge #13).
+15. **Public-endpoint field-allowlist sweep** `Discovered 2026-06-19` — the ACH public endpoints were returning the full DB row (fixed v0.22.5). Audit the other no-auth/public endpoints for the same `SELECT *` + spread pattern and apply explicit allowlists — notably the COP public share endpoints under `functions/api/cop/public/`. Prevents internal columns (and future columns) from being returned to unauthenticated clients.
+16. **Refusal-check sweep across AI gateway callers** `Discovered 2026-06-19` — v0.22.6 fixed `swot-auto-populate` + `pmesii-pt/import-url`, but other `callOpenAIViaGateway` callers that `JSON.parse` the response may still lack a `data?._refusal` guard (→ opaque 500 on refusal). Grep for `callOpenAIViaGateway` + `JSON.parse` without a nearby `_refusal` check and apply the standard `REFUSAL_BODY` guard.
 
 ---
 
@@ -119,7 +127,7 @@ The codebase has three extension tiers — Tier 1 config-only framework (`framew
 - **Rate limiting is sustained-abuse only** (KV eventual consistency) — burst-accurate fix is Now/#1.
 - **AI endpoints are open to any 16+ char hash** (`getUserFromRequest` auto-provisions) — mitigated by rate limiting + Tier-1 consent; deeper fix is real accounts.
 - **Tier-1 consent gate's runtime fire is unverified** — the intermittent 401 that blocked this was resolved by the v0.22.2 503 fix (2026-06-19); the runtime fire (403 → consent dialog → success) is now **unblocked but still needs an actual verification pass**.
-- **3 build-tooling vulns** persist (not shipped to the runtime Worker) pending the vite 8 migration (Later/#7).
+- **3 build-tooling vulns** persist (not shipped to the runtime Worker) pending the vite 8 migration (Later/#8).
 
 ---
 
