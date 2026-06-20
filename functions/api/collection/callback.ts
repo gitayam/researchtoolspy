@@ -7,9 +7,24 @@
 
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { JSON_HEADERS, optionsResponse } from '../_shared/api-utils'
+import { logEvent } from '../_shared/event-log'
 
 interface Env {
   DB: D1Database
+}
+
+export type CallbackAuthResult = 'authenticated' | 'reject' | 'unsigned-allowed'
+/** Backward-compatible per-job callback verification.
+ *  - stored + incoming match  -> 'authenticated'
+ *  - stored + incoming differ  -> 'reject'
+ *  - stored present, none sent  -> 'unsigned-allowed' (rollout: agent not echoing yet; caller logs it)
+ *  - no stored token (pre-migration job) -> 'unsigned-allowed' */
+export function evaluateCallbackAuth(
+  storedSecret: string | null | undefined,
+  incomingSecret: string | null | undefined
+): CallbackAuthResult {
+  if (storedSecret && incomingSecret) return storedSecret === incomingSecret ? 'authenticated' : 'reject'
+  return 'unsigned-allowed'
 }
 
 // Original format expected by callback
@@ -107,7 +122,8 @@ function normalizeCallback(body: AgentCallback): AgentCallbackOriginal {
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
-    const rawBody = await context.request.json() as AgentCallback
+    // Read the raw body once; normalizeCallback reuses this parsed object (no double-read).
+    const rawBody = await context.request.json() as AgentCallback & { callbackSecret?: string | null }
     const body = normalizeCallback(rawBody)
     const { jobId, status, results, queries, error, llm_used } = body
 
@@ -118,15 +134,47 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    // Verify job exists
+    // Verify job exists (also fetch status + per-job verification token)
     const job = await context.env.DB.prepare(`
-      SELECT id, status FROM collection_jobs WHERE id = ?
-    `).bind(jobId).first()
+      SELECT id, status, callback_secret FROM collection_jobs WHERE id = ?
+    `).bind(jobId).first<{ id: string; status: string; callback_secret: string | null }>()
 
     if (!job) {
       return new Response(JSON.stringify({ error: 'Job not found' }), {
         status: 404,
         headers: JSON_HEADERS
+      })
+    }
+
+    // Status guard: a terminal job (complete/error, including Ship-1 timeouts) must not be
+    // overwritten by a duplicate or late callback. Only 'running'/'pending' jobs accept results.
+    if (job.status !== 'running' && job.status !== 'pending') {
+      return new Response(JSON.stringify({ error: 'Job is not awaiting results' }), {
+        status: 409,
+        headers: JSON_HEADERS
+      })
+    }
+
+    // Token check (backward-compatible rollout). Incoming token comes from the
+    // X-Collection-Secret header (preferred) or a callbackSecret field on the body.
+    const incomingSecret = context.request.headers.get('X-Collection-Secret') || rawBody.callbackSecret || null
+    const authResult = evaluateCallbackAuth(job.callback_secret, incomingSecret)
+
+    if (authResult === 'reject') {
+      return new Response(JSON.stringify({ error: 'Invalid callback token' }), {
+        status: 403,
+        headers: JSON_HEADERS
+      })
+    }
+
+    if (authResult === 'unsigned-allowed' && job.callback_secret) {
+      // Rollout phase: job has a stored token but the agent did not echo one yet.
+      // Accept it (so we don't break the live agent) but record the gap.
+      await logEvent(context.env, {
+        level: 'warn',
+        source: 'collection/callback',
+        message: 'unsigned callback accepted (rollout)',
+        context: { jobId }
       })
     }
 

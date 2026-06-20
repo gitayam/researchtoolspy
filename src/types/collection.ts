@@ -117,6 +117,8 @@ export interface AgentCollectionRequest {
   searxngEndpoint: string
   callbackUrl: string
   useLocalLLM: boolean
+  /** Per-job verification token the agent should echo back on the callback. */
+  callbackSecret?: string
 }
 
 export interface AgentCollectionCallback {

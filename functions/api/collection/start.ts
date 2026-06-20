@@ -49,6 +49,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     // Generate job ID
     const jobId = crypto.randomUUID()
+    // Per-job verification token. Stored on the job and forwarded to the agent so
+    // it can echo it back on the callback (backward-compatible rollout: see callback.ts).
+    const callbackSecret = crypto.randomUUID()
     const finalCategories = categories && categories.length > 0 ? categories : DEFAULT_CATEGORIES
     const finalTimeRange: TimeRange = timeRange || 'year'
     const finalMaxResults = maxResults || 100
@@ -68,7 +71,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       timeRange: finalTimeRange,
       searxngEndpoint: searxngUrl,  // Use public SearXNG directly
       callbackUrl,
-      useLocalLLM: useLocalLLM || false
+      useLocalLLM: useLocalLLM || false,
+      callbackSecret
     }
 
     // Insert job record with 'running' status directly to avoid race condition
@@ -82,15 +86,17 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         time_range,
         max_results,
         status,
+        callback_secret,
         created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, 'running', datetime('now'))
+      ) VALUES (?, ?, ?, ?, ?, ?, 'running', ?, datetime('now'))
     `).bind(
       jobId,
       workspaceId,
       query.trim(),
       JSON.stringify(finalCategories),
       finalTimeRange,
-      finalMaxResults
+      finalMaxResults,
+      callbackSecret
     ).run()
 
     // Fire async request to agent (don't await - fire and forget)
