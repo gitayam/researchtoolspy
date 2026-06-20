@@ -32,6 +32,28 @@ export interface DeceptionScores {
   rageEngagementBait?: number
 }
 
+// All deception criteria keys, in canonical order (11 core + 5 RageCheck = 16).
+// Used to compute confidence from *coverage* (how many criteria were assessed),
+// regardless of the value assigned (a genuine 0 still counts as assessed).
+export const DECEPTION_CRITERIA_KEYS: (keyof DeceptionScores)[] = [
+  'motive',
+  'opportunity',
+  'means',
+  'historicalPattern',
+  'sophisticationLevel',
+  'successRate',
+  'sourceVulnerability',
+  'manipulationEvidence',
+  'internalConsistency',
+  'externalCorroboration',
+  'anomalyDetection',
+  'rageLoadedLanguage',
+  'rageAbsolutist',
+  'rageThreatPanic',
+  'rageUsVsThem',
+  'rageEngagementBait',
+]
+
 export interface DeceptionAssessment {
   scores: DeceptionScores
   overallLikelihood: number
@@ -316,13 +338,18 @@ export function calculateDeceptionLikelihood(scores: Partial<DeceptionScores>): 
 
   const overallLikelihood = Math.round((weightedSum / 5) * 100)
 
-  // Determine confidence level based on data completeness
-  const totalScoresProvided = Object.values(fullScores).filter(s => s > 0).length
+  // Determine confidence level based on data completeness (coverage), NOT score
+  // magnitude. A criterion provided as 0 (a legitimate low-deception finding) is
+  // an assessment and must count. Read presence from the original `scores` arg —
+  // `fullScores` has already defaulted missing keys to 0, losing present-vs-absent.
+  const criteriaAssessed = DECEPTION_CRITERIA_KEYS.filter(
+    k => scores[k] !== undefined && scores[k] !== null
+  ).length
   const confidenceLevel =
-    totalScoresProvided >= 14 ? 'VERY_HIGH' :
-    totalScoresProvided >= 10 ? 'HIGH' :
-    totalScoresProvided >= 7 ? 'MODERATE' :
-    totalScoresProvided >= 4 ? 'LOW' : 'VERY_LOW'
+    criteriaAssessed >= 14 ? 'VERY_HIGH' :
+    criteriaAssessed >= 10 ? 'HIGH' :
+    criteriaAssessed >= 7 ? 'MODERATE' :
+    criteriaAssessed >= 4 ? 'LOW' : 'VERY_LOW'
 
   // Determine risk level
   const riskLevel =
