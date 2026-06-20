@@ -15,6 +15,35 @@
 // Fail-open throughout: if CACHE is unbound or KV errors, the request proceeds.
 
 /**
+ * AI endpoints subject to the per-user (hash) rate limiter. Matched as a
+ * substring against url.pathname for POST requests. Exported so a regression
+ * test can assert coverage (e.g. /api/collection/start must stay listed).
+ *
+ * NOTE: use the EXACT path '/api/collection/start', not the broader
+ * '/api/collection/' prefix — the latter would also throttle the agent's
+ * POST /api/collection/callback (which is rate-limited separately by IP).
+ */
+export const AI_RATE_LIMITED_PATHS = [
+  '/api/ai/',
+  '/api/claims/',
+  '/api/tools/',
+  '/api/content-intelligence/',
+  '/api/ach/generate',
+  '/api/ach/from-content',
+  '/api/equilibrium-analysis/analyze',
+  '/api/hamilton-rule/analyze',
+  '/api/relationships/infer-type',
+  '/api/frameworks/swot-auto-populate',
+  '/api/frameworks/pmesii-pt',
+  '/api/frameworks/comb-analysis',
+  '/api/frameworks/behavior',
+  '/api/research/generate',
+  '/api/research/recommend',
+  '/api/surveys/',
+  '/api/collection/start',
+]
+
+/**
  * Fixed-window KV rate limiter. Returns true if the caller is OVER the limit.
  * key: caller-scoped string (e.g. "ai:<hash>"). limit: max events per window.
  */
@@ -75,25 +104,7 @@ export async function onRequest(context: any) {
 
   // AI endpoints: prevent OpenAI billing abuse. Per-user (hash), generous so it only
   // catches abuse/runaway, not normal use. Backstopped by the gateway's global limiter.
-  const aiPaths = [
-    '/api/ai/',
-    '/api/claims/',
-    '/api/tools/',
-    '/api/content-intelligence/',
-    '/api/ach/generate',
-    '/api/ach/from-content',
-    '/api/equilibrium-analysis/analyze',
-    '/api/hamilton-rule/analyze',
-    '/api/relationships/infer-type',
-    '/api/frameworks/swot-auto-populate',
-    '/api/frameworks/pmesii-pt',
-    '/api/frameworks/comb-analysis',
-    '/api/frameworks/behavior',
-    '/api/research/generate',
-    '/api/research/recommend',
-    '/api/surveys/',
-  ]
-  if (request.method === 'POST' && aiPaths.some(p => url.pathname.includes(p))) {
+  if (request.method === 'POST' && AI_RATE_LIMITED_PATHS.some(p => url.pathname.includes(p))) {
     const id = request.headers.get('X-User-Hash') || clientIp
     if (await kvRateLimit(env, `ai:${id}`, 40, 60)) {
       return json429('AI rate limit exceeded. Please wait before making more requests.')
