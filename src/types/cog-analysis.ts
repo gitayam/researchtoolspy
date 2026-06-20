@@ -264,7 +264,24 @@ export const ScoringDescriptions = {
 
 // Helper functions
 export function calculateCompositeScore(scoring: ScoringCriteria): number {
-  return scoring.impact_on_cog + scoring.attainability + scoring.follow_up_potential
+  return (scoring?.impact_on_cog ?? 0) + (scoring?.attainability ?? 0) + (scoring?.follow_up_potential ?? 0)
+}
+
+// Clamp an arbitrary AI-supplied number into the linear 1-5 scoring range.
+function clampLinearScore(value: number | undefined, fallback: number): Score {
+  const n = typeof value === 'number' && Number.isFinite(value) ? Math.round(value) : fallback
+  return Math.min(5, Math.max(1, n)) as Score
+}
+
+// Map AI-generated vulnerability fields (feasibility/impact, ~1-5) onto the
+// three Eikmeier scoring dimensions used by the manual sliders (linear 1-5).
+// The AI does not supply a follow-up dimension, so default it to 3 (neutral).
+export function aiVulnScoring(ai: { feasibility?: number; impact?: number }): ScoringCriteria {
+  return {
+    impact_on_cog: clampLinearScore(ai.impact, 3),
+    attainability: clampLinearScore(ai.feasibility, 3),
+    follow_up_potential: 3 as Score, // AI doesn't supply this dimension -> neutral default
+  }
 }
 
 export function calculateCustomCompositeScore(customScoring: CustomScoringCriteria): number {

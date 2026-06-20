@@ -174,7 +174,7 @@ ${getCapabilityRequirements(cap.id)
 ${getRequirementVulnerabilities(req.id)
   .map(
     vuln => `      - ⚠️ **${vuln.vulnerability}** (${vuln.vulnerability_type})
-        - Score: ${vuln.composite_score} (I:${vuln.scoring.impact_on_cog}, A:${vuln.scoring.attainability}, F:${vuln.scoring.follow_up_potential})`
+        - Score: ${vuln.composite_score} (I:${vuln.scoring?.impact_on_cog ?? 0}, A:${vuln.scoring?.attainability ?? 0}, F:${vuln.scoring?.follow_up_potential ?? 0})`
   )
   .join('\n')}`
   )
@@ -194,9 +194,9 @@ ${ranked
 
 - **${t('view.markdown.type')}:** ${v.vulnerability_type}
 - **${t('view.markdown.descriptionLabel')}:** ${v.description || t('view.markdown.notAvailable')}
-- **${t('view.markdown.impactOnCOG')}:** ${v.scoring.impact_on_cog}
-- **${t('view.markdown.attainability')}:** ${v.scoring.attainability}
-- **${t('view.markdown.followUpPotential')}:** ${v.scoring.follow_up_potential}
+- **${t('view.markdown.impactOnCOG')}:** ${v.scoring?.impact_on_cog ?? 0}
+- **${t('view.markdown.attainability')}:** ${v.scoring?.attainability ?? 0}
+- **${t('view.markdown.followUpPotential')}:** ${v.scoring?.follow_up_potential ?? 0}
 ${v.exploitation_method ? `- **${t('view.markdown.exploitationMethod')}:** ${v.exploitation_method}` : ''}
 `
   )
@@ -233,7 +233,7 @@ ${Object.entries(centralityMeasures.degree_centrality)
       `${t('view.export.csvHeaders.rank')},${t('view.export.csvHeaders.vulnerability')},${t('view.export.csvHeaders.type')},${t('view.export.csvHeaders.impact')},${t('view.export.csvHeaders.attainability')},${t('view.export.csvHeaders.followUp')},${t('view.export.csvHeaders.compositeScore')},${t('view.export.csvHeaders.description')}`,
       ...ranked.map(
         (v, i) =>
-          `${i + 1},"${v.vulnerability}","${v.vulnerability_type}",${v.scoring.impact_on_cog},${v.scoring.attainability},${v.scoring.follow_up_potential},${v.composite_score},"${v.description || ''}"`
+          `${i + 1},"${v.vulnerability}","${v.vulnerability_type}",${v.scoring?.impact_on_cog ?? 0},${v.scoring?.attainability ?? 0},${v.scoring?.follow_up_potential ?? 0},${v.composite_score},"${v.description || ''}"`
       ),
     ].join('\n')
 
@@ -510,7 +510,7 @@ ${Object.entries(centralityMeasures.degree_centrality)
                                       Rank #{vuln.priority_rank}
                                     </Badge>
                                   </div>
-                                  <div className="text-xs text-gray-500 mt-1">I:{vuln.scoring.impact_on_cog} • A:{vuln.scoring.attainability} • F:{vuln.scoring.follow_up_potential}</div>
+                                  <div className="text-xs text-gray-500 mt-1">I:{vuln.scoring?.impact_on_cog ?? 0} • A:{vuln.scoring?.attainability ?? 0} • F:{vuln.scoring?.follow_up_potential ?? 0}</div>
                                 </div>
                               ))}
                             </div>
@@ -564,9 +564,9 @@ ${Object.entries(centralityMeasures.degree_centrality)
                       <TableCell>
                         <Badge variant="outline">{vuln.vulnerability_type}</Badge>
                       </TableCell>
-                      <TableCell className="text-center">{vuln.scoring.impact_on_cog}</TableCell>
-                      <TableCell className="text-center">{vuln.scoring.attainability}</TableCell>
-                      <TableCell className="text-center">{vuln.scoring.follow_up_potential}</TableCell>
+                      <TableCell className="text-center">{vuln.scoring?.impact_on_cog ?? 0}</TableCell>
+                      <TableCell className="text-center">{vuln.scoring?.attainability ?? 0}</TableCell>
+                      <TableCell className="text-center">{vuln.scoring?.follow_up_potential ?? 0}</TableCell>
                       <TableCell className="text-center">
                         <Badge className={getScoreColor(vuln.composite_score)}>{vuln.composite_score}</Badge>
                       </TableCell>
