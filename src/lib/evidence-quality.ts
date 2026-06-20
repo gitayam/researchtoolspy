@@ -27,7 +27,7 @@ export interface EvidenceQuality {
  * Credibility scale: 1-6 (where 6 is most credible)
  * Also handles A-F letter grades
  */
-function getCredibilityScore(credibility?: string): number {
+export function getCredibilityScore(credibility?: string): number {
   if (!credibility) return 0.5
 
   // Handle numeric 1-6 scale
@@ -56,7 +56,7 @@ function getCredibilityScore(credibility?: string): number {
  * Convert reliability rating to 0-1 score
  * Reliability scale: A-F (where A is most reliable)
  */
-function getReliabilityScore(reliability?: string): number {
+export function getReliabilityScore(reliability?: string): number {
   if (!reliability) return 0.5
 
   const letterMap: Record<string, number> = {
@@ -89,7 +89,7 @@ function getSourceScore(sourceClassification?: string): number {
 /**
  * Confidence level score
  */
-function getConfidenceScore(confidenceLevel?: string): number {
+export function getConfidenceScore(confidenceLevel?: string): number {
   const confidenceMap: Record<string, number> = {
     'confirmed': 1.0,
     'high': 0.85,
@@ -145,20 +145,26 @@ function getEVEScore(credibilityScore?: number, eveAssessment?: {
  * Returns a multiplier between 0.5 (poor quality) and 2.0 (excellent quality)
  */
 export function calculateEvidenceQuality(evidence: ACHEvidenceLink): EvidenceQuality {
-  // Parse credibility if it's stored as string
-  const credibilityNum = typeof evidence.credibility_score === 'number'
-    ? evidence.credibility_score
-    : undefined
+  // Credibility: read from the evidence's own credibility value (NOT the source
+  // name). getCredibilityScore handles the numeric "1".."6" scale (num/6) and
+  // A-F letter grades, defaulting to 0.5 when absent.
+  const credibilityScore = getCredibilityScore(
+    evidence.credibility_score != null ? String(evidence.credibility_score) : undefined
+  )
 
-  // Calculate individual component scores
-  const credibilityScore = credibilityNum
-    ? credibilityNum / 5  // Normalize 1-5 to 0-1
-    : getCredibilityScore(evidence.source)  // Fallback to source quality
+  // Reliability: map the source-reliability grade (A-F) to 0-1; defaults to 0.5.
+  const reliabilityScore = getReliabilityScore(evidence.reliability)
 
-  const reliabilityScore = 0.75  // Default if not available
-  const sourceScore = 1.0  // Assume primary source if not specified
-  const confidenceScore = 0.75  // Default medium-high confidence
-  const eveScore = credibilityScore  // Use credibility as proxy for EVE
+  // Confidence: map confidence_level (confirmed/high/medium/low) to 0-1; default 0.65.
+  const confidenceScore = getConfidenceScore(evidence.confidence_level)
+
+  // Source classification: unwired pending a source-classification field on the
+  // evidence/link (no column exists yet). Keep the neutral 1.0 default.
+  const sourceScore = 1.0
+
+  // EVE deception assessment: no EVE assessment is attached to an ACHEvidenceLink,
+  // so use credibility as a proxy (matches getEVEScore's no-assessment fallback).
+  const eveScore = credibilityScore
 
   // Calculate weighted composite score
   // Components weighted by importance to ACH analysis
