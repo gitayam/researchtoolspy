@@ -1,0 +1,33 @@
+# Template for .dev.vars — local secrets for `wrangler pages dev`.
+#
+# Copy to .dev.vars and fill in real values (`.dev.vars` is gitignored; this
+# template is committed). This is the Pages-local equivalent of .env: wrangler
+# pages dev reads .dev.vars automatically and injects these as `env.*` bindings
+# into Functions, so local behaves like prod.
+#
+#   cp .dev.vars.example .dev.vars   # then paste real values
+#
+# In PRODUCTION these are set as encrypted Pages secrets, NOT in wrangler.toml:
+#   npx wrangler pages secret put <NAME> --project-name=researchtoolspy
+# Keep them OUT of wrangler.toml [vars] — a plaintext var duplicating a secret
+# fails the deploy ("Binding name '<NAME>' already in use").
+
+# Cloudflare account id for AI Gateway routing (optional — absent => direct OpenAI)
+AI_GATEWAY_ACCOUNT_ID=
+
+# AI / extraction
+OPENAI_API_KEY=
+VIRUSTOTAL_API_KEY=
+
+# Scrapers
+APIFY_API_KEY=
+
+# Auth / SSO
+OIDC_CLIENT_SECRET=
+JWT_SECRET=
+SYSTEM_USER_HASH=
+
+# Internal services
+CRON_SECRET=
+BOT_INTAKE_API_KEY=
+REDSIGHT_API_URL=
