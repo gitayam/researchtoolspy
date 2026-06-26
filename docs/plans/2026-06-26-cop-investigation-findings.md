@@ -144,6 +144,15 @@ COM-B canon table version · collection retention window · `content_chunks` fat
 
 ---
 
+## 2b. Conventions confirmed while building COP-1 (use these in COP-2…COP-12)
+- **Auth headers (client):** `getCopHeaders()` from `src/lib/cop-auth.ts` (NOT `getCopAuthHeaders`) — returns
+  `X-User-Hash` + a Bearer token (`omnicore_tokens`) + `X-Workspace-ID`. Both COP pages already import it.
+- **Toasts:** the codebase standard is `useToast()` from `@/components/ui/use-toast` (shadcn-style:
+  `toast({ title, description, variant })`) — **not** `sonner`. `CopWorkspacePage.tsx`/`CopPage.tsx` now use it.
+- **Testable pattern that passed CI:** extract a framework-free, dependency-injectable helper into `src/lib/`
+  and unit-test it under `tests/e2e/smoke/*.spec.ts` tagged `@smoke` (the browser/server-dependent smoke specs
+  are flaky without a dev server — pure-helper specs pass deterministically). Mirror `src/lib/cop-cot-export.ts`.
+
 ## 3. What was checked and is HEALTHY (don't re-investigate)
 - All 40+ COP endpoints exist with correct HTTP methods; every panel's fetch target resolves to a real handler.
 - The recent `workspace_id`-null 500/400 bug class does **not** affect this session (valid UUID workspace).

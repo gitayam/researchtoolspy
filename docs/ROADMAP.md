@@ -1,6 +1,6 @@
 # ResearchTools.net — Roadmap
 
-**Last updated:** 2026-06-26 · **Current release:** `v0.22.0` (+ hardening patches through `v0.22.16`) · **Prod:** [researchtools.net](https://researchtools.net) (Cloudflare Pages + D1)
+**Last updated:** 2026-06-26 · **Current release:** `v0.22.0` (+ hardening patches through `v0.22.17`) · **Prod:** [researchtools.net](https://researchtools.net) (Cloudflare Pages + D1)
 
 > **2026-06-26 — fresh COP fix batch injected (`COP-1`…`COP-12`).** A `/team-investigate` pass on a user report (COT export "not working" + "many aspects not working") surfaced a verified backlog of loop-eligible bugs/stubs. Full evidence + AUTO/DECISION split: [`plans/2026-06-26-cop-investigation-findings.md`](plans/2026-06-26-cop-investigation-findings.md). Listed at the top of **Now** below. The prior `/roadmap-step` STOP (drained backlog) is now lifted.
 
@@ -32,7 +32,8 @@ New features are welcome but should ride on top of this hardened base, not aroun
 
 ## Recently shipped
 
-### v0.22.16 — Throttle the paid Apify scraper + resolve rate-limit direction (2026-06-20)
+### v0.22.17 — COP CoT/ATAK export now authenticates (COP-1) (2026-06-26)
+- ✅ **CoT export fixed** — the COP "Export CoT/ATAK" button launched the feed via `window.open('/api/cop/${id}/cot')`, a browser navigation that **cannot attach the `X-User-Hash` header** the endpoint requires → **401 for the owner, 403 for everyone else** (the endpoint + serializer + `cop_markers` schema were always correct; this was pure auth-transport). It now exports via an authenticated `fetch(..., { headers: getCopHeaders() })` + `Blob` download through a new injectable, framework-free helper `src/lib/cop-cot-export.ts` (`cotExportFilename` + `downloadCotExport`), with success/error toasts (`useToast`) wired into both `CopWorkspacePage.tsx` and `CopPage.tsx`. Helper unit-tested (`tests/e2e/smoke/cot-export.spec.ts`: filename derivation incl. the `cop-` double-prefix guard, success-download click+revoke, 401-rejects-so-UI-can-toast). Prod-verified (deploy HTTP 200, bundled assets) (`e213e8485`). *Secondary gap still open: a headless TAK/ATAK client polling this URL still can't send the header — needs a `?token=<shareToken>` path (tracked in the plan doc).*
 - ✅ **Apify scraper rate-limited** — the COP scraper (`functions/api/cop/[id]/scrape.ts`, a POST that triggers Apify actors billed per run) was the one **unthrottled paid op**. Added a per-user KV limit (`scrape:<id>`, **10/60s**) in `_middleware.ts` via an exported `isApifyScraperPath()` matcher that catches only `/api/cop/<id>/scrape` (not `/tools/scrape-metadata`, `/ai/scrape-url`, `/web-scraper`). Unit-tested (`tests/e2e/smoke/scraper-rate-limit.spec.ts`) (`c9b421bf3`).
 - ✅ **Now#1 (burst-accurate rate limiting) RESOLVED by maintainer decision** — low-traffic community service → KV limiters accepted as good enough; the "strongly consistent" bar is downgraded (no Durable Object / `[[ratelimit]]` binding). Revisit only if traffic grows.
 
@@ -101,7 +102,7 @@ New features are welcome but should ride on top of this hardened base, not aroun
 ## Now (highest priority)
 
 **0. COP workspace fix batch** `COP-*` `Discovered 2026-06-26` — verified loop-eligible bugs/stubs from a `/team-investigate` pass (the user-reported COT + dashboard issues). Full evidence + fixes + verify gates in [`plans/2026-06-26-cop-investigation-findings.md`](plans/2026-06-26-cop-investigation-findings.md). **Take these first** — small, reversible, each finishes in one turn. AUTO units in dependency/impact order:
-   - ⬜ **COP-1** `P1` — **Fix COT export**: replace `window.open('/api/cop/${id}/cot')` (can't send `X-User-Hash` → 401/403) with fetch-with-auth + blob download (`src/pages/CopWorkspacePage.tsx:708`, `CopPage.tsx:315`). *This is the headline user report.*
+   - ✅ **COP-1** `P1` — **Fix COT export** — DONE (v0.22.17, `e213e8485`). `window.open` (couldn't send `X-User-Hash` → 401/403) replaced with authenticated fetch + Blob download via a testable `src/lib/cop-cot-export.ts` helper; both pages toast on success/failure. Prod-verified (HTTP 200 bundle); helper unit-tested (`tests/e2e/smoke/cot-export.spec.ts`).
    - ⬜ **COP-2** `P1` — **`/api/dataset` route mismatch**: 3 callers hit singular `/api/dataset`; only `/api/datasets` exists → dataset feature 404s. Align callers (`DatasetSelector.tsx:45`, `DatasetPage.tsx:31,72`).
    - ⬜ **COP-3** `P1` — **Wire entity Edit button** (no-op today): `CopEntityDrawer.tsx:222` → edit form + PUT to existing entity endpoints.
    - ⬜ **COP-4** `P1` — **Persist evidence↔persona link** (write is commented out): `CopEvidencePersonaLinkDialog.tsx:~105`.
@@ -152,6 +153,8 @@ New features are welcome but should ride on top of this hardened base, not aroun
 14. **Lint / type-check gate hardening** `Discovered 2026-06-19` — `npm run lint` is red repo-wide (~6.5k pre-existing `no-explicit-any` / `no-unused-vars`, *including* the `tests/e2e/smoke/*.spec.ts` themselves — `eslint.config.js` ignores only `dist` and has no `tests/`/`functions/` overrides), so the lint gate is effectively **non-enforcing**. Separately, `npm run type-check` (`tsc -b`) covers only `src/` + `vite.config.ts` — it does **not** type-check `functions/` or `tests/`, so Pages-Function TS errors surface only at `wrangler` build/deploy time. Add scoped eslint overrides + a `functions/` typecheck step (feeds CI-on-merge #13).
 15. **Public-endpoint field-allowlist sweep** `Discovered 2026-06-19` — the ACH public endpoints were returning the full DB row (fixed v0.22.5). Audit the other no-auth/public endpoints for the same `SELECT *` + spread pattern and apply explicit allowlists — notably the COP public share endpoints under `functions/api/cop/public/`. Prevents internal columns (and future columns) from being returned to unauthenticated clients.
 16. **Refusal-check sweep across AI gateway callers** `Discovered 2026-06-19` — v0.22.6 fixed `swot-auto-populate` + `pmesii-pt/import-url`, but other `callOpenAIViaGateway` callers that `JSON.parse` the response may still lack a `data?._refusal` guard (→ opaque 500 on refusal). Grep for `callOpenAIViaGateway` + `JSON.parse` without a nearby `_refusal` check and apply the standard `REFUSAL_BODY` guard.
+17. **`window.open('/api/…')` audit** `Discovered 2026-06-26 (COP-1)` — COP-1 fixed the CoT export, which failed because a browser navigation can't send `X-User-Hash`. Sweep the app for any other `window.open`/`<a href>` that points at an **auth-required** `/api/*` endpoint (export/download links especially) — each silently 401/403s the same way and needs the fetch-with-auth + Blob-download pattern (`src/lib/cop-cot-export.ts`).
+18. **COP error-path toasts** `Discovered 2026-06-26 (COP-1)` — `CopWorkspacePage.tsx`/`CopPage.tsx` had no toast utility before COP-1 (now `useToast` from `@/components/ui/use-toast`); many other COP error paths still only `console.error`, so failures are invisible to the user. UX polish: surface user-facing toasts on the high-traffic COP mutation/fetch failures.
 
 ---
 
