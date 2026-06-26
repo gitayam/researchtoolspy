@@ -153,6 +153,29 @@ COM-B canon table version · collection retention window · `content_chunks` fat
   and unit-test it under `tests/e2e/smoke/*.spec.ts` tagged `@smoke` (the browser/server-dependent smoke specs
   are flaky without a dev server — pure-helper specs pass deterministically). Mirror `src/lib/cop-cot-export.ts`.
 
+## 2c. Round-2 findings (2026-06-26, from REAL prod browser console errors)
+
+A second user report pasted live console errors from `/dashboard/cop/...` and `/dashboard/research/submissions`.
+These are runtime/browser failures the static sweep couldn't see — both HIGH, both verified with file:line + cause.
+
+### COP-13 · CSP breaks the COP map (regression)  `P1` — do BEFORE COP-3
+- **Symptom:** `Refused to load blob:… worker-src` (×3) + `Refused to connect to https://basemaps.cartocdn.com/…/style.json` + `AJAXError: Load failed` in `CopMap`. The basemap never renders and maplibre's render worker won't start.
+- **Cause:** the only CSP is `public/_headers:17` (copied verbatim to `dist/_headers`; no CSP in middleware or `<meta>`). It has **no `worker-src`** (so maplibre `blob:` workers fall back to `default-src 'self'` → blocked) and **`connect-src` omits CartoCDN** (the basemap host actually used at `src/.../CopMap.tsx:112`). Introduced by commit **`d1866dae8`** "fix(security): resolve all 14 security audit findings" — it added a mapbox/maplibre/maptiler allowlist but not the CartoCDN host in use, and never added `worker-src`. Before that commit there was no CSP, so the map worked.
+- **Hosts the map needs** (all covered by `https://*.cartocdn.com`): `basemaps.cartocdn.com` (style.json), `tiles.basemaps.cartocdn.com` (tiles.json/sprite/glyphs), `tiles-a..d.basemaps.cartocdn.com` (vector tiles). Also `https://nominatim.openstreetmap.org` (place search, `PlaceSearch.tsx:103`) is silently blocked by the same CSP — add it too.
+- **Fix:** in `public/_headers:17` add `worker-src 'self' blob:;` and add `https://*.cartocdn.com https://nominatim.openstreetmap.org` to `connect-src`. No `unsafe-*`/`*` broadening. (Build copies `_headers` to `dist/`; needs a redeploy.)
+- **Verify:** map renders the dark-matter basemap in prod; no `worker-src`/`connect-src` CSP errors in console; place search returns results. (Test: a `@smoke` unit test asserting the shipped `public/_headers` CSP contains `worker-src` with `blob:` and `*.cartocdn.com` in `connect-src` — guards the regression.)
+
+### COP-14 · `/dashboard/research/submissions` 401 — read fetches miss auth headers  `P1` — do BEFORE COP-3
+- **Symptom:** `Failed to load forms: Authentication required` + 401 on `(list)` at `/dashboard/research/submissions`.
+- **Cause:** `src/pages/EvidenceSubmissionsPage.tsx` reads `loadForms` (`:116`, → `/api/research/forms/list`) and `loadSubmissions` (`:142`, → `/api/research/submissions/list`) call bare `fetch(url, { signal })` with **no auth headers**; both endpoints hard-401 via `getUserFromRequest` (`functions/api/research/forms/list.ts:18-23`, `submissions/list.ts:19-24`). The page's *mutations* (`toggleFormActive:164`, `deleteForm:187`, `handleProcess:223`) DO send `getCopHeaders()` — so this is an omission bug, not owner-gating.
+- **Fix:** add `headers: getCopHeaders()` (already imported at `:32`) to the two read fetches (`:116`, `:142`).
+- **Verify:** the Forms + Review tabs load for a hash-authed user (no 401). (Note: `forms/list` trusts the client `workspaceId` and doesn't filter by user — a separate authorization concern, not this 401; capture but don't fix here.)
+
+### COP-15 · COP poller `TypeError: Load failed` noise  `P3` (low/transient)
+- **Symptom:** `Failed to fetch workspace stats: TypeError: Load failed` (`CopWorkspacePage.tsx:304/313`) + `[CopPlaybookPanel] fetch error` (`:63`).
+- **Cause:** NOT the 401 and NOT CSP (`connect-src` includes `'self'`). `TypeError: Load failed` is WebKit's network-level abort/drop — in-flight polls torn down by navigation/unmount. Both fail gracefully (stats→null, panel keeps prior state) and auto-recover next poll. Two smells: the stats refetch poller (`CopWorkspacePage.tsx:318`) fires a **signal-less** fetch every 60s (can't be aborted on nav); `CopPlaybookPanel.tsx:78` reuses one `AbortController` across the lifetime.
+- **Fix (hardening):** give the stats/playbook pollers their own abortable signal tied to unmount, and don't `console.error` on transient network drops (treat like `AbortError`). Cosmetic — do after the P1/P2 batch.
+
 ## 3. What was checked and is HEALTHY (don't re-investigate)
 - All 40+ COP endpoints exist with correct HTTP methods; every panel's fetch target resolves to a real handler.
 - The recent `workspace_id`-null 500/400 bug class does **not** affect this session (valid UUID workspace).
