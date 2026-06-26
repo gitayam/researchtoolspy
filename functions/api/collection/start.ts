@@ -32,7 +32,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    const workspaceId = request.headers.get('X-Workspace-ID') || url.searchParams.get('workspace_id') || null
+    let workspaceId = request.headers.get('X-Workspace-ID') || url.searchParams.get('workspace_id') || null
 
     const body = await request.json() as CollectionJobRequest
     const { query, categories, timeRange, maxResults, useLocalLLM } = body
@@ -45,6 +45,40 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         status: 400,
         headers: JSON_HEADERS
       })
+    }
+
+    // Resolve a valid, existing workspace before inserting. collection_jobs.workspace_id
+    // is NOT NULL with a FK to workspaces(id), so a null (guest with no X-Workspace-ID)
+    // or a stale localStorage id both throw and surface as a 500 "Failed to start
+    // collection". Validate a provided id and otherwise get-or-create the user's personal
+    // workspace (mirrors functions/api/investigations/index.ts).
+    if (workspaceId) {
+      const ws = await env.DB.prepare('SELECT id FROM workspaces WHERE id = ?').bind(workspaceId).first()
+      if (!ws) workspaceId = null
+    }
+    if (!workspaceId) {
+      const existing = await env.DB.prepare(
+        'SELECT workspace_id FROM workspace_members WHERE user_id = ? LIMIT 1'
+      ).bind(userId).first<{ workspace_id: string }>()
+      if (existing) {
+        workspaceId = existing.workspace_id
+      } else {
+        const newWorkspaceId = crypto.randomUUID()
+        const user = await env.DB.prepare('SELECT username FROM users WHERE id = ?')
+          .bind(userId).first<{ username: string }>()
+        const workspaceName = user?.username
+          ? `${user.username}'s Workspace`
+          : `Workspace ${newWorkspaceId.slice(0, 8)}`
+        await env.DB.prepare(`
+          INSERT INTO workspaces (id, name, description, type, owner_id, is_public, created_at, updated_at)
+          VALUES (?, ?, ?, 'PERSONAL', ?, 0, datetime('now'), datetime('now'))
+        `).bind(newWorkspaceId, workspaceName, 'Personal workspace', userId).run()
+        await env.DB.prepare(`
+          INSERT INTO workspace_members (id, workspace_id, user_id, role, joined_at)
+          VALUES (?, ?, ?, 'ADMIN', datetime('now'))
+        `).bind(crypto.randomUUID(), newWorkspaceId, userId).run()
+        workspaceId = newWorkspaceId
+      }
     }
 
     // Generate job ID
