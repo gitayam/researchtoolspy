@@ -1,6 +1,8 @@
 # ResearchTools.net — Roadmap
 
-**Last updated:** 2026-06-20 · **Current release:** `v0.22.0` (+ hardening patches through `v0.22.16`) · **Prod:** [researchtools.net](https://researchtools.net) (Cloudflare Pages + D1)
+**Last updated:** 2026-06-26 · **Current release:** `v0.22.0` (+ hardening patches through `v0.22.16`) · **Prod:** [researchtools.net](https://researchtools.net) (Cloudflare Pages + D1)
+
+> **2026-06-26 — fresh COP fix batch injected (`COP-1`…`COP-12`).** A `/team-investigate` pass on a user report (COT export "not working" + "many aspects not working") surfaced a verified backlog of loop-eligible bugs/stubs. Full evidence + AUTO/DECISION split: [`plans/2026-06-26-cop-investigation-findings.md`](plans/2026-06-26-cop-investigation-findings.md). Listed at the top of **Now** below. The prior `/roadmap-step` STOP (drained backlog) is now lifted.
 
 This is the living roadmap — the single source of truth for "what's next." Detailed findings live in [`TECH_DEBT.md`](operations/TECH_DEBT.md), the AI-safety review in [`AI_REFUSAL_REVIEW.md`](operations/AI_REFUSAL_REVIEW.md), and dated design/implementation plans in [`plans/`](plans/). Status legend: ✅ done · 🔄 partial · ⬜ planned.
 
@@ -97,6 +99,22 @@ New features are welcome but should ride on top of this hardened base, not aroun
 ---
 
 ## Now (highest priority)
+
+**0. COP workspace fix batch** `COP-*` `Discovered 2026-06-26` — verified loop-eligible bugs/stubs from a `/team-investigate` pass (the user-reported COT + dashboard issues). Full evidence + fixes + verify gates in [`plans/2026-06-26-cop-investigation-findings.md`](plans/2026-06-26-cop-investigation-findings.md). **Take these first** — small, reversible, each finishes in one turn. AUTO units in dependency/impact order:
+   - ⬜ **COP-1** `P1` — **Fix COT export**: replace `window.open('/api/cop/${id}/cot')` (can't send `X-User-Hash` → 401/403) with fetch-with-auth + blob download (`src/pages/CopWorkspacePage.tsx:708`, `CopPage.tsx:315`). *This is the headline user report.*
+   - ⬜ **COP-2** `P1` — **`/api/dataset` route mismatch**: 3 callers hit singular `/api/dataset`; only `/api/datasets` exists → dataset feature 404s. Align callers (`DatasetSelector.tsx:45`, `DatasetPage.tsx:31,72`).
+   - ⬜ **COP-3** `P1` — **Wire entity Edit button** (no-op today): `CopEntityDrawer.tsx:222` → edit form + PUT to existing entity endpoints.
+   - ⬜ **COP-4** `P1` — **Persist evidence↔persona link** (write is commented out): `CopEvidencePersonaLinkDialog.tsx:~105`.
+   - ⬜ **COP-7** `P1` — **Surface error-swallowing**: `alerts.ts:70,79` (REDSIGHT) + `scrape.ts:285,289` (Apify) return bare `[]` on failure → log to `event_logs` + return an error marker.
+   - ⬜ **COP-5** `P2` — **Wire 3 unreachable buttons** (playbook Edit/View-Log, persona Promote-to-Actor): pass `on*` props from `CopWorkspacePage.tsx`.
+   - ⬜ **COP-6** `P2` — **Persona edit/delete** (create-only today): add PUT/DELETE + panel controls.
+   - ⬜ **COP-8** `P2` — **Share-button UX on private sessions**: toast + offer share-token instead of copying an inaccessible URL (`CopWorkspacePage.tsx:583`).
+   - ⬜ **COP-9** `P2` — **Stop emitting the dead screenshot URL** (`analyze-url.ts:710`) until a real provider exists (D-C).
+   - ⬜ **COP-11** `P2` — **`/api/behaviors/search` endpoint** (TODO at `BehaviorSearchDialog.tsx:48`).
+   - ⬜ **COP-12** `P2` — **Bounded `console.*`→`event_logs`** for COP handlers only (~50 in `functions/api/cop/**`; **hard scope cap** — not the whole API; full sweep is D-D).
+   - ⬜ **COP-10** `P3` — **Doc fix**: `researchtoolspy-db` → `researchtoolspy-prod` in `CLAUDE.md` + `scripts/cop-api.sh` (the docs' D1 name is wrong; commands fail).
+   - ✅ **D-A** empty-session triage **RESOLVED 2026-06-26** — owner confirms `cop-cdebda63-a33` is fresh/empty (expected, not data loss). 🛑 **DECISION (loop must NOT auto-do):** **D-B** data-import stubs · **D-C** real screenshot service · **D-D** full console→event_logs sweep (beyond COP-12). Details in the plan doc.
+   - *Done when:* each AUTO unit has its fix + a regression/smoke test + prod verification per its "Verify" line.
 
 1. ✅ **Burst-accurate rate limiting — RESOLVED by maintainer decision** (v0.22.16, 2026-06-20). Low-traffic community service → the **KV limiters are accepted as good enough**; the "strongly consistent" bar is **downgraded** (no Durable Object / `[[ratelimit]]` binding — KV's sub-minute burst staleness is an accepted, documented tradeoff). Limits in place: auth **5/min·IP**, register/pwd **10/min·IP**, **AI 40/min·user** (+ gateway **100/min·user** & **3000/hr global** cost backstop), and **Apify COP scraper 10/min·user** (`c9b421bf3` — the previously-unthrottled paid op). *Revisit a DO/binding only if traffic grows.*
 
