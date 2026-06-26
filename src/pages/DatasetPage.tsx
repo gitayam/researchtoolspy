@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils'
 import { DatasetForm } from '@/components/datasets/DatasetForm'
 import { useTranslation } from 'react-i18next'
 import { getCopHeaders } from '@/lib/cop-auth'
+import { DATASETS_API_PATH, listDatasets, createDataset } from '@/lib/datasets-api'
 
 // Mock data - will be replaced with API calls
 const mockDataset: Dataset[] = []
@@ -28,11 +29,8 @@ export function DatasetPage() {
 
   const loadDataset = async (signal?: AbortSignal) => {
     try {
-      const response = await fetch('/api/dataset', { headers: getCopHeaders(), signal })
-      if (response.ok) {
-        const data = await response.json()
-        setDataset(data.dataset || [])
-      }
+      const data = await listDatasets({ headers: getCopHeaders(), signal })
+      setDataset(data.dataset || [])
     } catch (error: any) {
       if (error?.name !== 'AbortError') {
         console.error('Failed to load dataset:', error)
@@ -62,19 +60,14 @@ export function DatasetPage() {
       }
 
       if (formMode === 'edit' && editingDataset?.id) {
-        const response = await fetch(`/api/dataset?id=${editingDataset.id}`, {
+        const response = await fetch(`${DATASETS_API_PATH}?id=${editingDataset.id}`, {
           method: 'PUT',
           headers: getCopHeaders(),
           body: JSON.stringify(payload)
         })
         if (!response.ok) throw new Error(t('dataset:alerts.updateFailed'))
       } else {
-        const response = await fetch('/api/dataset', {
-          method: 'POST',
-          headers: getCopHeaders(),
-          body: JSON.stringify(payload)
-        })
-        if (!response.ok) throw new Error(t('dataset:alerts.createFailed'))
+        await createDataset({ headers: getCopHeaders(), body: payload })
       }
 
       await loadDataset()
@@ -90,7 +83,7 @@ export function DatasetPage() {
     if (!confirm(t('dataset:alerts.deleteConfirm'))) return
 
     try {
-      const response = await fetch(`/api/dataset?id=${id}`, {
+      const response = await fetch(`${DATASETS_API_PATH}?id=${id}`, {
         method: 'DELETE',
         headers: getCopHeaders(),
       })
