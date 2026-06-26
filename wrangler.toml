@@ -42,7 +42,9 @@ bucket_name = "researchtoolspy-uploads"
 ENVIRONMENT = "production"
 ENABLE_AI_FEATURES = "true"
 DEFAULT_AI_MODEL = "gpt-4o-mini"
-AI_GATEWAY_ACCOUNT_ID = "04eac09ae835290383903273f68c79b0"
+# AI_GATEWAY_ACCOUNT_ID is set as a Pages secret (`wrangler pages secret put`).
+# Do NOT also declare it here — a plaintext [vars] copy collides with the secret
+# at deploy time: "Binding name 'AI_GATEWAY_ACCOUNT_ID' already in use".
 SEARXNG_CONTAINER_URL = "https://search.irregularchat.com"
 OSINT_AGENT_URL = "https://researchtoolspy-containers.wemea-5ahhf.workers.dev/osint"
 OIDC_CLIENT_ID = "pfo2t3CbeP3Q8AH3p4o1Awyaq6cyRgsEoX0Pdr9f"
@@ -56,7 +58,9 @@ OIDC_END_SESSION_URL = "https://sso.irregularchat.com/application/o/researchtool
 ENVIRONMENT = "production"
 ENABLE_AI_FEATURES = "true"
 DEFAULT_AI_MODEL = "gpt-4o-mini"
-AI_GATEWAY_ACCOUNT_ID = "04eac09ae835290383903273f68c79b0"
+# AI_GATEWAY_ACCOUNT_ID is set as a Pages secret (`wrangler pages secret put`).
+# Do NOT also declare it here — a plaintext [vars] copy collides with the secret
+# at deploy time: "Binding name 'AI_GATEWAY_ACCOUNT_ID' already in use".
 SEARXNG_CONTAINER_URL = "https://search.irregularchat.com"
 OSINT_AGENT_URL = "https://researchtoolspy-containers.wemea-5ahhf.workers.dev/osint"
 OIDC_CLIENT_ID = "pfo2t3CbeP3Q8AH3p4o1Awyaq6cyRgsEoX0Pdr9f"

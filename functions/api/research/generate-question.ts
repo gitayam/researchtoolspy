@@ -242,57 +242,83 @@ Generate 3 research questions with varying scope that are SMART and FINER compli
     })).filter((q: GeneratedQuestion) => q.question)
 
 
-    // Optionally save to database
+    // Optionally save to database. Best-effort: a save failure must NEVER block
+    // question generation (the primary purpose of this endpoint), so the whole
+    // block is wrapped in try/catch and returns the questions regardless.
     let savedId: string | null = null
     if (body.saveToDatabase) {
-      savedId = `rq-${crypto.randomUUID()}`
+      try {
+        // Get OR create the user's workspace. Guest/hash users are provisioned
+        // in `users` (auth-helpers.resolveHashUser) but have no workspace_members
+        // row until they explicitly create a workspace — ~90% of users in prod.
+        // Hard-failing here returned a 400 ("No workspace found for user") that
+        // surfaced to the user as "Failed to generate questions". Auto-provision
+        // a personal workspace instead, mirroring functions/api/investigations/index.ts.
+        const workspace = await context.env.DB.prepare(`
+          SELECT workspace_id FROM workspace_members WHERE user_id = ? LIMIT 1
+        `).bind(userId).first<{ workspace_id: string }>()
 
-      // Get user's workspace
-      const workspace = await context.env.DB.prepare(`
-        SELECT workspace_id FROM workspace_members WHERE user_id = ? LIMIT 1
-      `).bind(userId).first()
+        let workspaceId: string
+        if (workspace) {
+          workspaceId = workspace.workspace_id
+        } else {
+          workspaceId = crypto.randomUUID()
+          const user = await context.env.DB.prepare(
+            `SELECT username FROM users WHERE id = ?`
+          ).bind(userId).first<{ username: string }>()
+          const workspaceName = user?.username
+            ? `${user.username}'s Workspace`
+            : `Workspace ${workspaceId.slice(0, 8)}`
 
-      if (!workspace) {
-        return new Response(JSON.stringify({
-          error: 'No workspace found for user'
-        }), {
-          status: 400,
-          headers: JSON_HEADERS
-        })
+          await context.env.DB.prepare(`
+            INSERT INTO workspaces (id, name, description, type, owner_id, is_public, created_at, updated_at)
+            VALUES (?, ?, ?, 'PERSONAL', ?, 0, datetime('now'), datetime('now'))
+          `).bind(workspaceId, workspaceName, 'Personal workspace', userId).run()
+
+          await context.env.DB.prepare(`
+            INSERT INTO workspace_members (id, workspace_id, user_id, role, joined_at)
+            VALUES (?, ?, ?, 'ADMIN', datetime('now'))
+          `).bind(crypto.randomUUID(), workspaceId, userId).run()
+        }
+
+        savedId = `rq-${crypto.randomUUID()}`
+        await context.env.DB.prepare(`
+          INSERT INTO research_questions (
+            id, user_id, workspace_id,
+            topic, purpose, project_type,
+            five_ws,
+            duration, resources, experience_level, constraints, ethical_considerations,
+            generated_questions,
+            status,
+            created_at, updated_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+        `).bind(
+          savedId,
+          userId,
+          workspaceId,
+          body.topic,
+          JSON.stringify(body.purpose),
+          body.projectType,
+          JSON.stringify({ who, what, where, when, why }),
+          body.duration,
+          JSON.stringify(body.resources),
+          body.experienceLevel,
+          body.constraints || null,
+          body.ethicalConsiderations || null,
+          JSON.stringify(generatedQuestions),
+          'draft'
+        ).run()
+      } catch (saveError) {
+        // Log for prod visibility but still return the generated questions.
+        console.error('[generate-question] Failed to save to database:', saveError)
+        savedId = null
       }
-
-      await context.env.DB.prepare(`
-        INSERT INTO research_questions (
-          id, user_id, workspace_id,
-          topic, purpose, project_type,
-          five_ws,
-          duration, resources, experience_level, constraints, ethical_considerations,
-          generated_questions,
-          status,
-          created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
-      `).bind(
-        savedId,
-        userId,
-        workspace.workspace_id,
-        body.topic,
-        JSON.stringify(body.purpose),
-        body.projectType,
-        JSON.stringify({ who, what, where, when, why }),
-        body.duration,
-        JSON.stringify(body.resources),
-        body.experienceLevel,
-        body.constraints || null,
-        body.ethicalConsiderations || null,
-        JSON.stringify(generatedQuestions),
-        'draft'
-      ).run()
-
     }
 
     return new Response(JSON.stringify({
       success: true,
       id: savedId,
+      researchQuestionId: savedId, // frontend reads data.researchQuestionId
       questions: generatedQuestions,
       summary: {
         topic: body.topic,
