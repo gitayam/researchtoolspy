@@ -26,6 +26,8 @@ import CopEventSidebar from '@/components/cop/CopEventSidebar'
 import { COP_LAYERS, getLayerById } from '@/components/cop/CopLayerCatalog'
 import type { CopSession, CopFeatureCollection, CopLayerDef } from '@/types/cop'
 import { getCopHeaders } from '@/lib/cop-auth'
+import { downloadCotExport } from '@/lib/cop-cot-export'
+import { useToast } from '@/components/ui/use-toast'
 
 // ── Template labels ──────────────────────────────────────────────
 
@@ -46,6 +48,7 @@ const TEMPLATE_LABELS: Record<string, string> = {
 export default function CopPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { toast } = useToast()
 
   const [session, setSession] = useState<CopSession | null>(null)
   const [loading, setLoading] = useState(true)
@@ -197,6 +200,18 @@ export default function CopPage() {
     navigator.clipboard.writeText(url).catch(console.error)
   }, [id])
 
+  const handleExportCot = useCallback(async () => {
+    if (!id) return
+    try {
+      await downloadCotExport({ sessionId: id, headers: getCopHeaders() })
+      toast({ title: 'CoT export ready', description: 'Downloaded the ATAK/CoT feed.' })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      console.error('Failed to export CoT feed:', err)
+      toast({ title: 'CoT export failed', description: message, variant: 'destructive' })
+    }
+  }, [id, toast])
+
   // ── Session update handler (for event sidebar) ─────────────────
 
   const handleSessionUpdate = useCallback(
@@ -312,7 +327,7 @@ export default function CopPage() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => window.open(`/api/cop/${id}/cot`, '_blank')}
+            onClick={handleExportCot}
             title="Export as Cursor-on-Target (ATAK compatible)"
           >
             <Radio className="h-4 w-4" />
