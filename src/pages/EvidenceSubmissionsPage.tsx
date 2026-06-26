@@ -30,6 +30,7 @@ import {
   XCircle
 } from 'lucide-react'
 import { getCopHeaders } from '@/lib/cop-auth'
+import { listResearchForms, listResearchSubmissions } from '@/lib/research-forms-api'
 
 interface SubmissionForm {
   id: string
@@ -113,14 +114,13 @@ export default function EvidenceSubmissionsPage() {
     setFormsError(null)
 
     try {
-      const response = await fetch(`/api/research/forms/list?workspaceId=${localStorage.getItem('omnicore_workspace_id') || localStorage.getItem('current_workspace_id') || ''}`, { signal })
-      const data = await response.json()
+      const workspaceId =
+        localStorage.getItem('omnicore_workspace_id') ||
+        localStorage.getItem('current_workspace_id') ||
+        ''
+      const data = await listResearchForms({ workspaceId, headers: getCopHeaders(), signal })
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to load forms')
-      }
-
-      setForms(data.forms || [])
+      setForms((data.forms as SubmissionForm[]) || [])
     } catch (err: any) {
       if (err?.name !== 'AbortError') {
         console.error('Failed to load forms:', err)
@@ -139,14 +139,9 @@ export default function EvidenceSubmissionsPage() {
       const params = new URLSearchParams()
       if (statusFilter) params.append('status', statusFilter)
 
-      const response = await fetch(`/api/research/submissions/list?${params}`, { signal })
-      const data = await response.json()
+      const data = await listResearchSubmissions({ params, headers: getCopHeaders(), signal })
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to load submissions')
-      }
-
-      setSubmissions(data.submissions || [])
+      setSubmissions((data.submissions as Submission[]) || [])
     } catch (err: any) {
       if (err?.name !== 'AbortError') {
         console.error('Failed to load submissions:', err)
