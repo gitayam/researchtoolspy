@@ -9,6 +9,7 @@
 import { useState, useCallback, useEffect } from 'react'
 import { Loader2, Check, X } from 'lucide-react'
 import { getCopHeaders } from '@/lib/cop-auth'
+import { updateCopEntity, type CopEntityType } from '@/lib/cop-entity-update'
 import PlaceSearch, { type PlaceResult } from './PlaceSearch'
 import type {
   ActorType,
@@ -32,6 +33,13 @@ export interface EntityCreateFormProps {
   onCreated: (entity: any) => void
   onCancel: () => void
   prefill?: Record<string, any>
+  /**
+   * When set, the form operates in EDIT mode: it submits a PUT to
+   * `/api/<entityType>/<editId>` instead of a POST, and the action button reads
+   * "Save" instead of "Create". The fields are seeded from `prefill` exactly as
+   * in create mode, so callers map the entity into the create-form prefill shape.
+   */
+  editId?: string
 }
 
 // ── Helpers ──────────────────────────────────────────────────────
@@ -68,7 +76,9 @@ export default function EntityCreateForm({
   onCreated,
   onCancel,
   prefill,
+  editId,
 }: EntityCreateFormProps) {
+  const isEdit = Boolean(editId)
   // Shared fields
   const [name, setName] = useState(prefill?.name ?? '')
   const [description, setDescription] = useState(prefill?.description ?? '')
@@ -179,25 +189,36 @@ export default function EntityCreateForm({
     setError(null)
 
     try {
-      const res = await fetch(`/api/${entityType}`, {
-        method: 'POST',
-        headers: getCopHeaders(),
-        body: JSON.stringify(buildBody()),
-      })
+      if (editId) {
+        // Edit mode — PUT to /api/<entityType>/<editId> via the shared helper.
+        const data = await updateCopEntity({
+          entityType: entityType as CopEntityType,
+          id: editId,
+          body: buildBody(),
+          headers: getCopHeaders(),
+        })
+        onCreated(data)
+      } else {
+        const res = await fetch(`/api/${entityType}`, {
+          method: 'POST',
+          headers: getCopHeaders(),
+          body: JSON.stringify(buildBody()),
+        })
 
-      if (!res.ok) {
-        const errData = await res.json().catch(() => null)
-        throw new Error(errData?.error ?? `Failed to create ${entityType.slice(0, -1)}`)
+        if (!res.ok) {
+          const errData = await res.json().catch(() => null)
+          throw new Error(errData?.error ?? `Failed to create ${entityType.slice(0, -1)}`)
+        }
+
+        const data = await res.json()
+        onCreated(data)
       }
-
-      const data = await res.json()
-      onCreated(data)
     } catch (err: any) {
       setError(err.message ?? 'An unexpected error occurred')
     } finally {
       setSubmitting(false)
     }
-  }, [name, description, entityType, sessionId, dateStart, onCreated, actorType, category, role, affiliation, aliases, eventType, dateEnd, significance, confidence, placeType, lat, lng, country, region, strategicImportance, sourceIntType, sourceType, behaviorType, frequency, sophistication])
+  }, [name, description, entityType, sessionId, dateStart, onCreated, editId, actorType, category, role, affiliation, aliases, eventType, dateEnd, significance, confidence, placeType, lat, lng, country, region, strategicImportance, sourceIntType, sourceType, behaviorType, frequency, sophistication])
 
   // ── Render helpers ─────────────────────────────────────────────
 
@@ -396,7 +417,11 @@ export default function EntityCreateForm({
           ) : (
             <Check className="h-3 w-3" />
           )}
-          {submitting ? 'Saving...' : `Create ${entityLabel.charAt(0).toUpperCase() + entityLabel.slice(1)}`}
+          {submitting
+            ? 'Saving...'
+            : isEdit
+              ? `Save ${entityLabel.charAt(0).toUpperCase() + entityLabel.slice(1)}`
+              : `Create ${entityLabel.charAt(0).toUpperCase() + entityLabel.slice(1)}`}
         </button>
       </div>
     </div>

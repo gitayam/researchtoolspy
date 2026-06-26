@@ -99,6 +99,10 @@ export default function CopEntityDrawer({
   const [searchQuery, setSearchQuery] = useState('')
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [showCreateForm, setShowCreateForm] = useState(false)
+  // When set, the inline form opens in EDIT mode for this entity.
+  const [editing, setEditing] = useState<
+    { id: string; prefill: Record<string, unknown> } | null
+  >(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
 
   // ── Fetch entities for a tab ────────────────────────────────────
@@ -171,6 +175,7 @@ export default function CopEntityDrawer({
       setSearchQuery('')
       setExpandedId(null)
       setShowCreateForm(false)
+      setEditing(null)
     }
   }, [open])
 
@@ -194,13 +199,15 @@ export default function CopEntityDrawer({
     setSearchQuery('')
     setExpandedId(null)
     setShowCreateForm(false)
+    setEditing(null)
   }
 
   const handleEntityCreated = useCallback(
     (_entity: any) => {
-      // Invalidate cache and re-fetch
+      // Invalidate cache and re-fetch (shared by create + edit save).
       setCache((prev) => ({ ...prev, [activeTab]: null }))
       setShowCreateForm(false)
+      setEditing(null)
       fetchEntities(activeTab, true)
     },
     [activeTab, fetchEntities],
@@ -219,8 +226,78 @@ export default function CopEntityDrawer({
     console.warn('No location data — add a LOCATED_AT relationship first')
   }
 
-  const handleEdit = (_entity: AnyEntity) => {
-    // Placeholder — edit flow is not yet implemented
+  // Map an entity into the EntityCreateForm prefill shape so the existing
+  // create form can be reused in edit mode (see EntityCreateForm prefill keys).
+  const entityToPrefill = (
+    tab: TabKey,
+    entity: AnyEntity,
+  ): Record<string, unknown> => {
+    const base: Record<string, unknown> = {
+      name: entity.name,
+      description: entity.description ?? '',
+    }
+    switch (tab) {
+      case 'actors': {
+        const a = entity as Actor
+        return {
+          ...base,
+          type: a.type,
+          category: a.category,
+          role: a.role,
+          affiliation: a.affiliation,
+          aliases: a.aliases,
+        }
+      }
+      case 'events': {
+        const e = entity as Event
+        return {
+          ...base,
+          event_type: e.event_type,
+          date_start: e.date_start,
+          date_end: e.date_end,
+          significance: e.significance,
+          confidence: e.confidence,
+        }
+      }
+      case 'places': {
+        const p = entity as Place
+        return {
+          ...base,
+          place_type: p.place_type,
+          // Form prefill uses lat/lng strings; entity stores coordinates object.
+          lat: p.coordinates?.lat != null ? String(p.coordinates.lat) : '',
+          lng: p.coordinates?.lng != null ? String(p.coordinates.lng) : '',
+          country: p.country,
+          region: p.region,
+          strategic_importance: p.strategic_importance,
+        }
+      }
+      case 'sources': {
+        const s = entity as Source
+        return {
+          ...base,
+          type: s.type,
+          source_type: s.source_type,
+        }
+      }
+      case 'behaviors': {
+        const b = entity as Behavior
+        return {
+          ...base,
+          behavior_type: b.behavior_type,
+          frequency: b.frequency,
+          sophistication: b.sophistication,
+        }
+      }
+      default:
+        return base
+    }
+  }
+
+  const handleEdit = (entity: AnyEntity) => {
+    setExpandedId(null)
+    setShowCreateForm(false)
+    setEditing({ id: entity.id, prefill: entityToPrefill(activeTab, entity) })
   }
 
   // ── Derived state ───────────────────────────────────────────────
@@ -347,8 +424,26 @@ export default function CopEntityDrawer({
               </div>
             )}
 
+            {/* Edit form — takes over the panel while editing one entity */}
+            {editing && (
+              <div className="rounded-lg border border-purple-300 dark:border-purple-700 bg-purple-50/40 dark:bg-purple-900/10 p-3">
+                <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Edit {singularLabel(activeTab)}
+                </p>
+                <EntityCreateForm
+                  entityType={activeTab}
+                  sessionId={sessionId}
+                  workspaceId={workspaceId || sessionId}
+                  editId={editing.id}
+                  prefill={editing.prefill}
+                  onCreated={handleEntityCreated}
+                  onCancel={() => setEditing(null)}
+                />
+              </div>
+            )}
+
             {/* Empty state */}
-            {!loading && currentEntities.length === 0 && !showCreateForm && (
+            {!editing && !loading && currentEntities.length === 0 && !showCreateForm && (
               <div className="text-center py-12">
                 <p className="text-sm text-gray-500 dark:text-gray-400">
                   No {activeTab} yet. Create one to get started.
@@ -369,7 +464,7 @@ export default function CopEntityDrawer({
               )}
 
             {/* Entity cards */}
-            {filteredEntities.map((entity) => (
+            {!editing && filteredEntities.map((entity) => (
               <div key={entity.id}>
                 <EntityCard
                   entity={entity}
@@ -409,7 +504,7 @@ export default function CopEntityDrawer({
             ))}
 
             {/* Add button */}
-            {!showCreateForm && !loading && (
+            {!editing && !showCreateForm && !loading && (
               <button
                 type="button"
                 onClick={() => setShowCreateForm(true)}
@@ -426,7 +521,7 @@ export default function CopEntityDrawer({
             )}
 
             {/* Inline create form */}
-            {showCreateForm && (
+            {!editing && showCreateForm && (
               <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/30 p-3">
                 <EntityCreateForm
                   entityType={activeTab}
