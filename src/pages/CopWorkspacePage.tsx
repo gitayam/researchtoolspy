@@ -92,6 +92,8 @@ import { usePanelLayout } from '@/hooks/usePanelLayout'
 import { useMediaQuery } from '@/hooks/useMediaQuery'
 import type { CopSession, CopFeatureCollection, CopLayerDef, CopWorkspaceMode } from '@/types/cop'
 import { getCopHeaders } from '@/lib/cop-auth'
+import { downloadCotExport } from '@/lib/cop-cot-export'
+import { useToast } from '@/components/ui/use-toast'
 
 // ── Template labels ──────────────────────────────────────────────
 
@@ -193,6 +195,7 @@ function CopEntitiesPanel({ stats, onOpenEntityDrawer }: {
 export default function CopWorkspacePage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { toast } = useToast()
 
   // ── Session state ──────────────────────────────────────────────
   const [session, setSession] = useState<CopSession | null>(null)
@@ -585,6 +588,18 @@ export default function CopWorkspacePage() {
     navigator.clipboard.writeText(url).catch((err) => { console.error('Failed to copy share link to clipboard:', err) })
   }, [id])
 
+  const handleExportCot = useCallback(async () => {
+    if (!id) return
+    try {
+      await downloadCotExport({ sessionId: id, headers: getCopHeaders() })
+      toast({ title: 'CoT export ready', description: 'Downloaded the ATAK/CoT feed.' })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      console.error('Failed to export CoT feed:', err)
+      toast({ title: 'CoT export failed', description: message, variant: 'destructive' })
+    }
+  }, [id, toast])
+
   // ── Loading state ──────────────────────────────────────────────
 
   if (loading) {
@@ -705,7 +720,7 @@ export default function CopWorkspacePage() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => window.open(`/api/cop/${id}/cot`, '_blank')}
+            onClick={handleExportCot}
             title="Export as Cursor-on-Target (ATAK compatible)"
             className="cursor-pointer hidden sm:inline-flex"
             aria-label="Export as Cursor-on-Target"
