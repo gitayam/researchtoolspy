@@ -1,6 +1,6 @@
 # ResearchTools.net — Roadmap
 
-**Last updated:** 2026-06-26 · **Current release:** `v0.22.0` (+ hardening patches through `v0.22.17`) · **Prod:** [researchtools.net](https://researchtools.net) (Cloudflare Pages + D1)
+**Last updated:** 2026-06-26 · **Current release:** `v0.22.0` (+ hardening patches through `v0.22.18`) · **Prod:** [researchtools.net](https://researchtools.net) (Cloudflare Pages + D1)
 
 > **2026-06-26 — fresh COP fix batch injected (`COP-1`…`COP-12`).** A `/team-investigate` pass on a user report (COT export "not working" + "many aspects not working") surfaced a verified backlog of loop-eligible bugs/stubs. Full evidence + AUTO/DECISION split: [`plans/2026-06-26-cop-investigation-findings.md`](plans/2026-06-26-cop-investigation-findings.md). Listed at the top of **Now** below. The prior `/roadmap-step` STOP (drained backlog) is now lifted.
 
@@ -31,6 +31,9 @@ New features are welcome but should ride on top of this hardened base, not aroun
 ---
 
 ## Recently shipped
+
+### v0.22.18 — Datasets feature reachable: `/api/dataset` → `/api/datasets` (COP-2) (2026-06-26)
+- ✅ **Dataset feature un-404'd** — the frontend called the **singular** `/api/dataset`, but only the **plural** `functions/api/datasets.ts` exists (Pages Functions use exact file-based routing), so every Datasets call 404'd silently. Re-pointed **all 5** call sites (the audit found PUT at `DatasetPage.tsx:65` and DELETE at `:93` beyond the 3 originally named GET/POST) to `/api/datasets` after verifying it implements compatible GET (`{dataset:[...]}`) / POST / PUT / DELETE handlers + matching auth (`getCopHeaders` → `X-User-Hash`/Bearer). Centralized the path in a new framework-free, injectable `src/lib/datasets-api.ts` (`DATASETS_API_PATH` + `listDatasets`/`createDataset`) so it can't drift again. Unit-tested (`tests/e2e/smoke/datasets-api.spec.ts`, 10/10; full smoke suite 174 passed/0 failed this run). URL was the only behavior change. Prod-verified (HTTP 200, bundled assets) (`b5365b491`).
 
 ### v0.22.17 — COP CoT/ATAK export now authenticates (COP-1) (2026-06-26)
 - ✅ **CoT export fixed** — the COP "Export CoT/ATAK" button launched the feed via `window.open('/api/cop/${id}/cot')`, a browser navigation that **cannot attach the `X-User-Hash` header** the endpoint requires → **401 for the owner, 403 for everyone else** (the endpoint + serializer + `cop_markers` schema were always correct; this was pure auth-transport). It now exports via an authenticated `fetch(..., { headers: getCopHeaders() })` + `Blob` download through a new injectable, framework-free helper `src/lib/cop-cot-export.ts` (`cotExportFilename` + `downloadCotExport`), with success/error toasts (`useToast`) wired into both `CopWorkspacePage.tsx` and `CopPage.tsx`. Helper unit-tested (`tests/e2e/smoke/cot-export.spec.ts`: filename derivation incl. the `cop-` double-prefix guard, success-download click+revoke, 401-rejects-so-UI-can-toast). Prod-verified (deploy HTTP 200, bundled assets) (`e213e8485`). *Secondary gap still open: a headless TAK/ATAK client polling this URL still can't send the header — needs a `?token=<shareToken>` path (tracked in the plan doc).*
@@ -103,7 +106,7 @@ New features are welcome but should ride on top of this hardened base, not aroun
 
 **0. COP workspace fix batch** `COP-*` `Discovered 2026-06-26` — verified loop-eligible bugs/stubs from a `/team-investigate` pass (the user-reported COT + dashboard issues). Full evidence + fixes + verify gates in [`plans/2026-06-26-cop-investigation-findings.md`](plans/2026-06-26-cop-investigation-findings.md). **Take these first** — small, reversible, each finishes in one turn. AUTO units in dependency/impact order:
    - ✅ **COP-1** `P1` — **Fix COT export** — DONE (v0.22.17, `e213e8485`). `window.open` (couldn't send `X-User-Hash` → 401/403) replaced with authenticated fetch + Blob download via a testable `src/lib/cop-cot-export.ts` helper; both pages toast on success/failure. Prod-verified (HTTP 200 bundle); helper unit-tested (`tests/e2e/smoke/cot-export.spec.ts`).
-   - ⬜ **COP-2** `P1` — **`/api/dataset` route mismatch**: 3 callers hit singular `/api/dataset`; only `/api/datasets` exists → dataset feature 404s. Align callers (`DatasetSelector.tsx:45`, `DatasetPage.tsx:31,72`).
+   - ✅ **COP-2** `P1` — **`/api/dataset` route mismatch** — DONE (v0.22.18, `b5365b491`). All **5** singular callers (GET/POST/PUT/DELETE — the audit found PUT+DELETE beyond the 3 named) re-pointed to plural `/api/datasets` (verified GET/POST/PUT/DELETE-compatible) via new testable `src/lib/datasets-api.ts` (`DATASETS_API_PATH` + injectable helpers). Prod-verified; unit-tested (`tests/e2e/smoke/datasets-api.spec.ts`, 10/10).
    - ⬜ **COP-3** `P1` — **Wire entity Edit button** (no-op today): `CopEntityDrawer.tsx:222` → edit form + PUT to existing entity endpoints.
    - ⬜ **COP-4** `P1` — **Persist evidence↔persona link** (write is commented out): `CopEvidencePersonaLinkDialog.tsx:~105`.
    - ⬜ **COP-7** `P1` — **Surface error-swallowing**: `alerts.ts:70,79` (REDSIGHT) + `scrape.ts:285,289` (Apify) return bare `[]` on failure → log to `event_logs` + return an error marker.
