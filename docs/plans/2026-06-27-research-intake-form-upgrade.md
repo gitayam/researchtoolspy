@@ -22,7 +22,15 @@ the form pre-fills metadata for you to confirm, not retype.
 | Dedup | — | **`content_hash` + unique index → 409** (migration 101) |
 | Geo / rate-limit / password / access-levels | partial | yes |
 
-**→ DECISION D-E0 (must be made first):** build the new builder on **System A's dynamic schema** (recommended — it already has the 19 typed fields, URL enrichment, dedup, geo) and **redirect/retire System B**, OR backport System A's capabilities into System B. Everything below assumes we converge on **one** dynamic-schema engine (System A). Also fold in: the `/dashboard/research/forms` **list route is orphaned** (`SubmissionFormsPage.tsx` imported by no router → "back to forms" 404s) — fix as part of this.
+**✅ D-E0 RESOLVED 2026-06-27 (maintainer): converge on System A's dynamic-schema engine; redirect/retire System B.** All work below builds the new research-forms builder + submit + reviewer flow on `survey_drops`/`survey_responses` (the 19 typed fields, URL enrichment, dedup, geo). System B (`submission_forms`/`form_submissions`, `/submit/:hashId`) is deprecated and its routes redirect to the System A equivalents. Also fold in: the `/dashboard/research/forms` **list route is orphaned** (`SubmissionFormsPage.tsx` imported by no router → "back to forms" 404s) — re-point it at System A.
+
+## 0a. Privacy — HARD RULE (maintainer directive 2026-06-27)
+
+**A normal form creator must NEVER be able to capture or see a submitter's IP address or user-agent.** Concretely:
+- **No raw IP, no user-agent stored.** System A already does this right: only a **`submitter_ip_hash`** is kept, used **solely** for the per-IP rate-limit index, and `surveys/public/[token]/results.ts` already strips it (with name/contact) from outputs.
+- **System B violates this** — `research/submit/[hashId].ts:268-305` stores **raw `submitter_ip` + `user_agent`**. Since System B is retiring, this goes away — but it's **live today**, so **E-1 strips it now** (drop `user_agent`; replace raw IP with a salted hash used only for rate-limiting, never surfaced).
+- **Reviewer view must not expose `submitter_ip_hash`** either (the hash is an operational rate-limit artifact, not creator-facing data). The builder offers **no** "collect IP/UA" toggle — ever.
+- Submitter-provided fields (name/contact) remain opt-in per-form and clearly labeled; default forms can be fully anonymous.
 
 ---
 
@@ -72,11 +80,25 @@ the form pre-fills metadata for you to confirm, not retype.
 
 ---
 
-## 3. Decisions to make (surfaced; don't guess)
-- **D-E0** — one engine (System A dynamic schema) vs backport into System B. *(Blocks everything.)*
-- **D-E1** — image OCR provider: `PDF_CO_API_KEY` (already wired as PDF fallback) vs Cloudflare Workers AI vs none. Cost + accuracy call.
-- **D-E2** — uploaded-file retention + PII/EXIF policy (D1/R2 retention convention; default-strip EXIF on served copies).
-- **D-E3** — anonymous public submitters uploading to R2 = abuse/cost surface; need per-form upload limits + type/size caps + the existing IP-hash rate-limit extended to uploads.
+## 3. Decisions — RESOLVED 2026-06-27 (maintainer: "go with recommendations")
+- **D-E0** ✅ — **System A dynamic schema**; retire/redirect System B. *(See §0.)*
+- **D-E1** ✅ — **PDF text via `unpdf` (`pdf-extractor.ts`) now, no vendor**; image/scanned-PDF **OCR feature-flagged**: prefer **Cloudflare Workers AI** (on-platform, no extra vendor) if a suitable model is available, else the already-wired `PDF_CO_API_KEY` fallback. OCR does **not** block Phase 3 (text-PDF upload ships first).
+- **D-E2** ✅ — **strip EXIF on served copies by default** (privacy); store originals in R2 with a **retention cron** (project convention); keep submitter PII minimal per §0a.
+- **D-E3** ✅ — anonymous uploads get **per-form upload count + per-file size + MIME allowlist caps**, and the existing per-IP-hash rate-limit is **extended to the upload path**. (IP hash stays operational-only per §0a.)
+
+## 3a. Loop-ready unit breakdown (decisions resolved → AUTO-executable, in order)
+
+- **E-1** `AUTO` `privacy, do first` — **Stop System B capturing raw IP + user-agent.** In `functions/api/research/submit/[hashId].ts:268-305` drop `user_agent` and replace raw `submitter_ip` with a salted hash used only for rate-limiting (mirror System A's `submitter_ip_hash`); ensure no reviewer endpoint returns it. *Verify:* a submit stores no raw IP/UA; reviewer responses carry neither. (Directly honors §0a; live today.)
+- **E-2** `AUTO` — **Fix the orphaned `/dashboard/research/forms` list route** and point it at System A forms (`/api/surveys` list, workspace-scoped). Kills the 404 "back to forms".
+- **E-3** `AUTO (larger)` — **New builder on System A** at `/dashboard/research/forms/new`: write a `survey_drops.form_schema`; field add/rename/reorder/delete + **type picker** (the 19 types), required toggle, options editor, help text; **no IP/UA toggle**. Replaces `CreateSubmissionFormPage`'s System-B create. *(May split: E-3a basic add/type/required/create; E-3b reorder/options/validation; E-3c live preview-as-submitter.)*
+- **E-4** `AUTO` — **Redirect/retire System B routes**: `/submit/:hashId` → System A submit; deprecate `research/forms/create` + `research/submit/[hashId]` (keep read-compat for existing forms or migrate). Form templates (OSINT tip / incident / media / claim / source-doc) as `form_schema` presets.
+- **E-5** `AUTO` — **URL auto-confirm (interactive)**: on a `url` field, paste → `analyze-url` quick mode inline → confirm card (title/author/date/summary/archive/entities/claims) → dedup check (`content_hash`) → auto archive.org snapshot.
+- **E-6** `AUTO (gated on R2 verify)` — **Document upload → R2 + auto-scan**: multipart→R2 endpoint (`tools/extract.ts:264` parser + `feedback/submit.ts:58` R2) + the missing `/uploads/:key` serve fn; PDF text via `unpdf`; pre-fill from extracted text. **First verify the R2 `UPLOADS` binding is dashboard-enabled (TD-08).**
+- **E-7** `AUTO` — **Auto entity/claim extraction → confirm → promote** to evidence/actors (`auto-extract-entities`).
+- **E-8** `AUTO` — **EXIF/GPS from images** → auto `geopoint`; strip EXIF on served copy (D-E2). *(Only net-new primitive.)*
+- **E-9** `AUTO` — **Submissions search + filters + map** (full-text over extracted content; entity/date/domain/content-type/credibility filters; geolocated map view).
+- **E-10** `AUTO` — **Credibility scaffolding** (Admiralty reliability A–F + info credibility 1–6) as first-class field types.
+- **DECISION still open:** **D-E2 retention window** value, **D-E3** exact caps, **#19** `forms/list` workspace authz (fix while on this surface), OCR model choice if Workers AI lacks a fit.
 
 ## 4. Done-when (per phase)
 Each phase ships behind the existing verify gate (type-check + `@smoke`), with new tables/columns carrying a **retention cron** (project convention), R2 writes verified to actually land, and the submitter + reviewer paths prod-verified. New endpoints follow the public-share-token auth model (submitter side stays unauthenticated via opaque token + access-level; reviewer side `requireAuth`). Watch **#19** (`research/forms/list` workspace authorization) — fix it as part of touching this surface.
