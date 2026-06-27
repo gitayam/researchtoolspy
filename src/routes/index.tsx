@@ -513,6 +513,13 @@ export const router = createBrowserRouter([
         element: <LazyPage Component={EvidenceSubmissionsPage} />,
       },
       {
+        // E-2: the forms-list lived at an unregistered route (404) via the dead
+        // SubmissionFormsPage. The submissions page already has a working Forms tab,
+        // so redirect here instead of resurrecting a redundant/auth-broken page.
+        path: 'research/forms',
+        element: <Navigate to="/dashboard/research/submissions" replace />,
+      },
+      {
         path: 'research/forms/new',
         element: <LazyPage Component={CreateSubmissionFormPage} />,
       },
