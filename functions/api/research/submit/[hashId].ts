@@ -263,15 +263,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    // Collect submitter info if enabled
-    let submitterIp = null
-    let userAgent = null
-
-    if (form.collect_submitter_info) {
-      submitterIp = context.request.headers.get('CF-Connecting-IP') ||
-                    context.request.headers.get('X-Forwarded-For')
-      userAgent = context.request.headers.get('User-Agent')
-    }
+    // Privacy (E-1): never capture the submitter's raw IP or user-agent.
+    // A form creator must never be able to see a submitter's IP/UA. The
+    // submitter_ip/user_agent columns are retained for schema compatibility
+    // but are always stored as NULL. Submitter-provided name/contact below
+    // remain — those are opt-in, submitter-typed values from the request body.
 
     // Create submission immediately with provided data
     const submissionId = crypto.randomUUID()
@@ -301,8 +297,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       body.submitterName || null,
       null, // metadata - will be updated async
       'pending',
-      submitterIp,
-      userAgent,
+      null, // submitter_ip - never captured (E-1 privacy)
+      null, // user_agent - never captured (E-1 privacy)
       now
     ).run()
 
