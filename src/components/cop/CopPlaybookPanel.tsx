@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { getCopHeaders } from '@/lib/cop-auth'
+import { isTransientFetchError } from '@/lib/transient-fetch-error'
 import {
   Plus,
   Loader2,
@@ -65,7 +66,9 @@ export default function CopPlaybookPanel({ sessionId, onEditPlaybook, onViewLog 
       const data = await res.json()
       setPlaybooks(data.playbooks ?? [])
     } catch (err) {
-      if (err instanceof Error && err.name === 'AbortError') return
+      // Swallow transient drops (abort on unmount / WebKit "Load failed") — the
+      // 30s poll recovers; only log genuine errors.
+      if (isTransientFetchError(err)) return
       console.error('[CopPlaybookPanel] fetch error:', err)
     } finally {
       setLoading(false)

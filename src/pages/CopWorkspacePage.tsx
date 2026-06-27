@@ -94,6 +94,7 @@ import type { CopSession, CopFeatureCollection, CopLayerDef, CopWorkspaceMode } 
 import { getCopHeaders } from '@/lib/cop-auth'
 import { downloadCotExport } from '@/lib/cop-cot-export'
 import { shareLinkToast } from '@/lib/cop-share-message'
+import { isTransientFetchError } from '@/lib/transient-fetch-error'
 import { useToast } from '@/components/ui/use-toast'
 
 // ── Template labels ──────────────────────────────────────────────
@@ -300,23 +301,22 @@ export default function CopWorkspacePage() {
   }, [fetchSession])
 
   // Fetch workspace stats (shared by sidebar + entities panel + isEmpty checks)
-  const refetchStats = useCallback(() => {
+  const refetchStats = useCallback((signal?: AbortSignal) => {
     if (!id) return
-    fetch(`/api/cop/${id}/stats`, { headers: getCopHeaders() })
+    fetch(`/api/cop/${id}/stats`, { headers: getCopHeaders(), signal })
       .then(r => r.ok ? r.json() : null)
       .then(data => { if (data?.stats) setWorkspaceStats(data.stats) })
-      .catch((err) => { if (err.name !== 'AbortError') console.error('Failed to fetch workspace stats:', err) })
+      .catch((err) => { if (!isTransientFetchError(err)) console.error('Failed to fetch workspace stats:', err) })
   }, [id])
 
   useEffect(() => {
     if (!id) return
     const controller = new AbortController()
-    fetch(`/api/cop/${id}/stats`, { headers: getCopHeaders(), signal: controller.signal })
-      .then(r => r.ok ? r.json() : null)
-      .then(data => { if (data?.stats) setWorkspaceStats(data.stats) })
-      .catch((err) => { if (err.name !== 'AbortError') console.error('Failed to fetch workspace stats:', err) })
-    // Refresh stats every 60s to keep isEmpty panels responsive to changes
-    const interval = setInterval(refetchStats, 60000)
+    refetchStats(controller.signal)
+    // Refresh stats every 60s to keep isEmpty panels responsive to changes.
+    // Pass the signal so polled fetches are aborted on unmount (else WebKit logs
+    // "TypeError: Load failed" when a poll is torn down mid-flight on navigation).
+    const interval = setInterval(() => refetchStats(controller.signal), 60000)
     return () => { controller.abort(); clearInterval(interval) }
   }, [id, refetchStats])
 
