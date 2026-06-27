@@ -10,6 +10,8 @@ import { emitCopEvent } from '../../_shared/cop-events'
 import { ALERT_DISMISSED, ALERT_ACTIONED, ALERT_LINKED } from '../../_shared/cop-event-types'
 import { createTimelineEntry } from '../../_shared/timeline-helper'
 import { generatePrefixedId , JSON_HEADERS } from '../../_shared/api-utils'
+import { logEvent } from '../../_shared/event-log'
+import { buildUpstreamFailureLog } from './_upstream-failure-log'
 
 interface Env {
   DB: D1Database
@@ -46,8 +48,14 @@ interface CopSession {
 /**
  * Fetch incidents from the REDSIGHT API.
  * Returns an empty array on any failure so the caller can fall back to cached D1 data.
+ *
+ * On a degraded upstream (non-OK status or fetch throw) we also emit a low-volume
+ * `warn` to event_logs — console.* is invisible in Pages Functions, so a real outage
+ * would otherwise be indistinguishable from "no data". `env` is threaded in so the
+ * helper can reach the D1 binding logEvent needs; logEvent never throws.
  */
 async function fetchRedsightIncidents(
+  env: Env,
   baseUrl: string,
   apiKey?: string,
   limit: number = 50
@@ -67,6 +75,7 @@ async function fetchRedsightIncidents(
 
     if (!response.ok) {
       console.error('[REDSIGHT] API returned status:', response.status)
+      await logEvent(env, buildUpstreamFailureLog('cop/alerts', { status: response.status })).catch(() => {})
       return []
     }
 
@@ -76,6 +85,7 @@ async function fetchRedsightIncidents(
     return incidents as RedsightIncident[]
   } catch (error) {
     console.error('[REDSIGHT] Fetch failed:', error)
+    await logEvent(env, buildUpstreamFailureLog('cop/alerts', { error })).catch(() => {})
     return []
   }
 }
@@ -165,6 +175,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     if (env.REDSIGHT_API_URL) {
       redsightIncidents = await fetchRedsightIncidents(
+        env,
         env.REDSIGHT_API_URL,
         env.REDSIGHT_API_KEY
       )

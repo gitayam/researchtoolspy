@@ -7,6 +7,8 @@
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-helpers'
 import { JSON_HEADERS } from '../../_shared/api-utils'
+import { logEvent } from '../../_shared/event-log'
+import { buildUpstreamFailureLog } from './_upstream-failure-log'
 
 interface Env {
   DB: D1Database
@@ -145,7 +147,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     // If sync run completed, fetch results and ingest immediately
     if (runStatus === 'SUCCEEDED') {
       const datasetId = run.defaultDatasetId
-      const items = await fetchDatasetItems(apiKey, datasetId, MAX_EVIDENCE_BATCH)
+      const items = await fetchDatasetItems(env, apiKey, datasetId, MAX_EVIDENCE_BATCH)
       const evidence = transformToEvidence(items, scraperType, body)
       const inserted = await batchInsertEvidence(env.DB, sessionId, workspaceId, userId, evidence)
 
@@ -233,7 +235,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     if (runStatus === 'SUCCEEDED') {
       const ingest = url.searchParams.get('ingest') !== 'false'
       const datasetId = run.defaultDatasetId
-      const items = await fetchDatasetItems(apiKey, datasetId, MAX_EVIDENCE_BATCH)
+      const items = await fetchDatasetItems(env, apiKey, datasetId, MAX_EVIDENCE_BATCH)
 
       if (ingest && items.length > 0) {
         // Detect scraper type from actor ID
@@ -273,7 +275,16 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
 // ── Helpers ────────────────────────────────────────────────────
 
-async function fetchDatasetItems(apiKey: string, datasetId: string, limit: number): Promise<any[]> {
+/**
+ * Fetch dataset items from Apify. Returns [] on any failure so callers degrade to
+ * "no items" rather than crashing the request.
+ *
+ * On a degraded upstream (non-OK status or fetch throw) we also emit a low-volume
+ * `warn` to event_logs — console.* is invisible in Pages Functions, so a failed Apify
+ * fetch would otherwise be silent. `env` is threaded in for the D1 binding logEvent
+ * needs; logEvent never throws.
+ */
+async function fetchDatasetItems(env: Env, apiKey: string, datasetId: string, limit: number): Promise<any[]> {
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), 15000)
   try {
@@ -282,10 +293,14 @@ async function fetchDatasetItems(apiKey: string, datasetId: string, limit: numbe
       { headers: { 'Authorization': `Bearer ${apiKey}` }, signal: controller.signal }
     )
     clearTimeout(timeout)
-    if (!res.ok) return []
+    if (!res.ok) {
+      await logEvent(env, buildUpstreamFailureLog('cop/scrape', { status: res.status })).catch(() => {})
+      return []
+    }
     return await res.json() as any[]
-  } catch {
+  } catch (error) {
     clearTimeout(timeout)
+    await logEvent(env, buildUpstreamFailureLog('cop/scrape', { error })).catch(() => {})
     return []
   }
 }
