@@ -73,10 +73,10 @@ ENVIRONMENT=development
 **Successful Pattern**:
 ```bash
 # Local development
-wrangler d1 execute researchtoolspy-db --file=schema/migrations/020-create-comments-table.sql
+wrangler d1 execute researchtoolspy-prod --file=schema/migrations/020-create-comments-table.sql
 
 # Production deployment
-wrangler d1 execute researchtoolspy-db --file=schema/migrations/020-create-comments-table.sql --remote
+wrangler d1 execute researchtoolspy-prod --file=schema/migrations/020-create-comments-table.sql --remote
 ```
 
 **Lessons**:
@@ -98,7 +98,7 @@ wrangler d1 execute researchtoolspy-db --file=schema/migrations/020-create-comme
 ```toml
 [[d1_databases]]
 binding = "DB"
-database_name = "researchtoolspy-db"
+database_name = "researchtoolspy-prod"
 database_id = "your-db-id-here"
 ```
 
@@ -404,7 +404,7 @@ DEFAULT_AI_MODEL = "gpt-4o-mini"
 ```toml
 [[d1_databases]]
 binding = "DB"
-database_name = "researchtoolspy-db"
+database_name = "researchtoolspy-prod"
 database_id = "your-db-id"
 ```
 

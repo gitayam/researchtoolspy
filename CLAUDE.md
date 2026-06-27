@@ -171,7 +171,7 @@ npx vite                              # Frontend on 5173, proxies /api to 8788
 
 - D1 (SQLite) on Cloudflare
 - Schema: `schema/d1-schema.sql` + `schema/migrations/*.sql`
-- Remote: `npx wrangler d1 execute researchtoolspy-db --remote --command "SQL"`
+- Remote: `npx wrangler d1 execute researchtoolspy-prod --remote --command "SQL"` (the bound DB is `researchtoolspy-prod` per `wrangler.toml`; there is no `researchtoolspy-db`)
 - Entity tables use `created_by` (not `user_id`), `workspace_id`, TEXT IDs
 - Actor/place types MUST be uppercase (D1 CHECK constraints)
 
