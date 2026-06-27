@@ -43,8 +43,9 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       })
     }
 
+    // Exclude soft-deleted personas (status='deleted' is the soft-delete sentinel).
     const personas = await env.DB.prepare(`
-      SELECT * FROM cop_personas WHERE cop_session_id = ? ORDER BY created_at DESC
+      SELECT * FROM cop_personas WHERE cop_session_id = ? AND status != 'deleted' ORDER BY created_at DESC
     `).bind(sessionId).all()
 
     // Fetch all links involving these personas
