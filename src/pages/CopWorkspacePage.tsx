@@ -93,6 +93,7 @@ import { useMediaQuery } from '@/hooks/useMediaQuery'
 import type { CopSession, CopFeatureCollection, CopLayerDef, CopWorkspaceMode } from '@/types/cop'
 import { getCopHeaders } from '@/lib/cop-auth'
 import { downloadCotExport } from '@/lib/cop-cot-export'
+import { shareLinkToast } from '@/lib/cop-share-message'
 import { useToast } from '@/components/ui/use-toast'
 
 // ── Template labels ──────────────────────────────────────────────
@@ -585,8 +586,20 @@ export default function CopWorkspacePage() {
 
   const handleShare = useCallback(() => {
     const url = `${window.location.origin}/dashboard/cop/${id}`
-    navigator.clipboard.writeText(url).catch((err) => { console.error('Failed to copy share link to clipboard:', err) })
-  }, [id])
+    navigator.clipboard.writeText(url).then(
+      () => {
+        toast(shareLinkToast({ isPublic: session?.is_public === 1 }))
+      },
+      (err) => {
+        console.error('Failed to copy share link to clipboard:', err)
+        toast({
+          title: "Couldn't copy link",
+          description: 'Copy the page URL from your browser address bar to share it.',
+          variant: 'destructive',
+        })
+      },
+    )
+  }, [id, session, toast])
 
   const handleExportCot = useCallback(async () => {
     if (!id) return
