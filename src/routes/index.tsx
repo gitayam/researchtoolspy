@@ -78,7 +78,7 @@ const ResearchQuestionGeneratorPage = lazy(() => import('@/pages/ResearchQuestio
 const BehaviorAnalysisToolPage = lazy(() => import('@/pages/BehaviorAnalysisToolPage'))
 const ResearchWorkspacePage = lazy(() => import('@/pages/ResearchWorkspacePage'))
 const EvidenceSubmissionsPage = lazy(() => import('@/pages/EvidenceSubmissionsPage'))
-const CreateSubmissionFormPage = lazy(() => import('@/pages/CreateSubmissionFormPage'))
+const ResearchFormBuilderPage = lazy(() => import('@/pages/ResearchFormBuilderPage'))
 const EquilibriumAnalysisPage = lazy(() => import('@/pages/tools/EquilibriumAnalysisPage'))
 const HamiltonRulePage = lazy(() => import('@/pages/tools/HamiltonRulePage'))
 const CollectionPage = lazy(() => import('@/pages/tools/CollectionPage'))
@@ -521,7 +521,7 @@ export const router = createBrowserRouter([
       },
       {
         path: 'research/forms/new',
-        element: <LazyPage Component={CreateSubmissionFormPage} />,
+        element: <LazyPage Component={ResearchFormBuilderPage} />,
       },
       {
         path: 'tools/:toolId',
