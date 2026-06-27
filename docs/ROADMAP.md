@@ -1,6 +1,6 @@
 # ResearchTools.net — Roadmap
 
-**Last updated:** 2026-06-27 · **Current release:** `v0.22.0` (+ hardening patches through `v0.22.27`) · **Prod:** [researchtools.net](https://researchtools.net) (Cloudflare Pages + D1)
+**Last updated:** 2026-06-27 · **Current release:** `v0.22.0` (+ hardening patches through `v0.22.28`) · **Prod:** [researchtools.net](https://researchtools.net) (Cloudflare Pages + D1)
 
 > **2026-06-26 — fresh COP fix batch injected (`COP-1`…`COP-12`).** A `/team-investigate` pass on a user report (COT export "not working" + "many aspects not working") surfaced a verified backlog of loop-eligible bugs/stubs. Full evidence + AUTO/DECISION split: [`plans/2026-06-26-cop-investigation-findings.md`](plans/2026-06-26-cop-investigation-findings.md). Listed at the top of **Now** below. The prior `/roadmap-step` STOP (drained backlog) is now lifted.
 
@@ -31,6 +31,9 @@ New features are welcome but should ride on top of this hardened base, not aroun
 ---
 
 ## Recently shipped
+
+### v0.22.28 — Research forms-list route no longer 404s (E-2) (2026-06-27)
+- ✅ **Orphaned route fixed** — `/dashboard/research/forms` was never registered, so the four "back to forms" buttons in the form creator dead-ended on a 404, and the only list page (`SubmissionFormsPage.tsx`) was imported by no router AND carried the same no-auth-headers 401 bug fixed elsewhere in COP-14. Registered `research/forms` as a redirect to the working `/dashboard/research/submissions` (which already has a Forms tab) and **deleted the dead page (−288 LOC)** rather than resurrect redundant/broken code. Prod-verified (200); regression-guarded by `tests/e2e/smoke/research-forms-route.spec.ts` (4/4: redirect registered, dead page gone) (`025a41b6b`).
 
 ### v0.22.27 — Privacy: research submit no longer captures submitter IP / user-agent (E-1) (2026-06-27)
 - ✅ **Submitter IP + user-agent capture removed** (maintainer privacy directive: a normal form creator must never capture/see a submitter's IP or user-agent). The public System-B submit handler (`research/submit/[hashId].ts`) auto-captured raw `CF-Connecting-IP`/`X-Forwarded-For` + `User-Agent` (gated on a `collect_submitter_info` toggle, with no rate-limiting use — purely creator-visible). Both are now bound `NULL`; the header reads are gone. The reviewer list endpoint + UI never selected/rendered them (confirmed — no exposure existed). Migration `109-scrub-submission-pii.sql` nulls any historical values (applied; prod had 0/4 rows with PII — defensive). Prod-verified (post-deploy: 0 rows with IP/UA, HTTP 200). Source-level regression guard `tests/e2e/smoke/submission-pii.spec.ts` (6/6) asserts the handler doesn't read those headers and the reviewer endpoint doesn't select them. First unit of capability **E** (research intake form upgrade); System A (the engine we're keeping) already hashes IP for rate-limit only and strips it from outputs (`2df4b8de7`).
@@ -133,7 +136,7 @@ New features are welcome but should ride on top of this hardened base, not aroun
 
 **0E. Research intake form upgrade** `E-*` `Decisions resolved 2026-06-27` — capability **E** is now loop-eligible (D-E0=System A engine + retire System B; D-E1/2/3 as recommended; **privacy hard-rule: never capture/expose submitter IP or user-agent**). Full design + unit breakdown: [`plans/2026-06-27-research-intake-form-upgrade.md`](plans/2026-06-27-research-intake-form-upgrade.md). AUTO units in order:
    - ✅ **E-1** `P1` 🔒privacy — **Stop capturing submitter IP + user-agent** — DONE (v0.22.27, `2df4b8de7`). `research/submit/[hashId].ts` no longer reads CF-Connecting-IP/X-Forwarded-For/User-Agent; both columns bound NULL. Reviewer list/UI never exposed them (confirmed). Migration `109-scrub-submission-pii.sql` nulls historical rows (applied; prod had 0 of 4 with PII — defensive). Prod-verified (0 PII, HTTP 200); guarded by `submission-pii.spec.ts` (6/6). *Discovered: the `collect_submitter_info` create-toggle now only gated IP/UA → dead/misleading; remove/relabel in E-3/E-4.*
-   - ⬜ **E-2** `P2` — **Fix orphaned `/dashboard/research/forms` list route** → point at System A forms (`/api/surveys` list, workspace-scoped).
+   - ✅ **E-2** `P2` — **Fix orphaned `/dashboard/research/forms` list route** — DONE (v0.22.28, `025a41b6b`). The route was unregistered (404); CreateSubmissionFormPage's 4 "back to forms" buttons dead-ended. Redirected `research/forms` → the working `/dashboard/research/submissions` (which has a Forms tab) and **deleted the dead, auth-broken `SubmissionFormsPage.tsx`** (−288 LOC). Prod-verified (200); guarded by `research-forms-route.spec.ts` (4/4).
    - ⬜ **E-3** `P1` — **New builder on System A** at `/dashboard/research/forms/new` (dynamic `form_schema`, 19 typed fields, required/options/reorder, **no IP/UA toggle**). May split E-3a/b/c.
    - ⬜ **E-4** `P2` — **Redirect/retire System B routes** + form templates (OSINT tip/incident/media/claim/source-doc).
    - ⬜ **E-5** `P1` — **URL auto-confirm** (interactive `analyze-url` quick mode + confirm card + dedup + archive snapshot).
