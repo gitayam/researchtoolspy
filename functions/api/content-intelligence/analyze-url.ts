@@ -16,6 +16,7 @@ import { getUserFromRequest } from '../_shared/auth-helpers'
 import { callOpenAIViaGateway, getOptimalCacheTTL } from '../_shared/ai-gateway'
 import { JSON_HEADERS, isPrivateUrl } from '../_shared/api-utils'
 import { normalizeClaims } from './normalize-claims'
+import { generateArchiveUrls } from './_archive-urls'
 import { fetchSocialViaApify } from '../_shared/apify-social'
 import { extractAndSaveClaimEntities } from './extract-claim-entities'
 import { matchMultipleClaimsEntities } from './match-entities-to-actors'
@@ -699,15 +700,6 @@ function generateBypassUrls(url: string): Record<string, string> {
   return {
     'smry_ai': `https://smry.ai/${encoded}`,
     'archive_ph': `https://archive.ph/newest/${url}`
-  }
-}
-
-function generateArchiveUrls(url: string): Record<string, string> {
-  const encoded = encodeURIComponent(url)
-  return {
-    wayback: `https://web.archive.org/web/*/${url}`,
-    archive_is: `https://archive.is/${url}`,
-    screenshot: `/api/content-intelligence/screenshot?url=${encoded}` // TODO: Implement
   }
 }
 
