@@ -53,6 +53,13 @@ export interface SurveyPayload {
   access_level: ResearchFormAccessLevel
   password?: string
   form_schema: IntakeFormField[]
+  /**
+   * Create the form live, not as a draft. The public GET + submit endpoints
+   * both 403 unless `status === 'active'` (functions/api/surveys/public/[token].ts:31,
+   * .../submit.ts:38), and POST /api/surveys defaults to 'draft' — so without this
+   * the builder would produce a form that 403s at its own public URL.
+   */
+  status: 'active'
 }
 
 export const MAX_FIELDS = 50
@@ -176,6 +183,7 @@ export function buildSurveyPayload(state: BuilderState): SurveyPayload {
     title,
     access_level: accessLevel,
     form_schema,
+    status: 'active', // create live — draft forms 403 at their public URL
   }
 
   const description = String(state.description ?? '').trim()

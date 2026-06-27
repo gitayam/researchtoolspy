@@ -58,6 +58,8 @@ test.describe('research form builder helper @smoke', () => {
     expect(payload.title).toBe('My Form')
     expect(payload.access_level).toBe('public')
     expect(payload.password).toBeUndefined()
+    // Must create the form LIVE — draft forms 403 at their public URL.
+    expect(payload.status).toBe('active')
     expect(payload.form_schema).toEqual([
       { name: 'source_url', type: 'url', label: 'Source URL', required: true, help_text: 'Full link' },
       { name: 'severity', type: 'select', label: 'Severity', required: false, options: ['Low', 'High'] },
