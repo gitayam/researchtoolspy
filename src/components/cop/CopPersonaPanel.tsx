@@ -19,11 +19,14 @@ import {
   Loader2,
   ChevronDown,
   ChevronRight,
+  Pencil,
+  Trash2,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { getCopHeaders } from '@/lib/cop-auth'
+import { updateCopPersona, deleteCopPersona } from '@/lib/cop-persona-api'
 
 // ── Local types (TODO: import from @/types/cop when backend merges types) ─
 
@@ -97,12 +100,14 @@ export default function CopPersonaPanel({ sessionId, expanded, onPromoteToActor 
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [showForm, setShowForm] = useState(false)
 
-  // Form state
+  // Form state (shared by create + edit; editingId === null means "create")
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [formName, setFormName] = useState('')
   const [formPlatform, setFormPlatform] = useState<CopPersonaPlatform>('twitter')
   const [formHandle, setFormHandle] = useState('')
   const [formNotes, setFormNotes] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   // ── Fetch personas ──────────────────────────────────────────
 
@@ -135,37 +140,92 @@ export default function CopPersonaPanel({ sessionId, expanded, onPromoteToActor 
     return () => window.removeEventListener('cop:personas-updated', handler)
   }, [fetchPersonas])
 
-  // ── Create persona ──────────────────────────────────────────
+  // ── Form open/close helpers ─────────────────────────────────
 
-  const handleCreate = useCallback(async () => {
+  const resetForm = useCallback(() => {
+    setEditingId(null)
+    setFormName('')
+    setFormPlatform('twitter')
+    setFormHandle('')
+    setFormNotes('')
+  }, [])
+
+  const closeForm = useCallback(() => {
+    setShowForm(false)
+    resetForm()
+  }, [resetForm])
+
+  // Open the shared form prefilled from a persona (edit mode).
+  const openEdit = useCallback((persona: CopPersona) => {
+    setEditingId(persona.id)
+    setFormName(persona.display_name)
+    setFormPlatform((persona.platform as CopPersonaPlatform) ?? 'twitter')
+    setFormHandle(persona.handle ?? '')
+    setFormNotes(persona.notes ?? '')
+    setShowForm(true)
+  }, [])
+
+  // ── Create / update persona ─────────────────────────────────
+
+  const handleSubmit = useCallback(async () => {
     const name = formName.trim()
     if (!name) return
 
     setSubmitting(true)
     try {
-      const res = await fetch(`/api/cop/${sessionId}/personas`, {
-        method: 'POST',
-        headers: getCopHeaders(),
-        body: JSON.stringify({
-          display_name: name,
-          platform: formPlatform,
-          handle: formHandle.trim().replace(/^@/, '') || null,
-          notes: formNotes.trim() || null,
-          status: 'active',
-        }),
-      })
-      if (!res.ok) throw new Error('Failed to create persona')
-      setFormName('')
-      setFormHandle('')
-      setFormNotes('')
-      setShowForm(false)
+      const handle = formHandle.trim().replace(/^@/, '') || null
+      const notes = formNotes.trim() || null
+
+      if (editingId) {
+        // Edit mode — reuse the endpoint's update path via the helper.
+        await updateCopPersona({
+          sessionId,
+          id: editingId,
+          body: { display_name: name, platform: formPlatform, handle, notes },
+          headers: getCopHeaders(),
+        })
+      } else {
+        const res = await fetch(`/api/cop/${sessionId}/personas`, {
+          method: 'POST',
+          headers: getCopHeaders(),
+          body: JSON.stringify({
+            display_name: name,
+            platform: formPlatform,
+            handle,
+            notes,
+            status: 'active',
+          }),
+        })
+        if (!res.ok) throw new Error('Failed to create persona')
+      }
+      closeForm()
       await fetchPersonas()
+      window.dispatchEvent(new CustomEvent('cop:personas-updated'))
     } catch {
       // ignore
     } finally {
       setSubmitting(false)
     }
-  }, [formName, formPlatform, formHandle, formNotes, sessionId, fetchPersonas])
+  }, [editingId, formName, formPlatform, formHandle, formNotes, sessionId, fetchPersonas, closeForm])
+
+  // ── Soft-delete persona ─────────────────────────────────────
+
+  const handleDelete = useCallback(async (persona: CopPersona) => {
+    if (!window.confirm(`Delete actor "${persona.display_name}"? This can be undone by re-activating it.`)) {
+      return
+    }
+    setDeletingId(persona.id)
+    try {
+      await deleteCopPersona({ sessionId, id: persona.id, headers: getCopHeaders() })
+      setExpandedId((cur) => (cur === persona.id ? null : cur))
+      await fetchPersonas()
+      window.dispatchEvent(new CustomEvent('cop:personas-updated'))
+    } catch {
+      // ignore
+    } finally {
+      setDeletingId(null)
+    }
+  }, [sessionId, fetchPersonas])
 
   // ── Render ──────────────────────────────────────────────────
 
@@ -186,7 +246,14 @@ export default function CopPersonaPanel({ sessionId, expanded, onPromoteToActor 
         <Button
           size="sm"
           variant="outline"
-          onClick={() => setShowForm(!showForm)}
+          onClick={() => {
+            if (showForm) {
+              closeForm()
+            } else {
+              resetForm()
+              setShowForm(true)
+            }
+          }}
           className="h-6 text-[10px] px-2 border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
         >
           <Plus className="h-3 w-3 mr-0.5" />
@@ -198,6 +265,9 @@ export default function CopPersonaPanel({ sessionId, expanded, onPromoteToActor 
         {/* Inline add form */}
         {showForm && (
           <div className="rounded border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 p-3 space-y-2">
+            {editingId && (
+              <p className="text-[10px] font-medium text-purple-500 dark:text-purple-400">Editing actor</p>
+            )}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <input
                 type="text"
@@ -237,18 +307,18 @@ export default function CopPersonaPanel({ sessionId, expanded, onPromoteToActor 
               <Button
                 size="sm"
                 variant="ghost"
-                onClick={() => setShowForm(false)}
+                onClick={closeForm}
                 className="h-6 text-[10px] cursor-pointer"
               >
                 Cancel
               </Button>
               <Button
                 size="sm"
-                onClick={handleCreate}
+                onClick={handleSubmit}
                 disabled={submitting || !formName.trim()}
                 className="h-6 text-[10px] px-2 bg-purple-600 hover:bg-purple-700 cursor-pointer"
               >
-                {submitting ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Create'}
+                {submitting ? <Loader2 className="h-3 w-3 animate-spin" /> : editingId ? 'Save' : 'Create'}
               </Button>
             </div>
           </div>
@@ -369,6 +439,37 @@ export default function CopPersonaPanel({ sessionId, expanded, onPromoteToActor 
                           Linked to Actor
                         </span>
                       )}
+
+                      {/* Edit / Delete controls */}
+                      <div className="flex items-center gap-2 pt-1.5 mt-1.5 border-t border-gray-200 dark:border-gray-700">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            openEdit(persona)
+                          }}
+                          className="inline-flex items-center gap-1 text-[10px] text-gray-600 dark:text-gray-300 hover:text-purple-500 dark:hover:text-purple-400 cursor-pointer transition-colors focus-visible:ring-2 focus-visible:ring-purple-500 rounded"
+                        >
+                          <Pencil className="h-3 w-3" />
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleDelete(persona)
+                          }}
+                          disabled={deletingId === persona.id}
+                          className="inline-flex items-center gap-1 text-[10px] text-gray-600 dark:text-gray-300 hover:text-red-500 dark:hover:text-red-400 cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-red-500 rounded"
+                        >
+                          {deletingId === persona.id ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-3 w-3" />
+                          )}
+                          Delete
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
