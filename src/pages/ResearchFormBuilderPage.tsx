@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/select'
 import {
   ArrowLeft, Copy, CheckCircle2, AlertCircle, Link as LinkIcon, Lock, Plus, Trash2,
-  ChevronUp, ChevronDown, Eye, MapPin,
+  ChevronUp, ChevronDown, Eye, MapPin, LayoutTemplate, FileText,
 } from 'lucide-react'
 import { getCopHeaders } from '@/lib/cop-auth'
 import { useToast } from '@/components/ui/use-toast'
@@ -21,12 +21,14 @@ import {
   slugifyFieldName,
   toPreviewFields,
   FIELD_TYPES,
+  FORM_TEMPLATES,
   OPTION_TYPES,
   RANGE_TYPES,
   MAX_FIELDS,
   FormBuilderValidationError,
   type BuilderField,
   type BuilderState,
+  type FormTemplate,
   type ResearchFormAccessLevel,
 } from '@/lib/research-form-builder'
 import type { IntakeFormField, IntakeFormFieldType } from '@/types/cop'
@@ -103,6 +105,22 @@ export default function ResearchFormBuilderPage() {
 
   const moveFieldAt = (index: number, direction: 'up' | 'down') =>
     setState((prev) => ({ ...prev, fields: moveField(prev.fields, index, direction) }))
+
+  // Load a starter template's fields into the builder (E-4a). Fields are copied
+  // so editing them never mutates the shared FORM_TEMPLATES constant. The form
+  // title is prefilled from the template name only when the title is still blank,
+  // so we never clobber a name the creator already typed.
+  const applyTemplate = (template: FormTemplate) =>
+    setState((prev) => ({
+      ...prev,
+      title: prev.title.trim() ? prev.title : template.name,
+      description: prev.description.trim() ? prev.description : template.description,
+      fields: template.fields.map((f) => ({ ...newField(), ...f })),
+    }))
+
+  // Reset to a single empty field ("Blank form").
+  const applyBlank = () =>
+    setState((prev) => ({ ...prev, fields: [newField()] }))
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text)
@@ -285,6 +303,55 @@ export default function ResearchFormBuilderPage() {
                   onChange={(e) => patch({ description: e.target.value })}
                   rows={3}
                 />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Templates */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <LayoutTemplate className="h-5 w-5 mr-2" />
+                Start from a template
+              </CardTitle>
+              <CardDescription>
+                Load a ready-to-edit field set, then tweak it. This replaces the fields below.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {FORM_TEMPLATES.map((template) => (
+                  <button
+                    key={template.id}
+                    type="button"
+                    onClick={() => applyTemplate(template)}
+                    className="text-left rounded-lg border border-gray-200 dark:border-gray-700 p-4 transition-colors hover:border-blue-400 hover:bg-blue-50 dark:hover:border-blue-600 dark:hover:bg-blue-950/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                  >
+                    <div className="flex items-center gap-2 font-medium text-gray-900 dark:text-white">
+                      <LayoutTemplate className="h-4 w-4 text-blue-500 shrink-0" />
+                      {template.name}
+                      <span className="ml-auto text-xs font-normal text-gray-400">
+                        {template.fields.length} field{template.fields.length !== 1 ? 's' : ''}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                      {template.description}
+                    </p>
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={applyBlank}
+                  className="text-left rounded-lg border border-dashed border-gray-300 dark:border-gray-700 p-4 transition-colors hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                >
+                  <div className="flex items-center gap-2 font-medium text-gray-900 dark:text-white">
+                    <FileText className="h-4 w-4 text-gray-400 shrink-0" />
+                    Blank form
+                  </div>
+                  <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                    Start with a single empty field and build it yourself.
+                  </p>
+                </button>
               </div>
             </CardContent>
           </Card>

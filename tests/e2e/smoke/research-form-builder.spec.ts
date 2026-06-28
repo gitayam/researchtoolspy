@@ -15,6 +15,7 @@ import {
   toPreviewFields,
   moveField,
   FormBuilderValidationError,
+  FORM_TEMPLATES,
   MAX_FIELDS,
   type BuilderState,
   type BuilderField,
@@ -219,4 +220,30 @@ test.describe('research form builder helper @smoke', () => {
     const out = toPreviewFields(baseState([field({ label: 'Name' }), field({ label: 'Name' })]))
     expect(out.map((f) => f.name)).toEqual(['name', 'name_2'])
   })
+
+  // ── FORM_TEMPLATES (starter presets, E-4a) ─────────────────────────────────
+  // Every template must be well-formed: buildSurveyPayload (which throws on any
+  // invalid field — select w/o options, rating w/o min/max bounds, blank labels)
+  // must accept it and emit a schema with the same field count.
+
+  test('@smoke FORM_TEMPLATES has the expected templates with unique ids', () => {
+    expect(FORM_TEMPLATES.length).toBe(5)
+    const ids = FORM_TEMPLATES.map((t) => t.id)
+    expect(new Set(ids).size).toBe(ids.length) // ids are unique
+  })
+
+  for (const t of FORM_TEMPLATES) {
+    test(`@smoke template "${t.id}" builds a valid payload`, () => {
+      expect(t.fields.length).toBeGreaterThanOrEqual(1) // ≥1 field
+      const payload = buildSurveyPayload({
+        title: t.name,
+        description: '',
+        access_level: 'public',
+        password: '',
+        fields: t.fields,
+      })
+      // Well-formed: did not throw, and every template field round-trips.
+      expect(payload.form_schema).toHaveLength(t.fields.length)
+    })
+  }
 })

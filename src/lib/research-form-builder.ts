@@ -44,6 +44,103 @@ export interface BuilderField {
   maxRaw?: string
 }
 
+/**
+ * Build a complete `BuilderField` from a partial, filling the raw-string fields
+ * (`help_text`, `optionsRaw`, `minRaw`, `maxRaw`) the builder UI expects. Used to
+ * keep `FORM_TEMPLATES` terse while still emitting fully-formed builder rows.
+ */
+function templateField(partial: Partial<BuilderField> & Pick<BuilderField, 'type' | 'label'>): BuilderField {
+  return {
+    required: false,
+    help_text: '',
+    optionsRaw: '',
+    minRaw: '',
+    maxRaw: '',
+    ...partial,
+  }
+}
+
+/** A starter template the creator can load into the builder (E-4a). */
+export interface FormTemplate {
+  id: string
+  name: string
+  description: string
+  fields: BuilderField[]
+}
+
+/**
+ * Starter templates a researcher reaches for. Each `fields` set is ready to
+ * load into the builder and edit. Only currently-supported, non-deferred field
+ * types are used — `file` is deferred to E-6, so links use `url` and narrative
+ * uses `textarea`. Every select includes `optionsRaw` (OPTION_TYPES require
+ * options) and every rating includes min/max.
+ */
+export const FORM_TEMPLATES: FormTemplate[] = [
+  {
+    id: 'osint-tip',
+    name: 'OSINT Tip',
+    description: 'Collect a single OSINT lead — a link to the source, what was seen, and how credible it is.',
+    fields: [
+      templateField({ type: 'url', label: 'Source URL', required: true, help_text: 'Link to the original post/page' }),
+      templateField({ type: 'textarea', label: 'Description', required: true, help_text: 'What did you observe?' }),
+      templateField({ type: 'datetime', label: 'Date observed' }),
+      templateField({ type: 'text', label: 'Location', help_text: 'Place, city, or coordinates if known' }),
+      templateField({ type: 'select', label: 'Credibility', optionsRaw: 'Confirmed, Probable, Possible, Unverified' }),
+      templateField({ type: 'email', label: 'Submitter contact', help_text: 'Optional — only if we may follow up' }),
+    ],
+  },
+  {
+    id: 'incident-report',
+    name: 'Incident Report',
+    description: 'Structured report of a single incident — what happened, when, where, who, and how severe.',
+    fields: [
+      templateField({ type: 'text', label: 'Title', required: true, help_text: 'Short summary of the incident' }),
+      templateField({ type: 'textarea', label: 'What happened', required: true, help_text: 'Describe the incident in detail' }),
+      templateField({ type: 'datetime', label: 'When' }),
+      templateField({ type: 'text', label: 'Where', help_text: 'Place, city, or coordinates' }),
+      templateField({ type: 'textarea', label: 'Actors involved', help_text: 'People, groups, or organizations' }),
+      templateField({ type: 'textarea', label: 'Source links', help_text: 'One link per line if multiple' }),
+      templateField({ type: 'select', label: 'Severity', optionsRaw: 'Low, Medium, High, Critical' }),
+    ],
+  },
+  {
+    id: 'media-submission',
+    name: 'Media / Image Submission',
+    description: 'Submit media by linking to it and describing it. File upload arrives with E-6 — for now, paste a URL to the media.',
+    fields: [
+      templateField({ type: 'textarea', label: 'Description', required: true, help_text: 'What does the media show?' }),
+      templateField({ type: 'url', label: 'Source URL', help_text: 'Link to the image/video' }),
+      templateField({ type: 'datetime', label: 'Date taken' }),
+      templateField({ type: 'text', label: 'Location', help_text: 'Where was it captured?' }),
+      templateField({ type: 'select', label: 'Rights / permission', optionsRaw: 'Original author, Have permission, Public/Creative Commons, Unknown' }),
+    ],
+  },
+  {
+    id: 'claim-submission',
+    name: 'Claim to Verify',
+    description: 'Submit a single factual claim for verification, with its source and your confidence in it.',
+    fields: [
+      templateField({ type: 'textarea', label: 'Claim', required: true, help_text: 'State the claim in one or two sentences' }),
+      templateField({ type: 'url', label: 'Source URL', help_text: 'Where the claim was made' }),
+      templateField({ type: 'datetime', label: 'Date' }),
+      templateField({ type: 'rating', label: 'Confidence', minRaw: '1', maxRaw: '5', help_text: '1 = low, 5 = high' }),
+    ],
+  },
+  {
+    id: 'source-document',
+    name: 'Source Document Intake',
+    description: 'Catalog a source document — link, authorship, date, and a short summary.',
+    fields: [
+      templateField({ type: 'url', label: 'Document URL', required: true, help_text: 'Link to the document' }),
+      templateField({ type: 'text', label: 'Title' }),
+      templateField({ type: 'text', label: 'Author' }),
+      templateField({ type: 'datetime', label: 'Publication date' }),
+      templateField({ type: 'textarea', label: 'Summary', help_text: 'Key points of the document' }),
+      templateField({ type: 'select', label: 'Document type', optionsRaw: 'Report, Article, Leak, Court filing, Dataset, Other' }),
+    ],
+  },
+]
+
 /** The whole builder form state. */
 export interface BuilderState {
   title: string
