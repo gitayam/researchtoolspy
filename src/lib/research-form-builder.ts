@@ -25,6 +25,9 @@ const FIELD_TYPE_SET = new Set<string>(FIELD_TYPES)
 /** Types whose options are edited in E-3a (comma-separated input). */
 export const OPTION_TYPES: IntakeFormFieldType[] = ['select', 'multiselect']
 
+/** Types that accept an optional numeric min/max bound (E-3b). */
+export const RANGE_TYPES: IntakeFormFieldType[] = ['number', 'rating']
+
 export type ResearchFormAccessLevel = 'public' | 'password' | 'internal'
 
 /** A single field row in the builder's editable state. */
@@ -35,6 +38,10 @@ export interface BuilderField {
   help_text?: string
   /** Raw comma-separated options string (only meaningful for select/multiselect). */
   optionsRaw?: string
+  /** Raw min bound string (only meaningful for number/rating); parsed in buildSurveyPayload. */
+  minRaw?: string
+  /** Raw max bound string (only meaningful for number/rating); parsed in buildSurveyPayload. */
+  maxRaw?: string
 }
 
 /** The whole builder form state. */
@@ -106,6 +113,34 @@ export function parseOptions(raw: string | undefined): string[] {
     .filter((s) => s.length > 0)
 }
 
+/**
+ * Parse a raw bound string into a finite number, or `undefined` when blank /
+ * non-numeric. Used for number/rating min/max — a missing bound must be
+ * omitted from the payload rather than set to `NaN`.
+ */
+export function parseBound(raw: string | undefined): number | undefined {
+  const trimmed = String(raw ?? '').trim()
+  if (!trimmed) return undefined
+  const value = Number(trimmed)
+  return Number.isFinite(value) ? value : undefined
+}
+
+/**
+ * Return a NEW array with the item at `index` swapped with its neighbor in
+ * `direction`. Out-of-bounds moves (first item up, last item down, or an
+ * `index` outside the array) return the input array unchanged. Pure — never
+ * mutates the input.
+ */
+export function moveField<T>(arr: T[], index: number, direction: 'up' | 'down'): T[] {
+  const target = direction === 'up' ? index - 1 : index + 1
+  if (index < 0 || index >= arr.length || target < 0 || target >= arr.length) {
+    return arr
+  }
+  const next = arr.slice()
+  ;[next[index], next[target]] = [next[target], next[index]]
+  return next
+}
+
 export class FormBuilderValidationError extends Error {
   constructor(message: string) {
     super(message)
@@ -175,6 +210,16 @@ export function buildSurveyPayload(state: BuilderState): SurveyPayload {
         )
       }
       out.options = options
+    }
+
+    if (RANGE_TYPES.includes(field.type)) {
+      const min = parseBound(field.minRaw)
+      const max = parseBound(field.maxRaw)
+      if (min !== undefined && max !== undefined && min > max) {
+        throw new FormBuilderValidationError(`Field "${out.label}": min must be ≤ max.`)
+      }
+      if (min !== undefined) out.min = min
+      if (max !== undefined) out.max = max
     }
     return out
   })
