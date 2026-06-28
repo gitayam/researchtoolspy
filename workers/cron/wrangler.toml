@@ -16,6 +16,8 @@ crons = ["0 4 * * *"]
 [vars]
 # Canonical prod endpoint for the cascade-safe global content cleanup.
 CLEANUP_URL = "https://researchtools.net/api/cron/cleanup-content"
+# Canonical prod endpoint for the 90-day uploaded-file retention sweep (E-6d).
+UPLOADS_CLEANUP_URL = "https://researchtools.net/api/cron/cleanup-uploads"
 
 # Secrets — set via: wrangler secret put <NAME>  (run from this directory)
 # Required:
