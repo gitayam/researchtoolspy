@@ -11,14 +11,17 @@ import {
 } from '@/components/ui/select'
 import {
   ArrowLeft, Copy, CheckCircle2, AlertCircle, Link as LinkIcon, Lock, Plus, Trash2,
+  ChevronUp, ChevronDown,
 } from 'lucide-react'
 import { getCopHeaders } from '@/lib/cop-auth'
 import { useToast } from '@/components/ui/use-toast'
 import {
   buildSurveyPayload,
+  moveField,
   slugifyFieldName,
   FIELD_TYPES,
   OPTION_TYPES,
+  RANGE_TYPES,
   MAX_FIELDS,
   FormBuilderValidationError,
   type BuilderField,
@@ -55,7 +58,7 @@ const TYPE_LABELS: Record<IntakeFormFieldType, string> = {
 }
 
 function newField(): BuilderField {
-  return { type: 'text', label: '', required: false, help_text: '', optionsRaw: '' }
+  return { type: 'text', label: '', required: false, help_text: '', optionsRaw: '', minRaw: '', maxRaw: '' }
 }
 
 export default function ResearchFormBuilderPage() {
@@ -92,6 +95,9 @@ export default function ResearchFormBuilderPage() {
 
   const removeField = (index: number) =>
     setState((prev) => ({ ...prev, fields: prev.fields.filter((_, i) => i !== index) }))
+
+  const moveFieldAt = (index: number, direction: 'up' | 'down') =>
+    setState((prev) => ({ ...prev, fields: moveField(prev.fields, index, direction) }))
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text)
@@ -318,6 +324,7 @@ export default function ResearchFormBuilderPage() {
                 const derivedName = slugifyFieldName(field.label)
                 const isDeferred = DEFERRED_TYPES.has(field.type)
                 const needsOptions = (OPTION_TYPES as IntakeFormFieldType[]).includes(field.type)
+                const needsRange = (RANGE_TYPES as IntakeFormFieldType[]).includes(field.type)
                 return (
                   <div
                     key={index}
@@ -327,16 +334,38 @@ export default function ResearchFormBuilderPage() {
                       <span className="text-sm font-medium text-gray-500 dark:text-gray-400 pt-2">
                         Field {index + 1}
                       </span>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeField(index)}
-                        disabled={state.fields.length === 1}
-                        aria-label={`Remove field ${index + 1}`}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => moveFieldAt(index, 'up')}
+                          disabled={index === 0}
+                          aria-label={`Move field ${index + 1} up`}
+                        >
+                          <ChevronUp className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => moveFieldAt(index, 'down')}
+                          disabled={index === state.fields.length - 1}
+                          aria-label={`Move field ${index + 1} down`}
+                        >
+                          <ChevronDown className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeField(index)}
+                          disabled={state.fields.length === 1}
+                          aria-label={`Remove field ${index + 1}`}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -391,6 +420,31 @@ export default function ResearchFormBuilderPage() {
                           value={field.optionsRaw || ''}
                           onChange={(e) => patchField(index, { optionsRaw: e.target.value })}
                         />
+                      </div>
+                    )}
+
+                    {needsRange && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="space-y-2">
+                          <Label htmlFor={`field-min-${index}`}>Minimum (optional)</Label>
+                          <Input
+                            id={`field-min-${index}`}
+                            type="number"
+                            placeholder="No minimum"
+                            value={field.minRaw || ''}
+                            onChange={(e) => patchField(index, { minRaw: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor={`field-max-${index}`}>Maximum (optional)</Label>
+                          <Input
+                            id={`field-max-${index}`}
+                            type="number"
+                            placeholder="No maximum"
+                            value={field.maxRaw || ''}
+                            onChange={(e) => patchField(index, { maxRaw: e.target.value })}
+                          />
+                        </div>
                       </div>
                     )}
 

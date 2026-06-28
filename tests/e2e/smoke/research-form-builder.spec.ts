@@ -12,6 +12,7 @@ import {
   deriveUniqueNames,
   parseOptions,
   buildSurveyPayload,
+  moveField,
   FormBuilderValidationError,
   MAX_FIELDS,
   type BuilderState,
@@ -115,5 +116,54 @@ test.describe('research form builder helper @smoke', () => {
 
   test('@smoke buildSurveyPayload throws when there are no fields', () => {
     expect(() => buildSurveyPayload(baseState([]))).toThrow(/at least one field/i)
+  })
+
+  test('@smoke moveField swaps neighbors and is a no-op at the bounds', () => {
+    const arr = ['a', 'b', 'c']
+    expect(moveField(arr, 1, 'up')).toEqual(['b', 'a', 'c'])
+    expect(moveField(arr, 1, 'down')).toEqual(['a', 'c', 'b'])
+    // First item up and last item down are no-ops (equal contents).
+    expect(moveField(arr, 0, 'up')).toEqual(['a', 'b', 'c'])
+    expect(moveField(arr, 2, 'down')).toEqual(['a', 'b', 'c'])
+  })
+
+  test('@smoke moveField returns a new array and never mutates the input', () => {
+    const arr = ['a', 'b', 'c']
+    const moved = moveField(arr, 0, 'down')
+    expect(moved).not.toBe(arr)
+    expect(moved).toEqual(['b', 'a', 'c'])
+    // Input untouched.
+    expect(arr).toEqual(['a', 'b', 'c'])
+  })
+
+  test('@smoke buildSurveyPayload parses min/max for number fields', () => {
+    const payload = buildSurveyPayload(
+      baseState([field({ type: 'number', label: 'Age', minRaw: '0', maxRaw: '120' })])
+    )
+    expect(payload.form_schema[0]).toMatchObject({ name: 'age', type: 'number', min: 0, max: 120 })
+  })
+
+  test('@smoke buildSurveyPayload omits a blank min/max bound', () => {
+    const payload = buildSurveyPayload(
+      baseState([field({ type: 'rating', label: 'Score', minRaw: '1', maxRaw: '' })])
+    )
+    const out = payload.form_schema[0]
+    expect(out.min).toBe(1)
+    expect(out.max).toBeUndefined()
+  })
+
+  test('@smoke buildSurveyPayload throws when min > max', () => {
+    const state = baseState([field({ type: 'number', label: 'Range', minRaw: '10', maxRaw: '5' })])
+    expect(() => buildSurveyPayload(state)).toThrow(FormBuilderValidationError)
+    expect(() => buildSurveyPayload(state)).toThrow(/min must be/i)
+  })
+
+  test('@smoke buildSurveyPayload ignores min/max on a non-range type', () => {
+    const payload = buildSurveyPayload(
+      baseState([field({ type: 'text', label: 'Notes', minRaw: '1', maxRaw: '9' })])
+    )
+    const out = payload.form_schema[0]
+    expect(out.min).toBeUndefined()
+    expect(out.max).toBeUndefined()
   })
 })
