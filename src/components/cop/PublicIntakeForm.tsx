@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Send, CheckCircle2, AlertCircle, MapPin, Upload, Camera, X, ClipboardPaste, ChevronDown, ChevronRight, Clock, FileText } from 'lucide-react'
 import type { IntakeFormField } from '../../types/cop'
+import UrlConfirmCard from './UrlConfirmCard'
 
 // Auto-detect platform from URL domain
 function detectPlatformFromUrl(url: string): string | null {
@@ -488,6 +489,10 @@ export default function PublicIntakeForm({ token }: PublicIntakeFormProps) {
                   }}
                   className="w-full px-3 py-2 text-base rounded border border-slate-300 dark:border-slate-700 bg-background font-mono min-h-[44px]"
                 />
+              )}
+
+              {field.type === 'url' && (
+                <UrlConfirmCard token={token} url={formData[field.name] || ''} />
               )}
 
               {field.type === 'email' && (
