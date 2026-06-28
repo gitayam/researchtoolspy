@@ -15,9 +15,13 @@ import {
   uploadObjectKey,
   sanitizeFilename,
   isAllowedUploadMime,
+  shouldExtractPdf,
+  truncateText,
   MAX_UPLOAD_BYTES,
   MAX_FILES_PER_SUBMISSION,
   MAX_FILENAME_LENGTH,
+  MAX_PDF_EXTRACT_BYTES,
+  DEFAULT_EXTRACT_TEXT_MAX,
   ALLOWED_UPLOAD_MIME,
 } from '../../../functions/api/surveys/public/[token]/_upload'
 import { verifyTurnstile } from '../../../functions/api/_shared/_turnstile'
@@ -135,6 +139,71 @@ test('@smoke uploadObjectKey produces unique keys for the same inputs', () => {
 
 test('@smoke MAX_FILES_PER_SUBMISSION is the conservative cap (5)', () => {
   expect(MAX_FILES_PER_SUBMISSION).toBe(5)
+})
+
+// ---- shouldExtractPdf (E-6b) -----------------------------------------------
+
+test('@smoke shouldExtractPdf true for a 1MB application/pdf', () => {
+  expect(shouldExtractPdf('application/pdf', 1 * MB)).toBe(true)
+})
+
+test('@smoke shouldExtractPdf is case-insensitive on mime', () => {
+  expect(shouldExtractPdf('APPLICATION/PDF', 1 * MB)).toBe(true)
+  expect(shouldExtractPdf('  application/pdf ', 1 * MB)).toBe(true)
+})
+
+test('@smoke shouldExtractPdf false for non-pdf types', () => {
+  expect(shouldExtractPdf('image/png', 1 * MB)).toBe(false)
+  expect(shouldExtractPdf('text/plain', 1 * MB)).toBe(false)
+})
+
+test('@smoke shouldExtractPdf false for a pdf over the size guard', () => {
+  expect(shouldExtractPdf('application/pdf', MAX_PDF_EXTRACT_BYTES + 1)).toBe(false)
+  expect(shouldExtractPdf('application/pdf', 20 * MB)).toBe(false)
+  // boundary: exactly at the guard is still allowed
+  expect(shouldExtractPdf('application/pdf', MAX_PDF_EXTRACT_BYTES)).toBe(true)
+})
+
+test('@smoke shouldExtractPdf false for empty / invalid size or mime', () => {
+  expect(shouldExtractPdf('application/pdf', 0)).toBe(false)
+  expect(shouldExtractPdf('application/pdf', -1)).toBe(false)
+  expect(shouldExtractPdf('application/pdf', NaN)).toBe(false)
+  // @ts-expect-error exercising a non-string mime at runtime
+  expect(shouldExtractPdf(undefined, 1 * MB)).toBe(false)
+  // @ts-expect-error exercising a non-string mime at runtime
+  expect(shouldExtractPdf(null, 1 * MB)).toBe(false)
+})
+
+// ---- truncateText (E-6b) ----------------------------------------------------
+
+test('@smoke truncateText returns "" for falsy / non-string input', () => {
+  expect(truncateText('')).toBe('')
+  // @ts-expect-error exercising undefined at runtime
+  expect(truncateText(undefined)).toBe('')
+  // @ts-expect-error exercising null at runtime
+  expect(truncateText(null)).toBe('')
+})
+
+test('@smoke truncateText leaves a short string unchanged', () => {
+  expect(truncateText('hello world')).toBe('hello world')
+  const exact = 'a'.repeat(DEFAULT_EXTRACT_TEXT_MAX)
+  expect(truncateText(exact)).toBe(exact)
+})
+
+test('@smoke truncateText truncates a long string to <= max', () => {
+  const long = 'word '.repeat(5000) // ~25k chars
+  const out = truncateText(long, 100)
+  expect(out.length).toBeLessThanOrEqual(100)
+  expect(out.length).toBeGreaterThan(0)
+})
+
+test('@smoke truncateText cuts on a word boundary when close to the cap', () => {
+  const text = 'aaaa bbbb cccc dddd eeee ffff'
+  const out = truncateText(text, 22) // boundary near the cap
+  expect(out.length).toBeLessThanOrEqual(22)
+  expect(out.endsWith(' ')).toBe(false)
+  // should not chop mid-word: the result is a prefix ending at a full word
+  expect(text.startsWith(out)).toBe(true)
 })
 
 // ---- verifyTurnstile --------------------------------------------------------
