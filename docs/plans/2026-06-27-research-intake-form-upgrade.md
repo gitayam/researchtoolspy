@@ -100,5 +100,25 @@ the form pre-fills metadata for you to confirm, not retype.
 - **E-10** `AUTO` — **Credibility scaffolding** (Admiralty reliability A–F + info credibility 1–6) as first-class field types.
 - **DECISION still open:** **D-E2 retention window** value, **D-E3** exact caps, **#19** `forms/list` workspace authz (fix while on this surface), OCR model choice if Workers AI lacks a fit.
 
+## 3b. Journalist "drop spot" / persistent anonymous tip-line mode (requested 2026-06-27)
+
+> User ask: *"instead of a set survey type it is like a journalist drop spot where people going to the link can use it as a drop of info each time"* + *"a design where it allows checking all the accepted data from a user."*
+
+**Good news — the engine already supports it.** System A is literally `survey_drops` with public `/drop/:slug` routes, and `survey_responses` already accepts **multiple submissions per form** (only an exact `content_hash` match is blocked → 409). So a drop spot is mostly a **mode + UX framing** on top of what exists, not a new backend. Today everything is framed as a one-shot "survey"; the drop-spot reframes the same link as a **reusable, anonymity-first inbox** where a source returns and drops new info each visit.
+
+### What it is
+- A form **mode** (e.g. `intent: 'survey' | 'drop'` on `survey_drops`, default `survey`) the builder lets you pick. A **drop** is presented to the public as: *"Securely drop information — add anything you have, come back anytime."* Minimal friction, no identity required, repeat submissions are the norm (not an error).
+- **Accepted-data palette** (the "checking all accepted data" ask): instead of (or in addition to) a fixed field list, the creator toggles **what kinds of data the drop accepts** — free-form narrative text, file/document upload (E-6), links/URLs (auto-confirmed, E-5), images (with EXIF stripped, E-8). A drop can be as simple as one big "what do you want to share?" box + optional attachments, so a source isn't forced through a rigid schema.
+- Each visit = a new **drop** (new `survey_responses` row), threaded under the same drop spot for the reviewer.
+
+### Design decisions (surface; don't guess)
+- **D-E4 · Anonymity model.** Drop mode must be anonymity-first — **no IP/UA** (already the rule, §0a), and consider NOT storing even the `submitter_ip_hash` for drops (the per-IP rate-limit then needs an alternative: a global/token bucket or a proof-of-work/Turnstile gate to stop spam without identifying sources). Decide the anti-abuse mechanism that preserves anonymity.
+- **D-E5 · Return/claim code (SecureDrop-style).** Optionally issue the source a one-time **codename/passphrase** on first drop so they can return to the same thread and see replies. Powerful for journalism but a real build (codename auth, threaded replies, reviewer↔source messaging). Decide in/out for v1.
+- **D-E6 · Dedup in drop mode.** The current exact-`content_hash` 409 is right for surveys but may annoy a source re-dropping similar info — keep, relax, or make per-form.
+- **D-E7 · Retention + safety.** Drops are sensitive; set a retention window + access controls (reviewer-only), and the upload abuse caps from D-E3.
+
+### Loop-ready unit (added to the queue as E-11)
+- **E-11** `mixed` — **Drop-spot mode**: add `intent` to `survey_drops` (migration + retention), a builder toggle (Survey vs Drop) that swaps to the accepted-data palette + drop framing, and the public `/drop` page presented as a reusable anonymous inbox (repeat-submit friendly). Depends on E-5 (URL confirm) + E-6 (uploads) for the richest palette, but a **text-only drop spot ships without them**. Anonymity per D-E4; return-code (D-E5) is a follow-up. **Decisions D-E4…D-E7 gate the anonymity/return-code/abuse specifics — surface before building those parts.**
+
 ## 4. Done-when (per phase)
 Each phase ships behind the existing verify gate (type-check + `@smoke`), with new tables/columns carrying a **retention cron** (project convention), R2 writes verified to actually land, and the submitter + reviewer paths prod-verified. New endpoints follow the public-share-token auth model (submitter side stays unauthenticated via opaque token + access-level; reviewer side `requireAuth`). Watch **#19** (`research/forms/list` workspace authorization) — fix it as part of touching this surface.
