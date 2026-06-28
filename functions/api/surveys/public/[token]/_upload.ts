@@ -130,3 +130,41 @@ function randomToken(): string {
   const bytes = crypto.getRandomValues(new Uint8Array(12))
   return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('')
 }
+
+// ---- E-6b: PDF text extraction (pre-fill) -----------------------------------
+
+/** Default cap for in-Worker PDF extraction (8 MB). Bigger PDFs are skipped to
+ * stay well under the Worker CPU limit — they still upload, just without text. */
+export const MAX_PDF_EXTRACT_BYTES = 8 * 1024 * 1024
+
+/** Default cap on returned extracted text (chars). Pre-fill, not full archival. */
+export const DEFAULT_EXTRACT_TEXT_MAX = 5000
+
+/**
+ * Whether a stored file is eligible for in-Worker PDF text extraction:
+ * only `application/pdf` (case-insensitive) within a conservative size guard.
+ * The size guard avoids CPU-limit blowups on very large PDFs (those still
+ * upload, just without auto-extracted text). Pure / no I/O.
+ */
+export function shouldExtractPdf(mime: string, size: number, maxBytes = MAX_PDF_EXTRACT_BYTES): boolean {
+  if (typeof mime !== 'string') return false
+  if (mime.trim().toLowerCase() !== 'application/pdf') return false
+  if (typeof size !== 'number' || !Number.isFinite(size) || size <= 0) return false
+  return size <= maxBytes
+}
+
+/**
+ * Trim extracted text to at most `max` chars for pre-fill. Cuts on a word
+ * boundary when one is reasonably close to the cap (avoids a mid-word chop),
+ * otherwise hard-truncates. Returns '' for any falsy / non-string input. Pure.
+ */
+export function truncateText(text: unknown, max = DEFAULT_EXTRACT_TEXT_MAX): string {
+  if (!text || typeof text !== 'string') return ''
+  if (text.length <= max) return text
+
+  const slice = text.slice(0, max)
+  const lastSpace = slice.lastIndexOf(' ')
+  // Only honour the word boundary if it's not too far back from the cap.
+  if (lastSpace > max * 0.8) return slice.slice(0, lastSpace)
+  return slice
+}

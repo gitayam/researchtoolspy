@@ -21,8 +21,13 @@
  *
  * Caps: 10MB/file, <=5 files/submission, MIME allowlist (PDF + png/jpeg/webp/gif).
  *
- * NOT here (later units): EXIF strip + retention (E-6c/E-6d), PDF text extraction
- * (E-6b). Files are stored verbatim.
+ * E-6b: for PDF uploads, text is extracted in-Worker (unpdf, no vendor) from the
+ * already-read buffer and returned as `extractedText` for form pre-fill. Extraction
+ * is best-effort — any failure/timeout omits the text and the upload still succeeds.
+ * The extracted text is RETURNED only (not stored to a table here — reviewer-side
+ * full-text storage is a later refinement).
+ *
+ * NOT here (later units): EXIF strip + retention (E-6c/E-6d). Files are stored verbatim.
  */
 import { JSON_HEADERS } from '../../../_shared/api-utils'
 import {
@@ -32,8 +37,10 @@ import {
 import { verifyTurnstile } from '../../../_shared/_turnstile'
 import {
   validateUpload, uploadObjectKey,
+  shouldExtractPdf, truncateText,
   MAX_FILES_PER_SUBMISSION,
 } from './_upload'
+import { extractPdfTextFromBuffer } from '../../../content-intelligence/pdf-extractor'
 
 interface Env {
   DB: D1Database
@@ -46,6 +53,11 @@ interface UploadedFileInfo {
   name: string
   size: number
   type: string
+  /** E-6b: auto-extracted PDF text for pre-fill. Omitted for non-PDFs or on
+   * extraction failure — extraction never fails the upload. */
+  extractedText?: string
+  /** E-6b: page count when extraction succeeded and metadata is available. */
+  pageCount?: number
 }
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
@@ -208,6 +220,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const stored: UploadedFileInfo[] = []
     for (const file of files) {
       const key = uploadObjectKey(token, form.id, file.name)
+      // Read the bytes ONCE — reused for the R2 put and (for PDFs) extraction.
       const body = await file.arrayBuffer()
       // E-6c: strip EXIF before storing (images). For now stored verbatim.
       await env.UPLOADS.put(key, body, {
@@ -215,7 +228,27 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         // Survey id recorded for E-6d retention sweeps; NO submitter IP/UA (privacy).
         customMetadata: { surveyId: form.id },
       })
-      stored.push({ key, name: file.name, size: file.size, type: file.type })
+
+      const entry: UploadedFileInfo = { key, name: file.name, size: file.size, type: file.type }
+
+      // E-6b: for PDFs within the size guard, extract text in-Worker for pre-fill.
+      // Extraction MUST NOT fail the upload — any throw/timeout just omits the text.
+      // NB: full-text storage for the reviewer is a later refinement (not stored here).
+      if (shouldExtractPdf(file.type, file.size)) {
+        try {
+          const result = await extractPdfTextFromBuffer(body)
+          entry.extractedText = truncateText(result.text)
+          if (typeof result.metadata?.pageCount === 'number') {
+            entry.pageCount = result.metadata.pageCount
+          }
+        } catch (extractErr) {
+          // Image-only / encrypted / corrupt PDF, or CPU/timeout — leave text off.
+          console.warn('[Survey Drops Public] PDF extraction skipped:',
+            extractErr instanceof Error ? extractErr.message : String(extractErr))
+        }
+      }
+
+      stored.push(entry)
     }
 
     return new Response(JSON.stringify({ ok: true, files: stored }), {

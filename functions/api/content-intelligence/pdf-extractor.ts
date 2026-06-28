@@ -57,6 +57,18 @@ export async function extractPDFText(url: string, pdfCoApiKey?: string): Promise
 }
 
 /**
+ * In-Worker extraction from a PDF buffer (no URL fetch, no external service).
+ *
+ * Thin re-export of {@link extractViaUnpdf} so other endpoints that already hold the
+ * PDF bytes (e.g. the survey public upload endpoint) can extract text without
+ * re-downloading by URL. Throws on image-only / encrypted / empty-text PDFs —
+ * callers must guard with try/catch.
+ */
+export function extractPdfTextFromBuffer(buffer: ArrayBuffer): Promise<{ text: string; metadata?: PdfMetadata }> {
+  return extractViaUnpdf(buffer)
+}
+
+/**
  * In-Worker extraction via unpdf. Handles standard text-based PDFs without any external service.
  * Image-only / scanned PDFs return empty text — caller falls back to pdf.co if configured.
  */
