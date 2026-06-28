@@ -15,7 +15,7 @@
  * NOT here (later units): EXIF stripping on images (E-6c) — for now we serve the
  * object exactly as stored.
  */
-import { CORS_HEADERS } from '../../_shared/api-utils'
+import { CORS_HEADERS } from '../_shared/api-utils'
 
 interface Env {
   UPLOADS?: R2Bucket
