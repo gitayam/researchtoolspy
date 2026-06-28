@@ -141,6 +141,56 @@ export function moveField<T>(arr: T[], index: number, direction: 'up' | 'down'):
   return next
 }
 
+/**
+ * Best-effort, NON-THROWING projection of the current builder state into
+ * renderable `IntakeFormField`s for the live "preview as submitter" panel
+ * (E-3c). Unlike `buildSurveyPayload`, this never validates and never throws —
+ * the creator is still editing, so fields are routinely half-finished.
+ *
+ * Rules:
+ *  - Skip fields with no usable label (an empty row shouldn't render a control).
+ *  - Derive unique `name`s exactly like `buildSurveyPayload` so the preview's
+ *    field keys match what would be persisted.
+ *  - Carry `required`, `help_text`, `options`, `min`, `max` only when present.
+ *  - An incomplete select/multiselect (no options yet) is INCLUDED with
+ *    `options: []` rather than dropped — the preview shows an empty dropdown.
+ *  - No fields → `[]`.
+ */
+export function toPreviewFields(state: BuilderState): IntakeFormField[] {
+  const fields = state?.fields ?? []
+
+  // Only keep fields whose label has usable characters, preserving order; we
+  // derive unique names from the kept labels so the preview matches the payload.
+  const kept = fields.filter((field) => slugifyFieldName(String(field?.label ?? '')))
+  const names = deriveUniqueNames(kept.map((f) => String(f.label)))
+
+  return kept.map((field, index) => {
+    const out: IntakeFormField = {
+      name: names[index],
+      type: FIELD_TYPE_SET.has(field.type) ? field.type : 'text',
+      label: String(field.label).trim(),
+      required: !!field.required,
+    }
+
+    const helpText = String(field.help_text ?? '').trim()
+    if (helpText) out.help_text = helpText
+
+    if (OPTION_TYPES.includes(field.type)) {
+      // Incomplete select → empty options, never throw.
+      out.options = parseOptions(field.optionsRaw)
+    }
+
+    if (RANGE_TYPES.includes(field.type)) {
+      const min = parseBound(field.minRaw)
+      const max = parseBound(field.maxRaw)
+      if (min !== undefined) out.min = min
+      if (max !== undefined) out.max = max
+    }
+
+    return out
+  })
+}
+
 export class FormBuilderValidationError extends Error {
   constructor(message: string) {
     super(message)

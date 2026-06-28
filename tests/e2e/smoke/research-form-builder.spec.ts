@@ -12,6 +12,7 @@ import {
   deriveUniqueNames,
   parseOptions,
   buildSurveyPayload,
+  toPreviewFields,
   moveField,
   FormBuilderValidationError,
   MAX_FIELDS,
@@ -165,5 +166,57 @@ test.describe('research form builder helper @smoke', () => {
     const out = payload.form_schema[0]
     expect(out.min).toBeUndefined()
     expect(out.max).toBeUndefined()
+  })
+
+  // ── toPreviewFields (live "preview as submitter", E-3c) ────────────────────
+  // Must NEVER throw on incomplete/half-edited input — the creator is still typing.
+
+  test('@smoke toPreviewFields returns [] for empty state and never throws', () => {
+    expect(toPreviewFields(baseState([]))).toEqual([])
+    // A wholly-empty field (no label) is dropped, leaving no fields.
+    expect(toPreviewFields(baseState([field({ label: '' })]))).toEqual([])
+    // Defensive: a missing fields array must not throw.
+    expect(() => toPreviewFields({ fields: undefined } as unknown as BuilderState)).not.toThrow()
+  })
+
+  test('@smoke toPreviewFields skips fields with no usable label but keeps labelled ones', () => {
+    const out = toPreviewFields(
+      baseState([
+        field({ label: '' }),
+        field({ label: '   ' }),
+        field({ label: '!!!' }), // slugifies to '' → skipped
+        field({ label: 'Keep me' }),
+      ])
+    )
+    expect(out).toHaveLength(1)
+    expect(out[0]).toMatchObject({ name: 'keep_me', label: 'Keep me' })
+  })
+
+  test('@smoke toPreviewFields includes an incomplete select with options: [] (no throw)', () => {
+    const out = toPreviewFields(
+      baseState([field({ type: 'select', label: 'Severity', optionsRaw: '' })])
+    )
+    expect(out).toHaveLength(1)
+    expect(out[0]).toMatchObject({ name: 'severity', type: 'select', options: [] })
+  })
+
+  test('@smoke toPreviewFields carries label, type, required, options, min, max when present', () => {
+    const out = toPreviewFields(
+      baseState([
+        field({ type: 'url', label: 'Source URL', required: true, help_text: 'Full link' }),
+        field({ type: 'select', label: 'Tags', optionsRaw: 'Low, High' }),
+        field({ type: 'number', label: 'Age', minRaw: '0', maxRaw: '120' }),
+      ])
+    )
+    expect(out[0]).toEqual({
+      name: 'source_url', type: 'url', label: 'Source URL', required: true, help_text: 'Full link',
+    })
+    expect(out[1]).toMatchObject({ name: 'tags', type: 'select', options: ['Low', 'High'] })
+    expect(out[2]).toMatchObject({ name: 'age', type: 'number', min: 0, max: 120 })
+  })
+
+  test('@smoke toPreviewFields derives unique names for duplicate labels', () => {
+    const out = toPreviewFields(baseState([field({ label: 'Name' }), field({ label: 'Name' })]))
+    expect(out.map((f) => f.name)).toEqual(['name', 'name_2'])
   })
 })
