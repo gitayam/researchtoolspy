@@ -120,5 +120,17 @@ the form pre-fills metadata for you to confirm, not retype.
 ### Loop-ready unit (added to the queue as E-11)
 - **E-11** `mixed` — **Drop-spot mode**: add `intent` to `survey_drops` (migration + retention), a builder toggle (Survey vs Drop) that swaps to the accepted-data palette + drop framing, and the public `/drop` page presented as a reusable anonymous inbox (repeat-submit friendly). Depends on E-5 (URL confirm) + E-6 (uploads) for the richest palette, but a **text-only drop spot ships without them**. Anonymity per D-E4; return-code (D-E5) is a follow-up. **Decisions D-E4…D-E7 gate the anonymity/return-code/abuse specifics — surface before building those parts.**
 
+## 3c. KEYSTONE FINDING (2026-06-28) — the reviewer side is still System B
+
+While scoping E-7 it became clear the **builder/submit/upload/extraction are all System A** (`survey_drops`/`survey_responses`) — E-3..E-6 — **but the research-evidence reviewer + promotion flow is still System B**: `functions/api/research/submissions/list.ts` + `EvidenceSubmissionsPage` (Review tab) + `functions/api/research/submissions/process.ts` (→ `research_evidence`) all read `form_submissions`. So a submission to a **new** (System A) form lands in `survey_responses` (with `_enriched_*` URL/PDF extraction) but is **invisible to the research-evidence reviewer**; System A responses are only viewable in the separate surveys/drops dashboard, and can't be "promoted to evidence/actors."
+
+**Consequence:** the feature isn't end-to-end usable until the reviewer/promotion side is unified onto System A. This makes **E-4b the keystone**, and it **blocks E-7** (extract→confirm→promote) and **E-9** (unified search). It is a real architectural decision (data migration of the 2 legacy System-B forms + repointing the reviewer + `process.ts` to `survey_responses`), not something to guess.
+
+**Dependency map of the remainder:**
+- 🔑 **E-4b (decide)** — unify reviewer + promotion on System A → unblocks **E-7**, **E-9**, end-to-end use.
+- 🔒 **E-6e (your keys)** — Turnstile widget + `TURNSTILE_SECRET` → upload go-live → unblocks **E-8** (EXIF→geopoint needs uploads live).
+- 🟡 **E-11** — drop-spot, needs **D-E4** (anonymity model).
+- 🟢 **E-10** — credibility fields: the only remaining unit buildable without a decision, but "first-class field types" touches the entangled public renderer (or ship as a credibility *preset* using existing select types — cleaner, overlaps E-4a).
+
 ## 4. Done-when (per phase)
 Each phase ships behind the existing verify gate (type-check + `@smoke`), with new tables/columns carrying a **retention cron** (project convention), R2 writes verified to actually land, and the submitter + reviewer paths prod-verified. New endpoints follow the public-share-token auth model (submitter side stays unauthenticated via opaque token + access-level; reviewer side `requireAuth`). Watch **#19** (`research/forms/list` workspace authorization) — fix it as part of touching this surface.
