@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/select'
 import {
   ArrowLeft, Copy, CheckCircle2, AlertCircle, Link as LinkIcon, Lock, Plus, Trash2,
-  ChevronUp, ChevronDown,
+  ChevronUp, ChevronDown, Eye, MapPin,
 } from 'lucide-react'
 import { getCopHeaders } from '@/lib/cop-auth'
 import { useToast } from '@/components/ui/use-toast'
@@ -19,6 +19,7 @@ import {
   buildSurveyPayload,
   moveField,
   slugifyFieldName,
+  toPreviewFields,
   FIELD_TYPES,
   OPTION_TYPES,
   RANGE_TYPES,
@@ -28,7 +29,7 @@ import {
   type BuilderState,
   type ResearchFormAccessLevel,
 } from '@/lib/research-form-builder'
-import type { IntakeFormFieldType } from '@/types/cop'
+import type { IntakeFormField, IntakeFormFieldType } from '@/types/cop'
 
 const FORMS_LIST_ROUTE = '/dashboard/research/forms'
 
@@ -77,6 +78,10 @@ export default function ResearchFormBuilderPage() {
   const [error, setError] = useState<string | null>(null)
   const [createdUrl, setCreatedUrl] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+  const [showPreview, setShowPreview] = useState(false)
+
+  // Derived on every render — never persisted, never throws while editing.
+  const previewFields = toPreviewFields(state)
 
   const patch = (partial: Partial<BuilderState>) => setState((prev) => ({ ...prev, ...partial }))
 
@@ -229,13 +234,28 @@ export default function ResearchFormBuilderPage() {
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to forms
           </Button>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            New research form
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">
-            Build a public intake form with custom fields. Submissions are keyed by each field's
-            name (auto-derived from its label).
-          </p>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                New research form
+              </h1>
+              <p className="text-gray-600 dark:text-gray-400 mt-2">
+                Build a public intake form with custom fields. Submissions are keyed by each field's
+                name (auto-derived from its label).
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant={showPreview ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setShowPreview((v) => !v)}
+              className="shrink-0"
+              aria-pressed={showPreview}
+            >
+              <Eye className="h-4 w-4 mr-2" />
+              {showPreview ? 'Hide preview' : 'Preview as submitter'}
+            </Button>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -504,7 +524,241 @@ export default function ResearchFormBuilderPage() {
             </Button>
           </div>
         </form>
+
+        {showPreview && (
+          <div className="mt-8">
+            <SubmitterPreview
+              title={state.title}
+              description={state.description}
+              fields={previewFields}
+            />
+          </div>
+        )}
       </div>
     </div>
   )
+}
+
+/**
+ * Read-only "preview as submitter" panel (E-3c). Renders the current builder
+ * fields the way the public submit page (`PublicIntakeForm`) would, with every
+ * control DISABLED — nothing here persists or submits. It re-renders whenever
+ * the builder state changes because `fields` is derived on each render via
+ * `toPreviewFields`. We render our own self-contained controls rather than
+ * reusing `PublicIntakeForm` because that component only fetches its schema by
+ * token (no schema prop) and bakes in submit/fetch side effects.
+ */
+function SubmitterPreview({
+  title, description, fields,
+}: {
+  title: string
+  description: string
+  fields: IntakeFormField[]
+}) {
+  const trimmedTitle = title.trim()
+  const trimmedDescription = description.trim()
+  const requiredCount = fields.filter((f) => f.required).length
+
+  return (
+    <Card className="border-dashed">
+      <CardHeader>
+        <CardTitle className="flex items-center text-base">
+          <Eye className="h-4 w-4 mr-2 text-gray-400" />
+          Preview as submitter
+        </CardTitle>
+        <CardDescription>
+          What people will see at the public link. Controls are disabled here — this is a preview
+          only and nothing is saved.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {/* Mirror PublicIntakeForm's surface so the preview reads true-to-life. */}
+        <div className="rounded-xl bg-slate-50 dark:bg-slate-950 p-4 sm:p-6">
+          <div className="max-w-lg mx-auto space-y-4">
+            <div className="space-y-2">
+              <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+                {trimmedTitle || 'Untitled form'}
+              </h2>
+              {trimmedDescription && (
+                <p className="text-sm text-slate-600 dark:text-slate-400 whitespace-pre-line">
+                  {trimmedDescription}
+                </p>
+              )}
+              <p className="text-xs text-slate-400">
+                {requiredCount} required field{requiredCount !== 1 ? 's' : ''}
+              </p>
+            </div>
+
+            {fields.length === 0 ? (
+              <p className="text-sm text-slate-400 italic py-8 text-center">
+                Add a field with a label to see it here.
+              </p>
+            ) : (
+              <div className="space-y-4">
+                {fields.map((field, index) => (
+                  <PreviewField key={`${field.name}-${index}`} field={field} index={index} />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+const PREVIEW_INPUT_CLASS =
+  'w-full px-3 py-2 text-base rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-500 disabled:opacity-100 disabled:cursor-not-allowed'
+
+/** One disabled control representing a single preview field. */
+function PreviewField({ field, index }: { field: IntakeFormField; index: number }) {
+  const fieldId = `preview-${field.name || index}`
+  return (
+    <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 p-4 space-y-2">
+      <label
+        htmlFor={fieldId}
+        className="block text-sm font-semibold text-slate-800 dark:text-slate-200"
+      >
+        {field.label}
+        {field.required && <span className="text-red-400 ml-0.5">*</span>}
+      </label>
+
+      <PreviewControl field={field} fieldId={fieldId} />
+
+      {field.help_text && (
+        <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed mt-1">
+          {field.help_text}
+        </p>
+      )}
+    </div>
+  )
+}
+
+/** A disabled, representative control for each field type. */
+function PreviewControl({ field, fieldId }: { field: IntakeFormField; fieldId: string }) {
+  switch (field.type) {
+    case 'textarea':
+      return <textarea id={fieldId} disabled rows={3} className={`${PREVIEW_INPUT_CLASS} resize-none`} />
+
+    case 'number':
+    case 'rating':
+      return (
+        <input
+          id={fieldId}
+          type="number"
+          disabled
+          min={field.min}
+          max={field.max}
+          placeholder={
+            field.min !== undefined || field.max !== undefined
+              ? `${field.min ?? ''}–${field.max ?? ''}`
+              : undefined
+          }
+          className={PREVIEW_INPUT_CLASS}
+        />
+      )
+
+    case 'select':
+      return (
+        <select id={fieldId} disabled className={PREVIEW_INPUT_CLASS}>
+          <option value="">Select…</option>
+          {(field.options || []).map((opt) => (
+            <option key={opt} value={opt}>{opt}</option>
+          ))}
+        </select>
+      )
+
+    case 'multiselect':
+      return (
+        <select
+          id={fieldId}
+          multiple
+          disabled
+          size={Math.min(5, Math.max(2, (field.options || []).length))}
+          className={PREVIEW_INPUT_CLASS}
+        >
+          {(field.options || []).map((opt) => (
+            <option key={opt} value={opt}>{opt}</option>
+          ))}
+        </select>
+      )
+
+    case 'checkbox':
+      return (
+        <label className="flex items-center gap-2 text-sm text-slate-500">
+          <input id={fieldId} type="checkbox" disabled />
+          <span>{field.label}</span>
+        </label>
+      )
+
+    case 'datetime':
+      return <input id={fieldId} type="datetime-local" disabled className={PREVIEW_INPUT_CLASS} />
+
+    case 'file':
+      return (
+        <div className="rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 p-4 text-center space-y-1 opacity-70">
+          <span className="inline-flex items-center gap-1.5 text-sm text-slate-500">
+            <button
+              type="button"
+              disabled
+              className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-sm text-slate-500"
+            >
+              Choose file
+            </button>
+          </span>
+          <p className="text-[10px] text-amber-600 dark:text-amber-400">
+            File uploads arrive in E-6 and won't accept submissions yet.
+          </p>
+        </div>
+      )
+
+    case 'geopoint':
+      return (
+        <div className="flex items-center gap-1.5 text-sm text-slate-400 rounded border border-slate-300 dark:border-slate-700 px-3 py-2">
+          <MapPin className="h-4 w-4" />
+          Location picker (lat/lon)
+        </div>
+      )
+
+    case 'url':
+      return <input id={fieldId} type="url" disabled placeholder="https://example.com" className={`${PREVIEW_INPUT_CLASS} font-mono`} />
+
+    case 'email':
+      return <input id={fieldId} type="email" disabled placeholder="name@example.com" className={PREVIEW_INPUT_CLASS} />
+
+    case 'phone':
+      return <input id={fieldId} type="tel" disabled placeholder="+1 (555) 000-0000" className={PREVIEW_INPUT_CLASS} />
+
+    case 'ip_address':
+    case 'onion':
+    case 'crypto_address':
+    case 'handle':
+      return <input id={fieldId} type="text" disabled className={`${PREVIEW_INPUT_CLASS} font-mono`} />
+
+    case 'country':
+      return (
+        <select id={fieldId} disabled className={PREVIEW_INPUT_CLASS}>
+          <option value="">Select country…</option>
+        </select>
+      )
+
+    case 'likert':
+      return (
+        <div className="flex flex-col gap-1 text-sm text-slate-400">
+          {(field.options && field.options.length > 0
+            ? field.options
+            : ['Strongly Disagree', 'Disagree', 'Neutral', 'Agree', 'Strongly Agree']
+          ).map((opt) => (
+            <label key={opt} className="flex items-center gap-2">
+              <input type="radio" disabled />
+              {opt}
+            </label>
+          ))}
+        </div>
+      )
+
+    case 'text':
+    default:
+      return <input id={fieldId} type="text" disabled className={PREVIEW_INPUT_CLASS} />
+  }
 }
