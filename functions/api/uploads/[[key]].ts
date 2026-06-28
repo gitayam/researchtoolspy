@@ -12,10 +12,11 @@
  * hard-to-guess random-prefixed key — the unguessable key IS the gate for v1.
  * A stricter per-survey/owner access check can layer on later if needed.
  *
- * NOT here (later units): EXIF stripping on images (E-6c) — for now we serve the
- * object exactly as stored.
+ * EXIF stripping (E-6c): JPEG bytes are buffered and their APP1 (EXIF/GPS/XMP)
+ * segments removed before serving; all other content types stream as-stored.
  */
 import { CORS_HEADERS } from '../_shared/api-utils'
+import { stripImageExif } from './_exif'
 
 interface Env {
   UPLOADS?: R2Bucket
@@ -62,10 +63,10 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     })
   }
 
-  // E-6c: strip EXIF from image bytes here before streaming. For now: as-stored.
+  const contentType = object.httpMetadata?.contentType || 'application/octet-stream'
+
   const headers = new Headers(CORS_HEADERS)
-  headers.set('Content-Type', object.httpMetadata?.contentType || 'application/octet-stream')
-  headers.set('Content-Length', String(object.size))
+  headers.set('Content-Type', contentType)
   // Treat all uploads as attachments by default — never render inline as the
   // top-level document (mitigates stored-XSS via crafted files).
   headers.set('Content-Disposition', 'inline')
@@ -74,6 +75,16 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   headers.set('Cache-Control', 'private, max-age=31536000, immutable')
   if (object.httpEtag) headers.set('ETag', object.httpEtag)
 
+  // E-6c: strip EXIF/GPS from JPEGs before serving. Only images are buffered;
+  // every other type streams the R2 body unchanged.
+  if (contentType.toLowerCase() === 'image/jpeg') {
+    const buf = new Uint8Array(await object.arrayBuffer())
+    const cleaned = stripImageExif(buf, contentType)
+    headers.set('Content-Length', String(cleaned.byteLength))
+    return new Response(cleaned, { status: 200, headers })
+  }
+
+  headers.set('Content-Length', String(object.size))
   return new Response(object.body, { status: 200, headers })
 }
 
