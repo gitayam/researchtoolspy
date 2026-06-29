@@ -6,7 +6,8 @@
  */
 
 import { getUserFromRequest } from '../../_shared/auth-helpers'
-import { CORS_HEADERS, JSON_HEADERS, optionsResponse } from '../../_shared/api-utils'
+import { JSON_HEADERS, optionsResponse } from '../../_shared/api-utils'
+import { buildEvidenceItemsInsert } from '../_lib/research-evidence-mapping'
 
 interface Env {
   DB: D1Database
@@ -78,38 +79,44 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    const evidenceId = crypto.randomUUID()
     const now = new Date().toISOString()
     const workspaceId = body.workspaceId || context.request.headers.get('X-Workspace-ID') || null
 
-    await context.env.DB.prepare(`
-      INSERT INTO research_evidence (
-        id, research_question_id, investigation_packet_id, workspace_id,
-        evidence_type, title, content, metadata,
-        credibility_score, verification_status, chain_of_custody,
-        tags, category, linked_evidence, entities,
-        evidence_date, collected_at, collected_by
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).bind(
-      evidenceId,
-      body.researchQuestionId || null,
-      body.investigationPacketId || null,
-      workspaceId,
-      body.evidenceType,
-      body.title,
-      body.content || null,
-      body.metadata ? JSON.stringify(body.metadata) : null,
-      body.credibilityScore || null,
-      body.verificationStatus || 'unverified',
-      body.chainOfCustody ? JSON.stringify(body.chainOfCustody) : null,
-      body.tags ? JSON.stringify(body.tags) : null,
-      body.category || null,
-      body.linkedEvidence ? JSON.stringify(body.linkedEvidence) : null,
-      body.entities ? JSON.stringify(body.entities) : null,
-      body.evidenceDate || null,
-      now,
-      body.collectedBy || null
-    ).run()
+    // Write to the canonical `evidence_items` store (D-E8-3). First-class fields
+    // map to real columns; research-specific originals are stashed in `metadata`
+    // so the list-evidence read path is a lossless round-trip. The INTEGER PK is
+    // captured via meta.last_row_id and returned stringified (research_evidence
+    // used a TEXT uuid; callers treat the id as an opaque string).
+    const insert = buildEvidenceItemsInsert(
+      {
+        researchQuestionId: body.researchQuestionId || null,
+        investigationPacketId: body.investigationPacketId || null,
+        workspaceId,
+        evidenceType: body.evidenceType,
+        title: body.title,
+        content: body.content || null,
+        metadata: body.metadata ?? null,
+        credibilityScore: typeof body.credibilityScore === 'number' ? body.credibilityScore : null,
+        verificationStatus: body.verificationStatus || 'unverified',
+        chainOfCustody: body.chainOfCustody ?? null,
+        tags: body.tags ?? null,
+        category: body.category || null,
+        linkedEvidence: body.linkedEvidence ?? null,
+        entities: body.entities ?? null,
+        evidenceDate: body.evidenceDate || null,
+        collectedAt: now,
+        collectedBy: body.collectedBy || null,
+      },
+      { userId }
+    )
+
+    const placeholders = insert.columns.map(() => '?').join(', ')
+    const result = await context.env.DB.prepare(`
+      INSERT INTO evidence_items (${insert.columns.join(', ')})
+      VALUES (${placeholders})
+    `).bind(...insert.values).run()
+
+    const evidenceId = String(result.meta.last_row_id)
 
     // Log activity
     const activityId = crypto.randomUUID()

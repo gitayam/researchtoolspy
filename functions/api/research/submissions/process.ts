@@ -17,6 +17,7 @@
 import { getUserFromRequest } from '../../_shared/auth-helpers'
 import { JSON_HEADERS, optionsResponse } from '../../_shared/api-utils'
 import { buildEvidenceFromResponse } from '../_lib/systema-adapter'
+import { buildEvidenceItemsInsert } from '../_lib/research-evidence-mapping'
 
 interface Env {
   DB: D1Database
@@ -115,7 +116,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
 
     // Create evidence entry
-    const evidenceId = crypto.randomUUID()
     const now = new Date().toISOString()
     const title = fields.title
 
@@ -148,29 +148,40 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       }
     ]
 
-    await context.env.DB.prepare(`
-      INSERT INTO research_evidence (
-        id, research_question_id, investigation_packet_id, workspace_id,
-        evidence_type, title, content, source_url,
-        verification_status, credibility_score,
-        chain_of_custody, tags, metadata, collected_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).bind(
-      evidenceId,
-      null, // research_question_id (no question link in System A submissions)
-      null, // investigation_packet_id
-      evidenceWorkspaceId, // workspace_id from header, else survey workspace
-      evidenceType,
-      title,
-      content || null,
-      fields.source_url || null,
-      body.verificationStatus || 'unverified',
-      body.credibilityScore || null,
-      JSON.stringify(chainOfCustody),
-      JSON.stringify([]), // tags
-      null, // metadata
-      now
-    ).run()
+    // Write to the canonical `evidence_items` store (D-E8-3). The submission's
+    // `source_url` has no first-class column here, so it rides along in the
+    // metadata blob (lossless). The new INTEGER PK becomes the stringified
+    // evidence id stored back on the submission as `linked_evidence_id`.
+    const insert = buildEvidenceItemsInsert(
+      {
+        researchQuestionId: null, // no question link in System A submissions
+        investigationPacketId: null,
+        workspaceId: evidenceWorkspaceId, // header, else survey workspace
+        evidenceType,
+        title,
+        content: content || null,
+        metadata: { source_url: fields.source_url || null },
+        credibilityScore: typeof body.credibilityScore === 'number' ? body.credibilityScore : null,
+        verificationStatus: body.verificationStatus || 'unverified',
+        chainOfCustody,
+        tags: [],
+        category: null,
+        linkedEvidence: null,
+        entities: null,
+        evidenceDate: null,
+        collectedAt: now,
+        collectedBy: submission.submitter_name || null,
+      },
+      { userId }
+    )
+
+    const placeholders = insert.columns.map(() => '?').join(', ')
+    const result = await context.env.DB.prepare(`
+      INSERT INTO evidence_items (${insert.columns.join(', ')})
+      VALUES (${placeholders})
+    `).bind(...insert.values).run()
+
+    const evidenceId = String(result.meta.last_row_id)
 
     // Mark the System-A response accepted + link the evidence (no migration:
     // status/triaged_by/linked_evidence_id already exist on survey_responses).
