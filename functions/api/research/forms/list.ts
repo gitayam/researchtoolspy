@@ -1,12 +1,19 @@
 /**
  * List Forms API
- * GET /api/research/forms/list?workspaceId=xxx
+ * GET /api/research/forms/list?workspaceId=xxx&activeOnly=true
  *
- * List all submission forms for a workspace
+ * Lists the caller's research-collection forms for the reviewer UI.
+ *
+ * System A (E-4b-1): forms now live in `survey_drops` (the modern builder +
+ * public submit write here); the legacy `submission_forms` table holds only
+ * abandoned test data. This endpoint reads `survey_drops` and maps each row to
+ * the EXACT shape `EvidenceSubmissionsPage.tsx` already consumes via
+ * `adaptSurveyToFormRow`, so the frontend needs no change.
  */
 
 import { getUserFromRequest } from '../../_shared/auth-helpers'
-import { CORS_HEADERS, JSON_HEADERS, optionsResponse } from '../../_shared/api-utils'
+import { JSON_HEADERS, optionsResponse } from '../../_shared/api-utils'
+import { adaptSurveyToFormRow, type SurveyDropRow } from '../_lib/systema-adapter'
 
 interface Env {
   DB: D1Database
@@ -26,38 +33,32 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     const workspaceId = url.searchParams.get('workspaceId') || null
     const activeOnly = url.searchParams.get('activeOnly') === 'true'
 
+    // Scope to the caller's own surveys (mirrors GET /api/surveys), and also by
+    // workspace when the page supplies one (mirrors the legacy workspace filter).
     let query = `
-      SELECT
-        id, hash_id, form_name, form_description,
-        target_investigation_ids, target_research_question_ids,
-        enabled_fields, is_active, submission_count,
-        created_at, updated_at, expires_at
-      FROM submission_forms
-      WHERE creator_workspace_id = ?
+      SELECT id, title, description, form_schema, share_token, status,
+             submission_count, created_at
+      FROM survey_drops
+      WHERE created_by = ?
     `
+    const params: unknown[] = [userId]
 
-    const params: any[] = [workspaceId]
+    if (workspaceId) {
+      query += ` AND workspace_id = ?`
+      params.push(workspaceId)
+    }
 
     if (activeOnly) {
-      query += ` AND is_active = 1`
+      query += ` AND status = 'active'`
     }
 
     query += ` ORDER BY created_at DESC LIMIT 200`
 
     const result = await context.env.DB.prepare(query).bind(...params).all()
 
-    const safeJSON = (val: any, fallback: any = []) => {
-      if (!val) return fallback
-      try { return JSON.parse(val) } catch { return fallback }
-    }
-
-    const forms = (result.results || []).map((row: any) => ({
-      ...row,
-      targetInvestigationIds: safeJSON(row.target_investigation_ids, []),
-      targetResearchQuestionIds: safeJSON(row.target_research_question_ids, []),
-      enabledFields: safeJSON(row.enabled_fields, []),
-      submissionUrl: `/submit/${row.hash_id}`
-    }))
+    const forms = (result.results || []).map((row) =>
+      adaptSurveyToFormRow(row as unknown as SurveyDropRow)
+    )
 
     return new Response(JSON.stringify({
       success: true,
