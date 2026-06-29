@@ -1,6 +1,6 @@
 # ResearchTools.net — Roadmap
 
-**Last updated:** 2026-06-28 · **Current release:** `v0.22.0` (+ hardening patches through `v0.22.43`) · **Prod:** [researchtools.net](https://researchtools.net) (Cloudflare Pages + D1)
+**Last updated:** 2026-06-28 · **Current release:** `v0.22.0` (+ hardening patches through `v0.22.44`) · **Prod:** [researchtools.net](https://researchtools.net) (Cloudflare Pages + D1)
 
 > **2026-06-26 — fresh COP fix batch injected (`COP-1`…`COP-12`).** A `/team-investigate` pass on a user report (COT export "not working" + "many aspects not working") surfaced a verified backlog of loop-eligible bugs/stubs. Full evidence + AUTO/DECISION split: [`plans/2026-06-26-cop-investigation-findings.md`](plans/2026-06-26-cop-investigation-findings.md). Listed at the top of **Now** below. The prior `/roadmap-step` STOP (drained backlog) is now lifted.
 
@@ -31,6 +31,9 @@ New features are welcome but should ride on top of this hardened base, not aroun
 ---
 
 ## Recently shipped
+
+### v0.22.44 — COP intake gets URL auto-enrichment parity (shared helper) (E-14) (2026-06-28)
+- ✅ **Scraping integration across both intake paths** — the surveys submit auto-enriched URL fields (scrape + `analyze-url` quick-mode → `_enriched_<field>` on the response) but the COP public intake submit did not. Extracted that logic verbatim into a shared `functions/api/_shared/url-enrichment.ts` (`enrichResponseUrls()` + pure `urlFieldsFromSchema`/`enrichmentRecord` helpers) and wired **both** handlers to call it inside `context.waitUntil` — surveys behavior byte-for-byte preserved (the inline block, −56 LOC, now delegates), and COP intake forms now get the same title/excerpt/summary/entities enrichment. No IP/UA added. functions-build clean; pure helpers unit-tested (`url-enrichment.spec.ts`, 14/14); prod-deployed (HTTP 200). (`9d421817c`)
 
 ### v0.22.43 — "Cite this source" connects submissions to the citation generator (E-12 lite) (2026-06-28)
 - ✅ **Evidence → citation, wired** — first slice of the citation integration: the research-submissions reviewer now shows a **"Cite this source"** button on any submission with a `source_url`. It deep-links to the existing citation generator (`/dashboard/tools/citations-generator?url=<encoded>&title=<encoded>`), which already pre-fills from the params and auto-scrapes the URL into a formatted citation (APA/MLA/Chicago/Harvard). Pure, unit-tested `buildCitationGeneratorUrl` helper (`src/lib/cite-source.ts`; encodes url, includes title when present, returns null for non-http(s)/empty → button hidden). Frontend-only, reuses the existing URL→citation pipeline — no backend, no evidence-shape change, no dead write. `cite-source.spec.ts` 12/12; prod-deployed (HTTP 200). *The deeper "auto-citation persisted on the promoted evidence" is gated on D-E8 (the citation util targets a different evidence table than `research_evidence`).* (`50e59c24a`)
@@ -202,7 +205,7 @@ New features are welcome but should ride on top of this hardened base, not aroun
    - **Evidence ↔ tools integration** `E-12..16` `Requested 2026-06-28` — connect the evidence-collection form to citation/scraping/etc (plan §3d). Mostly ride on E-4b's unified promote:
      - 🟡 **E-12** `P2` — **citation integration** — ✅ **lite shipped** (v0.22.43, `50e59c24a`): a **"Cite this source"** button on each submission (with a `source_url`) opens the existing citation generator pre-filled (`/dashboard/tools/citations-generator?url=…&title=…`), which auto-scrapes → citation. Pure `buildCitationGeneratorUrl` helper; `cite-source.spec.ts` 12/12; prod 200. **Remaining (full):** auto-citation *stored on the promoted evidence* — gated on **D-E8** (the citation util targets a different evidence shape than `research_evidence`).
      - ⬜ **E-13** `P2` — **server-side citation library**: move the localStorage citation library (`citation-library.ts`) to a D1-backed `/api/citations` so citations are shared/queryable across tools (+ retention cron). *Independent — buildable now.*
-     - ⬜ **E-14** `P2` — **COP-intake enrichment parity**: copy the `analyze-url` enrichment block into `cop/public/intake/[token]/submit.ts` (currently bare). *Independent — buildable now.*
+     - ✅ **E-14** `P2` — **COP-intake enrichment parity** — DONE (v0.22.44, `9d421817c`). Extracted the surveys-submit URL-enrichment into a shared `functions/api/_shared/url-enrichment.ts` (`enrichResponseUrls` + pure `urlFieldsFromSchema`/`enrichmentRecord`); **both** the surveys submit (rewired, behavior preserved, −56 LOC inline) **and** the COP intake submit now run the same `analyze-url` quick-mode enrichment in `waitUntil`. functions-build clean; `url-enrichment.spec.ts` 14/14; prod 200.
      - 🔄 **E-15** `P3` **(needs E-4b reviewer)** — **re-scrape/deep-scrape action**: reviewer button → `analyze-url` full-mode on a submission's `source_url`.
      - 🔄 **E-16** `P2` **(needs E-4b)** — **promote enriched entities → actors** via `auto-extract-entities.ts`. Folds into E-7.
      - 🛑 **D-E8 DECISION** — **canonical evidence table**: collapse `evidence_items`/`evidence`/`research_evidence` onto one + fix `ach_evidence_links` (points at two). The structural keystone for true cross-tool evidence reuse; multi-table prod migration (~27 handlers) — surface, don't guess.
