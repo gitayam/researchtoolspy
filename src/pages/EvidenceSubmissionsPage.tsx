@@ -28,11 +28,13 @@ import {
   Archive,
   Tag,
   XCircle,
-  Quote
+  Quote,
+  ScanSearch
 } from 'lucide-react'
 import { getCopHeaders } from '@/lib/cop-auth'
 import { listResearchForms, listResearchSubmissions } from '@/lib/research-forms-api'
 import { buildCitationGeneratorUrl } from '@/lib/cite-source'
+import { canDeepScrape, PENDING_URL_ANALYSIS_KEY, CONTENT_INTEL_ROUTE } from '@/lib/deep-scrape'
 import { filterSubmissions } from '@/lib/submission-search'
 
 interface SubmissionForm {
@@ -760,6 +762,23 @@ export default function EvidenceSubmissionsPage() {
                             </Button>
                           )
                         })()}
+
+                        {canDeepScrape(selectedSubmission.source_url) && (
+                          <Button
+                            variant="outline"
+                            className="w-full"
+                            onClick={() => {
+                              localStorage.setItem(
+                                PENDING_URL_ANALYSIS_KEY,
+                                selectedSubmission.source_url!
+                              )
+                              navigate(CONTENT_INTEL_ROUTE)
+                            }}
+                          >
+                            <ScanSearch className="h-4 w-4 mr-2" />
+                            {t('evidenceSubmissions.deepScrape', 'Deep scrape')}
+                          </Button>
+                        )}
 
                         {selectedSubmission.status === 'pending' && (
                           <div className="flex space-x-2 pt-4">
