@@ -1,254 +1,36 @@
-// DEPRECATED: This endpoint queries the legacy 'evidence' table (0 rows).
-// All evidence data lives in 'evidence_items', served by /api/evidence-items.
-// No frontend code calls /api/evidence — this endpoint is kept for backwards
-// compatibility only. New code should use /api/evidence-items.
-import { getUserIdOrDefault, getUserFromRequest } from './_shared/auth-helpers'
+// RETIRED (D-E8-4): the singular /api/evidence endpoint formerly ran full CRUD
+// against the legacy `evidence` table (0 rows in prod). As part of making
+// `evidence_items` the single canonical evidence store (D-E8), every read/write
+// path has been repointed to `evidence_items` and this endpoint has no callers
+// (no frontend or backend code fetches /api/evidence). It now returns 410 Gone
+// so any stray client is told, unambiguously, to use the canonical endpoint —
+// and so the `evidence` table can be safely dropped (D-E8-5) without a live
+// reader/writer left behind. Use /api/evidence-items instead.
+import type { PagesFunction } from '@cloudflare/workers-types'
 import { CORS_HEADERS, JSON_HEADERS } from './_shared/api-utils'
 
-interface Env {
-  DB: D1Database
-  SESSIONS?: KVNamespace
-}
+const CANONICAL_ENDPOINT = '/api/evidence-items'
 
-const safeJSON = (val: any, fallback: any = []) => {
-  if (!val) return fallback
-  try { return JSON.parse(val) } catch { return fallback }
-}
-
-function parseEvidence(evidence: any) {
-  return {
-    ...evidence,
-    tags: safeJSON(evidence.tags, []),
-    source: safeJSON(evidence.source, {}),
-    metadata: safeJSON(evidence.metadata, {}),
-    sats_evaluation: safeJSON(evidence.sats_evaluation, null),
-    frameworks: safeJSON(evidence.frameworks, []),
-    attachments: safeJSON(evidence.attachments, []),
-    key_points: safeJSON(evidence.key_points, []),
-    contradictions: safeJSON(evidence.contradictions, []),
-    corroborations: safeJSON(evidence.corroborations, []),
-    implications: safeJSON(evidence.implications, []),
-    previous_versions: safeJSON(evidence.previous_versions, []),
-  }
-}
-
-export async function onRequest(context: any) {
-  const { request, env } = context
+export const onRequest: PagesFunction = async (context) => {
+  const { request } = context
 
   // Handle preflight
   if (request.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers: CORS_HEADERS })
   }
 
-  try {
-    const url = new URL(request.url)
-    const evidenceId = url.searchParams.get('id')
-    const userId = await getUserIdOrDefault(request, env)
-    if (!userId) {
-      return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: JSON_HEADERS,
-      })
+  // Everything else: this resource is permanently gone — point to the canonical store.
+  return new Response(
+    JSON.stringify({
+      error: 'Gone',
+      message:
+        'The /api/evidence endpoint has been retired. Evidence now lives in the canonical ' +
+        'evidence_items store. Use /api/evidence-items instead.',
+      canonical_endpoint: CANONICAL_ENDPOINT,
+    }),
+    {
+      status: 410,
+      headers: { ...JSON_HEADERS, Link: `<${CANONICAL_ENDPOINT}>; rel="successor-version"` },
     }
-
-    // GET - List evidence or get single evidence
-    if (request.method === 'GET') {
-      if (evidenceId) {
-        // Get single evidence from D1
-        const evidence = await env.DB.prepare(
-          'SELECT * FROM evidence WHERE id = ? AND created_by = ?'
-        ).bind(evidenceId, userId).first()
-
-        if (!evidence) {
-          return new Response(JSON.stringify({ error: 'Evidence not found' }), {
-            status: 404, headers: JSON_HEADERS,
-          })
-        }
-
-        return new Response(JSON.stringify(parseEvidence(evidence)), {
-          headers: JSON_HEADERS,
-        })
-      }
-
-      // List all evidence with optional filters
-      // Note: evidence table lacks workspace_id column (pre-workspace schema).
-      // Scoping is by created_by only. workspace_id param accepted but ignored.
-      const type = url.searchParams.get('type')
-      const status = url.searchParams.get('status')
-      const limit = Math.min(parseInt(url.searchParams.get('limit') || '50') || 50, 500)
-
-      let query = 'SELECT * FROM evidence WHERE created_by = ?'
-      const params: any[] = [userId]
-
-      if (type) {
-        query += ' AND type = ?'
-        params.push(type)
-      }
-      if (status) {
-        query += ' AND status = ?'
-        params.push(status)
-      }
-
-      query += ' ORDER BY updated_at DESC LIMIT ?'
-      params.push(limit)
-
-      const results = await env.DB.prepare(query).bind(...params).all()
-      const parsedResults = (results.results || []).map(parseEvidence)
-
-      return new Response(JSON.stringify({ evidence: parsedResults }), {
-        headers: JSON_HEADERS,
-      })
-    }
-
-    // POST - Create new evidence
-    if (request.method === 'POST') {
-      const authUserId = await getUserFromRequest(request, env)
-      if (!authUserId) {
-        return new Response(JSON.stringify({ error: 'Authentication required' }), {
-          status: 401, headers: JSON_HEADERS,
-        })
-      }
-      const body = await request.json()
-
-      // Build source object from separate fields or existing source object
-      const source = body.source || {
-        type: body.source_type || body.type,
-        name: body.source_name || '',
-        url: body.source_url || null,
-        credibility: body.credibility || '6',
-        reliability: body.reliability || 'F'
-      }
-
-      const result = await env.DB.prepare(
-        `INSERT INTO evidence (
-          title, description, content, type, status, tags,
-          source, metadata, sats_evaluation, frameworks, attachments,
-          created_by, created_at, updated_at,
-          key_points, contradictions, corroborations, implications,
-          version, previous_versions
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'), ?, ?, ?, ?, ?, ?)`
-      ).bind(
-        body.title,
-        body.description || '',
-        body.content || '',
-        body.type,
-        body.status || 'pending',
-        typeof body.tags === 'string' ? body.tags : JSON.stringify(body.tags || []),
-        JSON.stringify(source),
-        JSON.stringify(body.metadata || {}),
-        body.sats_evaluation ? JSON.stringify(body.sats_evaluation) : null,
-        JSON.stringify(body.frameworks || []),
-        JSON.stringify(body.attachments || []),
-        authUserId,
-        JSON.stringify(body.key_points || []),
-        JSON.stringify(body.contradictions || []),
-        JSON.stringify(body.corroborations || []),
-        JSON.stringify(body.implications || []),
-        body.version || 1,
-        JSON.stringify(body.previous_versions || [])
-      ).run()
-
-      return new Response(JSON.stringify({
-        id: result.meta.last_row_id,
-        message: 'Evidence created successfully'
-      }), {
-        status: 201, headers: JSON_HEADERS,
-      })
-    }
-
-    // PUT - Update evidence
-    if (request.method === 'PUT') {
-      const authUserId = await getUserFromRequest(request, env)
-      if (!authUserId) {
-        return new Response(JSON.stringify({ error: 'Authentication required' }), {
-          status: 401, headers: JSON_HEADERS,
-        })
-      }
-      const body = await request.json()
-
-      // Build source object from separate fields or existing source object
-      const source = body.source || {
-        type: body.source_type || body.type,
-        name: body.source_name || '',
-        url: body.source_url || null,
-        credibility: body.credibility || '6',
-        reliability: body.reliability || 'F'
-      }
-
-      const updateResult = await env.DB.prepare(
-        `UPDATE evidence
-         SET title = ?, description = ?, content = ?, type = ?, status = ?,
-             tags = ?, source = ?, metadata = ?, sats_evaluation = ?,
-             frameworks = ?, attachments = ?, updated_at = datetime('now'),
-             updated_by = ?, key_points = ?, contradictions = ?,
-             corroborations = ?, implications = ?, version = ?, previous_versions = ?
-         WHERE id = ? AND created_by = ?`
-      ).bind(
-        body.title,
-        body.description || '',
-        body.content || '',
-        body.type,
-        body.status,
-        typeof body.tags === 'string' ? body.tags : JSON.stringify(body.tags || []),
-        JSON.stringify(source),
-        JSON.stringify(body.metadata || {}),
-        body.sats_evaluation ? JSON.stringify(body.sats_evaluation) : null,
-        JSON.stringify(body.frameworks || []),
-        JSON.stringify(body.attachments || []),
-        authUserId,
-        JSON.stringify(body.key_points || []),
-        JSON.stringify(body.contradictions || []),
-        JSON.stringify(body.corroborations || []),
-        JSON.stringify(body.implications || []),
-        body.version || 1,
-        JSON.stringify(body.previous_versions || []),
-        evidenceId,
-        authUserId
-      ).run()
-
-      if (!updateResult.meta.changes || updateResult.meta.changes === 0) {
-        return new Response(JSON.stringify({ error: 'Evidence not found or access denied' }), {
-          status: 404, headers: JSON_HEADERS,
-        })
-      }
-
-      return new Response(JSON.stringify({ message: 'Evidence updated successfully' }), {
-        headers: JSON_HEADERS,
-      })
-    }
-
-    // DELETE - Delete evidence (scoped to owner)
-    if (request.method === 'DELETE') {
-      const authUserId = await getUserFromRequest(request, env)
-      if (!authUserId) {
-        return new Response(JSON.stringify({ error: 'Authentication required' }), {
-          status: 401, headers: JSON_HEADERS,
-        })
-      }
-      const result = await env.DB.prepare(
-        'DELETE FROM evidence WHERE id = ? AND created_by = ?'
-      ).bind(evidenceId, authUserId).run()
-
-      if (result.meta.changes === 0) {
-        return new Response(JSON.stringify({ error: 'Evidence not found or access denied' }), {
-          status: 404, headers: JSON_HEADERS,
-        })
-      }
-
-      return new Response(JSON.stringify({ message: 'Evidence deleted successfully' }), {
-        headers: JSON_HEADERS,
-      })
-    }
-
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405, headers: JSON_HEADERS,
-    })
-
-  } catch (error: any) {
-    console.error('[EVIDENCE API] Error:', error)
-    return new Response(JSON.stringify({
-      error: 'Internal server error'
-    }), {
-      status: 500, headers: JSON_HEADERS,
-    })
-  }
+  )
 }
