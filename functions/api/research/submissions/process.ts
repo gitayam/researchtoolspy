@@ -2,11 +2,21 @@
  * Process Submission to Evidence API
  * POST /api/research/submissions/process
  *
- * Convert a form submission into a research evidence entry
+ * Convert a reviewed form submission into a research evidence entry.
+ *
+ * System A (E-4b-2): submissions now live in `survey_responses` (the modern
+ * builder + public submit page write here). The legacy `form_submissions` table
+ * (System B) holds only abandoned test data, so this handler reads
+ * `survey_responses` JOINed to `survey_drops`, scoped to the owner
+ * (`d.created_by = userId`) exactly like the reviewer list (E-4b-1). The field
+ * mapping reuses the shared `buildEvidenceFromResponse` adapter so the promote
+ * extraction stays unit-testable and the submitter's IP hash can never leak into
+ * evidence (E-1 privacy).
  */
 
 import { getUserFromRequest } from '../../_shared/auth-helpers'
-import { CORS_HEADERS, JSON_HEADERS, optionsResponse } from '../../_shared/api-utils'
+import { JSON_HEADERS, optionsResponse } from '../../_shared/api-utils'
+import { buildEvidenceFromResponse } from '../_lib/systema-adapter'
 
 interface Env {
   DB: D1Database
@@ -43,17 +53,21 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
 
 
-    // Get submission with form details
+    // Get the System-A submission scoped to the owner's surveys (mirrors the
+    // reviewer list scoping in E-4b-1). The submitter's IP hash is deliberately
+    // NOT selected (E-1 privacy) and never reaches the evidence row.
     const submission = await context.env.DB.prepare(`
       SELECT
-        s.*,
-        f.target_investigation_ids,
-        f.target_research_question_ids,
-        f.form_name
-      FROM form_submissions s
-      JOIN submission_forms f ON s.form_id = f.id
-      WHERE s.id = ?
-    `).bind(body.submissionId).first()
+        s.id, s.survey_id, s.form_data,
+        s.submitter_name, s.submitter_contact,
+        s.status, s.linked_evidence_id,
+        s.created_at,
+        d.title AS form_name,
+        d.workspace_id AS survey_workspace_id
+      FROM survey_responses s
+      JOIN survey_drops d ON s.survey_id = d.id
+      WHERE s.id = ? AND d.created_by = ?
+    `).bind(body.submissionId, userId).first()
 
     if (!submission) {
       return new Response(JSON.stringify({
@@ -64,18 +78,24 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    if (submission.status === 'completed') {
+    // Already-processed guard: an accepted response (or one already linked to
+    // evidence) returns the existing evidence id instead of creating a duplicate.
+    if (submission.linked_evidence_id || submission.status === 'accepted') {
       return new Response(JSON.stringify({
-        error: 'Submission already processed',
-        evidenceId: submission.evidence_id
+        success: true,
+        alreadyProcessed: true,
+        evidenceId: submission.linked_evidence_id || null
       }), {
-        status: 400,
         headers: JSON_HEADERS
       })
     }
 
-    // Determine evidence type
-    let evidenceType = body.evidenceType || submission.content_type || 'source'
+    // Derive title / source_url / description / content_type from the submitted
+    // answers via the shared adapter (kept pure + unit-tested).
+    const fields = buildEvidenceFromResponse(submission.form_data)
+
+    // Determine evidence type from the form-supplied content type (or default).
+    let evidenceType = body.evidenceType || fields.content_type || 'source'
 
     // Map content types to evidence types
     const contentTypeMap: Record<string, string> = {
@@ -86,6 +106,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       'image': 'media',
       'podcast': 'media',
       'dataset': 'data',
+      'source': 'source',
       'other': 'source'
     }
 
@@ -96,47 +117,27 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     // Create evidence entry
     const evidenceId = crypto.randomUUID()
     const now = new Date().toISOString()
+    const title = fields.title
 
-    const safeJSON = (val: any, fallback: any = []) => {
-      if (!val) return fallback
-      try { return JSON.parse(val as string) } catch { return fallback }
-    }
-
-    // Get target research questions
-    const targetResearchQuestionIds = safeJSON(submission.target_research_question_ids, [])
-    const primaryQuestionId = targetResearchQuestionIds[0] || null
-
-    // Parse metadata
-    const metadata = safeJSON(submission.metadata, null)
-
-    // Build title from metadata or URL
-    const title = metadata?.title ||
-                 submission.content_description?.substring(0, 100) ||
-                 submission.source_url ||
-                 'Untitled Submission'
-
-    // Build content description
-    const contentParts = []
-    if (submission.content_description) {
-      contentParts.push(submission.content_description)
-    }
-    if (submission.submitter_comments) {
-      contentParts.push(`\n\nSubmitter comments: ${submission.submitter_comments}`)
+    // Build content description (submission narrative + reviewer notes)
+    const contentParts: string[] = []
+    if (fields.description) {
+      contentParts.push(fields.description)
     }
     if (body.notes) {
       contentParts.push(`\n\nReviewer notes: ${body.notes}`)
     }
     const content = contentParts.join('\n')
 
-    // Parse keywords
-    const keywords = safeJSON(submission.keywords, [])
+    // Prefer the explicit workspace header; fall back to the survey's workspace.
+    const evidenceWorkspaceId = workspaceId || (submission.survey_workspace_id as string | null)
 
     // Create chain of custody
     const chainOfCustody = [
       {
         actor: submission.submitter_name || 'anonymous',
         action: 'submitted',
-        timestamp: submission.submitted_at,
+        timestamp: submission.created_at,
         notes: `Submitted via form: ${submission.form_name}`
       },
       {
@@ -156,49 +157,31 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
       evidenceId,
-      primaryQuestionId,
+      null, // research_question_id (no question link in System A submissions)
       null, // investigation_packet_id
-      workspaceId, // workspace_id from header
+      evidenceWorkspaceId, // workspace_id from header, else survey workspace
       evidenceType,
       title,
       content || null,
-      submission.source_url || null,
+      fields.source_url || null,
       body.verificationStatus || 'unverified',
       body.credibilityScore || null,
       JSON.stringify(chainOfCustody),
-      JSON.stringify(keywords),
-      submission.metadata || null,
+      JSON.stringify([]), // tags
+      null, // metadata
       now
     ).run()
 
-    // Update submission status
+    // Mark the System-A response accepted + link the evidence (no migration:
+    // status/triaged_by/linked_evidence_id already exist on survey_responses).
     await context.env.DB.prepare(`
-      UPDATE form_submissions
-      SET status = 'completed',
-          processed_at = ?,
-          evidence_id = ?
+      UPDATE survey_responses
+      SET status = 'accepted',
+          triaged_by = ?,
+          linked_evidence_id = ?,
+          updated_at = datetime('now')
       WHERE id = ?
-    `).bind(now, evidenceId, body.submissionId).run()
-
-    // Log activity for each target research question
-    for (const questionId of targetResearchQuestionIds) {
-      const activityId = crypto.randomUUID()
-      await context.env.DB.prepare(`
-        INSERT INTO research_activity (
-          id, research_question_id, workspace_id,
-          activity_type, actor, content, timestamp
-        ) VALUES (?, ?, ?, ?, ?, ?, ?)
-      `).bind(
-        activityId,
-        questionId,
-        workspaceId,
-        'evidence_processed',
-        'system',
-        `Submission processed into evidence: ${title}`,
-        now
-      ).run()
-    }
-
+    `).bind(userId, evidenceId, body.submissionId).run()
 
     return new Response(JSON.stringify({
       success: true,
