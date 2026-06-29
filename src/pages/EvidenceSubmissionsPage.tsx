@@ -33,6 +33,7 @@ import {
 import { getCopHeaders } from '@/lib/cop-auth'
 import { listResearchForms, listResearchSubmissions } from '@/lib/research-forms-api'
 import { buildCitationGeneratorUrl } from '@/lib/cite-source'
+import { filterSubmissions } from '@/lib/submission-search'
 
 interface SubmissionForm {
   id: string
@@ -90,6 +91,7 @@ export default function EvidenceSubmissionsPage() {
   const [isLoadingSubmissions, setIsLoadingSubmissions] = useState(false)
   const [submissionsError, setSubmissionsError] = useState<string | null>(null)
   const [statusFilter, setStatusFilter] = useState('pending')
+  const [submissionSearch, setSubmissionSearch] = useState('')
   const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null)
   const [processDialog, setProcessDialog] = useState<ProcessDialog | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
@@ -248,6 +250,9 @@ export default function EvidenceSubmissionsPage() {
       form.form_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       form.hash_id.toLowerCase().includes(searchTerm.toLowerCase())
   )
+
+  // Client-side text search over the (server status-filtered) loaded submissions.
+  const filteredSubmissions = filterSubmissions(submissions, submissionSearch)
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -470,7 +475,7 @@ export default function EvidenceSubmissionsPage() {
 
           {/* Review Tab */}
           <TabsContent value="review" className="mt-6">
-            <div className="flex items-center space-x-4 mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-end gap-4 mb-6">
               <div className="flex-1 max-w-xs">
                 <Label htmlFor="statusFilter">{t('evidenceSubmissions.status', 'Status')}</Label>
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -483,6 +488,21 @@ export default function EvidenceSubmissionsPage() {
                     <SelectItem value="rejected">{t('evidenceSubmissions.rejected', 'Rejected')}</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="flex-1">
+                <Label htmlFor="submissionSearch">
+                  {t('evidenceSubmissions.search', 'Search')}
+                </Label>
+                <Input
+                  id="submissionSearch"
+                  placeholder={t(
+                    'evidenceSubmissions.searchSubmissions',
+                    'Search submissions (URL, text, submitter)…'
+                  )}
+                  value={submissionSearch}
+                  onChange={(e) => setSubmissionSearch(e.target.value)}
+                  className="max-w-md"
+                />
               </div>
             </div>
 
@@ -522,8 +542,23 @@ export default function EvidenceSubmissionsPage() {
                         </p>
                       </CardContent>
                     </Card>
+                  ) : filteredSubmissions.length === 0 ? (
+                    <Card>
+                      <CardContent className="p-8 text-center">
+                        <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                          {t('evidenceSubmissions.noMatchingSubmissions', 'No submissions match your search')}
+                        </h3>
+                        <p className="text-gray-500 dark:text-gray-400">
+                          {t(
+                            'evidenceSubmissions.noMatchingSubmissionsDescription',
+                            'Try a different URL, keyword, or submitter name.'
+                          )}
+                        </p>
+                      </CardContent>
+                    </Card>
                   ) : (
-                    submissions.map((submission) => (
+                    filteredSubmissions.map((submission) => (
                       <Card
                         key={submission.id}
                         className={`cursor-pointer hover:shadow-lg transition-shadow ${
