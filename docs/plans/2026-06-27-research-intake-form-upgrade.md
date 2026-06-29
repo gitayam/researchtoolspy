@@ -151,5 +151,19 @@ While scoping E-7 it became clear the **builder/submit/upload/extraction are all
 
 **Sequence:** E-4b → E-12/E-16 (fold into E-7's rich promote) + E-13/E-14/E-15 (standalone small wins) → then D-E8 (the deep evidence unification) when you greenlight it.
 
+## 3e. D-E8 — make `evidence_items` canonical (phased plan, 2026-06-29)
+
+**Decided:** `evidence_items` is canonical. **No data migration** (prod: `evidence_items`=99, `evidence`=0, `research_evidence`=0). The `evidence`/`research_evidence` handlers are **already broken** (write/select non-existent columns; only "work" at 0 rows) — so this repoint is also a **bug fix**. Link-table FKs (`ach_evidence_links`, `claim_evidence_links`, `framework_evidence`, `event_evidence`) **already target `evidence_items`** (migrations 048/050/003/005) — the dual-reference is only in handler joins. **Decision:** preserve the research-question linkage by ADDING columns to `evidence_items` (additive, low-risk) rather than degrading.
+
+**Phases (each = a sub-unit; back up prod D1 before any migration; functions-build gate; verify):**
+- **D-E8-0** `migration` — additive: `ALTER TABLE evidence_items ADD COLUMN metadata TEXT`, `research_question_id TEXT`, `investigation_packet_id TEXT`. (Homes for `research_evidence`/`evidence` JSON + the research-question link.) Idempotent-guard each ADD.
+- **D-E8-1** — fix the `evidence`-writer bug: `ach/from-content-intelligence.ts` → `INSERT INTO evidence_items` (corrected columns); delete the `evidence` fallback in `ach/public/[token].ts:69-81`. Makes the ACH CI path + its `ach_evidence_links` FK consistent.
+- **D-E8-2** — repoint read-only joins `evidence`→`evidence_items` + fix selected column names (`source_url`→`url`, `date`→`when_occurred`, `credibility_score`→`credibility`, `content_snippet`/`content_preview`→`description`, `user_id`→`created_by`, `sats_evaluation`→`eve_assessment`): `events/[id].ts:56`, `deception/aggregate.ts:136`, `settings/data/export.ts:105`, claims `[id].ts`/`search-evidence.ts`/`get-evidence-links/[id].ts`/`export-markdown/[id].ts`/`share/[id].ts`/`link-evidence.ts`.
+- **D-E8-3** — repoint `research_evidence` → `evidence_items`: `research/evidence/add.ts` + `research/submissions/process.ts` write `evidence_items` (fold extras into `metadata`, set `research_question_id`); `research/evidence/list.ts` reads `evidence_items WHERE research_question_id=?` and **re-maps response fields** (`verification_status`, `credibility_score` 0–1) so `ResearchWorkspacePage.tsx` keeps rendering; update `systema-adapter.ts:241` doc. Verify `survey_responses.linked_evidence_id` holds the (TEXT) evidence id.
+- **D-E8-4** — retire the deprecated singular `/api/evidence` endpoint (`evidence.ts`, 0 callers).
+- **D-E8-5** `migration` — `DROP TABLE IF EXISTS evidence; DROP TABLE IF EXISTS research_evidence;` (after D-E8-3 prod-verified). Back up first.
+
+After D-E8: one canonical evidence store → E-12-full (auto-citation persisted on evidence) + E-16 (entities→actors) + cross-tool reuse become straightforward.
+
 ## 4. Done-when (per phase)
 Each phase ships behind the existing verify gate (type-check + `@smoke`), with new tables/columns carrying a **retention cron** (project convention), R2 writes verified to actually land, and the submitter + reviewer paths prod-verified. New endpoints follow the public-share-token auth model (submitter side stays unauthenticated via opaque token + access-level; reviewer side `requireAuth`). Watch **#19** (`research/forms/list` workspace authorization) — fix it as part of touching this surface.
