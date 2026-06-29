@@ -146,6 +146,16 @@ const DESCRIPTION_KEYS = [
   'notes',
 ]
 
+/** Field-name candidates for a short title / headline. */
+const TITLE_KEYS = ['title', 'headline', 'name', 'subject']
+
+/**
+ * Field-name candidates for the content type a submitter selected (drives the
+ * content_type→evidence_type map in the promote handler). E.g. a "Content Type"
+ * select → `content_type`.
+ */
+const CONTENT_TYPE_KEYS = ['content_type', 'evidence_type', 'type', 'media_type']
+
 /** First non-empty string value among `keys`, else the first url-looking value. */
 function pickUrl(data: Record<string, unknown>): string | null {
   for (const key of SOURCE_URL_KEYS) {
@@ -164,6 +174,24 @@ function pickDescription(data: Record<string, unknown>): string | null {
   for (const key of DESCRIPTION_KEYS) {
     const v = data[key]
     if (typeof v === 'string' && v.trim()) return v
+  }
+  return null
+}
+
+/** First non-empty string value among the title candidate keys. */
+function pickTitle(data: Record<string, unknown>): string | null {
+  for (const key of TITLE_KEYS) {
+    const v = data[key]
+    if (typeof v === 'string' && v.trim()) return v.trim()
+  }
+  return null
+}
+
+/** First non-empty string value among the content-type candidate keys. */
+function pickContentType(data: Record<string, unknown>): string | null {
+  for (const key of CONTENT_TYPE_KEYS) {
+    const v = data[key]
+    if (typeof v === 'string' && v.trim()) return v.trim()
   }
   return null
 }
@@ -205,5 +233,48 @@ export function adaptResponseToSubmissionRow(row: SurveyResponseRow): ReviewerSu
     evidence_id: row.linked_evidence_id ?? null,
     rejection_reason: row.rejection_reason ?? null,
     submitted_at: row.created_at ?? null,
+  }
+}
+
+/**
+ * The evidence-promote field mapping (E-4b-2): the fields the promote handler
+ * needs to build a `research_evidence` row out of a System-A `survey_responses`
+ * submission. Pure (no D1 / crypto / Request), so it's unit-testable in Node.
+ *
+ *  source_url   ← form_data title/url keys (slugified-label fallbacks)
+ *  description  ← form_data description keys
+ *  content_type ← form_data content-type keys (the handler maps this →
+ *                 evidence_type; `null` means "use the default")
+ *  title        ← form_data title field, else the description, else source_url,
+ *                 else 'Untitled Submission'
+ *
+ * Privacy (E-1): only the submitter-typed answers are read; `submitter_ip_hash`
+ * is never touched, so it can't leak into evidence.
+ */
+export interface PromoteEvidenceFields {
+  title: string
+  source_url: string | null
+  description: string | null
+  content_type: string | null
+}
+
+export function buildEvidenceFromResponse(formData: unknown): PromoteEvidenceFields {
+  const data = safeParse<Record<string, unknown>>(formData, {})
+
+  const sourceUrl = pickUrl(data)
+  const description = pickDescription(data)
+  const contentType = pickContentType(data)
+
+  const title =
+    pickTitle(data) ||
+    (description ? description.slice(0, 100) : null) ||
+    sourceUrl ||
+    'Untitled Submission'
+
+  return {
+    title,
+    source_url: sourceUrl,
+    description,
+    content_type: contentType,
   }
 }
