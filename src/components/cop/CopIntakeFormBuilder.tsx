@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import { getCopHeaders } from '../../lib/cop-auth'
-import { Plus, Trash2, GripVertical, Eye, Save } from 'lucide-react'
+import { Plus, Trash2, GripVertical, Save } from 'lucide-react'
 import type { IntakeFormField, IntakeFormFieldType } from '../../types/cop'
 
 interface CopIntakeFormBuilderProps {
@@ -119,7 +119,6 @@ export default function CopIntakeFormBuilder({
   const [requireContact, setRequireContact] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
-  const [preview, setPreview] = useState(false)
   const [accessLevel, setAccessLevel] = useState<'public' | 'password' | 'internal'>('public')
   const [formPassword, setFormPassword] = useState('')
   const [allowedCountries, setAllowedCountries] = useState<string[]>([])
@@ -418,13 +417,6 @@ export default function CopIntakeFormBuilder({
           {saving ? 'Saving...' : 'Save Form'}
         </button>
         {saveError && <p className="text-xs text-red-500" role="alert">{saveError}</p>}
-        <button
-          onClick={() => setPreview(!preview)}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded border border-slate-300 dark:border-slate-700 hover:bg-muted transition-colors"
-        >
-          <Eye className="h-3.5 w-3.5" />
-          {preview ? 'Hide Preview' : 'Preview'}
-        </button>
       </div>
     </div>
   )
