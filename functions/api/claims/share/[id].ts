@@ -155,9 +155,9 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     // Get linked evidence
     const evidence = await context.env.DB.prepare(`
-      SELECT e.id, e.type, e.content, e.source_url, e.date, e.credibility_score, cel.relevance_score
+      SELECT e.id, e.evidence_type AS type, e.description AS content, e.source_url, e.when_occurred AS date, e.credibility AS credibility_score, cel.relevance_score
       FROM claim_evidence_links cel
-      JOIN evidence e ON cel.evidence_id = e.id
+      JOIN evidence_items e ON cel.evidence_id = e.id
       WHERE cel.claim_adjustment_id = ?
       ORDER BY cel.relevance_score DESC
     `).bind(share.claim_adjustment_id).all()

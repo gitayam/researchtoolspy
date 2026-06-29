@@ -102,7 +102,7 @@ async function exportEvidence(db: D1Database, userHash: string, workspaceId?: st
   // This is a placeholder - adjust based on your actual evidence table structure
   let query = `
     SELECT e.*
-    FROM evidence e
+    FROM evidence_items e
     JOIN workspaces w ON e.workspace_id = w.id
     WHERE w.user_hash = ?
   `

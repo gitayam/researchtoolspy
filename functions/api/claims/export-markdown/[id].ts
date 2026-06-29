@@ -68,9 +68,9 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         cel.created_at,
         e.title as evidence_title,
         e.description as evidence_description,
-        e.type as evidence_type
+        e.evidence_type as evidence_type
       FROM claim_evidence_links cel
-      JOIN evidence e ON cel.evidence_id = e.id
+      JOIN evidence_items e ON cel.evidence_id = e.id
       WHERE cel.claim_adjustment_id = ?
       ORDER BY cel.relationship, cel.relevance_score DESC
     `).bind(claimAdjustmentId).all()

@@ -127,14 +127,16 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     }
 
     // ===== 3. EVIDENCE EVE SCORES =====
-    // Note: evidence table uses sats_evaluation (not eve_assessment) and has no workspace_id
+    // Canonical evidence_items stores the EVE assessment in eve_assessment (same JSON shape
+    // {internal_consistency, external_corroboration, anomaly_detection} as the legacy sats_evaluation).
+    // Alias it back to sats_evaluation so the downstream parsing below is unchanged.
     const eveEvidence = await context.env.DB.prepare(`
       SELECT
         e.id,
         e.title,
-        e.sats_evaluation
-      FROM evidence e
-      WHERE e.sats_evaluation IS NOT NULL
+        e.eve_assessment AS sats_evaluation
+      FROM evidence_items e
+      WHERE e.eve_assessment IS NOT NULL
       LIMIT 200
     `).all()
 

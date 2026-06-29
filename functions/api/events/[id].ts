@@ -51,9 +51,9 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       WHERE ae.event_id = ?
     `).bind(eventId).all()
 
-    // Get related evidence
+    // Get related evidence (canonical evidence_items table; event_evidence FK targets it)
     const { results: evidence } = await env.DB.prepare(`
-      SELECT e.*, ee.relevance FROM evidence e
+      SELECT e.*, ee.relevance FROM evidence_items e
       JOIN event_evidence ee ON e.id = ee.evidence_id
       WHERE ee.event_id = ?
     `).bind(eventId).all()
