@@ -1,6 +1,6 @@
 # ResearchTools.net — Roadmap
 
-**Last updated:** 2026-06-28 · **Current release:** `v0.22.0` (+ hardening patches through `v0.22.45`) · **Prod:** [researchtools.net](https://researchtools.net) (Cloudflare Pages + D1)
+**Last updated:** 2026-06-28 · **Current release:** `v0.22.0` (+ hardening patches through `v0.22.46`) · **Prod:** [researchtools.net](https://researchtools.net) (Cloudflare Pages + D1)
 
 > **2026-06-26 — fresh COP fix batch injected (`COP-1`…`COP-12`).** A `/team-investigate` pass on a user report (COT export "not working" + "many aspects not working") surfaced a verified backlog of loop-eligible bugs/stubs. Full evidence + AUTO/DECISION split: [`plans/2026-06-26-cop-investigation-findings.md`](plans/2026-06-26-cop-investigation-findings.md). Listed at the top of **Now** below. The prior `/roadmap-step` STOP (drained backlog) is now lifted.
 
@@ -31,6 +31,9 @@ New features are welcome but should ride on top of this hardened base, not aroun
 ---
 
 ## Recently shipped
+
+### v0.22.46 — "Deep scrape" a submitted URL via Content Intelligence (E-15) (2026-06-28)
+- ✅ **One-click full analysis of a submitted source** — intake auto-enriches URLs in quick mode; the reviewer can now run the **full** `analyze-url` (entities/claims/full text/archive) on any submission's `source_url` via a "Deep scrape" button that reuses the Content Intelligence page's existing `pending_url_analysis` localStorage handoff (set key + navigate → auto-analyzes on mount). Pure `canDeepScrape` guard (http(s)-only) + pinned handoff constants; frontend-only (no endpoint/page change). `deep-scrape.spec.ts` 8/8; prod-deployed (HTTP 200). (`bb02ca0b8`)
 
 ### v0.22.45 — Search box on the submissions Review tab (E-9a) (2026-06-28)
 - ✅ **Submissions are searchable** — the reviewer's Review tab rendered all loaded submissions with only a server-side status filter; now there's a client-side free-text search box (over the loaded ≤500, on top of the status filter) matching across `source_url`, the description/`metadata.title`, and `submitter_name`, with a graceful empty-after-filter state. Logic in a pure, unit-tested `src/lib/submission-search.ts` (`matchesSubmissionSearch`/`filterSubmissions`; null-safe). Frontend-only (no endpoint change — server-side `q` is a noted follow-up if the 500 cap is ever hit). `submission-search.spec.ts` 16/16; prod-deployed (HTTP 200). (`a512cc907`)
@@ -209,7 +212,7 @@ New features are welcome but should ride on top of this hardened base, not aroun
      - 🟡 **E-12** `P2` — **citation integration** — ✅ **lite shipped** (v0.22.43, `50e59c24a`): a **"Cite this source"** button on each submission (with a `source_url`) opens the existing citation generator pre-filled (`/dashboard/tools/citations-generator?url=…&title=…`), which auto-scrapes → citation. Pure `buildCitationGeneratorUrl` helper; `cite-source.spec.ts` 12/12; prod 200. **Remaining (full):** auto-citation *stored on the promoted evidence* — gated on **D-E8** (the citation util targets a different evidence shape than `research_evidence`).
      - ⬜ **E-13** `P2` — **server-side citation library**: move the localStorage citation library (`citation-library.ts`) to a D1-backed `/api/citations` so citations are shared/queryable across tools (+ retention cron). *Independent — buildable now.*
      - ✅ **E-14** `P2` — **COP-intake enrichment parity** — DONE (v0.22.44, `9d421817c`). Extracted the surveys-submit URL-enrichment into a shared `functions/api/_shared/url-enrichment.ts` (`enrichResponseUrls` + pure `urlFieldsFromSchema`/`enrichmentRecord`); **both** the surveys submit (rewired, behavior preserved, −56 LOC inline) **and** the COP intake submit now run the same `analyze-url` quick-mode enrichment in `waitUntil`. functions-build clean; `url-enrichment.spec.ts` 14/14; prod 200.
-     - ⬜ **E-15** `P3` **UNBLOCKED (E-4b done)** — **re-scrape/deep-scrape action**: reviewer button → `analyze-url` full-mode on a submission's `source_url`.
+     - ✅ **E-15** `P3` — **deep-scrape action** — DONE (v0.22.46, `bb02ca0b8`). "Deep scrape" button on a submission (with `source_url`) hands the URL to the Content Intelligence page via its existing `pending_url_analysis` localStorage handoff → full `analyze-url`. Pure `canDeepScrape` helper; `deep-scrape.spec.ts` 8/8; prod 200.
      - 🔄 **E-16** `P2` **(needs E-4b)** — **promote enriched entities → actors** via `auto-extract-entities.ts`. Folds into E-7.
      - 🛑 **D-E8 DECISION** — **canonical evidence table**: collapse `evidence_items`/`evidence`/`research_evidence` onto one + fix `ach_evidence_links` (points at two). The structural keystone for true cross-tool evidence reuse; multi-table prod migration (~27 handlers) — surface, don't guess.
    - 🔄 **E-8** `P2` **GATED on E-6e** — EXIF/GPS→`geopoint` needs uploads actually wired into the form (E-6e), which needs your Turnstile keys.
