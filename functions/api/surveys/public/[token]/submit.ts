@@ -10,7 +10,7 @@ import {
   extractGeoFromRequest, isCountryAllowed, verifyPassword,
   hashSubmitterIP, hashFormData, checkSurveyResponseRateLimit,
 } from '../../../_shared/survey-drops'
-import { scrapeUrl } from '../../../_shared/scraper-utils'
+import { enrichResponseUrls } from '../../../_shared/url-enrichment'
 
 interface Env {
   DB: D1Database
@@ -216,61 +216,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     // Async post-processing (runs after response is sent)
     context.waitUntil((async () => {
       try {
-        // URL enrichment: if a URL field was submitted, fetch title/description
-        const urlFields = formSchema.filter((f: any) => f.type === 'url')
-        for (const field of urlFields) {
-          const url = formData[field.name]
-          if (!url || typeof url !== 'string' || !url.startsWith('http')) continue
-
-          try {
-            // Quick scrape for title/excerpt
-            const scraped = await scrapeUrl(url, env.APIFY_API_KEY)
-            const enrichment: Record<string, unknown> = {
-              field: field.name,
-              url,
-              title: scraped.title,
-              excerpt: scraped.content?.substring(0, 500),
-              fetched_at: new Date().toISOString(),
-            }
-
-            // Full content analysis via internal API call (entities, claims, sentiment, topics)
-            try {
-              const origin = new URL(request.url).origin
-              const analysisRes = await fetch(`${origin}/api/content-intelligence/analyze-url`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-User-Hash': env.SYSTEM_USER_HASH || 'system-internal' },
-                body: JSON.stringify({ url, mode: 'quick' }),
-                signal: AbortSignal.timeout(25000),
-              })
-              if (analysisRes.ok) {
-                const analysis = await analysisRes.json() as any
-                enrichment.analysis_id = analysis.id ?? analysis.analysis_id
-                enrichment.summary = analysis.summary?.substring(0, 300)
-                enrichment.word_count = analysis.word_count
-                enrichment.content_source = analysis.content_source
-              } else {
-                console.warn(`[Survey Process] Content analysis returned ${analysisRes.status} for ${url}`)
-              }
-            } catch (e) {
-              console.error(`[Survey Process] Content analysis failed for ${url}:`, e)
-            }
-
-            // Store enrichment alongside the response
-            const currentData = await env.DB.prepare(
-              'SELECT form_data FROM survey_responses WHERE id = ?'
-            ).bind(id).first<{ form_data: string }>()
-
-            if (currentData) {
-              const data = JSON.parse(currentData.form_data)
-              data[`_enriched_${field.name}`] = enrichment
-              await env.DB.prepare(
-                'UPDATE survey_responses SET form_data = ? WHERE id = ?'
-              ).bind(JSON.stringify(data), id).run()
-            }
-          } catch (e) {
-            console.error(`[Survey Process] URL enrichment failed for ${url}:`, e)
-          }
-        }
+        // URL enrichment: if a URL field was submitted, scrape + analyze it (shared helper)
+        await enrichResponseUrls({
+          env,
+          origin: new URL(request.url).origin,
+          responseId: id,
+          formSchema,
+          formData,
+        })
         // Auto-tagging: classify the response based on content keywords
         try {
           const allText = Object.values(formData)
