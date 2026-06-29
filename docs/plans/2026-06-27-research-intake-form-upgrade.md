@@ -132,5 +132,24 @@ While scoping E-7 it became clear the **builder/submit/upload/extraction are all
 - 🟡 **E-11** — drop-spot, needs **D-E4** (anonymity model).
 - 🟢 **E-10** — credibility fields: the only remaining unit buildable without a decision, but "first-class field types" touches the entangled public renderer (or ship as a credibility *preset* using existing select types — cleaner, overlaps E-4a).
 
+## 3d. Evidence-collection ↔ tools integration (requested 2026-06-28)
+
+> User ask: *"make sure the evidence collection form is integrated into our other tools such as citation or scraping etc."*
+
+**The pieces already exist — they're just not connected at the promote step, and the deep reuse is gated on unification.** Citation: a working generator (APA/MLA/Chicago/Harvard, `src/utils/citation-formatters.ts:150`) with **URL→citation already wired** (`CitationsGeneratorPage` → `tools/scrape-metadata.ts` → `src/utils/content-to-citation.ts:18`); but the library is **localStorage** (`citation-library.ts:4`), and intake's `_enriched_<field>` (title/author/publish_date/domain — exactly `content-to-citation`'s inputs) **never becomes a citation**. Scraping: intake auto-enriches URL fields via `analyze-url` (`surveys/public/[token]/submit.ts:217-273`), but **COP intake doesn't**, and there's **no reviewer "re-scrape/deep-scrape" action**. Evidence is fragmented across `evidence_items` (de-facto main) / `evidence` / `research_evidence` / `survey_responses`, with `ach_evidence_links` ambiguously pointing at two tables — so "submitted source → reusable across citation/frameworks/ACH/COP" isn't true yet.
+
+**Small-win units (data already present; no schema change) — ride on the unified promote (E-4b):**
+- **E-12 · Auto-citation on promote** — at promote, feed the submission's `_enriched_*` (title/author/date/domain/url) through `extractCitationData()` → `generateCitation()` and attach the formatted citation to the created evidence. *(Folds into E-7's "rich promote"; pure reuse.)*
+- **E-13 · Server-side citation library** — move the citation library from localStorage to a thin D1-backed `/api/citations` (or reuse `evidence_citations`) so citations are shared/queryable across tools (+ retention cron per convention).
+- **E-14 · COP-intake enrichment parity** — copy the `analyze-url` enrichment block from the surveys submit into `cop/public/intake/[token]/submit.ts` (currently bare), so COP drops get the same URL extraction.
+- **E-15 · Re-scrape / deep-scrape action** — reviewer button that runs `analyze-url` full-mode on a submission's `source_url` (intake uses quick-mode); endpoint exists, just wire it.
+- **E-16 · Promote enriched entities → actors** — wire promote to `auto-extract-entities.ts:15` (creates uppercase, dedup'd `actors`) using the already-extracted `_enriched` entities. *(Folds into E-7.)*
+
+**Structural (the real "integration" substrate) — DECISION + big build:**
+- **🔑 E-4b** (already approved) — unify reviewer/promotion on System A. Gate for E-12/E-15/E-16/E-7/E-9 (the promote/reviewer must read System A first).
+- **D-E8 · Canonical evidence table (DECISION)** — collapse `evidence_items` / `evidence` / `research_evidence` onto ONE table and fix `ach_evidence_links` (points at two today), so a submitted source becomes evidence that citation + frameworks + ACH + COP + content-library all read. This is the structural keystone for true cross-tool reuse (precedent: the D1 "unify evidence-linking" item in the 2026-06-19 plan). **Surface; don't guess** — it's a multi-table prod migration touching ~27 handlers.
+
+**Sequence:** E-4b → E-12/E-16 (fold into E-7's rich promote) + E-13/E-14/E-15 (standalone small wins) → then D-E8 (the deep evidence unification) when you greenlight it.
+
 ## 4. Done-when (per phase)
 Each phase ships behind the existing verify gate (type-check + `@smoke`), with new tables/columns carrying a **retention cron** (project convention), R2 writes verified to actually land, and the submitter + reviewer paths prod-verified. New endpoints follow the public-share-token auth model (submitter side stays unauthenticated via opaque token + access-level; reviewer side `requireAuth`). Watch **#19** (`research/forms/list` workspace authorization) — fix it as part of touching this surface.
