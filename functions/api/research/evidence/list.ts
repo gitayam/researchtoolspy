@@ -7,7 +7,11 @@
 
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest } from '../../_shared/auth-helpers'
-import { CORS_HEADERS, JSON_HEADERS, optionsResponse } from '../../_shared/api-utils'
+import { JSON_HEADERS, optionsResponse } from '../../_shared/api-utils'
+import {
+  itemRowToResearchEvidence,
+  verificationStatusToItemStatus,
+} from '../_lib/research-evidence-mapping'
 
 interface Env {
   DB: D1Database
@@ -39,8 +43,13 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       })
     }
 
+    // Read from the canonical `evidence_items` store (D-E8-3). The research links
+    // (research_question_id / investigation_packet_id) are now real columns
+    // (migration 110); the incoming verification-status filter is mapped through
+    // the same status vocabulary the write path uses, and the per-row response is
+    // rehydrated from the lossless `metadata` blob to preserve the frontend contract.
     let query = `
-      SELECT * FROM research_evidence
+      SELECT * FROM evidence_items
       WHERE 1=1
     `
     const params: any[] = []
@@ -61,11 +70,11 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     }
 
     if (verificationStatus) {
-      query += ` AND verification_status = ?`
-      params.push(verificationStatus)
+      query += ` AND status = ?`
+      params.push(verificationStatusToItemStatus(verificationStatus))
     }
 
-    query += ` ORDER BY collected_at DESC LIMIT 500`
+    query += ` ORDER BY created_at DESC LIMIT 500`
 
     const stmt = context.env.DB.prepare(query).bind(...params)
     const result = await stmt.all()
@@ -75,14 +84,9 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       try { return JSON.parse(val) } catch { return fallback }
     }
 
-    const evidence = (result.results || []).map((row: any) => ({
-      ...row,
-      metadata: safeJSON(row.metadata, null),
-      chainOfCustody: safeJSON(row.chain_of_custody, null),
-      tags: safeJSON(row.tags, []),
-      linkedEvidence: safeJSON(row.linked_evidence, []),
-      entities: safeJSON(row.entities, [])
-    }))
+    const evidence = (result.results || []).map((row: Record<string, unknown>) =>
+      itemRowToResearchEvidence(row, safeJSON)
+    )
 
     return new Response(JSON.stringify({
       success: true,
