@@ -47,8 +47,9 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       'SELECT * FROM ach_hypotheses WHERE ach_analysis_id = ? ORDER BY order_num'
     ).bind(analysis.id).all()
 
-    // Get evidence links with evidence details
-    // Try with evidence_items first, fallback to old evidence table
+    // Get evidence links with evidence details.
+    // evidence_items is the single canonical evidence table (D-E8); the old
+    // `evidence` fallback was removed since that table is collapsed onto it.
     let evidenceLinks: any
     try {
       evidenceLinks = await context.env.DB.prepare(`
@@ -65,24 +66,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         WHERE ael.ach_analysis_id = ?
       `).bind(analysis.id).all()
     } catch (err) {
-      try {
-        evidenceLinks = await context.env.DB.prepare(`
-          SELECT
-            ael.id as link_id,
-            ael.evidence_id,
-            e.title as evidence_title,
-            e.content as evidence_content,
-            e.source,
-            e.date,
-            e.credibility_score
-          FROM ach_evidence_links ael
-          JOIN evidence e ON ael.evidence_id = e.id
-          WHERE ael.ach_analysis_id = ?
-        `).bind(analysis.id).all()
-      } catch (err2) {
-        console.error('Both evidence queries failed:', err2)
-        evidenceLinks = { results: [] }
-      }
+      console.error('Evidence query failed:', err)
+      evidenceLinks = { results: [] }
     }
 
     // Get scores
