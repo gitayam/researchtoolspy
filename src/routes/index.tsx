@@ -8,6 +8,25 @@ function LegacySurveyRedirect() {
   return <Navigate to={`/dashboard/drops/${id}`} replace />
 }
 
+// Legacy public submit page (System B) was retired — the old `/submit/:hashId`
+// hash IDs do not map to System-A survey tokens, so we can't redirect; show a
+// graceful notice instead of a dead page.
+function SubmissionFormMovedNotice() {
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-gray-50 px-4 dark:bg-gray-900">
+      <div className="max-w-md text-center">
+        <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
+          This submission form is no longer available
+        </h1>
+        <p className="mt-3 text-sm text-gray-600 dark:text-gray-400">
+          Please use the link the form&rsquo;s owner shared with you. If you
+          don&rsquo;t have a current link, contact them to request a new one.
+        </p>
+      </div>
+    </main>
+  )
+}
+
 // Enhanced loading fallback component with progress indicator
 const PageLoader = () => (
   <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -129,7 +148,6 @@ const PublicCopPage = lazy(() => import('@/pages/PublicCopPage'))
 const PublicCrossTablePage = lazy(() => import('@/pages/tools/PublicCrossTablePage'))
 const PublicIntakePage = lazy(() => import('@/pages/PublicIntakePage'))
 const DropLandingPage = lazy(() => import('@/pages/DropLandingPage'))
-const SubmitEvidencePage = lazy(() => import('@/pages/SubmitEvidencePage'))
 
 // Library pages (lazy loaded)
 const PublicLibraryPage = lazy(() => import('@/pages/PublicLibraryPage').then(m => ({ default: m.PublicLibraryPage })))
@@ -210,8 +228,10 @@ export const router = createBrowserRouter([
     element: <LazyPage Component={PublicIntakePage} />,
   },
   {
+    // Legacy System-B public submit route — retired. Hash IDs don't map to
+    // System-A survey tokens, so we show a notice instead of redirecting.
     path: '/submit/:hashId',
-    element: <LazyPage Component={SubmitEvidencePage} />,
+    element: <SubmissionFormMovedNotice />,
   },
   {
     path: '/tools',
