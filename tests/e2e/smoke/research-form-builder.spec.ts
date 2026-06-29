@@ -16,6 +16,7 @@ import {
   moveField,
   FormBuilderValidationError,
   FORM_TEMPLATES,
+  CREDIBILITY_FIELDS,
   MAX_FIELDS,
   type BuilderState,
   type BuilderField,
@@ -246,4 +247,34 @@ test.describe('research form builder helper @smoke', () => {
       expect(payload.form_schema).toHaveLength(t.fields.length)
     })
   }
+
+  // ── CREDIBILITY_FIELDS (NATO/Admiralty preset, E-10) ───────────────────────
+  // Two select fields a researcher drops in to rate a source: reliability A–F
+  // and information credibility 1–6. Both selects MUST carry options.
+
+  test('@smoke CREDIBILITY_FIELDS is two well-formed select presets (A–F, 1–6)', () => {
+    expect(CREDIBILITY_FIELDS).toHaveLength(2)
+    for (const f of CREDIBILITY_FIELDS) {
+      expect(f.type).toBe('select')
+      expect(parseOptions(f.optionsRaw).length).toBeGreaterThan(0)
+    }
+    const [reliability, credibility] = CREDIBILITY_FIELDS
+    const relOpts = parseOptions(reliability.optionsRaw)
+    expect(relOpts).toHaveLength(6)
+    expect(relOpts[0].startsWith('A')).toBe(true)
+    expect(relOpts[5].startsWith('F')).toBe(true)
+    const credOpts = parseOptions(credibility.optionsRaw)
+    expect(credOpts).toHaveLength(6)
+    expect(credOpts[0].startsWith('1')).toBe(true)
+    expect(credOpts[5].startsWith('6')).toBe(true)
+  })
+
+  test('@smoke CREDIBILITY_FIELDS builds a valid payload (2 selects, 6 options each)', () => {
+    const payload = buildSurveyPayload(baseState(CREDIBILITY_FIELDS))
+    expect(payload.form_schema).toHaveLength(2)
+    for (const f of payload.form_schema) {
+      expect(Array.isArray(f.options)).toBe(true)
+      expect(f.options).toHaveLength(6)
+    }
+  })
 })
