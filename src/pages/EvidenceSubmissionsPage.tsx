@@ -27,10 +27,12 @@ import {
   Link as LinkIcon,
   Archive,
   Tag,
-  XCircle
+  XCircle,
+  Quote
 } from 'lucide-react'
 import { getCopHeaders } from '@/lib/cop-auth'
 import { listResearchForms, listResearchSubmissions } from '@/lib/research-forms-api'
+import { buildCitationGeneratorUrl } from '@/lib/cite-source'
 
 interface SubmissionForm {
   id: string
@@ -702,6 +704,27 @@ export default function EvidenceSubmissionsPage() {
                             </div>
                           </div>
                         )}
+
+                        {(() => {
+                          const citeUrl = buildCitationGeneratorUrl({
+                            url: selectedSubmission.source_url,
+                            title:
+                              selectedSubmission.metadata?.title ||
+                              selectedSubmission.content_description ||
+                              ''
+                          })
+                          if (!citeUrl) return null
+                          return (
+                            <Button
+                              variant="outline"
+                              className="w-full"
+                              onClick={() => navigate(citeUrl)}
+                            >
+                              <Quote className="h-4 w-4 mr-2" />
+                              {t('evidenceSubmissions.citeThisSource', 'Cite this source')}
+                            </Button>
+                          )
+                        })()}
 
                         {selectedSubmission.status === 'pending' && (
                           <div className="flex space-x-2 pt-4">
