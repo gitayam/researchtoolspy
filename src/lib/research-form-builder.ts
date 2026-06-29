@@ -141,6 +141,29 @@ export const FORM_TEMPLATES: FormTemplate[] = [
   },
 ]
 
+/**
+ * NATO/Admiralty Code source-credibility fields a researcher uses to rate a
+ * source (E-10). Dropped into the builder as a one-click preset alongside the
+ * starter templates. Both are plain `select` fields the public renderer already
+ * handles — each MUST carry `optionsRaw` (OPTION_TYPES require options) — and
+ * both are optional so they never block a submission. Using `templateField`
+ * keeps each a complete, ready-to-edit builder row.
+ */
+export const CREDIBILITY_FIELDS: BuilderField[] = [
+  templateField({
+    type: 'select',
+    label: 'Source Reliability',
+    optionsRaw: 'A — Completely reliable, B — Usually reliable, C — Fairly reliable, D — Not usually reliable, E — Unreliable, F — Cannot be judged',
+    help_text: 'NATO Admiralty Code — reliability of the source.',
+  }),
+  templateField({
+    type: 'select',
+    label: 'Information Credibility',
+    optionsRaw: '1 — Confirmed, 2 — Probably true, 3 — Possibly true, 4 — Doubtful, 5 — Improbable, 6 — Cannot be judged',
+    help_text: 'NATO Admiralty Code — credibility of the information.',
+  }),
+]
+
 /** The whole builder form state. */
 export interface BuilderState {
   title: string

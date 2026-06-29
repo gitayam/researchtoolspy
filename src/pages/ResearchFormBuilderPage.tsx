@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/select'
 import {
   ArrowLeft, Copy, CheckCircle2, AlertCircle, Link as LinkIcon, Lock, Plus, Trash2,
-  ChevronUp, ChevronDown, Eye, MapPin, LayoutTemplate, FileText,
+  ChevronUp, ChevronDown, Eye, MapPin, LayoutTemplate, FileText, ShieldCheck,
 } from 'lucide-react'
 import { getCopHeaders } from '@/lib/cop-auth'
 import { useToast } from '@/components/ui/use-toast'
@@ -22,6 +22,7 @@ import {
   toPreviewFields,
   FIELD_TYPES,
   FORM_TEMPLATES,
+  CREDIBILITY_FIELDS,
   OPTION_TYPES,
   RANGE_TYPES,
   MAX_FIELDS,
@@ -121,6 +122,20 @@ export default function ResearchFormBuilderPage() {
   // Reset to a single empty field ("Blank form").
   const applyBlank = () =>
     setState((prev) => ({ ...prev, fields: [newField()] }))
+
+  // Append the NATO/Admiralty source-credibility preset (E-10). Deep-copied so
+  // edits never mutate the shared CREDIBILITY_FIELDS constant. Dedup by label
+  // (case-insensitive, trimmed) so re-clicking only adds the fields that are
+  // missing, and respects MAX_FIELDS.
+  const addCredibilityFields = () =>
+    setState((prev) => {
+      const existing = new Set(prev.fields.map((f) => f.label.trim().toLowerCase()))
+      const toAdd = CREDIBILITY_FIELDS
+        .filter((f) => !existing.has(f.label.trim().toLowerCase()))
+        .map((f) => ({ ...newField(), ...f }))
+        .slice(0, Math.max(0, MAX_FIELDS - prev.fields.length))
+      return toAdd.length === 0 ? prev : { ...prev, fields: [...prev.fields, ...toAdd] }
+    })
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text)
@@ -561,15 +576,27 @@ export default function ResearchFormBuilderPage() {
                 )
               })}
 
-              <Button
-                type="button"
-                variant="outline"
-                onClick={addField}
-                disabled={state.fields.length >= MAX_FIELDS}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add field
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={addField}
+                  disabled={state.fields.length >= MAX_FIELDS}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add field
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={addCredibilityFields}
+                  disabled={state.fields.length >= MAX_FIELDS}
+                  title="Add NATO/Admiralty source-reliability and information-credibility rating fields"
+                >
+                  <ShieldCheck className="h-4 w-4 mr-2" />
+                  Add credibility fields
+                </Button>
+              </div>
             </CardContent>
           </Card>
 
