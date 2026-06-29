@@ -10,9 +10,12 @@ import {
   extractGeoFromRequest, isCountryAllowed, verifyPassword,
   hashSubmitterIP, hashFormData, checkSurveyResponseRateLimit,
 } from '../../../../_shared/survey-drops'
+import { enrichResponseUrls } from '../../../../_shared/url-enrichment'
 
 interface Env {
   DB: D1Database
+  APIFY_API_KEY?: string
+  SYSTEM_USER_HASH?: string
 }
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
@@ -194,6 +197,15 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       },
       createdBy: 0,
     })
+
+    // Async URL enrichment (parity with surveys submit) — runs after response is sent.
+    context.waitUntil(enrichResponseUrls({
+      env,
+      origin: new URL(request.url).origin,
+      responseId: id,
+      formSchema,
+      formData,
+    }))
 
     return new Response(JSON.stringify({ id, message: 'Submission received. Thank you.' }), {
       status: 201, headers: JSON_HEADERS,
