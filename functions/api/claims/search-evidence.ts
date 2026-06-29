@@ -26,11 +26,11 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         e.id,
         e.title,
         e.description,
-        e.type,
+        e.evidence_type AS type,
         e.status,
         e.tags,
         e.created_at
-      FROM evidence e
+      FROM evidence_items e
       WHERE e.created_by = ?
     `
 

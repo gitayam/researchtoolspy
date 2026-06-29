@@ -72,10 +72,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    // Verify evidence exists and user has access
+    // Verify evidence exists and user has access (canonical evidence_items uses created_by, not user_id)
     const evidence = await context.env.DB.prepare(`
-      SELECT id, user_id
-      FROM evidence
+      SELECT id, created_by
+      FROM evidence_items
       WHERE id = ?
     `).bind(body.evidence_id).first()
 
@@ -87,7 +87,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
 
     // User must own the evidence or it must be shared with them
-    if (evidence.user_id !== authUserId) {
+    if (evidence.created_by !== authUserId) {
       return new Response(JSON.stringify({ error: 'Unauthorized to link this evidence' }), {
         status: 403,
         headers: JSON_HEADERS
