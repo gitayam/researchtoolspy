@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Search, Globe, FileText, Link as LinkIcon, Code, Database, Share2, FileStack, ArrowLeft, Grid3x3, Sparkles, TableProperties, Brain, Mail } from 'lucide-react'
+import { Search, Globe, FileText, Link as LinkIcon, Code, Database, Share2, FileStack, ArrowLeft, Grid3x3, Sparkles, TableProperties, Brain, Mail, BarChart, Users, Zap } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -113,6 +113,62 @@ export function ToolsPage() {
       description: t('toolsPage.documentsDesc'),
       icon: Database,
       features: t('toolsPage.documentsFeatures', { returnObjects: true }) as string[]
+    },
+    {
+      id: 'content-intelligence',
+      name: 'Content Research',
+      description: 'Extract entities, claims, summaries, and insights from any URL or document using AI-powered content intelligence.',
+      icon: Search,
+      features: [
+        'URL and document analysis',
+        'Entity and claim extraction',
+        'AI-powered summarization',
+        'Archive and deception detection',
+      ],
+      path: '/dashboard/tools/content-intelligence',
+      available: true
+    },
+    {
+      id: 'equilibrium-analysis',
+      name: 'Equilibrium Analysis',
+      description: 'Model strategic interactions and find Nash equilibria in 2-player normal-form games with payoff matrix editing.',
+      icon: BarChart,
+      features: [
+        'Payoff matrix editor',
+        'Pure and mixed Nash equilibria',
+        'Best-response highlighting',
+        'Named game templates (Prisoner\'s Dilemma, Chicken, etc.)',
+      ],
+      path: '/dashboard/tools/equilibrium-analysis',
+      available: true
+    },
+    {
+      id: 'hamilton-rule',
+      name: 'Hamilton Rule',
+      description: 'Apply Hamilton\'s Rule (rB > C) to model kin-selection and altruistic cooperation in strategic contexts.',
+      icon: Users,
+      features: [
+        'Relatedness coefficient calculator',
+        'Cost-benefit analysis',
+        'Cooperation threshold visualization',
+        'Strategic altruism modeling',
+      ],
+      path: '/dashboard/tools/hamilton-rule',
+      available: true
+    },
+    {
+      id: 'agentic-research',
+      name: 'Agentic Research',
+      description: 'Launch autonomous AI research agents to collect, triage, and analyze OSINT from the web.',
+      icon: Zap,
+      features: [
+        'Autonomous web research agents',
+        'Source triage and approval workflow',
+        'Batch evidence analysis',
+        'Collection job monitoring',
+      ],
+      path: '/dashboard/tools/collection',
+      available: true
     },
     {
       id: 'email-header-analyzer',

@@ -6,6 +6,7 @@ import { MobileBottomTabs } from '@/components/layout/mobile-bottom-tabs'
 import { GuestModeBanner } from '@/components/GuestModeBanner'
 import { ScrollToTop } from '@/components/ScrollToTop'
 import { SkipToContent } from '@/components/accessibility/SkipToContent'
+import { CommandPalette } from '@/components/CommandPalette'
 
 export function DashboardLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -28,6 +29,7 @@ export function DashboardLayout() {
       <div className="mobile-bottom-tabs">
         <MobileBottomTabs onMoreClick={() => setMobileMenuOpen(true)} />
       </div>
+      <CommandPalette />
     </div>
   )
 }

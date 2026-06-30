@@ -6,7 +6,8 @@ import {
   LogOut,
   Settings,
   User,
-  Save
+  Save,
+  Search
 } from 'lucide-react'
 import {
   DropdownMenu,
@@ -37,6 +38,15 @@ export function DashboardHeader() {
   const displayUser = {
     username: authUser?.username || authUser?.full_name || (authUser?.account_hash ? `Hash: ${authUser.account_hash.slice(0, 8)}...` : t('auth.guest')),
     role: authUser?.role || 'user'
+  }
+
+  const openCommandPalette = () => {
+    const event = new KeyboardEvent('keydown', {
+      key: 'k',
+      metaKey: true,
+      bubbles: true,
+    })
+    document.dispatchEvent(event)
   }
 
   const handleLogout = () => {
@@ -80,6 +90,19 @@ export function DashboardHeader() {
           <div className="hidden md:block">
             <WorkspaceSelector />
           </div>
+
+          {/* Command Palette trigger */}
+          <button
+            onClick={openCommandPalette}
+            className="hidden sm:flex items-center gap-2 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            aria-label="Open command palette (⌘K)"
+          >
+            <Search className="h-4 w-4" />
+            <span className="hidden md:inline">Search...</span>
+            <kbd className="hidden md:inline-flex items-center gap-0.5 rounded border border-gray-200 dark:border-gray-600 px-1.5 py-0.5 text-xs font-mono text-gray-400">
+              <span>⌘</span><span>K</span>
+            </kbd>
+          </button>
 
           {/* Theme Toggle */}
           <ThemeToggle />

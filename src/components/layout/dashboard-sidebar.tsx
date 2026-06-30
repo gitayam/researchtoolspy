@@ -27,7 +27,12 @@ import {
   Inbox,
   ClipboardCheck,
   Lightbulb,
-  Map
+  Map,
+  Mail,
+  TableProperties,
+  FileStack,
+  Code,
+  Share2
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -43,7 +48,15 @@ const getNavigation = (t: (key: string) => string) => [
       { name: 'Content Research', href: '/dashboard/tools/content-intelligence', icon: Sparkles },
       { name: 'Equilibrium Analysis', href: '/dashboard/tools/equilibrium-analysis', icon: Sparkles },
       { name: 'Hamilton Rule', href: '/dashboard/tools/hamilton-rule', icon: Sparkles },
-      { name: 'Agentic Research', href: '/dashboard/tools/collection', icon: Search },
+      { name: 'Agentic Research', href: '/dashboard/tools/collection', icon: Zap },
+      { name: 'Email Header Analyzer', href: '/dashboard/tools/email-header-analyzer', icon: Mail },
+      { name: 'Behavior Analysis', href: '/dashboard/tools/behavior-analysis', icon: Brain },
+      { name: 'Cross Table', href: '/dashboard/tools/cross-table', icon: TableProperties },
+      { name: 'Content Extraction', href: '/dashboard/tools/content-extraction', icon: FileText },
+      { name: 'Batch Processing', href: '/dashboard/tools/batch-processing', icon: FileStack },
+      { name: 'URL Processing', href: '/dashboard/tools/url', icon: Globe },
+      { name: 'Web Scraping', href: '/dashboard/tools/scraping', icon: Code },
+      { name: 'Social Media', href: '/dashboard/tools/social-media', icon: Share2 },
       { name: t('tools.citationsGenerator'), href: '/dashboard/tools/citations-generator' },
       { name: t('tools.documents'), href: '/dashboard/tools/documents' },
     ]
