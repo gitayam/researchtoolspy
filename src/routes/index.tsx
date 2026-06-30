@@ -148,6 +148,7 @@ const PublicContentAnalysisPage = lazy(() => import('@/pages/PublicContentAnalys
 const PublicCopPage = lazy(() => import('@/pages/PublicCopPage'))
 const PublicCrossTablePage = lazy(() => import('@/pages/tools/PublicCrossTablePage'))
 const PublicIntakePage = lazy(() => import('@/pages/PublicIntakePage'))
+const PublicDropFormPage = lazy(() => import('@/pages/PublicDropFormPage'))
 const DropLandingPage = lazy(() => import('@/pages/DropLandingPage'))
 
 // Library pages (lazy loaded)
@@ -221,8 +222,9 @@ export const router = createBrowserRouter([
     element: <LazyPage Component={DropLandingPage} />,
   },
   {
+    // E-11: /drop/:token renders the anonymous tip-line form (isDropMode=true)
     path: '/drop/:slugOrToken',
-    element: <LazyPage Component={PublicIntakePage} />,
+    element: <LazyPage Component={PublicDropFormPage} />,
   },
   {
     path: '/survey/:slugOrToken',

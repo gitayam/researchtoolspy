@@ -75,6 +75,7 @@ export default function ResearchFormBuilderPage() {
     access_level: 'public',
     password: '',
     fields: [newField()],
+    intent: 'survey',
   })
 
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -179,9 +180,14 @@ export default function ResearchFormBuilderPage() {
         throw new Error('Form was created but no share link was returned.')
       }
 
-      const url = `${window.location.origin}/survey/${data.share_token}`
+      // E-11: drop-spot forms use /drop/:token; surveys use /survey/:token
+      const publicPath = data.intent === 'drop'
+        ? `/drop/${data.share_token}`
+        : `/survey/${data.share_token}`
+      const url = `${window.location.origin}${publicPath}`
       setCreatedUrl(url)
-      toast({ title: 'Form created', description: 'Your public form link is ready.' })
+      const toastTitle = data.intent === 'drop' ? 'Tip-line created' : 'Form created'
+      toast({ title: toastTitle, description: 'Your public link is ready to share.' })
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to create form.'
       setError(message)
@@ -410,6 +416,48 @@ export default function ResearchFormBuilderPage() {
                   />
                 </div>
               )}
+
+              {/* E-11: Survey vs Drop Spot toggle */}
+              <div className="space-y-3 pt-2 border-t border-gray-200 dark:border-gray-700">
+                <Label className="text-sm font-medium">Form type</Label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => patch({ intent: 'survey' })}
+                    className={`flex items-start gap-3 rounded-lg border p-3 text-left transition-colors ${
+                      state.intent !== 'drop'
+                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/40 ring-1 ring-blue-500'
+                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                    }`}
+                  >
+                    <FileText className="h-4 w-4 mt-0.5 shrink-0 text-blue-600 dark:text-blue-400" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Survey</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Standard intake form. Collects structured responses.</p>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => patch({ intent: 'drop' })}
+                    className={`flex items-start gap-3 rounded-lg border p-3 text-left transition-colors ${
+                      state.intent === 'drop'
+                        ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 ring-1 ring-emerald-500'
+                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                    }`}
+                  >
+                    <ShieldCheck className="h-4 w-4 mt-0.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Drop Spot</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Anonymous tip-line. No IP address or identifying info collected.</p>
+                    </div>
+                  </button>
+                </div>
+                {state.intent === 'drop' && (
+                  <p className="text-xs text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-md px-3 py-2">
+                    Submissions will be completely anonymous — no IP address or identifying information is collected. Turnstile bot protection activates if configured.
+                  </p>
+                )}
+              </div>
             </CardContent>
           </Card>
 

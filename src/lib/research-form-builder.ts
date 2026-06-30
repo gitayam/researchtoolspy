@@ -30,6 +30,9 @@ export const RANGE_TYPES: IntakeFormFieldType[] = ['number', 'rating']
 
 export type ResearchFormAccessLevel = 'public' | 'password' | 'internal'
 
+/** E-11: intent distinguishes a standard survey from an anonymous journalist tip-line. */
+export type SurveyIntent = 'survey' | 'drop'
+
 /** A single field row in the builder's editable state. */
 export interface BuilderField {
   type: IntakeFormFieldType
@@ -171,6 +174,8 @@ export interface BuilderState {
   access_level: ResearchFormAccessLevel
   password: string
   fields: BuilderField[]
+  /** E-11: 'drop' enables the anonymous tip-line mode. Defaults to 'survey'. */
+  intent?: SurveyIntent
 }
 
 /** Shape POSTed to `POST /api/surveys`. */
@@ -187,6 +192,12 @@ export interface SurveyPayload {
    * the builder would produce a form that 403s at its own public URL.
    */
   status: 'active'
+  /**
+   * E-11: 'drop' marks this as an anonymous journalist tip-line. The public URL
+   * uses /drop/:token and submissions go to the drop-submit endpoint (no IP hash).
+   * Defaults to 'survey' (standard form).
+   */
+  intent?: SurveyIntent
 }
 
 export const MAX_FIELDS = 50
@@ -404,6 +415,11 @@ export function buildSurveyPayload(state: BuilderState): SurveyPayload {
   const description = String(state.description ?? '').trim()
   if (description) payload.description = description
   if (accessLevel === 'password') payload.password = String(state.password).trim()
+
+  // E-11: include intent when explicitly set to 'drop'; omit for 'survey' (API defaults to 'survey')
+  if (state.intent === 'drop') {
+    payload.intent = 'drop'
+  }
 
   return payload
 }

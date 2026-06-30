@@ -38,7 +38,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
              expires_at, theme_color, logo_url, success_message, redirect_url,
              auto_tag_category, require_location, require_contact, submission_count,
              cop_session_id, workspace_id, created_by, created_at, updated_at,
-             facts, changelog,
+             facts, changelog, intent,
              CASE WHEN password_hash IS NOT NULL THEN 1 ELSE 0 END as has_password
       FROM survey_drops WHERE created_by = ?`
     const bindings: any[] = [userId]
@@ -156,6 +156,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const facts = Array.isArray(body.facts) ? JSON.stringify(body.facts) : '[]'
     const changelog = Array.isArray(body.changelog) ? JSON.stringify(body.changelog) : '[]'
 
+    // E-11: validate intent (drop-spot mode)
+    const VALID_INTENTS = ['survey', 'drop']
+    const intent = body.intent && VALID_INTENTS.includes(body.intent) ? body.intent : 'survey'
+
     const id = generatePrefixedId('srv')
     const shareToken = crypto.randomUUID().replace(/-/g, '')
 
@@ -164,8 +168,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         id, title, description, form_schema, share_token, status,
         access_level, password_hash, allowed_countries, rate_limit_per_hour,
         custom_slug, expires_at, theme_color, logo_url, success_message, redirect_url,
-        auto_tag_category, require_location, require_contact, cop_session_id, facts, changelog, created_by
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        auto_tag_category, require_location, require_contact, cop_session_id, facts, changelog,
+        intent, created_by
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
       id,
       title,
@@ -189,14 +194,20 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       body.cop_session_id || null,
       facts,
       changelog,
+      intent,
       userId,
     ).run()
+
+    // E-11: drop-spot forms use /drop/:token to signal to sources they are tip-lines
+    const publicPath = intent === 'drop' ? `/drop/${shareToken}` : `/survey/${shareToken}`
 
     return new Response(JSON.stringify({
       id,
       share_token: shareToken,
       custom_slug: customSlug,
-      message: 'Survey created',
+      intent,
+      public_path: publicPath,
+      message: intent === 'drop' ? 'Tip-line created' : 'Survey created',
     }), { status: 201, headers: JSON_HEADERS })
   } catch (error) {
     console.error('[Surveys] POST create error:', error)

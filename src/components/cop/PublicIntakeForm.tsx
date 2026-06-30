@@ -71,9 +71,14 @@ function isGeopointComplete(val: string | undefined): boolean {
 
 interface PublicIntakeFormProps {
   token: string
+  /**
+   * E-11: when true, renders the anonymous tip-line framing and calls
+   * drop-submit instead of submit. No IP hash is collected.
+   */
+  isDropMode?: boolean
 }
 
-export default function PublicIntakeForm({ token }: PublicIntakeFormProps) {
+export default function PublicIntakeForm({ token, isDropMode = false }: PublicIntakeFormProps) {
   const [formMeta, setFormMeta] = useState<{
     title: string; description: string | null
     form_schema: IntakeFormField[]
@@ -210,20 +215,29 @@ export default function PublicIntakeForm({ token }: PublicIntakeFormProps) {
 
     setSubmitting(true)
     try {
-      const res = await fetch(`/api/surveys/public/${token}/submit`, {
+      // E-11: drop-mode uses drop-submit (no IP hash); standard mode uses submit
+      const submitEndpoint = isDropMode
+        ? `/api/surveys/public/${token}/drop-submit`
+        : `/api/surveys/public/${token}/submit`
+
+      const requestBody = isDropMode
+        ? { form_data: formData }
+        : {
+            form_data: formData,
+            submitter_name: submitterName || null,
+            submitter_contact: submitterContact || null,
+            lat, lon,
+            password: formPassword,
+          }
+
+      const res = await fetch(submitEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          form_data: formData,
-          submitter_name: submitterName || null,
-          submitter_contact: submitterContact || null,
-          lat, lon,
-          password: formPassword,
-        }),
+        body: JSON.stringify(requestBody),
       })
 
-      if (!res.ok) {
-        const data = await res.json()
+      const data = await res.json()
+      if (!res.ok || (isDropMode && data.ok === false)) {
         throw new Error(data.error || 'Submission failed')
       }
 
@@ -328,6 +342,16 @@ export default function PublicIntakeForm({ token }: PublicIntakeFormProps) {
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 py-4 sm:py-8 px-4" style={{ touchAction: 'manipulation' }}>
       <div className="max-w-lg mx-auto space-y-4">
         {logoUrl && <img src={logoUrl} alt="" className="h-10 mx-auto mb-2" />}
+        {/* E-11: anonymous tip-line banner */}
+        {isDropMode && (
+          <div className="rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 px-4 py-3 flex items-start gap-3">
+            <svg className="h-4 w-4 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.955 11.955 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" /></svg>
+            <div>
+              <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-300">Anonymous Tip Line</p>
+              <p className="text-xs text-emerald-700 dark:text-emerald-400 mt-0.5">Your identity is protected. We cannot see who you are \u2014 no IP address or identifying information is collected.</p>
+            </div>
+          </div>
+        )}
         <div className="space-y-3">
           <h1 className="text-2xl sm:text-xl font-bold tracking-tight">{formMeta.title}</h1>
           <ExpandableContext
@@ -337,7 +361,7 @@ export default function PublicIntakeForm({ token }: PublicIntakeFormProps) {
           />
           <p className="text-xs text-slate-400">
             {formMeta.form_schema.filter(f => f.required).length} required field{formMeta.form_schema.filter(f => f.required).length !== 1 ? 's' : ''}
-            {' \u00b7 '}All submissions reviewed by research team
+            {' \u00b7 '}{isDropMode ? 'Anonymous submission \u2014 no identity collected' : 'All submissions reviewed by research team'}
           </p>
         </div>
 
@@ -883,7 +907,7 @@ export default function PublicIntakeForm({ token }: PublicIntakeFormProps) {
               ) : (
                 <>
                   <Send className="h-5 w-5" />
-                  Submit
+                  {isDropMode ? 'Submit Anonymously' : 'Submit'}
                 </>
               )}
             </button>
