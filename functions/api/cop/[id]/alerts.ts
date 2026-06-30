@@ -74,7 +74,6 @@ async function fetchRedsightIncidents(
     })
 
     if (!response.ok) {
-      console.error('[REDSIGHT] API returned status:', response.status)
       await logEvent(env, buildUpstreamFailureLog('cop/alerts', { status: response.status })).catch(() => {})
       return []
     }
@@ -84,7 +83,6 @@ async function fetchRedsightIncidents(
     const incidents = Array.isArray(data) ? data : (data.incidents ?? data.data ?? [])
     return incidents as RedsightIncident[]
   } catch (error) {
-    console.error('[REDSIGHT] Fetch failed:', error)
     await logEvent(env, buildUpstreamFailureLog('cop/alerts', { error })).catch(() => {})
     return []
   }
@@ -255,7 +253,12 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       api_available: apiAvailable,
     }), { headers: JSON_HEADERS })
   } catch (error) {
-    console.error('[COP Alerts] GET error:', error)
+    await logEvent(env, {
+      level: 'error',
+      source: 'cop/alerts',
+      message: String(error instanceof Error ? error.message : error).slice(0, 500),
+      context: { error: String(error) },
+    })
     return new Response(JSON.stringify({ error: 'Failed to fetch alerts' }), {
       status: 500, headers: JSON_HEADERS,
     })
@@ -394,7 +397,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         entity_id: body.incident_id,
         action: body.action,
         importance: body.severity === 'CRITICAL' ? 'critical' : 'normal',
-      }).catch((err) => console.error('[COP Alerts] Timeline entry failed:', err))
+      }).catch((err) => logEvent(env, {
+        level: 'error',
+        source: 'cop/alerts',
+        message: String(err instanceof Error ? err.message : err).slice(0, 500),
+        context: { error: String(err) },
+      }))
     }
 
     // Emit COP event
@@ -426,7 +434,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       status: newStatus,
     }), { status: 200, headers: JSON_HEADERS })
   } catch (error) {
-    console.error('[COP Alerts] POST error:', error)
+    await logEvent(env, {
+      level: 'error',
+      source: 'cop/alerts',
+      message: String(error instanceof Error ? error.message : error).slice(0, 500),
+      context: { error: String(error) },
+    })
     return new Response(JSON.stringify({ error: 'Failed to action alert' }), {
       status: 500, headers: JSON_HEADERS,
     })

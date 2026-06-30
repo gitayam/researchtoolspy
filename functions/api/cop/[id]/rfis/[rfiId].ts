@@ -8,6 +8,7 @@ import { getUserFromRequest, verifyCopSessionAccess } from '../../../_shared/aut
 import { emitCopEvent } from '../../../_shared/cop-events'
 import { RFI_ANSWERED, RFI_ACCEPTED, RFI_CLOSED } from '../../../_shared/cop-event-types'
 import { JSON_HEADERS } from '../../../_shared/api-utils'
+import { logEvent } from '../../../_shared/event-log'
 
 interface Env {
   DB: D1Database
@@ -94,7 +95,12 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
     return new Response(JSON.stringify({ message: 'RFI updated' }), { headers: JSON_HEADERS })
   } catch (error) {
-    console.error('[COP RFI API] Update error:', error)
+    await logEvent(env, {
+      level: 'error',
+      source: 'cop/rfis',
+      message: String(error instanceof Error ? error.message : error).slice(0, 500),
+      context: { error: String(error) },
+    })
     return new Response(JSON.stringify({
       error: 'Failed to update RFI',
     }), { status: 500, headers: JSON_HEADERS })
@@ -135,7 +141,12 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
 
     return new Response(JSON.stringify({ message: 'RFI deleted' }), { headers: JSON_HEADERS })
   } catch (error) {
-    console.error('[COP RFI API] Delete error:', error)
+    await logEvent(env, {
+      level: 'error',
+      source: 'cop/rfis',
+      message: String(error instanceof Error ? error.message : error).slice(0, 500),
+      context: { error: String(error) },
+    })
     return new Response(JSON.stringify({
       error: 'Failed to delete RFI',
     }), { status: 500, headers: JSON_HEADERS })

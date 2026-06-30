@@ -11,6 +11,7 @@ import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-h
 import { emitCopEvent } from '../../_shared/cop-events'
 import { ASSET_CREATED, ASSET_UPDATED, ASSET_STATUS_CHANGED, ASSET_QUOTA_LOW } from '../../_shared/cop-event-types'
 import { generatePrefixedId , JSON_HEADERS } from '../../_shared/api-utils'
+import { logEvent } from '../../_shared/event-log'
 
 interface Env {
   DB: D1Database
@@ -71,7 +72,12 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     return new Response(JSON.stringify({ assets }), { headers: JSON_HEADERS })
   } catch (error) {
-    console.error('[COP Assets] List error:', error)
+    await logEvent(env, {
+      level: 'error',
+      source: 'cop/assets',
+      message: String(error instanceof Error ? error.message : error).slice(0, 500),
+      context: { error: String(error) },
+    })
     return new Response(JSON.stringify({ error: 'Failed to list assets' }), {
       status: 500, headers: JSON_HEADERS,
     })
@@ -151,7 +157,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       status: 201, headers: JSON_HEADERS,
     })
   } catch (error) {
-    console.error('[COP Assets] Create error:', error)
+    await logEvent(env, {
+      level: 'error',
+      source: 'cop/assets',
+      message: String(error instanceof Error ? error.message : error).slice(0, 500),
+      context: { error: String(error) },
+    })
     return new Response(JSON.stringify({ error: 'Failed to create asset' }), {
       status: 500, headers: JSON_HEADERS,
     })
@@ -299,7 +310,12 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
     return new Response(JSON.stringify({ id: body.id, message: 'Asset updated' }), { headers: JSON_HEADERS })
   } catch (error) {
-    console.error('[COP Assets] Update error:', error)
+    await logEvent(env, {
+      level: 'error',
+      source: 'cop/assets',
+      message: String(error instanceof Error ? error.message : error).slice(0, 500),
+      context: { error: String(error) },
+    })
     return new Response(JSON.stringify({ error: 'Failed to update asset' }), {
       status: 500, headers: JSON_HEADERS,
     })
@@ -367,7 +383,12 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
 
     return new Response(JSON.stringify({ message: hard ? 'Asset deleted' : 'Asset set to offline' }), { headers: JSON_HEADERS })
   } catch (error) {
-    console.error('[COP Assets] Delete error:', error)
+    await logEvent(env, {
+      level: 'error',
+      source: 'cop/assets',
+      message: String(error instanceof Error ? error.message : error).slice(0, 500),
+      context: { error: String(error) },
+    })
     return new Response(JSON.stringify({ error: 'Failed to delete asset' }), {
       status: 500, headers: JSON_HEADERS,
     })

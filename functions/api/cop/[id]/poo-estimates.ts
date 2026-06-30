@@ -9,6 +9,7 @@
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-helpers'
 import { generatePrefixedId , JSON_HEADERS } from '../../_shared/api-utils'
+import { logEvent } from '../../_shared/event-log'
 
 interface Env {
   DB: D1Database
@@ -40,7 +41,12 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     return new Response(JSON.stringify({ estimates: results.results }), { headers: JSON_HEADERS })
   } catch (error) {
-    console.error('[COP POO Estimates] List error:', error)
+    await logEvent(env, {
+      level: 'error',
+      source: 'cop/poo-estimates',
+      message: String(error instanceof Error ? error.message : error).slice(0, 500),
+      context: { error: String(error) },
+    })
     return new Response(JSON.stringify({ error: 'Failed to list POO estimates' }), {
       status: 500, headers: JSON_HEADERS,
     })
@@ -136,7 +142,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       status: 201, headers: JSON_HEADERS,
     })
   } catch (error) {
-    console.error('[COP POO Estimates] Create error:', error)
+    await logEvent(env, {
+      level: 'error',
+      source: 'cop/poo-estimates',
+      message: String(error instanceof Error ? error.message : error).slice(0, 500),
+      context: { error: String(error) },
+    })
     return new Response(JSON.stringify({ error: 'Failed to create POO estimate' }), {
       status: 500, headers: JSON_HEADERS,
     })
@@ -243,7 +254,12 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
     return new Response(JSON.stringify({ message: 'POO estimate updated', estimate: estimate || { id: estimateId } }), { headers: JSON_HEADERS })
   } catch (error) {
-    console.error('[COP POO Estimates] Update error:', error)
+    await logEvent(env, {
+      level: 'error',
+      source: 'cop/poo-estimates',
+      message: String(error instanceof Error ? error.message : error).slice(0, 500),
+      context: { error: String(error) },
+    })
     return new Response(JSON.stringify({ error: 'Failed to update POO estimate' }), {
       status: 500, headers: JSON_HEADERS,
     })
@@ -287,7 +303,12 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
 
     return new Response(JSON.stringify({ message: 'POO estimate deleted' }), { headers: JSON_HEADERS })
   } catch (error) {
-    console.error('[COP POO Estimates] Delete error:', error)
+    await logEvent(env, {
+      level: 'error',
+      source: 'cop/poo-estimates',
+      message: String(error instanceof Error ? error.message : error).slice(0, 500),
+      context: { error: String(error) },
+    })
     return new Response(JSON.stringify({ error: 'Failed to delete POO estimate' }), {
       status: 500, headers: JSON_HEADERS,
     })

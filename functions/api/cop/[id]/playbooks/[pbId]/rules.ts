@@ -9,6 +9,7 @@
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest, verifyCopSessionAccess } from '../../../../_shared/auth-helpers'
 import { generatePrefixedId } from '../../../../_shared/api-utils'
+import { logEvent } from '../../../../_shared/event-log'
 
 interface Env {
   DB: D1Database
@@ -81,7 +82,12 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     const rules = (rows.results || []).map(parseRule)
     return new Response(JSON.stringify({ rules }), { headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } })
   } catch (error) {
-    console.error('[COP Playbook Rules] List error:', error)
+    await logEvent(env, {
+      level: 'error',
+      source: 'cop/playbooks/rules',
+      message: String(error instanceof Error ? error.message : error).slice(0, 500),
+      context: { error: String(error) },
+    })
     return new Response(JSON.stringify({ error: 'Failed to list rules' }), {
       status: 500, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
     })
@@ -168,7 +174,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       status: 201, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
     })
   } catch (error) {
-    console.error('[COP Playbook Rules] Create error:', error)
+    await logEvent(env, {
+      level: 'error',
+      source: 'cop/playbooks/rules',
+      message: String(error instanceof Error ? error.message : error).slice(0, 500),
+      context: { error: String(error) },
+    })
     return new Response(JSON.stringify({ error: 'Failed to create rule' }), {
       status: 500, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
     })
@@ -278,7 +289,12 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
     return new Response(JSON.stringify({ id: body.rule_id, message: 'Rule updated' }), { headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } })
   } catch (error) {
-    console.error('[COP Playbook Rules] Update error:', error)
+    await logEvent(env, {
+      level: 'error',
+      source: 'cop/playbooks/rules',
+      message: String(error instanceof Error ? error.message : error).slice(0, 500),
+      context: { error: String(error) },
+    })
     return new Response(JSON.stringify({ error: 'Failed to update rule' }), {
       status: 500, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
     })
@@ -333,7 +349,12 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
 
     return new Response(JSON.stringify({ message: 'Rule deleted' }), { headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } })
   } catch (error) {
-    console.error('[COP Playbook Rules] Delete error:', error)
+    await logEvent(env, {
+      level: 'error',
+      source: 'cop/playbooks/rules',
+      message: String(error instanceof Error ? error.message : error).slice(0, 500),
+      context: { error: String(error) },
+    })
     return new Response(JSON.stringify({ error: 'Failed to delete rule' }), {
       status: 500, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
     })

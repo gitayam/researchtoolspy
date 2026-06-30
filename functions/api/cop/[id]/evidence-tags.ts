@@ -10,6 +10,7 @@ import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-h
 import { emitCopEvent } from '../../_shared/cop-events'
 import { EVIDENCE_TAGGED } from '../../_shared/cop-event-types'
 import { generatePrefixedId , JSON_HEADERS } from '../../_shared/api-utils'
+import { logEvent } from '../../_shared/event-log'
 
 interface Env {
   DB: D1Database
@@ -46,7 +47,12 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     return new Response(JSON.stringify({ tags: tags.results }), { headers: JSON_HEADERS })
   } catch (error) {
-    console.error('[COP Evidence Tags] List error:', error)
+    await logEvent(env, {
+      level: 'error',
+      source: 'cop/evidence-tags',
+      message: String(error instanceof Error ? error.message : error).slice(0, 500),
+      context: { error: String(error) },
+    })
     return new Response(JSON.stringify({
       error: 'Failed to list evidence tags',
     }), { status: 500, headers: JSON_HEADERS })
@@ -109,7 +115,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       status: 201, headers: JSON_HEADERS,
     })
   } catch (error) {
-    console.error('[COP Evidence Tags] Create error:', error)
+    await logEvent(env, {
+      level: 'error',
+      source: 'cop/evidence-tags',
+      message: String(error instanceof Error ? error.message : error).slice(0, 500),
+      context: { error: String(error) },
+    })
     return new Response(JSON.stringify({
       error: 'Failed to create evidence tag',
     }), { status: 500, headers: JSON_HEADERS })
@@ -153,7 +164,12 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
 
     return new Response(JSON.stringify({ message: 'Evidence tag deleted' }), { headers: JSON_HEADERS })
   } catch (error) {
-    console.error('[COP Evidence Tags] Delete error:', error)
+    await logEvent(env, {
+      level: 'error',
+      source: 'cop/evidence-tags',
+      message: String(error instanceof Error ? error.message : error).slice(0, 500),
+      context: { error: String(error) },
+    })
     return new Response(JSON.stringify({
       error: 'Failed to delete evidence tag',
     }), { status: 500, headers: JSON_HEADERS })
