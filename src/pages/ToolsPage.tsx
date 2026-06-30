@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Search, Globe, FileText, Link as LinkIcon, Code, Database, Share2, FileStack, ArrowLeft, Grid3x3, Sparkles, TableProperties, Brain } from 'lucide-react'
+import { Search, Globe, FileText, Link as LinkIcon, Code, Database, Share2, FileStack, ArrowLeft, Grid3x3, Sparkles, TableProperties, Brain, Mail } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -113,6 +113,21 @@ export function ToolsPage() {
       description: t('toolsPage.documentsDesc'),
       icon: Database,
       features: t('toolsPage.documentsFeatures', { returnObjects: true }) as string[]
+    },
+    {
+      id: 'email-header-analyzer',
+      name: 'Email Header Analyzer',
+      description: 'Analyze raw email headers to visualize the routing chain, decode SPF / DKIM / DMARC authentication results, and identify delays between hops. Runs entirely in your browser.',
+      icon: Mail,
+      features: [
+        'Routing chain visualization (Received: hops)',
+        'SPF, DKIM, DMARC authentication status',
+        'Per-hop delay analysis',
+        'Key field extraction (From, To, Subject, Message-ID)',
+        '100% client-side — no data leaves your browser',
+      ],
+      path: '/dashboard/tools/email-header-analyzer',
+      available: true
     }
   ]
 
