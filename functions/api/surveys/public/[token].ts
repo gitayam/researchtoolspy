@@ -18,7 +18,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     const form = await env.DB.prepare(
       `SELECT id, title, description, form_schema, require_location, require_contact,
               status, access_level, allowed_countries, expires_at, theme_color, logo_url, success_message,
-              facts, changelog
+              facts, changelog, intent
        FROM survey_drops WHERE share_token = ?`
     ).bind(token).first() as any
 
@@ -93,6 +93,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       logo_url: form.logo_url,
       success_message: form.success_message,
       access_level: form.access_level || 'public',
+      intent: form.intent || 'survey',
     }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[Survey Drops Public] Form fetch error:', error)
