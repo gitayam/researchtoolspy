@@ -9,6 +9,7 @@ import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-helpers'
 import { createTimelineEntry } from '../../_shared/timeline-helper'
 import { generatePrefixedId , JSON_HEADERS } from '../../_shared/api-utils'
+import { logEvent } from '../../_shared/event-log'
 
 interface Env {
   DB: D1Database
@@ -47,7 +48,12 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     return new Response(JSON.stringify({ claims: results.results }), { headers: JSON_HEADERS })
   } catch (error) {
-    console.error('[COP Claims] List error:', error)
+    await logEvent(env, {
+      level: 'error',
+      source: 'cop/claims',
+      message: String(error instanceof Error ? error.message : error).slice(0, 500),
+      context: { error: String(error) },
+    })
     return new Response(JSON.stringify({ error: 'Failed to list claims' }), {
       status: 500, headers: JSON_HEADERS,
     })
@@ -118,14 +124,19 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         entity_id: body.domain || domain,
         action: 'extracted',
       })
-    } catch (e) { console.error('[COP Claims] Timeline entry failed:', e) }
+    } catch (e) { await logEvent(env, { level: 'error', source: 'cop/claims', message: String(e instanceof Error ? e.message : e).slice(0, 500), context: { error: String(e) } }) }
 
     return new Response(JSON.stringify({
       message: `${ids.length} claims saved`,
       ids,
     }), { status: 201, headers: JSON_HEADERS })
   } catch (error) {
-    console.error('[COP Claims] Create error:', error)
+    await logEvent(env, {
+      level: 'error',
+      source: 'cop/claims',
+      message: String(error instanceof Error ? error.message : error).slice(0, 500),
+      context: { error: String(error) },
+    })
     return new Response(JSON.stringify({ error: 'Failed to save claims' }), {
       status: 500, headers: JSON_HEADERS,
     })
@@ -248,12 +259,17 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
             action: body.status,
           })
         }
-      } catch (e) { console.error('[COP Claims] Timeline entry failed:', e) }
+      } catch (e) { await logEvent(env, { level: 'error', source: 'cop/claims', message: String(e instanceof Error ? e.message : e).slice(0, 500), context: { error: String(e) } }) }
     }
 
     return new Response(JSON.stringify({ message: 'Claim updated' }), { headers: JSON_HEADERS })
   } catch (error) {
-    console.error('[COP Claims] Update error:', error)
+    await logEvent(env, {
+      level: 'error',
+      source: 'cop/claims',
+      message: String(error instanceof Error ? error.message : error).slice(0, 500),
+      context: { error: String(error) },
+    })
     return new Response(JSON.stringify({ error: 'Failed to update claim' }), {
       status: 500, headers: JSON_HEADERS,
     })

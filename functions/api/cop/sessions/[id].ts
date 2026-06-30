@@ -9,6 +9,7 @@
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest } from '../../_shared/auth-helpers'
 import { JSON_HEADERS } from '../../_shared/api-utils'
+import { logEvent } from '../../_shared/event-log'
 
 interface Env {
   DB: D1Database
@@ -78,7 +79,12 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     return new Response(JSON.stringify({ session }), { headers: JSON_HEADERS })
   } catch (error) {
-    console.error('[COP Sessions API] Get error:', error)
+    await logEvent(env, {
+      level: 'error',
+      source: 'cop/sessions',
+      message: String(error instanceof Error ? error.message : error).slice(0, 500),
+      context: { error: String(error) },
+    })
     return new Response(JSON.stringify({
       error: 'Failed to get COP session',
     }), { status: 500, headers: JSON_HEADERS })
@@ -206,13 +212,23 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
         }
       } catch (syncError) {
         // Log but don't fail the main update if sync fails
-        console.error('[COP Sessions API] event_facts sync error:', syncError)
+        await logEvent(env, {
+          level: 'error',
+          source: 'cop/sessions',
+          message: String(syncError instanceof Error ? syncError.message : syncError).slice(0, 500),
+          context: { error: String(syncError) },
+        })
       }
     }
 
     return new Response(JSON.stringify({ message: 'COP session updated' }), { headers: JSON_HEADERS })
   } catch (error) {
-    console.error('[COP Sessions API] Update error:', error)
+    await logEvent(env, {
+      level: 'error',
+      source: 'cop/sessions',
+      message: String(error instanceof Error ? error.message : error).slice(0, 500),
+      context: { error: String(error) },
+    })
     return new Response(JSON.stringify({
       error: 'Failed to update COP session',
     }), { status: 500, headers: JSON_HEADERS })
@@ -257,7 +273,12 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
 
     return new Response(JSON.stringify({ message: 'COP session archived' }), { headers: JSON_HEADERS })
   } catch (error) {
-    console.error('[COP Sessions API] Delete error:', error)
+    await logEvent(env, {
+      level: 'error',
+      source: 'cop/sessions',
+      message: String(error instanceof Error ? error.message : error).slice(0, 500),
+      context: { error: String(error) },
+    })
     return new Response(JSON.stringify({
       error: 'Failed to archive COP session',
     }), { status: 500, headers: JSON_HEADERS })
