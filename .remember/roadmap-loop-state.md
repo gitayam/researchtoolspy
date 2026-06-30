@@ -3,17 +3,16 @@
 Durable state for the `/roadmap-step` loop. The stop condition (2 consecutive no-change
 iterations) reads `no_change_streak` from here, so it survives session death / `/clear`.
 
-iteration: 73
+iteration: 74
 no_change_streak: 0
-last_item: COP-12 chunk 3 — console.error → logEvent in all layers/* handlers
-last_result: SHIPPED (v0.22.68, ff8b30de8). 13 console.error replaced across 10 layers/* files. Running total: 65 of ~130 replaced. Prod HTTP 401 live.
+last_item: COP-12 chunk 4 — console.error → logEvent in alerts/task-templates/poo-estimates/playbooks-rules/assets/task-deps/rfis-answers/playbooks-[pbId]/evidence-tags/rfis-[rfiId]
+last_result: SHIPPED (v0.22.69, afd20aaa3). 35 console.error replaced. Running total: 100 of ~130 replaced. Prod HTTP 401 live.
 
->>> COP-12 progress: chunk 4 BUILDING (alerts/task-templates/poo-estimates/playbooks-rules/assets/task-deps/rfis-answers/playbooks-[pbId]/evidence-tags/rfis-[rfiId]) <<<
+>>> COP-12 FINAL CHUNK 5 in flight: 17 files, ~21 calls <<<
 
 Remaining AUTO items:
   AUTO:
-    - COP-12 chunk 4 (in flight) — ~35 calls in 10 files
-    - COP-12 chunk 5 (final) — ~22 calls in 17 files (remaining after chunk 4)
+    - COP-12 chunk 5 (FINAL, in flight) — 17 files, ~21 calls
     - 58 referenced-empty tables sweep (TD-06 follow-up)
   DECISION-GATED:
     - E-6e: Turnstile site key
