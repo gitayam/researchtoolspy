@@ -3,10 +3,12 @@
 Durable state for the `/roadmap-step` loop. The stop condition (2 consecutive no-change
 iterations) reads `no_change_streak` from here, so it survives session death / `/clear`.
 
-iteration: 63
+iteration: 64
 no_change_streak: 0
-last_item: #20 — entity-edit type field read-only in edit mode
-last_result: SHIPPED (v0.22.58, 3858ae71b). EntityCreateForm renderSelect() extended with disabled/hint. All 5 type selectors pass disabled: isEdit. Visual opacity+cursor-not-allowed, aria-disabled, helper hint "Type cannot be changed after creation." cop-entity-type-readonly.spec.ts 18/18. Deployed (HTTP 200), pushed origin (gitlab 502).
+last_item: #21 — log discarded apifyError from Apify run-start
+last_result: SHIPPED (v0.22.59, 90ac13adb). scrape.ts apifyError now passed to logEvent via buildUpstreamFailureLog. Both catch-block console.error calls upgraded. HTTP response shape unchanged. scrape-apify-error.spec.ts source-guard 38 tests pass. Deployed (HTTP 200), pushed origin (gitlab 502).
+
+>>> PREV ITER 63: #20 (v0.22.58, 3858ae71b) — entity-edit type field read-only. <<<
 
 >>> PREV ITER 62: E-11 (v0.22.57, 08c88862e) — journalist drop-spot mode, full anonymity (D-E4). <<<
 
@@ -18,12 +20,11 @@ last_result: SHIPPED (v0.22.58, 3858ae71b). EntityCreateForm renderSelect() exte
   (c) E-13 DEFERRED (sync→async citation lib refactor, 8+ consumers — deliberate effort, not loop unit)
 
 >>> LOOP RE-EVALUATION (§1 stop checks): <<<
-Remaining AUTO backlog is now very thin:
+Remaining AUTO backlog (thin):
   AUTO (no user decision needed):
-    - COP-12 chunked console→logEvent sweep (130 console.error/58 files — noted as "do in ~10-file chunks"; needs user greenlight for a chunk)
-    - #21 scrape apifyError discarded (scrape.ts ~:132, log via logEvent sink)
     - #18 COP error-path toasts (polish sweep — user-facing toasts on high-traffic COP failures)
-    - #19 research/forms/list workspace authz (security: client-supplied workspaceId not server-validated; security-review route)
+    - #19 research/forms/list workspace authz (security: client-supplied workspaceId not server-validated; add verifyCopSessionAccess-style check)
+    - COP-12 chunked console→logEvent sweep (130 console.error/58 files — needs user greenlight for a chunk)
   DECISION-GATED:
     - E-7b/E-16 (confidence threshold + dedup policy for entity extraction at promote)
     - E-6e (Turnstile keys — ops/dashboard action)
