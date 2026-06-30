@@ -13,6 +13,7 @@ import { emitCopEvent } from '../../../../_shared/cop-events'
 import { TASK_ASSIGNED } from '../../../../_shared/cop-event-types'
 import { autoAssignTask } from '../../../../_shared/auto-assign'
 import { JSON_HEADERS } from '../../../../_shared/api-utils'
+import { logEvent } from '../../../../_shared/event-log'
 
 interface Env {
   DB: D1Database
@@ -94,7 +95,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       assigned_to: body.assigned_to,
     }), { headers: JSON_HEADERS })
   } catch (error) {
-    console.error('[COP Task Reassign] Error:', error)
+    await logEvent(env, {
+      level: 'error',
+      source: 'cop/tasks/reassign',
+      message: String(error instanceof Error ? error.message : error).slice(0, 500),
+      context: { error: String(error) },
+    })
     return new Response(JSON.stringify({ error: 'Failed to reassign task' }), {
       status: 500, headers: JSON_HEADERS,
     })

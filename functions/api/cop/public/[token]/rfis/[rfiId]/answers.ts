@@ -5,6 +5,7 @@
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { generatePrefixedId, JSON_HEADERS } from '../../../../../_shared/api-utils'
+import { logEvent } from '../../../../../_shared/event-log'
 
 interface Env {
   DB: D1Database
@@ -69,7 +70,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       status: 201, headers: JSON_HEADERS,
     })
   } catch (error) {
-    console.error('[COP Public RFI API] Submit error:', error)
+    await logEvent(env, {
+      level: 'error',
+      source: 'cop/public/rfis/answers',
+      message: String(error instanceof Error ? error.message : error).slice(0, 500),
+      context: { error: String(error) },
+    })
     return new Response(JSON.stringify({
       error: 'Failed to submit answer',
     }), { status: 500, headers: JSON_HEADERS })

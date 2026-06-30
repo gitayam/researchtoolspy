@@ -16,6 +16,7 @@
 
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-helpers'
+import { logEvent } from '../../_shared/event-log'
 import {
   entityToCoT, wrapCoTFeed,
   placeToCoTType, eventToCoTType, actorToCoTType,
@@ -217,14 +218,24 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     // Cache the generated XML
     if (env.CACHE) {
-      await env.CACHE.put(COT_CACHE_KEY, xml, { expirationTtl: COT_CACHE_TTL }).catch((err: unknown) => {
-        console.error('[CoT Export] Cache write failed:', err)
+      await env.CACHE.put(COT_CACHE_KEY, xml, { expirationTtl: COT_CACHE_TTL }).catch(async (err: unknown) => {
+        await logEvent(env, {
+          level: 'error',
+          source: 'cop/cot',
+          message: String(err instanceof Error ? err.message : err).slice(0, 500),
+          context: { error: String(err), detail: 'Cache write failed' },
+        })
       })
     }
 
     return new Response(xml, { headers: xmlHeaders })
   } catch (error) {
-    console.error('[CoT Export] Error:', error)
+    await logEvent(env, {
+      level: 'error',
+      source: 'cop/cot',
+      message: String(error instanceof Error ? error.message : error).slice(0, 500),
+      context: { error: String(error) },
+    })
     return new Response('<error>Failed to generate CoT feed</error>', {
       status: 500, headers: xmlHeaders,
     })

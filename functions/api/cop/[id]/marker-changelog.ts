@@ -7,6 +7,7 @@
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-helpers'
 import { generatePrefixedId , JSON_HEADERS } from '../../_shared/api-utils'
+import { logEvent } from '../../_shared/event-log'
 
 interface Env {
   DB: D1Database
@@ -48,7 +49,12 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     return new Response(JSON.stringify({ changelog: rows.results || [] }), { headers: JSON_HEADERS })
   } catch (error) {
-    console.error('[COP Marker Changelog] List error:', error)
+    await logEvent(env, {
+      level: 'error',
+      source: 'cop/marker-changelog',
+      message: String(error instanceof Error ? error.message : error).slice(0, 500),
+      context: { error: String(error) },
+    })
     return new Response(JSON.stringify({
       error: 'Failed to list changelog',
     }), { status: 500, headers: JSON_HEADERS })
@@ -116,7 +122,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       status: 201, headers: JSON_HEADERS,
     })
   } catch (error) {
-    console.error('[COP Marker Changelog] Create error:', error)
+    await logEvent(env, {
+      level: 'error',
+      source: 'cop/marker-changelog',
+      message: String(error instanceof Error ? error.message : error).slice(0, 500),
+      context: { error: String(error) },
+    })
     return new Response(JSON.stringify({
       error: 'Failed to create changelog entry',
     }), { status: 500, headers: JSON_HEADERS })

@@ -6,6 +6,7 @@
  */
 import { extractGeoFromRequest, isCountryAllowed } from '../../../../_shared/survey-drops'
 import { JSON_HEADERS } from '../../../../_shared/api-utils'
+import { logEvent } from '../../../../_shared/event-log'
 
 interface Env {
   DB: D1Database
@@ -86,7 +87,12 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       access_level: form.access_level,
     }), { headers: JSON_HEADERS })
   } catch (error) {
-    console.error('[COP Public Intake] Slug resolve error:', error)
+    await logEvent(env, {
+      level: 'error',
+      source: 'cop/public/intake/by-slug',
+      message: String(error instanceof Error ? error.message : error).slice(0, 500),
+      context: { error: String(error) },
+    })
     return new Response(JSON.stringify({ error: 'Failed to load form' }), {
       status: 500, headers: JSON_HEADERS,
     })

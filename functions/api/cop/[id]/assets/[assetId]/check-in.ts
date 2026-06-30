@@ -11,6 +11,7 @@ import { getUserFromRequest, verifyCopSessionAccess } from '../../../../_shared/
 import { emitCopEvent } from '../../../../_shared/cop-events'
 import { ASSET_STATUS_CHANGED } from '../../../../_shared/cop-event-types'
 import { generatePrefixedId , JSON_HEADERS } from '../../../../_shared/api-utils'
+import { logEvent } from '../../../../_shared/event-log'
 
 interface Env {
   DB: D1Database
@@ -93,7 +94,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     return new Response(JSON.stringify({ message: 'Asset status updated' }), { headers: JSON_HEADERS })
   } catch (error) {
-    console.error('[COP Asset Check-in] Error:', error)
+    await logEvent(env, {
+      level: 'error',
+      source: 'cop/assets/check-in',
+      message: String(error instanceof Error ? error.message : error).slice(0, 500),
+      context: { error: String(error) },
+    })
     return new Response(JSON.stringify({ error: 'Failed to check in asset' }), {
       status: 500, headers: JSON_HEADERS,
     })
