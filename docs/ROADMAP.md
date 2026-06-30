@@ -1,6 +1,6 @@
 # ResearchTools.net — Roadmap
 
-**Last updated:** 2026-06-30 · **Current release:** `v0.22.0` (+ hardening patches through `v0.22.59`) · **Prod:** [researchtools.net](https://researchtools.net) (Cloudflare Pages + D1)
+**Last updated:** 2026-06-30 · **Current release:** `v0.22.0` (+ hardening patches through `v0.22.60`) · **Prod:** [researchtools.net](https://researchtools.net) (Cloudflare Pages + D1)
 
 > **2026-06-26 — fresh COP fix batch injected (`COP-1`…`COP-12`).** A `/team-investigate` pass on a user report (COT export "not working" + "many aspects not working") surfaced a verified backlog of loop-eligible bugs/stubs. Full evidence + AUTO/DECISION split: [`plans/2026-06-26-cop-investigation-findings.md`](plans/2026-06-26-cop-investigation-findings.md). Listed at the top of **Now** below. The prior `/roadmap-step` STOP (drained backlog) is now lifted.
 
@@ -31,6 +31,9 @@ New features are welcome but should ride on top of this hardened base, not aroun
 ---
 
 ## Recently shipped
+
+### v0.22.60 — Server-side workspace ownership check on research forms list (#19) (2026-06-30)
+- ✅ **`GET /api/research/forms/list` now verifies workspace ownership server-side.** The endpoint was accepting a client-supplied `workspaceId` query param and using it to scope the query without verifying the requesting user owns or has access to that workspace — allowing workspace-existence enumeration via empty-result timing (the existing `created_by = ?` clause already prevented actual data reads, so severity was low). Fix adds a `userOwnsWorkspace()` helper that checks both direct ownership (`cop_sessions.created_by`) and collaborator membership (`cop_collaborators`) before scoping the main query. Returns **403** (not 404) on mismatch to avoid leaking whether the workspace ID exists. `research/submissions/list.ts` was audited and confirmed safe (no `workspaceId` param). `research-forms-authz.spec.ts` source-guard 12/12 (asserts ownership check present alongside `workspaceId` reference + 403 path); type-check + build + wrangler functions build clean; prod-deployed (HTTP 200). (`f8231037d`)
 
 ### v0.22.59 — Log discarded Apify run-start error (#21) (2026-06-30)
 - ✅ **Apify run-start failure details now reach `event_logs`.** `scrape.ts` `onRequestPost` was parsing a detailed `apifyError` string (including the actor-not-rented hint) then discarding it — the client got a generic message and nothing was logged. The variable is now passed to `logEvent(env, buildUpstreamFailureLog('cop/scrape/run-start', {status, error: apifyError}))` using the COP-7 pattern from `_upstream-failure-log.ts`. Two remaining top-level catch-block `console.error` calls (in `onRequestPost` and `onRequestGet`) were also upgraded to `logEvent` with distinct sources (`cop/scrape/run-start`, `cop/scrape/status-check`). HTTP response shape unchanged. `scrape-apify-error.spec.ts` source-guard asserts `apifyError` is referenced in a `logEvent` call and no bare `console.error` remains in error paths; 38 relevant smoke tests pass. (`90ac13adb`) *Discovered: 9 pre-existing lint errors in scrape.ts (no-explicit-any + unused opts param) — candidates for a follow-up cleanup.*
@@ -324,7 +327,7 @@ New features are welcome but should ride on top of this hardened base, not aroun
 18. **COP error-path toasts** `Discovered 2026-06-26 (COP-1)` — `CopWorkspacePage.tsx`/`CopPage.tsx` had no toast utility before COP-1 (now `useToast` from `@/components/ui/use-toast`); many other COP error paths still only `console.error`, so failures are invisible to the user. UX polish: surface user-facing toasts on the high-traffic COP mutation/fetch failures.
 21. ✅ **scrape run-start `apifyError` discarded** `Discovered 2026-06-26 (COP-7)` — DONE (v0.22.59, `90ac13adb`). `apifyError` now logged via `logEvent`/`buildUpstreamFailureLog`; all catch-block `console.error` calls in scrape.ts upgraded to same pattern. *Follow-up: 9 pre-existing lint errors in scrape.ts (no-explicit-any + unused opts).*
 20. ✅ **Entity-edit `type` selector is a no-op** `Discovered 2026-06-26 (COP-3)` — DONE (v0.22.58, `3858ae71b`). Type field made read-only in edit mode (disabled + aria-disabled + helper hint). *Follow-up: per-type fields not exposed in the form (separate enhancement).*
-19. **`research/forms/list` workspace authorization** `Discovered 2026-06-26 (COP-14)` — the forms-list (and likely submissions-list) endpoint trusts the **client-supplied `workspaceId`** and doesn't filter results by the authenticated user, so a user could enumerate another workspace's forms by guessing/knowing its id. Add a server-side ownership/membership check (the COP `verifyCopSessionAccess` pattern) before returning rows. Authorization concern, separate from the COP-14 401 fix — needs a quick security pass (consider routing through the security-review flow).
+19. ✅ **`research/forms/list` workspace authorization** `Discovered 2026-06-26 (COP-14)` — DONE (v0.22.60, `f8231037d`). `userOwnsWorkspace()` guard added (owner + collaborator check); returns 403 on mismatch. `submissions/list.ts` audited — not vulnerable. *Note: existing `created_by = ?` already blocked data reads; this closed a workspace-existence enumeration via timing.*
 
 ---
 
