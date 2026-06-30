@@ -7,6 +7,7 @@
  */
 import { verifyPassword } from '../../../../_shared/survey-drops'
 import { JSON_HEADERS } from '../../../../_shared/api-utils'
+import { logEvent } from '../../../../_shared/event-log'
 
 interface Env {
   DB: D1Database
@@ -76,7 +77,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       access_level: form.access_level,
     }), { headers: JSON_HEADERS })
   } catch (error) {
-    console.error('[COP Public Intake] Password verify error:', error)
+    await logEvent(env, {
+      level: 'error',
+      source: 'cop/public/intake/verify-password',
+      message: String(error instanceof Error ? error.message : error).slice(0, 500),
+      context: { error: String(error) },
+    })
     return new Response(JSON.stringify({ error: 'Verification failed' }), {
       status: 500, headers: JSON_HEADERS,
     })

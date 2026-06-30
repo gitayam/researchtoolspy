@@ -6,6 +6,7 @@
 import { emitCopEvent } from '../../../../_shared/cop-events'
 import { INGEST_SUBMISSION_RECEIVED, INGEST_SUBMISSION_BLOCKED, INGEST_SUBMISSION_RATE_LIMITED } from '../../../../_shared/cop-event-types'
 import { generatePrefixedId, JSON_HEADERS } from '../../../../_shared/api-utils'
+import { logEvent } from '../../../../_shared/event-log'
 import {
   extractGeoFromRequest, isCountryAllowed, verifyPassword,
   hashSubmitterIP, hashFormData, checkSurveyResponseRateLimit,
@@ -211,7 +212,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       status: 201, headers: JSON_HEADERS,
     })
   } catch (error) {
-    console.error('[COP Public Intake] Submit error:', error)
+    await logEvent(env, {
+      level: 'error',
+      source: 'cop/public/intake/submit',
+      message: String(error instanceof Error ? error.message : error).slice(0, 500),
+      context: { error: String(error) },
+    })
     return new Response(JSON.stringify({ error: 'Failed to submit' }), {
       status: 500, headers: JSON_HEADERS,
     })

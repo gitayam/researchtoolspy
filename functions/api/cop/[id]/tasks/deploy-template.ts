@@ -11,6 +11,7 @@ import { getUserFromRequest, verifyCopSessionAccess } from '../../../_shared/aut
 import { emitCopEvent } from '../../../_shared/cop-events'
 import { TASK_CREATED } from '../../../_shared/cop-event-types'
 import { JSON_HEADERS } from '../../../_shared/api-utils'
+import { logEvent } from '../../../_shared/event-log'
 
 interface Env {
   DB: D1Database
@@ -164,7 +165,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       ref_map: refToId,
     }), { status: 201, headers: JSON_HEADERS })
   } catch (error) {
-    console.error('[COP Deploy Template] Error:', error)
+    await logEvent(env, {
+      level: 'error',
+      source: 'cop/tasks/deploy-template',
+      message: String(error instanceof Error ? error.message : error).slice(0, 500),
+      context: { error: String(error) },
+    })
     return new Response(JSON.stringify({ error: 'Failed to deploy template' }), {
       status: 500, headers: JSON_HEADERS,
     })
