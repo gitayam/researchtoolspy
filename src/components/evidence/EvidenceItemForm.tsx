@@ -278,7 +278,7 @@ export function EvidenceItemForm({
                   value={formData.source_url}
                   onChange={(e) => handleChange('source_url', e.target.value)}
                   placeholder="Source URL (optional)"
-                  className="pl-9"
+                  className="pl-9 sm:pl-9"
                 />
               </div>
               <Select value={formData.evidence_type} onValueChange={(value) => handleChange('evidence_type', value)}>

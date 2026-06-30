@@ -213,7 +213,7 @@ export function AnalysisInputForm({ onAnalysisComplete }: AnalysisInputFormProps
                 onChange={handleUrlChange}
                 onBlur={handleUrlBlur}
                 onKeyDown={handleKeyDown}
-                className="pl-10 flex-1"
+                className="pl-10 sm:pl-10 flex-1"
                 disabled={processing}
               />
             </div>

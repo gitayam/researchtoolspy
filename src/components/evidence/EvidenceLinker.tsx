@@ -287,7 +287,7 @@ export function EvidenceLinker({
               placeholder="Search evidence..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
+              className="pl-10 sm:pl-10"
             />
           </div>
 
