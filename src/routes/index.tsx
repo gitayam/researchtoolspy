@@ -102,6 +102,7 @@ const EquilibriumAnalysisPage = lazy(() => import('@/pages/tools/EquilibriumAnal
 const HamiltonRulePage = lazy(() => import('@/pages/tools/HamiltonRulePage'))
 const CollectionPage = lazy(() => import('@/pages/tools/CollectionPage'))
 const CrossTablePage = lazy(() => import('@/pages/tools/CrossTablePage'))
+const EmailHeaderAnalyzerPage = lazy(() => import('@/pages/tools/EmailHeaderAnalyzerPage'))
 const IntelligenceSynthesisPage = lazy(() => import('@/pages/IntelligenceSynthesisPage'))
 
 // COP pages (lazy loaded)
@@ -486,6 +487,10 @@ export const router = createBrowserRouter([
       {
         path: 'tools/collection',
         element: <LazyPage Component={CollectionPage} />,
+      },
+      {
+        path: 'tools/email-header-analyzer',
+        element: <LazyPage Component={EmailHeaderAnalyzerPage} />,
       },
       // Cross Table Routes
       {
