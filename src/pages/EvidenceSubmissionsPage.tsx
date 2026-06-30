@@ -29,13 +29,15 @@ import {
   Tag,
   XCircle,
   Quote,
-  ScanSearch
+  ScanSearch,
+  MapPin,
 } from 'lucide-react'
 import { getCopHeaders } from '@/lib/cop-auth'
 import { listResearchForms, listResearchSubmissions } from '@/lib/research-forms-api'
 import { buildCitationGeneratorUrl } from '@/lib/cite-source'
 import { canDeepScrape, PENDING_URL_ANALYSIS_KEY, CONTENT_INTEL_ROUTE } from '@/lib/deep-scrape'
 import { filterSubmissions } from '@/lib/submission-search'
+import SubmissionsMap from '@/components/research/SubmissionsMap'
 
 interface SubmissionForm {
   id: string
@@ -101,7 +103,7 @@ export default function EvidenceSubmissionsPage() {
   useEffect(() => {
     const controller = new AbortController()
     loadForms(controller.signal)
-    if (activeTab === 'review') {
+    if (activeTab === 'review' || activeTab === 'map') {
       loadSubmissions(controller.signal)
     }
     return () => controller.abort()
@@ -270,7 +272,7 @@ export default function EvidenceSubmissionsPage() {
         </div>
 
         <Tabs value={activeTab} onValueChange={(value) => setSearchParams({ tab: value })}>
-          <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsList className="grid w-full max-w-lg grid-cols-3">
             <TabsTrigger value="forms" className="flex items-center gap-2">
               <Inbox className="h-4 w-4" />
               {t('evidenceSubmissions.formsTab', 'Forms')}
@@ -280,6 +282,10 @@ export default function EvidenceSubmissionsPage() {
               <ClipboardCheck className="h-4 w-4" />
               {t('evidenceSubmissions.reviewTab', 'Review')}
               <Badge variant="secondary">{submissions.length}</Badge>
+            </TabsTrigger>
+            <TabsTrigger value="map" data-testid="submissions-map-tab" className="flex items-center gap-2">
+              <MapPin className="h-4 w-4" />
+              {t('evidenceSubmissions.mapTab', 'Map')}
             </TabsTrigger>
           </TabsList>
 
@@ -806,6 +812,17 @@ export default function EvidenceSubmissionsPage() {
                   )}
                 </div>
               </div>
+            )}
+          </TabsContent>
+
+          {/* Map Tab */}
+          <TabsContent value="map" className="mt-6">
+            {isLoadingSubmissions ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500" />
+              </div>
+            ) : (
+              <SubmissionsMap submissions={submissions} />
             )}
           </TabsContent>
         </Tabs>
