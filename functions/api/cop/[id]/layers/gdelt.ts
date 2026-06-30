@@ -21,6 +21,7 @@
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { verifyCopLayerAccess } from '../../../_shared/auth-helpers'
 import { JSON_HEADERS } from '../../../_shared/api-utils'
+import { logEvent } from '../../../_shared/event-log'
 
 interface Env {
   DB: D1Database
@@ -172,7 +173,12 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
       if (!response.ok) {
         fetchError = `GDELT API returned HTTP ${response.status}`
-        console.error(`[COP GDELT Layer] ${fetchError}`)
+        await logEvent(env, {
+          level: 'error',
+          source: 'cop/layers/gdelt',
+          message: fetchError,
+          context: { error: fetchError },
+        })
       } else {
         const body = await response.json() as any
         if (body && body.type === 'FeatureCollection' && Array.isArray(body.features)) {
@@ -187,7 +193,12 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       }
     } catch (e) {
       fetchError = 'GDELT API request failed'
-      console.error('[COP GDELT Layer] Fetch error:', e)
+      await logEvent(env, {
+        level: 'error',
+        source: 'cop/layers/gdelt',
+        message: String(e instanceof Error ? e.message : e).slice(0, 500),
+        context: { error: String(e) },
+      })
     }
 
     // 7. Filter features to session bounding box and add entity_type
@@ -239,7 +250,12 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     return new Response(JSON.stringify(result), { headers: JSON_HEADERS })
   } catch (error) {
-    console.error('[COP GDELT Layer] Error:', error)
+    await logEvent(env, {
+      level: 'error',
+      source: 'cop/layers/gdelt',
+      message: String(error instanceof Error ? error.message : error).slice(0, 500),
+      context: { error: String(error) },
+    })
     return new Response(JSON.stringify({
       type: 'FeatureCollection',
       features: [],
