@@ -7,6 +7,7 @@
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-helpers'
 import { generatePrefixedId , JSON_HEADERS } from '../../_shared/api-utils'
+import { logEvent } from '../../_shared/event-log'
 import { hashPassword, isValidAccessLevel, isValidSlug } from '../../_shared/survey-drops'
 
 interface Env {
@@ -58,7 +59,12 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     return new Response(JSON.stringify({ intake_forms: forms }), { headers: JSON_HEADERS })
   } catch (error) {
-    console.error('[COP Intake Forms] List error:', error)
+    await logEvent(env, {
+      level: 'error',
+      source: 'cop/intake-forms',
+      message: String(error instanceof Error ? error.message : error).slice(0, 500),
+      context: { error: String(error) },
+    })
     return new Response(JSON.stringify({ error: 'Failed to list intake forms' }), {
       status: 500, headers: JSON_HEADERS,
     })
@@ -179,7 +185,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       message: 'Intake form created',
     }), { status: 201, headers: JSON_HEADERS })
   } catch (error) {
-    console.error('[COP Intake Forms] Create error:', error)
+    await logEvent(env, {
+      level: 'error',
+      source: 'cop/intake-forms',
+      message: String(error instanceof Error ? error.message : error).slice(0, 500),
+      context: { error: String(error) },
+    })
     return new Response(JSON.stringify({ error: 'Failed to create intake form' }), {
       status: 500, headers: JSON_HEADERS,
     })

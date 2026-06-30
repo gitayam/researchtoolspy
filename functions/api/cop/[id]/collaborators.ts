@@ -10,6 +10,7 @@
 
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-helpers'
+import { logEvent } from '../../_shared/event-log'
 import { emitCopEvent } from '../../_shared/cop-events'
 import { COLLABORATOR_ADDED, COLLABORATOR_REMOVED } from '../../_shared/cop-event-types'
 
@@ -56,7 +57,12 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
     })
   } catch (error) {
-    console.error('[COP Collaborators] GET error:', error)
+    await logEvent(env, {
+      level: 'error',
+      source: 'cop/collaborators',
+      message: String(error instanceof Error ? error.message : error).slice(0, 500),
+      context: { error: String(error) },
+    })
     return new Response(JSON.stringify({
       error: 'Failed to list collaborators',
     }), {
@@ -136,7 +142,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       status: 201, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
     })
   } catch (error) {
-    console.error('[COP Collaborators] POST error:', error)
+    await logEvent(env, {
+      level: 'error',
+      source: 'cop/collaborators',
+      message: String(error instanceof Error ? error.message : error).slice(0, 500),
+      context: { error: String(error) },
+    })
     return new Response(JSON.stringify({
       error: 'Failed to invite collaborator',
     }), {
@@ -212,7 +223,12 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
     return new Response(JSON.stringify({ success: true }), { headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } })
   } catch (error) {
-    console.error('[COP Collaborators] PUT error:', error)
+    await logEvent(env, {
+      level: 'error',
+      source: 'cop/collaborators',
+      message: String(error instanceof Error ? error.message : error).slice(0, 500),
+      context: { error: String(error) },
+    })
     return new Response(JSON.stringify({
       error: 'Failed to update collaborator',
     }), {
@@ -295,7 +311,12 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
     })
   } catch (error) {
-    console.error('[COP Collaborators] DELETE error:', error)
+    await logEvent(env, {
+      level: 'error',
+      source: 'cop/collaborators',
+      message: String(error instanceof Error ? error.message : error).slice(0, 500),
+      context: { error: String(error) },
+    })
     return new Response(JSON.stringify({
       error: 'Failed to remove collaborator',
     }), {

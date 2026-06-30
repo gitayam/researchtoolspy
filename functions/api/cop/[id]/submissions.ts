@@ -9,6 +9,7 @@ import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-h
 import { emitCopEvent } from '../../_shared/cop-events'
 import { INGEST_SUBMISSION_TRIAGED, INGEST_SUBMISSION_REJECTED } from '../../_shared/cop-event-types'
 import { JSON_HEADERS } from '../../_shared/api-utils'
+import { logEvent } from '../../_shared/event-log'
 
 interface Env {
   DB: D1Database
@@ -57,7 +58,12 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     return new Response(JSON.stringify({ submissions }), { headers: JSON_HEADERS })
   } catch (error) {
-    console.error('[COP Submissions] List error:', error)
+    await logEvent(env, {
+      level: 'error',
+      source: 'cop/submissions',
+      message: String(error instanceof Error ? error.message : error).slice(0, 500),
+      context: { error: String(error) },
+    })
     return new Response(JSON.stringify({ error: 'Failed to list submissions' }), {
       status: 500, headers: JSON_HEADERS,
     })
@@ -152,7 +158,12 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
     return new Response(JSON.stringify({ id: subId, message: 'Submission updated' }), { headers: JSON_HEADERS })
   } catch (error) {
-    console.error('[COP Submissions] Triage error:', error)
+    await logEvent(env, {
+      level: 'error',
+      source: 'cop/submissions',
+      message: String(error instanceof Error ? error.message : error).slice(0, 500),
+      context: { error: String(error) },
+    })
     return new Response(JSON.stringify({ error: 'Failed to triage submission' }), {
       status: 500, headers: JSON_HEADERS,
     })

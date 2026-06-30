@@ -9,6 +9,7 @@ import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-h
 import { emitCopEvent } from '../../_shared/cop-events'
 import { SHARE_CREATED } from '../../_shared/cop-event-types'
 import { generatePrefixedId , JSON_HEADERS } from '../../_shared/api-utils'
+import { logEvent } from '../../_shared/event-log'
 
 interface Env {
   DB: D1Database
@@ -74,7 +75,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       message: 'Share link created',
     }), { status: 201, headers: JSON_HEADERS })
   } catch (error) {
-    console.error('[COP Share API] Create error:', error)
+    await logEvent(env, {
+      level: 'error',
+      source: 'cop/shares',
+      message: String(error instanceof Error ? error.message : error).slice(0, 500),
+      context: { error: String(error) },
+    })
     return new Response(JSON.stringify({
       error: 'Failed to create share link',
     }), { status: 500, headers: JSON_HEADERS })
@@ -117,7 +123,12 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     return new Response(JSON.stringify({ shares }), { headers: JSON_HEADERS })
   } catch (error) {
-    console.error('[COP Share API] List error:', error)
+    await logEvent(env, {
+      level: 'error',
+      source: 'cop/shares',
+      message: String(error instanceof Error ? error.message : error).slice(0, 500),
+      context: { error: String(error) },
+    })
     return new Response(JSON.stringify({
       error: 'Failed to list share links',
     }), { status: 500, headers: JSON_HEADERS })
@@ -174,7 +185,12 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
 
     return new Response(JSON.stringify({ message: 'Share link deleted' }), { headers: JSON_HEADERS })
   } catch (error) {
-    console.error('[COP Share API] Delete error:', error)
+    await logEvent(env, {
+      level: 'error',
+      source: 'cop/shares',
+      message: String(error instanceof Error ? error.message : error).slice(0, 500),
+      context: { error: String(error) },
+    })
     return new Response(JSON.stringify({
       error: 'Failed to delete share link',
     }), { status: 500, headers: JSON_HEADERS })
