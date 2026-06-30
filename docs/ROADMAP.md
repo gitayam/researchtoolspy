@@ -1,6 +1,6 @@
 # ResearchTools.net — Roadmap
 
-**Last updated:** 2026-06-30 · **Current release:** `v0.22.0` (+ hardening patches through `v0.22.61`) · **Prod:** [researchtools.net](https://researchtools.net) (Cloudflare Pages + D1)
+**Last updated:** 2026-06-30 · **Current release:** `v0.22.0` (+ hardening patches through `v0.22.63`) · **Prod:** [researchtools.net](https://researchtools.net) (Cloudflare Pages + D1)
 
 > **2026-06-26 — fresh COP fix batch injected (`COP-1`…`COP-12`).** A `/team-investigate` pass on a user report (COT export "not working" + "many aspects not working") surfaced a verified backlog of loop-eligible bugs/stubs. Full evidence + AUTO/DECISION split: [`plans/2026-06-26-cop-investigation-findings.md`](plans/2026-06-26-cop-investigation-findings.md). Listed at the top of **Now** below. The prior `/roadmap-step` STOP (drained backlog) is now lifted.
 
@@ -31,6 +31,12 @@ New features are welcome but should ride on top of this hardened base, not aroun
 ---
 
 ## Recently shipped
+
+### v0.22.63 — Schema sprawl cleanup: drop 25 dead tables (TD-06) (2026-06-30)
+- ✅ **D1 trimmed from 161 → 136 tables.** Inventoried all tables by row count: 83 had 0 rows. After grepping `functions/` and `src/` for TypeScript references, **25 were confirmed dead** (0 rows + no code refs) and dropped via idempotent `migration 113`. Prod backed up first (`backups/20260630_131918_pre-td06.sql`); applied remote; verified `rate_limits`, `api_keys`, `ach_collaborators` gone and `cop_sessions`, `evidence_items`, `survey_drops` intact. Tables dropped: `ach_collaborators`, `api_keys`, `cop_submissions`, `entity_ratings`, `entity_votes`, `evidence_social_media`, `framework_analytics`, `framework_content_sources`, `framework_exports`, `framework_ratings`, `framework_templates`, `framework_views`, `framework_votes`, `guest_sessions`, `library_collection_items`, `library_collections`, `library_framework_tags`, `library_items`, `library_tags`, `rate_limits`, `research_analysis`, `research_tool_results`, `social_media_analytics`, `social_media_monitors`, `suggestion_analytics`. `td06-dead-tables.spec.ts` 50/50; prod-deployed (HTTP 200). (`8aa6fc9a1`) *Discovered: 58 additional zero-row tables have TS code references (incomplete features like `cop_playbooks`, `social_media_jobs`, `investigation_*`, `comments`) — candidates for separate cleanup or activation.*
+
+### v0.22.62 — SocialMediaPage crash: null count field guard (2026-06-30)
+- ✅ **Social Media page no longer crashes when the API returns null count fields.** `formatNumber(num: number)` called `num.toString()` — if the DB stored NULL for `followers_count`, `posts_count`, etc., the page threw `null is not an object (evaluating 's.toString')` and React Router surfaced the bare dev error screen. Fixed with a `num == null → '0'` guard and widened the type to `number | null | undefined`. No data change. Type-check + build clean; prod-deployed (HTTP 200). (`37e32f71e`)
 
 ### v0.22.61 — COP error-path toasts (#18) (2026-06-30)
 - ✅ **7 previously-silent COP failure paths now surface user-facing toasts.** `CopWorkspacePage.tsx` and `CopPage.tsx` already had `useToast` from COP-1; 7 error branches (across both files) that only called `console.error` now also call `toast({variant: 'destructive', ...})` with short, actionable messages. Also surfaced two completely silent catches discovered during the sweep: `handleToggleLayer` and `handleSessionUpdate` in `CopPage` had no error signal at all — both now get `console.error` + toast. `handleShare` upgraded from a silent `.catch(console.error)` to a proper then/catch with success ("Link copied!") and failure feedback. All 14 toast calls are additive (existing `console.error` kept). `cop-error-toasts.spec.ts` source-guard 14 assertions / 36 runs across browsers; type-check + build clean; prod-deployed (HTTP 200). (`89d7bfd0a`)
@@ -313,7 +319,7 @@ New features are welcome but should ride on top of this hardened base, not aroun
 4. **Per-user limiting everywhere** `TD-05` — thread `metadata.user_id` through more gateway callers so per-user (not just global) limits apply. ✅ *Apify scrapers now throttled separately (v0.22.16, 10/min·user).* *Note (2026-06-20): the gateway limiter (`enforceRateLimit`) already keys per-user when `metadata.user_id` is supplied — the remaining work is a **broad sweep** threading `user_id` through the ~40 callers that omit it. Open-ended acceptance; best done as a defined sweep (or highest-traffic callers first) — not a single crisp change.*
 5. 🔄 **Content-extraction quality** — ✅ **extraction failures now logged to `event_logs`** (v0.22.15, `28c8515f8` — `analyze-url.ts` 422 branch). **Remaining:** decide the fate of the **dead `content_chunks` full-text path** (`analyze-url.ts` writes it, nothing reads it — fix or remove).
 6. ✅ **Extend consent gating — DONE** (v0.22.14, `0ca2b5f26`): the Tier-1 `requireConsent` (`sensitive_ai`) gate now also covers **COG/CARVER vulnerability generation** (`functions/api/ai/cog-analysis.ts`), prod-verified (no-consent → 403). *PimEyes/face-match has no server endpoint (frontend-only tool) — nothing to gate server-side.*
-7. **Schema sprawl cleanup** `TD-06` — inventory the ~148 tables by row count; drop the confirmed-dead ones (incl. the unused `rate_limits` table) with a migration, or document the intentionally-future ones.
+7. ✅ **Schema sprawl cleanup** `TD-06` — DONE (v0.22.63, `8aa6fc9a1`). 161 → 136 tables. 25 dead dropped (migration 113); 58 zero-row referenced tables documented for future decision. *Follow-up: the 58 referenced-empty tables represent incomplete features — worth a separate sweep to either activate or remove the dead endpoints.*
 
 ## Later
 
