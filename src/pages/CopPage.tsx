@@ -184,21 +184,31 @@ export default function CopPage() {
             headers: getCopHeaders(),
             body: JSON.stringify({ active_layers: newLayers }),
           })
-        } catch {
+        } catch (err) {
+          console.error('Failed to persist layer toggle:', err)
           // Revert on failure
           setActiveLayers(prevLayers)
+          toast({ title: 'Failed to update layers', description: 'Layer change could not be saved — reverted.', variant: 'destructive' })
         }
       }
     },
-    [activeLayers, id],
+    [activeLayers, id, toast],
   )
 
   // ── Share handler ───────────────────────────────────────────────
 
   const handleShare = useCallback(() => {
     const url = `${window.location.origin}/dashboard/cop/${id}`
-    navigator.clipboard.writeText(url).catch(console.error)
-  }, [id])
+    navigator.clipboard.writeText(url).then(
+      () => {
+        toast({ title: 'Link copied', description: 'Share link copied to clipboard.' })
+      },
+      (err) => {
+        console.error('Failed to copy share link to clipboard:', err)
+        toast({ title: "Couldn't copy link", description: 'Copy the URL from your browser address bar to share it.', variant: 'destructive' })
+      },
+    )
+  }, [id, toast])
 
   const handleExportCot = useCallback(async () => {
     if (!id) return
@@ -227,12 +237,14 @@ export default function CopPage() {
           headers: getCopHeaders(),
           body: JSON.stringify(updates),
         })
-      } catch {
+      } catch (err) {
+        console.error('Failed to update session:', err)
         // Revert on failure by re-fetching
         fetchSession()
+        toast({ title: 'Failed to save changes', description: 'Session update could not be saved — try again.', variant: 'destructive' })
       }
     },
-    [id, session, fetchSession]
+    [id, session, fetchSession, toast]
   )
 
   // ── Total feature count ─────────────────────────────────────────
