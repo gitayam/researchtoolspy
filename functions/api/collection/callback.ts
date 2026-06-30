@@ -97,7 +97,7 @@ function normalizeCallback(body: AgentCallback): AgentCallbackOriginal {
       snippet: r.snippet || '',
       category: r.category || 'general',
       source_domain: extractDomain(r.url),
-      relevance_score: r.relevanceScore || 0.5,
+      relevance_score: r.relevanceScore ?? 0.5,
       published_date: r.publishedDate || undefined,
       engine: r.source || 'unknown'
     }))

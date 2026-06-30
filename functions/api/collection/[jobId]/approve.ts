@@ -90,7 +90,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       const origin = new URL(context.request.url).origin
       const batchResponse = await fetch(`${origin}/api/tools/batch-process`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-User-Hash': context.request.headers.get('X-User-Hash') ?? '',
+        },
         body: JSON.stringify({
           operation: 'analyze-url',
           items: batchItems,
