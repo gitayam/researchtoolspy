@@ -3,20 +3,17 @@
 Durable state for the `/roadmap-step` loop. The stop condition (2 consecutive no-change
 iterations) reads `no_change_streak` from here, so it survives session death / `/clear`.
 
-iteration: 72
+iteration: 73
 no_change_streak: 0
-last_item: COP-12 chunk 2 — console.error → logEvent in 10 more COP handlers
-last_result: SHIPPED (v0.22.67, 1feef5523). 23 console.error replaced across personas/collaborators/shares/events/activity/export/exports/submissions/intake-forms/public-token. Running total: 52 of ~130 replaced. Prod HTTP 401 live.
+last_item: COP-12 chunk 3 — console.error → logEvent in all layers/* handlers
+last_result: SHIPPED (v0.22.68, ff8b30de8). 13 console.error replaced across 10 layers/* files. Running total: 65 of ~130 replaced. Prod HTTP 401 live.
 
->>> PREV ITER 71: COP-12 chunk 1 (v0.22.66, ffa97aa58) — 29 calls replaced. <<<
+>>> COP-12 progress: chunk 4 BUILDING (alerts/task-templates/poo-estimates/playbooks-rules/assets/task-deps/rfis-answers/playbooks-[pbId]/evidence-tags/rfis-[rfiId]) <<<
 
->>> LOOP RE-EVALUATION (§1 stop checks): <<<
 Remaining AUTO items:
   AUTO:
-    - COP-12 chunk 3 — ~78 console.error remaining in ~38 files
-      (layers/*, playbooks, assets, rfis/[id]/answers, tasks/*, marker-changelog, cot, 
-       poo-estimates, alerts, scrape, evidence-tags, evidence/batch, exports/download,
-       intake-forms/[id], playbooks/[pbId]+rules+test+log, public/intake/*)
+    - COP-12 chunk 4 (in flight) — ~35 calls in 10 files
+    - COP-12 chunk 5 (final) — ~22 calls in 17 files (remaining after chunk 4)
     - 58 referenced-empty tables sweep (TD-06 follow-up)
   DECISION-GATED:
     - E-6e: Turnstile site key
@@ -25,5 +22,3 @@ Remaining AUTO items:
     - Deception AI server-side move
     - COM-B canon
     - F-1..F-10 OSINT tooling
-
-Next: COP-12 chunk 3 — ~10 more files from the remaining 38.
