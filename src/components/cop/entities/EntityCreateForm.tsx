@@ -227,16 +227,26 @@ export default function EntityCreateForm({
     value: string,
     onChange: (v: any) => void,
     options: readonly string[],
+    opts?: { disabled?: boolean; hint?: string },
   ) => (
     <div>
       <label className={LABEL_CLS}>{label}</label>
-      <select value={value} onChange={(e) => onChange(e.target.value)} className={INPUT_CLS}>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        disabled={opts?.disabled}
+        aria-disabled={opts?.disabled}
+        className={INPUT_CLS + (opts?.disabled ? ' opacity-60 cursor-not-allowed' : '')}
+      >
         {options.map((opt) => (
           <option key={opt} value={opt}>
             {opt}
           </option>
         ))}
       </select>
+      {opts?.hint && (
+        <p className="text-xs text-muted-foreground mt-1">{opts.hint}</p>
+      )}
     </div>
   )
 
@@ -268,7 +278,10 @@ export default function EntityCreateForm({
       case 'actors':
         return (
           <>
-            {renderSelect('Type', actorType, setActorType, ACTOR_TYPES)}
+            {renderSelect('Type', actorType, setActorType, ACTOR_TYPES, {
+              disabled: isEdit,
+              hint: isEdit ? 'Type cannot be changed after creation.' : undefined,
+            })}
             <div className="grid grid-cols-2 gap-2">
               {renderInput('Category', category, setCategory, { placeholder: 'e.g. Military' })}
               {renderInput('Role', role, setRole, { placeholder: 'e.g. Commander' })}
@@ -281,7 +294,10 @@ export default function EntityCreateForm({
       case 'events':
         return (
           <>
-            {renderSelect('Event Type', eventType, setEventType, EVENT_TYPES)}
+            {renderSelect('Event Type', eventType, setEventType, EVENT_TYPES, {
+              disabled: isEdit,
+              hint: isEdit ? 'Type cannot be changed after creation.' : undefined,
+            })}
             <div className="grid grid-cols-2 gap-2">
               {renderInput('Start Date', dateStart, setDateStart, { type: 'date', required: true })}
               {renderInput('End Date', dateEnd, setDateEnd, { type: 'date' })}
@@ -314,7 +330,10 @@ export default function EntityCreateForm({
                 if (mapped) setPlaceType(mapped)
               }}
             />
-            {renderSelect('Place Type', placeType, setPlaceType, PLACE_TYPES)}
+            {renderSelect('Place Type', placeType, setPlaceType, PLACE_TYPES, {
+              disabled: isEdit,
+              hint: isEdit ? 'Type cannot be changed after creation.' : undefined,
+            })}
             <div className="grid grid-cols-2 gap-2">
               {renderInput('Latitude', String(lat), (v) => setLat(v), { type: 'number', placeholder: 'e.g. 51.5074' })}
               {renderInput('Longitude', String(lng), (v) => setLng(v), { type: 'number', placeholder: 'e.g. -0.1278' })}
@@ -330,7 +349,10 @@ export default function EntityCreateForm({
       case 'sources':
         return (
           <>
-            {renderSelect('Intelligence Type', sourceIntType, setSourceIntType, SOURCE_INT_TYPES)}
+            {renderSelect('Intelligence Type', sourceIntType, setSourceIntType, SOURCE_INT_TYPES, {
+              disabled: isEdit,
+              hint: isEdit ? 'Type cannot be changed after creation.' : undefined,
+            })}
             {renderInput('Source Type', sourceType, setSourceType, { placeholder: 'e.g. Agent, Intercept, Satellite' })}
           </>
         )
@@ -338,7 +360,10 @@ export default function EntityCreateForm({
       case 'behaviors':
         return (
           <>
-            {renderSelect('Behavior Type', behaviorType, setBehaviorType, BEHAVIOR_TYPES)}
+            {renderSelect('Behavior Type', behaviorType, setBehaviorType, BEHAVIOR_TYPES, {
+              disabled: isEdit,
+              hint: isEdit ? 'Type cannot be changed after creation.' : undefined,
+            })}
             <div className="grid grid-cols-2 gap-2">
               {renderSelect('Frequency', frequency, setFrequency, FREQUENCY_LEVELS)}
               {renderSelect('Sophistication', sophistication, setSophistication, SOPHISTICATION_LEVELS)}
