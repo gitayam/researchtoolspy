@@ -278,3 +278,80 @@ export function buildEvidenceFromResponse(formData: unknown): PromoteEvidenceFie
     content_type: contentType,
   }
 }
+
+// ── E-7a: citation extraction ──────────────────────────────────────────────
+
+/**
+ * The subset of an `_enriched_*` payload that a citation formatter needs.
+ * `source_type` is always `'web'` because URL-enrichment (E-14) only fetches
+ * web content; other ingestion paths produce no `_enriched_*` keys.
+ */
+export interface EnrichedCitationFields {
+  url: string
+  title: string | null
+  excerpt: string | null
+  summary: string | null
+  fetched_at: string | null
+  source_type: 'web'
+}
+
+/**
+ * Extract citation-ready fields from form_data by scanning for the first
+ * `_enriched_<field>` key whose value is an object with a non-empty `url`.
+ * Returns null when no enriched URL data is present (enrichment may not have
+ * run yet, or the form had no url-type fields).
+ *
+ * When the submission also has a `source_url` (extracted by `pickUrl`), the
+ * `_enriched_*` entry whose `url` matches it (case-insensitive) is preferred
+ * over any other enriched entry; otherwise the first valid entry wins.
+ *
+ * Privacy: only reads `_enriched_*` keys; `submitter_ip_hash` is never
+ * touched.
+ */
+export function extractEnrichedCitation(
+  formData: unknown,
+): EnrichedCitationFields | null {
+  const data = safeParse<Record<string, unknown>>(formData, {})
+
+  // Collect every _enriched_* entry that has a non-empty url string.
+  const candidates: Array<{ key: string; value: Record<string, unknown> }> = []
+  for (const key of Object.keys(data)) {
+    if (!key.startsWith('_enriched_')) continue
+    const value = data[key]
+    if (
+      value !== null &&
+      typeof value === 'object' &&
+      !Array.isArray(value) &&
+      typeof (value as Record<string, unknown>).url === 'string' &&
+      ((value as Record<string, unknown>).url as string).length > 0
+    ) {
+      candidates.push({ key, value: value as Record<string, unknown> })
+    }
+  }
+
+  if (candidates.length === 0) return null
+
+  // Prefer the entry whose url matches the submission's source_url.
+  const submissionUrl = pickUrl(data)
+  let chosen = candidates[0]
+  if (submissionUrl) {
+    const normalised = submissionUrl.toLowerCase()
+    const match = candidates.find(
+      (c) => (c.value.url as string).toLowerCase() === normalised,
+    )
+    if (match) chosen = match
+  }
+
+  const v = chosen.value
+  const str = (x: unknown): string | null =>
+    typeof x === 'string' && x.length > 0 ? x : null
+
+  return {
+    url: v.url as string,
+    title: str(v.title),
+    excerpt: str(v.excerpt),
+    summary: str(v.summary),
+    fetched_at: str(v.fetched_at),
+    source_type: 'web',
+  }
+}

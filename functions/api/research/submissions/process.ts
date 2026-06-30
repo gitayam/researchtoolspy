@@ -16,7 +16,7 @@
 
 import { getUserFromRequest } from '../../_shared/auth-helpers'
 import { JSON_HEADERS, optionsResponse } from '../../_shared/api-utils'
-import { buildEvidenceFromResponse } from '../_lib/systema-adapter'
+import { buildEvidenceFromResponse, extractEnrichedCitation } from '../_lib/systema-adapter'
 import { buildEvidenceItemsInsert } from '../_lib/research-evidence-mapping'
 
 interface Env {
@@ -94,6 +94,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     // Derive title / source_url / description / content_type from the submitted
     // answers via the shared adapter (kept pure + unit-tested).
     const fields = buildEvidenceFromResponse(submission.form_data)
+    const enrichedCitation = extractEnrichedCitation(submission.form_data)
 
     // Determine evidence type from the form-supplied content type (or default).
     let evidenceType = body.evidenceType || fields.content_type || 'source'
@@ -160,7 +161,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         evidenceType,
         title,
         content: content || null,
-        metadata: { source_url: fields.source_url || null },
+        metadata: {
+          source_url: fields.source_url || null,
+          ...(enrichedCitation !== null ? { citation: enrichedCitation } : {}),
+        },
         credibilityScore: typeof body.credibilityScore === 'number' ? body.credibilityScore : null,
         verificationStatus: body.verificationStatus || 'unverified',
         chainOfCustody,
