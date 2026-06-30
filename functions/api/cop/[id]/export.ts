@@ -14,6 +14,7 @@ import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-h
 import { emitCopEvent } from '../../_shared/cop-events'
 import { EXPORT_REQUESTED, EXPORT_COMPLETED, EXPORT_FAILED } from '../../_shared/cop-event-types'
 import { JSON_HEADERS } from '../../_shared/api-utils'
+import { logEvent } from '../../_shared/event-log'
 
 interface Env {
   DB: D1Database
@@ -367,14 +368,24 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         createdBy: userId,
       })
 
-      console.error('[COP Export] Serialization error:', serializeError)
+      await logEvent(env, {
+        level: 'error',
+        source: 'cop/export',
+        message: String(serializeError instanceof Error ? serializeError.message : serializeError).slice(0, 500),
+        context: { error: String(serializeError) },
+      })
       return new Response(
         JSON.stringify({ error: 'Export serialization failed', export_id: exportId }),
         { status: 500, headers: JSON_HEADERS }
       )
     }
   } catch (error: any) {
-    console.error('[COP Export] Error:', error)
+    await logEvent(env, {
+      level: 'error',
+      source: 'cop/export',
+      message: String(error instanceof Error ? error.message : error).slice(0, 500),
+      context: { error: String(error) },
+    })
     return new Response(
       JSON.stringify({ error: 'Failed to process export request' }),
       { status: 500, headers: JSON_HEADERS }

@@ -11,6 +11,7 @@
 
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-helpers'
+import { logEvent } from '../../_shared/event-log'
 
 interface Env {
   DB: D1Database
@@ -62,7 +63,12 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     return new Response(JSON.stringify({ activity, total }), { headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } })
   } catch (error) {
-    console.error('[COP Activity] GET error:', error)
+    await logEvent(env, {
+      level: 'error',
+      source: 'cop/activity',
+      message: String(error instanceof Error ? error.message : error).slice(0, 500),
+      context: { error: String(error) },
+    })
     return new Response(JSON.stringify({
       error: 'Failed to fetch activity',
     }), {
@@ -131,7 +137,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         body.actor_name ?? null, body.details ?? null, createdAt,
       ).run()
     } catch (dbError) {
-      console.error('[COP Activity] INSERT failed:', dbError)
+      await logEvent(env, {
+        level: 'error',
+        source: 'cop/activity',
+        message: String(dbError instanceof Error ? dbError.message : dbError).slice(0, 500),
+        context: { error: String(dbError) },
+      })
       return new Response(JSON.stringify({
         error: 'Failed to persist activity',
         activity,
@@ -140,7 +151,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     return new Response(JSON.stringify({ activity }), { status: 201, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } })
   } catch (error) {
-    console.error('[COP Activity] POST error:', error)
+    await logEvent(env, {
+      level: 'error',
+      source: 'cop/activity',
+      message: String(error instanceof Error ? error.message : error).slice(0, 500),
+      context: { error: String(error) },
+    })
     return new Response(JSON.stringify({
       error: 'Failed to log activity',
     }), {

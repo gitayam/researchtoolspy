@@ -11,6 +11,7 @@ import { emitCopEvent } from '../../_shared/cop-events'
 import { PERSONA_CREATED, PERSONA_LINKED } from '../../_shared/cop-event-types'
 import { createTimelineEntry } from '../../_shared/timeline-helper'
 import { generatePrefixedId , JSON_HEADERS } from '../../_shared/api-utils'
+import { logEvent } from '../../_shared/event-log'
 
 interface Env {
   DB: D1Database
@@ -79,7 +80,12 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     return new Response(JSON.stringify({ personas: enriched }), { headers: JSON_HEADERS })
   } catch (error) {
-    console.error('[COP Personas] List error:', error)
+    await logEvent(env, {
+      level: 'error',
+      source: 'cop/personas',
+      message: String(error instanceof Error ? error.message : error).slice(0, 500),
+      context: { error: String(error) },
+    })
     return new Response(JSON.stringify({
       error: 'Failed to list personas',
     }), { status: 500, headers: JSON_HEADERS })
@@ -199,7 +205,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
             payload: { batch_count: created.length, source: body.source || 'entity_extraction' },
             createdBy: userId,
           })
-        } catch (e) { console.error('[COP Personas] Non-fatal event/timeline error:', e) }
+        } catch (e) {
+          await logEvent(env, {
+            level: 'error',
+            source: 'cop/personas',
+            message: String(e instanceof Error ? e.message : e).slice(0, 500),
+            context: { error: String(e) },
+          })
+        }
 
         try {
           await createTimelineEntry(env.DB, sessionId, workspaceId, userId, {
@@ -211,7 +224,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
             entity_id: body.source || 'entity_extraction',
             action: 'extracted',
           })
-        } catch (e) { console.error('[COP Personas] Non-fatal event/timeline error:', e) }
+        } catch (e) {
+          await logEvent(env, {
+            level: 'error',
+            source: 'cop/personas',
+            message: String(e instanceof Error ? e.message : e).slice(0, 500),
+            context: { error: String(e) },
+          })
+        }
       }
 
       return new Response(JSON.stringify({
@@ -298,7 +318,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       status: 201, headers: JSON_HEADERS,
     })
   } catch (error) {
-    console.error('[COP Personas] Create/Update error:', error)
+    await logEvent(env, {
+      level: 'error',
+      source: 'cop/personas',
+      message: String(error instanceof Error ? error.message : error).slice(0, 500),
+      context: { error: String(error) },
+    })
     return new Response(JSON.stringify({
       error: 'Failed to create/update persona',
     }), { status: 500, headers: JSON_HEADERS })
