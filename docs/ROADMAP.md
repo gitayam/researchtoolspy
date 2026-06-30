@@ -1,6 +1,6 @@
 # ResearchTools.net — Roadmap
 
-**Last updated:** 2026-06-30 · **Current release:** `v0.22.0` (+ hardening patches through `v0.22.70`) · **Prod:** [researchtools.net](https://researchtools.net) (Cloudflare Pages + D1)
+**Last updated:** 2026-06-30 · **Current release:** `v0.22.0` (+ hardening patches through `v0.22.71`) · **Prod:** [researchtools.net](https://researchtools.net) (Cloudflare Pages + D1)
 
 > **2026-06-26 — fresh COP fix batch injected (`COP-1`…`COP-12`).** A `/team-investigate` pass on a user report (COT export "not working" + "many aspects not working") surfaced a verified backlog of loop-eligible bugs/stubs. Full evidence + AUTO/DECISION split: [`plans/2026-06-26-cop-investigation-findings.md`](plans/2026-06-26-cop-investigation-findings.md). Listed at the top of **Now** below. The prior `/roadmap-step` STOP (drained backlog) is now lifted.
 
@@ -31,6 +31,12 @@ New features are welcome but should ride on top of this hardened base, not aroun
 ---
 
 ## Recently shipped
+
+### v0.22.71 — Agentic Research LOW hygiene fixes (2026-06-30)
+- ✅ **`relevanceScore || 0.5` falsy-zero bug fixed** in `functions/api/collection/callback.ts`: `||` → `??` (nullish coalescing). A 0.0 relevance score was previously being replaced with 0.5 due to falsy-zero coercion; now only `null`/`undefined` fall back to the default. (`1c73e53fc`)
+- ✅ **`approve → batch-process` auth forwarding fixed** in `functions/api/collection/[jobId]/approve.ts`: the internal cross-origin fetch to `/api/tools/batch-process` now forwards `X-User-Hash` from the incoming request so the batch endpoint receives the user's auth identity. Previously the header was missing, causing silent auth failures. (`1c73e53fc`)
+- ✅ **Hardcoded 70% threshold** — audited and confirmed not present in `callback.ts` or anywhere in `functions/api/collection/`; roadmap note was inaccurate. (`1c73e53fc`)
+- Source-guard smoke test `collection-agentic-hygiene.spec.ts` (2 assertions) verifies both fixes at the source level. Prod-deployed (HTTP 401 = auth-required endpoint live). No migration. *Remaining [LOW]: none. [MED] No retention — needs retention-window decision (DECISION-GATED). [HIGH] Callback strict-mode — needs external agent update (cross-system, blocked).*
 
 ### v0.22.70 — 🎯 COP-12 COMPLETE: zero console.error remaining in all COP handlers (2026-06-30)
 - ✅ **COP-12 fully shipped in 5 chunks.** Final 21 calls replaced across 17 files (assets/check-in+log, cot, evidence/batch, exports/download, intake-forms/[id], marker-changelog, playbooks, playbooks/log+test, tasks/reassign+deploy-template, public/intake/*). `cot.ts` catch chain converted to async to allow `await logEvent`. Whole-COP sweep smoke test confirms **zero `console.error` remain** in `functions/api/cop/` (57 files covered). **Total replaced: ~121 calls across 57 files.** Every COP server error now lands in `event_logs` D1 table (queryable via `GET /api/cron/event-logs`), visible after being completely dark in prod since the COP workspace launched. (`ce26fd812`)
@@ -332,7 +338,7 @@ New features are welcome but should ride on top of this hardened base, not aroun
    - ✅ **[HIGH] Stuck jobs never time out — FIXED** (v0.22.7, `2e4e75ff6`): jobs `running`/`pending` past 15 min are lazily transitioned to a terminal `error` on status read via a race-safe UPDATE.
    - ✅ **[MED] Collection endpoints not rate-limited — FIXED** (v0.22.7, `2e4e75ff6`): `/api/collection/start` added to the per-user AI limiter.
    - **[MED] No retention** — `collection_jobs` / `collection_results` / `collection_queries` have no cleanup (violates the project "new tables ship with a retention cron" convention). → `expires_at` + cron window (needs a retention-window decision).
-   - **[LOW] Hygiene** — `workspace_id` accepted null (isolation); missing-score fallback `relevanceScore || 0.5`; hardcoded 70% select threshold + no score distribution; approve → batch-process cross-origin call forwards no auth.
+   - ✅ **[LOW] Hygiene** — DONE (v0.22.71, `1c73e53fc`). `workspace_id` null: already guarded by get-or-create (not a bug). `relevanceScore || 0.5` → `?? 0.5` (falsy-zero fix). Hardcoded 70% threshold: audited, not present. `approve → batch-process` auth: `X-User-Hash` now forwarded. Source-guard `collection-agentic-hygiene.spec.ts` 2/2.
    - *Done when:* each HIGH item has a fix + regression test, prod-verified; MED/LOW fixed or explicitly captured.
 
 ## Next
