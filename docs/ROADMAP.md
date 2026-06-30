@@ -1,6 +1,6 @@
 # ResearchTools.net — Roadmap
 
-**Last updated:** 2026-06-30 · **Current release:** `v0.22.0` (+ hardening patches through `v0.22.64`) · **Prod:** [researchtools.net](https://researchtools.net) (Cloudflare Pages + D1)
+**Last updated:** 2026-06-30 · **Current release:** `v0.22.0` (+ hardening patches through `v0.22.65`) · **Prod:** [researchtools.net](https://researchtools.net) (Cloudflare Pages + D1)
 
 > **2026-06-26 — fresh COP fix batch injected (`COP-1`…`COP-12`).** A `/team-investigate` pass on a user report (COT export "not working" + "many aspects not working") surfaced a verified backlog of loop-eligible bugs/stubs. Full evidence + AUTO/DECISION split: [`plans/2026-06-26-cop-investigation-findings.md`](plans/2026-06-26-cop-investigation-findings.md). Listed at the top of **Now** below. The prior `/roadmap-step` STOP (drained backlog) is now lifted.
 
@@ -31,6 +31,9 @@ New features are welcome but should ride on top of this hardened base, not aroun
 ---
 
 ## Recently shipped
+
+### v0.22.65 — SocialMediaPage design polish: remove hard-banned side-tab accents (#23) (2026-06-30)
+- ✅ **5 impeccable findings cleared from `SocialMediaPage.tsx`.** Dropped the 4 hard-banned `border-l-4` side-stripe accents from the Tools tab reference sections (Instagram/YouTube/Twitter/TikTok) — replaced with platform-colored icons (`text-pink-600`, `text-red-600`, `text-sky-500`, `text-slate-800 dark:text-slate-200`). Replaced the Instagram gradient (`bg-gradient-to-r from-purple-500 to-pink-500`) on profile card platform badges with a solid `bg-pink-600`. Impeccable hook: 5 findings → 0. Type-check + build clean; prod-deployed. (`ea991fc4f`)
 
 ### v0.22.64 — Route-level ErrorBoundary on all page routes (#22) (2026-06-30)
 - ✅ **Every page route now has a branded error fallback.** New `src/components/RouteErrorBoundary.tsx` (`useRouteError`, fire-and-forget POST to `/api/client-error`, `isRouteErrorResponse` status formatting, dev-only `<pre>` stack trace, "Refresh" + "Go to Dashboard" buttons) wired as `errorElement` on all ~95 page routes in `src/routes/index.tsx`. Navigate-only redirect routes and layout-only wrappers (`DashboardLayout`, `DashboardFullBleedLayout`) intentionally skipped (they cannot throw render errors). Users now see a clean "Something went wrong" card instead of React Router's bare dev screen. Type-check + build clean; prod-deployed (HTTP 200). (`feb51e350`)
@@ -341,7 +344,7 @@ New features are welcome but should ride on top of this hardened base, not aroun
 20. ✅ **Entity-edit `type` selector is a no-op** `Discovered 2026-06-26 (COP-3)` — DONE (v0.22.58, `3858ae71b`). Type field made read-only in edit mode (disabled + aria-disabled + helper hint). *Follow-up: per-type fields not exposed in the form (separate enhancement).*
 19. ✅ **`research/forms/list` workspace authorization** `Discovered 2026-06-26 (COP-14)` — DONE (v0.22.60, `f8231037d`). `userOwnsWorkspace()` guard added (owner + collaborator check); returns 403 on mismatch. `submissions/list.ts` audited — not vulnerable. *Note: existing `created_by = ?` already blocked data reads; this closed a workspace-existence enumeration via timing.*
 22. ✅ **Route-level ErrorBoundary / `errorElement` sweep** `Discovered 2026-06-30` — DONE (v0.22.64, `feb51e350`). `RouteErrorBoundary.tsx` + `errorElement` on all ~95 page routes. Branded fallback; errors reported to `event_logs` via `/api/client-error`.
-23. **SocialMediaPage design polish** `Discovered 2026-06-30` — impeccable hook flagged 5 pre-existing issues when the null-guard fix was applied: `border-l-4` side-tab accent borders on 4 tool sections (L895/915/937/957 — hard-banned) and the Instagram `bg-gradient-to-r from-purple-500 to-pink-500` color in `platformColors` (L99 — AI-palette tell). Replace the border-left accents with an icon-led or background approach; pick a deliberate non-gradient Instagram color.
+23. ✅ **SocialMediaPage design polish** `Discovered 2026-06-30` — DONE (v0.22.65, `ea991fc4f`). 4 `border-l-4` accents removed, icons colored by platform; Instagram gradient → solid `bg-pink-600`.
 
 ---
 
