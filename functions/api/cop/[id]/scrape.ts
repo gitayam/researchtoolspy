@@ -122,8 +122,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     if (!runRes.ok) {
       const errText = await runRes.text()
-      console.error('[COP Scrape] Apify run failed:', runRes.status, errText)
-      // Parse Apify error for better messaging
+      // Parse Apify error for better messaging and structured logging
       let apifyError = `Apify returned ${runRes.status}`
       try {
         const parsed = JSON.parse(errText)
@@ -132,6 +131,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           apifyError = `Actor not rented. Rent it at: https://console.apify.com/actors — search for "${scraperType}" scraper`
         }
       } catch { /* use default */ }
+      await logEvent(env, buildUpstreamFailureLog('cop/scrape/run-start', {
+        status: runRes.status,
+        error: apifyError,
+      })).catch(() => {})
       return new Response(JSON.stringify({
         error: 'Failed to start scraper',
         detail: runRes.status === 402 ? 'Apify account limit reached or actor not rented'
@@ -168,7 +171,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }), { status: 202, headers: JSON_HEADERS })
 
   } catch (error) {
-    console.error('[COP Scrape] Error:', error)
+    await logEvent(env, buildUpstreamFailureLog('cop/scrape/run-start', { error })).catch(() => {})
     return new Response(JSON.stringify({ error: 'Scrape failed' }), {
       status: 500, headers: JSON_HEADERS,
     })
@@ -266,7 +269,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     }), { headers: JSON_HEADERS })
 
   } catch (error) {
-    console.error('[COP Scrape] Status check error:', error)
+    await logEvent(env, buildUpstreamFailureLog('cop/scrape/status-check', { error })).catch(() => {})
     return new Response(JSON.stringify({ error: 'Status check failed' }), {
       status: 500, headers: JSON_HEADERS,
     })
