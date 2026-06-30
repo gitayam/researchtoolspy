@@ -3,14 +3,12 @@
 Durable state for the `/roadmap-step` loop. The stop condition (2 consecutive no-change
 iterations) reads `no_change_streak` from here, so it survives session death / `/clear`.
 
-iteration: 62
+iteration: 63
 no_change_streak: 0
-last_item: E-11 — journalist drop-spot mode (anonymous tip-line)
-last_result: SHIPPED (v0.22.57, 08c88862e). Migration 112 (intent col on survey_drops, applied remote, verified). Separate drop-submit.ts endpoint (186 LOC) — zero header reads for IP/UA, Turnstile fail-open, always {ok:true/false}. Builder Survey/Drop toggle. PublicDropFormPage (/drop/:slugOrToken). e11-drop-spot.spec.ts 31/31 incl. privacy source-guards. Deployed (HTTP 200), pushed origin (gitlab 502).
+last_item: #20 — entity-edit type field read-only in edit mode
+last_result: SHIPPED (v0.22.58, 3858ae71b). EntityCreateForm renderSelect() extended with disabled/hint. All 5 type selectors pass disabled: isEdit. Visual opacity+cursor-not-allowed, aria-disabled, helper hint "Type cannot be changed after creation." cop-entity-type-readonly.spec.ts 18/18. Deployed (HTTP 200), pushed origin (gitlab 502).
 
-D-E4 DECIDED: full anonymity — no IP hash, no user-agent, not even for rate-limiting. A blocked tip is worse than spam.
-
->>> PREV ITER 61: COP-5a (v0.22.56, 7916483d2) — "View Log" button on playbooks opens modal via CopPlaybookLog; fetchPlaybookLog injectable helper. <<<
+>>> PREV ITER 62: E-11 (v0.22.57, 08c88862e) — journalist drop-spot mode, full anonymity (D-E4). <<<
 
 >>> 🎯 D-E8 COMPLETE (iters 50–55, v0.22.47–.51) — evidence_items is the SOLE canonical evidence store. <<<
 
@@ -20,11 +18,12 @@ D-E4 DECIDED: full anonymity — no IP hash, no user-agent, not even for rate-li
   (c) E-13 DEFERRED (sync→async citation lib refactor, 8+ consumers — deliberate effort, not loop unit)
 
 >>> LOOP RE-EVALUATION (§1 stop checks): <<<
-Now/Next actionable-unblocked backlog is thin. Remaining:
+Remaining AUTO backlog is now very thin:
   AUTO (no user decision needed):
-    - COP-12 chunked console→logEvent sweep (130 console.error/58 files — noted as "do in ~10-file chunks"; if user greenlights a chunk it's doable)
-    - #17 window.open audit (auth-required /api/* exports via browser nav → must use fetch+Blob; COP-1 pattern)
-    - #20 entity-edit type selector no-op (actors/sources PUT ignore `type` in UPDATE SET; make read-only or add to PUT)
+    - COP-12 chunked console→logEvent sweep (130 console.error/58 files — noted as "do in ~10-file chunks"; needs user greenlight for a chunk)
+    - #21 scrape apifyError discarded (scrape.ts ~:132, log via logEvent sink)
+    - #18 COP error-path toasts (polish sweep — user-facing toasts on high-traffic COP failures)
+    - #19 research/forms/list workspace authz (security: client-supplied workspaceId not server-validated; security-review route)
   DECISION-GATED:
     - E-7b/E-16 (confidence threshold + dedup policy for entity extraction at promote)
     - E-6e (Turnstile keys — ops/dashboard action)
