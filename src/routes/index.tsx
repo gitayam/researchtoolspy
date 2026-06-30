@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react'
 import { createBrowserRouter, Navigate, useParams } from 'react-router-dom'
 import { DashboardLayout, DashboardFullBleedLayout } from '@/layouts/DashboardLayout'
+import { RouteErrorBoundary } from '@/components/RouteErrorBoundary'
 
 // Legacy redirect: /dashboard/surveys/:id → /dashboard/drops/:id
 function LegacySurveyRedirect() {
@@ -166,75 +167,92 @@ export const router = createBrowserRouter([
   {
     path: '/',
     element: <LazyPage Component={LandingPage} />,
+    errorElement: <RouteErrorBoundary />,
   },
   {
     path: '/login',
     element: <LazyPage Component={LoginPage} />,
+    errorElement: <RouteErrorBoundary />,
   },
   {
     path: '/register',
     element: <LazyPage Component={RegisterPage} />,
+    errorElement: <RouteErrorBoundary />,
   },
   {
     path: '/auth/callback',
     element: <LazyPage Component={AuthCallbackPage} />,
+    errorElement: <RouteErrorBoundary />,
   },
   {
     path: '/invite/:inviteToken',
     element: <LazyPage Component={InviteAcceptPage} />,
+    errorElement: <RouteErrorBoundary />,
   },
   {
     path: '/public/framework/:token',
     element: <LazyPage Component={PublicFrameworkPage} />,
+    errorElement: <RouteErrorBoundary />,
   },
   {
     // Public read-only viewer for behavior analyses stored via the
     // signal-bot's `!bcw` round-trip. UUID is the access token.
     path: '/shared/behavior/:id',
     element: <LazyPage Component={PublicSharedBehaviorPage} />,
+    errorElement: <RouteErrorBoundary />,
   },
   {
     path: '/public/ach',
     element: <LazyPage Component={PublicACHLibraryPage} />,
+    errorElement: <RouteErrorBoundary />,
   },
   {
     path: '/public/ach/:token',
     element: <LazyPage Component={PublicACHPage} />,
+    errorElement: <RouteErrorBoundary />,
   },
   {
     path: '/public/content-analysis/:token',
     element: <LazyPage Component={PublicContentAnalysisPage} />,
+    errorElement: <RouteErrorBoundary />,
   },
   {
     path: '/public/cop/:token',
     element: <LazyPage Component={PublicCopPage} />,
+    errorElement: <RouteErrorBoundary />,
   },
   {
     path: '/public/cross-table/:token',
     element: <LazyPage Component={PublicCrossTablePage} />,
+    errorElement: <RouteErrorBoundary />,
   },
   {
     path: '/public/intake/:token',
     element: <LazyPage Component={PublicIntakePage} />,
+    errorElement: <RouteErrorBoundary />,
   },
   {
     path: '/drop',
     element: <LazyPage Component={DropLandingPage} />,
+    errorElement: <RouteErrorBoundary />,
   },
   {
     // E-11: /drop/:token renders the anonymous tip-line form (isDropMode=true)
     path: '/drop/:slugOrToken',
     element: <LazyPage Component={PublicDropFormPage} />,
+    errorElement: <RouteErrorBoundary />,
   },
   {
     path: '/survey/:slugOrToken',
     element: <LazyPage Component={PublicIntakePage} />,
+    errorElement: <RouteErrorBoundary />,
   },
   {
     // Legacy System-B public submit route — retired. Hash IDs don't map to
     // System-A survey tokens, so we show a notice instead of redirecting.
     path: '/submit/:hashId',
     element: <SubmissionFormMovedNotice />,
+    errorElement: <RouteErrorBoundary />,
   },
   {
     path: '/tools',
@@ -244,7 +262,7 @@ export const router = createBrowserRouter([
     path: '/dashboard/cop/:id',
     element: <DashboardFullBleedLayout />,
     children: [
-      { index: true, element: <LazyPage Component={CopWorkspacePage} /> },
+      { index: true, element: <LazyPage Component={CopWorkspacePage} />, errorElement: <RouteErrorBoundary /> },
     ],
   },
   {
@@ -254,290 +272,361 @@ export const router = createBrowserRouter([
       {
         index: true,
         element: <LazyPage Component={DashboardPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       // Analysis Framework Routes (relative paths)
       // Support list, create, view, and edit routes for each framework
       {
         path: 'analysis-frameworks/swot-dashboard',
         element: <LazyPage Component={SwotPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'analysis-frameworks/swot-dashboard/create',
         element: <LazyPage Component={SwotPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'analysis-frameworks/swot-dashboard/:id',
         element: <LazyPage Component={SwotPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'analysis-frameworks/swot-dashboard/:id/edit',
         element: <LazyPage Component={SwotPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'analysis-frameworks/ach-dashboard',
         element: <LazyPage Component={ACHPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'analysis-frameworks/ach-dashboard/:id',
         element: <LazyPage Component={ACHAnalysisPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'analysis-frameworks/cog',
         element: <LazyPage Component={CogPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'analysis-frameworks/cog/create',
         element: <LazyPage Component={CogPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'analysis-frameworks/cog/:id',
         element: <LazyPage Component={CogPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'analysis-frameworks/cog/:id/edit',
         element: <LazyPage Component={CogPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'analysis-frameworks/pmesii-pt',
         element: <LazyPage Component={PmesiiPtPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'analysis-frameworks/pmesii-pt/:action',
         element: <LazyPage Component={PmesiiPtPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'analysis-frameworks/pmesii-pt/:id/:action',
         element: <LazyPage Component={PmesiiPtPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'analysis-frameworks/dotmlpf',
         element: <LazyPage Component={DotmlpfPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'analysis-frameworks/dotmlpf/:action',
         element: <LazyPage Component={DotmlpfPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'analysis-frameworks/dotmlpf/:id/:action',
         element: <LazyPage Component={DotmlpfPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'deception-risk',
         element: <LazyPage Component={DeceptionRiskDashboard} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'analysis-frameworks/deception',
         element: <LazyPage Component={DeceptionPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'analysis-frameworks/deception/:action',
         element: <LazyPage Component={DeceptionPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'analysis-frameworks/deception/:id/:action',
         element: <LazyPage Component={DeceptionPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'analysis-frameworks/behavior',
         element: <LazyPage Component={BehaviorPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'analysis-frameworks/behavior/:action',
         element: <LazyPage Component={BehaviorPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'analysis-frameworks/behavior/:id/:action',
         element: <LazyPage Component={BehaviorPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'analysis-frameworks/comb-analysis',
         element: <LazyPage Component={COMBAnalysisPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'analysis-frameworks/comb-analysis/:action',
         element: <LazyPage Component={COMBAnalysisPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'analysis-frameworks/comb-analysis/:id/:action',
         element: <LazyPage Component={COMBAnalysisPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'analysis-frameworks/starbursting',
         element: <LazyPage Component={StarburstingPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'analysis-frameworks/starbursting/:action',
         element: <LazyPage Component={StarburstingPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'analysis-frameworks/starbursting/:id/:action',
         element: <LazyPage Component={StarburstingPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'analysis-frameworks/causeway',
         element: <LazyPage Component={CausewayPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'analysis-frameworks/causeway/:action',
         element: <LazyPage Component={CausewayPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'analysis-frameworks/causeway/:id/:action',
         element: <LazyPage Component={CausewayPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'analysis-frameworks/dime',
         element: <LazyPage Component={DimePage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'analysis-frameworks/dime/:action',
         element: <LazyPage Component={DimePage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'analysis-frameworks/dime/:id/:action',
         element: <LazyPage Component={DimePage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'analysis-frameworks/pest',
         element: <LazyPage Component={PestPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'analysis-frameworks/pest/:action',
         element: <LazyPage Component={PestPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'analysis-frameworks/pest/:id/:action',
         element: <LazyPage Component={PestPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'analysis-frameworks/stakeholder',
         element: <LazyPage Component={StakeholderPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'analysis-frameworks/stakeholder/:action',
         element: <LazyPage Component={StakeholderPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'analysis-frameworks/stakeholder/:id/:action',
         element: <LazyPage Component={StakeholderPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'analysis-frameworks/surveillance',
         element: <LazyPage Component={SurveillancePage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'analysis-frameworks/surveillance/:action',
         element: <LazyPage Component={SurveillancePage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'analysis-frameworks/surveillance/:id/:action',
         element: <LazyPage Component={SurveillancePage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'analysis-frameworks/fundamental-flow',
         element: <LazyPage Component={FundamentalFlowPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'analysis-frameworks/fundamental-flow/:action',
         element: <LazyPage Component={FundamentalFlowPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'analysis-frameworks/fundamental-flow/:id/:action',
         element: <LazyPage Component={FundamentalFlowPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       // Research Tools Routes
       {
         path: 'tools',
         element: <LazyPage Component={ToolsPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'tools/scraping',
         element: <LazyPage Component={WebScraperPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'tools/content-intelligence',
         element: <LazyPage Component={ContentIntelligencePage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'tools/content-extraction',
         element: <LazyPage Component={ContentExtractionPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'tools/citations-generator',
         element: <LazyPage Component={CitationsGeneratorPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'tools/url',
         element: <LazyPage Component={URLProcessingPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'tools/rage-check',
         element: <LazyPage Component={RageCheckPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'tools/batch-processing',
         element: <LazyPage Component={BatchProcessingPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'tools/equilibrium-analysis',
         element: <LazyPage Component={EquilibriumAnalysisPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'tools/hamilton-rule',
         element: <LazyPage Component={HamiltonRulePage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'tools/collection',
         element: <LazyPage Component={CollectionPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'tools/email-header-analyzer',
         element: <LazyPage Component={EmailHeaderAnalyzerPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       // Cross Table Routes
       {
         path: 'tools/cross-table',
         element: <LazyPage Component={CrossTablePage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'tools/cross-table/new',
         element: <LazyPage Component={CrossTablePage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'tools/cross-table/:id',
         element: <LazyPage Component={CrossTablePage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'tools/cross-table/:id/score',
         element: <LazyPage Component={CrossTablePage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'tools/social-media',
         element: <LazyPage Component={SocialMediaPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'tools/ach',
         element: <LazyPage Component={ACHPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'tools/ach/:id',
         element: <LazyPage Component={ACHAnalysisPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'tools/research-question-generator',
         element: <LazyPage Component={ResearchQuestionGeneratorPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'tools/behavior-analysis',
         element: <LazyPage Component={BehaviorAnalysisToolPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'research/workspace/:id',
         element: <LazyPage Component={ResearchWorkspacePage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'research/submissions',
         element: <LazyPage Component={EvidenceSubmissionsPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         // E-2: the forms-list lived at an unregistered route (404) via the dead
@@ -549,73 +638,90 @@ export const router = createBrowserRouter([
       {
         path: 'research/forms/new',
         element: <LazyPage Component={ResearchFormBuilderPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'tools/:toolId',
         element: <LazyPage Component={ToolsPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       // Other Routes
       {
         path: 'evidence',
         element: <LazyPage Component={EvidencePage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'datasets',
         element: <LazyPage Component={DatasetPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       // Entity System Routes
       {
         path: 'entities/actors',
         element: <LazyPage Component={ActorsPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'entities/actors/:id',
         element: <LazyPage Component={ActorsPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'entities/actors/:id/edit',
         element: <LazyPage Component={ActorsPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'entities/sources',
         element: <LazyPage Component={SourcesPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'entities/sources/:id',
         element: <LazyPage Component={SourcesPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'entities/sources/:id/edit',
         element: <LazyPage Component={SourcesPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'entities/events',
         element: <LazyPage Component={EventsPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'entities/events/:id',
         element: <LazyPage Component={EventsPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'entities/events/:id/edit',
         element: <LazyPage Component={EventsPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'entities/claims',
         element: <LazyPage Component={ClaimsPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'entities/claims/:id',
         element: <LazyPage Component={ClaimsPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'entities/claims/:id/edit',
         element: <LazyPage Component={ClaimsPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       // Network Analysis Route
       {
         path: 'network',
         element: <LazyPage Component={NetworkGraphPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'network-graph',
@@ -624,6 +730,7 @@ export const router = createBrowserRouter([
       {
         path: 'reports',
         element: <LazyPage Component={ReportsPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'library',
@@ -631,33 +738,40 @@ export const router = createBrowserRouter([
           {
             index: true,
             element: <LazyPage Component={PublicLibraryPage} />,
+            errorElement: <RouteErrorBoundary />,
           },
           {
             path: 'content',
             element: <LazyPage Component={ContentLibraryPage} />,
+            errorElement: <RouteErrorBoundary />,
           },
         ],
       },
       {
         path: 'collaboration',
         element: <LazyPage Component={CollaborationPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'activity',
         element: <LazyPage Component={ActivityPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'intelligence',
         element: <LazyPage Component={IntelligenceSynthesisPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       // Drop Routes
       {
         path: 'drops',
         element: <LazyPage Component={SurveyListPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'drops/:id',
         element: <LazyPage Component={SurveyDetailPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       // Legacy survey routes (redirect)
       {
@@ -667,15 +781,18 @@ export const router = createBrowserRouter([
       {
         path: 'surveys/:id',
         element: <LegacySurveyRedirect />,
+        errorElement: <RouteErrorBoundary />,
       },
       // COP Routes
       {
         path: 'cop',
         element: <LazyPage Component={CopListPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'investigations',
         element: <LazyPage Component={InvestigationsPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'investigations/new',
@@ -684,18 +801,22 @@ export const router = createBrowserRouter([
       {
         path: 'workspace/new',
         element: <LazyPage Component={NewWorkspacePage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'investigations/:id',
         element: <LazyPage Component={InvestigationDetailPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'settings',
         element: <LazyPage Component={SettingsPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
       {
         path: 'settings/ai',
         element: <LazyPage Component={AISettingsPage} />,
+        errorElement: <RouteErrorBoundary />,
       },
     ],
   },
@@ -703,5 +824,6 @@ export const router = createBrowserRouter([
   {
     path: '*',
     element: <LazyPage Component={NotFoundPage} />,
+    errorElement: <RouteErrorBoundary />,
   },
 ])
