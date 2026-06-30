@@ -96,7 +96,7 @@ const platformIcons: Record<string, any> = {
 }
 
 const platformColors: Record<string, string> = {
-  INSTAGRAM: 'bg-gradient-to-r from-purple-500 to-pink-500',
+  INSTAGRAM: 'bg-pink-600',
   YOUTUBE: 'bg-red-600',
   TWITTER: 'bg-blue-400',
   TIKTOK: 'bg-black',
@@ -892,9 +892,9 @@ export function SocialMediaPage() {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-4">
-                <div className="border-l-4 border-blue-600 pl-4">
+                <div>
                   <h4 className="font-semibold flex items-center gap-2">
-                    <Camera className="h-5 w-5" />
+                    <Camera className="h-5 w-5 text-pink-600" />
                     {t('socialMedia:tools.instagram.title')}
                   </h4>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
@@ -912,9 +912,9 @@ export function SocialMediaPage() {
                   </div>
                 </div>
 
-                <div className="border-l-4 border-red-600 pl-4">
+                <div>
                   <h4 className="font-semibold flex items-center gap-2">
-                    <Video className="h-5 w-5" />
+                    <Video className="h-5 w-5 text-red-600" />
                     {t('socialMedia:tools.youtube.title')}
                   </h4>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
@@ -934,9 +934,9 @@ export function SocialMediaPage() {
                   </div>
                 </div>
 
-                <div className="border-l-4 border-blue-400 pl-4">
+                <div>
                   <h4 className="font-semibold flex items-center gap-2">
-                    <MessageCircle className="h-5 w-5" />
+                    <MessageCircle className="h-5 w-5 text-sky-500" />
                     {t('socialMedia:tools.twitter.title')}
                   </h4>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
@@ -954,9 +954,9 @@ export function SocialMediaPage() {
                   </div>
                 </div>
 
-                <div className="border-l-4 border-black pl-4">
+                <div>
                   <h4 className="font-semibold flex items-center gap-2">
-                    <Smartphone className="h-5 w-5" />
+                    <Smartphone className="h-5 w-5 text-slate-800 dark:text-slate-200" />
                     {t('socialMedia:tools.tiktok.title')}
                   </h4>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
