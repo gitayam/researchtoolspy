@@ -506,6 +506,7 @@ export default function CopWorkspacePage() {
         })
       } catch (err) {
         console.error('Failed to place map pin marker:', err)
+        toast({ title: 'Failed to save marker', description: 'The map pin could not be created — try again.', variant: 'destructive' })
       }
     },
     [id],
@@ -559,10 +560,11 @@ export default function CopWorkspacePage() {
         } catch (err) {
           console.error('Failed to persist layer toggle:', err)
           setActiveLayers(prevLayers)
+          toast({ title: 'Failed to update layers', description: 'Layer change could not be saved — reverted.', variant: 'destructive' })
         }
       }
     },
-    [activeLayers, id],
+    [activeLayers, id, toast],
   )
 
   // ── Mission Brief handler ──────────────────────────────────────
@@ -584,6 +586,7 @@ export default function CopWorkspacePage() {
       } catch (err) {
         console.error('Failed to update mission brief:', err)
         setSession(prevSession)
+        toast({ title: 'Failed to save mission brief', description: 'Your changes could not be saved — try again.', variant: 'destructive' })
       }
     },
     [id, session],
@@ -942,7 +945,7 @@ export default function CopWorkspacePage() {
                   source_type: 'ENTITY',
                   description: `Pinned from Entity Drawer: ${label}`,
                 }),
-              }).catch((err) => { console.error('Failed to create entity pin marker:', err) })
+              }).catch((err) => { console.error('Failed to create entity pin marker:', err); toast({ title: 'Failed to pin entity', description: 'The map marker could not be created — try again.', variant: 'destructive' }) })
             }}
           />
         </LazyPanel>
