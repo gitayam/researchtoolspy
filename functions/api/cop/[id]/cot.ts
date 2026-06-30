@@ -39,17 +39,37 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   const { env, params, request } = context
   const sessionId = params.id as string
 
-  const userId = await getUserFromRequest(request, env)
-  if (!userId) {
-    return new Response('<error>Authentication required</error>', {
-      status: 401, headers: xmlHeaders,
-    })
-  }
-  const accessWorkspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId, { readOnly: true })
-  if (!accessWorkspaceId) {
-    return new Response('<error>Access denied</error>', {
-      status: 403, headers: xmlHeaders,
-    })
+  // Token-auth path: headless TAK/ATAK clients pass ?token=<shareToken>
+  // They cannot inject X-User-Hash headers, so we validate against cop_shares.
+  const url = new URL(request.url)
+  const shareToken = url.searchParams.get('token')
+
+  if (shareToken) {
+    // Validate the share token against cop_shares for this session
+    const share = await env.DB.prepare(
+      `SELECT id FROM cop_shares WHERE share_token = ? AND cop_session_id = ? LIMIT 1`
+    ).bind(shareToken, sessionId).first<{ id: string }>()
+
+    if (!share) {
+      return new Response('<error>Authentication required</error>', {
+        status: 401, headers: xmlHeaders,
+      })
+    }
+    // Valid share token — fall through to feed generation below (no header auth needed)
+  } else {
+    // Header-auth path: browser / authenticated clients use X-User-Hash
+    const userId = await getUserFromRequest(request, env)
+    if (!userId) {
+      return new Response('<error>Authentication required</error>', {
+        status: 401, headers: xmlHeaders,
+      })
+    }
+    const accessWorkspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId, { readOnly: true })
+    if (!accessWorkspaceId) {
+      return new Response('<error>Access denied</error>', {
+        status: 403, headers: xmlHeaders,
+      })
+    }
   }
 
   try {
