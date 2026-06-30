@@ -46,6 +46,12 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { Badge } from '@/components/ui/badge'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { ThemeToggle } from '@/components/ThemeToggle'
 
 import CopStatusStrip from '@/components/cop/CopStatusStrip'
@@ -74,6 +80,7 @@ const CopSubmissionInbox = lazy(() => import('@/components/cop/CopSubmissionInbo
 const CopAssetPanel = lazy(() => import('@/components/cop/CopAssetPanel'))
 const CopExportDialog = lazy(() => import('@/components/cop/CopExportDialog'))
 const CopPlaybookPanel = lazy(() => import('@/components/cop/CopPlaybookPanel'))
+const CopPlaybookLog = lazy(() => import('@/components/cop/CopPlaybookLog'))
 const CopClaimsPanel = lazy(() => import('@/components/cop/CopClaimsPanel'))
 const CopPooPanel = lazy(() => import('@/components/cop/CopPooPanel'))
 
@@ -1017,6 +1024,7 @@ function ProgressLayout({
   const { visiblePanels, hiddenPanels, movePanel, toggleWidth, toggleVisible, resetLayout } = panelLayout
   const is2xl = useMediaQuery('(min-width: 1536px)')
   const [forceOpenPanel, setForceOpenPanel] = useState<{ panelId: string; entityId: string } | null>(null)
+  const [playbookLogState, setPlaybookLogState] = useState<{ open: boolean; playbookId: string | null }>({ open: false, playbookId: null })
 
   // Don't collapse panels to minimized state until stats have loaded
   // (prevents flash of minimized → expanded on initial page load)
@@ -1187,7 +1195,12 @@ function ProgressLayout({
       icon: <Zap className="h-4 w-4 text-yellow-400" />,
       height: 'standard',
       render: () => (
-        <LazyPanel><CopPlaybookPanel sessionId={sessionId} /></LazyPanel>
+        <LazyPanel>
+          <CopPlaybookPanel
+            sessionId={sessionId}
+            onViewLog={(playbookId) => setPlaybookLogState({ open: true, playbookId })}
+          />
+        </LazyPanel>
       ),
     },
     claims: {
@@ -1431,6 +1444,27 @@ function ProgressLayout({
           </div>
         </div>
       )}
+
+      {/* Playbook Log Dialog */}
+      <Dialog
+        open={playbookLogState.open}
+        onOpenChange={(open) => setPlaybookLogState((s) => ({ ...s, open }))}
+      >
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Playbook Execution Log</DialogTitle>
+          </DialogHeader>
+          {playbookLogState.playbookId && (
+            <LazyPanel>
+              <CopPlaybookLog
+                sessionId={sessionId}
+                playbookId={playbookLogState.playbookId}
+                onClose={() => setPlaybookLogState({ open: false, playbookId: null })}
+              />
+            </LazyPanel>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
