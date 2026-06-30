@@ -18,6 +18,7 @@ import { emitCopEvent } from '../../_shared/cop-events'
 import { MARKER_CREATED, MARKER_UPDATED } from '../../_shared/cop-event-types'
 import { createTimelineEntry } from '../../_shared/timeline-helper'
 import { JSON_HEADERS } from '../../_shared/api-utils'
+import { logEvent } from '../../_shared/event-log'
 
 interface Env {
   DB: D1Database
@@ -59,7 +60,12 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     return new Response(JSON.stringify({ markers }), { headers: JSON_HEADERS })
   } catch (error) {
-    console.error('[COP Markers] List error:', error)
+    await logEvent(env, {
+      level: 'error',
+      source: 'cop/markers',
+      message: String(error instanceof Error ? error.message : error).slice(0, 500),
+      context: { error: String(error) },
+    })
     return new Response(JSON.stringify({
       error: 'Failed to list markers',
     }), {
@@ -168,13 +174,18 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         entity_id: id,
         action: 'created',
       })
-    } catch (e) { console.error('[COP Markers] Timeline entry failed:', e) }
+    } catch (e) { await logEvent(env, { level: 'error', source: 'cop/markers', message: String(e instanceof Error ? e.message : e).slice(0, 500), context: { error: String(e) } }) }
 
     return new Response(JSON.stringify({ id, uid, message: 'Marker created' }), {
       status: 201, headers: JSON_HEADERS,
     })
   } catch (error) {
-    console.error('[COP Markers] Create error:', error)
+    await logEvent(env, {
+      level: 'error',
+      source: 'cop/markers',
+      message: String(error instanceof Error ? error.message : error).slice(0, 500),
+      context: { error: String(error) },
+    })
     return new Response(JSON.stringify({
       error: 'Failed to create marker',
     }), {
@@ -267,7 +278,12 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       headers: JSON_HEADERS,
     })
   } catch (error) {
-    console.error('[COP Markers] Update error:', error)
+    await logEvent(env, {
+      level: 'error',
+      source: 'cop/markers',
+      message: String(error instanceof Error ? error.message : error).slice(0, 500),
+      context: { error: String(error) },
+    })
     return new Response(JSON.stringify({
       error: 'Failed to update marker',
     }), {
