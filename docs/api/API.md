@@ -1,133 +1,175 @@
-# API Documentation
+# ResearchTools API — Overview
 
-## Overview
+**Base URL (prod):** `https://researchtools.net/api`  
+**Base URL (dev):** `http://localhost:8788/api`  
+**Runtime:** Cloudflare Pages Functions (each file in `functions/api/` = one route)
 
-The Research Tool API is built on **Cloudflare Pages Functions**, providing a serverless backend that scales automatically. The API is served from the `/api` path of the application.
-
-## Base URL
-
-- **Development**: `http://localhost:8788/api` (default Wrangler port)
-- **Production**: `https://<your-domain>/api`
+---
 
 ## Authentication
 
-The API primarily uses **Hash-Based Authentication** (Mullvad-style) for privacy and ease of use. 
-
-### Flow
-1.  **Register**: POST `/api/hash-auth/register` to receive a 16-digit account hash.
-2.  **Login**: POST `/api/hash-auth/authenticate` with the hash to receive a standard JWT Bearer token.
-3.  **Access**: Use `Authorization: Bearer <token>` for all subsequent requests.
+All endpoints that mutate data or read private resources require a **user hash** passed as a request header:
 
 ```http
-Authorization: Bearer <your_jwt_token>
+X-User-Hash: <your-16+-character-hash>
 ```
 
-### Endpoints (`/api/hash-auth`)
-- **POST** `/api/hash-auth/register`: Generate a new anonymous account.
-- **POST** `/api/hash-auth/authenticate`: Exchange your 16-digit hash for a session token.
+A hash auto-creates a guest account on first use (no registration step required). Hashes are permanent — back yours up via `/dashboard/settings`.
 
-### Authentication Helpers (`functions/api/_shared/auth-helpers.ts`)
-- `getUserFromRequest`: Extracts user ID from the JWT token.
-- `requireAuth`: Throws a 401 error if the user is not authenticated.
+**Minimum length:** 16 characters. Shorter hashes are rejected with `400 Bad Request`.
 
-## Security Model
+### Obtaining a hash
 
-All API endpoints are protected and require a valid Bearer token. The backend supports two types of Bearer tokens:
-1.  **JWT Tokens**: Issued by `/api/hash-auth/authenticate`. (Recommended)
-2.  **Raw Account Hashes**: For backward compatibility and simplified CLI access.
+- **New user:** visit `/dashboard` — a hash is generated and stored in `localStorage`.
+- **CLI / scripts:** copy the hash from your settings page and export it:
+  ```bash
+  export RESEARCHTOOLS_USER_HASH="your-hash-here"
+  ```
 
-## Error Handling
+### No JWT / no Bearer tokens
 
-Standard error responses follow this JSON structure:
+There is no JWT exchange step. The raw hash IS the credential. Pass it as `X-User-Hash` on every request that needs auth.
+
+### Auth helpers (`functions/api/_shared/auth-helpers.ts`)
+
+| Helper | Behaviour |
+|--------|-----------|
+| `getUserFromRequest(req)` | Returns user row or `null` — never throws |
+| `getUserIdOrDefault(req, env)` | Guest-friendly; falls back to user ID 1 |
+| `requireAuth(req)` | Throws `401` if no valid hash |
+
+---
+
+## Error responses
 
 ```json
-{
-  "error": "Error message description",
-  "details": "Optional detailed info"
-}
+{ "error": "Human-readable message", "details": "Optional extra context" }
 ```
 
-## Key Modules
+Standard HTTP status codes: `400` bad input · `401` auth required · `403` access denied · `404` not found · `410` endpoint retired · `429` rate limited · `500` server error.
 
-### Authentication (`/api/hash-auth`)
-- **POST** `/api/hash-auth/register`: Create a new account and get a 16-digit hash.
-- **POST** `/api/hash-auth/authenticate`: Exchange hash for JWT.
+---
 
-### User Settings (`/api/settings`)
-- **GET** `/api/settings/user`: Retrieve user settings.
-- **PUT** `/api/settings/user`: Update user settings.
-- **DELETE** `/api/settings/user`: Reset settings to defaults.
+## Rate limits
 
-### Workspaces (`/api/workspaces` and `/api/settings/workspaces`)
-- **GET** `/api/workspaces`: List user's workspaces.
-- **POST** `/api/workspaces`: Create a new workspace.
-- **GET** `/api/settings/workspaces`: Manage workspace settings.
+| Scope | Limit |
+|-------|-------|
+| Auth endpoints | 5 req / min per IP |
+| Registration | 10 req / min per IP |
+| AI endpoints | 40 req / min per user |
+| Apify scrapers | 10 req / min per user |
+| Gateway global | 100 req / min per user · 3 000 req / hr total |
 
-### Content Intelligence (`/api/content-intelligence`)
-Tools for analyzing and extracting data from URLs and content.
-- **POST** `/api/content-intelligence/analyze-url`: Extract content from a URL.
-- **POST** `/api/content-intelligence/summarize-entity`: Generate summaries.
+---
 
-### Tools (`/api/tools`)
-Standalone utility endpoints.
+## API surface (by area)
 
-#### RageCheck (`/api/tools/rage-check`)
-Analyzes content for manipulative framing, emotional provocation, and outrage-bait patterns.
+### Core entity endpoints
 
-- **Method**: `POST`
-- **Body**:
-  ```json
-  {
-    "url": "https://example.com/article"
-  }
-  ```
-- **Response**:
-  ```json
-  {
-    "score": 75, // 0-100 (Higher = More Manipulative)
-    "label": "High", // Low | Medium | High
-    "categoryScores": {
-      "loaded_language": 80,
-      "absolutist": 60,
-      "threat_panic": 90,
-      "us_vs_them": 70,
-      "engagement_bait": 50
-    },
-    "explanation": "Summary of findings...",
-    "highlights": [
-      { "text": "radical left", "category": "us_vs_them", "explanation": "..." }
-    ],
-    "meta": {
-      "title": "Article Title",
-      "contentPreview": "Extracted text preview..."
-    }
-  }
-  ```
+| Prefix | Description |
+|--------|-------------|
+| `/api/actors` | People, orgs, units — CRUD + search + credibility |
+| `/api/sources` | Intelligence sources (HUMINT, OSINT, etc.) |
+| `/api/events` | Documented events |
+| `/api/places` | Geolocated places |
+| `/api/behaviors` | Behaviors / TTPs |
+| `/api/relationships` | Entity-to-entity relationships |
+| `/api/evidence-items` | **Canonical evidence store** (replaces legacy `/api/evidence` — now 410 Gone) |
 
-### Research (`/api/research`)
-Core research workflow endpoints.
-- **POST** `/api/research/generate-question`: Generate research questions using AI.
-- **POST** `/api/research/submit`: Submit research findings.
+### Analytical frameworks
 
-### Evidence (`/api/evidence`)
-Management of evidence items.
-- **GET** `/api/evidence`: List evidence.
-- **POST** `/api/evidence`: Create new evidence.
+| Prefix | Description |
+|--------|-------------|
+| `/api/frameworks` | List / CRUD for all framework sessions |
+| `/api/ach/*` | Analysis of Competing Hypotheses (ACH) |
+| `/api/claims/*` | Claim extraction, evidence linking, credibility |
+| `/api/deception/*` | Deception / SATS analysis |
+| `/api/ai/*` | AI-powered helpers (COG analysis, SWOT populate, question generation, summaries, report enhancement) |
 
-### Frameworks (`/api/frameworks`)
-Support for analytical frameworks like SWOT, PMESII-PT, etc.
-- **GET** `/api/frameworks`: List available frameworks.
-- **POST** `/api/frameworks/[id]/populate`: Auto-populate a framework.
+### COM-B / Behaviour Change Wheel
+
+Documented separately: [`COM_B_API.md`](COM_B_API.md)
+
+### COP Workspace
+
+Full reference: [`COP-WORKSPACE-API.md`](COP-WORKSPACE-API.md)
+
+Prefix: `/api/cop/*` — sessions, markers, RFIs, evidence, hypotheses, tasks, personas, timelines, intake forms, playbooks, assets, exports, CoT feed, scraping, and more.
+
+### Research intake & collection
+
+| Prefix | Description |
+|--------|-------------|
+| `/api/research/*` | Research questions, forms (builder), submissions, evidence/task management |
+| `/api/surveys/public/:token/submit` | Public survey submission (authenticated source) |
+| `/api/surveys/public/:token/drop-submit` | **Anonymous drop-spot** — journalist-grade, no IP/UA collected |
+| `/api/collection/*` | Agentic research job lifecycle (start → callback → status → results → approve) |
+
+Collection API documented separately: [`COLLECTION-API.md`](COLLECTION-API.md)
+
+Research Question Generator documented separately: [`RESEARCH_QUESTION_GENERATOR_API.md`](RESEARCH_QUESTION_GENERATOR_API.md)
+
+### Intelligence synthesis
+
+Documented separately: [`INTELLIGENCE-API.md`](INTELLIGENCE-API.md)
+
+Prefix: `/api/intelligence/*` — synthesis, predictions, network analysis, entity analysis, contradictions, KPIs, timeline.
+
+### Content Intelligence
+
+| Endpoint | Description |
+|----------|-------------|
+| `POST /api/content-intelligence/analyze-url` | Full URL extraction (entities, claims, text, archive) |
+| `POST /api/content-intelligence/summarize-entity` | AI summary for an entity |
+
+### Tools
+
+| Endpoint | Description |
+|----------|-------------|
+| `POST /api/tools/rage-check` | Detect manipulative framing / outrage-bait in a URL |
+| `POST /api/tools/batch-process` | Batch run `analyze-url` across multiple URLs |
+| `POST /api/tools/claim-match` | Match extracted claims to evidence |
+| `POST /api/tools/timeline-extract` | Extract a timeline from text / URL |
+
+### Settings & data
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /PUT /api/settings/user` | User preferences |
+| `GET /api/settings/data/export` | GDPR-style full data export |
+| `POST /api/settings/hash/backup` | Download encrypted hash backup |
+
+### Observability
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /api/cron/event-logs` | Query server-side error/refusal/audit logs (requires `X-Cron-Secret`) |
+| `POST /api/client-error` | Browser error reporting (called automatically by `RouteErrorBoundary`) |
+
+---
 
 ## Development
 
-The API is defined in the `functions/api` directory. Each file corresponds to a route.
-- `functions/api/health.ts` -> `/api/health`
-- `functions/api/users/[id].ts` -> `/api/users/:id`
-
-To run the API locally:
 ```bash
-npm run dev
-# or
-npx wrangler pages dev --port 8788 -- vite
+# Two separate processes (wrangler 4.40+ — combined command is broken):
+npx wrangler pages dev --port 8788   # API on :8788
+npx vite                              # Frontend on :5173, proxies /api → :8788
 ```
+
+Local D1: apply `schema/d1-schema.sql` then all `schema/migrations/*.sql`.
+
+```bash
+# Deploy
+npx vite build && npx wrangler pages deploy dist/ --project-name=researchtoolspy
+# or
+./deploy.sh   # full: build + migrations + deploy + verify
+```
+
+---
+
+## Retired endpoints
+
+| Old path | Status | Replacement |
+|----------|--------|-------------|
+| `GET/POST /api/evidence` | **410 Gone** | `/api/evidence-items` |
+| `GET /api/content-intelligence/screenshot` | **404** (never implemented) | Pending screenshot service (F-5) |

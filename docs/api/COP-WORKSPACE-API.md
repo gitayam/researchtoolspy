@@ -228,6 +228,24 @@ List changelog entries for marker updates. Provides audit trail.
 
 **Query Params:** `?marker_id=mkr-abc123`
 
+### POST /api/cop/:id/marker-changelog
+
+Create a manual changelog entry for a marker.
+
+```json
+{
+  "marker_id": "mkr-abc123",
+  "action": "confidence_changed",
+  "notes": "Downgraded after second review",
+  "previous_value": "CONFIRMED",
+  "new_value": "PROBABLE"
+}
+```
+
+| Field | Values |
+|-------|--------|
+| `action` | `created`, `moved`, `confidence_changed`, `rationale_updated`, `evidence_linked`, `deleted` |
+
 ---
 
 ## RFIs (Requests for Information)
@@ -633,7 +651,19 @@ Dashboard KPI stats for a COP session.
 
 Export markers as ATAK-compatible Cursor-on-Target XML.
 
-**Response:** `application/xml` with CoT events for all non-stale markers.
+**Response:** `application/xml` with CoT events for all non-stale markers, places, events, and actors within the session bounding box. Results are cached in KV with a 30-second TTL.
+
+**Auth:** Accepts either the standard `X-User-Hash` header **or** a share token via `?token=<shareToken>`. The token path is intended for headless TAK/ATAK clients that cannot inject custom headers.
+
+```bash
+# Header auth (browser/API)
+curl -H "X-User-Hash: your-hash" https://researchtools.net/api/cop/cop-xxx/cot
+
+# Token auth (ATAK data feed URL)
+https://researchtools.net/api/cop/cop-xxx/cot?token=<shareToken>
+```
+
+The share token is the `share_token` value returned when creating a share via `POST /api/cop/:id/shares`.
 
 ---
 
@@ -740,6 +770,708 @@ List entity relationships.
 | `relationship_type` | `CONTROLS`, `ASSOCIATED_WITH`, `LOCATED_AT`, `OPERATES_FROM`, `COMMUNICATES_WITH`, etc. |
 | `confidence` | `CONFIRMED`, `PROBABLE`, `POSSIBLE`, `SUSPECTED` |
 | `source_entity_type` / `target_entity_type` | `ACTOR`, `EVENT`, `PLACE`, `SOURCE`, `BEHAVIOR` |
+
+---
+
+## Recently Added Endpoints
+
+### Alerts (REDSIGHT BDA Integration)
+
+#### GET /api/cop/:id/alerts
+
+Fetch alerts for a session. Merges live REDSIGHT BDA incidents with local action state stored in D1. Falls back to cached D1 data when the upstream is unavailable. Requires auth (`getUserFromRequest`, not guest-friendly).
+
+**Query Params:** `?status=new|dismissed|action|analysis&severity=LOW|MODERATE|HIGH|CRITICAL`
+
+**Response:**
+```json
+{
+  "alerts": [
+    {
+      "incident_id": "rs-001",
+      "incident_type": "STRIKE",
+      "severity": "HIGH",
+      "location_name": "Kyiv Oblast",
+      "summary": "Artillery impact reported",
+      "credibility": 0.85,
+      "source_types": ["OSINT"],
+      "event_occurred_at": "2026-06-01T14:00:00Z",
+      "lat": 50.45,
+      "lon": 30.52,
+      "status": "new",
+      "linked_rfi_id": null,
+      "linked_task_id": null,
+      "notes": null
+    }
+  ],
+  "enabled": true,
+  "region": "UA",
+  "api_available": true
+}
+```
+
+Note: `enabled` reflects `cop_sessions.global_alerts_enabled`. If false, returns `{ alerts: [], enabled: false }`.
+
+#### POST /api/cop/:id/alerts
+
+Action an alert — update its local state, optionally link to an RFI or task.
+
+```json
+{
+  "incident_id": "rs-001",
+  "action": "link_rfi",
+  "rfi_id": "rfi-abc123",
+  "notes": "RFI opened for damage assessment",
+  "severity": "HIGH"
+}
+```
+
+| Field | Values |
+|-------|--------|
+| `action` | `dismiss`, `mark_action`, `mark_analysis`, `link_rfi`, `link_task` |
+| `severity` | `LOW`, `MODERATE`, `HIGH`, `CRITICAL` |
+
+---
+
+### Assets (Resource Tracking)
+
+#### GET /api/cop/:id/assets
+
+List assets. Optional filters: `?asset_type=human&status=available`
+
+**Response:** `{ assets: [...] }` — each asset includes `id`, `name`, `asset_type`, `status`, `details` (JSON), `lat`, `lon`, `sensitivity`, `last_checked_at`, `notes`.
+
+#### POST /api/cop/:id/assets
+
+Create an asset.
+
+```json
+{
+  "name": "Source Alpha",
+  "asset_type": "human",
+  "status": "available",
+  "sensitivity": "restricted",
+  "location": "Kyiv",
+  "lat": 50.45,
+  "lon": 30.52,
+  "notes": "Handles eastern oblast",
+  "details": { "languages": ["uk", "ru"] }
+}
+```
+
+| Field | Values |
+|-------|--------|
+| `asset_type` | `human`, `source`, `infrastructure`, `digital` |
+| `status` | `available`, `deployed`, `degraded`, `offline`, `compromised`, `exhausted` |
+| `sensitivity` | `unclassified`, `internal`, `restricted` |
+
+#### PUT /api/cop/:id/assets
+
+Update an asset. `id` required in body. All other fields optional.
+
+#### DELETE /api/cop/:id/assets?asset_id=ast-xxx
+
+Soft-delete (sets `status = offline`) by default. Pass `?hard=true` for hard delete (also removes log entries).
+
+#### POST /api/cop/:id/assets/:assetId/check-in
+
+Update an asset's status and set `last_checked_at`. Creates an audit log entry and emits `ASSET_STATUS_CHANGED`.
+
+```json
+{ "status": "deployed", "reason": "Tasked to Kharkiv" }
+```
+
+#### GET /api/cop/:id/assets/:assetId/log
+
+Retrieve the status-change audit trail for a specific asset, ordered by `created_at DESC`.
+
+**Response:** `{ log: [{ id, asset_id, cop_session_id, previous_status, new_status, changed_by, reason, created_at }] }`
+
+---
+
+### Intake Forms (Crowdsourcing)
+
+#### GET /api/cop/:id/intake-forms
+
+List intake forms for the session. Session owners receive `share_token`; non-owners do not.
+
+**Response:** `{ intake_forms: [...] }` — includes parsed `form_schema` array.
+
+#### POST /api/cop/:id/intake-forms
+
+Create a new intake form.
+
+```json
+{
+  "title": "Incident Report",
+  "description": "Report an incident in your area",
+  "form_schema": [
+    { "type": "text", "label": "What happened?", "required": true }
+  ],
+  "status": "draft",
+  "access_level": "public",
+  "require_location": false,
+  "require_contact": false,
+  "auto_tag_category": "incident",
+  "custom_slug": "my-form",
+  "expires_at": "2026-12-31T00:00:00Z",
+  "theme_color": "#3b82f6"
+}
+```
+
+| Field | Values |
+|-------|--------|
+| `status` | `draft`, `active`, `closed` |
+| `access_level` | `public`, `password`, `internal` |
+
+**Response (201):** `{ id, share_token, custom_slug, message }`
+
+#### GET /api/cop/:id/intake-forms/:formId
+
+Get a single intake form by ID.
+
+#### PUT /api/cop/:id/intake-forms/:formId
+
+Update a form. Updatable fields: `title`, `description`, `form_schema`, `status`, `auto_tag_category`, `require_location`, `require_contact`.
+
+---
+
+### Playbooks (Automation Rules)
+
+#### GET /api/cop/:id/playbooks
+
+List playbooks for the session. Each entry includes a `rule_count`.
+
+**Response:** `{ playbooks: [...] }`
+
+#### POST /api/cop/:id/playbooks
+
+Create a new playbook (initial status: `draft`).
+
+```json
+{
+  "name": "High-Priority Alert Handler",
+  "description": "Automatically create tasks for critical alerts",
+  "source": "custom"
+}
+```
+
+**Response (201):** `{ id, message }`
+
+#### GET /api/cop/:id/playbooks/:pbId
+
+Get a single playbook with its rules (parsed JSON fields).
+
+**Response:** `{ playbook: {...}, rules: [...] }`
+
+#### PUT /api/cop/:id/playbooks/:pbId
+
+Update playbook name, description, or status.
+
+| Field | Values |
+|-------|--------|
+| `status` | `active`, `paused`, `draft` |
+
+#### DELETE /api/cop/:id/playbooks/:pbId
+
+Delete a playbook. Cascades to rules and execution log.
+
+#### GET /api/cop/:id/playbooks/:pbId/rules
+
+List rules for a playbook, ordered by `position ASC`.
+
+**Response:** `{ rules: [...] }` — each rule has parsed `trigger_filter`, `conditions`, and `actions` JSON fields.
+
+#### POST /api/cop/:id/playbooks/:pbId/rules
+
+Create a rule.
+
+```json
+{
+  "name": "Auto-task on critical alert",
+  "trigger_event": "alert.actioned",
+  "trigger_filter": { "severity": "CRITICAL" },
+  "conditions": [],
+  "actions": [{ "action": "create_task", "title": "Investigate critical alert" }],
+  "enabled": true,
+  "cooldown_seconds": 300
+}
+```
+
+| Field | Values |
+|-------|--------|
+| `actions[].action` | `create_task`, `update_status`, `assign_task`, `create_evidence`, `send_notification`, `update_priority`, `add_tag`, `create_rfi`, `reserve_asset`, `run_pipeline` |
+
+#### PUT /api/cop/:id/playbooks/:pbId/rules
+
+Update a rule. `rule_id` required in body.
+
+#### DELETE /api/cop/:id/playbooks/:pbId/rules?rule_id=pbr-xxx
+
+Delete a rule. Also removes its log entries.
+
+#### GET /api/cop/:id/playbooks/:pbId/log
+
+Paginated execution log for a playbook. Filters: `?status=success|partial|failed&limit=50&offset=0`.
+
+**Response:** `{ log: [...], total, limit, offset }` — each entry has parsed `actions_taken` array.
+
+#### POST /api/cop/:id/playbooks/:pbId/test
+
+Dry-run test: evaluates rules against recent events WITHOUT executing actions.
+
+```json
+{ "event_limit": 20 }
+```
+
+**Response:**
+```json
+{
+  "would_fire": [{ "rule_id": "pbr-xxx", "rule_name": "...", "event_id": "...", "event_type": "...", "actions": [...] }],
+  "would_skip": [{ "rule_id": "pbr-xxx", "rule_name": "...", "event_id": "...", "event_type": "...", "reason": "Cooldown active (300s)" }],
+  "events_tested": 20,
+  "rules_tested": 3
+}
+```
+
+---
+
+### Task Templates
+
+#### GET /api/cop/:id/task-templates
+
+List task templates scoped to the session's workspace.
+
+**Response:** `{ templates: [...] }`
+
+#### POST /api/cop/:id/task-templates
+
+Create a reusable task template.
+
+```json
+{
+  "name": "OSINT Standard Package",
+  "description": "Standard OSINT task set",
+  "template_type": "universal",
+  "tasks_json": [
+    {
+      "ref": "social-search",
+      "title": "Social media search",
+      "task_type": "social_media",
+      "priority": "high",
+      "subtasks": [
+        { "ref": "twitter", "title": "Twitter/X search", "task_type": "social_media" }
+      ]
+    },
+    {
+      "ref": "pimeyes",
+      "title": "PimEyes facial search",
+      "task_type": "pimeyes",
+      "depends_on": ["social-search"]
+    }
+  ]
+}
+```
+
+Each task def requires unique `ref` and `title`. `depends_on` references other `ref` values — circular deps are rejected.
+
+#### PUT /api/cop/:id/task-templates
+
+Update a template. `id` required in body. Updatable: `name`, `description`, `template_type`, `tasks_json`.
+
+#### DELETE /api/cop/:id/task-templates
+
+Delete a template. `id` required in body (JSON).
+
+---
+
+### Task Extensions
+
+#### POST /api/cop/:id/tasks/deploy-template
+
+Instantiate a task template — creates real task rows, subtasks, and dependency rows from `tasks_json`.
+
+```json
+{ "template_id": "ttpl-abc123" }
+```
+
+**Response (201):**
+```json
+{
+  "message": "Template deployed",
+  "tasks_created": 3,
+  "dependencies_created": 1,
+  "task_ids": ["tsk-aaa", "tsk-bbb", "tsk-ccc"],
+  "ref_map": { "social-search": "tsk-aaa", "twitter": "tsk-bbb", "pimeyes": "tsk-ccc" }
+}
+```
+
+#### POST /api/cop/:id/tasks/:taskId/reassign
+
+Reassign a task manually or trigger auto-assignment.
+
+```json
+{ "assigned_to": "analyst-2" }
+```
+
+or:
+
+```json
+{ "auto": true }
+```
+
+Auto-assignment picks an eligible collaborator based on task type. Returns `422` if no eligible collaborator is found.
+
+---
+
+### Task Dependencies
+
+#### GET /api/cop/:id/task-dependencies
+
+List all task dependencies for the session.
+
+**Response:** `{ dependencies: [{ id, task_id, depends_on_task_id, cop_session_id, created_at }] }`
+
+#### POST /api/cop/:id/task-dependencies
+
+Create a dependency. Validates both tasks exist, checks for duplicates and circular dependencies.
+
+```json
+{ "task_id": "tsk-aaa", "depends_on_task_id": "tsk-bbb" }
+```
+
+#### DELETE /api/cop/:id/task-dependencies
+
+Remove a dependency. `id` required in body (JSON).
+
+---
+
+### POO Estimates (Point of Origin)
+
+Map overlay for ballistic / launch-origin sector estimates.
+
+#### GET /api/cop/:id/poo-estimates
+
+**Response:** `{ estimates: [...] }`
+
+#### POST /api/cop/:id/poo-estimates
+
+```json
+{
+  "name": "Launch Site Alpha",
+  "impact_lat": 50.45,
+  "impact_lon": 30.52,
+  "max_range_km": 25.0,
+  "min_range_km": 5.0,
+  "approach_bearing": 270,
+  "sector_width_deg": 60,
+  "confidence": "POSSIBLE",
+  "range_basis": "CEP analysis",
+  "bearing_basis": "Doppler track",
+  "color": "#ef4444",
+  "opacity": 0.15
+}
+```
+
+| Field | Required | Values |
+|-------|----------|--------|
+| `name` | Yes | string |
+| `impact_lat` | Yes | -90..90 |
+| `impact_lon` | Yes | -180..180 |
+| `confidence` | No | `CONFIRMED`, `PROBABLE`, `POSSIBLE`, `DOUBTFUL` (default: `POSSIBLE`) |
+| `approach_bearing` | No | 0-360 degrees |
+
+#### PUT /api/cop/:id/poo-estimates
+
+Update an estimate. `estimate_id` required in body.
+
+#### DELETE /api/cop/:id/poo-estimates?estimate_id=poo-xxx
+
+Delete an estimate.
+
+---
+
+### Export
+
+#### POST /api/cop/:id/export
+
+Generate and immediately download a session export. Returns the file as an attachment with `Content-Disposition` header. Also records the export in `cop_exports`.
+
+```json
+{ "format": "geojson", "scope": "full" }
+```
+
+| Field | Values |
+|-------|--------|
+| `format` | `geojson`, `kml`, `cot`, `stix`, `csv` |
+| `scope` | `full`, `layers`, `entities`, `evidence`, `tasks` |
+
+**Response:** Raw file content with appropriate `Content-Type` and `Content-Disposition: attachment; filename="..."`. Header `X-Export-Id` contains the export record ID.
+
+#### GET /api/cop/:id/exports
+
+List past export records for the session.
+
+**Query Params:** `?limit=50&format=geojson&status=completed`
+
+**Response:** `{ exports: [...] }` — each entry has `id`, `format`, `scope`, `status`, `file_size_bytes`, `created_at`.
+
+| Status | Meaning |
+|--------|---------|
+| `generating` | In progress |
+| `completed` | Finished |
+| `failed` | Serialization error |
+
+#### GET /api/cop/:id/exports/:exportId/download
+
+Retrieve export metadata. Note: export content is returned directly from `POST /export` — this endpoint returns metadata only (for checking status). Returns `202` if still generating, `410` if failed.
+
+---
+
+### Scrape (Apify Integration)
+
+#### POST /api/cop/:id/scrape
+
+Trigger an Apify scraper and ingest results as evidence items.
+
+```json
+{
+  "type": "twitter",
+  "query": "Bariloche persona farm",
+  "limit": 50
+}
+```
+
+or for URL-targeted scraping:
+```json
+{
+  "type": "tiktok",
+  "urls": ["https://www.tiktok.com/@user/video/123"],
+  "limit": 20
+}
+```
+
+| Field | Values |
+|-------|--------|
+| `type` | `twitter`, `tiktok` |
+| `query` | Search query string |
+| `urls` | Array of URLs to scrape directly |
+
+For small runs (≤50 items): runs synchronously and returns ingested evidence count.
+For larger runs: returns a `run_id` for polling (HTTP 202).
+
+**Response (sync / completed):**
+```json
+{ "run_id": "xxx", "status": "completed", "items_found": 25, "evidence_created": 25 }
+```
+
+**Response (async / started):**
+```json
+{ "run_id": "xxx", "status": "running", "message": "Poll GET .../scrape?run_id=xxx" }
+```
+
+#### GET /api/cop/:id/scrape?run_id=xxx
+
+Check status of an async scrape run. If completed and `?ingest=true` (default), ingests results as evidence.
+
+**Query Params:** `?run_id=xxx&ingest=true|false`
+
+**Response (pending):** `{ run_id, status: "running", started_at }`
+**Response (done, ingest=true):** `{ run_id, status: "completed", items_found, evidence_created }`
+**Response (done, ingest=false):** `{ run_id, status: "completed", items_found, items: [...first 10...] }`
+
+---
+
+### Submissions (Intake Form Triage Queue)
+
+#### GET /api/cop/:id/submissions
+
+List submissions from intake forms attached to this session.
+
+**Query Params:** `?status=pending|triaged|accepted|rejected&form_id=ifm-xxx`
+
+**Response:** `{ submissions: [...] }` — each includes `id`, `survey_id`, `form_data` (parsed JSON), `submitter_name`, `submitter_contact`, `lat`, `lon`, `submitter_country`, `status`, `linked_evidence_id`.
+
+#### PUT /api/cop/:id/submissions
+
+Triage a submission — update its status and optionally link to evidence.
+
+```json
+{
+  "id": "sub-abc123",
+  "status": "accepted",
+  "linked_evidence_id": "ev-xyz",
+  "rejection_reason": null
+}
+```
+
+| Field | Values |
+|-------|--------|
+| `status` | `pending`, `triaged`, `accepted`, `rejected` |
+
+---
+
+### Timeline
+
+#### GET /api/cop/:id/timeline
+
+List timeline entries for the session, ordered by `event_date ASC`.
+
+**Query Params:** `?category=event&source_type=manual,system`
+
+**Response:** `{ entries: [...] }`
+
+#### POST /api/cop/:id/timeline
+
+Create one or more timeline entries (batch of up to 200).
+
+```json
+{
+  "title": "Bus spotted at ski resort",
+  "event_date": "2026-03-08",
+  "category": "event",
+  "description": "TIP bus confirmed in background",
+  "importance": "high",
+  "source_type": "manual",
+  "source_url": "https://instagram.com/p/...",
+  "source_title": "Instagram post"
+}
+```
+
+or batch: `{ "entries": [...array of the above...] }`
+
+| Field | Values |
+|-------|--------|
+| `category` | `event`, `meeting`, `communication`, `financial`, `legal`, `travel`, `publication`, `military`, `political` |
+| `importance` | `normal`, `high`, `critical` |
+| `source_type` | `manual`, `system` (system entries are read-only) |
+
+#### PUT /api/cop/:id/timeline
+
+Update a timeline entry. `entry_id` required in body. System-generated entries (`source_type = system`) cannot be modified.
+
+#### DELETE /api/cop/:id/timeline?entry_id=tle-xxx
+
+Delete a timeline entry. System-generated entries cannot be deleted.
+
+---
+
+### Claims
+
+#### GET /api/cop/:id/claims
+
+List claims extracted from URLs for this session.
+
+**Query Params:** `?status=unverified|verified|disputed|false`
+
+**Response:** `{ claims: [...] }`
+
+#### POST /api/cop/:id/claims
+
+Bulk-create claims extracted from a URL.
+
+```json
+{
+  "url": "https://example.com/article",
+  "title": "Article Title",
+  "domain": "example.com",
+  "summary": "Article summary",
+  "claims": [
+    { "claim": "The attack occurred at 14:00", "confidence": 70, "category": "temporal" },
+    { "claim": "Three vehicles were observed", "confidence": 60 }
+  ]
+}
+```
+
+**Response (201):** `{ ids: [...], message: "N claims saved" }`
+
+#### PUT /api/cop/:id/claims
+
+Update a claim's status or promote to evidence.
+
+```json
+{ "claim_id": "clm-abc", "status": "verified" }
+```
+
+To promote to evidence item:
+```json
+{ "claim_id": "clm-abc", "status": "verified", "promote_to_evidence": true }
+```
+
+| Field | Values |
+|-------|--------|
+| `status` | `unverified`, `verified`, `disputed`, `false` |
+
+---
+
+### Internal Events Feed
+
+#### GET /api/cop/:id/events
+
+List internal COP events (playbook triggers, entity changes, etc.) with cursor-based pagination.
+
+**Query Params:** `?event_type=task.created&entity_type=task&since=<eventId>&limit=100`
+
+**Response:** `{ events: [...] }` — each has `id`, `cop_session_id`, `event_type`, `entity_type`, `entity_id`, `payload` (JSON), `created_at`.
+
+---
+
+### Public Intake Form Endpoints
+
+These endpoints are **unauthenticated** — used by the public submission UI.
+
+#### GET /api/cop/public/intake/:token
+
+Get form schema for a public intake form by share token. Returns `requires_password: true` for password-protected forms. Enforces expiry and country gating.
+
+**Response:**
+```json
+{
+  "title": "Incident Report",
+  "description": "...",
+  "form_schema": [...],
+  "require_location": false,
+  "require_contact": false,
+  "access_level": "public",
+  "theme_color": "#3b82f6",
+  "success_message": null
+}
+```
+
+#### POST /api/cop/public/intake/:token/submit
+
+Submit a public form entry (no auth). Enforces rate limiting, country gating, and password verification.
+
+```json
+{
+  "form_data": { "what_happened": "Explosion heard at 14:00" },
+  "submitter_name": "Anonymous",
+  "lat": 50.45,
+  "lon": 30.52
+}
+```
+
+**Response (201):** `{ message: "Submission received", submission_id: "..." }`
+
+#### POST /api/cop/public/intake/:token/verify-password
+
+Verify the password for a password-protected form. Returns the full form schema on success.
+
+```json
+{ "password": "secret123" }
+```
+
+**Response:** Full form schema (same as GET above) on success, `401` on failure.
+
+#### GET /api/cop/public/intake/by-slug/:slug
+
+Resolve a custom slug to the form schema. Equivalent to `GET /api/cop/public/intake/:token` but looks up by `custom_slug` field.
+
+---
+
+## Evidence Note
+
+Evidence items are stored in the `evidence_items` table and accessed via workspace-scoped endpoints. The correct table name is `evidence_items` (not `evidence`). The COP evidence endpoints at `/api/cop/:id/evidence` query this table using the session's `workspace_id`.
 
 ---
 
