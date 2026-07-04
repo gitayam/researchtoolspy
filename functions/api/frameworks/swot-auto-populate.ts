@@ -83,11 +83,17 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    // Fetch content from database
+    // Fetch content from the content_analysis table (the canonical table
+    // analyze-url writes and ACH/starburst read). NOTE: an earlier rename
+    // migration (044) to `content_intelligence` was never fully applied on
+    // prod, so this endpoint used to 404 on every id. Columns here match the
+    // real content_analysis schema: summary (not description), extracted_text
+    // (not main_content), entities (an object {people,organizations,locations}
+    // of {name}, not a flat {text}[]), keyphrases/top_phrases (not top_10_phrases).
     const placeholders = body.contentIds.map(() => '?').join(',')
     const { results } = await context.env.DB.prepare(`
-      SELECT id, url, title, description, main_content, key_entities, top_10_phrases
-      FROM content_intelligence
+      SELECT id, url, title, summary, extracted_text, entities, keyphrases, top_phrases
+      FROM content_analysis
       WHERE id IN (${placeholders})
       LIMIT 5
     `).bind(...body.contentIds).all()
@@ -100,15 +106,30 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     // Prepare content summaries
     const contentSummaries = results.map((c: any) => {
-      const entities = c.key_entities ? JSON.parse(c.key_entities) : []
-      const phrases = c.top_10_phrases ? JSON.parse(c.top_10_phrases) : []
+      // entities is an object {people:[{name}], organizations:[{name}], ...}
+      // (mirrors how starbursting.ts reads content_analysis); tolerate a flat
+      // array too, in case older rows stored it that way.
+      let entityNames: string[] = []
+      try {
+        const ent = c.entities ? JSON.parse(c.entities) : {}
+        entityNames = Array.isArray(ent)
+          ? ent.map((e: any) => e?.text || e?.name || e).filter(Boolean)
+          : Object.values(ent).flat().map((e: any) => (e && (e.name || e.text)) || e).filter(Boolean)
+      } catch { /* leave empty */ }
+      // keyphrases is the curated list; fall back to top_phrases. Both may be
+      // [{phrase}] or [string].
+      let phraseList: any[] = []
+      try {
+        phraseList = c.keyphrases ? JSON.parse(c.keyphrases)
+          : (c.top_phrases ? JSON.parse(c.top_phrases) : [])
+      } catch { /* leave empty */ }
       return {
         url: c.url || '',
         title: c.title || 'Untitled',
-        description: c.description || '',
-        content: (c.main_content || '').substring(0, 3000),
-        entities: entities.slice(0, 10).map((e: any) => e.text || e).join(', '),
-        phrases: phrases.slice(0, 5).map((p: any) => p.phrase || p).join(', '),
+        description: c.summary || '',
+        content: (c.extracted_text || '').substring(0, 3000),
+        entities: entityNames.slice(0, 10).join(', '),
+        phrases: phraseList.slice(0, 5).map((p: any) => p?.phrase || p).join(', '),
       }
     })
 
