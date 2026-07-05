@@ -116,6 +116,15 @@ export function isStakeholderItem(item: FrameworkItem): item is StakeholderItem 
 
 // Helper to normalize items (for backward compatibility)
 export function normalizeItem(item: any, itemType: 'text' | 'qa' = 'text'): FrameworkItem {
+  // Coerce bare-string / null items (e.g. from bot-created analyses that store
+  // text sections as string[]) into objects first, so the `'x' in item` guards
+  // below never throw a "not an Object" TypeError on a primitive.
+  if (typeof item !== 'object' || item === null) {
+    const text = typeof item === 'string' ? item : ''
+    return itemType === 'qa'
+      ? { id: crypto.randomUUID(), question: text, answer: '' }
+      : { id: crypto.randomUUID(), text }
+  }
   if (itemType === 'qa') {
     if ('question' in item && 'answer' in item) {
       return item as QuestionAnswerItem

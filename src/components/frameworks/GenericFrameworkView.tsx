@@ -409,9 +409,18 @@ export function GenericFrameworkView({
           </p>
         ) : (
           <ul className="space-y-2">
-            {items.map((item, index) => (
+            {items.map((rawItem, index) => {
+              // Bot-created analyses (e.g. Signal !bcw) may store text sections as
+              // bare strings instead of { id, text } objects. Coerce here so the
+              // property access and `'x' in item` guards below never throw a
+              // "not an Object" TypeError on a primitive.
+              const item: any =
+                typeof rawItem === 'string'
+                  ? { id: `item-${index}`, text: rawItem }
+                  : rawItem ?? { id: `item-${index}`, text: '' }
+              return (
               <li
-                key={item.id}
+                key={item.id ?? index}
                 className={`p-3 rounded-lg ${section.bgColor} text-sm`}
               >
                 {itemType === 'qa' && isQuestionAnswerItem(item) ? (
@@ -491,7 +500,8 @@ export function GenericFrameworkView({
                   </>
                 )}
               </li>
-            ))}
+              )
+            })}
           </ul>
         )}
       </CardContent>

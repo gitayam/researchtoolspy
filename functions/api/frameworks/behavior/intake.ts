@@ -508,6 +508,21 @@ function mapAudience(a: unknown): Record<string, unknown> {
  * fields are intentionally NOT preserved — keeping both shapes leads to UI
  * confusion when the form picks the wrong key.
  */
+/**
+ * Wrap a bot-supplied string[] into the { id, text } item shape the web renderer
+ * expects. Non-string entries are coerced/skipped so a stray object never leaks
+ * through. Returns [] for anything that isn't an array.
+ */
+function toTextItems(value: unknown, prefix: string): Array<{ id: string; text: string }> {
+  if (!Array.isArray(value)) return []
+  return value
+    .map((v, i) => ({
+      id: `${prefix}-${i + 1}`,
+      text: typeof v === 'string' ? v : typeof v === 'object' && v && typeof (v as any).text === 'string' ? (v as any).text : '',
+    }))
+    .filter((item) => item.text.length > 0)
+}
+
 function mapBotL1ToRt(
   l1: Record<string, unknown>,
   extras: Record<string, unknown> = {},
@@ -599,11 +614,14 @@ function mapBotL1ToRt(
 
     timeline,
 
-    environmental_factors: Array.isArray(l1.environmentalFactors) ? l1.environmentalFactors : [],
-    social_context: Array.isArray(l1.socialCulturalContext) ? l1.socialCulturalContext : [],
+    // Text sections must be stored as { id, text } objects to match the web form's
+    // shape — the GenericFrameworkView renderer assumes objects and throws on bare
+    // strings. The bot's L1 schema emits these three as string[], so wrap them here.
+    environmental_factors: toTextItems(l1.environmentalFactors, 'ef'),
+    social_context: toTextItems(l1.socialCulturalContext, 'sc'),
     consequences,
     symbols,
-    observed_patterns: Array.isArray(l1.observedPatterns) ? l1.observedPatterns : [],
+    observed_patterns: toTextItems(l1.observedPatterns, 'op'),
     potential_audiences: potentialAudiences,
 
     is_public: true,
