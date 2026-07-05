@@ -832,12 +832,78 @@ export function GenericFrameworkView({
             )
           }
 
-          // Default section rendering
+          // Read-only potential audiences for behavior. Bot intake (Signal !bcw)
+          // stores this as a structured { increase_leverage, decrease_leverage }
+          // object of { name, rationale, com_b_hypothesis } entries; the web UI
+          // may store a flat text array. Render the object here; flat arrays fall
+          // through to the default SectionView below.
+          if (
+            frameworkType === 'behavior' &&
+            section.key === 'potential_audiences' &&
+            data[section.key] &&
+            !Array.isArray(data[section.key])
+          ) {
+            const aud = data[section.key] as any
+            const groups = [
+              { label: 'Increase leverage', icon: '↑', list: Array.isArray(aud.increase_leverage) ? aud.increase_leverage : [] },
+              { label: 'Decrease leverage', icon: '↓', list: Array.isArray(aud.decrease_leverage) ? aud.decrease_leverage : [] },
+            ]
+            const total = groups.reduce((n, g) => n + g.list.length, 0)
+            return (
+              <Card key={section.key}>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <span className="text-2xl">{section.icon}</span>
+                    {section.label}
+                    <Badge variant="secondary" className="ml-auto">{total}</Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {total === 0 ? (
+                    <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-8">
+                      No audiences identified
+                    </p>
+                  ) : (
+                    groups.map((g) =>
+                      g.list.length === 0 ? null : (
+                        <div key={g.label} className="space-y-2">
+                          <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                            {g.icon} {g.label}
+                          </div>
+                          <ul className="space-y-2">
+                            {g.list.map((a: any, i: number) => (
+                              <li key={i} className={`p-3 rounded-lg ${section.bgColor} text-sm`}>
+                                <div className="font-medium text-gray-900 dark:text-gray-100">
+                                  {typeof a === 'string' ? a : a?.name || a?.text || ''}
+                                </div>
+                                {a?.rationale && (
+                                  <div className="text-gray-700 dark:text-gray-300 mt-1">{a.rationale}</div>
+                                )}
+                                {a?.com_b_hypothesis && (
+                                  <div className="text-gray-500 dark:text-gray-400 mt-1 text-xs">
+                                    COM-B: {a.com_b_hypothesis}
+                                  </div>
+                                )}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )
+                    )
+                  )}
+                </CardContent>
+              </Card>
+            )
+          }
+
+          // Default section rendering. Coerce to an array so a non-array value
+          // (e.g. a bot-written object) renders as empty instead of throwing
+          // `.map is not a function` and blanking the whole route.
           return (
             <SectionView
               key={section.key}
               section={section}
-              items={data[section.key] || []}
+              items={Array.isArray(data[section.key]) ? (data[section.key] as any[]) : []}
               sectionKey={section.key}
             />
           )
