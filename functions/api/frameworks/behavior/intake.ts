@@ -487,6 +487,31 @@ function mapTimelineEvent(event: unknown, idx: number): Record<string, unknown> 
 /**
  * Map a single audience candidate from camelCase to snake_case.
  */
+/**
+ * Flatten the bot's structured { increase_leverage, decrease_leverage } audiences
+ * into the flat { id, text } list the web form/view model as a text section
+ * (config intent: "candidates only — do NOT diagnose here"). The ↑/↓ marker keeps
+ * the leverage direction; the rationale is appended as context. COM-B hypotheses
+ * are intentionally dropped (that's diagnosis, done in a linked COM-B analysis).
+ */
+function flattenAudiences(
+  aud: { increase_leverage?: unknown[]; decrease_leverage?: unknown[] } | undefined,
+): Array<{ id: string; text: string }> {
+  if (!aud) return []
+  const rows: Array<{ id: string; text: string }> = []
+  const push = (list: unknown, marker: string, prefix: string) => {
+    ;(Array.isArray(list) ? list : []).forEach((a: any, i) => {
+      const name = typeof a?.name === 'string' ? a.name : typeof a === 'string' ? a : ''
+      if (!name) return
+      const rationale = typeof a?.rationale === 'string' && a.rationale ? ` — ${a.rationale}` : ''
+      rows.push({ id: `${prefix}-${i + 1}`, text: `${marker} ${name}${rationale}` })
+    })
+  }
+  push(aud.increase_leverage, '↑', 'aud-inc')
+  push(aud.decrease_leverage, '↓', 'aud-dec')
+  return rows
+}
+
 function mapAudience(a: unknown): Record<string, unknown> {
   if (!a || typeof a !== 'object') return { name: '', rationale: '' }
   const o = a as Record<string, unknown>
@@ -622,7 +647,9 @@ function mapBotL1ToRt(
     consequences,
     symbols,
     observed_patterns: toTextItems(l1.observedPatterns, 'op'),
-    potential_audiences: potentialAudiences,
+    // Flatten to a { id, text } list so the generic form/view (which model this
+    // as a text section) render and edit it without crashing on the object shape.
+    potential_audiences: flattenAudiences(potentialAudiences),
 
     is_public: true,
     tags: ['signal-bot'],

@@ -706,7 +706,11 @@ export function GenericFrameworkForm({
   // Initialize state for each section
   const [sectionData, setSectionData] = useState<{ [key: string]: FrameworkItem[] }>(
     sections.reduce((acc, section) => {
-      acc[section.key] = initialData?.[section.key] || []
+      // Coerce to an array: bot-created analyses may store a section as a non-array
+      // (e.g. potential_audiences as an object), which would throw
+      // `items.map is not a function` in the editor below.
+      const raw = initialData?.[section.key]
+      acc[section.key] = Array.isArray(raw) ? raw : []
       return acc
     }, {} as { [key: string]: FrameworkItem[] })
   )
