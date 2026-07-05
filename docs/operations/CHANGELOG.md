@@ -1,9 +1,25 @@
 # ResearchTools.net — Issue Tracker
 
-**Last updated:** 2026-06-13
+**Last updated:** 2026-07-05
 **Current tag:** v0.21.0-content-retention
 
 ---
+
+## Fixed / Added (2026-07-05) — Behavior framework: bot-shape crashes + scoping hypotheses
+
+Bot-created behavior analyses (Signal/SimpleX `!bcw`) stored section data in shapes the generic renderer couldn't handle, blanking the whole route via the error boundary. Also added a new scoping-hypotheses section fed by the bot's `!bcw scope` step.
+
+### Fixed — `/view` crashed on `string[]` text sections
+- [x] `GenericFrameworkView.tsx` — `'text' in item` threw `TypeError: … is not an Object` (WebKit) when a section item was a bare string. The bot wrote `environmental_factors`, `social_context`, `observed_patterns` as `string[]`; the web form/view assume `{id,text}[]`. Now coerces string/null items before the `in` guard; `normalizeItem()` guards non-object input too.
+- [x] `functions/api/frameworks/behavior/intake.ts` — new `toTextItems()` wraps those three sections into `{id,text}` so future bot writes match shape. Existing rows backfilled in remote D1.
+
+### Fixed — `/view` and `/edit` crashed on the `potential_audiences` object
+- [x] `potential_audiences` was stored as `{increase_leverage, decrease_leverage}`; the view `.map`ed it (`TypeError: G.map is not a function`) and the edit form's `sectionData[key] = initialData[key] || []` mapped the truthy object. Now: intake `flattenAudiences()` collapses it to a `{id,text}` list (↑/↓ marker + name + rationale; config intent is "candidates only"); the view keeps a guarded rich-object fallback + array-coerces `items`; the form coerces every section value to an array at load. Existing rows backfilled.
+- **Lesson:** any generic section renderer that `.map`s `data[key]` must array-coerce first — the crash recurs per component (view, then form) until every `.map`/`in` site is guarded.
+
+### Added — "Scoping Hypotheses" section (⚗️)
+- [x] `functions/api/frameworks/behavior/intake.ts` — maps `l1.scopingHypotheses` → `scoping_hypotheses` via `toTextItems`.
+- [x] `src/config/framework-configs.ts` — new text section on the behavior framework (after Basic Information), holding the disprovable scoping hypotheses (with ✓ confirmed / ✗ challenged state) produced by the bots' `!bcw scope` → `!bcw go` flow. Empty for behaviors created without the scope step; renders via the generic (crash-safe) SectionView.
 
 ## Added / Fixed (v0.21.0) — Content-analysis retention & D1 growth control
 
