@@ -647,6 +647,9 @@ function mapBotL1ToRt(
     consequences,
     symbols,
     observed_patterns: toTextItems(l1.observedPatterns, 'op'),
+    // Disprovable scoping hypotheses from the bot's `!bcw scope` step (each line
+    // already carries its confirmed/challenged state). Text section — flat items.
+    scoping_hypotheses: toTextItems(l1.scopingHypotheses, 'sh'),
     // Flatten to a { id, text } list so the generic form/view (which model this
     // as a text section) render and edit it without crashing on the object shape.
     potential_audiences: flattenAudiences(potentialAudiences),

@@ -413,6 +413,21 @@ export const frameworkConfigs: Record<string, FrameworkConfig> = {
         icon: '📋'
       },
       {
+        key: 'scoping_hypotheses',
+        label: 'Scoping Hypotheses',
+        description: 'Disprovable assumptions the analysis rests on — each was confirmed (✓) or challenged (✗) when the behavior was scoped. Falsifying any one redirects the COM-B analysis.',
+        color: 'border-amber-500',
+        bgColor: 'bg-amber-50 dark:bg-amber-900/20',
+        icon: '⚗️',
+        promptQuestions: [
+          'Who actually performs this behavior (actor / subgroup)?',
+          'Is it voluntary and desired, or coerced / compulsive?',
+          'Is it one-time or repeated / habitual?',
+          'What is the primary COM-B barrier (capability, opportunity, motivation)?',
+          'Is the goal to increase, decrease, or maintain the behavior?'
+        ]
+      },
+      {
         key: 'timeline',
         label: 'Behavior Timeline',
         description: 'Document when, where, and how long the behavior occurs (interactive timeline with forks) — Describe what the behavior looks like in sequence, not what any particular audience experiences.',
