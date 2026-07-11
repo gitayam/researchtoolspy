@@ -208,6 +208,25 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
+    // Never persist or run AI over extraction-tool placeholders. This gate is
+    // intentionally before hashing/dedup so a loader page cannot become a
+    // canonical cached analysis used by SWOT or other frameworks.
+    const initialQuality = assessExtractionQuality(
+      contentData.text,
+      contentData.title,
+      contentData.author,
+      contentData.publishDate,
+    )
+    if (initialQuality.thin) {
+      return new Response(JSON.stringify({
+        error: 'Insufficient article content for reliable analysis',
+        code: 'INSUFFICIENT_CONTENT',
+        extraction_quality: initialQuality,
+        bypass_urls: bypassUrls,
+        archive_urls: archiveUrls,
+      }), { status: 422, headers: JSON_HEADERS })
+    }
+
 
     // Calculate content hash
     const contentHash = await calculateHash(contentData.text)
