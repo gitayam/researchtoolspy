@@ -46,6 +46,7 @@ interface Env {
   DB: D1Database
   UPLOADS?: R2Bucket
   TURNSTILE_SECRET?: string
+  BOT_INTAKE_API_KEY?: string
 }
 
 interface UploadedFileInfo {
@@ -63,6 +64,15 @@ interface UploadedFileInfo {
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   const { env, params, request } = context
   const token = params.token as string
+
+  // Trusted server clients may bypass Turnstile. All form access checks,
+  // password checks, rate limits, upload caps, and MIME checks remain active.
+  // Fail closed when the server credential is unset.
+  const authorization = request.headers.get('Authorization') || ''
+  const bearerToken = authorization.startsWith('Bearer ') ? authorization.slice(7) : ''
+  const isTrustedBot = Boolean(
+    env.BOT_INTAKE_API_KEY && bearerToken && bearerToken === env.BOT_INTAKE_API_KEY
+  )
 
   try {
     const form = await env.DB.prepare(
@@ -177,13 +187,15 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
 
     // Turnstile gate (FAIL-CLOSED). Token from the form field or a header.
-    const turnstileToken = (formData.get('cf-turnstile-response') as string | null)
-      || request.headers.get('CF-Turnstile-Response')
-    const turnstileOk = await verifyTurnstile(turnstileToken, env.TURNSTILE_SECRET, fetch, clientIP)
-    if (!turnstileOk) {
-      return new Response(JSON.stringify({ error: 'turnstile_required' }), {
-        status: 403, headers: JSON_HEADERS,
-      })
+    if (!isTrustedBot) {
+      const turnstileToken = (formData.get('cf-turnstile-response') as string | null)
+        || request.headers.get('CF-Turnstile-Response')
+      const turnstileOk = await verifyTurnstile(turnstileToken, env.TURNSTILE_SECRET, fetch, clientIP)
+      if (!turnstileOk) {
+        return new Response(JSON.stringify({ error: 'turnstile_required' }), {
+          status: 403, headers: JSON_HEADERS,
+        })
+      }
     }
 
     // Collect the uploaded File entries (accept `files` and `file` field names).
@@ -226,7 +238,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       await env.UPLOADS.put(key, body, {
         httpMetadata: { contentType: file.type },
         // Survey id recorded for E-6d retention sweeps; NO submitter IP/UA (privacy).
-        customMetadata: { surveyId: form.id },
+        customMetadata: {
+          surveyId: form.id,
+          ...(isTrustedBot ? { source: 'signal-bot' } : {}),
+        },
       })
 
       const entry: UploadedFileInfo = { key, name: file.name, size: file.size, type: file.type }
@@ -251,7 +266,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       stored.push(entry)
     }
 
-    return new Response(JSON.stringify({ ok: true, files: stored }), {
+    return new Response(JSON.stringify({
+      ok: true,
+      files: stored,
+      ...(isTrustedBot ? { source: 'signal-bot' } : {}),
+    }), {
       status: 201, headers: JSON_HEADERS,
     })
   } catch (error) {

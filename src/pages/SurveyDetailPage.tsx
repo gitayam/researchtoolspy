@@ -704,6 +704,23 @@ function ResponsesTab({
                 <div className="px-4 pb-4 border-t border-gray-100 dark:border-gray-700/50 space-y-3">
                   {/* Form data */}
                   <div className="mt-3 space-y-2">
+                    {(response.form_data as any)._source === 'signal-bot' && (
+                      <div className="flex">
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300">
+                          Signal bot submission
+                        </span>
+                      </div>
+                    )}
+                    {Array.isArray((response.form_data as any)._attachments) && (
+                      <div className="space-y-1 rounded border border-gray-200 dark:border-gray-700 p-2">
+                        <p className="text-[10px] font-medium uppercase tracking-wider text-gray-500">Attachments</p>
+                        {(response.form_data as any)._attachments.map((file: any) => (
+                          <p key={file.key} className="text-xs break-all text-gray-700 dark:text-gray-300">
+                            {file.name} ({Math.ceil(Number(file.size || 0) / 1024)} KB, {file.type})
+                          </p>
+                        ))}
+                      </div>
+                    )}
                     {Object.entries(response.form_data)
                       .filter(([key]) => !key.startsWith('_'))
                       .map(([key, value]) => (
