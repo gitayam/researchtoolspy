@@ -33,6 +33,10 @@ id = "7b7c607eb739402884712b0b033e3e7d"
 binding = "UPLOADS"
 bucket_name = "researchtoolspy-uploads"
 
+[[services]]
+binding = "BROWSER_RENDERER"
+service = "researchtools-browser-renderer"
+
 # Environment Variables
 # Note: Secrets (OPENAI_API_KEY, VIRUSTOTAL_API_KEY) should be added via:
 # wrangler secret put OPENAI_API_KEY
@@ -90,6 +94,10 @@ id = "7b7c607eb739402884712b0b033e3e7d"
 [[env.production.r2_buckets]]
 binding = "UPLOADS"
 bucket_name = "researchtoolspy-uploads"
+
+[[env.production.services]]
+binding = "BROWSER_RENDERER"
+service = "researchtools-browser-renderer"
 
 # ==========================================
 # Cloudflare Containers

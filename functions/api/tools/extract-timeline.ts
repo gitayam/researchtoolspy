@@ -9,6 +9,8 @@ import { callOpenAIViaGateway, getOptimalCacheTTL } from '../_shared/ai-gateway'
 import { enhancedFetch } from '../../utils/browser-profiles'
 import { getUserFromRequest } from '../_shared/auth-helpers'
 import { JSON_HEADERS, optionsResponse } from '../_shared/api-utils'
+import { extractArticle } from '../_shared/article-extractor'
+import { renderArticleFallback, shouldRenderFallback, type RendererBinding } from '../_shared/rendered-content'
 
 interface Env {
   DB: D1Database
@@ -16,6 +18,7 @@ interface Env {
   AI_GATEWAY_ACCOUNT_ID?: string
   AI_CONFIG: KVNamespace
   CACHE: KVNamespace
+  BROWSER_RENDERER?: RendererBinding
 }
 
 // ─── Content extraction (simplified from extract-claims) ───
@@ -156,8 +159,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
 
     const html = await res.text()
-    const text = stripHtmlToText(html)
-    const title = extractTitle(html) || url
+    const article = extractArticle(html, url)
+    const rendered = shouldRenderFallback(article, html)
+      ? await renderArticleFallback(context.env.BROWSER_RENDERER, url)
+      : null
+    const text = rendered || article.text
+    const title = article.title || extractTitle(html) || url
 
     if (text.length < 100) {
       return new Response(JSON.stringify({
@@ -176,6 +183,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       domain,
       url,
       event_count: events.length,
+      extraction: {
+        method: rendered ? 'cloudflare-browser-run' : article.method,
+        quality: rendered ? 'rendered' : article.quality,
+        word_count: text ? text.split(/\s+/).length : 0,
+      },
     }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[ExtractTimeline] Error:', error)

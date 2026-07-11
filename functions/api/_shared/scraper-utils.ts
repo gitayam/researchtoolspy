@@ -5,14 +5,21 @@
  */
 
 import { fetchSocialViaApify } from './apify-social'
+import { extractArticle } from './article-extractor'
+import { renderArticleFallback, shouldRenderFallback, type RendererBinding } from './rendered-content'
 
 export interface ScrapedContent {
   title: string
   content: string
   error?: string
+  extraction?: { method: string; quality: string; wordCount: number }
 }
 
-export async function scrapeUrl(url: string, apifyApiKey?: string): Promise<ScrapedContent> {
+export async function scrapeUrl(
+  url: string,
+  apifyApiKey?: string,
+  renderer?: RendererBinding,
+): Promise<ScrapedContent> {
   // 1. Try Apify for Twitter/X and TikTok (richer content with engagement metrics)
   if (apifyApiKey) {
     try {
@@ -95,20 +102,20 @@ export async function scrapeUrl(url: string, apifyApiKey?: string): Promise<Scra
     }
 
     const html = await response.text()
-
-    // Extract Title
-    const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i)
-    const title = titleMatch ? titleMatch[1].trim() : url
-
-    // Extract Text (Simple)
-    let text = html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-    text = text.replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
-    text = text.replace(/<[^>]+>/g, ' ')
-    text = text.replace(/\s+/g, ' ').trim()
+    const article = extractArticle(html, url)
+    const rendered = shouldRenderFallback(article, html)
+      ? await renderArticleFallback(renderer, url)
+      : null
+    const content = rendered || article.text
 
     return {
-      title,
-      content: text.substring(0, 20000) // Limit to 20k chars
+      title: article.title || url,
+      content: content.substring(0, 30000),
+      extraction: {
+        method: rendered ? 'cloudflare-browser-run' : article.method,
+        quality: rendered ? 'rendered' : article.quality,
+        wordCount: content ? content.split(/\s+/).length : 0,
+      },
     }
 
   } catch (error) {

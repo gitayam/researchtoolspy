@@ -1,0 +1,8 @@
+name = "researchtools-browser-renderer"
+main = "src/index.ts"
+compatibility_date = "2026-07-10"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = false
+
+[browser]
+binding = "BROWSER"
