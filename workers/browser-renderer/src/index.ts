@@ -1,4 +1,4 @@
-interface Env { BROWSER: { quickAction(action: string, input: Record<string, unknown>): Promise<unknown> } }
+interface Env { BROWSER: { quickAction(action: string, input: Record<string, unknown>): Promise<Response> } }
 
 function validPublicUrl(raw: unknown): URL | null {
   if (typeof raw !== 'string' || raw.length > 4096) return null
@@ -19,13 +19,18 @@ export default {
     const url = validPublicUrl(body?.url)
     if (!url) return Response.json({ error: 'Invalid public HTTP(S) URL' }, { status: 400 })
     try {
-      const rendered = await env.BROWSER.quickAction('markdown', {
+      const response = await env.BROWSER.quickAction('markdown', {
         url: url.toString(),
-        gotoOptions: { waitUntil: 'domcontentloaded', timeout: 20_000 },
-        rejectRequestPattern: ['*.css', '*.woff*', '*.mp4', '*.webm', '*.avi'],
+        gotoOptions: { waitUntil: 'domcontentloaded', timeout: 15_000 },
+        actionTimeout: 10_000,
+        rejectRequestPattern: ['/^.*\\.(css|woff2?|mp4|webm|avi)(\\?.*)?$/i'],
       })
-      const value = rendered as any
-      const markdown = typeof value === 'string' ? value : value?.result || value?.markdown || ''
+      if (!response.ok) {
+        console.error('[browser-renderer] Browser Run returned', response.status)
+        return Response.json({ error: 'Browser rendering failed' }, { status: 502 })
+      }
+      const value = await response.json().catch(() => null) as { result?: unknown } | null
+      const markdown = typeof value?.result === 'string' ? value.result : ''
       if (typeof markdown !== 'string' || markdown.trim().length < 40) {
         return Response.json({ error: 'Rendered page contained insufficient text' }, { status: 422 })
       }

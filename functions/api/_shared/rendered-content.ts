@@ -19,7 +19,7 @@ export async function renderArticleFallback(
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url }),
-      signal: AbortSignal.timeout(25_000),
+      signal: AbortSignal.timeout(35_000),
     })
     if (!response.ok) return null
     const data = await response.json() as { markdown?: unknown }
