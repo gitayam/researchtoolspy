@@ -44,6 +44,10 @@ interface AnalyzeUrlRequest {
   save_link?: boolean
   link_note?: string
   link_tags?: string[]
+  /** Authenticated upstream extraction fallback (for example, the Signal bot). */
+  content_text?: string
+  content_title?: string
+  content_source?: 'bot-scrape'
 }
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
@@ -165,14 +169,33 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const bypassUrls = generateBypassUrls(normalizedUrl)
     const archiveUrls = generateArchiveUrls(normalizedUrl)
 
-    // Extract content with automatic fallback to archives if blocked
-    const contentData = await extractUrlContentWithFallback(
-      normalizedUrl,
-      env.OPENAI_API_KEY,
-      env.APIFY_API_KEY,
-      env.PDF_CO_API_KEY,
-      env.BROWSER_RENDERER,
-    )
+    const suppliedText = typeof body.content_text === 'string'
+      ? body.content_text.replace(/\0/g, '').trim().slice(0, 100 * 1024)
+      : ''
+    if (body.content_text !== undefined && suppliedText.split(/\s+/).filter(Boolean).length < 150) {
+      return new Response(JSON.stringify({
+        error: 'Supplied article content is too short for reliable analysis',
+        code: 'INSUFFICIENT_CONTENT',
+      }), { status: 422, headers: JSON_HEADERS })
+    }
+
+    // Authenticated callers may provide content when their origin can reach a
+    // source that blocks Cloudflare egress. Preserve provenance explicitly.
+    const contentData = suppliedText
+      ? {
+          success: true,
+          text: suppliedText,
+          title: typeof body.content_title === 'string' ? body.content_title.trim().slice(0, 500) : undefined,
+          source: 'bot-scrape' as const,
+          fallback_attempts: ['bot-scrape'],
+        }
+      : await extractUrlContentWithFallback(
+          normalizedUrl,
+          env.OPENAI_API_KEY,
+          env.APIFY_API_KEY,
+          env.PDF_CO_API_KEY,
+          env.BROWSER_RENDERER,
+        )
 
     if (!contentData.success) {
       console.error(`[DEBUG] Content extraction failed: ${contentData.error}`)
@@ -924,7 +947,7 @@ async function extractUrlContentWithFallback(url: string, apiKey?: string, apify
     chapters?: string[]
     keyPoints?: string[]
   }
-  source?: 'original' | 'archive.ph' | 'wayback' | 'smry.ai' | 'apify'
+  source?: 'original' | 'archive.ph' | 'wayback' | 'smry.ai' | 'apify' | 'bot-scrape'
   fallback_attempts?: string[]
   links?: LinkInfo[]
 }> {
