@@ -23,6 +23,8 @@ import { matchMultipleClaimsEntities } from './match-entities-to-actors'
 import { isPDFUrl, extractPDFText, intelligentPDFSummary } from './pdf-extractor'
 import { logEvent } from '../_shared/event-log'
 import { extractionFailureLog } from './_extraction-log'
+import { extractArticle } from '../_shared/article-extractor'
+import { renderArticleFallback, shouldRenderFallback, type RendererBinding } from '../_shared/rendered-content'
 
 interface Env {
   DB: D1Database
@@ -33,6 +35,7 @@ interface Env {
   JWT_SECRET?: string
   APIFY_API_KEY?: string
   PDF_CO_API_KEY?: string
+  BROWSER_RENDERER?: RendererBinding
 }
 
 interface AnalyzeUrlRequest {
@@ -41,6 +44,10 @@ interface AnalyzeUrlRequest {
   save_link?: boolean
   link_note?: string
   link_tags?: string[]
+  /** Authenticated upstream extraction fallback (for example, the Signal bot). */
+  content_text?: string
+  content_title?: string
+  content_source?: 'bot-scrape'
 }
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
@@ -162,8 +169,33 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const bypassUrls = generateBypassUrls(normalizedUrl)
     const archiveUrls = generateArchiveUrls(normalizedUrl)
 
-    // Extract content with automatic fallback to archives if blocked
-    const contentData = await extractUrlContentWithFallback(normalizedUrl, env.OPENAI_API_KEY, env.APIFY_API_KEY, env.PDF_CO_API_KEY)
+    const suppliedText = typeof body.content_text === 'string'
+      ? body.content_text.replace(/\0/g, '').trim().slice(0, 100 * 1024)
+      : ''
+    if (body.content_text !== undefined && suppliedText.split(/\s+/).filter(Boolean).length < 150) {
+      return new Response(JSON.stringify({
+        error: 'Supplied article content is too short for reliable analysis',
+        code: 'INSUFFICIENT_CONTENT',
+      }), { status: 422, headers: JSON_HEADERS })
+    }
+
+    // Authenticated callers may provide content when their origin can reach a
+    // source that blocks Cloudflare egress. Preserve provenance explicitly.
+    const contentData = suppliedText
+      ? {
+          success: true,
+          text: suppliedText,
+          title: typeof body.content_title === 'string' ? body.content_title.trim().slice(0, 500) : undefined,
+          source: 'bot-scrape' as const,
+          fallback_attempts: ['bot-scrape'],
+        }
+      : await extractUrlContentWithFallback(
+          normalizedUrl,
+          env.OPENAI_API_KEY,
+          env.APIFY_API_KEY,
+          env.PDF_CO_API_KEY,
+          env.BROWSER_RENDERER,
+        )
 
     if (!contentData.success) {
       console.error(`[DEBUG] Content extraction failed: ${contentData.error}`)
@@ -197,6 +229,25 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         status: 422, // Use 422 instead of 500 for content extraction failures
         headers: JSON_HEADERS
       })
+    }
+
+    // Never persist or run AI over extraction-tool placeholders. This gate is
+    // intentionally before hashing/dedup so a loader page cannot become a
+    // canonical cached analysis used by SWOT or other frameworks.
+    const initialQuality = assessExtractionQuality(
+      contentData.text,
+      contentData.title,
+      contentData.author,
+      contentData.publishDate,
+    )
+    if (initialQuality.thin) {
+      return new Response(JSON.stringify({
+        error: 'Insufficient article content for reliable analysis',
+        code: 'INSUFFICIENT_CONTENT',
+        extraction_quality: initialQuality,
+        bypass_urls: bypassUrls,
+        archive_urls: archiveUrls,
+      }), { status: 422, headers: JSON_HEADERS })
     }
 
 
@@ -882,7 +933,7 @@ function isContentBlocked(result: {
 /**
  * Extract URL content with automatic fallback to archives if blocked
  */
-async function extractUrlContentWithFallback(url: string, apiKey?: string, apifyApiKey?: string, pdfCoApiKey?: string): Promise<{
+async function extractUrlContentWithFallback(url: string, apiKey?: string, apifyApiKey?: string, pdfCoApiKey?: string, renderer?: RendererBinding): Promise<{
   success: boolean
   error?: string
   text: string
@@ -896,7 +947,7 @@ async function extractUrlContentWithFallback(url: string, apiKey?: string, apify
     chapters?: string[]
     keyPoints?: string[]
   }
-  source?: 'original' | 'archive.ph' | 'wayback' | 'smry.ai' | 'apify'
+  source?: 'original' | 'archive.ph' | 'wayback' | 'smry.ai' | 'apify' | 'bot-scrape'
   fallback_attempts?: string[]
   links?: LinkInfo[]
 }> {
@@ -925,7 +976,7 @@ async function extractUrlContentWithFallback(url: string, apiKey?: string, apify
 
   // Try original URL first
   fallbackAttempts.push('original')
-  const originalResult = await extractUrlContent(url, apiKey, pdfCoApiKey)
+  const originalResult = await extractUrlContent(url, apiKey, pdfCoApiKey, renderer)
 
   // If successful and not blocked, return immediately
   if (originalResult.success && !isContentBlocked(originalResult)) {
@@ -942,7 +993,7 @@ async function extractUrlContentWithFallback(url: string, apiKey?: string, apify
     const archivePhUrl = await checkArchivePh(url)
     if (archivePhUrl) {
       fallbackAttempts.push('archive.ph')
-      const archivePhResult = await extractUrlContent(archivePhUrl, apiKey, pdfCoApiKey)
+      const archivePhResult = await extractUrlContent(archivePhUrl, apiKey, pdfCoApiKey, renderer)
 
       if (archivePhResult.success && !isContentBlocked(archivePhResult)) {
         return {
@@ -961,7 +1012,7 @@ async function extractUrlContentWithFallback(url: string, apiKey?: string, apify
     const waybackUrl = await checkWaybackMachine(url)
     if (waybackUrl) {
       fallbackAttempts.push('wayback')
-      const waybackResult = await extractUrlContent(waybackUrl, apiKey, pdfCoApiKey)
+      const waybackResult = await extractUrlContent(waybackUrl, apiKey, pdfCoApiKey, renderer)
 
       if (waybackResult.success && !isContentBlocked(waybackResult)) {
         return {
@@ -979,7 +1030,7 @@ async function extractUrlContentWithFallback(url: string, apiKey?: string, apify
   try {
     const smryUrl = `https://smry.ai/${encodeURIComponent(url)}`
     fallbackAttempts.push('smry.ai')
-    const smryResult = await extractUrlContent(smryUrl, apiKey, pdfCoApiKey)
+    const smryResult = await extractUrlContent(smryUrl, apiKey, pdfCoApiKey, renderer)
 
     if (smryResult.success && !isContentBlocked(smryResult)) {
       return {
@@ -1040,7 +1091,7 @@ function classifyFacebookContentType(url: string): string {
   return 'page'
 }
 
-async function extractUrlContent(url: string, apiKey?: string, pdfCoApiKey?: string): Promise<{
+async function extractUrlContent(url: string, apiKey?: string, pdfCoApiKey?: string, renderer?: RendererBinding): Promise<{
   success: boolean
   error?: string
   text: string
@@ -1149,20 +1200,27 @@ async function extractUrlContent(url: string, apiKey?: string, pdfCoApiKey?: str
       return extractFacebookContent(html, resolvedUrl)
     }
 
-    // Parse HTML (simple extraction, can be enhanced)
-    const title = extractMetaTag(html, 'title')
+    const article = extractArticle(html, resolvedUrl)
+    const rendered = shouldRenderFallback(article, html)
+      ? await renderArticleFallback(renderer, resolvedUrl)
+      : null
+
+    // Semantic article content is preferred. Browser-rendered Markdown is used
+    // only for empty/thin app shells; raw body stripping remains the last resort.
+    const title = article.title || extractMetaTag(html, 'title')
     const author = extractMetaTag(html, 'author')
     const publishDate = extractMetaTag(html, 'article:published_time') ||
                        extractMetaTag(html, 'publishdate')
 
     // Extract main text (remove scripts, styles, nav, footer)
-    const cleanText = cleanHtmlText(html)
+    const cleanText = rendered || article.text || cleanHtmlText(html)
 
     // Extract links from HTML body (excluding nav, header, footer, sidebar)
     const links = extractBodyLinks(html, resolvedUrl)
 
     return {
-      success: true,
+      success: cleanText.trim().length >= 80,
+      error: cleanText.trim().length >= 80 ? undefined : 'Article content could not be extracted',
       text: cleanText,
       title,
       author,
@@ -2592,4 +2650,3 @@ export const onRequestGet: PagesFunction = async () => {
     status: 405, headers: JSON_HEADERS,
   })
 }
-

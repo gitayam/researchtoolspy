@@ -2,6 +2,7 @@ import { callOpenAIViaGateway, getOptimalCacheTTL } from '../_shared/ai-gateway'
 import { scrapeUrl } from '../_shared/scraper-utils'
 import { getUserFromRequest } from '../_shared/auth-helpers'
 import { JSON_HEADERS } from '../_shared/api-utils'
+import type { RendererBinding } from '../_shared/rendered-content'
 
 interface Env {
   DB: D1Database
@@ -9,6 +10,7 @@ interface Env {
   AI_CONFIG: KVNamespace
   CACHE: KVNamespace
   APIFY_API_KEY?: string
+  BROWSER_RENDERER?: RendererBinding
 }
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
@@ -28,7 +30,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     
     // Use shared scraper
-    const scraped = await scrapeUrl(url, context.env.APIFY_API_KEY)
+    const scraped = await scrapeUrl(url, context.env.APIFY_API_KEY, context.env.BROWSER_RENDERER)
 
     if (scraped.error) {
        console.error('[RageCheck] Scrape failed:', scraped.error)
@@ -141,4 +143,3 @@ export const onRequestGet: PagesFunction = async () => {
     status: 405, headers: JSON_HEADERS,
   })
 }
-

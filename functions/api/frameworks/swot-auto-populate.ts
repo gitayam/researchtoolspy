@@ -104,6 +104,19 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
+    const unusable = results.filter((c: any) => {
+      const text = String(c.extracted_text || '').trim()
+      const title = String(c.title || '').trim()
+      const words = text.split(/\s+/).filter(Boolean).length
+      return words < 150 || /article from .+\|\s*smry|fetching the article|reaching the source/i.test(`${title}\n${text}`)
+    })
+    if (unusable.length > 0) {
+      return new Response(JSON.stringify({
+        error: 'Insufficient article content for reliable SWOT analysis',
+        code: 'INSUFFICIENT_CONTENT',
+      }), { status: 422, headers: JSON_HEADERS })
+    }
+
     // Prepare content summaries
     const contentSummaries = results.map((c: any) => {
       // entities is an object {people:[{name}], organizations:[{name}], ...}

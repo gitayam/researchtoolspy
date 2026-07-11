@@ -13,12 +13,14 @@
  * never throw into the request path — callers pass it to `context.waitUntil(...)`.
  */
 import { scrapeUrl, type ScrapedContent } from './scraper-utils'
+import type { RendererBinding } from './rendered-content'
 
 /** Env bindings the enrichment needs. Mirror these in each caller's Env. */
 export interface UrlEnrichmentEnv {
   DB: D1Database
   APIFY_API_KEY?: string
   SYSTEM_USER_HASH?: string
+  BROWSER_RENDERER?: RendererBinding
 }
 
 /** A single field definition out of a form schema. */
@@ -111,7 +113,7 @@ export async function enrichResponseUrls({
 
       try {
         // Quick scrape for title/excerpt
-        const scraped = await scrapeUrl(url, env.APIFY_API_KEY)
+        const scraped = await scrapeUrl(url, env.APIFY_API_KEY, env.BROWSER_RENDERER)
 
         // Full content analysis via internal API call (entities, claims, sentiment, topics)
         let analysis: AnalysisResult | null = null
