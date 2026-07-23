@@ -28,6 +28,7 @@ import { generateRelationshipsFromMOM, deduplicateRelationships } from '@/utils/
 import { CommentThread } from '@/components/comments/CommentThread'
 import { ShareButton } from './ShareButton'
 import type { CreateRelationshipRequest } from '@/types/entities'
+import { useWorkspace } from '@/contexts/WorkspaceContext'
 
 interface DeceptionViewProps {
   data: {
@@ -61,6 +62,7 @@ export function DeceptionView({
   backPath = '/dashboard/analysis-frameworks/deception'
 }: DeceptionViewProps) {
   const { t } = useTranslation('deception')
+  const { currentWorkspaceId, isLoading: workspaceLoading } = useWorkspace()
   const [exportDialogOpen, setExportDialogOpen] = useState(false)
   const [exportFormat, setExportFormat] = useState<'pdf' | 'docx' | 'briefing'>('pdf')
   // Classification is always UNCLASSIFIED - this is a commercial application
@@ -130,10 +132,9 @@ export function DeceptionView({
   useEffect(() => {
     const actors = linkedEvidence.filter(e => e.entity_type === 'actor')
     const events = linkedEvidence.filter(e => e.entity_type === 'event')
-    const workspaceId = localStorage.getItem('omnicore_workspace_id') || localStorage.getItem('current_workspace_id') || ''
 
     // Generate relationships when we have both actors and events linked
-    if (actors.length > 0 && events.length > 0 && calculatedAssessment && data.scores) {
+    if (currentWorkspaceId && actors.length > 0 && events.length > 0 && calculatedAssessment && data.scores) {
       const newRelationships: CreateRelationshipRequest[] = []
 
       // For each actor-event pair, create relationship based on MOM scores
@@ -151,7 +152,7 @@ export function DeceptionView({
             created_at: data.created_at
           }
 
-          const relationships = generateRelationshipsFromMOM(momAssessment, workspaceId)
+          const relationships = generateRelationshipsFromMOM(momAssessment, currentWorkspaceId)
           newRelationships.push(...relationships)
         }
       }
@@ -161,7 +162,7 @@ export function DeceptionView({
       // Clear relationships if actors or events are unlinked
       setGeneratedRelationships([])
     }
-  }, [linkedEvidence, calculatedAssessment, data.scores, data.id, data.scenario, data.title, data.created_at])
+  }, [linkedEvidence, calculatedAssessment, data.scores, data.id, data.scenario, data.title, data.created_at, currentWorkspaceId])
 
   // Load linked evidence and entities on mount
   useEffect(() => {
@@ -224,13 +225,11 @@ export function DeceptionView({
   // Load historical data for trend analysis
   useEffect(() => {
     const loadHistoricalData = async () => {
-      if (!data.id) return
+      if (!data.id || workspaceLoading || !currentWorkspaceId) return
 
       try {
-        // Get workspace_id from localStorage or default
-        const workspaceId = localStorage.getItem('omnicore_workspace_id') || localStorage.getItem('current_workspace_id') || ''
         const response = await fetch(
-          `/api/deception/history?workspace_id=${workspaceId}&exclude_id=${data.id}&limit=20`,
+          `/api/deception/history?workspace_id=${currentWorkspaceId}&exclude_id=${data.id}&limit=20`,
           { headers: getCopHeaders() }
         )
         if (response.ok) {
@@ -245,7 +244,7 @@ export function DeceptionView({
     }
 
     loadHistoricalData()
-  }, [data.id])
+  }, [data.id, currentWorkspaceId, workspaceLoading])
 
   const handleEntityCreated = (entityType: EvidenceEntityType, entityData: any) => {
     // Auto-link the newly created entity

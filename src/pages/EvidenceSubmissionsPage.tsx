@@ -38,6 +38,7 @@ import { buildCitationGeneratorUrl } from '@/lib/cite-source'
 import { canDeepScrape, PENDING_URL_ANALYSIS_KEY, CONTENT_INTEL_ROUTE } from '@/lib/deep-scrape'
 import { filterSubmissions } from '@/lib/submission-search'
 import SubmissionsMap from '@/components/research/SubmissionsMap'
+import { useWorkspace } from '@/contexts/WorkspaceContext'
 
 interface SubmissionForm {
   id: string
@@ -80,6 +81,7 @@ interface ProcessDialog {
 export default function EvidenceSubmissionsPage() {
   const navigate = useNavigate()
   const { t } = useTranslation()
+  const { currentWorkspaceId, isLoading: isWorkspaceLoading } = useWorkspace()
   const [searchParams, setSearchParams] = useSearchParams()
   const activeTab = searchParams.get('tab') || 'forms'
 
@@ -101,32 +103,37 @@ export default function EvidenceSubmissionsPage() {
   const [isProcessing, setIsProcessing] = useState(false)
 
   useEffect(() => {
+    if (isWorkspaceLoading) return
     const controller = new AbortController()
     loadForms(controller.signal)
     if (activeTab === 'review' || activeTab === 'map') {
       loadSubmissions(controller.signal)
     }
     return () => controller.abort()
-  }, [activeTab])
+  }, [activeTab, currentWorkspaceId, isWorkspaceLoading])
 
   useEffect(() => {
-    if (activeTab === 'review') {
+    if (!isWorkspaceLoading && activeTab === 'review') {
       const controller = new AbortController()
       loadSubmissions(controller.signal)
       return () => controller.abort()
     }
-  }, [statusFilter])
+  }, [statusFilter, currentWorkspaceId, isWorkspaceLoading])
 
   const loadForms = async (signal?: AbortSignal) => {
     setIsLoadingForms(true)
     setFormsError(null)
 
     try {
-      const workspaceId =
-        localStorage.getItem('omnicore_workspace_id') ||
-        localStorage.getItem('current_workspace_id') ||
-        ''
-      const data = await listResearchForms({ workspaceId, headers: getCopHeaders(), signal })
+      if (!currentWorkspaceId) {
+        setForms([])
+        return
+      }
+      const data = await listResearchForms({
+        workspaceId: currentWorkspaceId,
+        headers: getCopHeaders(),
+        signal,
+      })
 
       setForms((data.forms as SubmissionForm[]) || [])
     } catch (err: any) {

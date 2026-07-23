@@ -192,6 +192,7 @@ export interface EVEAssessment {
 // Main Evidence Item Interface
 export interface EvidenceItem {
   id: number
+  workspace_id?: string
   title: string
   description?: string
 
@@ -300,6 +301,7 @@ export interface EvidenceStatistics {
 
 // Form Data Interface
 export interface EvidenceFormData {
+  workspace_id?: string
   title: string
   description?: string
   who?: string

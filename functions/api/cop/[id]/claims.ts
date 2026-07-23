@@ -188,23 +188,42 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
       // Create evidence item from verified claim
       const evidenceRes = await env.DB.prepare(`
-        INSERT INTO evidence_items (title, description, url, source_type, confidence_level, credibility, reliability, workspace_id, created_by, created_at, updated_at)
-        VALUES (?, ?, ?, 'verified_claim', 'high', 'confirmed', 'usually_reliable', ?, ?, ?, ?)
+        INSERT INTO evidence_items (
+          title, description, source_url, source_classification,
+          evidence_type, category, confidence_level, credibility, reliability,
+          metadata, workspace_id, created_by, created_at, updated_at
+        ) VALUES (?, ?, ?, 'secondary', 'statement', 'verified_claim', 'high', '2', 'B', ?, ?, ?, ?, ?)
       `).bind(
         `Verified: ${claim.claim_text.substring(0, 100)}`,
         claim.claim_text,
         claim.url,
-        claim.workspace_id,
+        JSON.stringify({
+          cop_session_id: sessionId,
+          cop_claim_id: claimId,
+          origin: 'verified_claim',
+        }),
+        workspaceId,
         userId, now, now,
       ).run()
 
       const evidenceId = evidenceRes.meta?.last_row_id
 
       // Update claim with evidence link
-      await env.DB.prepare(`
-        UPDATE cop_claims SET status = 'verified', evidence_item_id = ?, updated_at = ?
-        WHERE id = ? AND cop_session_id = ?
-      `).bind(evidenceId, now, claimId, sessionId).run()
+      try {
+        const promoted = await env.DB.prepare(`
+          UPDATE cop_claims SET status = 'verified', evidence_item_id = ?, updated_at = ?
+          WHERE id = ? AND cop_session_id = ?
+        `).bind(evidenceId, now, claimId, sessionId).run()
+
+        if (!promoted.meta.changes) {
+          throw new Error('Claim promotion update did not modify a row')
+        }
+      } catch (error) {
+        await env.DB.prepare(
+          'DELETE FROM evidence_items WHERE id = ? AND created_by = ?'
+        ).bind(evidenceId, userId).run()
+        throw error
+      }
 
       try {
         await createTimelineEntry(env.DB, sessionId, workspaceId, userId, {

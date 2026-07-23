@@ -6,6 +6,7 @@
 
 import { requireAuth } from '../_shared/auth-helpers'
 import { JSON_HEADERS, optionsResponse } from '../_shared/api-utils'
+import { checkWorkspaceAccess } from '../_shared/workspace-helpers'
 
 interface Env {
   DB: D1Database
@@ -15,6 +16,21 @@ interface Env {
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   try {
     const authUserId = await requireAuth(context.request, context.env)
+    const workspaceId = context.request.headers.get('X-Workspace-ID') || null
+
+    if (!workspaceId) {
+      return new Response(JSON.stringify({ error: 'X-Workspace-ID header is required' }), {
+        status: 400,
+        headers: JSON_HEADERS,
+      })
+    }
+
+    if (!(await checkWorkspaceAccess(workspaceId, authUserId, context.env))) {
+      return new Response(JSON.stringify({ error: 'Access denied to workspace' }), {
+        status: 403,
+        headers: JSON_HEADERS,
+      })
+    }
 
     const url = new URL(context.request.url)
     const status = url.searchParams.get('status') // Filter by status (active, completed, archived)
@@ -35,10 +51,10 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         updated_at,
         completed_at
       FROM investigation_packets
-      WHERE user_id = ?
+      WHERE user_id = ? AND workspace_id = ?
     `
 
-    const bindings: any[] = [authUserId]
+    const bindings: any[] = [authUserId, workspaceId]
 
     // Filter by status if provided
     if (status && ['active', 'completed', 'archived'].includes(status)) {
@@ -56,20 +72,17 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       (results.results || []).map(async (packet: any) => {
         // Count content analyses
         const contentCount = await context.env.DB.prepare(`
+          SELECT COUNT(DISTINCT ca.content_analysis_id) as count
+          FROM packet_claims pc
+          JOIN claim_adjustments ca ON ca.id = pc.claim_adjustment_id
+          WHERE pc.packet_id = ?
+        `).bind(packet.id).first()
+
+        // Count claims explicitly linked to this packet.
+        const claimCount = await context.env.DB.prepare(`
           SELECT COUNT(*) as count
           FROM packet_claims
           WHERE packet_id = ?
-        `).bind(packet.id).first()
-
-        // Count total claims across all content in this packet
-        const claimCount = await context.env.DB.prepare(`
-          SELECT COUNT(*) as count
-          FROM claim_adjustments ca
-          WHERE ca.content_analysis_id IN (
-            SELECT content_analysis_id
-            FROM packet_claims
-            WHERE packet_id = ?
-          )
         `).bind(packet.id).first()
 
         return {
@@ -82,8 +95,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     )
 
     // Get total count for pagination
-    let countSql = `SELECT COUNT(*) as total FROM investigation_packets WHERE user_id = ?`
-    const countBindings: any[] = [authUserId]
+    let countSql = `SELECT COUNT(*) as total FROM investigation_packets WHERE user_id = ? AND workspace_id = ?`
+    const countBindings: any[] = [authUserId, workspaceId]
 
     if (status && ['active', 'completed', 'archived'].includes(status)) {
       countSql += ` AND status = ?`

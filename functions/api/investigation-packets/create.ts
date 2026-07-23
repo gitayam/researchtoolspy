@@ -6,6 +6,7 @@
 
 import { requireAuth } from '../_shared/auth-helpers'
 import { JSON_HEADERS, optionsResponse } from '../_shared/api-utils'
+import { checkWorkspaceAccess } from '../_shared/workspace-helpers'
 
 interface Env {
   DB: D1Database
@@ -25,6 +26,20 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
     const authUserId = await requireAuth(context.request, context.env)
     const workspaceId = context.request.headers.get('X-Workspace-ID') || null
+
+    if (!workspaceId) {
+      return new Response(JSON.stringify({ error: 'X-Workspace-ID header is required' }), {
+        status: 400,
+        headers: JSON_HEADERS,
+      })
+    }
+
+    if (!(await checkWorkspaceAccess(workspaceId, authUserId, context.env, 'EDITOR'))) {
+      return new Response(JSON.stringify({ error: 'Access denied to workspace' }), {
+        status: 403,
+        headers: JSON_HEADERS,
+      })
+    }
 
     const body = await context.request.json() as CreatePacketRequest
 
@@ -51,8 +66,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const id = crypto.randomUUID()
     const now = new Date().toISOString()
 
-    // Create the packet
-    await context.env.DB.prepare(`
+    const packetInsert = context.env.DB.prepare(`
       INSERT INTO investigation_packets (
         id,
         user_id,
@@ -82,29 +96,34 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       body.tags ? JSON.stringify(body.tags) : null,
       now,
       now
-    ).run()
+    )
 
-    // Log activity
-    await context.env.DB.prepare(`
+    const activityInsert = context.env.DB.prepare(`
       INSERT INTO investigation_activity_log (
         id,
         packet_id,
         user_id,
-        action_type,
-        action_details,
+        activity_type,
+        description,
+        new_value,
         created_at
-      ) VALUES (?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)
     `).bind(
       crypto.randomUUID(),
       id,
       authUserId,
-      'packet_created',
+      'created',
+      `Created investigation packet "${body.title.trim()}"`,
       JSON.stringify({
         title: body.title.trim(),
         priority: body.priority || 'medium'
       }),
       now
-    ).run()
+    )
+
+    // D1 batch is transactional: the packet and its audit trail either both
+    // exist or neither does.
+    await context.env.DB.batch([packetInsert, activityInsert])
 
     // Return the created packet
     const packet = await context.env.DB.prepare(`

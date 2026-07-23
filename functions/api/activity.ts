@@ -41,11 +41,8 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
     // Verify workspace membership if a specific workspace is requested
     if (workspaceId) {
-      const member = await env.DB.prepare(
-        'SELECT 1 FROM workspace_members WHERE workspace_id = ? AND user_id = ?'
-      ).bind(workspaceId, userId).first()
-      if (!member) {
-        return new Response(JSON.stringify({ error: 'Not a member of this workspace' }), {
+      if (!(await checkWorkspaceAccess(workspaceId, userId, env))) {
+        return new Response(JSON.stringify({ error: 'Access denied to workspace' }), {
           status: 403, headers: CORS_HEADERS
         })
       }
@@ -92,9 +89,9 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         SELECT
           COUNT(*) as total_activities,
           COUNT(DISTINCT user_hash) as active_users,
-          SUM(CASE WHEN activity_type = 'CREATED' THEN 1 ELSE 0 END) as creates,
-          SUM(CASE WHEN activity_type = 'UPDATED' THEN 1 ELSE 0 END) as updates,
-          SUM(CASE WHEN activity_type = 'COMMENTED' THEN 1 ELSE 0 END) as comments
+          SUM(CASE WHEN LOWER(activity_type) = 'create' THEN 1 ELSE 0 END) as creates,
+          SUM(CASE WHEN LOWER(activity_type) = 'update' THEN 1 ELSE 0 END) as updates,
+          SUM(CASE WHEN LOWER(activity_type) = 'comment' THEN 1 ELSE 0 END) as comments
         FROM activity_feed
         WHERE workspace_id = ?
           AND created_at >= datetime('now', '-24 hours')

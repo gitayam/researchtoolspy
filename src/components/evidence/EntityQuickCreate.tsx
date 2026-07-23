@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import type { EvidenceEntityType } from '@/types/framework-evidence'
 import type { EvidenceType } from '@/types/evidence'
 import { getCopHeaders } from '@/lib/cop-auth'
+import { useWorkspace } from '@/contexts/WorkspaceContext'
 import type { ActorType } from '@/types/entities'
 
 interface EntityQuickCreateProps {
@@ -31,6 +32,7 @@ export function EntityQuickCreate({
   defaultTab = 'data',
   frameworkContext
 }: EntityQuickCreateProps) {
+  const { currentWorkspaceId } = useWorkspace()
   const [activeTab, setActiveTab] = useState<EvidenceEntityType>(defaultTab)
   const [loading, setLoading] = useState(false)
 
@@ -82,6 +84,10 @@ export function EntityQuickCreate({
   }
 
   const handleCreateData = async () => {
+    if (!currentWorkspaceId) {
+      alert('Select a workspace before creating evidence')
+      return
+    }
     if (!dataForm.title || !dataForm.what) {
       alert('Please fill in required fields (Title and What)')
       return
@@ -97,19 +103,20 @@ export function EntityQuickCreate({
           description: dataForm.what,
           evidence_type: dataForm.evidence_type,
           when_occurred: dataForm.when,
-          where_occurred: dataForm.where,
-          who_involved: dataForm.who,
+          where_location: dataForm.where,
+          who: dataForm.who,
           credibility: '3',
           reliability: 'C',
           confidence_level: 'medium',
           tags: [],
-          status: 'active'
+          status: 'active',
+          workspace_id: currentWorkspaceId,
         })
       })
 
       if (response.ok) {
         const result = await response.json()
-        onEntityCreated('data', result.evidence)
+        onEntityCreated('data', { ...dataForm, id: result.id })
         handleClose()
       } else {
         const error = await response.json().catch((e) => { console.error('[EntityQuickCreate] JSON parse error:', e); return { error: 'Unknown error' } })
@@ -124,6 +131,10 @@ export function EntityQuickCreate({
   }
 
   const handleCreateActor = async () => {
+    if (!currentWorkspaceId) {
+      alert('Select a workspace before creating an actor')
+      return
+    }
     if (!actorForm.name) {
       alert('Please enter actor name')
       return
@@ -136,7 +147,7 @@ export function EntityQuickCreate({
         headers: getCopHeaders(),
         body: JSON.stringify({
           ...actorForm,
-          workspace_id: localStorage.getItem('omnicore_workspace_id') || localStorage.getItem('current_workspace_id') || ''
+          workspace_id: currentWorkspaceId
         })
       })
 
@@ -157,6 +168,10 @@ export function EntityQuickCreate({
   }
 
   const handleCreateSource = async () => {
+    if (!currentWorkspaceId) {
+      alert('Select a workspace before creating a source')
+      return
+    }
     if (!sourceForm.name) {
       alert('Please enter source name')
       return
@@ -169,7 +184,7 @@ export function EntityQuickCreate({
         headers: getCopHeaders(),
         body: JSON.stringify({
           ...sourceForm,
-          workspace_id: localStorage.getItem('omnicore_workspace_id') || localStorage.getItem('current_workspace_id') || ''
+          workspace_id: currentWorkspaceId
         })
       })
 
@@ -190,6 +205,10 @@ export function EntityQuickCreate({
   }
 
   const handleCreateEvent = async () => {
+    if (!currentWorkspaceId) {
+      alert('Select a workspace before creating an event')
+      return
+    }
     if (!eventForm.name || !eventForm.date_start) {
       alert('Please fill in required fields (Name and Date)')
       return
@@ -202,7 +221,7 @@ export function EntityQuickCreate({
         headers: getCopHeaders(),
         body: JSON.stringify({
           ...eventForm,
-          workspace_id: localStorage.getItem('omnicore_workspace_id') || localStorage.getItem('current_workspace_id') || ''
+          workspace_id: currentWorkspaceId
         })
       })
 

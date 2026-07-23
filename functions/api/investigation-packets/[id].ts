@@ -47,18 +47,25 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     // Get all content analyses in this packet
     const contentLinks = await context.env.DB.prepare(`
       SELECT
-        pc.id as link_id,
-        pc.content_analysis_id,
-        pc.notes,
-        pc.added_at,
+        MIN(pc.id) as link_id,
+        ca_adj.content_analysis_id,
+        MAX(pc.investigation_notes) as notes,
+        MAX(pc.added_at) as added_at,
         ca.url,
         ca.title,
         ca.publication_date,
         ca.processed_at
       FROM packet_claims pc
-      JOIN content_analysis ca ON pc.content_analysis_id = ca.id
+      JOIN claim_adjustments ca_adj ON ca_adj.id = pc.claim_adjustment_id
+      JOIN content_analysis ca ON ca_adj.content_analysis_id = ca.id
       WHERE pc.packet_id = ?
-      ORDER BY pc.added_at DESC
+      GROUP BY
+        ca_adj.content_analysis_id,
+        ca.url,
+        ca.title,
+        ca.publication_date,
+        ca.processed_at
+      ORDER BY MAX(pc.added_at) DESC
     `).bind(packetId).all()
 
     // For each content analysis, get all claims with adjustments
@@ -80,9 +87,10 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
           ca_adj.created_at,
           ca_adj.updated_at
         FROM claim_adjustments ca_adj
-        WHERE ca_adj.content_analysis_id = ?
+        JOIN packet_claims pc ON pc.claim_adjustment_id = ca_adj.id
+        WHERE pc.packet_id = ? AND ca_adj.content_analysis_id = ?
         ORDER BY ca_adj.claim_index ASC
-      `).bind(link.content_analysis_id).all()
+      `).bind(packetId, link.content_analysis_id).all()
 
       // For each claim, get linked evidence and entities count
       const claimsWithMetadata = await Promise.all(
@@ -126,8 +134,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     const activity = await context.env.DB.prepare(`
       SELECT
         id,
-        action_type,
-        action_details,
+        activity_type as action_type,
+        new_value as action_details,
         created_at
       FROM investigation_activity_log
       WHERE packet_id = ?

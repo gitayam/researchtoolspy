@@ -22,6 +22,12 @@ export async function onRequest(context: any) {
         status: 401, headers: JSON_HEADERS,
       })
     }
+    const workspaceId = request.headers.get('X-Workspace-ID') || null
+    if (!workspaceId) {
+      return new Response(JSON.stringify({ error: 'X-Workspace-ID header is required' }), {
+        status: 400, headers: JSON_HEADERS,
+      })
+    }
 
     // GET - Get citations for evidence or dataset
     if (request.method === 'GET') {
@@ -30,6 +36,7 @@ export async function onRequest(context: any) {
         const citations = await env.DB.prepare(`
           SELECT
             ec.*,
+            ec.citation_format as citation_style,
             d.id as dataset_id,
             d.title as dataset_title,
             d.description as dataset_description,
@@ -37,10 +44,12 @@ export async function onRequest(context: any) {
             d.source as dataset_source
           FROM evidence_citations ec
           JOIN datasets d ON ec.dataset_id = d.id
+          JOIN evidence_items e ON ec.evidence_id = e.id
           WHERE ec.evidence_id = ?
+            AND ((e.created_by = ? AND e.workspace_id = ?) OR e.is_public = 1)
           ORDER BY ec.relevance_score DESC
           LIMIT 500
-        `).bind(evidenceId).all()
+        `).bind(evidenceId, userId, workspaceId).all()
 
         const parsedCitations = (citations.results || []).map((c: any) => ({
           ...c,
@@ -70,9 +79,10 @@ export async function onRequest(context: any) {
           FROM evidence_citations ec
           JOIN evidence_items e ON ec.evidence_id = e.id
           WHERE ec.dataset_id = ?
+            AND ((e.created_by = ? AND e.workspace_id = ?) OR e.is_public = 1)
           ORDER BY ec.created_at DESC
           LIMIT 500
-        `).bind(datasetId).all()
+        `).bind(datasetId, userId, workspaceId).all()
 
         return new Response(JSON.stringify({ citations: citations.results }), {
           status: 200,
@@ -90,7 +100,7 @@ export async function onRequest(context: any) {
     if (request.method === 'POST') {
       const body = await request.json()
 
-      if (!body.evidence_id || !body.dataset_ids || !Array.isArray(body.dataset_ids)) {
+      if (!body.evidence_id || !Array.isArray(body.dataset_ids) || body.dataset_ids.length === 0) {
         return new Response(JSON.stringify({
           error: 'evidence_id and dataset_ids (array) are required'
         }), {
@@ -99,35 +109,58 @@ export async function onRequest(context: any) {
         })
       }
 
-      // Create citations for each dataset
-      const results = []
-      for (const datasetId of body.dataset_ids) {
-        try {
-          const result = await env.DB.prepare(`
-            INSERT OR REPLACE INTO evidence_citations (
+      const ownedEvidence = await env.DB.prepare(`
+        SELECT id FROM evidence_items
+        WHERE id = ? AND created_by = ? AND workspace_id = ?
+      `).bind(body.evidence_id, userId, workspaceId).first()
+      if (!ownedEvidence) {
+        return new Response(JSON.stringify({ error: 'Evidence not found or access denied' }), {
+          status: 404, headers: JSON_HEADERS,
+        })
+      }
+
+      const uniqueDatasetIds = [...new Set(body.dataset_ids.map(String))]
+      for (const candidateDatasetId of uniqueDatasetIds) {
+        const dataset = await env.DB.prepare(`
+          SELECT id FROM datasets
+          WHERE id = ? AND (created_by = ? OR is_public = 1)
+        `).bind(candidateDatasetId, userId).first()
+        if (!dataset) {
+          return new Response(JSON.stringify({
+            error: `Dataset ${candidateDatasetId} not found or access denied`
+          }), {
+            status: 404, headers: JSON_HEADERS,
+          })
+        }
+      }
+
+      const statements: D1PreparedStatement[] = []
+      for (const candidateDatasetId of uniqueDatasetIds) {
+        statements.push(env.DB.prepare(`
+            INSERT INTO evidence_citations (
               evidence_id, dataset_id, citation_type,
               page_number, quote, context,
-              citation_style, relevance_score, notes,
+              citation_format, relevance_score, notes,
               created_by
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           `).bind(
             body.evidence_id,
-            datasetId,
+            candidateDatasetId,
             body.citation_type || 'primary',
             body.page_number || null,
             body.quote || null,
             body.context || null,
-            body.citation_style || 'apa',
+            body.citation_style || body.citation_format || 'apa',
             body.relevance_score || 5,
             body.notes || null,
             userId
-          ).run()
-
-          results.push({ dataset_id: datasetId, success: true })
-        } catch (error: any) {
-          results.push({ dataset_id: datasetId, success: false, error: 'Processing failed' })
-        }
+          ))
       }
+      await env.DB.batch(statements)
+      const results = uniqueDatasetIds.map((candidateDatasetId) => ({
+        dataset_id: candidateDatasetId,
+        success: true,
+      }))
 
       return new Response(JSON.stringify({
         message: 'Citations created successfully',
@@ -151,8 +184,8 @@ export async function onRequest(context: any) {
 
       // Verify evidence ownership before removing citation
       const ev = await env.DB.prepare(
-        'SELECT id FROM evidence_items WHERE id = ? AND created_by = ?'
-      ).bind(evidenceId, userId).first()
+        'SELECT id FROM evidence_items WHERE id = ? AND created_by = ? AND workspace_id = ?'
+      ).bind(evidenceId, userId, workspaceId).first()
       if (!ev) {
         return new Response(JSON.stringify({ error: 'Evidence not found or access denied' }), {
           status: 404, headers: JSON_HEADERS,

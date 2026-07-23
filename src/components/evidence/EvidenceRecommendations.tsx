@@ -11,6 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { AlertCircle, CheckCircle2, Sparkles, TrendingUp } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getCopHeaders } from '@/lib/cop-auth'
+import { useWorkspace } from '@/contexts/WorkspaceContext'
 
 interface EvidenceRecommendation {
   id: number
@@ -55,16 +56,21 @@ export function EvidenceRecommendations({
   selectedEvidenceIds = [],
   className
 }: EvidenceRecommendationsProps) {
+  const { currentWorkspaceId, isLoading: workspaceLoading } = useWorkspace()
   const [recommendations, setRecommendations] = useState<EvidenceRecommendation[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [breakdown, setBreakdown] = useState<any>(null)
 
   useEffect(() => {
+    if (workspaceLoading || !currentWorkspaceId) {
+      setLoading(false)
+      return
+    }
     const controller = new AbortController()
     loadRecommendations(controller.signal)
     return () => controller.abort()
-  }, [frameworkType, context?.title, context?.description, context?.entities?.join(','), context?.keywords?.join(','), context?.timeframe?.start, context?.timeframe?.end])
+  }, [frameworkType, context?.title, context?.description, context?.entities?.join(','), context?.keywords?.join(','), context?.timeframe?.start, context?.timeframe?.end, currentWorkspaceId, workspaceLoading])
 
   const loadRecommendations = async (signal?: AbortSignal) => {
     setLoading(true)
@@ -78,7 +84,7 @@ export function EvidenceRecommendations({
         body: JSON.stringify({
           framework_type: frameworkType,
           context,
-          workspace_id: localStorage.getItem('omnicore_workspace_id') || localStorage.getItem('current_workspace_id') || ''
+          workspace_id: currentWorkspaceId
         })
       })
 

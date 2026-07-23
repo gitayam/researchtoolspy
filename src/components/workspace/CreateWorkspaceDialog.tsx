@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { Plus } from 'lucide-react'
 import {
   Dialog,
@@ -23,7 +22,6 @@ interface CreateWorkspaceDialogProps {
 }
 
 export function CreateWorkspaceDialog({ onWorkspaceCreated }: CreateWorkspaceDialogProps) {
-  const navigate = useNavigate()
   const { toast } = useToast()
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -84,7 +82,7 @@ export function CreateWorkspaceDialog({ onWorkspaceCreated }: CreateWorkspaceDia
         throw new Error(error.error || 'Failed to create workspace')
       }
 
-      const data = await response.json()
+      await response.json()
 
       toast({
         title: 'Workspace Created',
@@ -93,11 +91,6 @@ export function CreateWorkspaceDialog({ onWorkspaceCreated }: CreateWorkspaceDia
 
       setOpen(false)
       setFormData({ name: '', type: 'TEAM' })
-
-      // Store the new workspace COP session ID
-      if (data.cop_session_id) {
-        localStorage.setItem('omnicore_workspace_id', data.cop_session_id)
-      }
 
       // Refresh the page or call callback
       if (onWorkspaceCreated) {

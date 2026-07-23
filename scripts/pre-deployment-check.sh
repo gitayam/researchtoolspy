@@ -2,9 +2,26 @@
 
 # Pre-Deployment Check Script
 # Runs all validation checks before production deployment
-# Usage: ./scripts/pre-deployment-check.sh
+# Usage: ./scripts/pre-deployment-check.sh [--skip-build]
 
 set -e  # Exit on any error
+
+SKIP_BUILD=false
+for arg in "$@"; do
+  case "$arg" in
+    --skip-build)
+      SKIP_BUILD=true
+      ;;
+    --help|-h)
+      echo "Usage: $0 [--skip-build]"
+      exit 0
+      ;;
+    *)
+      echo "Unknown option: $arg" >&2
+      exit 1
+      ;;
+  esac
+done
 
 echo "🚀 Starting Pre-Deployment Checks..."
 echo ""
@@ -28,7 +45,7 @@ print_status() {
     echo -e "${GREEN}✅ $2${NC}"
   else
     echo -e "${RED}❌ $2${NC}"
-    ((ERRORS++))
+    ERRORS=$((ERRORS + 1))
   fi
 }
 
@@ -52,12 +69,18 @@ else
   print_status 1 "npm not found"
 fi
 
-# Check wrangler
-if command_exists wrangler; then
-  WRANGLER_VERSION=$(wrangler --version 2>&1 | head -n1)
-  print_status 0 "Wrangler installed ($WRANGLER_VERSION)"
+# Check pnpm and the workspace Wrangler binary
+if command_exists pnpm; then
+  PNPM_VERSION=$(pnpm --version)
+  print_status 0 "pnpm installed ($PNPM_VERSION)"
+
+  if WRANGLER_VERSION=$(pnpm exec wrangler --version 2>&1 | head -n1); then
+    print_status 0 "Workspace Wrangler available ($WRANGLER_VERSION)"
+  else
+    print_status 1 "Workspace Wrangler unavailable"
+  fi
 else
-  print_status 1 "Wrangler not found"
+  print_status 1 "pnpm not found"
 fi
 
 echo ""
@@ -77,7 +100,9 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo "3️⃣  Building Production Bundle"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-if npm run build >/dev/null 2>&1; then
+if [ "$SKIP_BUILD" = true ]; then
+  print_status 0 "Production build skipped (already completed by deploy.sh)"
+elif npm run build >/dev/null 2>&1; then
   print_status 0 "Production build successful"
 
   # Check bundle sizes
@@ -98,40 +123,57 @@ fi
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "4️⃣  Checking Database Schema (Production)"
+echo "4️⃣  Checking Managed Migrations and Database Schema (Production)"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
+echo "Listing pending managed migrations (read-only)..."
+if MIGRATION_LIST=$(./scripts/list-managed-migrations.sh --remote 2>&1); then
+  print_status 0 "Managed migration list available"
+  echo "$MIGRATION_LIST"
+else
+  print_status 1 "Unable to list managed migrations"
+  echo "$MIGRATION_LIST"
+fi
+
+echo ""
 echo "Checking critical tables..."
 
-# Check evidence table
-if wrangler d1 execute researchtoolspy-prod --remote --command="SELECT name FROM sqlite_master WHERE type='table' AND name='evidence';" 2>/dev/null | grep -q "evidence"; then
-  print_status 0 "Table 'evidence' exists"
+# Check canonical evidence table
+if pnpm exec wrangler d1 execute researchtoolspy-prod --remote --command="SELECT name FROM sqlite_master WHERE type='table' AND name='evidence_items';" 2>/dev/null | grep -q "evidence_items"; then
+  print_status 0 "Table 'evidence_items' exists"
 else
-  print_status 1 "Table 'evidence' missing"
+  print_status 1 "Table 'evidence_items' missing"
 fi
 
-# Check evidence fields
-if wrangler d1 execute researchtoolspy-prod --remote --command="PRAGMA table_info(evidence);" 2>/dev/null | grep -q "date"; then
-  print_status 0 "Field 'evidence.date' exists"
-else
-  print_status 1 "Field 'evidence.date' missing"
-fi
+check_column() {
+  local table_name=$1
+  local column_name=$2
 
-if wrangler d1 execute researchtoolspy-prod --remote --command="PRAGMA table_info(evidence);" 2>/dev/null | grep -q "credibility_score"; then
-  print_status 0 "Field 'evidence.credibility_score' exists"
-else
-  print_status 1 "Field 'evidence.credibility_score' missing"
-fi
+  if pnpm exec wrangler d1 execute researchtoolspy-prod --remote \
+    --command="PRAGMA table_info(${table_name});" 2>/dev/null | grep -qw "$column_name"; then
+    print_status 0 "Field '${table_name}.${column_name}' exists"
+  else
+    print_status 1 "Field '${table_name}.${column_name}' missing"
+  fi
+}
+
+# Existing canonical scoping plus every column required by managed migrations.
+check_column "evidence_items" "workspace_id"
+check_column "evidence_items" "eve_assessment"
+check_column "framework_sessions" "view_count"
+check_column "framework_sessions" "clone_count"
+check_column "evidence_actors" "auto_linked"
+check_column "evidence_citations" "citation_format"
+check_column "evidence_citations" "citation_type"
+check_column "evidence_citations" "relevance_score"
+check_column "evidence_citations" "notes"
+check_column "evidence_citations" "created_by"
 
 # Check ach_analyses is_public
-if wrangler d1 execute researchtoolspy-prod --remote --command="PRAGMA table_info(ach_analyses);" 2>/dev/null | grep -q "is_public"; then
-  print_status 0 "Field 'ach_analyses.is_public' exists"
-else
-  print_status 1 "Field 'ach_analyses.is_public' missing"
-fi
+check_column "ach_analyses" "is_public"
 
 # Check content_intelligence table
-if wrangler d1 execute researchtoolspy-prod --remote --command="SELECT name FROM sqlite_master WHERE type='table' AND name='content_intelligence';" 2>/dev/null | grep -q "content_intelligence"; then
+if pnpm exec wrangler d1 execute researchtoolspy-prod --remote --command="SELECT name FROM sqlite_master WHERE type='table' AND name='content_intelligence';" 2>/dev/null | grep -q "content_intelligence"; then
   print_status 0 "Table 'content_intelligence' exists"
 else
   print_status 1 "Table 'content_intelligence' missing"
@@ -151,6 +193,12 @@ if [ -f "wrangler.toml" ]; then
     print_status 0 "D1 database binding configured"
   else
     print_status 1 "D1 database binding missing in wrangler.toml"
+  fi
+
+  if [ "$(grep -c 'migrations_dir = \"schema/managed-migrations\"' wrangler.toml)" -eq 2 ]; then
+    print_status 0 "Managed migration directory configured for default and production bindings"
+  else
+    print_status 1 "Managed migration directory must be configured on both D1 bindings"
   fi
 else
   print_status 1 "wrangler.toml not found"
@@ -181,13 +229,13 @@ if [ $ERRORS -eq 0 ]; then
   echo ""
   echo "To deploy:"
   echo "  npm run build"
-  echo "  wrangler pages deploy dist --project-name=researchtoolspy"
+  echo "  pnpm exec wrangler pages deploy dist --project-name=researchtoolspy"
   exit 0
 else
   echo -e "${RED}❌ $ERRORS check(s) failed. Fix these issues before deploying.${NC}"
   echo ""
   echo "Common fixes:"
-  echo "  - Run missing migrations: npm run migrate:prod"
+  echo "  - Run missing migrations: pnpm run migrate:prod"
   echo "  - Fix TypeScript errors: npm run type-check"
   echo "  - Fix build errors: npm run build"
   exit 1

@@ -28,10 +28,6 @@ function generateTaskId(): string {
   return `tsk-${crypto.randomUUID().slice(0, 12)}`
 }
 
-function generateEvidenceId(): string {
-  return `evi-${crypto.randomUUID().slice(0, 12)}`
-}
-
 function generateRfiId(): string {
   return `rfi-${crypto.randomUUID().slice(0, 12)}`
 }
@@ -49,6 +45,10 @@ function generateActivityId(): string {
 const createTask: ActionHandler = async (db, sessionId, params, userId) => {
   const id = generateTaskId()
   const now = new Date().toISOString()
+  const session = await db.prepare(
+    'SELECT workspace_id FROM cop_sessions WHERE id = ?'
+  ).bind(sessionId).first<{ workspace_id: string }>()
+  const workspaceId = session?.workspace_id || sessionId
 
   await db.prepare(`
     INSERT INTO cop_tasks (
@@ -63,7 +63,7 @@ const createTask: ActionHandler = async (db, sessionId, params, userId) => {
     String(params.priority || 'medium'),
     String(params.task_type || 'general'),
     params.assigned_to ? String(params.assigned_to) : null,
-    userId, '1', now, now,
+    userId, workspaceId, now, now,
   ).run()
 
   return { id, title: params.title }
@@ -98,7 +98,6 @@ const assignTask: ActionHandler = async (db, sessionId, params, userId) => {
 }
 
 const createEvidence: ActionHandler = async (db, sessionId, params, userId) => {
-  const id = generateEvidenceId()
   const now = new Date().toISOString()
 
   // Look up workspace_id from session
@@ -107,20 +106,26 @@ const createEvidence: ActionHandler = async (db, sessionId, params, userId) => {
   ).bind(sessionId).first() as any
   const workspaceId = session?.workspace_id || sessionId
 
-  await db.prepare(`
+  const result = await db.prepare(`
     INSERT INTO evidence_items (
-      id, cop_session_id, title, content, source_url, evidence_type,
+      title, description, source_url, evidence_type,
+      credibility, reliability, confidence_level, status, metadata,
       created_by, workspace_id, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).bind(
-    id, sessionId,
     String(params.title || 'Auto-created evidence'),
-    String(params.content || ''),
+    String(params.content || params.description || ''),
     params.source_url ? String(params.source_url) : null,
     String(params.evidence_type || 'document'),
+    String(params.credibility || '6'),
+    String(params.reliability || 'F'),
+    String(params.confidence_level || 'low'),
+    String(params.status || 'draft'),
+    JSON.stringify({ cop_session_id: sessionId, origin: 'playbook' }),
     userId, workspaceId, now, now,
   ).run()
 
+  const id = result.meta.last_row_id
   return { id, title: params.title }
 }
 
@@ -129,13 +134,16 @@ const sendNotification: ActionHandler = async (db, sessionId, params, userId) =>
   const now = new Date().toISOString()
 
   await db.prepare(`
-    INSERT INTO cop_activity (id, cop_session_id, activity_type, message, created_by, created_at)
-    VALUES (?, ?, ?, ?, ?, ?)
+    INSERT INTO cop_activity (
+      id, cop_session_id, user_id, action, summary, details, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?)
   `).bind(
     id, sessionId,
+    userId,
     String(params.activity_type || 'playbook_notification'),
     String(params.message || 'Playbook notification'),
-    userId, now,
+    JSON.stringify({ origin: 'playbook' }),
+    now,
   ).run()
 
   return { id, message: params.message }

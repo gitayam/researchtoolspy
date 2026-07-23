@@ -12,6 +12,7 @@ pages_build_output_dir = "dist"
 binding = "DB"
 database_name = "researchtoolspy-prod"
 database_id = "a455c866-9d7e-471f-8c28-e3816f87e7e3"
+migrations_dir = "schema/managed-migrations"
 
 # KV Namespace binding for sessions
 [[kv_namespaces]]
@@ -78,6 +79,7 @@ OIDC_END_SESSION_URL = "https://sso.irregularchat.com/application/o/researchtool
 binding = "DB"
 database_name = "researchtoolspy-prod"
 database_id = "a455c866-9d7e-471f-8c28-e3816f87e7e3"
+migrations_dir = "schema/managed-migrations"
 
 [[env.production.kv_namespaces]]
 binding = "SESSIONS"

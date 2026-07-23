@@ -1,6 +1,12 @@
 // Cloudflare Pages Function for Evidence Items API
 import { getUserFromRequest } from './_shared/auth-helpers'
-import { CORS_HEADERS, JSON_HEADERS } from './_shared/api-utils'
+import { CORS_HEADERS, JSON_HEADERS, safeJsonParse } from './_shared/api-utils'
+import { checkWorkspaceAccess } from './_shared/workspace-helpers'
+
+function serializeJson(value: unknown): string | null {
+  if (value === undefined || value === null) return null
+  return typeof value === 'string' ? value : JSON.stringify(value)
+}
 
 export async function onRequest(context: any) {
   const { request, env } = context
@@ -22,11 +28,18 @@ export async function onRequest(context: any) {
           status: 401, headers: JSON_HEADERS,
         })
       }
+      const workspaceId = url.searchParams.get('workspace_id') || request.headers.get('X-Workspace-ID') || null
+      if (!workspaceId) {
+        return new Response(JSON.stringify({ error: 'workspace_id is required' }), {
+          status: 400, headers: JSON_HEADERS,
+        })
+      }
       if (evidenceId) {
         // Get single evidence item with citations
         const evidence = await env.DB.prepare(`
-          SELECT * FROM evidence_items WHERE id = ? AND (created_by = ? OR is_public = 1)
-        `).bind(evidenceId, userId).first()
+          SELECT * FROM evidence_items
+          WHERE id = ? AND ((created_by = ? AND workspace_id = ?) OR is_public = 1)
+        `).bind(evidenceId, userId, workspaceId).first()
 
         if (!evidence) {
           return new Response(JSON.stringify({ error: 'Evidence not found' }), {
@@ -39,6 +52,7 @@ export async function onRequest(context: any) {
         const citations = await env.DB.prepare(`
           SELECT
             ec.*,
+            ec.citation_format as citation_style,
             d.id as dataset_id,
             d.title as dataset_title,
             d.description as dataset_description,
@@ -61,6 +75,7 @@ export async function onRequest(context: any) {
         const parsedEvidence = {
           ...evidence,
           tags: JSON.parse(evidence.tags || '[]'),
+          eve_assessment: safeJsonParse(evidence.eve_assessment, null),
           linked_actors: (linkedActors.results || []).map((la: any) => la.actor_id),
           linked_actors_details: linkedActors.results,
           citations: (citations.results || []).map((c: any) => ({
@@ -98,8 +113,8 @@ export async function onRequest(context: any) {
       if (publicOnly) {
         query += ' AND is_public = 1'
       } else {
-        query += ' AND (created_by = ? OR is_public = 1)'
-        params.push(userId)
+        query += ' AND ((created_by = ? AND workspace_id = ?) OR is_public = 1)'
+        params.push(userId, workspaceId)
       }
 
       if (type) {
@@ -134,7 +149,8 @@ export async function onRequest(context: any) {
       // Parse JSON fields
       const evidence = (result.results || []).map((item: any) => ({
         ...item,
-        tags: JSON.parse(item.tags || '[]')
+        tags: JSON.parse(item.tags || '[]'),
+        eve_assessment: safeJsonParse(item.eve_assessment, null),
       }))
 
       return new Response(JSON.stringify({ evidence }), {
@@ -152,6 +168,21 @@ export async function onRequest(context: any) {
         })
       }
       const body = await request.json()
+      const workspaceId = body.workspace_id || request.headers.get('X-Workspace-ID') || null
+
+      if (!workspaceId) {
+        return new Response(JSON.stringify({ error: 'workspace_id is required' }), {
+          status: 400,
+          headers: JSON_HEADERS,
+        })
+      }
+
+      if (!(await checkWorkspaceAccess(workspaceId, authUserId, env, 'EDITOR'))) {
+        return new Response(JSON.stringify({ error: 'Access denied to workspace' }), {
+          status: 403,
+          headers: JSON_HEADERS,
+        })
+      }
 
       if (!body.title || !body.evidence_type) {
         return new Response(JSON.stringify({
@@ -171,8 +202,9 @@ export async function onRequest(context: any) {
           evidence_type, evidence_level, category,
           credibility, reliability, confidence_level,
           tags, status, priority,
+          workspace_id, eve_assessment,
           created_by, updated_by, is_public, shared_by_user_id
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).bind(
         body.title,
         body.description || '',  // Empty string instead of null (column is NOT NULL)
@@ -195,6 +227,8 @@ export async function onRequest(context: any) {
         JSON.stringify(body.tags || []),
         body.status || 'pending',
         body.priority || 'normal',
+        workspaceId,
+        serializeJson(body.eve_assessment),
         authUserId,
         authUserId,
         body.is_public ? 1 : 0,
@@ -202,6 +236,9 @@ export async function onRequest(context: any) {
       ).run()
 
       const evidenceId = result.meta.last_row_id
+      const manuallyLinkedActorIds = new Set(
+        Array.isArray(body.linked_actors) ? body.linked_actors.map(String) : []
+      )
 
       // Auto-link actors mentioned in the "who" field
       if (body.who && body.who.trim()) {
@@ -213,10 +250,11 @@ export async function onRequest(context: any) {
             AND LENGTH(name) > 3
             AND workspace_id = ?
             LIMIT 10
-          `).bind(body.who, body.workspace_id || null).all()
+          `).bind(body.who, workspaceId).all()
 
           // Auto-create links for matched actors
           for (const actor of actors.results) {
+            if (manuallyLinkedActorIds.has(String(actor.id))) continue
             try {
               await env.DB.prepare(`
                 INSERT INTO evidence_actors (evidence_id, actor_id, relevance, auto_linked)
@@ -231,14 +269,16 @@ export async function onRequest(context: any) {
         }
       }
 
-      // If citations provided, create them
+      // Persist required related records atomically. If this batch fails, remove
+      // the parent row so callers never receive a 500 after an orphaned create.
+      const relatedStatements: D1PreparedStatement[] = []
       if (body.citations && Array.isArray(body.citations)) {
         for (const citation of body.citations) {
-          await env.DB.prepare(`
+          relatedStatements.push(env.DB.prepare(`
             INSERT INTO evidence_citations (
               evidence_id, dataset_id, citation_type,
               page_number, quote, context,
-              citation_style, relevance_score, notes,
+              citation_format, relevance_score, notes,
               created_by
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           `).bind(
@@ -248,21 +288,33 @@ export async function onRequest(context: any) {
             citation.page_number || null,
             citation.quote || null,
             citation.context || null,
-            citation.citation_style || 'apa',
+            citation.citation_style || citation.citation_format || 'apa',
             citation.relevance_score || 5,
             citation.notes || null,
             authUserId
-          ).run()
+          ))
         }
       }
 
-      // If linked_actors provided, create actor links
       if (body.linked_actors && Array.isArray(body.linked_actors)) {
-        for (const actorId of body.linked_actors) {
-          await env.DB.prepare(`
-            INSERT INTO evidence_actors (evidence_id, actor_id, relevance)
-            VALUES (?, ?, ?)
-          `).bind(evidenceId, actorId, 'Mentioned').run()
+        for (const actorId of manuallyLinkedActorIds) {
+          relatedStatements.push(env.DB.prepare(`
+            INSERT INTO evidence_actors (evidence_id, actor_id, relevance, auto_linked)
+            VALUES (?, ?, ?, 0)
+          `).bind(evidenceId, actorId, 'Mentioned'))
+        }
+      }
+
+      if (relatedStatements.length > 0) {
+        try {
+          await env.DB.batch(relatedStatements)
+        } catch (error) {
+          await env.DB.batch([
+            env.DB.prepare('DELETE FROM evidence_citations WHERE evidence_id = ?').bind(evidenceId),
+            env.DB.prepare('DELETE FROM evidence_actors WHERE evidence_id = ?').bind(evidenceId),
+            env.DB.prepare('DELETE FROM evidence_items WHERE id = ? AND created_by = ?').bind(evidenceId, authUserId),
+          ])
+          throw error
         }
       }
 
@@ -291,8 +343,61 @@ export async function onRequest(context: any) {
       }
 
       const body = await request.json()
+      const workspaceId = body.workspace_id || request.headers.get('X-Workspace-ID') || null
+      const hasEveAssessment = Object.prototype.hasOwnProperty.call(body, 'eve_assessment')
 
-      const updateResult = await env.DB.prepare(`
+      if (!workspaceId) {
+        return new Response(JSON.stringify({ error: 'workspace_id is required' }), {
+          status: 400,
+          headers: JSON_HEADERS,
+        })
+      }
+
+      if (!(await checkWorkspaceAccess(workspaceId, authUserId, env, 'EDITOR'))) {
+        return new Response(JSON.stringify({ error: 'Access denied to workspace' }), {
+          status: 403,
+          headers: JSON_HEADERS,
+        })
+      }
+      const existingEvidence = await env.DB.prepare(`
+        SELECT id FROM evidence_items
+        WHERE id = ? AND created_by = ? AND workspace_id = ?
+      `).bind(evidenceId, authUserId, workspaceId).first()
+      if (!existingEvidence) {
+        return new Response(JSON.stringify({ error: 'Evidence not found or access denied' }), {
+          status: 404, headers: JSON_HEADERS,
+        })
+      }
+
+      let refreshAutoLinks = false
+      let autoActorIds: string[] = []
+      if (body.who && body.who.trim()) {
+        try {
+          const actors = await env.DB.prepare(`
+            SELECT id FROM actors
+            WHERE LOWER(?) LIKE '%' || LOWER(name) || '%'
+              AND LENGTH(name) > 3
+              AND workspace_id = ?
+            LIMIT 10
+          `).bind(body.who, workspaceId).all<{ id: string }>()
+
+          const manualActorIds = Array.isArray(body.linked_actors)
+            ? body.linked_actors.map(String)
+            : (await env.DB.prepare(`
+                SELECT actor_id FROM evidence_actors
+                WHERE evidence_id = ? AND (auto_linked IS NULL OR auto_linked = 0)
+              `).bind(evidenceId).all<{ actor_id: string }>()).results.map((row) => String(row.actor_id))
+          const manualActorSet = new Set(manualActorIds)
+          autoActorIds = [...new Set(
+            (actors.results || []).map((actor) => String(actor.id))
+          )].filter((actorId) => !manualActorSet.has(actorId))
+          refreshAutoLinks = true
+        } catch (error) {
+          console.error('[evidence-items] Auto-link lookup failed (preserving existing links):', error)
+        }
+      }
+
+      const updateStatement = env.DB.prepare(`
         UPDATE evidence_items
         SET
           title = ?,
@@ -316,11 +421,13 @@ export async function onRequest(context: any) {
           tags = ?,
           status = ?,
           priority = ?,
+          workspace_id = COALESCE(?, workspace_id),
+          eve_assessment = CASE WHEN ? = 1 THEN ? ELSE eve_assessment END,
           updated_at = datetime('now'),
           updated_by = ?,
           is_public = ?,
           shared_by_user_id = ?
-        WHERE id = ? AND created_by = ?
+        WHERE id = ? AND created_by = ? AND workspace_id = ?
       `).bind(
         body.title,
         body.description || '',  // Empty string instead of null
@@ -343,71 +450,68 @@ export async function onRequest(context: any) {
         JSON.stringify(body.tags || []),
         body.status,
         body.priority,
+        workspaceId,
+        hasEveAssessment ? 1 : 0,
+        serializeJson(body.eve_assessment),
         authUserId,
         body.is_public ? 1 : 0,
         body.shared_by_user_id || null,
         evidenceId,
-        authUserId
-      ).run()
+        authUserId,
+        workspaceId
+      )
+
+      const updateStatements: D1PreparedStatement[] = [updateStatement]
+      const ownedEvidenceClause = `
+        evidence_id = ?
+        AND evidence_id IN (
+          SELECT id FROM evidence_items WHERE id = ? AND created_by = ?
+        )
+      `
+
+      if (refreshAutoLinks) {
+        updateStatements.push(env.DB.prepare(`
+          DELETE FROM evidence_actors
+          WHERE ${ownedEvidenceClause} AND auto_linked = 1
+        `).bind(evidenceId, evidenceId, authUserId))
+
+        for (const actorId of autoActorIds) {
+          updateStatements.push(env.DB.prepare(`
+            INSERT INTO evidence_actors (evidence_id, actor_id, relevance, auto_linked)
+            SELECT ?, ?, 'Auto-detected', 1
+            WHERE EXISTS (
+              SELECT 1 FROM evidence_items WHERE id = ? AND created_by = ?
+            )
+          `).bind(evidenceId, actorId, evidenceId, authUserId))
+        }
+      }
+
+      if (body.linked_actors !== undefined) {
+        updateStatements.push(env.DB.prepare(`
+          DELETE FROM evidence_actors
+          WHERE ${ownedEvidenceClause}
+            AND (auto_linked IS NULL OR auto_linked = 0)
+        `).bind(evidenceId, evidenceId, authUserId))
+
+        if (Array.isArray(body.linked_actors)) {
+          for (const actorId of [...new Set(body.linked_actors.map(String))]) {
+            updateStatements.push(env.DB.prepare(`
+              INSERT INTO evidence_actors (evidence_id, actor_id, relevance, auto_linked)
+              SELECT ?, ?, 'Mentioned', 0
+              WHERE EXISTS (
+                SELECT 1 FROM evidence_items WHERE id = ? AND created_by = ?
+              )
+            `).bind(evidenceId, actorId, evidenceId, authUserId))
+          }
+        }
+      }
+
+      const [updateResult] = await env.DB.batch(updateStatements)
 
       if (!updateResult.meta.changes || updateResult.meta.changes === 0) {
         return new Response(JSON.stringify({ error: 'Evidence not found or access denied' }), {
           status: 404, headers: JSON_HEADERS,
         })
-      }
-
-      // Auto-link actors from updated "who" field
-      if (body.who && body.who.trim()) {
-        try {
-          // Delete existing auto-linked actors
-          await env.DB.prepare(`
-            DELETE FROM evidence_actors
-            WHERE evidence_id = ? AND auto_linked = 1
-          `).bind(evidenceId).run()
-
-          // Search for actors whose names appear in the "who" field
-          const actors = await env.DB.prepare(`
-            SELECT id, name FROM actors
-            WHERE LOWER(?) LIKE '%' || LOWER(name) || '%'
-            AND LENGTH(name) > 3
-            AND workspace_id = ?
-            LIMIT 10
-          `).bind(body.who, body.workspace_id || null).all()
-
-          // Auto-create new links
-          for (const actor of actors.results) {
-            try {
-              await env.DB.prepare(`
-                INSERT INTO evidence_actors (evidence_id, actor_id, relevance, auto_linked)
-                VALUES (?, ?, ?, 1)
-              `).bind(evidenceId, actor.id, 'Auto-detected').run()
-            } catch (e) {
-              console.error('[Evidence] Auto-link actor failed:', e)
-            }
-          }
-        } catch (error) {
-          // Don't fail the whole request if auto-linking fails
-          console.error('[evidence-items] Auto-link error (non-fatal):', error)
-        }
-      }
-
-      // Update linked_actors if provided
-      if (body.linked_actors !== undefined) {
-        // Delete existing manually-linked actors (preserve auto-linked)
-        await env.DB.prepare(`
-          DELETE FROM evidence_actors
-          WHERE evidence_id = ? AND (auto_linked IS NULL OR auto_linked = 0)
-        `).bind(evidenceId).run()
-
-        // Create new manual links
-        if (Array.isArray(body.linked_actors) && body.linked_actors.length > 0) {
-          for (const actorId of body.linked_actors) {
-            await env.DB.prepare(`
-              INSERT INTO evidence_actors (evidence_id, actor_id, relevance)
-              VALUES (?, ?, ?)
-            `).bind(evidenceId, actorId, 'Mentioned').run()
-          }
-        }
       }
 
       return new Response(JSON.stringify({ message: 'Evidence updated successfully' }), {
@@ -430,15 +534,21 @@ export async function onRequest(context: any) {
           headers: JSON_HEADERS,
         })
       }
+      const workspaceId = request.headers.get('X-Workspace-ID') || null
+      if (!workspaceId) {
+        return new Response(JSON.stringify({ error: 'workspace_id is required' }), {
+          status: 400, headers: JSON_HEADERS,
+        })
+      }
 
       // Delete citations first (scoped to owner's evidence)
-      await env.DB.prepare('DELETE FROM evidence_citations WHERE evidence_id = ? AND evidence_id IN (SELECT id FROM evidence_items WHERE created_by = ?)')
-        .bind(evidenceId, authUserId)
+      await env.DB.prepare('DELETE FROM evidence_citations WHERE evidence_id = ? AND evidence_id IN (SELECT id FROM evidence_items WHERE created_by = ? AND workspace_id = ?)')
+        .bind(evidenceId, authUserId, workspaceId)
         .run()
 
       // Delete evidence (scoped to owner)
-      const delResult = await env.DB.prepare('DELETE FROM evidence_items WHERE id = ? AND created_by = ?')
-        .bind(evidenceId, authUserId)
+      const delResult = await env.DB.prepare('DELETE FROM evidence_items WHERE id = ? AND created_by = ? AND workspace_id = ?')
+        .bind(evidenceId, authUserId, workspaceId)
         .run()
 
       if (!delResult.meta.changes || delResult.meta.changes === 0) {

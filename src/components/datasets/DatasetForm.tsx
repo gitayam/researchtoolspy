@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -81,6 +81,19 @@ export function DatasetForm({ open, onClose, onSave, initialData, mode }: Datase
   const [tagInput, setTagInput] = useState('')
   const [reliability, setReliability] = useState(initialData?.reliability || '')
   const [credibility, setCredibility] = useState(initialData?.credibility || '')
+
+  useEffect(() => {
+    if (!open) return
+    setTitle(initialData?.title || '')
+    setDescription(initialData?.description || '')
+    setSource(initialData?.source || '')
+    setType(initialData?.type || '')
+    setUrl(initialData?.url || '')
+    setTags(initialData?.tags || [])
+    setReliability(initialData?.reliability || '')
+    setCredibility(initialData?.credibility || '')
+    setTagInput('')
+  }, [initialData, open])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

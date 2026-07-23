@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useToast } from '@/components/ui/use-toast'
+import { useWorkspace } from '@/contexts/WorkspaceContext'
 
 interface ExtractedEntity {
   name: string
@@ -32,6 +33,7 @@ export function StarburstingEntityLinker({
   onLinkCreated
 }: StarburstingEntityLinkerProps) {
   const { toast } = useToast()
+  const { currentWorkspaceId, isLoading: workspaceLoading } = useWorkspace()
   const [status, setStatus] = useState<'idle' | 'checking' | 'linked' | 'suggesting' | 'error'>('idle')
   const [matchedEntity, setMatchedEntity] = useState<any>(null)
   const [loading, setLoading] = useState(false)
@@ -43,8 +45,8 @@ export function StarburstingEntityLinker({
       return
     }
     
-    checkExisting()
-  }, [entity.name, entity.type])
+    if (!workspaceLoading && currentWorkspaceId) checkExisting()
+  }, [entity.name, entity.type, currentWorkspaceId, workspaceLoading])
 
   const checkExisting = async () => {
     setStatus('checking')
@@ -55,7 +57,7 @@ export function StarburstingEntityLinker({
                      entity.type === 'Event' ? 'EVENT' : 'OTHER'
       
       const response = await fetch(
-        `/api/actors/search?name=${encodeURIComponent(entity.name)}&type=${dbType}`,
+        `/api/actors/search?workspace_id=${encodeURIComponent(currentWorkspaceId)}&name=${encodeURIComponent(entity.name)}&type=${dbType}`,
         { headers: getCopHeaders() }
       )
       
@@ -114,6 +116,14 @@ export function StarburstingEntityLinker({
   }
 
   const handleCreateAndLink = async () => {
+    if (!currentWorkspaceId) {
+      toast({
+        title: 'Workspace required',
+        description: 'Select a workspace before creating an entity',
+        variant: 'destructive'
+      })
+      return
+    }
     setLoading(true)
     try {
       // Map ontology type to database type
@@ -129,7 +139,7 @@ export function StarburstingEntityLinker({
           name: entity.name,
           type: dbType,
           description: entity.details || `Extracted from Starbursting Analysis`,
-          workspace_id: localStorage.getItem('omnicore_workspace_id') || localStorage.getItem('current_workspace_id') || ''
+          workspace_id: currentWorkspaceId
         })
       })
 

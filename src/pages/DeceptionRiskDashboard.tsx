@@ -16,6 +16,7 @@ import {
   XCircle, Clock, BarChart3, Activity, ExternalLink, RefreshCw, FolderKanban
 } from 'lucide-react'
 import { getCopHeaders } from '@/lib/cop-auth'
+import { useWorkspace } from '@/contexts/WorkspaceContext'
 
 interface RiskStats {
   high: number
@@ -80,75 +81,46 @@ interface DeceptionAggregateData {
     data_sources: {
       actors: number
       sources: number
+      evidence: number
       content_analyses: number
+      framework_analyses: number
     }
-  }
-}
-
-interface Workspace {
-  id: string
-  name: string
-  description?: string
-  type: 'PERSONAL' | 'TEAM' | 'PUBLIC'
-  entity_count: {
-    actors: number
-    sources: number
-    evidence: number
-    events: number
-    places: number
-    behaviors: number
   }
 }
 
 export default function DeceptionRiskDashboard() {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const {
+    currentWorkspaceId: selectedWorkspaceId,
+    setCurrentWorkspaceId: setSelectedWorkspaceId,
+    workspaces,
+    isLoading: loadingWorkspaces,
+  } = useWorkspace()
   const [loading, setLoading] = useState(true)
   const [data, setData] = useState<DeceptionAggregateData | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
-  const [workspaces, setWorkspaces] = useState<Workspace[]>([])
-  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string>('1')
-  const [loadingWorkspaces, setLoadingWorkspaces] = useState(true)
-
-  const loadWorkspaces = async (signal?: AbortSignal) => {
-    try {
-      setLoadingWorkspaces(true)
-      const response = await fetch('/api/workspaces', {
-        headers: getCopHeaders(),
-        signal,
-      })
-
-      if (response.ok) {
-        const result = await response.json()
-        const allWorkspaces = [...(result.owned || []), ...(result.member || [])]
-        setWorkspaces(allWorkspaces)
-
-        // If no workspaces, keep default workspace ID '1'
-        if (allWorkspaces.length > 0 && !allWorkspaces.find(w => w.id === selectedWorkspaceId)) {
-          setSelectedWorkspaceId(allWorkspaces[0].id)
-        }
-      }
-    } catch (err: any) {
-      if (err?.name !== 'AbortError') console.error('Failed to load workspaces:', err)
-    } finally {
-      setLoadingWorkspaces(false)
-    }
-  }
 
   const loadData = async (signal?: AbortSignal) => {
     try {
       setLoading(true)
       setError(null)
 
-      const response = await fetch(`/api/deception/aggregate?workspace_id=${selectedWorkspaceId}`, {
+      if (!selectedWorkspaceId) {
+        setData(null)
+        throw new Error('Select a workspace to load deception risk data.')
+      }
+
+      const response = await fetch(`/api/deception/aggregate?workspace_id=${encodeURIComponent(selectedWorkspaceId)}`, {
         headers: getCopHeaders(),
         signal,
       })
 
       if (!response.ok) {
         if (response.status === 401) throw new Error('Session expired. Please refresh to continue.')
-        throw new Error('Failed to load deception risk data')
+        const payload = await response.json().catch(() => null)
+        throw new Error(payload?.error || 'Failed to load deception risk data')
       }
 
       const result = await response.json()
@@ -163,12 +135,6 @@ export default function DeceptionRiskDashboard() {
       setLoading(false)
     }
   }
-
-  useEffect(() => {
-    const controller = new AbortController()
-    loadWorkspaces(controller.signal)
-    return () => controller.abort()
-  }, [])
 
   useEffect(() => {
     if (!loadingWorkspaces) {
@@ -256,28 +222,24 @@ export default function DeceptionRiskDashboard() {
                 <SelectValue placeholder={t('pages.deceptionRisk.selectWorkspace')} />
               </SelectTrigger>
               <SelectContent>
-                {workspaces.length === 0 ? (
-                  <SelectItem value="1">{t('pages.deceptionRisk.defaultWorkspace')}</SelectItem>
-                ) : (
-                  workspaces.map(workspace => (
-                    <SelectItem key={workspace.id} value={workspace.id}>
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{workspace.name}</span>
-                        {workspace.type === 'TEAM' && (
-                          <Badge variant="outline" className="text-xs">{t('pages.deceptionRisk.team')}</Badge>
-                        )}
-                        {workspace.type === 'PUBLIC' && (
-                          <Badge variant="outline" className="text-xs">{t('pages.deceptionRisk.public')}</Badge>
-                        )}
-                      </div>
-                    </SelectItem>
-                  ))
-                )}
+                {workspaces.map(workspace => (
+                  <SelectItem key={workspace.id} value={workspace.id}>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{workspace.name}</span>
+                      {workspace.type === 'TEAM' && (
+                        <Badge variant="outline" className="text-xs">{t('pages.deceptionRisk.team')}</Badge>
+                      )}
+                      {workspace.type === 'PUBLIC' && (
+                        <Badge variant="outline" className="text-xs">{t('pages.deceptionRisk.public')}</Badge>
+                      )}
+                    </div>
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
-            {selectedWorkspace && (
+            {selectedWorkspace && data && (
               <div className="text-sm text-muted-foreground">
-                {selectedWorkspace.entity_count.actors} {t('pages.deceptionRisk.actors')} · {selectedWorkspace.entity_count.sources} {t('pages.deceptionRisk.sources')} · {selectedWorkspace.entity_count.evidence} {t('pages.deceptionRisk.evidence')}
+                {data.metadata.data_sources.actors} {t('pages.deceptionRisk.actors')} · {data.metadata.data_sources.sources} {t('pages.deceptionRisk.sources')} · {data.metadata.data_sources.evidence} {t('pages.deceptionRisk.evidence')}
               </div>
             )}
           </div>

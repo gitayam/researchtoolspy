@@ -204,7 +204,7 @@ export const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettings = {
 }
 
 export const DEFAULT_WORKSPACE_SETTINGS: WorkspaceSettings = {
-  default_workspace_id: '1',
+  default_workspace_id: '',
   auto_save_enabled: true,
   auto_save_interval: 30,
   show_recent_items: true,

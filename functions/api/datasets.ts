@@ -1,6 +1,49 @@
 // Cloudflare Pages Function for Dataset API
 import { getUserFromRequest } from './_shared/auth-helpers'
-import { CORS_HEADERS, JSON_HEADERS } from './_shared/api-utils'
+import { CORS_HEADERS, JSON_HEADERS, safeJsonParse } from './_shared/api-utils'
+
+function buildDatasetMetadata(body: any, storedValue?: unknown): Record<string, unknown> {
+  const stored = typeof storedValue === 'string'
+    ? safeJsonParse(storedValue, {}) as Record<string, unknown>
+    : ((storedValue as Record<string, unknown>) || {})
+  const requested = typeof body.metadata === 'string'
+    ? safeJsonParse(body.metadata, {}) as Record<string, unknown>
+    : (body.metadata || {})
+  const existing = { ...stored, ...requested }
+
+  return {
+    ...existing,
+    sats_evaluation: body.sats_evaluation ?? existing.sats_evaluation ?? null,
+    frameworks: body.frameworks ?? existing.frameworks ?? [],
+    attachments: body.attachments ?? existing.attachments ?? [],
+    key_points: body.key_points ?? existing.key_points ?? [],
+    contradictions: body.contradictions ?? existing.contradictions ?? [],
+    corroborations: body.corroborations ?? existing.corroborations ?? [],
+    implications: body.implications ?? existing.implications ?? [],
+    version: body.version ?? existing.version ?? 1,
+    previous_versions: body.previous_versions ?? existing.previous_versions ?? [],
+  }
+}
+
+function parseDataset(dataset: any) {
+  const metadata = safeJsonParse(dataset.metadata, {}) as Record<string, any>
+
+  return {
+    ...dataset,
+    tags: safeJsonParse(dataset.tags, []),
+    source: safeJsonParse(dataset.source, {}),
+    metadata,
+    sats_evaluation: metadata.sats_evaluation ?? null,
+    frameworks: metadata.frameworks ?? [],
+    attachments: metadata.attachments ?? [],
+    key_points: metadata.key_points ?? [],
+    contradictions: metadata.contradictions ?? [],
+    corroborations: metadata.corroborations ?? [],
+    implications: metadata.implications ?? [],
+    version: metadata.version ?? 1,
+    previous_versions: metadata.previous_versions ?? [],
+  }
+}
 
 export async function onRequest(context: any) {
   const { request, env } = context
@@ -36,20 +79,7 @@ export async function onRequest(context: any) {
         }
 
         // Parse JSON fields
-        const parsedDataset = {
-          ...dataset,
-          tags: JSON.parse(dataset.tags || '[]'),
-          source: JSON.parse(dataset.source || '{}'),
-          metadata: JSON.parse(dataset.metadata || '{}'),
-          sats_evaluation: dataset.sats_evaluation ? JSON.parse(dataset.sats_evaluation) : null,
-          frameworks: JSON.parse(dataset.frameworks || '[]'),
-          attachments: JSON.parse(dataset.attachments || '[]'),
-          key_points: JSON.parse(dataset.key_points || '[]'),
-          contradictions: JSON.parse(dataset.contradictions || '[]'),
-          corroborations: JSON.parse(dataset.corroborations || '[]'),
-          implications: JSON.parse(dataset.implications || '[]'),
-          previous_versions: JSON.parse(dataset.previous_versions || '[]'),
-        }
+        const parsedDataset = parseDataset(dataset)
 
         return new Response(JSON.stringify(parsedDataset), {
           status: 200,
@@ -89,20 +119,7 @@ export async function onRequest(context: any) {
       const results = await env.DB.prepare(query).bind(...params).all()
 
       // Parse JSON fields for all results
-      const parsedResults = (results.results || []).map((dataset: any) => ({
-        ...dataset,
-        tags: JSON.parse(dataset.tags || '[]'),
-        source: JSON.parse(dataset.source || '{}'),
-        metadata: JSON.parse(dataset.metadata || '{}'),
-        sats_evaluation: dataset.sats_evaluation ? JSON.parse(dataset.sats_evaluation) : null,
-        frameworks: JSON.parse(dataset.frameworks || '[]'),
-        attachments: JSON.parse(dataset.attachments || '[]'),
-        key_points: JSON.parse(dataset.key_points || '[]'),
-        contradictions: JSON.parse(dataset.contradictions || '[]'),
-        corroborations: JSON.parse(dataset.corroborations || '[]'),
-        implications: JSON.parse(dataset.implications || '[]'),
-        previous_versions: JSON.parse(dataset.previous_versions || '[]'),
-      }))
+      const parsedResults = (results.results || []).map(parseDataset)
 
       return new Response(JSON.stringify({ dataset: parsedResults }), {
         status: 200,
@@ -120,6 +137,13 @@ export async function onRequest(context: any) {
       }
       const body = await request.json()
 
+      if (!body.title || !body.type) {
+        return new Response(JSON.stringify({ error: 'title and type are required' }), {
+          status: 400,
+          headers: JSON_HEADERS,
+        })
+      }
+
       // Build source object from separate fields or existing source object
       const source = body.source || {
         type: body.source_type || body.type,
@@ -128,15 +152,17 @@ export async function onRequest(context: any) {
         credibility: body.credibility || '6',
         reliability: body.reliability || 'F'
       }
+      const metadata = buildDatasetMetadata(body)
 
       const result = await env.DB.prepare(
         `INSERT INTO datasets (
           title, description, content, type, status, tags,
-          source, metadata, sats_evaluation, frameworks, attachments,
+          source, metadata,
           created_by, created_at, updated_at,
-          key_points, contradictions, corroborations, implications,
-          version, previous_versions, is_public, shared_by_user_id
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'), ?, ?, ?, ?, ?, ?, ?, ?)`
+          source_name, source_url, author, organization,
+          publication_date, access_date, reliability_rating,
+          is_public, shared_by_user_id
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'), ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       ).bind(
         body.title,
         body.description || '',
@@ -145,17 +171,15 @@ export async function onRequest(context: any) {
         body.status || 'pending',
         typeof body.tags === 'string' ? body.tags : JSON.stringify(body.tags || []),
         JSON.stringify(source),
-        JSON.stringify(body.metadata || {}),
-        body.sats_evaluation ? JSON.stringify(body.sats_evaluation) : null,
-        JSON.stringify(body.frameworks || []),
-        JSON.stringify(body.attachments || []),
+        JSON.stringify(metadata),
         authUserId,
-        JSON.stringify(body.key_points || []),
-        JSON.stringify(body.contradictions || []),
-        JSON.stringify(body.corroborations || []),
-        JSON.stringify(body.implications || []),
-        body.version || 1,
-        JSON.stringify(body.previous_versions || []),
+        body.source_name || source.name || null,
+        body.source_url || source.url || null,
+        body.author || null,
+        body.organization || null,
+        body.publication_date || null,
+        body.access_date || null,
+        body.reliability_rating || body.reliability || source.reliability || null,
         body.is_public ? 1 : 0,
         body.shared_by_user_id || null
       ).run()
@@ -179,45 +203,56 @@ export async function onRequest(context: any) {
       }
       const body = await request.json()
 
-      // Build source object from separate fields or existing source object
-      const source = body.source || {
-        type: body.source_type || body.type,
-        name: body.source_name || '',
-        url: body.source_url || null,
-        credibility: body.credibility || '6',
-        reliability: body.reliability || 'F'
+      const currentDataset = await env.DB.prepare(
+        'SELECT * FROM datasets WHERE id = ? AND created_by = ?'
+      ).bind(datasetId, authUserId).first<Record<string, any>>()
+      if (!currentDataset) {
+        return new Response(JSON.stringify({ error: 'Dataset not found or access denied' }), {
+          status: 404,
+          headers: JSON_HEADERS,
+        })
       }
+
+      // Build source object from separate fields or existing source object
+      const storedSource = safeJsonParse(currentDataset.source, {})
+      const source = body.source || {
+        ...storedSource,
+        type: body.source_type ?? body.type ?? storedSource.type,
+        name: body.source_name ?? currentDataset.source_name ?? storedSource.name ?? '',
+        url: body.source_url ?? currentDataset.source_url ?? storedSource.url ?? null,
+        credibility: body.credibility ?? storedSource.credibility ?? '6',
+        reliability: body.reliability ?? currentDataset.reliability_rating ?? storedSource.reliability ?? 'F'
+      }
+      const metadata = buildDatasetMetadata(body, currentDataset.metadata)
 
       const updateResult = await env.DB.prepare(
         `UPDATE datasets
          SET title = ?, description = ?, content = ?, type = ?, status = ?,
-             tags = ?, source = ?, metadata = ?, sats_evaluation = ?,
-             frameworks = ?, attachments = ?, updated_at = datetime('now'),
-             updated_by = ?, key_points = ?, contradictions = ?,
-             corroborations = ?, implications = ?, version = ?, previous_versions = ?,
+             tags = ?, source = ?, metadata = ?, updated_at = datetime('now'),
+             source_name = ?, source_url = ?, author = ?, organization = ?,
+             publication_date = ?, access_date = ?, reliability_rating = ?,
              is_public = ?, shared_by_user_id = ?
          WHERE id = ? AND created_by = ?`
       ).bind(
-        body.title,
-        body.description || '',
-        body.content || '',
-        body.type,
-        body.status,
-        typeof body.tags === 'string' ? body.tags : JSON.stringify(body.tags || []),
+        body.title ?? currentDataset.title,
+        body.description ?? currentDataset.description ?? '',
+        body.content ?? currentDataset.content ?? '',
+        body.type ?? currentDataset.type,
+        body.status ?? currentDataset.status,
+        body.tags === undefined
+          ? currentDataset.tags
+          : (typeof body.tags === 'string' ? body.tags : JSON.stringify(body.tags)),
         JSON.stringify(source),
-        JSON.stringify(body.metadata || {}),
-        body.sats_evaluation ? JSON.stringify(body.sats_evaluation) : null,
-        JSON.stringify(body.frameworks || []),
-        JSON.stringify(body.attachments || []),
-        authUserId,
-        JSON.stringify(body.key_points || []),
-        JSON.stringify(body.contradictions || []),
-        JSON.stringify(body.corroborations || []),
-        JSON.stringify(body.implications || []),
-        body.version || 1,
-        JSON.stringify(body.previous_versions || []),
-        body.is_public ? 1 : 0,
-        body.shared_by_user_id || null,
+        JSON.stringify(metadata),
+        body.source_name ?? currentDataset.source_name ?? source.name ?? null,
+        body.source_url ?? currentDataset.source_url ?? source.url ?? null,
+        body.author ?? currentDataset.author ?? null,
+        body.organization ?? currentDataset.organization ?? null,
+        body.publication_date ?? currentDataset.publication_date ?? null,
+        body.access_date ?? currentDataset.access_date ?? null,
+        body.reliability_rating ?? body.reliability ?? currentDataset.reliability_rating ?? source.reliability ?? null,
+        body.is_public === undefined ? currentDataset.is_public : (body.is_public ? 1 : 0),
+        body.shared_by_user_id ?? currentDataset.shared_by_user_id ?? null,
         datasetId,
         authUserId
       ).run()

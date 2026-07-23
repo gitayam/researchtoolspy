@@ -211,10 +211,22 @@ export function EvidencePage() {
     setFormOpen(true)
   }
 
-  const openEditForm = (evidence: any) => {
-    setFormMode('edit')
-    setEditingEvidence(evidence)
-    setFormOpen(true)
+  const openEditForm = async (evidence: EvidenceItem) => {
+    try {
+      const response = await fetch(`/api/evidence-items?id=${evidence.id}`, {
+        headers: getCopHeaders(),
+      })
+      if (!response.ok) {
+        throw new Error('Failed to load complete evidence details')
+      }
+      const detailedEvidence = await response.json()
+      setFormMode('edit')
+      setEditingEvidence(detailedEvidence)
+      setFormOpen(true)
+    } catch (error) {
+      console.error('Failed to open evidence editor:', error)
+      alert(t('evidence.loadError'))
+    }
   }
 
   const handleGenerateCitation = (item: EvidenceItem) => {

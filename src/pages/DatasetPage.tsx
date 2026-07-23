@@ -56,7 +56,7 @@ export function DatasetPage() {
         reliability: data.reliability || 'F',
         credibility: data.credibility || '6',
         tags: JSON.stringify(data.tags || []),
-        status: 'pending'
+        status: formMode === 'edit' ? editingDataset?.status : 'pending'
       }
 
       if (formMode === 'edit' && editingDataset?.id) {
@@ -106,7 +106,15 @@ export function DatasetPage() {
 
   const openEditForm = (dataset: any) => {
     setFormMode('edit')
-    setEditingDataset(dataset)
+    setEditingDataset({
+      ...dataset,
+      source: typeof dataset.source === 'string'
+        ? dataset.source
+        : (dataset.source?.name || dataset.source_name || ''),
+      url: dataset.source_url || dataset.source?.url || '',
+      reliability: dataset.source?.reliability || dataset.reliability_rating || '',
+      credibility: dataset.source?.credibility || '',
+    })
     setFormOpen(true)
   }
 

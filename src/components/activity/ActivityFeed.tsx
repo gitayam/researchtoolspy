@@ -7,7 +7,6 @@ import {
   ThumbsUp,
   GitFork,
   Share2,
-  UserPlus,
   Trash2,
   Edit,
   Plus,
@@ -20,17 +19,19 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
+import { useWorkspace } from '@/contexts/WorkspaceContext'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 interface ActivityItem {
   id: string
-  actor_user_id: string
-  actor_user_hash?: string
-  actor_nickname?: string
-  action_type: 'CREATED' | 'UPDATED' | 'DELETED' | 'COMMENTED' | 'VOTED' | 'RATED' | 'SHARED' | 'FORKED' | 'PUBLISHED' | 'CLONED'
-  entity_type: 'FRAMEWORK' | 'ENTITY' | 'COMMENT' | 'WORKSPACE' | 'MEMBER' | 'INVESTIGATION' | 'RESEARCH_QUESTION'
-  entity_id: string
+  user_hash: string
+  user_name?: string
+  activity_type: string
+  entity_type: string
+  entity_id?: string
   entity_title?: string
-  details?: string
+  action_summary?: string
+  metadata?: string
   created_at: string
 }
 
@@ -68,8 +69,23 @@ const activityColors: Record<string, string> = {
   CLONED: 'text-teal-500',
 }
 
+const activityDisplayKeys: Record<string, string> = {
+  CREATE: 'CREATED',
+  UPDATE: 'UPDATED',
+  DELETE: 'DELETED',
+  COMMENT: 'COMMENTED',
+  VOTE: 'VOTED',
+  RATE: 'RATED',
+  RATING: 'RATED',
+  FORK: 'FORKED',
+  PUBLISH: 'PUBLISHED',
+  SHARE: 'SHARED',
+  CLONE: 'CLONED',
+}
+
 export function ActivityFeed() {
   const { t } = useTranslation(['activity', 'common'])
+  const { currentWorkspaceId, isLoading: isWorkspaceLoading } = useWorkspace()
   const [activities, setActivities] = useState<ActivityItem[]>([])
   const [summary, setSummary] = useState<ActivitySummary>({
     total_activities: 0,
@@ -85,14 +101,18 @@ export function ActivityFeed() {
   const [offset, setOffset] = useState(0)
 
   useEffect(() => {
+    if (isWorkspaceLoading) return
     const controller = new AbortController()
     fetchActivities(controller.signal)
     return () => controller.abort()
-  }, [activityType, entityType, offset])
+  }, [activityType, entityType, offset, currentWorkspaceId, isWorkspaceLoading])
 
   const fetchActivities = async (signal?: AbortSignal) => {
-    const workspaceId = localStorage.getItem('omnicore_workspace_id')
-    if (!workspaceId) return
+    if (!currentWorkspaceId) {
+      setActivities([])
+      setLoading(false)
+      return
+    }
 
     setLoading(true)
     try {
@@ -105,7 +125,7 @@ export function ActivityFeed() {
       if (entityType) params.append('entity_type', entityType)
 
       const response = await fetch(`/api/activity?${params}`, {
-        headers: { 'X-Workspace-ID': workspaceId },
+        headers: { ...getCopHeaders(), 'X-Workspace-ID': currentWorkspaceId },
         signal,
       })
 
@@ -157,27 +177,38 @@ export function ActivityFeed() {
   }
 
   const getActionText = (activity: ActivityItem): string => {
+    if (activity.action_summary) return activity.action_summary
     const entityTypeLabel = activity.entity_type.toLowerCase().replace('_', ' ')
 
-    switch (activity.action_type) {
+    switch (activity.activity_type.toUpperCase()) {
+      case 'CREATE':
       case 'CREATED':
         return `created a ${entityTypeLabel}`
+      case 'UPDATE':
       case 'UPDATED':
         return `updated a ${entityTypeLabel}`
+      case 'DELETE':
       case 'DELETED':
         return `deleted a ${entityTypeLabel}`
+      case 'COMMENT':
       case 'COMMENTED':
         return `commented on a ${entityTypeLabel}`
+      case 'VOTE':
       case 'VOTED':
         return `voted on a ${entityTypeLabel}`
+      case 'RATE':
       case 'RATED':
         return `rated a ${entityTypeLabel}`
+      case 'FORK':
       case 'FORKED':
         return `forked a ${entityTypeLabel}`
+      case 'PUBLISH':
       case 'PUBLISHED':
         return `published a ${entityTypeLabel}`
+      case 'SHARE':
       case 'SHARED':
         return `shared a ${entityTypeLabel}`
+      case 'CLONE':
       case 'CLONED':
         return `cloned a ${entityTypeLabel}`
       default:
@@ -242,13 +273,13 @@ export function ActivityFeed() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">{t('activity:filters.allTypes')}</SelectItem>
-                  <SelectItem value="CREATED">Created</SelectItem>
-                  <SelectItem value="UPDATED">Updated</SelectItem>
-                  <SelectItem value="DELETED">Deleted</SelectItem>
-                  <SelectItem value="COMMENTED">Commented</SelectItem>
-                  <SelectItem value="VOTED">Voted</SelectItem>
-                  <SelectItem value="RATED">Rated</SelectItem>
-                  <SelectItem value="PUBLISHED">Published</SelectItem>
+                  <SelectItem value="create">Created</SelectItem>
+                  <SelectItem value="update">Updated</SelectItem>
+                  <SelectItem value="delete">Deleted</SelectItem>
+                  <SelectItem value="comment">Commented</SelectItem>
+                  <SelectItem value="vote">Voted</SelectItem>
+                  <SelectItem value="rating">Rated</SelectItem>
+                  <SelectItem value="publish">Published</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={entityType || "all"} onValueChange={(v) => setEntityType(v === "all" ? "" : v)}>
@@ -280,21 +311,23 @@ export function ActivityFeed() {
             <ScrollArea className="h-[500px]">
               <div className="space-y-4">
                 {activities.map((activity) => {
-                  const Icon = activityIcons[activity.action_type] || FileText
-                  const iconColor = activityColors[activity.action_type] || 'text-gray-500'
+                  const normalizedType = activity.activity_type.toUpperCase()
+                  const iconKey = activityDisplayKeys[normalizedType] || normalizedType
+                  const Icon = activityIcons[iconKey] || FileText
+                  const iconColor = activityColors[iconKey] || 'text-gray-500'
 
                   return (
                     <div key={activity.id} className="flex gap-4 pb-4 border-b last:border-0">
                       <Avatar className="h-10 w-10">
                         <AvatarFallback className="text-xs">
-                          {getUserInitials(activity.actor_nickname, activity.actor_user_hash)}
+                          {getUserInitials(activity.user_name, activity.user_hash)}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex-1">
                             <p className="text-sm">
-                              <span className="font-medium">{activity.actor_nickname || 'Anonymous'}</span>
+                              <span className="font-medium">{activity.user_name || 'Anonymous'}</span>
                               {' '}
                               <span className="text-muted-foreground">{getActionText(activity)}</span>
                             </p>

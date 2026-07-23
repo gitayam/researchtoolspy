@@ -36,7 +36,7 @@ const RELATEDNESS_OPTIONS = [
 ]
 
 export function HamiltonRulePage() {
-  const { currentWorkspaceId } = useWorkspace()
+  const { currentWorkspaceId, isLoading: workspaceLoading } = useWorkspace()
   const [analyses, setAnalyses] = useState<HamiltonRuleAnalysis[]>([])
   const [selectedAnalysis, setSelectedAnalysis] = useState<HamiltonRuleAnalysis | null>(null)
   const [loading, setLoading] = useState(false)
@@ -62,15 +62,16 @@ export function HamiltonRulePage() {
   const [newRelCost, setNewRelCost] = useState(3)
 
   useEffect(() => {
+    if (workspaceLoading || !currentWorkspaceId) return
     const controller = new AbortController()
     loadAnalyses(controller.signal)
     return () => controller.abort()
-  }, [])
+  }, [currentWorkspaceId, workspaceLoading])
 
   const loadAnalyses = async (signal?: AbortSignal) => {
+    if (!currentWorkspaceId) return
     try {
-      const wsId = localStorage.getItem('omnicore_workspace_id') || localStorage.getItem('current_workspace_id') || ''
-      const response = await fetch(`/api/hamilton-rule?workspace_id=${wsId}`, {
+      const response = await fetch(`/api/hamilton-rule?workspace_id=${currentWorkspaceId}`, {
         headers: getCopHeaders(),
         signal,
       })
@@ -131,6 +132,10 @@ export function HamiltonRulePage() {
   }
 
   const handleCreate = async () => {
+    if (!currentWorkspaceId) {
+      setError('Select a workspace before creating an analysis')
+      return
+    }
     if (!title || actors.length < 2) {
       setError('Please provide a title and at least 2 actors')
       return

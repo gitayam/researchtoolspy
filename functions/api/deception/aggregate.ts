@@ -5,6 +5,7 @@
 
 import { getUserFromRequest } from '../_shared/auth-helpers'
 import { JSON_HEADERS } from '../_shared/api-utils'
+import { checkWorkspaceAccess } from '../_shared/workspace-helpers'
 
 interface Env {
   DB: D1Database
@@ -46,6 +47,17 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     const url = new URL(context.request.url)
     const workspaceId = url.searchParams.get('workspace_id') || context.request.headers.get('X-Workspace-ID') || null
 
+    if (!workspaceId) {
+      return new Response(JSON.stringify({ error: 'workspace_id is required' }), {
+        status: 400, headers: JSON_HEADERS,
+      })
+    }
+
+    if (!(await checkWorkspaceAccess(workspaceId, userId, context.env))) {
+      return new Response(JSON.stringify({ error: 'Access denied to workspace' }), {
+        status: 403, headers: JSON_HEADERS,
+      })
+    }
 
     // ===== 1. ACTOR MOM SCORES =====
     const momActors = await context.env.DB.prepare(`
@@ -136,9 +148,10 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         e.title,
         e.eve_assessment AS sats_evaluation
       FROM evidence_items e
-      WHERE e.eve_assessment IS NOT NULL
+      WHERE e.workspace_id = ?
+        AND e.eve_assessment IS NOT NULL
       LIMIT 200
-    `).all()
+    `).bind(workspaceId).all()
 
     let eveStats = { suspicious: 0, needs_review: 0, verified: 0, avg_score: 0, total: 0 }
     let eveAlerts: Alert[] = []

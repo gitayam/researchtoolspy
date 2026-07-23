@@ -24,7 +24,7 @@ const WorkspaceContext = createContext<WorkspaceContextValue | undefined>(undefi
 
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [currentWorkspaceId, setCurrentWorkspaceIdState] = useState<string>(() => {
-    return localStorage.getItem('omnicore_workspace_id') || localStorage.getItem('current_workspace_id') || '1'
+    return localStorage.getItem('omnicore_workspace_id') || localStorage.getItem('current_workspace_id') || ''
   })
   const [workspaces, setWorkspaces] = useState<Workspace[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -32,6 +32,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const setCurrentWorkspaceId = (id: string) => {
     setCurrentWorkspaceIdState(id)
     localStorage.setItem('current_workspace_id', id)
+    localStorage.setItem('omnicore_workspace_id', id)
   }
 
   useEffect(() => {
@@ -51,39 +52,33 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
             ...data.member || []
           ]
 
-          // If empty, add default workspace
-          if (allWorkspaces.length === 0) {
-            allWorkspaces.push({
-              id: '1',
-              name: 'My Workspace',
-              type: 'PERSONAL',
-              owner_id: 1,
-              is_public: false
-            })
-          }
-
           setWorkspaces(allWorkspaces)
+          setCurrentWorkspaceIdState((currentId) => {
+            if (allWorkspaces.length === 0) {
+              localStorage.removeItem('current_workspace_id')
+              localStorage.removeItem('omnicore_workspace_id')
+              return ''
+            }
+
+            const resolvedId = allWorkspaces.some((workspace) => workspace.id === currentId)
+              ? currentId
+              : allWorkspaces[0].id
+
+            if (resolvedId !== currentId) {
+              localStorage.setItem('current_workspace_id', resolvedId)
+              localStorage.setItem('omnicore_workspace_id', resolvedId)
+            }
+            return resolvedId
+          })
         } else {
-          // Fallback to default workspace
-          setWorkspaces([{
-            id: '1',
-            name: 'My Workspace',
-            type: 'PERSONAL',
-            owner_id: 1,
-            is_public: false
-          }])
+          setWorkspaces([])
+          setCurrentWorkspaceIdState('')
         }
       } catch (error: any) {
         if (error?.name !== 'AbortError') {
           console.error('Failed to fetch workspaces:', error)
-          // Fallback to default workspace
-          setWorkspaces([{
-            id: '1',
-            name: 'My Workspace',
-            type: 'PERSONAL',
-            owner_id: 1,
-            is_public: false
-          }])
+          setWorkspaces([])
+          setCurrentWorkspaceIdState('')
         }
       } finally {
         setIsLoading(false)

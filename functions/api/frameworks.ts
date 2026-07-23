@@ -27,7 +27,7 @@ export async function onRequest(context: any) {
     const url = new URL(request.url)
     const frameworkId = url.searchParams.get('id')
 
-    // Get workspace_id from query params, header, or default to '1'
+    // Resolve the explicit workspace from the query or request header.
     const workspaceId = url.searchParams.get('workspace_id') || request.headers.get('X-Workspace-ID') || null
 
     // Get authenticated user ID

@@ -11,9 +11,11 @@ import { Progress } from '@/components/ui/progress'
 import { Separator } from '@/components/ui/separator'
 import Papa from 'papaparse'
 import { getCopHeaders } from '@/lib/cop-auth'
+import { useWorkspace } from '@/contexts/WorkspaceContext'
 import type { EquilibriumAnalysis, TimeSeriesDataPoint, EquilibriumResult } from '@/types/equilibrium-analysis'
 
 export function EquilibriumAnalysisPage() {
+  const { currentWorkspaceId, isLoading: workspaceLoading } = useWorkspace()
   const [analyses, setAnalyses] = useState<EquilibriumAnalysis[]>([])
   const [selectedAnalysis, setSelectedAnalysis] = useState<EquilibriumAnalysis | null>(null)
   const [loading, setLoading] = useState(false)
@@ -31,15 +33,16 @@ export function EquilibriumAnalysisPage() {
 
   // Load analyses on mount
   useEffect(() => {
+    if (workspaceLoading || !currentWorkspaceId) return
     const controller = new AbortController()
     loadAnalyses(controller.signal)
     return () => controller.abort()
-  }, [])
+  }, [currentWorkspaceId, workspaceLoading])
 
   const loadAnalyses = async (signal?: AbortSignal) => {
+    if (!currentWorkspaceId) return
     try {
-      const wsId = localStorage.getItem('omnicore_workspace_id') || localStorage.getItem('current_workspace_id') || ''
-      const response = await fetch(`/api/equilibrium-analysis?workspace_id=${wsId}`, {
+      const response = await fetch(`/api/equilibrium-analysis?workspace_id=${currentWorkspaceId}`, {
         headers: getCopHeaders(),
         signal,
       })
@@ -71,6 +74,10 @@ export function EquilibriumAnalysisPage() {
   }
 
   const handleCreate = async () => {
+    if (!currentWorkspaceId) {
+      setError('Select a workspace before creating an analysis')
+      return
+    }
     if (!title || csvData.length === 0 || !timeColumn || !rateColumn) {
       setError('Please provide a title, upload data, and select time/rate columns')
       return
@@ -98,7 +105,7 @@ export function EquilibriumAnalysisPage() {
         body: JSON.stringify({
           title,
           description,
-          workspace_id: localStorage.getItem('omnicore_workspace_id') || localStorage.getItem('current_workspace_id') || '',
+          workspace_id: currentWorkspaceId,
           data_source: {
             type: 'csv_upload',
             filename: 'uploaded.csv',

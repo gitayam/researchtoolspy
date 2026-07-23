@@ -46,7 +46,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    if (packet.user_id !== authUserId) {
+    if (Number(packet.user_id) !== Number(authUserId)) {
       return new Response(JSON.stringify({ error: 'Unauthorized to modify this packet' }), {
         status: 403,
         headers: JSON_HEADERS
@@ -65,23 +65,42 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    if (content.user_id !== authUserId) {
+    if (Number(content.user_id) !== Number(authUserId)) {
       return new Response(JSON.stringify({ error: 'Unauthorized to access this content' }), {
         status: 403,
         headers: JSON_HEADERS
       })
     }
 
-    // Check if already added
-    const existing = await context.env.DB.prepare(`
-      SELECT id FROM packet_claims
-      WHERE packet_id = ? AND content_analysis_id = ?
-    `).bind(packetId, body.content_analysis_id).first()
+    // Link every claim extracted from this content item. packet_claims stores
+    // claim_adjustment_id, not content_analysis_id.
+    const unlinkedClaims = await context.env.DB.prepare(`
+      SELECT ca.id
+      FROM claim_adjustments ca
+      LEFT JOIN packet_claims pc
+        ON pc.claim_adjustment_id = ca.id
+       AND pc.packet_id = ?
+      WHERE ca.content_analysis_id = ?
+        AND pc.id IS NULL
+      ORDER BY ca.claim_index ASC
+    `).bind(packetId, body.content_analysis_id).all<{ id: string }>()
 
-    if (existing) {
+    if (!unlinkedClaims.results?.length) {
+      const totalClaims = await context.env.DB.prepare(
+        'SELECT COUNT(*) as count FROM claim_adjustments WHERE content_analysis_id = ?'
+      ).bind(body.content_analysis_id).first<{ count: number }>()
+
+      if (!totalClaims?.count) {
+        return new Response(JSON.stringify({
+          error: 'This content has no extracted claims to add'
+        }), {
+          status: 400,
+          headers: JSON_HEADERS
+        })
+      }
+
       return new Response(JSON.stringify({
-        error: 'This content is already in the packet',
-        existing_link_id: existing.id
+        error: 'This content is already in the packet'
       }), {
         status: 409,
         headers: JSON_HEADERS
@@ -89,61 +108,67 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
 
     const now = new Date().toISOString()
-    const linkId = crypto.randomUUID()
+    const linkIds: string[] = []
+    const statements = unlinkedClaims.results.map((claim) => {
+      const linkId = crypto.randomUUID()
+      linkIds.push(linkId)
+      return context.env.DB.prepare(`
+        INSERT INTO packet_claims (
+          id,
+          packet_id,
+          claim_adjustment_id,
+          investigation_notes,
+          added_at
+        ) VALUES (?, ?, ?, ?, ?)
+      `).bind(
+        linkId,
+        packetId,
+        claim.id,
+        body.notes?.trim() || null,
+        now
+      )
+    })
 
-    // Add to packet
-    await context.env.DB.prepare(`
-      INSERT INTO packet_claims (
-        id,
-        packet_id,
-        content_analysis_id,
-        notes,
-        added_by,
-        added_at
-      ) VALUES (?, ?, ?, ?, ?, ?)
-    `).bind(
-      linkId,
-      packetId,
-      body.content_analysis_id,
-      body.notes?.trim() || null,
-      authUserId,
-      now
-    ).run()
-
-    // Update packet updated_at
-    await context.env.DB.prepare(`
+    statements.push(context.env.DB.prepare(`
       UPDATE investigation_packets
       SET updated_at = ?
       WHERE id = ?
-    `).bind(now, packetId).run()
+    `).bind(now, packetId))
 
-    // Log activity
-    await context.env.DB.prepare(`
+    statements.push(context.env.DB.prepare(`
       INSERT INTO investigation_activity_log (
         id,
         packet_id,
         user_id,
-        action_type,
-        action_details,
+        activity_type,
+        description,
+        new_value,
         created_at
-      ) VALUES (?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)
     `).bind(
       crypto.randomUUID(),
       packetId,
       authUserId,
-      'content_added',
+      'claim_added',
+      `Added ${linkIds.length} claims from "${content.title || content.url}"`,
       JSON.stringify({
         content_analysis_id: body.content_analysis_id,
         url: content.url,
-        title: content.title
+        title: content.title,
+        claim_count: linkIds.length,
       }),
       now
-    ).run()
+    ))
+
+    // The links, packet timestamp, and audit record succeed or fail together.
+    await context.env.DB.batch(statements)
 
     return new Response(JSON.stringify({
       success: true,
-      link_id: linkId,
-      message: 'Content added to investigation packet'
+      link_id: linkIds[0],
+      link_ids: linkIds,
+      claims_added: linkIds.length,
+      message: 'Content claims added to investigation packet'
     }), {
       headers: JSON_HEADERS
     })

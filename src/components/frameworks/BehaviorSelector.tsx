@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { getCopHeaders } from '@/lib/cop-auth'
+import { useWorkspace } from '@/contexts/WorkspaceContext'
 
 interface BehaviorOption {
   id: string
@@ -28,6 +29,7 @@ export function BehaviorSelector({
   onSelect,
   onClear
 }: BehaviorSelectorProps) {
+  const { currentWorkspaceId, isLoading: isWorkspaceLoading } = useWorkspace()
   const [searchParams] = useSearchParams()
   const [behaviors, setBehaviors] = useState<BehaviorOption[]>([])
   const [loading, setLoading] = useState(false)
@@ -48,24 +50,23 @@ export function BehaviorSelector({
   // Load behaviors from API
   useEffect(() => {
     const loadBehaviors = async () => {
+      if (isWorkspaceLoading) return
       setLoading(true)
       try {
-        // Get workspace from localStorage
-        const workspaceId = localStorage.getItem('omnicore_workspace_id') || localStorage.getItem('current_workspace_id')
-        if (!workspaceId) {
+        if (!currentWorkspaceId) {
           console.warn('No workspace selected')
           setBehaviors([])
           return
         }
 
         const response = await fetch(
-          `/api/frameworks?type=behavior&workspace_id=${workspaceId}`,
+          `/api/frameworks?type=behavior&workspace_id=${encodeURIComponent(currentWorkspaceId)}`,
           { headers: getCopHeaders() }
         )
 
         if (response.ok) {
           const data = await response.json()
-          setBehaviors(data.map((item: any) => ({
+          setBehaviors((data.frameworks || []).map((item: any) => ({
             id: item.id,
             title: item.title,
             description: item.description,
@@ -80,7 +81,7 @@ export function BehaviorSelector({
     }
 
     loadBehaviors()
-  }, [])
+  }, [currentWorkspaceId, isWorkspaceLoading])
 
   const filteredBehaviors = behaviors.filter(b =>
     b.title.toLowerCase().includes(searchQuery.toLowerCase()) ||

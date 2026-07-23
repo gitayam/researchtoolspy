@@ -66,7 +66,7 @@ export class DeceptionFormPage {
     this.actorDropdown = page.locator('.absolute.z-50').first()
     this.actorDropdownItems = this.actorDropdown.locator('button')
     this.actorSearchLoading = page.getByText('Searching...')
-    this.actorNoResults = page.getByText('No actors found. Try a different search term.')
+    this.actorNoResults = page.getByText(/No actors found matching/i)
     this.selectedActorDisplay = page.locator('.bg-accent').filter({ hasText: /.+/ }).first()
     this.clearActorButton = this.selectedActorDisplay.getByRole('button')
 
@@ -102,7 +102,7 @@ export class DeceptionFormPage {
 
   async waitForLoad() {
     await this.page.waitForLoadState('domcontentloaded')
-    await this.pageTitle.waitFor({ timeout: 15000 })
+    await this.actorSearchInput.waitFor({ state: 'visible', timeout: 15000 })
   }
 
   // -- Actor Picker interactions --

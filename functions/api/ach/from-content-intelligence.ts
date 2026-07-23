@@ -129,7 +129,7 @@ Return ONLY a JSON array of hypothesis strings: ["hypothesis 1", "hypothesis 2",
     const achId = crypto.randomUUID()
     const now = new Date().toISOString()
 
-    await context.env.DB.prepare(`
+    const achStatements: D1PreparedStatement[] = [context.env.DB.prepare(`
       INSERT INTO ach_analyses (
         id, user_id, title, description, question, analyst, organization,
         scale_type, status, workspace_id, original_workspace_id, created_at, updated_at
@@ -148,12 +148,12 @@ Return ONLY a JSON array of hypothesis strings: ["hypothesis 1", "hypothesis 2",
       workspaceId,
       now,
       now
-    ).run()
+    )]
 
-    // Create hypotheses
+    // Create the analysis and every hypothesis in one D1 transaction.
     for (let i = 0; i < hypotheses.length; i++) {
       const hypId = crypto.randomUUID()
-      await context.env.DB.prepare(`
+      achStatements.push(context.env.DB.prepare(`
         INSERT INTO ach_hypotheses (
           id, ach_analysis_id, text, rationale, source, order_num, created_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -165,19 +165,37 @@ Return ONLY a JSON array of hypothesis strings: ["hypothesis 1", "hypothesis 2",
         'Content Intelligence + GPT-5.4-mini',
         i,
         now
-      ).run()
+      ))
     }
+    await context.env.DB.batch(achStatements)
 
-    // Create evidence from content analysis
-    const evidenceId = await createEvidenceFromContent(context.env.DB, analysis, userId, workspaceId)
+    let evidenceId: string | null = null
+    try {
+      // Create evidence from content analysis
+      evidenceId = await createEvidenceFromContent(context.env.DB, analysis, userId, workspaceId)
 
-    // Link evidence to ACH
-    const linkId = crypto.randomUUID()
-    await context.env.DB.prepare(`
-      INSERT INTO ach_evidence_links (
-        id, ach_analysis_id, evidence_id, created_at
-      ) VALUES (?, ?, ?, ?)
-    `).bind(linkId, achId, evidenceId, now).run()
+      // Link evidence to ACH using the canonical link audit fields.
+      const linkId = crypto.randomUUID()
+      await context.env.DB.prepare(`
+        INSERT INTO ach_evidence_links (
+          id, ach_analysis_id, evidence_id, added_by, added_at
+        ) VALUES (?, ?, ?, ?, ?)
+      `).bind(linkId, achId, evidenceId, userId, now).run()
+    } catch (error) {
+      // Evidence uses an autoincrement ID and must be created after the atomic
+      // ACH/hypothesis batch. Compensate in reverse order if linking fails.
+      const cleanup = [
+        context.env.DB.prepare('DELETE FROM ach_hypotheses WHERE ach_analysis_id = ?').bind(achId),
+        context.env.DB.prepare('DELETE FROM ach_analyses WHERE id = ?').bind(achId),
+      ]
+      if (evidenceId) {
+        cleanup.unshift(
+          context.env.DB.prepare('DELETE FROM evidence_items WHERE id = ? AND created_by = ?').bind(evidenceId, userId)
+        )
+      }
+      await context.env.DB.batch(cleanup)
+      throw error
+    }
 
     return new Response(JSON.stringify({
       ach_id: achId,

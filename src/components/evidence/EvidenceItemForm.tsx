@@ -21,6 +21,7 @@ import {
   EvidenceTypeDescriptions,
   EvidenceTypeCategories
 } from '@/types/evidence'
+import { useWorkspace } from '@/contexts/WorkspaceContext'
 
 interface EvidenceItemFormProps {
   open: boolean
@@ -68,6 +69,7 @@ export function EvidenceItemForm({
   initialData,
   mode
 }: EvidenceItemFormProps) {
+  const { currentWorkspaceId, isLoading: isWorkspaceLoading } = useWorkspace()
   const [saving, setSaving] = useState(false)
   const [saveAndAddAnother, setSaveAndAddAnother] = useState(false)
   const [newTag, setNewTag] = useState('')
@@ -81,10 +83,15 @@ export function EvidenceItemForm({
   useEffect(() => {
     const controller = new AbortController()
     const loadActors = async () => {
+      if (isWorkspaceLoading) return
+      if (!currentWorkspaceId) {
+        setActors([])
+        setLoadingActors(false)
+        return
+      }
       setLoadingActors(true)
       try {
-        const workspaceId = localStorage.getItem('omnicore_workspace_id') || localStorage.getItem('current_workspace_id')
-        const wsParam = workspaceId ? `?workspace_id=${workspaceId}` : ''
+        const wsParam = `?workspace_id=${encodeURIComponent(currentWorkspaceId)}`
         const response = await fetch(`/api/actors${wsParam}`, {
           headers: getCopHeaders(),
           signal: controller.signal,
@@ -101,7 +108,7 @@ export function EvidenceItemForm({
     }
     loadActors()
     return () => controller.abort()
-  }, [])
+  }, [currentWorkspaceId, isWorkspaceLoading])
 
   useEffect(() => {
     if (initialData) {

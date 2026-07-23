@@ -30,6 +30,7 @@ import { createLogger } from '@/lib/logger'
 import { getCopHeaders } from '@/lib/cop-auth'
 import { getAuthIdentifier, ensureAuthIdentifier } from '@/lib/auth-utils'
 import { StarburstingEntityLinker } from '@/components/content-intelligence/StarburstingEntityLinker'
+import { useWorkspace } from '@/contexts/WorkspaceContext'
 // New extracted components from refactor
 import {
   SharePanel,
@@ -43,6 +44,7 @@ export default function ContentIntelligencePage() {
   const { t } = useTranslation()
   const { toast } = useToast()
   const navigate = useNavigate()
+  const { currentWorkspaceId } = useWorkspace()
 
   // State
   const [url, setUrl] = useState('')
@@ -1693,6 +1695,9 @@ ${shortSummary}`
   // Save entity to evidence
   const saveEntityToEvidence = async (entityName: string, entityType: 'person' | 'organization' | 'location') => {
     try {
+      if (!currentWorkspaceId) {
+        throw new Error('Select a workspace before saving entities')
+      }
       if (!getAuthIdentifier()) {
         // Auto-generate a hash bookmark so the user can save entities
         ensureAuthIdentifier()
@@ -1703,7 +1708,7 @@ ${shortSummary}`
                         entityType === 'organization' ? 'ORGANIZATION' : 'OTHER'
 
       const checkResponse = await fetch(
-        `/api/actors/search?workspace_id=${localStorage.getItem('omnicore_workspace_id') || localStorage.getItem('current_workspace_id') || ''}&name=${encodeURIComponent(entityName)}&type=${actorType}`,
+        `/api/actors/search?workspace_id=${encodeURIComponent(currentWorkspaceId)}&name=${encodeURIComponent(entityName)}&type=${actorType}`,
         {
           headers: getCopHeaders(),
         }
@@ -1756,7 +1761,7 @@ ${shortSummary}`
         body: JSON.stringify({
           name: entityName,
           type: actorType,
-          workspace_id: localStorage.getItem('omnicore_workspace_id') || localStorage.getItem('current_workspace_id') || '',
+          workspace_id: currentWorkspaceId,
           description: `Auto-extracted from: ${analysis?.title || url}`,
           tags: [`content-intelligence`, entityType],
           source_url: url
@@ -1815,6 +1820,14 @@ ${shortSummary}`
   // Auto-extract entities and create actors + relationships
   const autoExtractEntities = async () => {
     if (!analysis?.id) return
+    if (!currentWorkspaceId) {
+      toast({
+        title: 'Workspace required',
+        description: 'Select a workspace before extracting entities',
+        variant: 'destructive'
+      })
+      return
+    }
 
     setProcessing(true)
 
@@ -1824,8 +1837,7 @@ ${shortSummary}`
         headers: getCopHeaders(),
         body: JSON.stringify({
           analysis_id: analysis.id,
-          workspace_id: localStorage.getItem('omnicore_workspace_id') || localStorage.getItem('current_workspace_id') || '',
-          user_id: 1
+          workspace_id: currentWorkspaceId
         })
       })
 
@@ -1857,7 +1869,7 @@ ${shortSummary}`
 
   // Check if entities already exist in Actors database
   const checkEntityDuplicates = async (entities: any) => {
-    if (!entities) return
+    if (!entities || !currentWorkspaceId) return
 
     setCheckingDuplicates(true)
 
@@ -1877,7 +1889,7 @@ ${shortSummary}`
     for (const entity of allEntities) {
       try {
         const response = await fetch(
-          `/api/actors/search?workspace_id=${localStorage.getItem('omnicore_workspace_id') || localStorage.getItem('current_workspace_id') || ''}&name=${encodeURIComponent(entity.name)}&type=${entity.type}`,
+          `/api/actors/search?workspace_id=${encodeURIComponent(currentWorkspaceId)}&name=${encodeURIComponent(entity.name)}&type=${entity.type}`,
           {
             headers: getCopHeaders(),
           }

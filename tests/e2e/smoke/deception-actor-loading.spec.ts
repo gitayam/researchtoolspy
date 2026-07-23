@@ -93,6 +93,27 @@ const mockEmptyCredibilityResponse = {
 async function mockDeceptionRoutes(
   page: import('@playwright/test').Page,
 ) {
+  // Authenticated routes resolve their workspace through WorkspaceContext before
+  // loading feature-specific data.
+  await page.route('**/api/workspaces', (route) =>
+    route.fulfill({
+      status: 200,
+      json: {
+        owned: [{
+          id: 'workspace-test-001',
+          name: 'Test workspace',
+          type: 'PERSONAL',
+          owner_id: 42,
+          is_public: false,
+        }],
+        member: [],
+      },
+    }),
+  )
+  await page.route('**/api/frameworks?**', (route) =>
+    route.fulfill({ status: 200, json: { frameworks: [] } }),
+  )
+
   // Actor search endpoint -- DeceptionForm uses /api/actors?workspace_id=...&search=...
   await page.route('**/api/actors?**', (route) => {
     const url = route.request().url()

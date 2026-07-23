@@ -77,7 +77,7 @@ const DEFAULT_SETTINGS: Omit<UserSettings, 'user_hash'> = {
     workspace_invite: true,
   },
   workspace: {
-    default_workspace_id: '1',
+    default_workspace_id: '',
     auto_save_enabled: true,
     auto_save_interval: 30,
     show_recent_items: true,

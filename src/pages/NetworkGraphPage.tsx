@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { ArrowLeft, Download, RefreshCw, BarChart3, Route, Info, SlidersHorizontal, X } from 'lucide-react'
 import type { Relationship, EntityType } from '@/types/entities'
 import { useTranslation } from 'react-i18next'
+import { useWorkspace } from '@/contexts/WorkspaceContext'
 
 interface NetworkNode {
   id: string
@@ -42,6 +43,7 @@ export function NetworkGraphPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const [searchParams] = useSearchParams()
+  const { currentWorkspaceId: workspaceId, isLoading: isWorkspaceLoading } = useWorkspace()
   const [relationships, setRelationships] = useState<Relationship[]>([])
   const [entityNames, setEntityNames] = useState<Record<string, { name: string; type: EntityType }>>({})
   const [loading, setLoading] = useState(true)
@@ -91,13 +93,18 @@ export function NetworkGraphPage() {
 
   // Load all relationships
   useEffect(() => {
+    if (isWorkspaceLoading) return
+    if (!workspaceId) {
+      setRelationships([])
+      setEntityNames({})
+      setLoading(false)
+      return
+    }
+
     const controller = new AbortController()
     const loadRelationships = async () => {
       setLoading(true)
       try {
-        // Get workspace ID from localStorage or use default
-        const workspaceId = localStorage.getItem('omnicore_workspace_id') || localStorage.getItem('current_workspace_id') || ''
-
         const response = await fetch(`/api/relationships?workspace_id=${workspaceId}`, { signal: controller.signal, headers: getCopHeaders() })
         if (response.ok) {
           const data = await response.json()
@@ -258,7 +265,7 @@ export function NetworkGraphPage() {
 
     loadRelationships()
     return () => controller.abort()
-  }, [])
+  }, [workspaceId, isWorkspaceLoading])
 
   // Update container size on mount and window resize
   useEffect(() => {

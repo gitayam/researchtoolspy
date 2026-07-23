@@ -39,6 +39,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
     const body = await request.json() as SocialExtractRequest
     const { url, platform, extract_mode = 'metadata', options = {} } = body
+    const normalizedPlatform = platform?.toLowerCase() === 'x'
+      ? 'twitter'
+      : platform?.toLowerCase()
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
@@ -58,7 +61,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     // Route to platform-specific extractor
     let extractionResult: any
 
-    switch (platform.toLowerCase()) {
+    switch (normalizedPlatform) {
       case 'youtube':
         extractionResult = await extractYouTube(url, extract_mode, options)
         break
@@ -89,7 +92,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (extractionResult.success) {
       await saveExtraction(env.DB, {
         url,
-        platform,
+        platform: normalizedPlatform,
         extract_mode,
         metadata: extractionResult.metadata,
         content: extractionResult.content,
@@ -820,18 +823,28 @@ async function fetchYouTubeTranscript(videoId: string): Promise<string | undefin
  */
 async function saveExtraction(db: D1Database, data: any, userId: number): Promise<void> {
   try {
+    const content = data.content || {}
+    const metadata = {
+      ...(data.metadata || {}),
+      content,
+    }
+    const transcript = typeof content.transcript === 'string'
+      ? content.transcript
+      : (typeof content.text === 'string' ? content.text : null)
+
     await db.prepare(`
       INSERT INTO social_media_extractions (
-        user_id, url, platform, post_type, metadata, content, media, extraction_mode, extracted_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+        user_id, url, platform, post_type, media_urls,
+        metadata, transcript, extraction_mode
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
       userId,
       data.url,
       data.platform,
       data.metadata?.post_type || 'unknown',
-      JSON.stringify(data.metadata || {}),
-      JSON.stringify(data.content || {}),
       JSON.stringify(data.media || {}),
+      JSON.stringify(metadata),
+      transcript,
       data.extract_mode || 'metadata'
     ).run()
   } catch (error) {
@@ -846,4 +859,3 @@ export const onRequestGet: PagesFunction = async () => {
     status: 405, headers: JSON_HEADERS,
   })
 }
-

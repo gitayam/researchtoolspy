@@ -3,6 +3,7 @@ import { ChevronDown, ChevronRight, Star, ExternalLink, Sparkles, Loader2, Refre
 import { Button } from '@/components/ui/button'
 import type { CopSession } from '@/types/cop'
 import { getCopHeaders } from '@/lib/cop-auth'
+import { useWorkspace } from '@/contexts/WorkspaceContext'
 
 // ── 5W1H Categories ──────────────────────────────────────────────
 
@@ -179,6 +180,8 @@ interface CopQuestionsTabProps {
 // ── Component ────────────────────────────────────────────────────
 
 export default function CopQuestionsTab({ session }: CopQuestionsTabProps) {
+  const { currentWorkspaceId } = useWorkspace()
+  const workspaceId = session.workspace_id || currentWorkspaceId
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const [starburst, setStarburst] = useState<StarburstData | null>(null)
   const [loading, setLoading] = useState(false)
@@ -262,10 +265,14 @@ export default function CopQuestionsTab({ session }: CopQuestionsTabProps) {
    * contextual 5W1H questions and create a linked framework.
    */
   const handleGenerateQuestions = async () => {
+    if (!workspaceId) {
+      setError('Select a workspace before generating questions.')
+      return
+    }
     setGenerating(true)
     setError(null)
     try {
-      const headers = getCopHeaders()
+      const headers = { ...getCopHeaders(), 'X-Workspace-ID': workspaceId }
 
       // 1. Fetch evidence items to get article context
       const evidenceContext: EvidenceContext = {
@@ -347,7 +354,7 @@ export default function CopQuestionsTab({ session }: CopQuestionsTabProps) {
           title: `5W1H: ${session.name || 'Investigation'}`,
           description: `Starbursting analysis for COP session ${session.id}`,
           framework_type: 'starbursting',
-          workspace_id: session.workspace_id,
+          workspace_id: workspaceId,
           data: {
             entries: questions,
             central_topic: session.name || session.mission_brief || 'Investigation',
@@ -374,7 +381,7 @@ export default function CopQuestionsTab({ session }: CopQuestionsTabProps) {
         headers: {
           ...headers,
           'Content-Type': 'application/json',
-          'X-Workspace-ID': session.workspace_id || '',
+          'X-Workspace-ID': workspaceId,
         },
         body: JSON.stringify({ linked_frameworks: updated }),
       })
@@ -399,6 +406,10 @@ export default function CopQuestionsTab({ session }: CopQuestionsTabProps) {
 
   // Regenerate — unlinks old framework, creates new one with fresh context
   const handleRegenerateQuestions = async () => {
+    if (!workspaceId) {
+      setError('Select a workspace before regenerating questions.')
+      return
+    }
     // Clear current starburst so we can regenerate
     setStarburst(null)
     setLocalLinkedFrameworks([])
@@ -407,7 +418,7 @@ export default function CopQuestionsTab({ session }: CopQuestionsTabProps) {
     try {
       await fetch(`/api/cop/sessions/${session.id}`, {
         method: 'PUT',
-        headers: { ...headers, 'Content-Type': 'application/json', 'X-Workspace-ID': session.workspace_id || '' },
+        headers: { ...headers, 'Content-Type': 'application/json', 'X-Workspace-ID': workspaceId },
         body: JSON.stringify({ linked_frameworks: [] }),
       })
     } catch { /* best effort */ }

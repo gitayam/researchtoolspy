@@ -16,7 +16,7 @@
 #   ./deploy.sh              # Full deploy (migrate + build + functions + deploy)
 #   ./deploy.sh --skip-build # Skip build, just copy functions + deploy
 #   ./deploy.sh --skip-migrate # Skip database migrations
-#   ./deploy.sh --dry-run    # Build + verify but don't deploy
+#   ./deploy.sh --dry-run    # List pending migrations + build; never mutate production
 #   ./deploy.sh --help       # Show help
 # =============================================================================
 
@@ -56,7 +56,7 @@ for arg in "$@"; do
             echo "  ./deploy.sh                Full deploy (migrate + build + functions + deploy)"
             echo "  ./deploy.sh --skip-build   Skip build, just copy functions + deploy"
             echo "  ./deploy.sh --skip-migrate Skip database migrations"
-            echo "  ./deploy.sh --dry-run      Build + verify but don't deploy"
+            echo "  ./deploy.sh --dry-run      List pending migrations + build; never mutate production"
             echo "  ./deploy.sh --help         Show this help message"
             echo ""
             exit 0
@@ -113,35 +113,6 @@ echo "${GREEN}Project files verified${NC}"
 echo ""
 
 # =============================================================================
-# Step 0.5: Apply Database Migrations
-# =============================================================================
-if [ "$SKIP_MIGRATE" = true ]; then
-    echo "${YELLOW}Step 0.5: Skipping migrations (--skip-migrate)${NC}"
-else
-    echo "${YELLOW}Step 0.5: Applying database migrations...${NC}"
-    MIGRATION_DIR="schema/migrations"
-    if [ -d "$MIGRATION_DIR" ]; then
-        MIGRATION_COUNT=0
-        MIGRATION_ERRORS=0
-        for migration in $(ls "$MIGRATION_DIR"/*.sql 2>/dev/null | sort); do
-            MIGRATION_NAME=$(basename "$migration")
-            echo -n "  Applying $MIGRATION_NAME... "
-            if npx wrangler d1 execute researchtoolspy-prod --remote --file="$migration" 2>/dev/null; then
-                echo "${GREEN}OK${NC}"
-                ((MIGRATION_COUNT++))
-            else
-                echo "${YELLOW}SKIPPED (may already be applied)${NC}"
-                ((MIGRATION_ERRORS++))
-            fi
-        done
-        echo "${GREEN}Migrations processed: $MIGRATION_COUNT applied, $MIGRATION_ERRORS skipped${NC}"
-    else
-        echo "${YELLOW}No migrations directory found${NC}"
-    fi
-fi
-echo ""
-
-# =============================================================================
 # Step 1: Build Frontend
 # =============================================================================
 if [ "$SKIP_BUILD" = true ]; then
@@ -158,6 +129,57 @@ else
         exit 1
     fi
     echo "${GREEN}Build complete${NC}"
+fi
+echo ""
+
+# =============================================================================
+# Step 1.5: Back Up and Apply Database Migrations
+# =============================================================================
+if [ "$SKIP_MIGRATE" = true ]; then
+    echo "${YELLOW}Step 1.5: Skipping migrations (--skip-migrate)${NC}"
+elif [ "$DRY_RUN" = true ]; then
+    echo "${YELLOW}Step 1.5: Dry run - listing pending migrations (read-only)...${NC}"
+    ./scripts/list-managed-migrations.sh --remote
+else
+    echo "${YELLOW}Step 1.5: Checking managed database migrations...${NC}"
+    MIGRATION_LIST=$(./scripts/list-managed-migrations.sh --remote)
+    echo "$MIGRATION_LIST"
+
+    if echo "$MIGRATION_LIST" | grep -q "Total pending: 0"; then
+        echo "${GREEN}No managed migrations pending${NC}"
+    else
+        echo "${YELLOW}Creating production D1 backup and Time Travel record...${NC}"
+        D1_BACKUP_DIR=$(mktemp -d "${TMPDIR:-/tmp}/researchtoolspy-d1.XXXXXX")
+        chmod 700 "$D1_BACKUP_DIR"
+        D1_BACKUP_FILE="$D1_BACKUP_DIR/researchtoolspy-prod-before-migrations.sql"
+        D1_TIME_TRAVEL_FILE="$D1_BACKUP_DIR/time-travel-info.txt"
+
+        # Time Travel commands always target remote D1 and do not accept --remote.
+        pnpm exec wrangler d1 time-travel info researchtoolspy-prod \
+            > "$D1_TIME_TRAVEL_FILE"
+        pnpm exec wrangler d1 export researchtoolspy-prod --remote \
+            --skip-confirmation \
+            --output="$D1_BACKUP_FILE"
+
+        if [ ! -s "$D1_BACKUP_FILE" ] || [ ! -s "$D1_TIME_TRAVEL_FILE" ]; then
+            echo "${RED}ERROR: D1 backup or Time Travel record is empty; refusing to migrate${NC}"
+            exit 1
+        fi
+
+        echo "${GREEN}Backup created: $D1_BACKUP_FILE${NC}"
+        echo "${GREEN}Time Travel record: $D1_TIME_TRAVEL_FILE${NC}"
+        echo "${YELLOW}Applying managed migrations from schema/managed-migrations...${NC}"
+        # CI mode suppresses Wrangler's interactive apply prompt; this script's
+        # operator approval, backup checks, and preflight are the release gates.
+        CI=1 pnpm exec wrangler d1 migrations apply researchtoolspy-prod --remote
+        echo "${GREEN}Managed migrations applied successfully${NC}"
+    fi
+
+fi
+
+if [ "$DRY_RUN" = false ]; then
+    echo "${YELLOW}Running pre-deployment schema checks...${NC}"
+    ./scripts/pre-deployment-check.sh --skip-build
 fi
 echo ""
 
@@ -266,11 +288,11 @@ if [ "$DRY_RUN" = true ]; then
 fi
 
 echo "${YELLOW}Step 4: Deploying to Cloudflare Pages...${NC}"
-npx wrangler pages deploy dist --project-name=$PROJECT_NAME --commit-dirty=true
+pnpm exec wrangler pages deploy dist --project-name=$PROJECT_NAME --commit-dirty=true
 if [ $? -ne 0 ]; then
     echo "${RED}Deployment failed!${NC}"
     echo ""
-    echo "If you see an auth error, run: ${GREEN}wrangler login${NC}"
+    echo "If you see an auth error, run: ${GREEN}pnpm exec wrangler login${NC}"
     echo "Then retry: ${GREEN}./deploy.sh --skip-build${NC}"
     exit 1
 fi

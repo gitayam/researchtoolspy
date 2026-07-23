@@ -51,7 +51,7 @@ npm run test:e2e:smoke
 │   └── locales/          en, es translations
 ├── functions/            Cloudflare Pages Functions (server)
 │   └── api/              REST endpoints grouped by domain
-├── schema/               D1 schema + migrations
+├── schema/               D1 schema, managed migrations, and legacy migration archive
 ├── public/               Static assets, _headers, _redirects, _routes.json
 ├── containers/           Containerized services (osint-agent, searxng)
 ├── scripts/              Shell utilities (cop-api.sh, pre-deployment-check.sh)
@@ -63,7 +63,7 @@ npm run test:e2e:smoke
 
 ```bash
 ./deploy.sh                  # migrate + build + deploy (recommended)
-./deploy.sh --dry-run        # build + verify, no deploy
+./deploy.sh --dry-run        # list pending migrations + build; no production writes
 ./deploy.sh --skip-migrate   # build + deploy, no D1 migrations
 
 # Watch logs
@@ -104,16 +104,28 @@ key API conventions.
 
 ## Database
 
-D1 (SQLite). Schema lives in [`schema/d1-schema.sql`](schema/d1-schema.sql) with
-incremental changes in [`schema/migrations/`](schema/migrations/).
+D1 (SQLite). New forward-only changes live in
+[`schema/managed-migrations/`](schema/managed-migrations/) and are tracked by
+Wrangler. [`schema/migrations/`](schema/migrations/) is a legacy archive; it is
+not replay-safe and must not be applied as a directory.
 
 ```bash
+# List local pending migrations
+pnpm run migrate:list
+
+# List production pending migrations (read-only)
+pnpm run migrate:list:prod
+
 # Apply migrations remotely
-npm run migrate:prod
+pnpm run migrate:prod
 
 # Ad-hoc query (remote)
-npx wrangler d1 execute researchtoolspy-prod --remote --command "SELECT name FROM sqlite_master WHERE type='table'"
+pnpm exec wrangler d1 execute researchtoolspy-prod --remote --command "SELECT name FROM sqlite_master WHERE type='table'"
 ```
+
+Back up D1 and record a Time Travel restore point before applying production
+migrations. See [`docs/operations/D1_MIGRATIONS.md`](docs/operations/D1_MIGRATIONS.md)
+for the required apply, verification, and rollback procedure.
 
 Conventions:
 - Tables and columns are `lowercase_snake_case` (PascalCase causes silent FK

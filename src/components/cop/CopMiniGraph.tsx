@@ -3,6 +3,7 @@ import { Network, Loader2, Maximize2 } from 'lucide-react'
 import { getCopHeaders } from '@/lib/cop-auth'
 import { NetworkGraphCanvas } from '@/components/network/NetworkGraphCanvas'
 import type { EntityType, Relationship } from '@/types/entities'
+import { useWorkspace } from '@/contexts/WorkspaceContext'
 
 // ── Types ────────────────────────────────────────────────────────
 
@@ -120,6 +121,8 @@ async function fetchEntityNames(
 // ── Component ────────────────────────────────────────────────────
 
 export default function CopMiniGraph({ sessionId, workspaceId: propWorkspaceId, expanded, onRelationshipCount, onNodeClick }: CopMiniGraphProps) {
+  const { currentWorkspaceId, isLoading: workspaceLoading } = useWorkspace()
+  const workspaceId = propWorkspaceId || currentWorkspaceId
   const [relationships, setRelationships] = useState<Relationship[]>([])
   const [entityNames, setEntityNames] = useState<Record<string, { name: string; type: EntityType }>>({})
   const [loading, setLoading] = useState(true)
@@ -145,6 +148,10 @@ export default function CopMiniGraph({ sessionId, workspaceId: propWorkspaceId, 
   }, [])
 
   useEffect(() => {
+    if (workspaceLoading || !workspaceId) {
+      setLoading(false)
+      return
+    }
     const controller = new AbortController()
 
     async function load() {
@@ -152,7 +159,6 @@ export default function CopMiniGraph({ sessionId, workspaceId: propWorkspaceId, 
       try {
         const headers = getCopHeaders()
 
-        const workspaceId = propWorkspaceId || localStorage.getItem('omnicore_workspace_id') || localStorage.getItem('current_workspace_id') || ''
         const res = await fetch(`/api/relationships?workspace_id=${workspaceId}&cop_session_id=${sessionId}`, { headers, signal: controller.signal })
 
         if (!res.ok) throw new Error(`Failed to fetch relationships (${res.status})`)
@@ -176,7 +182,7 @@ export default function CopMiniGraph({ sessionId, workspaceId: propWorkspaceId, 
 
     load()
     return () => controller.abort()
-  }, [sessionId, propWorkspaceId])
+  }, [sessionId, workspaceId, workspaceLoading])
 
   // Build graph nodes and links from relationship data
   const { nodes, links } = useMemo(() => {
@@ -250,8 +256,6 @@ export default function CopMiniGraph({ sessionId, workspaceId: propWorkspaceId, 
   }
 
   // ── Graph ────────────────────────────────────────────────────
-  const workspaceId = propWorkspaceId || localStorage.getItem('omnicore_workspace_id') || localStorage.getItem('current_workspace_id') || ''
-
   return (
     <div ref={containerRef} className="w-full h-full relative">
       {containerSize.width > 0 && containerSize.height > 0 && (

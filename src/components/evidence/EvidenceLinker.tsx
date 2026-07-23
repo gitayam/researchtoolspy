@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { getCopHeaders } from '@/lib/cop-auth'
+import { useWorkspace } from '@/contexts/WorkspaceContext'
 import { Checkbox } from '@/components/ui/checkbox'
 import type { EvidenceItem } from '@/types/evidence'
 import type { Actor, Source, Event } from '@/types/entities'
@@ -38,6 +39,7 @@ export function EvidenceLinker({
   title = 'Link Evidence',
   description = 'Search and select evidence to link to this analysis'
 }: EvidenceLinkerProps) {
+  const { currentWorkspaceId, isLoading: workspaceLoading } = useWorkspace()
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedTab, setSelectedTab] = useState<EvidenceEntityType>('data')
   const [selectedItems, setSelectedItems] = useState<Map<string, LinkedEvidence>>(new Map())
@@ -50,17 +52,16 @@ export function EvidenceLinker({
   const [events, setEvents] = useState<Event[]>([])
 
   useEffect(() => {
-    if (open) {
+    if (open && !workspaceLoading && currentWorkspaceId) {
       const controller = new AbortController()
       loadData(controller.signal)
       return () => controller.abort()
     }
-  }, [open, selectedTab])
+  }, [open, selectedTab, currentWorkspaceId, workspaceLoading])
 
   const loadData = async (signal?: AbortSignal) => {
     setLoading(true)
     try {
-      const wsId = localStorage.getItem('omnicore_workspace_id') || localStorage.getItem('current_workspace_id') || ''
       // Load based on selected tab
       switch (selectedTab) {
         case 'data':
@@ -71,24 +72,21 @@ export function EvidenceLinker({
           }
           break
         case 'actor':
-          if (!wsId) break
-          const actorRes = await fetch(`/api/actors?workspace_id=${wsId}`, { headers: getCopHeaders(), signal })
+          const actorRes = await fetch(`/api/actors?workspace_id=${currentWorkspaceId}`, { headers: getCopHeaders(), signal })
           if (actorRes.ok) {
             const data = await actorRes.json()
             setActors(data.actors || [])
           }
           break
         case 'source':
-          if (!wsId) break
-          const sourceRes = await fetch(`/api/sources?workspace_id=${wsId}`, { headers: getCopHeaders(), signal })
+          const sourceRes = await fetch(`/api/sources?workspace_id=${currentWorkspaceId}`, { headers: getCopHeaders(), signal })
           if (sourceRes.ok) {
             const data = await sourceRes.json()
             setSources(data.sources || [])
           }
           break
         case 'event':
-          if (!wsId) break
-          const eventRes = await fetch(`/api/events?workspace_id=${wsId}`, { headers: getCopHeaders(), signal })
+          const eventRes = await fetch(`/api/events?workspace_id=${currentWorkspaceId}`, { headers: getCopHeaders(), signal })
           if (eventRes.ok) {
             const data = await eventRes.json()
             setEvents(data.events || [])
