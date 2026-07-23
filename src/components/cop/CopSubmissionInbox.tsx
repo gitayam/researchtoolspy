@@ -206,7 +206,22 @@ export default function CopSubmissionInbox({ sessionId, expanded }: CopSubmissio
                 <div className="px-3 pb-3 space-y-2">
                   {/* Form data */}
                   <div className="bg-muted/30 rounded p-2 text-xs space-y-1">
-                    {Object.entries(sub.form_data).map(([key, value]) => (
+                    {(sub.form_data as any)._source === 'signal-bot' && (
+                      <div className="inline-flex rounded bg-violet-500/20 px-1.5 py-0.5 text-[10px] text-violet-300">
+                        Signal bot submission
+                      </div>
+                    )}
+                    {Array.isArray((sub.form_data as any)._attachments) && (
+                      <div className="space-y-0.5 rounded border border-border p-1.5">
+                        <span className="font-medium text-muted-foreground">Attachments:</span>
+                        {(sub.form_data as any)._attachments.map((file: any) => (
+                          <div key={file.key} className="break-all">
+                            {file.name} ({Math.ceil(Number(file.size || 0) / 1024)} KB)
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {Object.entries(sub.form_data).filter(([key]) => !key.startsWith('_')).map(([key, value]) => (
                       <div key={key} className="flex gap-2">
                         <span className="font-medium text-muted-foreground">{key}:</span>
                         <span>{String(value)}</span>
