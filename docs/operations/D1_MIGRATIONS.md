@@ -31,7 +31,7 @@ or local test does not authorize a production apply.
 Use the next four-digit sequence number:
 
 ```text
-schema/managed-migrations/0004_short_description.sql
+schema/managed-migrations/0005_short_description.sql
 ```
 
 Each file must:
@@ -137,6 +137,23 @@ The current managed lane requires:
 - `evidence_citations.relevance_score`
 - `evidence_citations.notes`
 - `evidence_citations.created_by`
+- the composite indexes listed in
+  [`D1_INDEX_AUDIT.md`](D1_INDEX_AUDIT.md), including
+  `idx_cop_collaborators_session_user`,
+  `idx_cop_sessions_workspace_status_owner_updated`,
+  `idx_framework_sessions_workspace_type_updated`,
+  `idx_evidence_items_workspace_status_created`, and
+  `idx_cop_activity_session_created`
+
+For migration 0004, also run the read-only planner audit:
+
+```bash
+pnpm run audit:indexes:prod
+```
+
+Migration 0004 was applied to production on 2026-07-23. The immediate catalog
+size is 553 indexes (the pre-migration 529 plus 24 additive indexes). Redundant
+single-column indexes were intentionally not dropped by 0004.
 
 Run `pnpm run validate:pre-deploy` after migrations and before deploying Pages.
 
@@ -160,10 +177,11 @@ checking indexes, constraints, and deployed-code dependencies.
 
 Migration-specific reverse order, if a targeted schema rollback is approved:
 
-1. `0003`: drop `evidence_citations.created_by`, `notes`, `relevance_score`,
+1. `0004`: drop the 24 indexes listed in its rollback comment.
+2. `0003`: drop `evidence_citations.created_by`, `notes`, `relevance_score`,
    `citation_type`, then `evidence_actors.auto_linked`.
-2. `0002`: drop `framework_sessions.clone_count`, then `view_count`.
-3. `0001`: drop `idx_evidence_items_workspace_eve`, then
+3. `0002`: drop `framework_sessions.clone_count`, then `view_count`.
+4. `0001`: drop `idx_evidence_items_workspace_eve`, then
    `evidence_items.eve_assessment`.
 
 Export the current database before any rollback, even if a pre-migration backup

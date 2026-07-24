@@ -15,6 +15,8 @@
     "wrangler:deploy": "npm run build && wrangler pages deploy dist --project-name=researchtoolspy",
     "validate:schema": "ts-node scripts/validate-schema.ts",
     "validate:pre-deploy": "./scripts/pre-deployment-check.sh",
+    "audit:indexes": "./scripts/audit-d1-indexes.sh --local",
+    "audit:indexes:prod": "./scripts/audit-d1-indexes.sh --remote",
     "migrate:list": "./scripts/list-managed-migrations.sh --local",
     "migrate:list:prod": "./scripts/list-managed-migrations.sh --remote",
     "migrate:prod": "pnpm exec wrangler d1 migrations apply researchtoolspy-prod --remote",

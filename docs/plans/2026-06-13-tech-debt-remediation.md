@@ -59,10 +59,12 @@ Companion to [`docs/operations/TECH_DEBT.md`](../operations/TECH_DEBT.md). This 
 ---
 
 ## Phase 3 — Index hygiene (TD-04) *(GATED migration)*
+- [x] **3.0 Composite/covering audit** — DONE locally 2026-07-23. Audited the live 529-index catalog, seven-day D1 insights, source query shapes, and representative `EXPLAIN QUERY PLAN` output. Added the repeatable read-only audit and [`D1_INDEX_AUDIT.md`](../operations/D1_INDEX_AUDIT.md).
+- [x] **3.0a Additive hot-path migration deployed** — `0004_add_hot_path_composite_indexes.sql` adds 24 workspace/session composites. Applied through the backed-up production path on 2026-07-23; the live catalog reached 553 indexes and representative plans selected the new composites. Miniflare planner test + production-schema clone pass.
 - [ ] **3.1** Resolve the two **duplicate index declarations** (`idx_content_analysis_hash` in 014+025; `idx_content_analysis_share_token` in 034+038) — harmless `IF NOT EXISTS` no-ops today, but confusing.
 - [ ] **3.2** Drop single-column indexes covered by composites (`_hash` ⊂ `_hash_workspace`, `_user` ⊂ `_user_workspace`) **only after** cross-checking D1 insights for queries that rely on the standalone index. Forward migration file `0NN-content-analysis-index-cleanup.sql`.
 
-**Verify:** re-run `d1 insights`; confirm the `content_analysis` INSERT writes fewer rows/index updates; no query regressions.
+**Verify:** observe a real traffic window after 0004. Then prepare the separately gated drop migration, take a fresh backup, re-run `d1 insights`, confirm `content_analysis` INSERT writes fewer rows/index updates, and verify no query regressions.
 
 ---
 

@@ -1,7 +1,22 @@
 # ResearchTools.net — Issue Tracker
 
-**Last updated:** 2026-07-05
+**Last updated:** 2026-07-23
 **Current tag:** v0.21.0-content-retention
+
+---
+
+## Released (2026-07-23) — Workspace composite-index wave
+
+- [x] Added managed migration
+  `0004_add_hot_path_composite_indexes.sql` with 24 additive composites for
+  workspace/session ownership, status/type filters, and recency ordering.
+- [x] Added a read-only production planner audit and a real Miniflare
+  `EXPLAIN QUERY PLAN` smoke test.
+- [x] Applied the migration through the backed-up managed release path. The
+  live catalog is 553 indexes and representative hot paths select the new
+  composites.
+- [ ] Observe production D1 insights before a separate, backed-up migration
+  removes any proven-redundant single-column indexes.
 
 ---
 

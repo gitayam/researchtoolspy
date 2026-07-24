@@ -35,10 +35,11 @@ This is a living backlog. Each item has a **severity** (impact if left), rough *
 
 ## P1 — Cost, correctness, and security hygiene
 
-### TD-04 · `content_analysis` is over-indexed (write amplification) `MED`
-- **Evidence:** **14 indexes** on one table (`..._user`, `..._url`, `..._hash`, `..._link`, `..._workspace`, `..._user_workspace`, `..._hash_workspace`, `..._bookmark`, `..._expires`, `..._share_token`, `..._investigation`, `..._has_links`, …). D1 insights show the insert writing **avg 12 rows per INSERT** at **4.3 ms avg** (`queryEfficiency: 0`) — every insert fans out to ~14 index updates.
-- **Impact:** slowest write in the system and the most-run write (170×). Several indexes overlap (`_hash` vs `_hash_workspace`, `_user` vs `_user_workspace`).
-- **Fix:** drop redundant single-column indexes covered by composite ones; keep only indexes backed by real query patterns (cross-check against D1 insights). **Effort: S.**
+### TD-04 · Composite coverage + redundant-index write amplification — 🔄 ADDITIVE WAVE DEPLOYED, OBSERVATION PENDING `MED`
+- **2026-07-23 audit:** production has 529 indexes (140 implicit). Workspace-scoped list queries use index seeks today, but `EXPLAIN QUERY PLAN` showed filter/temp-sort work for workspace + status/type/recency shapes. The source archive's ~64 workspace-index count includes duplicate/historical declarations; live D1 has 39 actual indexes whose indexed columns contain `workspace_id`. See [`D1_INDEX_AUDIT.md`](D1_INDEX_AUDIT.md).
+- **Additive fix deployed:** managed migration `0004_add_hot_path_composite_indexes.sql` adds 24 exact composites for COP access/session/task/activity, workspace membership, frameworks, evidence, entity lists, relationships, and workspace recency. It was applied through the backed-up production path on 2026-07-23; the live catalog reached the expected 553 indexes and representative plans selected the new composites. Miniflare planner coverage and an isolated production-schema clone also pass.
+- **Write-amplification debt remains:** `content_analysis` has 12 live indexes; seven-day insights show its insert ran 263 times, writing 13 rows per insert at 1.748 ms average. `_hash` is covered by `_hash_workspace` and `_user` by `_user_workspace`, but their drops remain gated on a backup and a post-0004 observation window. The same replacement review applies to single workspace/type indexes covered by 0004.
+- **Done when:** complete the observation window, confirm the new indexes in live insights, then use a separate reviewed migration to remove only proven-redundant singles without query regressions.
 
 ### TD-05 · Rate limiting — partial (loose protection live) `MED`
 - **Was:** AI endpoints unthrottled — `ai-gateway.checkRateLimit` was dead code (`RATE_LIMIT` KV unbound), and the middleware limiter used a **per-isolate in-memory Map** that barely held across Pages' many isolates. (`getUserFromRequest` also auto-provisions any 16+char hash, so AI endpoints are effectively open to anyone with a hash — making cost protection important.)
