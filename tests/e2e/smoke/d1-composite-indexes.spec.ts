@@ -1,8 +1,9 @@
 /**
  * D1 composite/covering-index regression tests.
  *
- * Executes managed migration 0004 against in-memory Miniflare D1, then checks
- * the real SQLite query planner rather than only matching migration text.
+ * Executes managed migrations 0004 and 0005 against in-memory Miniflare D1,
+ * then checks the real SQLite query planner rather than only matching
+ * migration text.
  */
 import { test, expect } from '@playwright/test'
 import { Miniflare } from 'miniflare'
@@ -11,6 +12,22 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 const BASE_SCHEMA = `
+  CREATE TABLE content_analysis (
+    id TEXT,
+    content_hash TEXT,
+    user_id INTEGER,
+    workspace_id TEXT
+  );
+
+  CREATE INDEX idx_content_analysis_hash
+    ON content_analysis(content_hash);
+  CREATE INDEX idx_content_analysis_hash_workspace
+    ON content_analysis(content_hash, workspace_id);
+  CREATE INDEX idx_content_analysis_user
+    ON content_analysis(user_id);
+  CREATE INDEX idx_content_analysis_user_workspace
+    ON content_analysis(user_id, workspace_id);
+
   CREATE TABLE cop_collaborators (
     cop_session_id TEXT NOT NULL,
     user_id INTEGER
@@ -259,6 +276,63 @@ test.describe('D1 hot-path composite indexes @smoke', () => {
       `)
       expect(taskPlan.join(' ')).toContain('INDEX idx_cop_tasks_session_status')
       expect(taskPlan.join(' ')).toContain('TEMP B-TREE')
+    } finally {
+      await mf.dispose()
+    }
+  })
+
+  test('@smoke migration removes only redundant content indexes and preserves plans', async () => {
+    const mf = new Miniflare({
+      modules: true,
+      script: 'export default { fetch() { return new Response("ok") } }',
+      d1Databases: { DB: 'content-index-cleanup-test' },
+    })
+
+    try {
+      const db = await mf.getD1Database('DB')
+      await executeSql(db, BASE_SCHEMA)
+
+      const migration = readFileSync(
+        resolve(
+          process.cwd(),
+          'schema/managed-migrations/0005_drop_redundant_content_analysis_indexes.sql',
+        ),
+        'utf8',
+      )
+      await executeSql(db, migration)
+      await executeSql(db, migration)
+
+      const indexes = await db.prepare(`
+        SELECT name
+        FROM sqlite_schema
+        WHERE type = 'index'
+          AND tbl_name = 'content_analysis'
+        ORDER BY name
+      `).all<{ name: string }>()
+      const indexNames = indexes.results.map((row) => row.name)
+
+      expect(indexNames).not.toContain('idx_content_analysis_hash')
+      expect(indexNames).not.toContain('idx_content_analysis_user')
+      expect(indexNames).toContain('idx_content_analysis_hash_workspace')
+      expect(indexNames).toContain('idx_content_analysis_user_workspace')
+
+      const hashPlan = await plan(db, `
+        SELECT id
+        FROM content_analysis
+        WHERE content_hash = 'hash-a'
+      `)
+      expect(hashPlan.join(' ')).toContain(
+        'INDEX idx_content_analysis_hash_workspace (content_hash=?)',
+      )
+
+      const userPlan = await plan(db, `
+        SELECT id
+        FROM content_analysis
+        WHERE user_id = 42
+      `)
+      expect(userPlan.join(' ')).toContain(
+        'INDEX idx_content_analysis_user_workspace (user_id=?)',
+      )
     } finally {
       await mf.dispose()
     }

@@ -155,6 +155,14 @@ Migration 0004 was applied to production on 2026-07-23. The immediate catalog
 size is 553 indexes (the pre-migration 529 plus 24 additive indexes). Redundant
 single-column indexes were intentionally not dropped by 0004.
 
+Migration 0005 was applied on 2026-07-28 after a five-day observation pass. It
+drops only `idx_content_analysis_hash` and `idx_content_analysis_user`; their
+workspace composites have the same leading columns and continue to serve the
+single-column predicates. The expected catalog size after 0005 is 551 indexes.
+Run `pnpm run audit:indexes:prod` and confirm the hash/user probes select
+`idx_content_analysis_hash_workspace` and
+`idx_content_analysis_user_workspace`.
+
 Run `pnpm run validate:pre-deploy` after migrations and before deploying Pages.
 
 ## Rollback
@@ -177,11 +185,13 @@ checking indexes, constraints, and deployed-code dependencies.
 
 Migration-specific reverse order, if a targeted schema rollback is approved:
 
-1. `0004`: drop the 24 indexes listed in its rollback comment.
-2. `0003`: drop `evidence_citations.created_by`, `notes`, `relevance_score`,
+1. `0005`: recreate `idx_content_analysis_hash(content_hash)` and
+   `idx_content_analysis_user(user_id)`.
+2. `0004`: drop the 24 indexes listed in its rollback comment.
+3. `0003`: drop `evidence_citations.created_by`, `notes`, `relevance_score`,
    `citation_type`, then `evidence_actors.auto_linked`.
-3. `0002`: drop `framework_sessions.clone_count`, then `view_count`.
-4. `0001`: drop `idx_evidence_items_workspace_eve`, then
+4. `0002`: drop `framework_sessions.clone_count`, then `view_count`.
+5. `0001`: drop `idx_evidence_items_workspace_eve`, then
    `evidence_items.eve_assessment`.
 
 Export the current database before any rollback, even if a pre-migration backup

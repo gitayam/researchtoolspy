@@ -1,7 +1,8 @@
 # D1 composite and covering index audit
 
 > Audited 2026-07-23 against the production schema, seven days of D1 insights,
-> the Pages Functions query source, and `EXPLAIN QUERY PLAN`.
+> the Pages Functions query source, and `EXPLAIN QUERY PLAN`; post-rollout
+> observation and the narrow cleanup were completed 2026-07-28.
 
 ## Conclusion
 
@@ -24,10 +25,25 @@ observed after rollout.
 ## Rollout status
 
 Migration 0004 was applied through the backed-up managed production path on
-2026-07-23. The live catalog contains the expected 553 indexes, all 24 new
-indexes are present, and representative production plans select the new exact
-composites. The observation window and any subsequent redundant-index removal
-remain open work.
+2026-07-23. The live catalog reached the expected 553 indexes, all 24 new
+indexes were present, and representative production plans selected the new
+exact composites.
+
+Five days of post-0004 insights showed 81 `content_analysis` inserts at 13
+average rows written and 2.828 ms average duration. A repeated live audit still
+selected the 0004 composites for every representative hot path. The source has
+no `INDEXED BY` dependency on the two old content indexes, and the replacement
+definitions have the same leading columns:
+
+- `content_hash` → `idx_content_analysis_hash_workspace(content_hash, workspace_id)`;
+- `user_id` → `idx_content_analysis_user_workspace(user_id, workspace_id)`.
+
+Migration 0005 therefore removed only `idx_content_analysis_hash` and
+`idx_content_analysis_user` through a fresh backed-up production release on
+2026-07-28. The live catalog now contains 551 indexes; single-column hash and
+user predicates select the wider covering indexes. Fresh post-0005 traffic is
+still needed to quantify the write reduction. Other potential redundant
+indexes remain separately gated.
 
 ## Production baseline
 
@@ -129,10 +145,11 @@ lookup while duplicating the primary key across every session.
 
 These items need post-rollout telemetry rather than speculative indexes:
 
-1. Drop redundant single-column indexes after D1 confirms the composites are
-   selected. This includes the existing workspace/type indexes replaced by
-   0004 and the `content_analysis` `_hash`/`_user` indexes covered by
-   left-prefixed composites. This is a separately backed-up, gated migration.
+1. Review the remaining single workspace/session indexes that are left-prefix
+   covered by 0004. Do not drop type-only indexes merely because a
+   `(workspace_id, type, ...)` index exists: SQLite cannot use that composite
+   for a type-only predicate. Every further removal needs its own planner/source
+   evidence and backed-up migration.
 2. Decide whether relationship source/target filters justify
    `(workspace_id, source_entity_id, created_at)` and
    `(workspace_id, target_entity_id, created_at)`.
@@ -157,7 +174,7 @@ pnpm run audit:indexes
 pnpm run audit:indexes:prod
 ```
 
-After production migration and during the observation window:
+After production migration and during an observation window:
 
 ```bash
 pnpm run migrate:list:prod

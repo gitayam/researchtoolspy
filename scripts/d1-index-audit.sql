@@ -24,6 +24,7 @@ WHERE m.type = 'table'
   AND m.name IN (
     'actors',
     'behaviors',
+    'content_analysis',
     'cop_activity',
     'cop_collaborators',
     'cop_sessions',
@@ -39,6 +40,31 @@ WHERE m.type = 'table'
   )
 GROUP BY m.name, il.name, il.[unique], il.partial
 ORDER BY m.name, il.name;
+
+-- Redundant content-analysis indexes. After migration 0005, the wider
+-- left-prefix composites must serve both single-column and workspace-qualified
+-- predicates.
+EXPLAIN QUERY PLAN
+SELECT id
+FROM content_analysis
+WHERE content_hash = '__index_audit__';
+
+EXPLAIN QUERY PLAN
+SELECT id
+FROM content_analysis
+WHERE content_hash = '__index_audit__'
+  AND workspace_id = '__index_audit__';
+
+EXPLAIN QUERY PLAN
+SELECT id
+FROM content_analysis
+WHERE user_id = -1;
+
+EXPLAIN QUERY PLAN
+SELECT id
+FROM content_analysis
+WHERE user_id = -1
+  AND workspace_id = '__index_audit__';
 
 -- Authorization probes.
 EXPLAIN QUERY PLAN

@@ -5,6 +5,24 @@
 
 ---
 
+## Released (2026-07-28) — Narrow redundant-index cleanup
+
+- [x] Reviewed five days of post-`0004` D1 insights and repeated the live
+  planner audit.
+- [x] Added managed migration
+  `0005_drop_redundant_content_analysis_indexes.sql`, removing only
+  `idx_content_analysis_hash` and `idx_content_analysis_user`.
+- [x] Preserved their exact left-prefix replacements,
+  `idx_content_analysis_hash_workspace` and
+  `idx_content_analysis_user_workspace`; Miniflare planner tests confirm they
+  serve the original single-column predicates.
+- [x] Applied the migration through the backed-up managed production path. The
+  live catalog is 551 indexes and no managed migration is pending.
+- [ ] Observe fresh post-`0005` inserts before quantifying the write reduction;
+  all other possible redundant indexes remain separately gated.
+
+---
+
 ## Released (2026-07-23) — Workspace composite-index wave
 
 - [x] Added managed migration
