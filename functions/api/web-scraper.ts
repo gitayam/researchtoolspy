@@ -27,14 +27,87 @@ interface ScrapingResult {
     og_title?: string
     og_description?: string
     og_image?: string
-    [key: string]: any
+    [key: string]: unknown
   }
   reliability_score?: number
-  dataset_id?: string
+  dataset_id?: string | number
   extracted_at: string
 }
 
-export async function onRequest(context: any) {
+interface WebScraperContext {
+  request: Request
+  env: Parameters<typeof getUserFromRequest>[1]
+}
+
+export function safeFetchFailureResponse(error: SafeFetchError): Response {
+  switch (error.code) {
+    case 'timeout':
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'The website took too long to respond',
+        errorType: 'timeout',
+        suggestions: [
+          'Try again - the site might be temporarily slow',
+          'Check if the URL is accessible in your browser',
+          'The website might have anti-bot protection',
+        ],
+        technicalDetails: 'Request timeout after 15 seconds',
+      }), { status: 504, headers: JSON_HEADERS })
+
+    case 'aborted':
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'The scraping request was cancelled',
+        errorType: 'cancelled',
+        suggestions: ['Retry the request when ready'],
+      }), { status: 408, headers: JSON_HEADERS })
+
+    case 'invalid_url':
+    case 'unsafe_url':
+    case 'dns_resolution_failed':
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'URLs pointing to private/internal or unresolvable addresses are not allowed',
+        errorType: 'invalid_url',
+        suggestions: ['Check that the URL is a public HTTP or HTTPS website'],
+      }), { status: 400, headers: JSON_HEADERS })
+
+    case 'redirect_limit':
+    case 'response_too_large':
+    case 'unsupported_content_type':
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'The website response could not be safely processed',
+        errorType: 'http_error',
+        suggestions: ['Try a direct HTML page with fewer redirects'],
+      }), { status: 400, headers: JSON_HEADERS })
+
+    case 'network_error':
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'Unable to connect to the website',
+        errorType: 'network',
+        suggestions: ['Check if the URL is correct and accessible', 'Try again later'],
+      }), { status: 502, headers: JSON_HEADERS })
+
+    case 'unsafe_method':
+    case 'unsafe_headers':
+    case 'invalid_options':
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'The scraper request policy is misconfigured',
+        errorType: 'configuration',
+        suggestions: ['Contact support if this problem continues'],
+      }), { status: 500, headers: JSON_HEADERS })
+
+    default: {
+      const exhaustive: never = error.code
+      throw new Error(`Unhandled safe-fetch error code: ${exhaustive}`)
+    }
+  }
+}
+
+export async function onRequest(context: WebScraperContext) {
   const { request, env } = context
 
   // Handle preflight
@@ -75,7 +148,7 @@ export async function onRequest(context: any) {
       if (!['http:', 'https:'].includes(url.protocol)) {
         throw new Error('Invalid protocol')
       }
-    } catch (error) {
+    } catch {
       return new Response(JSON.stringify({ error: 'Invalid URL' }), {
         status: 400,
         headers: JSON_HEADERS,
@@ -103,56 +176,8 @@ export async function onRequest(context: any) {
       })
       response = fetched.response
       html = fetched.text
-    } catch (fetchError: any) {
-      // Handle timeout
-      if (fetchError instanceof SafeFetchError && fetchError.code === 'timeout') {
-        return new Response(JSON.stringify({
-          success: false,
-          error: 'The website took too long to respond',
-          errorType: 'timeout',
-          suggestions: [
-            'Try again - the site might be temporarily slow',
-            'Check if the URL is accessible in your browser',
-            'The website might have anti-bot protection'
-          ],
-          technicalDetails: 'Request timeout after 15 seconds'
-        }), {
-          status: 504,
-          headers: JSON_HEADERS,
-        })
-      }
-
-      if (fetchError instanceof SafeFetchError
-        && (fetchError.code === 'invalid_url'
-          || fetchError.code === 'unsafe_url'
-          || fetchError.code === 'dns_resolution_failed')) {
-        return new Response(JSON.stringify({
-          success: false,
-          error: 'URLs pointing to private/internal or unresolvable addresses are not allowed',
-          errorType: 'invalid_url',
-          suggestions: ['Check that the URL is a public HTTP or HTTPS website'],
-        }), {
-          status: 400,
-          headers: JSON_HEADERS,
-        })
-      }
-
-      if (fetchError instanceof SafeFetchError
-        && (fetchError.code === 'response_too_large'
-          || fetchError.code === 'unsupported_content_type'
-          || fetchError.code === 'redirect_limit')) {
-        return new Response(JSON.stringify({
-          success: false,
-          error: 'The website response could not be safely processed',
-          errorType: 'http_error',
-          suggestions: ['Try a direct HTML page with fewer redirects'],
-        }), {
-          status: 400,
-          headers: JSON_HEADERS,
-        })
-      }
-
-      // Handle other fetch errors
+    } catch (fetchError: unknown) {
+      if (fetchError instanceof SafeFetchError) return safeFetchFailureResponse(fetchError)
       throw fetchError
     }
 
@@ -232,7 +257,7 @@ export async function onRequest(context: any) {
     const keywords = keywordsMatch ? keywordsMatch[1].split(',').map(k => k.trim()) : []
 
     // Extract Open Graph metadata
-    const metadata: any = {}
+    const metadata: NonNullable<ScrapingResult['metadata']> = {}
 
     const ogTitleMatch = html.match(/<meta\s+property=["']og:title["']\s+content=["'](.*?)["']/i)
     if (ogTitleMatch) metadata.og_title = ogTitleMatch[1].trim()
@@ -327,7 +352,7 @@ export async function onRequest(context: any) {
         })
 
         if (datasetResponse.ok) {
-          const payload = await datasetResponse.json() as { dataset?: { id?: string } }
+          const payload = await datasetResponse.json() as { dataset?: { id?: string | number } }
           if (payload.dataset?.id) result.dataset_id = payload.dataset.id
         }
       } catch (error) {
@@ -344,16 +369,18 @@ export async function onRequest(context: any) {
       headers: JSON_HEADERS,
     })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Web scraping error:', error)
+    const errorName = error instanceof Error ? error.name : ''
+    const errorMessage = error instanceof Error ? error.message : String(error)
 
     // Create user-friendly error message
-    let userMessage = 'Failed to scrape the URL'
-    let suggestions: string[] = []
-    let errorType = 'unknown'
+    let userMessage: string
+    let suggestions: string[]
+    let errorType: string
 
     // Network/timeout errors
-    if (error.name === 'AbortError' || error.message?.includes('timeout')) {
+    if (errorName === 'AbortError' || errorMessage.includes('timeout')) {
       errorType = 'timeout'
       userMessage = 'The website took too long to respond'
       suggestions = [
@@ -363,7 +390,7 @@ export async function onRequest(context: any) {
       ]
     }
     // Fetch/network errors
-    else if (error.message?.includes('fetch') || error.message?.includes('network')) {
+    else if (errorMessage.includes('fetch') || errorMessage.includes('network')) {
       errorType = 'network'
       userMessage = 'Unable to connect to the website'
       suggestions = [
@@ -373,7 +400,7 @@ export async function onRequest(context: any) {
       ]
     }
     // Blocked/forbidden
-    else if (error.message?.includes('403') || error.message?.includes('401') || error.message?.includes('blocked')) {
+    else if (errorMessage.includes('403') || errorMessage.includes('401') || errorMessage.includes('blocked')) {
       errorType = 'blocked'
       userMessage = 'The website is blocking automated access'
       suggestions = [
@@ -384,7 +411,7 @@ export async function onRequest(context: any) {
       ]
     }
     // Invalid URL
-    else if (error.message?.includes('Invalid URL') || error.message?.includes('protocol')) {
+    else if (errorMessage.includes('Invalid URL') || errorMessage.includes('protocol')) {
       errorType = 'invalid_url'
       userMessage = 'The URL format is invalid'
       suggestions = [
