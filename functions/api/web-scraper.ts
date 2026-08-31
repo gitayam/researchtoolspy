@@ -30,6 +30,7 @@ interface ScrapingResult {
     [key: string]: any
   }
   reliability_score?: number
+  dataset_id?: string
   extracted_at: string
 }
 
@@ -326,8 +327,8 @@ export async function onRequest(context: any) {
         })
 
         if (datasetResponse.ok) {
-          const { dataset } = await datasetResponse.json()
-          result.dataset_id = dataset.id
+          const payload = await datasetResponse.json() as { dataset?: { id?: string } }
+          if (payload.dataset?.id) result.dataset_id = payload.dataset.id
         }
       } catch (error) {
         console.error('Failed to create dataset:', error)
