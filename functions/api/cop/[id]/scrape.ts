@@ -9,6 +9,7 @@ import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-h
 import { JSON_HEADERS } from '../../_shared/api-utils'
 import { logEvent } from '../../_shared/event-log'
 import { buildUpstreamFailureLog } from './_upstream-failure-log'
+import { buildScrapeImportKey } from './_scrape-idempotency'
 
 interface Env {
   DB: D1Database
@@ -28,13 +29,6 @@ const ACTORS: Record<string, string> = {
 
 const MAX_EVIDENCE_BATCH = 50
 
-async function getSessionWorkspaceId(db: D1Database, sessionId: string): Promise<string | null> {
-  const row = await db.prepare(
-    'SELECT workspace_id FROM cop_sessions WHERE id = ?'
-  ).bind(sessionId).first<{ workspace_id: string }>()
-  return row?.workspace_id ?? null
-}
-
 // POST — Start a scrape run
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   const { request, env, params } = context
@@ -47,7 +41,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         status: 401, headers: JSON_HEADERS,
       })
     }
-    if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
+    const workspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId)
+    if (!workspaceId) {
       return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
     }
 
@@ -55,13 +50,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!apiKey) {
       return new Response(JSON.stringify({ error: 'APIFY_API_KEY not configured' }), {
         status: 503, headers: JSON_HEADERS,
-      })
-    }
-
-    const workspaceId = await getSessionWorkspaceId(env.DB, sessionId)
-    if (!workspaceId) {
-      return new Response(JSON.stringify({ error: 'COP session not found' }), {
-        status: 404, headers: JSON_HEADERS,
       })
     }
 
@@ -147,12 +135,30 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const runId = run.id
     const runStatus = run.status // READY, RUNNING, SUCCEEDED, FAILED, etc.
 
+    // Persist run ownership from authenticated context. A later GET must resolve
+    // this exact tuple before the caller-supplied run_id is sent to Apify.
+    await env.DB.prepare(`
+      INSERT INTO cop_scrape_runs (
+        run_id, cop_session_id, workspace_id, requested_by, scraper_type,
+        actor_id, dataset_id, status, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+    `).bind(
+      runId,
+      sessionId,
+      workspaceId,
+      userId,
+      scraperType,
+      actorId,
+      run.defaultDatasetId || null,
+      runStatus,
+    ).run()
+
     // If sync run completed, fetch results and ingest immediately
     if (runStatus === 'SUCCEEDED') {
       const datasetId = run.defaultDatasetId
       const items = await fetchDatasetItems(env, apiKey, datasetId, MAX_EVIDENCE_BATCH)
-      const evidence = transformToEvidence(items, scraperType, body)
-      const inserted = await batchInsertEvidence(env.DB, sessionId, workspaceId, userId, evidence)
+      const evidence = transformToEvidence(items, scraperType)
+      const inserted = await batchInsertEvidence(env.DB, sessionId, workspaceId, userId, runId, scraperType, evidence)
 
       return new Response(JSON.stringify({
         run_id: runId,
@@ -198,7 +204,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         status: 401, headers: JSON_HEADERS,
       })
     }
-    if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
+    const workspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId)
+    if (!workspaceId) {
       return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
     }
 
@@ -209,9 +216,17 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       })
     }
 
-    const workspaceId = await getSessionWorkspaceId(env.DB, sessionId)
-    if (!workspaceId) {
-      return new Response(JSON.stringify({ error: 'COP session not found' }), {
+    const registeredRun = await env.DB.prepare(`
+      SELECT scraper_type, dataset_id
+      FROM cop_scrape_runs
+      WHERE run_id = ? AND cop_session_id = ? AND workspace_id = ? AND requested_by = ?
+    `).bind(runId, sessionId, workspaceId, userId).first<{
+      scraper_type: string
+      dataset_id: string | null
+    }>()
+
+    if (!registeredRun) {
+      return new Response(JSON.stringify({ error: 'Scrape run not found' }), {
         status: 404, headers: JSON_HEADERS,
       })
     }
@@ -235,16 +250,26 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     const run = statusData.data
     const runStatus = run.status
 
+    await env.DB.prepare(`
+      UPDATE cop_scrape_runs
+      SET status = ?, dataset_id = COALESCE(?, dataset_id), updated_at = datetime('now')
+      WHERE run_id = ? AND cop_session_id = ? AND requested_by = ?
+    `).bind(runStatus, run.defaultDatasetId || null, runId, sessionId, userId).run()
+
     if (runStatus === 'SUCCEEDED') {
       const ingest = url.searchParams.get('ingest') !== 'false'
-      const datasetId = run.defaultDatasetId
+      const datasetId = run.defaultDatasetId || registeredRun.dataset_id
+      if (!datasetId) {
+        return new Response(JSON.stringify({ error: 'Scrape run has no result dataset' }), {
+          status: 502, headers: JSON_HEADERS,
+        })
+      }
       const items = await fetchDatasetItems(env, apiKey, datasetId, MAX_EVIDENCE_BATCH)
 
       if (ingest && items.length > 0) {
-        // Detect scraper type from actor ID
-        const scraperType = Object.entries(ACTORS).find(([, id]) => run.actId?.includes(id.split('~')[1]))?.[0] || 'unknown'
-        const evidence = transformToEvidence(items, scraperType, {})
-        const inserted = await batchInsertEvidence(env.DB, sessionId, workspaceId, userId, evidence)
+        const scraperType = registeredRun.scraper_type
+        const evidence = transformToEvidence(items, scraperType)
+        const inserted = await batchInsertEvidence(env.DB, sessionId, workspaceId, userId, runId, scraperType, evidence)
 
         return new Response(JSON.stringify({
           run_id: runId,
@@ -311,7 +336,6 @@ async function fetchDatasetItems(env: Env, apiKey: string, datasetId: string, li
 function transformToEvidence(
   items: any[],
   scraperType: string,
-  opts: Record<string, any>
 ): Array<{ title: string; content: string; url: string; source_type: string; credibility: string }> {
   return items.map((item) => {
     if (scraperType === 'tiktok') {
@@ -356,16 +380,30 @@ async function batchInsertEvidence(
   sessionId: string,
   workspaceId: string,
   userId: number,
+  runId: string,
+  scraperType: string,
   items: Array<{ title: string; content: string; url: string; source_type: string; credibility: string }>
 ): Promise<number> {
   if (items.length === 0) return 0
   const now = new Date().toISOString()
 
-  const stmts = items.map((item) => {
+  const keyedItems = await Promise.all(items.map(async (item) => ({
+    item,
+    importKey: await buildScrapeImportKey(sessionId, scraperType, item),
+  })))
+
+  const stmts = keyedItems.map(({ item, importKey }) => {
+    const metadata = JSON.stringify({
+      scrape_import_key: importKey,
+      scrape_provider: 'apify',
+      scrape_run_id: runId,
+      scraper_type: scraperType,
+      cop_session_id: sessionId,
+    })
     return db.prepare(`
-      INSERT INTO evidence_items (title, description, source_url, evidence_type, credibility, reliability, confidence_level,
-        workspace_id, created_by, status, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, 'unknown', 'medium', ?, ?, 'completed', ?, ?)
+      INSERT OR IGNORE INTO evidence_items (title, description, source_url, evidence_type, credibility, reliability, confidence_level,
+        workspace_id, created_by, status, metadata, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, 'unknown', 'medium', ?, ?, 'completed', ?, ?, ?)
     `).bind(
       item.title.substring(0, 500),
       item.content.substring(0, 5000),
@@ -374,13 +412,14 @@ async function batchInsertEvidence(
       item.credibility,
       workspaceId,
       userId,
+      metadata,
       now,
       now
     )
   })
 
-  await db.batch(stmts)
-  return items.length
+  const results = await db.batch(stmts)
+  return results.reduce((count, result) => count + Number(result.meta?.changes || 0), 0)
 }
 
 export const onRequestOptions: PagesFunction = async () => {

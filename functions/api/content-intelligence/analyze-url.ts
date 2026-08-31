@@ -39,11 +39,13 @@ interface Env {
 }
 
 interface AnalyzeUrlRequest {
-  url: string
+  url?: string
   mode?: 'quick' | 'normal' | 'full'
   save_link?: boolean
   link_note?: string
   link_tags?: string[]
+  load_existing?: boolean
+  analysis_id?: number | string
   /** Authenticated upstream extraction fallback (for example, the Signal bot). */
   content_text?: string
   content_title?: string
@@ -103,8 +105,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (load_existing && analysis_id) {
       try {
         const result = await env.DB.prepare(`
-          SELECT * FROM content_analysis WHERE id = ?
-        `).bind(analysis_id).first()
+          SELECT *
+          FROM content_analysis
+          WHERE id = ?
+            AND user_id = ?
+            AND (? IS NULL OR COALESCE(workspace_id, '') = ?)
+        `).bind(analysis_id, userId, workspaceId, workspaceId ?? '').first()
 
         if (!result) {
           return new Response(JSON.stringify({ error: 'Analysis not found' }), {
@@ -255,34 +261,35 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const contentHash = await calculateHash(contentData.text)
 
     // Check for duplicate content in this workspace
+    const workspaceKey = workspaceId ?? ''
     const dedupCheck = await env.DB.prepare(`
       SELECT canonical_content_id, duplicate_count
-      FROM content_deduplication
-      WHERE content_hash = ?
-    `).bind(contentHash).first()
+      FROM content_analysis_cache
+      WHERE content_hash = ? AND user_id = ? AND workspace_key = ?
+    `).bind(contentHash, userId, workspaceKey).first()
 
     if (dedupCheck) {
 
       // Update access stats
       await env.DB.prepare(`
-        UPDATE content_deduplication
+        UPDATE content_analysis_cache
         SET total_access_count = total_access_count + 1,
             duplicate_count = duplicate_count + 1,
             last_accessed_at = datetime('now')
-        WHERE content_hash = ?
-      `).bind(contentHash).run()
+        WHERE content_hash = ? AND user_id = ? AND workspace_key = ?
+      `).bind(contentHash, userId, workspaceKey).run()
 
       await env.DB.prepare(`
         UPDATE content_analysis
         SET access_count = access_count + 1,
             last_accessed_at = datetime('now')
-        WHERE id = ?
-      `).bind(dedupCheck.canonical_content_id).run()
+        WHERE id = ? AND user_id = ?
+      `).bind(dedupCheck.canonical_content_id, userId).run()
 
       // Return existing analysis
       const existingAnalysis = await env.DB.prepare(`
-        SELECT * FROM content_analysis WHERE id = ?
-      `).bind(dedupCheck.canonical_content_id).first()
+        SELECT * FROM content_analysis WHERE id = ? AND user_id = ?
+      `).bind(dedupCheck.canonical_content_id, userId).first()
 
       if (existingAnalysis) {
         return new Response(JSON.stringify({
@@ -484,11 +491,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       // Create deduplication entry for new content (use INSERT OR IGNORE to handle race conditions)
       try {
         await env.DB.prepare(`
-          INSERT OR IGNORE INTO content_deduplication (
-            content_hash, canonical_content_id, duplicate_count,
+          INSERT OR IGNORE INTO content_analysis_cache (
+            content_hash, user_id, workspace_key, canonical_content_id, duplicate_count,
             total_access_count, first_analyzed_at, last_accessed_at
-          ) VALUES (?, ?, 1, 1, datetime('now'), datetime('now'))
-        `).bind(contentHash, analysisId).run()
+          ) VALUES (?, ?, ?, ?, 1, 1, datetime('now'), datetime('now'))
+        `).bind(contentHash, userId, workspaceKey, analysisId).run()
 
       } catch (dedupError) {
         // Non-fatal: deduplication is an optimization, not critical
@@ -499,17 +506,19 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       console.error('[DEBUG] Error details:', error instanceof Error ? error.message : String(error))
 
       // Check if this is a duplicate content error
-      if (error instanceof Error && error.message.includes('UNIQUE constraint failed: content_deduplication.content_hash')) {
+      if (error instanceof Error && error.message.includes('UNIQUE constraint failed: content_analysis_cache')) {
         // This is a race condition - content was analyzed simultaneously
         // Find and return the existing analysis
         const existingDedup = await env.DB.prepare(`
-          SELECT canonical_content_id FROM content_deduplication WHERE content_hash = ?
-        `).bind(contentHash).first()
+          SELECT canonical_content_id
+          FROM content_analysis_cache
+          WHERE content_hash = ? AND user_id = ? AND workspace_key = ?
+        `).bind(contentHash, userId, workspaceKey).first()
 
         if (existingDedup) {
           const existingAnalysis = await env.DB.prepare(`
-            SELECT * FROM content_analysis WHERE id = ?
-          `).bind(existingDedup.canonical_content_id).first()
+            SELECT * FROM content_analysis WHERE id = ? AND user_id = ?
+          `).bind(existingDedup.canonical_content_id, userId).first()
 
           if (existingAnalysis) {
             return new Response(JSON.stringify({
