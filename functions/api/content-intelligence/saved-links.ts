@@ -236,6 +236,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       // Call analyze-url endpoint internally
       const analyzeResponse = await fetch(`${new URL(request.url).origin}/api/content-intelligence/analyze-url`, {
         method: 'POST',
+        redirect: 'error',
         headers: internalAnalyzeHeaders(request),
         body: JSON.stringify({ url, mode: 'full' }),
         signal: AbortSignal.timeout(INTERNAL_ANALYZE_TIMEOUT_MS),

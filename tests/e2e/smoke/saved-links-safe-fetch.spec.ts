@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { createServer, type Server } from 'node:http'
 import { onRequestPost } from '../../../functions/api/content-intelligence/saved-links'
 
 const sessions = {
@@ -61,8 +62,9 @@ function createDb() {
 function routeRequest(
   body: Record<string, unknown>,
   headers: Record<string, string> = {},
+  origin = 'https://researchtools.example',
 ): Request {
-  return new Request('https://researchtools.example/api/content-intelligence/saved-links', {
+  return new Request(`${origin}/api/content-intelligence/saved-links`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -112,10 +114,27 @@ function installNetworkMock(options: NetworkMockOptions): () => void {
 async function createSavedLink(
   body: Record<string, unknown>,
   headers: Record<string, string> = {},
+  origin?: string,
 ) {
   const fixture = createDb()
-  const response = await onRequestPost(context(routeRequest(body, headers), fixture.db) as never)
+  const response = await onRequestPost(context(routeRequest(body, headers, origin), fixture.db) as never)
   return { response, operations: fixture.operations }
+}
+
+async function listen(server: Server): Promise<string> {
+  await new Promise<void>((resolve, reject) => {
+    server.once('error', reject)
+    server.listen(0, '127.0.0.1', resolve)
+  })
+  const address = server.address()
+  if (!address || typeof address === 'string') throw new Error('Expected TCP test server address')
+  return `http://127.0.0.1:${address.port}`
+}
+
+async function close(server: Server): Promise<void> {
+  await new Promise<void>((resolve, reject) => {
+    server.close(error => error ? reject(error) : resolve())
+  })
 }
 
 test.describe('saved links safe-fetch migration @smoke', () => {
@@ -211,6 +230,7 @@ test.describe('saved links safe-fetch migration @smoke', () => {
 
   test('@smoke forwards exactly the approved internal headers and preserves analysis linkage', async () => {
     let analyzeHeaders = new Headers()
+    let analyzeRedirect: RequestRedirect | undefined
     let analyzeSignal: AbortSignal | null | undefined
     let deadlineMs: number | undefined
     const timeoutDescriptor = Object.getOwnPropertyDescriptor(AbortSignal, 'timeout')
@@ -225,6 +245,7 @@ test.describe('saved links safe-fetch migration @smoke', () => {
       target: (url, init) => {
         expect(url.href).toBe('https://researchtools.example/api/content-intelligence/analyze-url')
         analyzeHeaders = new Headers(init?.headers)
+        analyzeRedirect = init?.redirect
         analyzeSignal = init?.signal
         return Response.json({ id: 77, title: 'compatible extra field' })
       },
@@ -251,6 +272,7 @@ test.describe('saved links safe-fetch migration @smoke', () => {
         ['x-workspace-id', 'workspace-7'],
       ])
       expect(analyzeSignal).toBeInstanceOf(AbortSignal)
+      expect(analyzeRedirect).toBe('error')
       expect(deadlineMs).toBe(30_000)
       expect(body).toMatchObject({
         id: 41,
@@ -268,6 +290,52 @@ test.describe('saved links safe-fetch migration @smoke', () => {
       restore()
       if (timeoutDescriptor) Object.defineProperty(AbortSignal, 'timeout', timeoutDescriptor)
       else Reflect.deleteProperty(AbortSignal, 'timeout')
+    }
+  })
+
+  test('@smoke rejects internal redirects without replaying approved headers to another origin', async () => {
+    let analyzeRequests = 0
+    let targetRequests = 0
+    let analyzeHeaders = new Headers()
+    let targetHeaders = new Headers()
+    const targetServer = createServer((request, response) => {
+      targetRequests += 1
+      targetHeaders = new Headers(request.headers as Record<string, string>)
+      response.setHeader('Content-Type', 'application/json')
+      response.end(JSON.stringify({ id: 77 }))
+    })
+    const targetOrigin = await listen(targetServer)
+    const analyzeServer = createServer((request, response) => {
+      analyzeRequests += 1
+      analyzeHeaders = new Headers(request.headers as Record<string, string>)
+      response.statusCode = 302
+      response.setHeader('Location', `${targetOrigin}/capture`)
+      response.end()
+    })
+    const analyzeOrigin = await listen(analyzeServer)
+
+    try {
+      const { response, operations } = await createSavedLink(
+        { url: 'https://public.example/article', title: 'Caller title', auto_analyze: true },
+        {
+          'X-User-Hash': '0123456789abcdef',
+          'X-Workspace-ID': 'workspace-secret',
+        },
+        analyzeOrigin,
+      )
+
+      expect(response.status).toBe(500)
+      expect(await response.json()).toEqual({ error: 'Failed to save link' })
+      expect(analyzeRequests).toBe(1)
+      expect(analyzeHeaders.get('x-user-hash')).toBe('0123456789abcdef')
+      expect(analyzeHeaders.get('x-workspace-id')).toBe('workspace-secret')
+      expect(targetRequests).toBe(0)
+      expect(targetHeaders.has('x-user-hash')).toBe(false)
+      expect(targetHeaders.has('x-workspace-id')).toBe(false)
+      expect(operations.some(operation => operation.query.includes('UPDATE saved_links SET analysis_id'))).toBe(false)
+    } finally {
+      await close(analyzeServer)
+      await close(targetServer)
     }
   })
 
