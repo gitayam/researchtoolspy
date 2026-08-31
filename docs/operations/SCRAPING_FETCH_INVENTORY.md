@@ -16,6 +16,8 @@ This inventory records the current implementation, including unsafe legacy paths
 - `safe-text`: caller URL uses the bounded shared text-fetch policy; any separate renderer boundary is tracked independently.
 - `safe-document`: caller URL uses the bounded text/PDF router with MIME-specific streaming limits and PDF signature validation.
 - `safe-pdf`: caller URL uses the bounded PDF adapter with MIME and `%PDF-` signature validation.
+- `safe-multi-source`: caller and archive URLs use bounded HEAD/text/PDF adapters with exact-host provider constraints; dynamic rendering is disabled.
+- `safe-image`: caller URL uses the bounded image adapter with exact-host, MIME, signature, and byte validation before cache or persistence.
 - `delegated-unsafe`: the route calls another local endpoint whose current outbound behavior is unsafe; authorization forwarding must also be verified.
 - `constrained-provider`: the outbound hostname is constructed by the server for a named provider, but input validation, returned-URL handling, and response budgets are not yet centralized.
 - `third-party-job`: the Worker sends a caller URL to a scraping vendor rather than navigating it locally; target policy and data disclosure still require controls.
@@ -31,9 +33,9 @@ This inventory records the current implementation, including unsafe legacy paths
 | INV-005 | `POST /api/tools/extract-claims` (`functions/api/tools/extract-claims.ts`) | JSON `url`; archive APIs return snapshot URLs | authenticated | `enhancedFetch`, raw cache/archive fallbacks | `unsafe-direct` | safe primary fetch plus fixed-host archive adapters |
 | INV-006 | `POST /api/tools/extract-timeline` (`functions/api/tools/extract-timeline.ts`) | JSON `body.url` | authenticated | `enhancedFetch`, then optional Browser Run navigation | `unsafe-enhanced` | safe text fetch; renderer must enforce top-level, redirect, and subresource policy |
 | INV-007 | `POST /api/ai/scrape-url` (`functions/api/ai/scrape-url.ts`) | JSON `url` | authenticated | raw `fetch(url)` after lexical guard; optional Apify | `unsafe-direct` | bounded safe text fetch and separately governed provider adapter |
-| INV-008 | `POST /api/content-intelligence/analyze-url` (`functions/api/content-intelligence/analyze-url.ts`) | JSON `url`; redirects/archive results | authenticated | raw HEAD/GET navigation, raw PDF fetch, optional Browser Run | `unsafe-direct` | safe HEAD/text/PDF adapters; renderer egress enforcement |
-| INV-009 | `POST /api/content-intelligence/saved-links` (`functions/api/content-intelligence/saved-links.ts`) | JSON `url` | authenticated | raw title fetch and internal analyze call | `unsafe-direct` | safe title fetch; authenticated internal delegation |
-| INV-010 | `GET /api/content-intelligence/twitter-image-proxy` (`functions/api/content-intelligence/twitter-image-proxy.ts`) | query `url` | public | substring host check, then raw streaming fetch | `unsafe-direct` | exact-host image adapter with DNS/redirect/type/byte policy |
+| INV-008 | `POST /api/content-intelligence/analyze-url` (`functions/api/content-intelligence/analyze-url.ts`) | JSON `url`; redirects/archive results | authenticated | bounded HEAD/text/PDF adapters; exact-host archive/shortener policy; dynamic rendering disabled | `safe-multi-source` | enforcing egress boundary; measured renderer stays gated |
+| INV-009 | `POST /api/content-intelligence/saved-links` (`functions/api/content-intelligence/saved-links.ts`) | JSON `url` | authenticated | bounded title fetch and credential-allowlisted same-origin analysis delegation | `safe-text` | enforcing egress boundary; preserve delegation envelope |
+| INV-010 | `GET /api/content-intelligence/twitter-image-proxy` (`functions/api/content-intelligence/twitter-image-proxy.ts`) | query `url` | public | exact `pbs.twimg.com` bounded image adapter before versioned cache/R2 persistence; versioned cache hits require bounded image metadata and return sanitized headers | `safe-image` | enforcing egress boundary; public abuse/rate-limit control before higher-volume rollout |
 | INV-011 | `POST /api/tools/rage-check` (`functions/api/tools/rage-check.ts`) | JSON `url` | authenticated | shared `scrapeUrl` | `unsafe-shared` | safe shared scraper; governed renderer fallback |
 | INV-012 | `POST /api/surveys/public/:token/submit` (`functions/api/surveys/public/[token]/submit.ts`) | public form fields whose schema type is `url` | public token/Turnstile/rate-limit controls | background `enrichResponseUrls` → `scrapeUrl` and internal analyze | `unsafe-shared` | safe shared scraper and authenticated service binding/internal call |
 | INV-013 | `POST /api/cop/public/intake/:token/submit` (`functions/api/cop/public/intake/[token]/submit.ts`) | public intake fields whose schema type is `url` | public token/Turnstile/rate-limit controls | background `enrichResponseUrls` → `scrapeUrl` and internal analyze | `unsafe-shared` | same controls as INV-012 |
@@ -53,14 +55,12 @@ This inventory records the current implementation, including unsafe legacy paths
 
 ## Type-check boundary
 
-`npm run type-check:scraping-surface` compiles 22 Pages Function or scraping-helper roots, the shared safe-content and observability contracts, and their transitive imports with Cloudflare Workers types. It is intentionally named for the inventoried scraping surface; it is not a claim that every Pages Function compiles.
+`npm run type-check:scraping-surface` compiles 24 Pages Function or scraping-helper roots, the shared safe-content and observability contracts, and their transitive imports with Cloudflare Workers types. It is intentionally named for the inventoried scraping surface; it is not a claim that every Pages Function compiles.
 
-Three inventoried route roots remain explicit exclusions because fixing them crosses this corrective workstream's ownership boundary:
+One inventoried route root remains an explicit exclusion because fixing it crosses this corrective workstream's ownership boundary:
 
 | Excluded root | Existing type debt | Owner required |
 | --- | --- | --- |
-| `functions/api/content-intelligence/analyze-url.ts` | request fields absent from `AnalyzeUrlRequest`; unresolved `generateHash` symbol | content-intelligence/correctness owner |
-| `functions/api/content-intelligence/saved-links.ts` | untyped internal analyze response (`response.json()` is `unknown`) | content-intelligence owner |
 | `functions/api/content-intelligence/git-repository-extract.ts` | Node `Buffer` use and browser-only `import.meta.env` logger dependency under the Worker type surface | content-intelligence/runtime owner |
 
 These exclusions are still represented in the static inventory test and must not be described as type-checked. Removing an exclusion requires adding the root to `tsconfig.scraping-functions.json` and making the focused command pass without masking Worker/runtime incompatibilities.

@@ -132,14 +132,16 @@ flowchart LR
 - [ ] Route `tools/analyze-url`, `scrape-metadata`, claims, timeline, RageCheck, AI scrape, social routes, and the web scraper through it.
 - [x] Route `tools/scrape-metadata` through bounded text fetch and `tools/extract` through the bounded text/PDF document adapter.
 - [x] Route the shared content-intelligence PDF helper through bounded MIME/signature-validated PDF fetch.
+- [x] Route content-intelligence analysis, saved-link titles/delegation, and the public Twitter image proxy through bounded purpose-specific adapters; disable dynamic rendering on the analysis path pending enforcing egress.
+- [ ] Add binding-backed abuse throttling and write budgets to the public Twitter image proxy before promoting it for higher-volume use.
 - [x] Scope `content-intelligence/analyze-url` `load_existing` reads to the authenticated analysis owner and require owner/editor/admin workspace authority for new writes.
 - [x] Correct `enhancedFetch()` option typing, merged headers, abort propagation, total timeout, and bounded retry contract.
-- [ ] Add all `functions/`, `workers/`, and Container TypeScript entry points to build/CI validation. The current `type-check:scraping-surface` covers 22 inventoried roots with three explicit exclusions.
+- [ ] Add all `functions/`, `workers/`, and Container TypeScript entry points to build/CI validation. The current `type-check:scraping-surface` covers 24 inventoried roots with one explicit exclusion.
 - [x] Correct the web-scraper dataset authentication/response contract and final-redirect provenance.
 - [ ] Rename the metadata-completeness score so it is not represented as source reliability.
 - [x] Reserve paid COP scrape requests before Apify, bind runs to authenticated user/workspace/session, enforce editor/admin/owner writes, and validate ownership when polling.
 - [x] Add trusted provider item identity and idempotent evidence ingest semantics with a managed local-D1 migration.
-- [ ] Replace raw URL event context with keyed URL/domain identifiers and normalized errors.
+- [x] Replace content-intelligence extraction-failure raw URL/reason context with dedicated-key URL/domain identifiers, opaque correlation, and normalized errors; omit identifiers when the key is unavailable.
 
 ### Required tests
 

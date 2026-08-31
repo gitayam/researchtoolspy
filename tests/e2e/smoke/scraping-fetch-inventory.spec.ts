@@ -13,6 +13,8 @@ type SafetyStatus =
   | 'safe-text'
   | 'safe-document'
   | 'safe-pdf'
+  | 'safe-multi-source'
+  | 'safe-image'
   | 'unsafe-direct'
   | 'unsafe-enhanced'
   | 'unsafe-shared'
@@ -36,9 +38,9 @@ const entries: InventoryEntry[] = [
   { id: 'INV-005', file: 'functions/api/tools/extract-claims.ts', status: 'unsafe-direct', evidence: /enhancedFetch\(url/, typecheck: 'root' },
   { id: 'INV-006', file: 'functions/api/tools/extract-timeline.ts', status: 'unsafe-enhanced', evidence: /renderArticleFallback\(context\.env\.BROWSER_RENDERER, url\)/, typecheck: 'root' },
   { id: 'INV-007', file: 'functions/api/ai/scrape-url.ts', status: 'unsafe-direct', evidence: /response = await fetch\(url/, typecheck: 'root' },
-  { id: 'INV-008', file: 'functions/api/content-intelligence/analyze-url.ts', status: 'unsafe-direct', evidence: /fetch\(resolvedUrl/, typecheck: 'excluded' },
-  { id: 'INV-009', file: 'functions/api/content-intelligence/saved-links.ts', status: 'unsafe-direct', evidence: /fetch\(url,/, typecheck: 'excluded' },
-  { id: 'INV-010', file: 'functions/api/content-intelligence/twitter-image-proxy.ts', status: 'unsafe-direct', evidence: /fetch\(imageUrl,/, typecheck: 'root' },
+  { id: 'INV-008', file: 'functions/api/content-intelligence/analyze-url.ts', status: 'safe-multi-source', evidence: /safeFetchText\(resolvedUrl,/, typecheck: 'root' },
+  { id: 'INV-009', file: 'functions/api/content-intelligence/saved-links.ts', status: 'safe-text', evidence: /safeFetchText\(url,/, typecheck: 'root' },
+  { id: 'INV-010', file: 'functions/api/content-intelligence/twitter-image-proxy.ts', status: 'safe-image', evidence: /safeFetchImage\(validatedImageUrl,/, typecheck: 'root' },
   { id: 'INV-011', file: 'functions/api/tools/rage-check.ts', status: 'unsafe-shared', evidence: /scrapeUrl\(url,/, typecheck: 'root' },
   { id: 'INV-012', file: 'functions/api/surveys/public/[token]/submit.ts', status: 'unsafe-shared', evidence: /enrichResponseUrls\(/, typecheck: 'root' },
   { id: 'INV-013', file: 'functions/api/cop/public/intake/[token]/submit.ts', status: 'unsafe-shared', evidence: /enrichResponseUrls\(/, typecheck: 'root' },
