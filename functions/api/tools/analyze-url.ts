@@ -39,6 +39,11 @@ function validatedWaybackSnapshot(value: unknown): WaybackSnapshot | null {
   const snapshot = value as Record<string, unknown>
   if (typeof snapshot.timestamp !== 'string' || !/^\d{14}$/.test(snapshot.timestamp)) return null
   if (!isExactHttpsUrl(snapshot.url, WAYBACK_HOSTNAME)) return null
+  const snapshotUrl = new URL(snapshot.url)
+  const replayMatch = snapshotUrl.pathname.match(
+    /^\/web\/(\d{14})(?:id_|if_|im_|js_|cs_)?\/.+$/,
+  )
+  if (!replayMatch || replayMatch[1] !== snapshot.timestamp) return null
   return { timestamp: snapshot.timestamp, url: snapshot.url }
 }
 
@@ -63,14 +68,6 @@ function exactHttpsFetch(hostname: string): typeof fetch {
     }
     return await fetch(url, init)
   }) as typeof fetch
-}
-
-function resolveMetadataUrl(value: string, baseUrl: string): string {
-  try {
-    return new URL(value, baseUrl).href
-  } catch {
-    return value
-  }
 }
 
 // Extract metadata from HTML
@@ -113,7 +110,7 @@ function extractMetadata(html: string, url: string): any {
         openGraph[prop.replace('og:', '')] = content
         if (prop === 'og:title' && !metadata.title) metadata.title = content
         if (prop === 'og:description' && !metadata.description) metadata.description = content
-        if (prop === 'og:image' && !metadata.image) metadata.image = resolveMetadataUrl(content, url)
+        if (prop === 'og:image' && !metadata.image) metadata.image = content
         if (prop === 'og:site_name' && !metadata.siteName) metadata.siteName = content
         if (prop === 'og:type' && !metadata.type) metadata.type = content
       }
@@ -358,7 +355,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const responseTime = Date.now() - startTime
 
     // Extract metadata
-    const { metadata, seo } = extractMetadata(html, finalUrl)
+    const { metadata, seo } = extractMetadata(html, normalizedUrl)
 
     // Domain info
     const domain = {

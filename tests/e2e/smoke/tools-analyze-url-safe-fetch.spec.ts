@@ -31,6 +31,25 @@ function installNetworkMock(mock: NetworkMock): () => void {
   return () => { globalThis.fetch = originalFetch }
 }
 
+function acceleratePolicyDeadline(): () => void {
+  const originalSetTimeout = globalThis.setTimeout
+  globalThis.setTimeout = ((handler: TimerHandler, timeout?: number, ...args: unknown[]) => {
+    return originalSetTimeout(handler, timeout === 15_000 ? 10 : timeout, ...args)
+  }) as typeof setTimeout
+  return () => { globalThis.setTimeout = originalSetTimeout }
+}
+
+function stalledResponse(signal: AbortSignal, onAbort: () => void): Response {
+  return new Response(new ReadableStream<Uint8Array>({
+    start(controller) {
+      signal.addEventListener('abort', () => {
+        onAbort()
+        controller.error(signal.reason)
+      }, { once: true })
+    },
+  }), { headers: { 'Content-Type': 'text/html' } })
+}
+
 function routeRequest(body: Record<string, unknown>, authenticated = true): Request {
   return new Request('https://researchtools.example/api/tools/analyze-url', {
     method: 'POST',
@@ -139,7 +158,7 @@ test.describe('tools analyze-url bounded outbound policy @smoke', () => {
           title: 'Redirected & Article',
           description: 'Bounded metadata',
           siteName: 'Example Publisher',
-          image: 'https://final.example/images/preview.jpg',
+          image: '/images/preview.jpg',
         },
         domain: {
           name: 'public.example',
@@ -163,6 +182,8 @@ test.describe('tools analyze-url bounded outbound policy @smoke', () => {
         'og:site_name': 'Example Publisher',
         'og:image': '/images/preview.jpg',
       })
+      expect((body.metadata as Record<string, unknown>).image)
+        .not.toBe('https://final.example/images/preview.jpg')
       expect(body.reliability).toMatchObject({ rating: expect.any(String), score: expect.any(Number) })
       expect(body.analyzedAt).toEqual(expect.any(String))
       expect(targets).toEqual([
@@ -252,6 +273,64 @@ test.describe('tools analyze-url bounded outbound policy @smoke', () => {
     }
   })
 
+  test('@smoke enforces the primary 15s total deadline through propagated body abort', async () => {
+    let primaryAbortObserved = false
+    const targets: string[] = []
+    const restoreTimer = acceleratePolicyDeadline()
+    const restoreFetch = installNetworkMock({
+      target: (url, init) => {
+        targets.push(url.href)
+        return stalledResponse(init?.signal as AbortSignal, () => { primaryAbortObserved = true })
+      },
+    })
+    try {
+      const url = 'https://public.example/stalled'
+      const response = await invoke({ url, checkWayback: true })
+      expect(response.status).toBe(200)
+      fetchFailureShape(await response.json() as Record<string, unknown>, url)
+      expect(primaryAbortObserved).toBe(true)
+      expect(targets).toEqual([url])
+      expect(targets.every(target => !target.includes('/save/') && !target.includes('archive.org'))).toBe(true)
+    } finally {
+      restoreFetch()
+      restoreTimer()
+    }
+  })
+
+  test('@smoke preserves transport-failure and textual 404 analysis envelopes', async () => {
+    let mode: 'transport' | 'not-found' = 'transport'
+    const restore = installNetworkMock({
+      target: () => {
+        if (mode === 'transport') throw new Error('sensitive upstream transport details')
+        return new Response('<html><head><title>Missing Article</title></head><body>missing</body></html>', {
+          status: 404,
+          headers: { 'Content-Type': 'text/html' },
+        })
+      },
+    })
+    try {
+      const url = 'https://public.example/article'
+      const failed = await invoke({ url })
+      expect(failed.status).toBe(200)
+      const failureBody = await failed.json() as Record<string, unknown>
+      fetchFailureShape(failureBody, url)
+      expect(JSON.stringify(failureBody)).not.toContain('sensitive upstream transport details')
+
+      mode = 'not-found'
+      const missing = await invoke({ url, checkSEO: true })
+      expect(missing.status).toBe(200)
+      expect(await missing.json()).toMatchObject({
+        normalizedUrl: url,
+        metadata: { title: 'Missing Article' },
+        status: { code: 404, ok: false, finalUrl: url, redirects: [] },
+        seo: { metaTags: {}, openGraph: {}, twitterCard: {} },
+        reliability: { score: expect.any(Number), rating: expect.any(String) },
+      })
+    } finally {
+      restore()
+    }
+  })
+
   test('@smoke accepts exact-HTTPS Wayback redirects and valid archived/CDX shapes without save transport', async () => {
     const targets: string[] = []
     const archiveHeaders: Headers[] = []
@@ -273,7 +352,7 @@ test.describe('tools analyze-url bounded outbound policy @smoke', () => {
             archived_snapshots: {
               closest: {
                 timestamp: '20260831010203',
-                url: 'https://web.archive.org/web/20260831010203/https://public.example/article',
+                url: 'https://web.archive.org/web/20260831010203id_/https://public.example/article',
               },
             },
           })
@@ -296,7 +375,7 @@ test.describe('tools analyze-url bounded outbound policy @smoke', () => {
       expect(body.wayback).toEqual({
         isArchived: true,
         lastSnapshot: '20260831010203',
-        archiveUrl: 'https://web.archive.org/web/20260831010203/https://public.example/article',
+        archiveUrl: 'https://web.archive.org/web/20260831010203id_/https://public.example/article',
         totalSnapshots: 2,
         firstSnapshot: '20250101000000',
       })
@@ -339,7 +418,7 @@ test.describe('tools analyze-url bounded outbound policy @smoke', () => {
   })
 
   test('@smoke rejects malicious snapshots and malformed timestamps without CDX or save transport', async () => {
-    let snapshot = {
+    let snapshot: Record<string, unknown> = {
       timestamp: '20260831010203',
       url: 'https://web.archive.org.attacker.example/web/20260831010203/https://public.example/article',
     }
@@ -354,7 +433,11 @@ test.describe('tools analyze-url bounded outbound policy @smoke', () => {
     try {
       for (const invalidSnapshot of [
         snapshot,
+        { timestamp: 20260831010203, url: 'https://web.archive.org/web/20260831010203/https://public.example/article' },
         { timestamp: 'not-a-timestamp', url: 'https://web.archive.org/web/valid-looking' },
+        { timestamp: '20260831010203', url: 'https://web.archive.org/not-web/20260831010203/https://public.example/article' },
+        { timestamp: '20260831010203', url: 'https://web.archive.org/web/20260831010203evil_/https://public.example/article' },
+        { timestamp: '20260831010203', url: 'https://web.archive.org/web/20260831010204/https://public.example/article' },
       ]) {
         snapshot = invalidSnapshot
         const response = await invoke({ url: 'https://public.example/article', checkWayback: true })
@@ -369,10 +452,16 @@ test.describe('tools analyze-url bounded outbound policy @smoke', () => {
     }
   })
 
-  test('@smoke contains archive redirects to exact HTTPS hosts and enforces the 256 KiB provider budget', async () => {
-    let mode: 'cross-host' | 'downgrade' | 'oversize' = 'cross-host'
+  test('@smoke contains archive redirects and rejects mixed DNS, wrong MIME, and both provider oversize forms', async () => {
+    let mode: 'cross-host' | 'downgrade' | 'mixed-dns' | 'oversize' | 'stream' | 'mime' = 'cross-host'
     const targets: string[] = []
     const restore = installNetworkMock({
+      dns: (hostname, type) => {
+        if (mode === 'mixed-dns' && hostname === 'archive.org') {
+          return type === 'A' ? ['93.184.216.34', '10.0.0.8'] : []
+        }
+        return type === 'A' ? ['93.184.216.34'] : []
+      },
       target: url => {
         targets.push(url.href)
         if (url.hostname === 'public.example') return htmlResponse()
@@ -388,6 +477,19 @@ test.describe('tools analyze-url bounded outbound policy @smoke', () => {
             headers: { Location: 'http://archive.org/insecure' },
           })
         }
+        if (mode === 'stream') {
+          let chunks = 0
+          return new Response(new ReadableStream<Uint8Array>({
+            pull(controller) {
+              chunks += 1
+              controller.enqueue(new Uint8Array(128 * 1024))
+              if (chunks === 3) controller.close()
+            },
+          }), { headers: { 'Content-Type': 'application/json' } })
+        }
+        if (mode === 'mime') {
+          return new Response('{}', { headers: { 'Content-Type': 'image/png' } })
+        }
         return new Response('{}', {
           headers: {
             'Content-Type': 'application/json',
@@ -397,7 +499,7 @@ test.describe('tools analyze-url bounded outbound policy @smoke', () => {
       },
     })
     try {
-      for (const nextMode of ['cross-host', 'downgrade', 'oversize'] as const) {
+      for (const nextMode of ['cross-host', 'downgrade', 'mixed-dns', 'oversize', 'stream', 'mime'] as const) {
         mode = nextMode
         const before = targets.length
         const response = await invoke({ url: 'https://public.example/article', checkWayback: true })
@@ -405,14 +507,85 @@ test.describe('tools analyze-url bounded outbound policy @smoke', () => {
         expect(response.status).toBe(200)
         expect(body.wayback).toEqual({ isArchived: false })
         const attemptTargets = targets.slice(before)
-        expect(attemptTargets).toHaveLength(2)
+        expect(attemptTargets).toHaveLength(mode === 'mixed-dns' ? 1 : 2)
         expect(attemptTargets[0]).toBe('https://public.example/article')
-        expect(attemptTargets[1]).toContain('https://archive.org/wayback/available?')
+        if (mode !== 'mixed-dns') {
+          expect(attemptTargets[1]).toContain('https://archive.org/wayback/available?')
+        }
         expect(attemptTargets.every(url => !url.includes('attacker.example') && !url.startsWith('http://'))).toBe(true)
       }
       expect(targets.every(url => !url.includes('/save/'))).toBe(true)
     } finally {
       restore()
+    }
+  })
+
+  test('@smoke rejects a malicious CDX redirect before transport and preserves the validated snapshot', async () => {
+    const targets: string[] = []
+    const restore = installNetworkMock({
+      target: url => {
+        targets.push(url.href)
+        if (url.hostname === 'public.example') return htmlResponse()
+        if (url.hostname === 'archive.org') {
+          return Response.json({
+            archived_snapshots: {
+              closest: {
+                timestamp: '20260831010203',
+                url: 'https://web.archive.org/web/20260831010203/https://public.example/article',
+              },
+            },
+          })
+        }
+        return new Response(null, {
+          status: 302,
+          headers: { Location: 'https://web.archive.org.attacker.example/cdx-escape' },
+        })
+      },
+    })
+    try {
+      const response = await invoke({ url: 'https://public.example/article', checkWayback: true })
+      const body = await response.json() as Record<string, unknown>
+      expect(response.status).toBe(200)
+      expect(body.wayback).toEqual({
+        isArchived: true,
+        lastSnapshot: '20260831010203',
+        archiveUrl: 'https://web.archive.org/web/20260831010203/https://public.example/article',
+        totalSnapshots: 1,
+      })
+      expect(targets).toHaveLength(3)
+      expect(targets.every(url => !url.includes('attacker.example') && !url.includes('/save/'))).toBe(true)
+    } finally {
+      restore()
+    }
+  })
+
+  test('@smoke enforces the archive 15s total deadline through propagated body abort', async () => {
+    let archiveAbortObserved = false
+    const targets: string[] = []
+    const restoreTimer = acceleratePolicyDeadline()
+    const restoreFetch = installNetworkMock({
+      target: (url, init) => {
+        targets.push(url.href)
+        if (url.hostname === 'public.example') return htmlResponse()
+        return stalledResponse(init?.signal as AbortSignal, () => { archiveAbortObserved = true })
+      },
+    })
+    try {
+      const response = await invoke({ url: 'https://public.example/article', checkWayback: true })
+      const body = await response.json() as Record<string, unknown>
+      expect(response.status).toBe(200)
+      expect(body).toMatchObject({
+        metadata: { title: 'Bounded Article' },
+        status: { code: 200, ok: true },
+        wayback: { isArchived: false },
+      })
+      expect(archiveAbortObserved).toBe(true)
+      expect(targets).toHaveLength(2)
+      expect(targets[1]).toContain('https://archive.org/wayback/available?')
+      expect(targets.every(url => !url.includes('/cdx/') && !url.includes('/save/'))).toBe(true)
+    } finally {
+      restoreFetch()
+      restoreTimer()
     }
   })
 })
