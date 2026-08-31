@@ -1,6 +1,8 @@
 import type { Env } from '../types'
 import { getUserFromRequest } from '../_shared/auth-helpers'
 import { JSON_HEADERS, CORS_HEADERS } from '../_shared/api-utils'
+import { safeFetchDocument } from '../_shared/safe-content'
+import { SafeFetchError } from '../_shared/safe-fetch'
 
 interface ExtractionResult {
   id: string
@@ -325,26 +327,38 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         })
       }
 
-      // Fetch URL content
-      const response = await fetch(body.url, {
-        headers: {
-          'User-Agent': 'ResearchToolsPy Content Extractor/1.0'
+      // Fetch HTML/text or a validated PDF through the shared bounded adapter.
+      const document = await safeFetchDocument(body.url, {
+        timeoutMs: 15_000,
+        maxRedirects: 5,
+        requestInit: {
+          headers: {
+            'User-Agent': 'ResearchToolsPy Content Extractor/1.0'
+          },
         },
-        signal: AbortSignal.timeout(15000),
       })
 
-      if (!response.ok) {
-        return new Response(JSON.stringify({ error: `Failed to fetch URL: ${response.statusText}` }), {
+      if (!document.response.ok) {
+        return new Response(JSON.stringify({ error: `Failed to fetch URL: ${document.response.statusText}` }), {
           status: 400,
           headers: JSON_HEADERS
         })
       }
 
-      const html = await response.text()
-      const { text, metadata } = extractFromHTML(html)
-
-      extractionData.text = text
-      extractionData.metadata = metadata
+      if (document.kind === 'pdf') {
+        const bytes = document.bytes
+        const arrayBuffer = bytes.buffer.slice(
+          bytes.byteOffset,
+          bytes.byteOffset + bytes.byteLength,
+        ) as ArrayBuffer
+        const { text, pages } = await extractFromPDF(arrayBuffer)
+        extractionData.text = text
+        extractionData.pages = pages
+      } else {
+        const { text, metadata } = extractFromHTML(document.text)
+        extractionData.text = text
+        extractionData.metadata = metadata
+      }
       extractionData.source = {
         type: 'url',
         url: body.url
@@ -380,7 +394,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     })
 
   } catch (error) {
-    console.error('Extraction error:', error)
+    // SafeFetchError messages can contain attacker-controlled URLs or network
+    // details. Keep the established generic response without logging those.
+    if (!(error instanceof SafeFetchError)) {
+      console.error('Extraction error:', error)
+    }
     return new Response(JSON.stringify({
       error: 'Failed to extract content',
     }), {

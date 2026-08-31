@@ -1,7 +1,7 @@
 import type { Env } from '../../types'
-import { enhancedFetch } from '../../utils/browser-profiles'
 import { getUserFromRequest } from '../_shared/auth-helpers'
 import { JSON_HEADERS, CORS_HEADERS } from '../_shared/api-utils'
+import { safeFetchText } from '../_shared/safe-fetch'
 
 interface ScrapedMetadata {
   title?: string
@@ -282,13 +282,24 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    // Fetch the URL with enhanced browser headers and retry logic
+    // Fetch through the bounded outbound policy. It validates DNS and each
+    // redirect hop, strips sensitive headers, and caps textual response bytes.
     let response: Response
+    let html: string
     try {
-      response = await enhancedFetch(body.url, {
-        maxRetries: 3,
-        retryDelay: 500
+      const fetched = await safeFetchText(validUrl, {
+        timeoutMs: 15_000,
+        maxRedirects: 5,
+        maxResponseBytes: 2 * 1024 * 1024,
+        requestInit: {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (compatible; ResearchToolsMetadata/1.0)',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,text/plain;q=0.8',
+          },
+        },
       })
+      response = fetched.response
+      html = fetched.text
 
       if (!response.ok) {
         return new Response(JSON.stringify({
@@ -302,7 +313,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           headers: JSON_HEADERS
         })
       }
-    } catch (fetchError: any) {
+    } catch {
       return new Response(JSON.stringify({
         error: 'Failed to fetch URL',
         suggestion: 'Unable to access the URL. It may be down, blocked, or require authentication.'
@@ -312,7 +323,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    const html = await response.text()
     const metadata = extractMetadata(html, body.url)
 
     // Get current date for access date
