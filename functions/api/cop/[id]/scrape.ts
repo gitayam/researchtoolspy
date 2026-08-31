@@ -5,11 +5,11 @@
  * GET  /api/cop/:id/scrape?run_id=xxx — Check run status / fetch results
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-helpers'
+import { getUserFromRequest } from '../../_shared/auth-helpers'
 import { JSON_HEADERS } from '../../_shared/api-utils'
 import { logEvent } from '../../_shared/event-log'
 import { buildUpstreamFailureLog } from './_upstream-failure-log'
-import { buildScrapeImportKey } from './_scrape-idempotency'
+import { buildScrapeItemIdentity } from './_scrape-idempotency'
 
 interface Env {
   DB: D1Database
@@ -29,6 +29,28 @@ const ACTORS: Record<string, string> = {
 
 const MAX_EVIDENCE_BATCH = 50
 
+async function getCopScrapeWorkspace(
+  db: D1Database,
+  sessionId: string,
+  userId: number,
+): Promise<string | null> {
+  const session = await db.prepare(
+    'SELECT workspace_id, created_by FROM cop_sessions WHERE id = ?'
+  ).bind(sessionId).first<{ workspace_id: string; created_by: number }>()
+  if (!session) return null
+  if (String(session.created_by) === String(userId)) return session.workspace_id
+
+  const collaborator = await db.prepare(`
+    SELECT role
+    FROM cop_collaborators
+    WHERE cop_session_id = ?
+      AND user_id = ?
+      AND accepted_at IS NOT NULL
+      AND lower(role) IN ('editor', 'admin')
+  `).bind(sessionId, userId).first<{ role: string }>()
+  return collaborator ? session.workspace_id : null
+}
+
 // POST — Start a scrape run
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   const { request, env, params } = context
@@ -41,7 +63,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         status: 401, headers: JSON_HEADERS,
       })
     }
-    const workspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId)
+    const workspaceId = await getCopScrapeWorkspace(env.DB, sessionId, userId)
     if (!workspaceId) {
       return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
     }
@@ -204,7 +226,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         status: 401, headers: JSON_HEADERS,
       })
     }
-    const workspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId)
+    const workspaceId = await getCopScrapeWorkspace(env.DB, sessionId, userId)
     if (!workspaceId) {
       return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
     }
@@ -336,7 +358,7 @@ async function fetchDatasetItems(env: Env, apiKey: string, datasetId: string, li
 function transformToEvidence(
   items: any[],
   scraperType: string,
-): Array<{ title: string; content: string; url: string; source_type: string; credibility: string }> {
+): Array<{ title: string; content: string; url: string; source_type: string; credibility: string; providerItemId: string | null }> {
   return items.map((item) => {
     if (scraperType === 'tiktok') {
       const author = item.authorMeta?.name || item.author || 'Unknown'
@@ -349,6 +371,7 @@ function transformToEvidence(
         url: item.webVideoUrl || `https://www.tiktok.com/@${author}/video/${item.id}`,
         source_type: 'signal',
         credibility: 'unverified',
+        providerItemId: item.id != null ? String(item.id) : item.videoId != null ? String(item.videoId) : null,
       }
     }
 
@@ -361,6 +384,13 @@ function transformToEvidence(
         url: item.url || item.tweetUrl || '',
         source_type: 'signal',
         credibility: 'unverified',
+        providerItemId: item.id != null
+          ? String(item.id)
+          : item.id_str != null
+            ? String(item.id_str)
+            : item.tweetId != null
+              ? String(item.tweetId)
+              : null,
       }
     }
 
@@ -371,6 +401,7 @@ function transformToEvidence(
       url: item.url || '',
       source_type: 'document',
       credibility: 'unverified',
+      providerItemId: item.id != null ? String(item.id) : null,
     }
   })
 }
@@ -382,44 +413,68 @@ async function batchInsertEvidence(
   userId: number,
   runId: string,
   scraperType: string,
-  items: Array<{ title: string; content: string; url: string; source_type: string; credibility: string }>
+  items: Array<{ title: string; content: string; url: string; source_type: string; credibility: string; providerItemId: string | null }>
 ): Promise<number> {
   if (items.length === 0) return 0
   const now = new Date().toISOString()
 
   const keyedItems = await Promise.all(items.map(async (item) => ({
     item,
-    importKey: await buildScrapeImportKey(sessionId, scraperType, item),
+    identity: await buildScrapeItemIdentity(scraperType, item),
   })))
 
-  const stmts = keyedItems.map(({ item, importKey }) => {
+  const stmts = keyedItems.flatMap(({ item, identity }) => {
+    const importId = `${sessionId}:${workspaceId}:${identity.itemKey}`
     const metadata = JSON.stringify({
-      scrape_import_key: importKey,
       scrape_provider: 'apify',
       scrape_run_id: runId,
       scraper_type: scraperType,
       cop_session_id: sessionId,
+      provider_item_id: identity.providerItemId,
     })
-    return db.prepare(`
-      INSERT OR IGNORE INTO evidence_items (title, description, source_url, evidence_type, credibility, reliability, confidence_level,
-        workspace_id, created_by, status, metadata, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, 'unknown', 'medium', ?, ?, 'completed', ?, ?, ?)
-    `).bind(
-      item.title.substring(0, 500),
-      item.content.substring(0, 5000),
-      item.url.substring(0, 2000),
-      item.source_type,
-      item.credibility,
-      workspaceId,
-      userId,
-      metadata,
-      now,
-      now
-    )
+    return [
+      db.prepare(`
+        INSERT OR IGNORE INTO cop_scrape_imports (
+          id, cop_session_id, workspace_id, provider, item_key, provider_item_id,
+          canonical_url, run_id, imported_by, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).bind(
+        importId, sessionId, workspaceId, scraperType, identity.itemKey,
+        identity.providerItemId, identity.canonicalUrl, runId, userId, now,
+      ),
+      db.prepare(`
+        INSERT INTO evidence_items (title, description, source_url, evidence_type, credibility, reliability, confidence_level,
+          workspace_id, created_by, status, metadata, created_at, updated_at)
+        SELECT ?, ?, ?, ?, ?, 'unknown', 'medium', ?, ?, 'completed', ?, ?, ?
+        WHERE EXISTS (
+          SELECT 1 FROM cop_scrape_imports WHERE id = ? AND evidence_item_id IS NULL
+        )
+      `).bind(
+        item.title.substring(0, 500),
+        item.content.substring(0, 5000),
+        (identity.canonicalUrl || item.url).substring(0, 2000),
+        item.source_type,
+        item.credibility,
+        workspaceId,
+        userId,
+        metadata,
+        now,
+        now,
+        importId,
+      ),
+      db.prepare(`
+        UPDATE cop_scrape_imports
+        SET evidence_item_id = last_insert_rowid()
+        WHERE id = ? AND evidence_item_id IS NULL
+      `).bind(importId),
+    ]
   })
 
   const results = await db.batch(stmts)
-  return results.reduce((count, result) => count + Number(result.meta?.changes || 0), 0)
+  return results.reduce(
+    (count, result, index) => count + (index % 3 === 1 ? Number(result.meta?.changes || 0) : 0),
+    0,
+  )
 }
 
 export const onRequestOptions: PagesFunction = async () => {

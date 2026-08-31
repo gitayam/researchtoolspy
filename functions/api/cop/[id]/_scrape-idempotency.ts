@@ -2,9 +2,21 @@ export interface ScrapeEvidenceIdentity {
   title: string
   content: string
   url: string
+  providerItemId?: string | null
 }
 
-function canonicalSourceUrl(rawUrl: string): string | null {
+export interface ScrapeItemIdentity {
+  itemKey: string
+  providerItemId: string | null
+  canonicalUrl: string | null
+}
+
+function normalizeProviderId(value: string | null | undefined): string | null {
+  const normalized = value?.trim()
+  return normalized ? normalized.slice(0, 500) : null
+}
+
+export function canonicalizeScrapeUrl(rawUrl: string, provider: string): string | null {
   const value = rawUrl.trim()
   if (!value) return null
 
@@ -15,9 +27,32 @@ function canonicalSourceUrl(rawUrl: string): string | null {
     if ((url.protocol === 'https:' && url.port === '443') || (url.protocol === 'http:' && url.port === '80')) {
       url.port = ''
     }
+
+    if (provider === 'twitter' && /^(?:www\.|mobile\.)?(?:twitter\.com|x\.com)$/.test(url.hostname)) {
+      url.protocol = 'https:'
+      url.hostname = 'x.com'
+      url.port = ''
+      const status = url.pathname.match(/\/status\/(\d+)/i)
+      if (status) url.pathname = `/i/status/${status[1]}`
+      url.search = ''
+    } else if (provider === 'tiktok' && /^(?:www\.|m\.)?tiktok\.com$/.test(url.hostname)) {
+      url.protocol = 'https:'
+      url.hostname = 'www.tiktok.com'
+      url.port = ''
+      const video = url.pathname.match(/\/video\/(\d+)/i)
+      if (video) url.pathname = `/video/${video[1]}`
+      url.search = ''
+    } else {
+      for (const key of [...url.searchParams.keys()]) {
+        if (/^(?:utm_.+|fbclid|gclid|mc_cid|mc_eid)$/i.test(key)) url.searchParams.delete(key)
+      }
+      url.searchParams.sort()
+    }
+
+    if (url.pathname !== '/') url.pathname = url.pathname.replace(/\/+$/, '')
     return url.toString()
   } catch {
-    return value
+    return null
   }
 }
 
@@ -28,18 +63,30 @@ async function sha256Hex(value: string): Promise<string> {
 }
 
 /**
- * Build a stable, session-scoped identity for a scraped item.
- *
- * The source URL is preferred because polling the same run and encountering the
- * same post in a later run should be the same logical import. Items without a
- * URL fall back to their bounded title/content identity.
+ * Prefer immutable provider IDs, then canonical platform URLs, then content.
  */
-export async function buildScrapeImportKey(
-  sessionId: string,
-  scraperType: string,
+export async function buildScrapeItemIdentity(
+  provider: string,
   item: ScrapeEvidenceIdentity,
-): Promise<string> {
-  const sourceIdentity = canonicalSourceUrl(item.url)
-    ?? `${item.title.trim()}\n${item.content.trim()}`
-  return `scrape:v1:${await sha256Hex(`${sessionId}\n${scraperType}\n${sourceIdentity}`)}`
+): Promise<ScrapeItemIdentity> {
+  const canonicalUrl = canonicalizeScrapeUrl(item.url, provider)
+  let providerItemId = normalizeProviderId(item.providerItemId)
+
+  if (!providerItemId && canonicalUrl) {
+    const parsed = new URL(canonicalUrl)
+    if (provider === 'twitter') providerItemId = parsed.pathname.match(/^\/i\/status\/(\d+)$/)?.[1] ?? null
+    if (provider === 'tiktok') providerItemId = parsed.pathname.match(/^\/video\/(\d+)$/)?.[1] ?? null
+  }
+
+  const immutableIdentity = providerItemId
+    ? `provider-id:${providerItemId}`
+    : canonicalUrl
+      ? `url:${canonicalUrl}`
+      : `content:${item.title.trim()}\n${item.content.trim()}`
+
+  return {
+    itemKey: `scrape-item:v2:${await sha256Hex(`${provider}\n${immutableIdentity}`)}`,
+    providerItemId,
+    canonicalUrl,
+  }
 }

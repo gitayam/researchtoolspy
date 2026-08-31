@@ -52,6 +52,36 @@ interface AnalyzeUrlRequest {
   content_source?: 'bot-scrape'
 }
 
+async function resolveAuthenticatedWorkspaceId(
+  db: D1Database,
+  userId: number,
+  requestedWorkspaceId: string | null,
+): Promise<string | null> {
+  if (requestedWorkspaceId) {
+    const workspace = await db.prepare(`
+      SELECT id FROM workspaces WHERE id = ? AND owner_id = ?
+      UNION
+      SELECT workspace_id AS id FROM workspace_members WHERE workspace_id = ? AND user_id = ?
+      LIMIT 1
+    `).bind(requestedWorkspaceId, userId, requestedWorkspaceId, userId).first<{ id: string }>()
+    return workspace?.id ?? null
+  }
+
+  const accessible = await db.prepare(`
+    SELECT id FROM (
+      SELECT workspace_id AS id FROM workspace_members WHERE user_id = ?
+      UNION
+      SELECT id FROM workspaces WHERE owner_id = ?
+    )
+    ORDER BY id ASC
+    LIMIT 2
+  `).bind(userId, userId).all<{ id: string }>()
+
+  // Derive only when unambiguous. Multi-workspace users must select an explicit
+  // authenticated workspace instead of silently persisting into an arbitrary one.
+  return accessible.results.length === 1 ? accessible.results[0].id : null
+}
+
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   const { request, env } = context
 
@@ -84,7 +114,16 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       if (user?.user_hash) bookmarkHash = user.user_hash as string
     }
 
-    const workspaceId = request.headers.get('X-Workspace-ID') || null
+    const requestedWorkspaceId = request.headers.get('X-Workspace-ID') || null
+    const workspaceId = await resolveAuthenticatedWorkspaceId(env.DB, userId, requestedWorkspaceId)
+    if (!workspaceId) {
+      return new Response(JSON.stringify({
+        error: requestedWorkspaceId ? 'Workspace access denied' : 'Workspace context required',
+      }), {
+        status: requestedWorkspaceId ? 403 : 400,
+        headers: JSON_HEADERS,
+      })
+    }
 
     // Parse request
     let body: AnalyzeUrlRequest
@@ -109,8 +148,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           FROM content_analysis
           WHERE id = ?
             AND user_id = ?
-            AND (? IS NULL OR COALESCE(workspace_id, '') = ?)
-        `).bind(analysis_id, userId, workspaceId, workspaceId ?? '').first()
+            AND workspace_id = ?
+        `).bind(analysis_id, userId, workspaceId).first()
 
         if (!result) {
           return new Response(JSON.stringify({ error: 'Analysis not found' }), {
@@ -260,63 +299,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     // Calculate content hash
     const contentHash = await calculateHash(contentData.text)
 
-    // Check for duplicate content in this workspace
-    const workspaceKey = workspaceId ?? ''
-    const dedupCheck = await env.DB.prepare(`
-      SELECT canonical_content_id, duplicate_count
-      FROM content_analysis_cache
-      WHERE content_hash = ? AND user_id = ? AND workspace_key = ?
-    `).bind(contentHash, userId, workspaceKey).first()
-
-    if (dedupCheck) {
-
-      // Update access stats
-      await env.DB.prepare(`
-        UPDATE content_analysis_cache
-        SET total_access_count = total_access_count + 1,
-            duplicate_count = duplicate_count + 1,
-            last_accessed_at = datetime('now')
-        WHERE content_hash = ? AND user_id = ? AND workspace_key = ?
-      `).bind(contentHash, userId, workspaceKey).run()
-
-      await env.DB.prepare(`
-        UPDATE content_analysis
-        SET access_count = access_count + 1,
-            last_accessed_at = datetime('now')
-        WHERE id = ? AND user_id = ?
-      `).bind(dedupCheck.canonical_content_id, userId).run()
-
-      // Return existing analysis
-      const existingAnalysis = await env.DB.prepare(`
-        SELECT * FROM content_analysis WHERE id = ? AND user_id = ?
-      `).bind(dedupCheck.canonical_content_id, userId).first()
-
-      if (existingAnalysis) {
-        return new Response(JSON.stringify({
-          ...existingAnalysis,
-          entities: JSON.parse(existingAnalysis.entities as string || '{}'),
-          word_frequency: JSON.parse(existingAnalysis.word_frequency as string || '{}'),
-          top_phrases: JSON.parse(existingAnalysis.top_phrases as string || '[]'),
-          sentiment_analysis: existingAnalysis.sentiment_analysis ? JSON.parse(existingAnalysis.sentiment_analysis as string) : null,
-          keyphrases: existingAnalysis.keyphrases ? JSON.parse(existingAnalysis.keyphrases as string) : null,
-          topics: existingAnalysis.topics ? JSON.parse(existingAnalysis.topics as string) : null,
-          claim_analysis: existingAnalysis.claim_analysis ? JSON.parse(existingAnalysis.claim_analysis as string) : null,
-          archive_urls: JSON.parse(existingAnalysis.archive_urls as string || '{}'),
-          bypass_urls: JSON.parse(existingAnalysis.bypass_urls as string || '{}'),
-          extraction_quality: assessExtractionQuality(
-            existingAnalysis.extracted_text as string || '',
-            existingAnalysis.title as string | undefined,
-            existingAnalysis.author as string | undefined,
-            existingAnalysis.publish_date as string | undefined
-          ),
-          from_cache: true,
-          cache_hit_count: dedupCheck.duplicate_count
-        }), {
-          status: 200,
-          headers: JSON_HEADERS
-        })
-      }
-    }
+    // Do not implicitly reuse a hash-only canonical analysis: creating the row
+    // and claiming a cache key cannot be atomic with the current integer-ID
+    // schema. Callers that want an existing result must use load_existing with
+    // its authenticated user + workspace scope above.
 
     // Word frequency analysis (2-7 word phrases only, no single words)
     const wordFrequency = analyzeWordFrequency(contentData.text)
@@ -488,67 +474,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       gpt_model_used: 'gpt-5.4-mini'
     })
 
-      // Create deduplication entry for new content (use INSERT OR IGNORE to handle race conditions)
-      try {
-        await env.DB.prepare(`
-          INSERT OR IGNORE INTO content_analysis_cache (
-            content_hash, user_id, workspace_key, canonical_content_id, duplicate_count,
-            total_access_count, first_analyzed_at, last_accessed_at
-          ) VALUES (?, ?, ?, ?, 1, 1, datetime('now'), datetime('now'))
-        `).bind(contentHash, userId, workspaceKey, analysisId).run()
-
-      } catch (dedupError) {
-        // Non-fatal: deduplication is an optimization, not critical
-        console.error('[DEBUG] Deduplication insert failed (non-fatal):', dedupError)
-      }
     } catch (error) {
       console.error('[DEBUG] Database save failed:', error)
       console.error('[DEBUG] Error details:', error instanceof Error ? error.message : String(error))
-
-      // Check if this is a duplicate content error
-      if (error instanceof Error && error.message.includes('UNIQUE constraint failed: content_analysis_cache')) {
-        // This is a race condition - content was analyzed simultaneously
-        // Find and return the existing analysis
-        const existingDedup = await env.DB.prepare(`
-          SELECT canonical_content_id
-          FROM content_analysis_cache
-          WHERE content_hash = ? AND user_id = ? AND workspace_key = ?
-        `).bind(contentHash, userId, workspaceKey).first()
-
-        if (existingDedup) {
-          const existingAnalysis = await env.DB.prepare(`
-            SELECT * FROM content_analysis WHERE id = ? AND user_id = ?
-          `).bind(existingDedup.canonical_content_id, userId).first()
-
-          if (existingAnalysis) {
-            return new Response(JSON.stringify({
-              ...existingAnalysis,
-              entities: JSON.parse(existingAnalysis.entities as string || '{}'),
-              word_frequency: JSON.parse(existingAnalysis.word_frequency as string || '{}'),
-              top_phrases: JSON.parse(existingAnalysis.top_phrases as string || '[]'),
-              sentiment_analysis: existingAnalysis.sentiment_analysis ? JSON.parse(existingAnalysis.sentiment_analysis as string) : null,
-              keyphrases: existingAnalysis.keyphrases ? JSON.parse(existingAnalysis.keyphrases as string) : null,
-              topics: existingAnalysis.topics ? JSON.parse(existingAnalysis.topics as string) : null,
-              claim_analysis: existingAnalysis.claim_analysis ? JSON.parse(existingAnalysis.claim_analysis as string) : null,
-              archive_urls: JSON.parse(existingAnalysis.archive_urls as string || '{}'),
-              bypass_urls: JSON.parse(existingAnalysis.bypass_urls as string || '{}'),
-              extraction_quality: assessExtractionQuality(
-                existingAnalysis.extracted_text as string || '',
-                existingAnalysis.title as string | undefined,
-                existingAnalysis.author as string | undefined,
-                existingAnalysis.publish_date as string | undefined
-              ),
-              from_cache: true,
-              race_condition_recovery: true
-            }), {
-              status: 200,
-              headers: JSON_HEADERS
-            })
-          }
-        }
-      }
-
-      throw new Error('Database save failed')
+      throw new Error('Database save failed', { cause: error })
     }
 
     // Optionally save link
