@@ -355,8 +355,18 @@ async function cancelResponseBody(response: Response, reason: string): Promise<v
   }
 }
 
-async function resolveDnsJson(hostname: string, type: 'A' | 'AAAA', signal: AbortSignal): Promise<string[]> {
-  const endpoint = new URL('https://cloudflare-dns.com/dns-query')
+const DNS_JSON_RESOLVERS = [
+  'https://cloudflare-dns.com/dns-query',
+  'https://dns.google/resolve',
+] as const
+
+async function resolveDnsJson(
+  resolverUrl: string,
+  hostname: string,
+  type: 'A' | 'AAAA',
+  signal: AbortSignal,
+): Promise<string[]> {
+  const endpoint = new URL(resolverUrl)
   endpoint.searchParams.set('name', hostname)
   endpoint.searchParams.set('type', type)
   const response = await fetch(endpoint, {
@@ -380,13 +390,27 @@ async function resolveDnsJson(hostname: string, type: 'A' | 'AAAA', signal: Abor
 }
 
 export const resolvePublicHostname: HostnameResolver = async (hostname, signal) => {
-  const results = await Promise.all([
-    resolveDnsJson(hostname, 'A', signal),
-    resolveDnsJson(hostname, 'AAAA', signal),
-  ])
-  const addresses = results.flat()
-  if (addresses.length === 0) throw new Error('Hostname did not resolve to an address')
-  return [...new Set(addresses)]
+  const failures: unknown[] = []
+
+  // DNS validation must fail closed, but a single DoH provider outage must not
+  // disable every scraper. Accept an answer only when one provider completes
+  // both A and AAAA lookups; never combine a partial response across providers.
+  for (const resolverUrl of DNS_JSON_RESOLVERS) {
+    try {
+      const results = await Promise.all([
+        resolveDnsJson(resolverUrl, hostname, 'A', signal),
+        resolveDnsJson(resolverUrl, hostname, 'AAAA', signal),
+      ])
+      const addresses = [...new Set(results.flat())]
+      if (addresses.length > 0) return addresses
+      failures.push(new Error('Hostname did not resolve to an address'))
+    } catch (error) {
+      if (signal.aborted) throw error
+      failures.push(error)
+    }
+  }
+
+  throw new AggregateError(failures, 'All DNS resolvers failed')
 }
 
 /** Validate URL syntax, hostname policy, and all resolved addresses. */

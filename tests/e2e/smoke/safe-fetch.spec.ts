@@ -108,6 +108,48 @@ test.describe('safe outbound fetch policy @smoke', () => {
     }
   })
 
+  test('@smoke falls back to a second DNS provider only after a complete provider failure', async () => {
+    const originalFetch = globalThis.fetch
+    const dnsHosts: string[] = []
+    let outboundCalls = 0
+    globalThis.fetch = (async (input: RequestInfo | URL) => {
+      const query = new URL(String(input))
+      dnsHosts.push(query.hostname)
+      if (query.hostname === 'cloudflare-dns.com') {
+        return new Response('primary resolver unavailable', { status: 503 })
+      }
+      const type = query.searchParams.get('type')
+      return new Response(JSON.stringify({
+        Status: 0,
+        Answer: type === 'A'
+          ? [{ type: 1, data: '93.184.216.34' }]
+          : [{ type: 28, data: '2606:2800:220:1:248:1893:25c8:1946' }],
+      }), { headers: { 'Content-Type': 'application/json' } })
+    }) as typeof fetch
+
+    try {
+      const result = await safeFetchText('https://public.example.com/', {
+        fetchImpl: (async () => {
+          outboundCalls += 1
+          return new Response('public article', {
+            headers: { 'Content-Type': 'text/plain' },
+          })
+        }) as typeof fetch,
+      })
+
+      expect(result.text).toBe('public article')
+      expect(outboundCalls).toBe(1)
+      expect(dnsHosts).toEqual([
+        'cloudflare-dns.com',
+        'cloudflare-dns.com',
+        'dns.google',
+        'dns.google',
+      ])
+    } finally {
+      globalThis.fetch = originalFetch
+    }
+  })
+
   test('@smoke permits only bodyless GET/HEAD requests', async () => {
     let fetchCalls = 0
     const fetchImpl = (async (_input: RequestInfo | URL, init?: RequestInit) => {
