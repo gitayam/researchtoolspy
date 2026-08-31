@@ -6,6 +6,8 @@
 
 This is the living roadmap — the single source of truth for "what's next." Detailed findings live in [`TECH_DEBT.md`](operations/TECH_DEBT.md), the AI-safety review in [`AI_REFUSAL_REVIEW.md`](operations/AI_REFUSAL_REVIEW.md), and dated design/implementation plans in [`plans/`](plans/). Status legend: ✅ done · 🔄 partial · ⬜ planned.
 
+**Subsystem roadmap:** scraping/content extraction now has a dedicated delivery roadmap at [`SCRAPING_ROADMAP.md`](SCRAPING_ROADMAP.md), backed by the production evidence and falsifiable experiment plan in [`plans/2026-08-30-scraping-modernization.md`](plans/2026-08-30-scraping-modernization.md).
+
 ---
 
 ## Direction
