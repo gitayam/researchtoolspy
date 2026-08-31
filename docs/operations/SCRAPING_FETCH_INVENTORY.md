@@ -1,6 +1,6 @@
 # Scraping Outbound-Fetch Inventory
 
-**Audited baseline:** canonical `origin/main` SHA `e8c41a1a4c0078f03bf2c3cdbd2685c1ec273df7`; updated on the `codex/scraping-adapters-observability-20260831` integration milestone
+**Audited baseline:** canonical `origin/main` SHA `28ec2a9bed90503b1743a7f88bc1e4c19f92b1d3`; INV-003 updated on the `codex/scraping-tools-analyze-20260831` integration milestone
 
 **Last reviewed:** 2026-08-31
 
@@ -16,7 +16,7 @@ This inventory records the current implementation, including unsafe legacy paths
 - `safe-text`: caller URL uses the bounded shared text-fetch policy; any separate renderer boundary is tracked independently.
 - `safe-document`: caller URL uses the bounded text/PDF router with MIME-specific streaming limits and PDF signature validation.
 - `safe-pdf`: caller URL uses the bounded PDF adapter with MIME and `%PDF-` signature validation.
-- `safe-multi-source`: caller and archive URLs use bounded HEAD/text/PDF adapters with exact-host provider constraints; dynamic rendering is disabled.
+- `safe-multi-source`: caller and fixed provider/archive URLs use purpose-specific bounded adapters with exact-host constraints; dynamic rendering is disabled where applicable.
 - `safe-image`: caller URL uses the bounded image adapter with exact-host, MIME, signature, and byte validation before cache or persistence.
 - `delegated-unsafe`: the route calls another local endpoint whose current outbound behavior is unsafe; authorization forwarding must also be verified.
 - `constrained-provider`: the outbound hostname is constructed by the server for a named provider, but input validation, returned-URL handling, and response budgets are not yet centralized.
@@ -28,7 +28,7 @@ This inventory records the current implementation, including unsafe legacy paths
 | --- | --- | --- | --- | --- | --- | --- |
 | INV-001 | `POST /api/web-scraper` (`functions/api/web-scraper.ts`) | JSON `body.url` | authenticated | bounded `safeFetchText` with manual redirect validation | `safe-text` | enforcing egress boundary; preserve API error envelope |
 | INV-002 | `POST /api/tools/scrape-metadata` (`functions/api/tools/scrape-metadata.ts`) | JSON `body.url` | authenticated | bounded `safeFetchText` with manual redirect validation | `safe-text` | enforcing egress boundary; preserve API error envelope |
-| INV-003 | `POST /api/tools/analyze-url` (`functions/api/tools/analyze-url.ts`) | JSON `body.url`; archive services return more URLs | authenticated | `enhancedFetch` plus raw archive fetches | `unsafe-enhanced` | safe text fetch plus fixed-host archive adapter; validate returned snapshot URLs |
+| INV-003 | `POST /api/tools/analyze-url` (`functions/api/tools/analyze-url.ts`) | JSON `body.url`; archive services return snapshot metadata | authenticated | bounded text fetch plus exact-host bounded Wayback availability/CDX adapters; automatic archive writes disabled | `safe-multi-source` | enforcing egress boundary; preserve analysis envelope |
 | INV-004 | `POST /api/tools/extract` (`functions/api/tools/extract.ts`) | JSON `body.url` | authenticated | bounded `safeFetchDocument` with 2 MiB text and 10 MiB validated PDF modes | `safe-document` | enforcing egress boundary; preserve extraction envelope |
 | INV-005 | `POST /api/tools/extract-claims` (`functions/api/tools/extract-claims.ts`) | JSON `url`; archive APIs return snapshot URLs | authenticated | `enhancedFetch`, raw cache/archive fallbacks | `unsafe-direct` | safe primary fetch plus fixed-host archive adapters |
 | INV-006 | `POST /api/tools/extract-timeline` (`functions/api/tools/extract-timeline.ts`) | JSON `body.url` | authenticated | `enhancedFetch`, then optional Browser Run navigation | `unsafe-enhanced` | safe text fetch; renderer must enforce top-level, redirect, and subresource policy |

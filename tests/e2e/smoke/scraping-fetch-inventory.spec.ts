@@ -27,13 +27,21 @@ interface InventoryEntry {
   file: string
   status: SafetyStatus
   evidence: RegExp
+  forbidden?: RegExp[]
   typecheck: 'root' | 'transitive' | 'excluded'
 }
 
 const entries: InventoryEntry[] = [
   { id: 'INV-001', file: 'functions/api/web-scraper.ts', status: 'safe-text', evidence: /safeFetchText\(url,/, typecheck: 'root' },
   { id: 'INV-002', file: 'functions/api/tools/scrape-metadata.ts', status: 'safe-text', evidence: /safeFetchText\(validUrl,/, typecheck: 'root' },
-  { id: 'INV-003', file: 'functions/api/tools/analyze-url.ts', status: 'unsafe-enhanced', evidence: /enhancedFetch\(normalizedUrl/, typecheck: 'root' },
+  {
+    id: 'INV-003',
+    file: 'functions/api/tools/analyze-url.ts',
+    status: 'safe-multi-source',
+    evidence: /safeFetchText\(normalizedUrl,/,
+    forbidden: [/enhancedFetch\(/, /web\.archive\.org\/save\//],
+    typecheck: 'root',
+  },
   { id: 'INV-004', file: 'functions/api/tools/extract.ts', status: 'safe-document', evidence: /safeFetchDocument\(body\.url,/, typecheck: 'root' },
   { id: 'INV-005', file: 'functions/api/tools/extract-claims.ts', status: 'unsafe-direct', evidence: /enhancedFetch\(url/, typecheck: 'root' },
   { id: 'INV-006', file: 'functions/api/tools/extract-timeline.ts', status: 'unsafe-enhanced', evidence: /renderArticleFallback\(context\.env\.BROWSER_RENDERER, url\)/, typecheck: 'root' },
@@ -74,6 +82,9 @@ test.describe('scraping outbound-fetch inventory @smoke', () => {
     for (const entry of entries) {
       const source = readFileSync(resolve(repositoryRoot, entry.file), 'utf8')
       expect(source, `${entry.id} source evidence in ${entry.file}`).toMatch(entry.evidence)
+      for (const forbidden of entry.forbidden ?? []) {
+        expect(source, `${entry.id} forbidden legacy evidence in ${entry.file}`).not.toMatch(forbidden)
+      }
 
       const escapedFile = entry.file.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
       const escapedStatus = entry.status.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
