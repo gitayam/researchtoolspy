@@ -18,21 +18,25 @@ class SqliteD1Statement {
     private readonly database: DatabaseSync,
     private readonly sql: string,
     private readonly bindings: SQLInputValue[] = [],
+    private readonly onExecute: () => void = () => {},
   ) {}
 
   bind(...bindings: SQLInputValue[]) {
-    return new SqliteD1Statement(this.database, this.sql, bindings)
+    return new SqliteD1Statement(this.database, this.sql, bindings, this.onExecute)
   }
 
   first<T>() {
+    this.onExecute()
     return (this.database.prepare(this.sql).get(...this.bindings) as T | undefined) ?? null
   }
 
   all<T>() {
+    this.onExecute()
     return { results: this.database.prepare(this.sql).all(...this.bindings) as T[] }
   }
 
   run() {
+    this.onExecute()
     const result = this.database.prepare(this.sql).run(...this.bindings)
     return {
       success: true,
@@ -46,6 +50,8 @@ class SqliteD1Statement {
 
 class SqliteD1 {
   readonly sqlite = new DatabaseSync(':memory:')
+  maxBatchStatements = 0
+  statementExecutions = 0
 
   constructor() {
     this.sqlite.exec(`
@@ -87,10 +93,12 @@ class SqliteD1 {
   }
 
   prepare(sql: string) {
-    return new SqliteD1Statement(this.sqlite, sql)
+    return new SqliteD1Statement(this.sqlite, sql, [], () => { this.statementExecutions += 1 })
   }
 
   batch(statements: SqliteD1Statement[]) {
+    this.maxBatchStatements = Math.max(this.maxBatchStatements, statements.length)
+    if (statements.length > 50) throw new Error(`D1 statement budget exceeded: ${statements.length}`)
     this.sqlite.exec('BEGIN')
     try {
       const results = statements.map((statement) => statement.run())
@@ -143,6 +151,14 @@ test.describe('scraping authorization and idempotency contracts @smoke', () => {
     expect(fromTwitter.itemKey).toBe(fromX.itemKey)
     expect(fromTwitter.providerItemId).toBe('42')
     expect(fromTwitter.canonicalUrl).toBe('https://x.com/i/status/42')
+
+    const numericProviderId = await buildScrapeItemIdentity('twitter', {
+      title: 'Numeric JSON ID',
+      content: 'Must use the exact URL ID',
+      url: 'https://x.com/example/status/9007199254740993123',
+      providerItemId: Number('9007199254740993123') as unknown as string,
+    })
+    expect(numericProviderId.providerItemId).toBe('9007199254740993123')
   })
 
   test('@smoke denies unaccepted or viewer collaborators before calling Apify', async () => {
@@ -208,6 +224,73 @@ test.describe('scraping authorization and idempotency contracts @smoke', () => {
     }
   })
 
+  test('@smoke concurrent and retried identical paid POSTs call Apify once', async () => {
+    const db = new SqliteD1()
+    seedOwner(db)
+    const originalFetch = globalThis.fetch
+    let fetchCalls = 0
+    let releaseProvider!: () => void
+    let signalProviderStarted!: () => void
+    const providerStarted = new Promise<void>((resolve) => { signalProviderStarted = resolve })
+    const providerRelease = new Promise<void>((resolve) => { releaseProvider = resolve })
+    globalThis.fetch = async () => {
+      const callNumber = ++fetchCalls
+      signalProviderStarted()
+      await providerRelease
+      return Response.json({
+        data: {
+          id: callNumber === 1 ? 'run-concurrent' : `run-intentional-${callNumber}`,
+          status: 'RUNNING',
+          defaultDatasetId: 'dataset-concurrent',
+        },
+      })
+    }
+
+    const post = (variant = false, idempotencyKey = '') => onRequestPost(context(db, new Request('https://test/api/cop/cop-1/scrape', {
+      method: 'POST',
+      headers: {
+        Authorization: 'Bearer session-token',
+        'Content-Type': 'application/json',
+        ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}),
+      },
+      body: JSON.stringify({
+        type: 'twitter',
+        query: variant ? 'same query' : '  same   query  ',
+        urls: variant
+          ? ['https://mobile.twitter.com/a/status/1?utm_source=test', 'https://x.com/b/status/2']
+          : ['https://x.com/b/status/2', 'https://x.com/a/status/1'],
+      }),
+    })) as never)
+
+    try {
+      const firstPromise = post()
+      await providerStarted
+      const concurrent = await post(true)
+      expect(concurrent.status).toBe(202)
+      expect((await concurrent.json()).status).toBe('initiating')
+      expect(fetchCalls).toBe(1)
+
+      releaseProvider()
+      const first = await firstPromise
+      expect(first.status).toBe(202)
+
+      const retry = await post(true)
+      const retryBody = await retry.json()
+      expect(retry.status).toBe(202)
+      expect(retryBody).toMatchObject({ run_id: 'run-concurrent', deduplicated: true })
+      expect(fetchCalls).toBe(1)
+
+      const intentional = await post(true, 'intentional-rerun-1')
+      expect(intentional.status).toBe(202)
+      expect(fetchCalls).toBe(2)
+      expect(db.sqlite.prepare('SELECT COUNT(*) AS count FROM cop_scrape_requests').get().count).toBe(2)
+    } finally {
+      releaseProvider?.()
+      globalThis.fetch = originalFetch
+      db.sqlite.close()
+    }
+  })
+
   test('@smoke repeat route ingestion creates one evidence row and one trusted identity', async () => {
     const db = new SqliteD1()
     seedOwner(db)
@@ -248,13 +331,54 @@ test.describe('scraping authorization and idempotency contracts @smoke', () => {
     }
   })
 
+  test('@smoke ingestion enforces the conservative D1 statement budget', async () => {
+    const db = new SqliteD1()
+    seedOwner(db)
+    db.sqlite.exec(`
+      INSERT INTO cop_scrape_runs(
+        run_id, cop_session_id, workspace_id, requested_by, scraper_type, actor_id, dataset_id, status
+      ) VALUES('run-bulk', 'cop-1', 'ws-1', 7, 'twitter', 'actor', 'dataset-bulk', 'SUCCEEDED');
+    `)
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = async (input) => {
+      const url = String(input)
+      if (url.includes('/actor-runs/')) {
+        return Response.json({ data: { id: 'run-bulk', status: 'SUCCEEDED', defaultDatasetId: 'dataset-bulk' } })
+      }
+      if (url.includes('/datasets/')) {
+        return Response.json(Array.from({ length: 100 }, (_, index) => ({
+          id: `item-${index}`,
+          text: `evidence ${index}`,
+          url: `https://x.com/a/status/${1000 + index}`,
+        })))
+      }
+      throw new Error(`Unexpected fetch: ${url}`)
+    }
+    try {
+      db.statementExecutions = 0
+      const response = await onRequestGet(context(db, new Request(
+        'https://test/api/cop/cop-1/scrape?run_id=run-bulk',
+        { headers: { Authorization: 'Bearer session-token' } },
+      )) as never)
+      expect(response.status).toBe(200)
+      expect((await response.json()).items_found).toBe(15)
+      expect(db.maxBatchStatements).toBeLessThanOrEqual(50)
+      expect(db.statementExecutions).toBeLessThanOrEqual(50)
+      expect(db.sqlite.prepare('SELECT COUNT(*) AS count FROM evidence_items').get().count).toBe(15)
+    } finally {
+      globalThis.fetch = originalFetch
+      db.sqlite.close()
+    }
+  })
+
   test('@smoke migration has explicit rollback and no JSON index', () => {
     expect(migration).toContain('Rollback')
     expect(migration).toContain('CREATE TABLE IF NOT EXISTS cop_scrape_imports')
+    expect(migration).toContain('CREATE TABLE IF NOT EXISTS cop_scrape_requests')
     expect(migration).not.toContain('json_extract')
   })
 
-  test('@smoke analysis route rejects foreign workspace and scopes derived workspace', async () => {
+  test('@smoke analysis read is owner-only and ignores caller-controlled workspace', async () => {
     const db = new SqliteD1()
     db.sqlite.exec(`
       INSERT INTO users(id) VALUES(7);
@@ -263,6 +387,7 @@ test.describe('scraping authorization and idempotency contracts @smoke', () => {
       INSERT INTO workspace_members(id, workspace_id, user_id, role, joined_at)
       VALUES('wm-1', 'ws-1', 7, 'EDITOR', '2026-01-01');
       INSERT INTO content_analysis(id, user_id, workspace_id) VALUES(11, 7, 'ws-2');
+      INSERT INTO content_analysis(id, user_id, workspace_id) VALUES(12, 99, 'ws-1');
     `)
     const body = JSON.stringify({ load_existing: true, analysis_id: 11 })
 
@@ -286,9 +411,46 @@ test.describe('scraping authorization and idempotency contracts @smoke', () => {
       })),
       params: {},
     } as never)
+    const anotherUsers = await analyzeUrlPost({
+      ...context(db, new Request('https://test/api/content-intelligence/analyze-url', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer session-token', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ load_existing: true, analysis_id: 12 }),
+      })),
+      params: {},
+    } as never)
 
-    expect(foreign.status).toBe(403)
-    expect(derived.status).toBe(404)
+    expect(foreign.status).toBe(200)
+    expect(derived.status).toBe(200)
+    expect(anotherUsers.status).toBe(404)
+    db.sqlite.close()
+  })
+
+  test('@smoke analysis denies a viewer explicit and sole-derived write access', async () => {
+    const db = new SqliteD1()
+    db.sqlite.exec(`
+      INSERT INTO users(id) VALUES(7);
+      INSERT INTO workspaces(id, owner_id, created_at) VALUES('ws-view', 99, '2026-01-01');
+      INSERT INTO workspace_members(id, workspace_id, user_id, role, joined_at)
+      VALUES('wm-view', 'ws-view', 7, 'VIEWER', '2026-01-01');
+    `)
+    const makeRequest = (explicit: boolean) => analyzeUrlPost({
+      ...context(db, new Request('https://test/api/content-intelligence/analyze-url', {
+        method: 'POST',
+        headers: {
+          Authorization: 'Bearer session-token',
+          'Content-Type': 'application/json',
+          ...(explicit ? { 'X-Workspace-ID': 'ws-view' } : {}),
+        },
+        body: JSON.stringify({ url: 'https://example.com/article' }),
+      })),
+      params: {},
+    } as never)
+
+    const explicit = await makeRequest(true)
+    const derived = await makeRequest(false)
+    expect(explicit.status).toBe(403)
+    expect(derived.status).toBe(400)
     db.sqlite.close()
   })
 })

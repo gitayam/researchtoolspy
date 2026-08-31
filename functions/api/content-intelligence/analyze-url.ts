@@ -52,7 +52,7 @@ interface AnalyzeUrlRequest {
   content_source?: 'bot-scrape'
 }
 
-async function resolveAuthenticatedWorkspaceId(
+async function resolveWritableWorkspaceId(
   db: D1Database,
   userId: number,
   requestedWorkspaceId: string | null,
@@ -61,7 +61,11 @@ async function resolveAuthenticatedWorkspaceId(
     const workspace = await db.prepare(`
       SELECT id FROM workspaces WHERE id = ? AND owner_id = ?
       UNION
-      SELECT workspace_id AS id FROM workspace_members WHERE workspace_id = ? AND user_id = ?
+      SELECT workspace_id AS id
+      FROM workspace_members
+      WHERE workspace_id = ?
+        AND user_id = ?
+        AND lower(role) IN ('admin', 'editor')
       LIMIT 1
     `).bind(requestedWorkspaceId, userId, requestedWorkspaceId, userId).first<{ id: string }>()
     return workspace?.id ?? null
@@ -69,7 +73,9 @@ async function resolveAuthenticatedWorkspaceId(
 
   const accessible = await db.prepare(`
     SELECT id FROM (
-      SELECT workspace_id AS id FROM workspace_members WHERE user_id = ?
+      SELECT workspace_id AS id
+      FROM workspace_members
+      WHERE user_id = ? AND lower(role) IN ('admin', 'editor')
       UNION
       SELECT id FROM workspaces WHERE owner_id = ?
     )
@@ -107,24 +113,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    // Get user hash for legacy association
-    let bookmarkHash: string | null = null
-    if (userId) {
-      const user = await env.DB.prepare('SELECT user_hash FROM users WHERE id = ?').bind(userId).first()
-      if (user?.user_hash) bookmarkHash = user.user_hash as string
-    }
-
-    const requestedWorkspaceId = request.headers.get('X-Workspace-ID') || null
-    const workspaceId = await resolveAuthenticatedWorkspaceId(env.DB, userId, requestedWorkspaceId)
-    if (!workspaceId) {
-      return new Response(JSON.stringify({
-        error: requestedWorkspaceId ? 'Workspace access denied' : 'Workspace context required',
-      }), {
-        status: requestedWorkspaceId ? 403 : 400,
-        headers: JSON_HEADERS,
-      })
-    }
-
     // Parse request
     let body: AnalyzeUrlRequest
     try {
@@ -140,7 +128,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     const { url, mode = 'normal', save_link = false, link_note, link_tags, load_existing = false, analysis_id } = body
 
-    // If load_existing is true, fetch and return existing analysis
+    // Existing analyses have an explicit, owner-only read path. A caller-supplied
+    // workspace header is deliberately irrelevant to this lookup.
     if (load_existing && analysis_id) {
       try {
         const result = await env.DB.prepare(`
@@ -148,8 +137,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           FROM content_analysis
           WHERE id = ?
             AND user_id = ?
-            AND workspace_id = ?
-        `).bind(analysis_id, userId, workspaceId).first()
+        `).bind(analysis_id, userId).first()
 
         if (!result) {
           return new Response(JSON.stringify({ error: 'Analysis not found' }), {
@@ -184,6 +172,24 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         })
       }
     }
+
+    // Analysis can spend external-service quota and may persist results/bookmarks,
+    // so it requires an owner or accepted workspace editor/admin role.
+    const requestedWorkspaceId = request.headers.get('X-Workspace-ID') || null
+    const workspaceId = await resolveWritableWorkspaceId(env.DB, userId, requestedWorkspaceId)
+    if (!workspaceId) {
+      return new Response(JSON.stringify({
+        error: requestedWorkspaceId ? 'Workspace write access denied' : 'Writable workspace context required',
+      }), {
+        status: requestedWorkspaceId ? 403 : 400,
+        headers: JSON_HEADERS,
+      })
+    }
+
+    // Get user hash for legacy bookmark association only after write authorization.
+    let bookmarkHash: string | null = null
+    const user = await env.DB.prepare('SELECT user_hash FROM users WHERE id = ?').bind(userId).first()
+    if (user?.user_hash) bookmarkHash = user.user_hash as string
 
     if (!url) {
       console.error('[DEBUG] No URL provided')

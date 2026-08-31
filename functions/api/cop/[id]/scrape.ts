@@ -9,7 +9,12 @@ import { getUserFromRequest } from '../../_shared/auth-helpers'
 import { JSON_HEADERS } from '../../_shared/api-utils'
 import { logEvent } from '../../_shared/event-log'
 import { buildUpstreamFailureLog } from './_upstream-failure-log'
-import { buildScrapeItemIdentity } from './_scrape-idempotency'
+import {
+  buildScrapeItemIdentity,
+  buildScrapeRequestFingerprint,
+  buildScrapeRequestId,
+  canonicalizeScrapeRequestUrl,
+} from './_scrape-idempotency'
 
 interface Env {
   DB: D1Database
@@ -27,7 +32,10 @@ const ACTORS: Record<string, string> = {
   tiktok: 'clockworks~tiktok-scraper',
 }
 
-const MAX_EVIDENCE_BATCH = 50
+const EVIDENCE_STATEMENTS_PER_ITEM = 3
+// Reserve five statements for auth, run lookup/update, and request bookkeeping so
+// the entire invocation remains within a conservative 50-statement D1 budget.
+const MAX_EVIDENCE_BATCH = Math.floor((50 - 5) / EVIDENCE_STATEMENTS_PER_ITEM)
 
 async function getCopScrapeWorkspace(
   db: D1Database,
@@ -55,6 +63,8 @@ async function getCopScrapeWorkspace(
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   const { request, env, params } = context
   const sessionId = params.id as string
+  let activeReservationId: string | null = null
+  let upstreamAccepted = false
 
   try {
     const userId = await getUserFromRequest(request, env)
@@ -85,37 +95,142 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       }), { status: 400, headers: JSON_HEADERS })
     }
 
-    // Build actor input based on type
+    const query = typeof body.query === 'string' ? body.query.trim().replace(/\s+/g, ' ') : ''
+    if (body.urls !== undefined && (
+      !Array.isArray(body.urls) || body.urls.some((value: unknown) => typeof value !== 'string')
+    )) {
+      return new Response(JSON.stringify({ error: 'urls must be an array of strings' }), {
+        status: 400, headers: JSON_HEADERS,
+      })
+    }
+    const canonicalUrls = Array.isArray(body.urls)
+      ? body.urls.map((value: string) => canonicalizeScrapeRequestUrl(value))
+      : []
+    if (canonicalUrls.some((value: string | null) => !value)) {
+      return new Response(JSON.stringify({ error: 'urls must contain valid HTTP(S) URLs' }), {
+        status: 400, headers: JSON_HEADERS,
+      })
+    }
+    const urls = [...new Set(canonicalUrls as string[])].sort()
+    const requestedLimit = body.limit === undefined ? null : Number(body.limit)
+    if (requestedLimit !== null && (!Number.isFinite(requestedLimit) || requestedLimit <= 0)) {
+      return new Response(JSON.stringify({ error: 'limit must be a positive finite number' }), {
+        status: 400, headers: JSON_HEADERS,
+      })
+    }
+
+    const headerKey = request.headers.get('Idempotency-Key')?.trim() || ''
+    const bodyKey = typeof body.idempotency_key === 'string' ? body.idempotency_key.trim() : ''
+    if (body.idempotency_key !== undefined && typeof body.idempotency_key !== 'string') {
+      return new Response(JSON.stringify({ error: 'idempotency_key must be a string' }), {
+        status: 400, headers: JSON_HEADERS,
+      })
+    }
+    if (headerKey && bodyKey && headerKey !== bodyKey) {
+      return new Response(JSON.stringify({ error: 'Conflicting idempotency keys' }), {
+        status: 400, headers: JSON_HEADERS,
+      })
+    }
+    const idempotencyKey = headerKey || bodyKey
+    if (idempotencyKey.length > 128) {
+      return new Response(JSON.stringify({ error: 'Idempotency key is too long' }), {
+        status: 400, headers: JSON_HEADERS,
+      })
+    }
+
+    // Build a canonical actor input so equivalent URL ordering/whitespace retries
+    // share a reservation. An explicit key opts into an intentional new run.
     let actorInput: Record<string, any> = {}
 
     if (scraperType === 'twitter') {
       // Tweet scraper input
-      if (!body.query && !body.urls) {
+      if (!query && urls.length === 0) {
         return new Response(JSON.stringify({ error: 'query or urls required for twitter scraper' }), {
           status: 400, headers: JSON_HEADERS,
         })
       }
       actorInput = {
-        ...(body.query ? { searchTerms: [body.query] } : {}),
-        ...(body.urls ? { startUrls: body.urls.map((u: string) => ({ url: u })) } : {}),
-        maxItems: Math.min(body.limit || 50, 200),
-        sort: body.sort || 'Latest',
+        ...(query ? { searchTerms: [query] } : {}),
+        ...(urls.length ? { startUrls: urls.map((url: string) => ({ url })) } : {}),
+        maxItems: Math.min(Math.floor(requestedLimit ?? 50), 200),
+        sort: typeof body.sort === 'string' && body.sort.trim() ? body.sort.trim() : 'Latest',
       }
     } else if (scraperType === 'tiktok') {
       // TikTok scraper input
-      if (!body.query && !body.urls) {
+      if (!query && urls.length === 0) {
         return new Response(JSON.stringify({ error: 'query or urls required for tiktok scraper' }), {
           status: 400, headers: JSON_HEADERS,
         })
       }
       actorInput = {
-        ...(body.query ? { searchQueries: [body.query] } : {}),
-        ...(body.urls ? { postURLs: body.urls } : {}),
-        resultsPerPage: Math.min(body.limit || 20, 100),
+        ...(query ? { searchQueries: [query] } : {}),
+        ...(urls.length ? { postURLs: urls } : {}),
+        resultsPerPage: Math.min(Math.floor(requestedLimit ?? 20), 100),
         shouldDownloadVideos: false,
         shouldDownloadCovers: false,
       }
     }
+
+    const requestFingerprint = await buildScrapeRequestFingerprint(scraperType, actorInput)
+    const requestId = await buildScrapeRequestId(
+      sessionId, workspaceId, userId, requestFingerprint, idempotencyKey,
+    )
+    const reservation = await env.DB.prepare(`
+      INSERT OR IGNORE INTO cop_scrape_requests (
+        request_id, cop_session_id, workspace_id, requested_by,
+        request_fingerprint, idempotency_key, state, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, 'initiating', datetime('now'), datetime('now'))
+    `).bind(
+      requestId, sessionId, workspaceId, userId, requestFingerprint, idempotencyKey,
+    ).run()
+
+    if (Number(reservation.meta?.changes || 0) === 0) {
+      const existing = await env.DB.prepare(`
+        SELECT request.state, request.run_id, request.last_error, run.status
+        FROM cop_scrape_requests request
+        LEFT JOIN cop_scrape_runs run ON run.run_id = request.run_id
+        WHERE request.request_id = ?
+          AND request.cop_session_id = ?
+          AND request.workspace_id = ?
+          AND request.requested_by = ?
+      `).bind(requestId, sessionId, workspaceId, userId).first<{
+        state: 'initiating' | 'started' | 'failed'
+        run_id: string | null
+        last_error: string | null
+        status: string | null
+      }>()
+
+      if (!existing) {
+        return new Response(JSON.stringify({ error: 'Scrape reservation unavailable' }), {
+          status: 409, headers: JSON_HEADERS,
+        })
+      }
+      if (existing.state === 'started' && existing.run_id) {
+        const completed = existing.status === 'SUCCEEDED'
+        return new Response(JSON.stringify({
+          request_id: requestId,
+          run_id: existing.run_id,
+          status: completed ? 'completed' : (existing.status || 'started').toLowerCase(),
+          deduplicated: true,
+        }), { status: completed ? 200 : 202, headers: JSON_HEADERS })
+      }
+      if (existing.state === 'failed') {
+        return new Response(JSON.stringify({
+          request_id: requestId,
+          status: 'failed',
+          error: existing.last_error || 'Previous start attempt failed',
+          message: 'Use a new Idempotency-Key only if an intentional rerun is safe.',
+          deduplicated: true,
+        }), { status: 409, headers: JSON_HEADERS })
+      }
+      return new Response(JSON.stringify({
+        request_id: requestId,
+        status: 'initiating',
+        message: 'A matching paid scrape request is already being initiated.',
+        deduplicated: true,
+      }), { status: 202, headers: JSON_HEADERS })
+    }
+    activeReservationId = requestId
 
     // Start the actor run (synchronous for small runs, async for large)
     const isSync = (actorInput.resultsPerPage || actorInput.maxItems || 50) <= 50
@@ -141,6 +256,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           apifyError = `Actor not rented. Rent it at: https://console.apify.com/actors — search for "${scraperType}" scraper`
         }
       } catch { /* use default */ }
+      await markScrapeRequestFailed(env.DB, requestId, apifyError)
       await logEvent(env, buildUpstreamFailureLog('cop/scrape/run-start', {
         status: runRes.status,
         error: apifyError,
@@ -151,29 +267,39 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           : `Scraper service returned ${runRes.status}`,
       }), { status: 502, headers: JSON_HEADERS })
     }
+    upstreamAccepted = true
 
     const runData = await runRes.json() as any
     const run = runData.data
+    if (!run || typeof run.id !== 'string' || typeof run.status !== 'string') {
+      // The provider accepted the paid request, so retain `initiating`. Retrying
+      // automatically could create a duplicate chargeable run.
+      return new Response(JSON.stringify({
+        request_id: requestId,
+        error: 'Scraper accepted the request but returned an invalid run identity',
+      }), { status: 502, headers: JSON_HEADERS })
+    }
     const runId = run.id
     const runStatus = run.status // READY, RUNNING, SUCCEEDED, FAILED, etc.
 
     // Persist run ownership from authenticated context. A later GET must resolve
     // this exact tuple before the caller-supplied run_id is sent to Apify.
-    await env.DB.prepare(`
-      INSERT INTO cop_scrape_runs (
+    await env.DB.batch([
+      env.DB.prepare(`
+        INSERT INTO cop_scrape_runs (
         run_id, cop_session_id, workspace_id, requested_by, scraper_type,
         actor_id, dataset_id, status, created_at, updated_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
-    `).bind(
-      runId,
-      sessionId,
-      workspaceId,
-      userId,
-      scraperType,
-      actorId,
-      run.defaultDatasetId || null,
-      runStatus,
-    ).run()
+      `).bind(
+        runId, sessionId, workspaceId, userId, scraperType, actorId,
+        run.defaultDatasetId || null, runStatus,
+      ),
+      env.DB.prepare(`
+        UPDATE cop_scrape_requests
+        SET state = 'started', run_id = ?, updated_at = datetime('now')
+        WHERE request_id = ? AND state = 'initiating'
+      `).bind(runId, requestId),
+    ])
 
     // If sync run completed, fetch results and ingest immediately
     if (runStatus === 'SUCCEEDED') {
@@ -183,6 +309,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       const inserted = await batchInsertEvidence(env.DB, sessionId, workspaceId, userId, runId, scraperType, evidence)
 
       return new Response(JSON.stringify({
+        request_id: requestId,
         run_id: runId,
         status: 'completed',
         items_found: items.length,
@@ -193,12 +320,16 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     // Async run — return run ID for polling
     return new Response(JSON.stringify({
+      request_id: requestId,
       run_id: runId,
       status: runStatus.toLowerCase(),
       message: `Scraper started. Poll GET /api/cop/${sessionId}/scrape?run_id=${runId} for results.`,
     }), { status: 202, headers: JSON_HEADERS })
 
   } catch (error) {
+    if (activeReservationId && !upstreamAccepted) {
+      await markScrapeRequestFailed(env.DB, activeReservationId, 'Provider start request failed').catch(() => {})
+    }
     await logEvent(env, buildUpstreamFailureLog('cop/scrape/run-start', { error })).catch(() => {})
     return new Response(JSON.stringify({ error: 'Scrape failed' }), {
       status: 500, headers: JSON_HEADERS,
@@ -325,6 +456,18 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
 // ── Helpers ────────────────────────────────────────────────────
 
+async function markScrapeRequestFailed(
+  db: D1Database,
+  requestId: string,
+  error: string,
+): Promise<void> {
+  await db.prepare(`
+    UPDATE cop_scrape_requests
+    SET state = 'failed', last_error = ?, updated_at = datetime('now')
+    WHERE request_id = ? AND state = 'initiating'
+  `).bind(error.slice(0, 1000), requestId).run()
+}
+
 /**
  * Fetch dataset items from Apify. Returns [] on any failure so callers degrade to
  * "no items" rather than crashing the request.
@@ -347,7 +490,8 @@ async function fetchDatasetItems(env: Env, apiKey: string, datasetId: string, li
       await logEvent(env, buildUpstreamFailureLog('cop/scrape', { status: res.status })).catch(() => {})
       return []
     }
-    return await res.json() as any[]
+    const items = await res.json() as unknown
+    return Array.isArray(items) ? items.slice(0, Math.max(0, limit)) : []
   } catch (error) {
     clearTimeout(timeout)
     await logEvent(env, buildUpstreamFailureLog('cop/scrape', { error })).catch(() => {})
@@ -365,13 +509,24 @@ function transformToEvidence(
       const nickname = item.authorMeta?.nickName || author
       const text = item.text || item.desc || ''
       const engagement = item.playCount ? ` [${(item.playCount/1000).toFixed(0)}k views]` : ''
+      const providerItemId = typeof item.id === 'string'
+        ? item.id
+        : typeof item.videoId === 'string'
+          ? item.videoId
+          : null
       return {
         title: `[TikTok] @${author}: ${text.substring(0, 70)}${text.length > 70 ? '...' : ''}${engagement}`,
         content: `${text}\n\nAuthor: ${nickname} (@${author})${item.authorMeta?.verified ? ' ✓' : ''}\nViews: ${item.playCount || 0} | Likes: ${item.diggCount || 0} | Shares: ${item.shareCount || 0}`,
-        url: item.webVideoUrl || `https://www.tiktok.com/@${author}/video/${item.id}`,
+        url: typeof item.webVideoUrl === 'string'
+          ? item.webVideoUrl
+          : typeof item.url === 'string'
+            ? item.url
+            : providerItemId
+              ? `https://www.tiktok.com/@${author}/video/${providerItemId}`
+              : '',
         source_type: 'signal',
         credibility: 'unverified',
-        providerItemId: item.id != null ? String(item.id) : item.videoId != null ? String(item.videoId) : null,
+        providerItemId,
       }
     }
 
@@ -384,12 +539,12 @@ function transformToEvidence(
         url: item.url || item.tweetUrl || '',
         source_type: 'signal',
         credibility: 'unverified',
-        providerItemId: item.id != null
-          ? String(item.id)
-          : item.id_str != null
-            ? String(item.id_str)
-            : item.tweetId != null
-              ? String(item.tweetId)
+        providerItemId: typeof item.id === 'string'
+          ? item.id
+          : typeof item.id_str === 'string'
+            ? item.id_str
+            : typeof item.tweetId === 'string'
+              ? item.tweetId
               : null,
       }
     }
@@ -401,7 +556,7 @@ function transformToEvidence(
       url: item.url || '',
       source_type: 'document',
       credibility: 'unverified',
-      providerItemId: item.id != null ? String(item.id) : null,
+      providerItemId: typeof item.id === 'string' ? item.id : null,
     }
   })
 }
@@ -416,6 +571,9 @@ async function batchInsertEvidence(
   items: Array<{ title: string; content: string; url: string; source_type: string; credibility: string; providerItemId: string | null }>
 ): Promise<number> {
   if (items.length === 0) return 0
+  if (items.length > MAX_EVIDENCE_BATCH) {
+    throw new Error(`Evidence batch exceeds ${MAX_EVIDENCE_BATCH} items`)
+  }
   const now = new Date().toISOString()
 
   const keyedItems = await Promise.all(items.map(async (item) => ({
