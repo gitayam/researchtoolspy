@@ -3,6 +3,7 @@ import {
   SAFE_FETCH_ERROR_CODES,
   SafeFetchError,
   isUnsafeAddress,
+  normalizeNativeDnsAnswers,
   parseSafeOutboundUrl,
   safeFetchBytes,
   safeFetchHead,
@@ -51,6 +52,19 @@ test.describe('safe outbound fetch policy @smoke', () => {
     expect(isUnsafeAddress('93.184.216.34')).toBe(false)
     expect(isUnsafeAddress('2606:2800:220:1:248:1893:25c8:1946')).toBe(false)
     expect(isUnsafeAddress('not-an-address')).toBe(true)
+  })
+
+  test('@smoke removes Workers CNAME records from native address-family results', () => {
+    expect(normalizeNativeDnsAnswers([
+      'm.sni.global.fastly.net.',
+      '151.101.1.55',
+      '151.101.65.55',
+    ], 'A')).toEqual(['151.101.1.55', '151.101.65.55'])
+    expect(normalizeNativeDnsAnswers([
+      'm.sni.global.fastly.net.',
+      '2606:4700::6810:85e5',
+    ], 'AAAA')).toEqual(['2606:4700::6810:85e5'])
+    expect(normalizeNativeDnsAnswers(['alias.example.'], 'A')).toEqual([])
   })
 
   test('@smoke denies IPv4-embedded and non-global special IPv6 forms', () => {

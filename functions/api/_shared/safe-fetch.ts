@@ -369,6 +369,20 @@ function isNoDnsData(error: unknown): boolean {
   return code === 'ENODATA' || code === 'ENOTFOUND'
 }
 
+/**
+ * Cloudflare's node:dns implementation may include traversed CNAME values in
+ * resolve4/resolve6 results. Keep only addresses from the requested family;
+ * aliases are not connection destinations and must not enter address policy.
+ */
+export function normalizeNativeDnsAnswers(
+  answers: readonly string[],
+  type: 'A' | 'AAAA',
+): string[] {
+  return answers.filter(answer => type === 'A'
+    ? parseIpv4(answer) !== null
+    : parseIpv6(answer) !== null)
+}
+
 async function raceWithAbort<T>(operation: Promise<T>, signal: AbortSignal): Promise<T> {
   if (signal.aborted) throw signal.reason ?? new Error('DNS resolution aborted')
 
@@ -394,7 +408,8 @@ async function resolveNativeDnsFamily(
     const operation = type === 'A'
       ? dnsPromises.resolve4(hostname)
       : dnsPromises.resolve6(hostname)
-    return await raceWithAbort(operation, signal)
+    const answers = await raceWithAbort(operation, signal)
+    return normalizeNativeDnsAnswers(answers, type)
   } catch (error) {
     if (signal.aborted) throw error
     if (isNoDnsData(error)) return []
