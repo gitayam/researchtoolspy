@@ -269,6 +269,9 @@ test.describe('safe outbound fetch policy @smoke', () => {
       { maxRedirects: 11 },
       { maxResponseBytes: 0 },
       { maxResponseBytes: 10 * 1024 * 1024 + 1 },
+      { contentTypeMaxResponseBytes: {} },
+      { maxResponseBytes: 10, contentTypeMaxResponseBytes: { 'text/': 11 } },
+      { maxResponseBytes: 10, contentTypeMaxResponseBytes: { 'text/': 1.5 } },
     ]
     for (const options of invalidOptions) {
       await expect(safeFetchText('https://public.example.com/', {
@@ -608,6 +611,28 @@ test.describe('safe outbound fetch policy @smoke', () => {
       resolveHostname: publicResolver,
       timeoutMs: 5,
     })).rejects.toMatchObject({ code: 'timeout' })
+  })
+
+  test('@smoke applies the total deadline while a response body is stalled', async () => {
+    let abortObserved = false
+    const stalledBodyFetch = (async (_input: RequestInfo | URL, init?: RequestInit) => {
+      const body = new ReadableStream({
+        start(controller) {
+          init?.signal?.addEventListener('abort', () => {
+            abortObserved = true
+            controller.error(init.signal?.reason)
+          }, { once: true })
+        },
+      })
+      return new Response(body, { headers: { 'Content-Type': 'text/plain' } })
+    }) as typeof fetch
+
+    await expect(safeFetchText('https://public.example.com/stalled-body', {
+      fetchImpl: stalledBodyFetch,
+      resolveHostname: publicResolver,
+      timeoutMs: 20,
+    })).rejects.toMatchObject({ code: 'timeout' })
+    expect(abortObserved).toBe(true)
   })
 
   test('@smoke distinguishes caller cancellation from the total deadline', async () => {

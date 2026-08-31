@@ -46,6 +46,8 @@ export interface SafeFetchOptions {
   maxRedirects?: number
   maxResponseBytes?: number
   allowedContentTypes?: readonly string[]
+  /** Optional MIME/prefix-specific ceilings, each no greater than maxResponseBytes. */
+  contentTypeMaxResponseBytes?: Readonly<Record<string, number>>
   /** Exact normalized hostnames permitted for the initial URL and every redirect. */
   allowedHostnames?: readonly string[]
   fetchImpl?: typeof fetch
@@ -531,6 +533,34 @@ function validateAllowedContentTypes(values: readonly string[]): void {
   }
 }
 
+function validateContentTypeByteLimits(
+  limits: Readonly<Record<string, number>> | undefined,
+  maximum: number,
+): void {
+  if (limits === undefined) return
+  if (!limits || typeof limits !== 'object' || Array.isArray(limits) || Object.keys(limits).length === 0) {
+    throw new SafeFetchError('invalid_options', 'contentTypeMaxResponseBytes must define MIME byte limits')
+  }
+  for (const [contentType, limit] of Object.entries(limits)) {
+    if (!contentType.trim()) {
+      throw new SafeFetchError('invalid_options', 'Content type byte-limit keys cannot be empty')
+    }
+    validateIntegerLimit(`contentTypeMaxResponseBytes[${contentType}]`, limit, 1, maximum)
+  }
+}
+
+function responseByteLimit(
+  contentType: string,
+  maximum: number,
+  limits: Readonly<Record<string, number>> | undefined,
+): number {
+  if (!limits) return maximum
+  const matchingLimits = Object.entries(limits)
+    .filter(([allowed]) => isAllowedContentType(contentType, [allowed]))
+    .map(([, limit]) => limit)
+  return matchingLimits.length > 0 ? Math.min(maximum, ...matchingLimits) : maximum
+}
+
 async function safeFetchWithPolicy<T>(
   input: string | URL,
   options: SafeFetchOptions,
@@ -542,6 +572,7 @@ async function safeFetchWithPolicy<T>(
     maxRedirects = DEFAULT_MAX_REDIRECTS,
     maxResponseBytes = policy.defaultMaxResponseBytes,
     allowedContentTypes = policy.defaultAllowedContentTypes,
+    contentTypeMaxResponseBytes,
     allowedHostnames,
     fetchImpl = fetch,
     resolveHostname = resolvePublicHostname,
@@ -549,6 +580,7 @@ async function safeFetchWithPolicy<T>(
   validateIntegerLimit('timeoutMs', timeoutMs, 1, MAX_TIMEOUT_MS)
   validateIntegerLimit('maxRedirects', maxRedirects, 0, MAX_REDIRECTS)
   validateIntegerLimit('maxResponseBytes', maxResponseBytes, 1, MAX_RESPONSE_BYTES)
+  validateContentTypeByteLimits(contentTypeMaxResponseBytes, maxResponseBytes)
   if (!policy.skipContentTypeCheck) validateAllowedContentTypes(allowedContentTypes)
   const normalizedAllowedHostnames = normalizeAllowedHostnames(allowedHostnames)
 
@@ -639,7 +671,10 @@ async function safeFetchWithPolicy<T>(
       }
 
       try {
-        const body = await policy.read(response, maxResponseBytes)
+        const body = await policy.read(
+          response,
+          responseByteLimit(contentType, maxResponseBytes, contentTypeMaxResponseBytes),
+        )
         return {
           response,
           value: body.value,

@@ -139,4 +139,31 @@ test.describe('safe outbound content adapters @smoke', () => {
       resolveHostname: publicResolver,
     })).rejects.toMatchObject({ code: 'response_too_large' })
   })
+
+  test('@smoke cancels headerless chunked text at byte 2 MiB plus one', async () => {
+    let cancelled = false
+    let extraChunks = 0
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new Uint8Array(SAFE_DOCUMENT_TEXT_MAX_BYTES))
+      },
+      pull(controller) {
+        extraChunks += 1
+        controller.enqueue(new Uint8Array([1]))
+      },
+      async cancel() {
+        await Promise.resolve()
+        cancelled = true
+      },
+    }, { highWaterMark: 0 })
+
+    await expect(safeFetchDocument('https://documents.example/chunked.html', {
+      fetchImpl: (async () => new Response(body, {
+        headers: { 'Content-Type': 'text/html' },
+      })) as typeof fetch,
+      resolveHostname: publicResolver,
+    })).rejects.toMatchObject({ code: 'response_too_large' })
+    expect(extraChunks).toBe(1)
+    expect(cancelled).toBe(true)
+  })
 })

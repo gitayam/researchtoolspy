@@ -29,7 +29,7 @@ const IMAGE_CONTENT_TYPES = [
 
 export type SafeContentFetchOptions = Omit<
   SafeFetchOptions,
-  'allowedContentTypes' | 'maxResponseBytes'
+  'allowedContentTypes' | 'contentTypeMaxResponseBytes' | 'maxResponseBytes'
 >
 
 export interface SafeFetchPdfResult extends SafeFetchBytesResult {
@@ -161,6 +161,13 @@ export async function safeFetchDocument(
     ...options,
     maxResponseBytes: SAFE_PDF_MAX_BYTES,
     allowedContentTypes: DOCUMENT_CONTENT_TYPES,
+    contentTypeMaxResponseBytes: {
+      'text/': SAFE_DOCUMENT_TEXT_MAX_BYTES,
+      'application/xhtml+xml': SAFE_DOCUMENT_TEXT_MAX_BYTES,
+      'application/xml': SAFE_DOCUMENT_TEXT_MAX_BYTES,
+      'application/json': SAFE_DOCUMENT_TEXT_MAX_BYTES,
+      'application/pdf': SAFE_PDF_MAX_BYTES,
+    },
   })
   const mimeType = normalizedMimeType(result.contentType)
   const shared = withoutBytes(result)
