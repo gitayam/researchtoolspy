@@ -1,6 +1,6 @@
 # ResearchTools scraping system roadmap
 
-**Last updated:** 2026-08-30 · **Status:** ⬜ planned · **Owner:** platform/backend
+**Last updated:** 2026-08-31 · **Status:** 🔄 in progress · **Owner:** platform/backend
 
 **Evidence and experiment design:** [`plans/2026-08-30-scraping-modernization.md`](plans/2026-08-30-scraping-modernization.md)
 
@@ -113,11 +113,11 @@ flowchart LR
 
 ## Milestone 0 — Safety and correctness foundation
 
-**Priority:** P0 · **Status:** ⬜ planned · **Issues:** `SCRAPE-01`, `SCRAPE-02`, `SCRAPE-03`
+**Priority:** P0 · **Status:** 🔄 in progress · **Issues:** `SCRAPE-01`, `SCRAPE-02`, `SCRAPE-03`
 
 ### Deliverables
 
-- [ ] Inventory every caller-controlled outbound fetch and assign it to a product adapter.
+- [x] Inventory 26 caller-controlled outbound entry points and assign target adapters in [`operations/SCRAPING_FETCH_INVENTORY.md`](operations/SCRAPING_FETCH_INVENTORY.md).
 - [ ] Add one shared safe-URL/request primitive:
   - HTTP(S) only
   - no embedded credentials
@@ -130,13 +130,13 @@ flowchart LR
 - [ ] Enforce the same rules again inside Browser Run and Container service boundaries.
 - [ ] Route public survey/COP URL enrichment through the safe primitive.
 - [ ] Route `tools/analyze-url`, `scrape-metadata`, claims, timeline, RageCheck, AI scrape, social routes, and the web scraper through it.
-- [ ] Scope `content-intelligence/analyze-url` `load_existing` reads to the authenticated user/workspace.
-- [ ] Replace or correct `enhancedFetch()` so `AbortSignal`, headers, redirect mode, and retry policy cannot be silently ignored.
-- [ ] Add `functions/`, `workers/`, and Container TypeScript entry points to build/CI validation.
-- [ ] Correct the web-scraper dataset authentication/response contract.
+- [x] Scope `content-intelligence/analyze-url` `load_existing` reads to the authenticated analysis owner and require owner/editor/admin workspace authority for new writes.
+- [x] Correct `enhancedFetch()` option typing, merged headers, abort propagation, total timeout, and bounded retry contract.
+- [ ] Add all `functions/`, `workers/`, and Container TypeScript entry points to build/CI validation. The current `type-check:scraping-surface` covers 22 inventoried roots with three explicit exclusions.
+- [x] Correct the web-scraper dataset authentication/response contract and final-redirect provenance.
 - [ ] Rename the metadata-completeness score so it is not represented as source reliability.
-- [ ] Register COP/Apify runs to user/workspace/session at start; validate ownership when polling.
-- [ ] Add provider item identity and idempotent upsert/ingest semantics.
+- [x] Reserve paid COP scrape requests before Apify, bind runs to authenticated user/workspace/session, enforce editor/admin/owner writes, and validate ownership when polling.
+- [x] Add trusted provider item identity and idempotent evidence ingest semantics with a managed local-D1 migration.
 - [ ] Replace raw URL event context with keyed URL/domain identifiers and normalized errors.
 
 ### Required tests
@@ -434,9 +434,9 @@ No milestone or strategy advances when any of the following is true:
 
 | ID | Deliverable | Priority | Dependency | Status |
 |---|---|---:|---|---|
-| `SCRAPE-01` | Safe outbound URL/redirect primitive and coverage inventory | P0 | — | ⬜ |
-| `SCRAPE-02` | Worker TypeScript build, timeout and request-option contracts | P0 | — | ⬜ |
-| `SCRAPE-03` | Auth scoping, COP ownership/idempotency, dataset/score corrections | P0 | — | ⬜ |
+| `SCRAPE-01` | Safe outbound URL/redirect primitive and coverage inventory | P0 | — | 🔄 |
+| `SCRAPE-02` | Worker TypeScript build, timeout and request-option contracts | P0 | — | 🔄 |
+| `SCRAPE-03` | Auth scoping, COP ownership/idempotency, dataset/score corrections | P0 | — | 🔄 |
 | `SCRAPE-04` | Privacy-safe analytics, durable provenance, dashboard, alerts | P0 | 01-03 | ⬜ |
 | `SCRAPE-05` | Versioned corpus, harness, candidates, paired decision report | P1 | 04 | ⬜ |
 | `SCRAPE-06` | Browser Run routing, usage metering, budgets, canary | P1 | 05 | ⬜ |

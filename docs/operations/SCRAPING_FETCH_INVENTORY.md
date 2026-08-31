@@ -1,6 +1,6 @@
 # Scraping Outbound-Fetch Inventory
 
-**Audited baseline:** `5dc508f2f0f2aab2a3529a49d45d86043b92d006`
+**Audited baseline:** canonical `origin/main` SHA `3f0eba98e33f2e2077367acbd553309eceedccbd`; updated on the `codex/scraping-foundation-20260830` integration milestone
 
 **Last reviewed:** 2026-08-31
 
@@ -13,6 +13,7 @@ This inventory records the current implementation, including unsafe legacy paths
 - `unsafe-direct`: arbitrary or provider-returned URL reaches raw `fetch`; DNS, redirects, response type, or body size are not governed by the shared policy.
 - `unsafe-enhanced`: arbitrary URL reaches `enhancedFetch`; browser headers/retries exist, but it follows redirects automatically and has no DNS or body policy.
 - `unsafe-shared`: route delegates to the current shared scraper, which still uses legacy navigation on this audited baseline.
+- `safe-text`: caller URL uses the bounded shared text-fetch policy; any separate renderer boundary is tracked independently.
 - `delegated-unsafe`: the route calls another local endpoint whose current outbound behavior is unsafe; authorization forwarding must also be verified.
 - `constrained-provider`: the outbound hostname is constructed by the server for a named provider, but input validation, returned-URL handling, and response budgets are not yet centralized.
 - `third-party-job`: the Worker sends a caller URL to a scraping vendor rather than navigating it locally; target policy and data disclosure still require controls.
@@ -21,7 +22,7 @@ This inventory records the current implementation, including unsafe legacy paths
 
 | ID | Route or consumer | URL provenance | Auth exposure | Current mechanism | Status | Required target adapter |
 | --- | --- | --- | --- | --- | --- | --- |
-| INV-001 | `POST /api/web-scraper` (`functions/api/web-scraper.ts`) | JSON `body.url` | authenticated | `enhancedFetch` after lexical `isPrivateUrl` | `unsafe-enhanced` | bounded `safeFetchText`; preserve API error envelope |
+| INV-001 | `POST /api/web-scraper` (`functions/api/web-scraper.ts`) | JSON `body.url` | authenticated | bounded `safeFetchText` with manual redirect validation | `safe-text` | enforcing egress boundary; preserve API error envelope |
 | INV-002 | `POST /api/tools/scrape-metadata` (`functions/api/tools/scrape-metadata.ts`) | JSON `body.url` | authenticated | `enhancedFetch` | `unsafe-enhanced` | bounded `safeFetchText` |
 | INV-003 | `POST /api/tools/analyze-url` (`functions/api/tools/analyze-url.ts`) | JSON `body.url`; archive services return more URLs | authenticated | `enhancedFetch` plus raw archive fetches | `unsafe-enhanced` | safe text fetch plus fixed-host archive adapter; validate returned snapshot URLs |
 | INV-004 | `POST /api/tools/extract` (`functions/api/tools/extract.ts`) | JSON `body.url` | authenticated | raw `fetch(body.url)` and unbounded `text()` | `unsafe-direct` | content-type-aware bounded text/PDF adapter |

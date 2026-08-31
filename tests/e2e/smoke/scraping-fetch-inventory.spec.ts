@@ -10,6 +10,7 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 type SafetyStatus =
+  | 'safe-text'
   | 'unsafe-direct'
   | 'unsafe-enhanced'
   | 'unsafe-shared'
@@ -26,7 +27,7 @@ interface InventoryEntry {
 }
 
 const entries: InventoryEntry[] = [
-  { id: 'INV-001', file: 'functions/api/web-scraper.ts', status: 'unsafe-enhanced', evidence: /enhancedFetch\(url\.toString\(\)/, typecheck: 'root' },
+  { id: 'INV-001', file: 'functions/api/web-scraper.ts', status: 'safe-text', evidence: /safeFetchText\(url,/, typecheck: 'root' },
   { id: 'INV-002', file: 'functions/api/tools/scrape-metadata.ts', status: 'unsafe-enhanced', evidence: /enhancedFetch\(body\.url/, typecheck: 'root' },
   { id: 'INV-003', file: 'functions/api/tools/analyze-url.ts', status: 'unsafe-enhanced', evidence: /enhancedFetch\(normalizedUrl/, typecheck: 'root' },
   { id: 'INV-004', file: 'functions/api/tools/extract.ts', status: 'unsafe-direct', evidence: /fetch\(body\.url/, typecheck: 'root' },
@@ -43,7 +44,7 @@ const entries: InventoryEntry[] = [
   { id: 'INV-015', file: 'functions/api/tools/batch-process.ts', status: 'delegated-unsafe', evidence: /endpoint = '\/api\/tools\/extract'/, typecheck: 'root' },
   { id: 'INV-016', file: 'functions/api/frameworks/pmesii-pt/import-url.ts', status: 'delegated-unsafe', evidence: /body: JSON\.stringify\(\{\s*url: body\.url/s, typecheck: 'root' },
   { id: 'INV-017', file: 'functions/api/content-intelligence/starbursting.ts', status: 'delegated-unsafe', evidence: /\/api\/ai\/scrape-url/, typecheck: 'root' },
-  { id: 'INV-018', file: 'functions/api/cop/[id]/scrape.ts', status: 'third-party-job', evidence: /body\.urls\.map\(\(u: string\) => \(\{ url: u \}\)\)/, typecheck: 'root' },
+  { id: 'INV-018', file: 'functions/api/cop/[id]/scrape.ts', status: 'third-party-job', evidence: /canonicalizeScrapeRequestUrl\(value\)/, typecheck: 'root' },
   { id: 'INV-019', file: 'functions/api/content-intelligence/social-extract.ts', status: 'constrained-provider', evidence: /youtube\.com\/oembed/, typecheck: 'root' },
   { id: 'INV-020', file: 'functions/api/content-intelligence/social-media-extract.ts', status: 'constrained-provider', evidence: /selectedTrack\.baseUrl/, typecheck: 'root' },
   { id: 'INV-021', file: 'functions/api/content-intelligence/git-repository-extract.ts', status: 'constrained-provider', evidence: /api\.github\.com\/repos/, typecheck: 'excluded' },
