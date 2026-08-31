@@ -260,24 +260,30 @@ test.describe('Twitter image proxy safe fetch @smoke', () => {
 
   test('@smoke preserves validated cache hits and ordinary upstream status behavior', async () => {
     const originalFetch = globalThis.fetch
-    const cacheState: CacheState = {
-      matchCalls: [],
-      putCalls: [],
-      hit: new Response(jpegBytes, { headers: { 'Content-Type': 'image/jpeg' } }),
-    }
+    const cacheState: CacheState = { matchCalls: [], putCalls: [] }
     const restoreCache = installCache(cacheState)
-    let fetchCalls = 0
-    globalThis.fetch = (async () => {
-      fetchCalls += 1
-      return new Response(jpegBytes, { status: 404, headers: { 'Content-Type': 'image/jpeg' } })
+    let targetCalls = 0
+    globalThis.fetch = (async (input: RequestInfo | URL) => {
+      const url = new URL(String(input))
+      if (url.hostname === 'cloudflare-dns.com') return dnsResponse(url, ['93.184.216.34'])
+      targetCalls += 1
+      return new Response(jpegBytes, { headers: { 'Content-Type': 'image/jpeg' } })
     }) as typeof fetch
     try {
       let request = contextFor('https://pbs.twimg.com/cached.jpg')
+      const seeded = await onRequestGet(request.context as never)
+      expect(seeded.status).toBe(200)
+      await Promise.all(request.waits)
+      expect(cacheState.putCalls).toHaveLength(1)
+      cacheState.hit = cacheState.putCalls[0].response.clone()
+
+      request = contextFor('https://pbs.twimg.com/cached.jpg')
       const cached = await onRequestGet(request.context as never)
       expect(cached.status).toBe(200)
       expect(cached.headers.get('access-control-allow-origin')).toBe('*')
+      expect(cached.headers.get('x-content-type-options')).toBe('nosniff')
       expect(new Uint8Array(await cached.arrayBuffer())).toEqual(jpegBytes)
-      expect(fetchCalls).toBe(0)
+      expect(targetCalls).toBe(1)
 
       cacheState.hit = undefined
       globalThis.fetch = (async (input: RequestInfo | URL) => {
@@ -289,6 +295,74 @@ test.describe('Twitter image proxy safe fetch @smoke', () => {
       const missing = await onRequestGet(request.context as never)
       expect(missing.status).toBe(404)
       expect(await missing.text()).toBe('Failed to fetch image: 404')
+    } finally {
+      globalThis.fetch = originalFetch
+      restoreCache()
+    }
+  })
+
+  test('@smoke bypasses invalid cache metadata and sanitizes accepted cache headers', async () => {
+    const originalFetch = globalThis.fetch
+    const cacheState: CacheState = { matchCalls: [], putCalls: [] }
+    const restoreCache = installCache(cacheState)
+    let targetCalls = 0
+    globalThis.fetch = (async (input: RequestInfo | URL) => {
+      const url = new URL(String(input))
+      if (url.hostname === 'cloudflare-dns.com') return dnsResponse(url, ['93.184.216.34'])
+      targetCalls += 1
+      return new Response(pngBytes, { headers: { 'Content-Type': 'image/png' } })
+    }) as typeof fetch
+
+    try {
+      cacheState.hit = new Response(jpegBytes, {
+        headers: {
+          'Content-Type': 'image/jpeg',
+          'Content-Length': String(jpegBytes.byteLength),
+          'Set-Cookie': 'session=must-not-leak',
+          'X-Attacker-Controlled': 'must-not-leak',
+        },
+      })
+      let request = contextFor('https://pbs.twimg.com/sanitized.jpg')
+      const sanitized = await onRequestGet(request.context as never)
+      expect(new Uint8Array(await sanitized.arrayBuffer())).toEqual(jpegBytes)
+      expect(sanitized.headers.get('content-type')).toBe('image/jpeg')
+      expect(sanitized.headers.get('content-length')).toBe(String(jpegBytes.byteLength))
+      expect(sanitized.headers.get('x-content-type-options')).toBe('nosniff')
+      expect(sanitized.headers.get('access-control-allow-origin')).toBe('*')
+      expect(sanitized.headers.get('cache-control')).toBe('public, max-age=604800')
+      expect(sanitized.headers.has('set-cookie')).toBe(false)
+      expect(sanitized.headers.has('x-attacker-controlled')).toBe(false)
+      expect([...sanitized.headers.keys()]).toEqual([
+        'access-control-allow-origin',
+        'cache-control',
+        'content-length',
+        'content-type',
+        'x-content-type-options',
+      ])
+      expect(targetCalls).toBe(0)
+
+      const invalidEntries = [
+        new Response(jpegBytes, {
+          headers: { 'Content-Type': 'text/html', 'Content-Length': String(jpegBytes.byteLength) },
+        }),
+        new Response(jpegBytes, {
+          headers: { 'Content-Type': 'image/jpeg', 'Content-Length': String(SAFE_IMAGE_MAX_BYTES + 1) },
+        }),
+        new Response(jpegBytes, {
+          headers: { 'Content-Type': 'image/jpeg', 'Content-Length': 'Infinity' },
+        }),
+        new Response(jpegBytes, { headers: { 'Content-Type': 'image/jpeg' } }),
+      ]
+
+      for (const [index, invalidEntry] of invalidEntries.entries()) {
+        cacheState.hit = invalidEntry
+        request = contextFor(`https://pbs.twimg.com/invalid-cache-${index}.jpg`)
+        const refetched = await onRequestGet(request.context as never)
+        expect(refetched.headers.get('content-type')).toBe('image/png')
+        expect(new Uint8Array(await refetched.arrayBuffer())).toEqual(pngBytes)
+        await Promise.all(request.waits)
+      }
+      expect(targetCalls).toBe(invalidEntries.length)
     } finally {
       globalThis.fetch = originalFetch
       restoreCache()

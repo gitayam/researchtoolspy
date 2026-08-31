@@ -5,7 +5,11 @@
 
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { CORS_HEADERS, optionsResponse } from '../_shared/api-utils'
-import { safeFetchImage, type SafeImageMimeType } from '../_shared/safe-content'
+import {
+  SAFE_IMAGE_MAX_BYTES,
+  safeFetchImage,
+  type SafeImageMimeType,
+} from '../_shared/safe-content'
 
 interface Env {
   UPLOADS?: R2Bucket
@@ -14,6 +18,18 @@ interface Env {
 const CACHE_CONTROL = 'public, max-age=604800'
 const CACHE_POLICY_VERSION = 'safe-image-v1'
 const TWITTER_IMAGE_HOST = 'pbs.twimg.com'
+const ALLOWED_IMAGE_MIME_TYPES = new Set<SafeImageMimeType>([
+  'image/jpeg',
+  'image/png',
+  'image/gif',
+  'image/webp',
+  'image/avif',
+])
+
+interface CachedImageMetadata {
+  contentLength: number
+  mimeType: SafeImageMimeType
+}
 
 export function parseTwitterImageUrl(value: string): URL {
   let url: URL
@@ -62,6 +78,31 @@ function createCacheKey(requestUrl: string, imageUrl: URL): Request {
   return new Request(cacheUrl, { method: 'GET' })
 }
 
+function cachedImageMetadata(response: Response): CachedImageMetadata | null {
+  const mimeType = response.headers.get('Content-Type')?.split(';', 1)[0].trim().toLowerCase()
+  const contentLengthHeader = response.headers.get('Content-Length')
+  if (!mimeType
+    || !ALLOWED_IMAGE_MIME_TYPES.has(mimeType as SafeImageMimeType)
+    || !contentLengthHeader
+    || !/^(0|[1-9]\d*)$/.test(contentLengthHeader)) {
+    return null
+  }
+
+  const contentLength = Number(contentLengthHeader)
+  if (!Number.isSafeInteger(contentLength) || contentLength > SAFE_IMAGE_MAX_BYTES) return null
+  return { contentLength, mimeType: mimeType as SafeImageMimeType }
+}
+
+function imageResponseHeaders(mimeType: SafeImageMimeType, contentLength: number): Headers {
+  return new Headers({
+    'Content-Type': mimeType,
+    'Content-Length': String(contentLength),
+    'X-Content-Type-Options': 'nosniff',
+    'Access-Control-Allow-Origin': '*',
+    'Cache-Control': CACHE_CONTROL,
+  })
+}
+
 export const onRequestOptions: PagesFunction = async () => {
   return optionsResponse()
 }
@@ -95,16 +136,15 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   const cacheKey = createCacheKey(request.url, validatedImageUrl)
   const cachedResponse = await cache.match(cacheKey)
 
-  if (cachedResponse) {
-    // Clone and add CORS headers
-    const headers = new Headers(cachedResponse.headers)
-    headers.set('Access-Control-Allow-Origin', '*')
-    headers.set('Access-Control-Allow-Methods', 'GET, OPTIONS')
-
+  const cachedMetadata = cachedResponse ? cachedImageMetadata(cachedResponse) : null
+  if (cachedResponse && cachedMetadata) {
     return new Response(cachedResponse.body, {
       status: cachedResponse.status,
-      headers
+      headers: imageResponseHeaders(cachedMetadata.mimeType, cachedMetadata.contentLength),
     })
+  }
+  if (cachedResponse?.body) {
+    void cachedResponse.body.cancel().catch(() => undefined)
   }
 
   // Fetch from Twitter CDN
@@ -129,17 +169,10 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     }
 
     const responseBytes = fetched.bytes.slice()
-    const headers = new Headers()
-    headers.set('Content-Type', fetched.mimeType)
-    headers.set('Content-Length', String(responseBytes.byteLength))
-    headers.set('X-Content-Type-Options', 'nosniff')
-    headers.set('Access-Control-Allow-Origin', '*')
-    headers.set('Access-Control-Allow-Methods', 'GET, OPTIONS')
-    headers.set('Cache-Control', CACHE_CONTROL)
 
     const proxiedResponse = new Response(responseBytes, {
       status: fetched.response.status,
-      headers
+      headers: imageResponseHeaders(fetched.mimeType, responseBytes.byteLength),
     })
 
     // Store in Cloudflare Cache API (async, don't wait)
