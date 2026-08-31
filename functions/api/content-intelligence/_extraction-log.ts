@@ -1,35 +1,57 @@
-/**
- * Pure helper for building the event-log payload emitted when URL extraction fails.
- *
- * Lives in its own zero-dependency module (no `unpdf`/AI-gateway imports) so it can be
- * unit-tested in pure Node without dragging in the heavy edge-only deps that
- * analyze-url.ts pulls in transitively. The handler imports this and spreads the
- * result into logEvent(); see functions/api/_shared/event-log.ts.
- */
-
-const MAX_REASON_LEN = 500
+import type { NormalizedScrapeError } from '../_shared/scrape-contract'
+import { buildOpaqueScrapeIdentifiers } from '../_shared/scrape-metrics'
 
 export interface ExtractionFailureLog {
   level: 'warn'
-  source: string
-  message: string
-  context: { url: string; reason: string }
+  source: 'content-intelligence/analyze-url'
+  message: 'URL extraction failed'
+  context: {
+    correlation_id: string
+    error_code: NormalizedScrapeError
+    url_id?: string
+    domain_id?: string
+  }
 }
 
 /**
- * Build the (low-volume) event-log entry for a hard URL-extraction failure.
- *
- * `reason` is coerced to a string and capped so a stray large blob can't bloat the row
- * (logEvent also truncates the serialized context, but we keep the input small here too).
+ * Build a closed, privacy-safe hard-failure event. A dedicated telemetry key adds
+ * stable URL/domain correlation; without it, only the random request correlation
+ * remains. Raw URLs, tenants, users, and free-form upstream reasons are never emitted.
  */
-export function extractionFailureLog(url: string, reason: unknown): ExtractionFailureLog {
+export async function extractionFailureLog(input: {
+  url: string
+  errorCode: NormalizedScrapeError
+  tenantScope: string
+  telemetryKey?: string
+  correlationId?: string
+}): Promise<ExtractionFailureLog> {
+  const suppliedCorrelation = input.correlationId?.trim()
+  const randomCorrelation = suppliedCorrelation
+    && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(suppliedCorrelation)
+    ? suppliedCorrelation.toLowerCase()
+    : crypto.randomUUID()
+  let identifiers: Awaited<ReturnType<typeof buildOpaqueScrapeIdentifiers>> = null
+  try {
+    identifiers = await buildOpaqueScrapeIdentifiers(input.telemetryKey, {
+      requestId: randomCorrelation,
+      tenantScope: input.tenantScope,
+      url: input.url,
+    })
+  } catch {
+    // Logging must remain privacy-safe and non-blocking even for malformed URLs.
+  }
+
   return {
     level: 'warn',
     source: 'content-intelligence/analyze-url',
     message: 'URL extraction failed',
     context: {
-      url: String(url ?? ''),
-      reason: String(reason ?? 'unknown').slice(0, MAX_REASON_LEN),
+      correlation_id: identifiers?.requestId ?? randomCorrelation,
+      error_code: input.errorCode,
+      ...(identifiers ? {
+        url_id: identifiers.urlId,
+        domain_id: identifiers.domainId,
+      } : {}),
     },
   }
 }

@@ -24,7 +24,8 @@ import { isPDFUrl, extractPDFText, intelligentPDFSummary } from './pdf-extractor
 import { logEvent } from '../_shared/event-log'
 import { extractionFailureLog } from './_extraction-log'
 import { extractArticle } from '../_shared/article-extractor'
-import { renderArticleFallback, shouldRenderFallback, type RendererBinding } from '../_shared/rendered-content'
+import { SafeFetchError, safeFetchHead, safeFetchText, type SafeFetchErrorCode } from '../_shared/safe-fetch'
+import type { NormalizedScrapeError } from '../_shared/scrape-contract'
 
 interface Env {
   DB: D1Database
@@ -35,7 +36,7 @@ interface Env {
   JWT_SECRET?: string
   APIFY_API_KEY?: string
   PDF_CO_API_KEY?: string
-  BROWSER_RENDERER?: RendererBinding
+  SCRAPE_TELEMETRY_KEY?: string
 }
 
 interface AnalyzeUrlRequest {
@@ -232,7 +233,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     // Authenticated callers may provide content when their origin can reach a
     // source that blocks Cloudflare egress. Preserve provenance explicitly.
-    const contentData = suppliedText
+    const contentData: ContentExtractionResult = suppliedText
       ? {
           success: true,
           text: suppliedText,
@@ -245,18 +246,19 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           env.OPENAI_API_KEY,
           env.APIFY_API_KEY,
           env.PDF_CO_API_KEY,
-          env.BROWSER_RENDERER,
         )
 
     if (!contentData.success) {
       console.error(`[DEBUG] Content extraction failed: ${contentData.error}`)
 
-      // Prod-visible failure signal: console.* is invisible in Pages Functions, so
-      // record the reason in event_logs (low-volume, only on hard failure). Never throws.
-      await logEvent(env, {
-        ...extractionFailureLog(normalizedUrl, contentData.error),
-        userId,
-      })
+      // Prod-visible failure signal: persist only a closed error code and opaque
+      // correlation (low-volume, hard failures only). Logging never throws.
+      await logEvent(env, await extractionFailureLog({
+        url: normalizedUrl,
+        errorCode: contentData.errorCode ?? 'extract_failed',
+        tenantScope: workspaceId,
+        telemetryKey: env.SCRAPE_TELEMETRY_KEY,
+      }))
 
       // Provide user-friendly error message
       let userMessage = contentData.error || 'Failed to extract content'
@@ -701,29 +703,24 @@ function generateBypassUrls(url: string): Record<string, string> {
 /**
  * Resolve Spotify shortened links (spotify.link) to actual Spotify URLs
  */
+const SPOTIFY_REDIRECT_HOSTS = ['spotify.link', 'open.spotify.com', 'spotify.com'] as const
+const FACEBOOK_REDIRECT_HOSTS = ['fb.me', 'fb.watch', 'facebook.com', 'www.facebook.com', 'm.facebook.com'] as const
+
 async function resolveSpotifyRedirect(url: string): Promise<string> {
-  const urlLower = url.toLowerCase()
-
-  // Only process spotify.link URLs
-  if (!urlLower.includes('spotify.link')) {
-    return url
-  }
-
-
+  if (!hasExactHostname(url, ['spotify.link'])) return url
   try {
-    const response = await fetch(url, {
-      method: 'HEAD',
-      redirect: 'follow',
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; ResearchToolsBot/1.0)'
+    const result = await safeFetchHead(url, {
+      timeoutMs: 10_000,
+      maxRedirects: 5,
+      allowedHostnames: SPOTIFY_REDIRECT_HOSTS,
+      requestInit: {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; ResearchToolsBot/1.0)'
+        },
       },
-      signal: AbortSignal.timeout(10000),
     })
-
-    const finalUrl = response.url
-    return finalUrl
-  } catch (error) {
-    console.error('[Spotify Redirect] Failed to resolve:', error)
+    return result.finalUrl
+  } catch {
     // Return original URL if resolution fails
     return url
   }
@@ -733,28 +730,20 @@ async function resolveSpotifyRedirect(url: string): Promise<string> {
  * Resolve Facebook shortened links (fb.me, fb.watch) to actual Facebook URLs
  */
 async function resolveFacebookRedirect(url: string): Promise<string> {
-  const urlLower = url.toLowerCase()
-
-  // Only process fb.me and fb.watch URLs
-  if (!urlLower.includes('fb.me') && !urlLower.includes('fb.watch')) {
-    return url
-  }
-
-
+  if (!hasExactHostname(url, ['fb.me', 'fb.watch'])) return url
   try {
-    const response = await fetch(url, {
-      method: 'HEAD',
-      redirect: 'follow',
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; ResearchToolsBot/1.0)'
+    const result = await safeFetchHead(url, {
+      timeoutMs: 10_000,
+      maxRedirects: 5,
+      allowedHostnames: FACEBOOK_REDIRECT_HOSTS,
+      requestInit: {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; ResearchToolsBot/1.0)'
+        },
       },
-      signal: AbortSignal.timeout(10000),
     })
-
-    const finalUrl = response.url
-    return finalUrl
-  } catch (error) {
-    console.error('[Facebook Redirect] Failed to resolve:', error)
+    return result.finalUrl
+  } catch {
     // Return original URL if resolution fails
     return url
   }
@@ -764,28 +753,29 @@ async function resolveFacebookRedirect(url: string): Promise<string> {
  * Check if Archive.ph has an archived version of the URL
  * Returns the archived URL if found, null otherwise
  */
-async function checkArchivePh(url: string): Promise<string | null> {
+export async function checkArchivePh(url: string): Promise<string | null> {
   try {
     // Check archive.ph for newest snapshot
     const archiveUrl = `https://archive.ph/newest/${url}`
 
-    const response = await fetch(archiveUrl, {
-      method: 'HEAD',
-      redirect: 'follow',
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+    const result = await safeFetchHead(archiveUrl, {
+      timeoutMs: 10_000,
+      maxRedirects: 5,
+      allowedHostnames: ['archive.ph'],
+      requestInit: {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        },
       },
-      signal: AbortSignal.timeout(10000),
     })
 
     // If we got redirected to an archive snapshot, return it
-    if (response.ok && response.url !== archiveUrl && response.url.includes('archive.ph/')) {
-      return response.url
+    if (result.response.ok && result.finalUrl !== archiveUrl) {
+      return result.finalUrl
     }
 
     return null
-  } catch (error) {
-    console.error('[Archive.ph] Check failed:', error)
+  } catch {
     return null
   }
 }
@@ -794,23 +784,28 @@ async function checkArchivePh(url: string): Promise<string | null> {
  * Check Wayback Machine for the most recent snapshot
  * Uses CDX API to find latest archived version
  */
-async function checkWaybackMachine(url: string): Promise<string | null> {
+export async function checkWaybackMachine(url: string): Promise<string | null> {
   try {
     // Use Wayback CDX API to get the most recent snapshot
     const cdxUrl = `https://web.archive.org/cdx/search/cdx?url=${encodeURIComponent(url)}&limit=1&sort=reverse`
 
-    const response = await fetch(cdxUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+    const result = await safeFetchText(cdxUrl, {
+      timeoutMs: 10_000,
+      maxRedirects: 2,
+      maxResponseBytes: 256 * 1024,
+      allowedHostnames: ['web.archive.org'],
+      requestInit: {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        },
       },
-      signal: AbortSignal.timeout(10000),
     })
 
-    if (!response.ok) {
+    if (!result.response.ok) {
       return null
     }
 
-    const text = await response.text()
+    const text = result.text
 
     // CDX format: urlkey timestamp original mimetype statuscode digest length
     // We need the timestamp to construct the wayback URL
@@ -825,12 +820,75 @@ async function checkWaybackMachine(url: string): Promise<string | null> {
     }
 
     const timestamp = parts[1]
+    if (!/^\d{14}$/.test(timestamp)) return null
     const waybackUrl = `https://web.archive.org/web/${timestamp}/${url}`
     return waybackUrl
-  } catch (error) {
-    console.error('[Wayback] Check failed:', error)
+  } catch {
     return null
   }
+}
+
+function hasExactHostname(url: string, allowed: readonly string[]): boolean {
+  try {
+    const hostname = new URL(url).hostname.toLowerCase().replace(/\.$/, '')
+    return allowed.includes(hostname)
+  } catch {
+    return false
+  }
+}
+
+function normalizedSafeFetchError(code: SafeFetchErrorCode): NormalizedScrapeError {
+  switch (code) {
+    case 'invalid_url':
+    case 'unsafe_url':
+    case 'unsafe_method':
+    case 'unsafe_headers':
+    case 'invalid_options':
+      return 'policy_denied'
+    case 'dns_resolution_failed':
+      return 'dns_denied'
+    case 'timeout':
+    case 'aborted':
+      return 'timeout'
+    case 'redirect_limit':
+      return 'redirect_limit'
+    case 'response_too_large':
+      return 'response_too_large'
+    case 'unsupported_content_type':
+      return 'unsupported_content_type'
+    case 'network_error':
+      return 'internal_error'
+    default: {
+      const exhaustive: never = code
+      return exhaustive
+    }
+  }
+}
+
+function normalizedHttpError(status: number): NormalizedScrapeError {
+  if (status === 429) return 'rate_limited'
+  if (status >= 500) return 'upstream_5xx'
+  return 'upstream_4xx'
+}
+
+interface ContentExtractionResult {
+  success: boolean
+  error?: string
+  errorCode?: NormalizedScrapeError
+  text: string
+  title?: string
+  author?: string
+  publishDate?: string
+  isPDF?: boolean
+  pdfMetadata?: {
+    pageCount?: number
+    keywords?: string[]
+    chapters?: string[]
+    keyPoints?: string[]
+  }
+  source?: 'original' | 'archive.ph' | 'wayback' | 'smry.ai' | 'apify' | 'bot-scrape'
+  fallback_attempts?: string[]
+  links?: LinkInfo[]
 }
 
 /**
@@ -877,24 +935,12 @@ function isContentBlocked(result: {
 /**
  * Extract URL content with automatic fallback to archives if blocked
  */
-async function extractUrlContentWithFallback(url: string, apiKey?: string, apifyApiKey?: string, pdfCoApiKey?: string, renderer?: RendererBinding): Promise<{
-  success: boolean
-  error?: string
-  text: string
-  title?: string
-  author?: string
-  publishDate?: string
-  isPDF?: boolean
-  pdfMetadata?: {
-    pageCount?: number
-    keywords?: string[]
-    chapters?: string[]
-    keyPoints?: string[]
-  }
-  source?: 'original' | 'archive.ph' | 'wayback' | 'smry.ai' | 'apify' | 'bot-scrape'
-  fallback_attempts?: string[]
-  links?: LinkInfo[]
-}> {
+export async function extractUrlContentWithFallback(
+  url: string,
+  apiKey?: string,
+  apifyApiKey?: string,
+  pdfCoApiKey?: string,
+): Promise<ContentExtractionResult> {
   const fallbackAttempts: string[] = []
 
   // Try Apify for Twitter/X and TikTok URLs first (richer content than oEmbed/fetch)
@@ -920,7 +966,7 @@ async function extractUrlContentWithFallback(url: string, apiKey?: string, apify
 
   // Try original URL first
   fallbackAttempts.push('original')
-  const originalResult = await extractUrlContent(url, apiKey, pdfCoApiKey, renderer)
+  const originalResult = await extractUrlContent(url, apiKey, pdfCoApiKey)
 
   // If successful and not blocked, return immediately
   if (originalResult.success && !isContentBlocked(originalResult)) {
@@ -937,7 +983,12 @@ async function extractUrlContentWithFallback(url: string, apiKey?: string, apify
     const archivePhUrl = await checkArchivePh(url)
     if (archivePhUrl) {
       fallbackAttempts.push('archive.ph')
-      const archivePhResult = await extractUrlContent(archivePhUrl, apiKey, pdfCoApiKey, renderer)
+      const archivePhResult = await extractUrlContent(
+        archivePhUrl,
+        apiKey,
+        pdfCoApiKey,
+        ['archive.ph'],
+      )
 
       if (archivePhResult.success && !isContentBlocked(archivePhResult)) {
         return {
@@ -956,7 +1007,12 @@ async function extractUrlContentWithFallback(url: string, apiKey?: string, apify
     const waybackUrl = await checkWaybackMachine(url)
     if (waybackUrl) {
       fallbackAttempts.push('wayback')
-      const waybackResult = await extractUrlContent(waybackUrl, apiKey, pdfCoApiKey, renderer)
+      const waybackResult = await extractUrlContent(
+        waybackUrl,
+        apiKey,
+        pdfCoApiKey,
+        ['web.archive.org'],
+      )
 
       if (waybackResult.success && !isContentBlocked(waybackResult)) {
         return {
@@ -974,7 +1030,12 @@ async function extractUrlContentWithFallback(url: string, apiKey?: string, apify
   try {
     const smryUrl = `https://smry.ai/${encodeURIComponent(url)}`
     fallbackAttempts.push('smry.ai')
-    const smryResult = await extractUrlContent(smryUrl, apiKey, pdfCoApiKey, renderer)
+    const smryResult = await extractUrlContent(
+      smryUrl,
+      apiKey,
+      pdfCoApiKey,
+      ['smry.ai'],
+    )
 
     if (smryResult.success && !isContentBlocked(smryResult)) {
       return {
@@ -1035,31 +1096,24 @@ function classifyFacebookContentType(url: string): string {
   return 'page'
 }
 
-async function extractUrlContent(url: string, apiKey?: string, pdfCoApiKey?: string, renderer?: RendererBinding): Promise<{
-  success: boolean
-  error?: string
-  text: string
-  title?: string
-  author?: string
-  publishDate?: string
-  isPDF?: boolean
-  pdfMetadata?: {
-    pageCount?: number
-    keywords?: string[]
-    chapters?: string[]
-    keyPoints?: string[]
-  }
-  links?: LinkInfo[]
-}> {
+export async function extractUrlContent(
+  url: string,
+  _apiKey?: string,
+  pdfCoApiKey?: string,
+  allowedHostnames?: readonly string[],
+): Promise<ContentExtractionResult> {
   // Resolve Spotify redirect links first
   let resolvedUrl = url
-  if (url.toLowerCase().includes('spotify.link')) {
+  let effectiveAllowedHostnames = allowedHostnames
+  if (hasExactHostname(url, ['spotify.link'])) {
     resolvedUrl = await resolveSpotifyRedirect(url)
+    effectiveAllowedHostnames = SPOTIFY_REDIRECT_HOSTS
   }
 
   // Resolve Facebook redirect links (fb.me, fb.watch)
-  if (url.toLowerCase().includes('fb.me') || url.toLowerCase().includes('fb.watch')) {
+  if (hasExactHostname(url, ['fb.me', 'fb.watch'])) {
     resolvedUrl = await resolveFacebookRedirect(url)
+    effectiveAllowedHostnames = FACEBOOK_REDIRECT_HOSTS
   }
 
   // Check if URL is a PDF
@@ -1084,20 +1138,18 @@ async function extractUrlContent(url: string, apiKey?: string, pdfCoApiKey?: str
       return {
         success: false,
         error: `PDF extraction failed: ${reason}`,
+        errorCode: pdfError instanceof SafeFetchError
+          ? normalizedSafeFetchError(pdfError.code)
+          : 'extract_failed',
         text: '',
         isPDF: true
       }
     }
   }
 
-  // Standard HTML extraction
-  const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), 15000) // 15s timeout
-
   try {
     // Detect if this is Facebook content to use specialized User-Agent
-    const isFacebookUrl = resolvedUrl.toLowerCase().includes('facebook.com') ||
-                          resolvedUrl.toLowerCase().includes('m.facebook.com')
+    const isFacebookUrl = hasExactHostname(resolvedUrl, ['facebook.com', 'www.facebook.com', 'm.facebook.com'])
 
     // Use Facebook's own crawler user-agent for Facebook URLs to bypass login walls
     // Facebook allows facebookexternalhit to access Open Graph metadata without authentication
@@ -1105,66 +1157,69 @@ async function extractUrlContent(url: string, apiKey?: string, pdfCoApiKey?: str
       ? 'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)'
       : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
 
-    const response = await fetch(resolvedUrl, {
-      headers: {
-        'User-Agent': userAgent,
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache'
+    const fetched = await safeFetchText(resolvedUrl, {
+      timeoutMs: 15_000,
+      maxRedirects: 5,
+      maxResponseBytes: 2 * 1024 * 1024,
+      ...(effectiveAllowedHostnames ? { allowedHostnames: effectiveAllowedHostnames } : {}),
+      requestInit: {
+        headers: {
+          'User-Agent': userAgent,
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,text/plain;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.9',
+          'Accept-Encoding': 'gzip, deflate, br',
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        },
       },
-      signal: controller.signal
     })
-
-    clearTimeout(timeoutId)
+    const response = fetched.response
+    const finalUrl = fetched.finalUrl
 
     if (!response.ok) {
       return {
         success: false,
         error: `HTTP ${response.status}: ${response.statusText}`,
+        errorCode: normalizedHttpError(response.status),
         text: ''
       }
     }
 
-    const html = await response.text()
+    const html = fetched.text
 
     // Detect if this is Spotify content and use specialized extraction
-    const isSpotify = resolvedUrl.toLowerCase().includes('spotify.com')
+    const isSpotify = hasExactHostname(finalUrl, ['spotify.com', 'open.spotify.com'])
 
     if (isSpotify) {
-      return extractSpotifyContent(html, resolvedUrl)
+      return extractSpotifyContent(html, finalUrl)
     }
 
     // Detect if this is Facebook content and use specialized extraction
-    const isFacebook = resolvedUrl.toLowerCase().includes('facebook.com') ||
-                       resolvedUrl.toLowerCase().includes('m.facebook.com')
+    const isFacebook = hasExactHostname(finalUrl, ['facebook.com', 'www.facebook.com', 'm.facebook.com'])
 
     if (isFacebook) {
-      return extractFacebookContent(html, resolvedUrl)
+      return extractFacebookContent(html, finalUrl)
     }
 
-    const article = extractArticle(html, resolvedUrl)
-    const rendered = shouldRenderFallback(article, html)
-      ? await renderArticleFallback(renderer, resolvedUrl)
-      : null
+    const article = extractArticle(html, finalUrl)
 
-    // Semantic article content is preferred. Browser-rendered Markdown is used
-    // only for empty/thin app shells; raw body stripping remains the last resort.
+    // Semantic article content is preferred; deterministic raw body stripping is
+    // the final fallback until a policy-enforced renderer boundary is available.
     const title = article.title || extractMetaTag(html, 'title')
     const author = extractMetaTag(html, 'author')
     const publishDate = extractMetaTag(html, 'article:published_time') ||
                        extractMetaTag(html, 'publishdate')
 
     // Extract main text (remove scripts, styles, nav, footer)
-    const cleanText = rendered || article.text || cleanHtmlText(html)
+    const cleanText = article.text || cleanHtmlText(html)
 
     // Extract links from HTML body (excluding nav, header, footer, sidebar)
-    const links = extractBodyLinks(html, resolvedUrl)
+    const links = extractBodyLinks(html, finalUrl)
 
     return {
       success: cleanText.trim().length >= 80,
       error: cleanText.trim().length >= 80 ? undefined : 'Article content could not be extracted',
+      errorCode: cleanText.trim().length >= 80 ? undefined : 'quality_rejected',
       text: cleanText,
       title,
       author,
@@ -1173,12 +1228,13 @@ async function extractUrlContent(url: string, apiKey?: string, pdfCoApiKey?: str
     }
 
   } catch (error) {
-    clearTimeout(timeoutId)
-
-    if (error instanceof Error && error.name === 'AbortError') {
+    if (error instanceof SafeFetchError) {
       return {
         success: false,
-        error: 'Request timeout - page took too long to load',
+        error: error.code === 'timeout'
+          ? 'Request timeout - page took too long to load'
+          : 'Internal server error',
+        errorCode: normalizedSafeFetchError(error.code),
         text: ''
       }
     }
@@ -1186,6 +1242,7 @@ async function extractUrlContent(url: string, apiKey?: string, pdfCoApiKey?: str
     return {
       success: false,
       error: 'Internal server error',
+      errorCode: 'internal_error',
       text: ''
     }
   }
@@ -1546,7 +1603,7 @@ function extractBodyLinks(html: string, sourceUrl: string): LinkInfo[] {
  */
 function extractEmails(text: string): Array<{ email: string; count: number }> {
   const emailPattern = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g
-  const emails = text.match(emailPattern) || []
+  const emails: string[] = Array.from(text.matchAll(emailPattern), match => match[0])
 
   // Count occurrences
   const emailMap = new Map<string, number>()
@@ -2392,7 +2449,7 @@ async function saveContentChunks(
     // Save each chunk
     for (let i = 0; i < chunks.length; i++) {
       const chunk = chunks[i]
-      const chunkHash = await generateHash(chunk)  // Use existing hash function
+      const chunkHash = await calculateHash(chunk)
 
       await db.prepare(`
         INSERT INTO content_chunks (
