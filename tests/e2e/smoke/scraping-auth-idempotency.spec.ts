@@ -56,7 +56,18 @@ class SqliteD1 {
   constructor() {
     this.sqlite.exec(`
       PRAGMA foreign_keys = ON;
-      CREATE TABLE users (id INTEGER PRIMARY KEY, user_hash TEXT);
+      CREATE TABLE users (
+        id INTEGER PRIMARY KEY,
+        username TEXT UNIQUE,
+        email TEXT UNIQUE,
+        user_hash TEXT UNIQUE,
+        full_name TEXT,
+        hashed_password TEXT,
+        created_at TEXT,
+        is_active INTEGER,
+        is_verified INTEGER,
+        role TEXT
+      );
       CREATE TABLE workspaces (id TEXT PRIMARY KEY, owner_id INTEGER, created_at TEXT);
       CREATE TABLE workspace_members (
         id TEXT PRIMARY KEY, workspace_id TEXT, user_id INTEGER, role TEXT, joined_at TEXT
@@ -224,6 +235,77 @@ test.describe('scraping authorization and idempotency contracts @smoke', () => {
     }
   })
 
+  test('@smoke raw-hash accepted collaborator sync POST stays within D1 budget', async () => {
+    const db = new SqliteD1()
+    const rawHash = '0123456789abcdef0123456789abcdef'
+    db.sqlite.exec(`
+      INSERT INTO users(id, username, email, user_hash) VALUES(99, 'owner', 'owner@test', 'owner-hash');
+      INSERT INTO workspaces(id, owner_id, created_at) VALUES('ws-1', 99, datetime('now'));
+      INSERT INTO cop_sessions(id, workspace_id, created_by) VALUES('cop-1', 'ws-1', 99);
+      INSERT INTO cop_collaborators(id, cop_session_id, user_id, role, accepted_at)
+      VALUES('c-hash', 'cop-1', 100, 'editor', datetime('now'));
+    `)
+
+    const originalFetch = globalThis.fetch
+    let actorCalls = 0
+    globalThis.fetch = async (input) => {
+      const url = String(input)
+      if (url.includes('/acts/')) {
+        actorCalls += 1
+        return Response.json({
+          data: {
+            id: `run-hash-${actorCalls}`,
+            status: 'SUCCEEDED',
+            defaultDatasetId: `dataset-hash-${actorCalls}`,
+          },
+        })
+      }
+      if (url.includes('/datasets/')) {
+        return Response.json(Array.from({ length: 100 }, (_, index) => ({
+          id: `hash-item-${index}`,
+          text: `hash evidence ${index}`,
+          url: `https://x.com/hash/status/${2000 + index}`,
+        })))
+      }
+      throw new Error(`Unexpected fetch: ${url}`)
+    }
+
+    const post = (idempotencyKey = '') => onRequestPost(context(db, new Request(
+      'https://test/api/cop/cop-1/scrape',
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${rawHash}`,
+          'Content-Type': 'application/json',
+          ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}),
+        },
+        body: JSON.stringify({ type: 'twitter', query: 'hash budget', limit: 50 }),
+      },
+    )) as never)
+
+    try {
+      db.statementExecutions = 0
+      const firstUse = await post()
+      const firstUseStatements = db.statementExecutions
+      expect(firstUse.status).toBe(200)
+      expect((await firstUse.json()).items_found).toBe(14)
+      expect(firstUseStatements).toBe(49)
+      expect(db.sqlite.prepare('SELECT id FROM users WHERE user_hash = ?').get(rawHash)?.id).toBe(100)
+
+      db.statementExecutions = 0
+      const existingHash = await post('intentional-second-run')
+      const existingHashStatements = db.statementExecutions
+      expect(existingHash.status).toBe(200)
+      expect((await existingHash.json()).items_found).toBe(14)
+      expect(existingHashStatements).toBe(48)
+      expect(actorCalls).toBe(2)
+      expect(db.maxBatchStatements).toBeLessThanOrEqual(50)
+    } finally {
+      globalThis.fetch = originalFetch
+      db.sqlite.close()
+    }
+  })
+
   test('@smoke concurrent and retried identical paid POSTs call Apify once', async () => {
     const db = new SqliteD1()
     seedOwner(db)
@@ -361,10 +443,10 @@ test.describe('scraping authorization and idempotency contracts @smoke', () => {
         { headers: { Authorization: 'Bearer session-token' } },
       )) as never)
       expect(response.status).toBe(200)
-      expect((await response.json()).items_found).toBe(15)
+      expect((await response.json()).items_found).toBe(14)
       expect(db.maxBatchStatements).toBeLessThanOrEqual(50)
       expect(db.statementExecutions).toBeLessThanOrEqual(50)
-      expect(db.sqlite.prepare('SELECT COUNT(*) AS count FROM evidence_items').get().count).toBe(15)
+      expect(db.sqlite.prepare('SELECT COUNT(*) AS count FROM evidence_items').get().count).toBe(14)
     } finally {
       globalThis.fetch = originalFetch
       db.sqlite.close()

@@ -33,9 +33,9 @@ const ACTORS: Record<string, string> = {
 }
 
 const EVIDENCE_STATEMENTS_PER_ITEM = 3
-// Reserve five statements for auth, run lookup/update, and request bookkeeping so
-// the entire invocation remains within a conservative 50-statement D1 budget.
-const MAX_EVIDENCE_BATCH = Math.floor((50 - 5) / EVIDENCE_STATEMENTS_PER_ITEM)
+// Reserve eight statements for worst-case auth, membership, run persistence, and
+// request bookkeeping so first-use hash auth remains within the 50-statement limit.
+const MAX_EVIDENCE_BATCH = Math.floor((50 - 8) / EVIDENCE_STATEMENTS_PER_ITEM)
 
 async function getCopScrapeWorkspace(
   db: D1Database,
