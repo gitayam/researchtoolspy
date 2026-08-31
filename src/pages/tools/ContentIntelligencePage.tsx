@@ -44,7 +44,7 @@ export default function ContentIntelligencePage() {
   const { t } = useTranslation()
   const { toast } = useToast()
   const navigate = useNavigate()
-  const { currentWorkspaceId } = useWorkspace()
+  const { currentWorkspaceId, isLoading: workspaceLoading } = useWorkspace()
 
   // State
   const [url, setUrl] = useState('')
@@ -1020,16 +1020,9 @@ ${shortSummary}`
     }
   }
 
-  // Ensure guest users have a hash bookmark for API access
+  // Check for a pending URL from the public landing page. Analysis itself is
+  // public, so do not manufacture a local auth identity merely to call it.
   useEffect(() => {
-    ensureAuthIdentifier()
-  }, [])
-
-  // Load saved links and check for pending URL from landing page
-  useEffect(() => {
-    loadSavedLinks()
-
-    // Check if user came from landing page with a URL to analyze
     const pendingUrl = localStorage.getItem('pending_url_analysis')
     let timeoutId: ReturnType<typeof setTimeout> | undefined
     if (pendingUrl) {
@@ -1062,6 +1055,20 @@ ${shortSummary}`
       setLoadingSavedLinks(false)
     }
   }
+
+  // Saved links are a workspace feature. Load them only after a real auth and
+  // workspace context exist, including when the provider resolves after mount.
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (getAuthIdentifier() && currentWorkspaceId) {
+        void loadSavedLinks()
+      } else {
+        setSavedLinks([])
+        setLoadingSavedLinks(false)
+      }
+    }, 0)
+    return () => clearTimeout(timeoutId)
+  }, [currentWorkspaceId])
 
   // Run DIME Framework Analysis (memoized with useCallback)
   const runDIMEAnalysis = useCallback(async () => {
@@ -1250,6 +1257,14 @@ ${shortSummary}`
       return
     }
 
+    if (!getAuthIdentifier() || !currentWorkspaceId) {
+      toast({
+        title: 'Workspace Required to Save',
+        description: 'Public analysis is available without signing in. Sign in and select a workspace only when you want to save links.',
+      })
+      return
+    }
+
     try {
       // First, do a quick analysis to fetch the title
       toast({ title: 'Fetching page title...', description: 'Please wait', variant: 'default' })
@@ -1309,7 +1324,7 @@ ${shortSummary}`
       console.error('Save error:', error)
       toast({ title: 'Error', description: 'Failed to save link', variant: 'destructive' })
     }
-  }, [url, saveNote, saveTags, toast, loadSavedLinks])
+  }, [url, saveNote, saveTags, toast, loadSavedLinks, currentWorkspaceId])
 
   // Analyze URL
   const handleAnalyze = async (urlToAnalyze?: string) => {
@@ -1381,13 +1396,17 @@ ${shortSummary}`
         }
       }, 2000) // Update every 2 seconds
 
+      const canSaveAtRequestTime = Boolean(getAuthIdentifier() && currentWorkspaceId)
       const response = await fetch('/api/content-intelligence/analyze-url', {
         method: 'POST',
-        headers: getCopHeaders(),
+        headers: {
+          ...getCopHeaders(),
+          ...(currentWorkspaceId ? { 'X-Workspace-ID': currentWorkspaceId } : {}),
+        },
         body: JSON.stringify({
           url: targetUrl,
           mode,
-          save_link: true, // Always auto-save analyzed URLs
+          save_link: canSaveAtRequestTime,
           link_note: saveNote || undefined,
           link_tags: saveTags ? saveTags.split(',').map(t => t.trim()) : []
         })
@@ -1434,6 +1453,13 @@ ${shortSummary}`
       setStatus('complete')
       setCurrentStep('Complete!')
       setAnalysis(data)
+
+      if (data.persistence_notice) {
+        toast({
+          title: 'Public Analysis Complete',
+          description: data.persistence_notice,
+        })
+      }
 
       // Auto-generate citation
       handleCreateCitation(data)
@@ -2363,6 +2389,14 @@ ${shortSummary}`
       {/* Input Section - Simple, clean design matching homepage */}
       <Card className="p-6">
         <div className="space-y-4">
+          {!workspaceLoading && !currentWorkspaceId && (
+            <Alert className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/40">
+              <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              <AlertDescription className="text-blue-800 dark:text-blue-200">
+                No login is required. Public analyses run without saving; sign in and select a workspace only for saved links, sharing, and collaboration.
+              </AlertDescription>
+            </Alert>
+          )}
           {/* URL Input Row */}
           <div className="flex gap-2">
             <Input
@@ -3205,7 +3239,7 @@ ${shortSummary}`
                 </div>
 
                 {/* Optional Note and Tags - Only show if not saved */}
-                {!analysis.is_saved && (
+                {analysis.id && !analysis.is_saved && (
                   <div className="space-y-3 pb-2">
                     <p className="text-sm font-medium text-muted-foreground">Add metadata before saving (optional)</p>
                     <div className="flex gap-2">
@@ -3239,7 +3273,7 @@ ${shortSummary}`
                     variant="outline"
                     size="sm"
                     onClick={runDIMEAnalysis}
-                    disabled={dimeLoading || !analysis.extracted_text}
+                    disabled={dimeLoading || !analysis.id || !analysis.extracted_text}
                   >
                     {dimeLoading ? (
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -3248,7 +3282,7 @@ ${shortSummary}`
                     )}
                     DIME Analysis
                   </Button>
-                  <TooltipProvider>
+                  {analysis.id && <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button
@@ -3283,7 +3317,7 @@ ${shortSummary}`
                         </div>
                       </TooltipContent>
                     </Tooltip>
-                  </TooltipProvider>
+                  </TooltipProvider>}
                   <Button
                     variant="default"
                     size="sm"
@@ -3309,9 +3343,18 @@ ${shortSummary}`
                     Copy Summary
                   </Button>
                   {/* New SharePanel component replaces inline share button */}
-                  <SharePanel analysis={analysis} />
+                  {analysis.id && <SharePanel analysis={analysis} />}
                 </div>
               </div>
+
+              {analysis.persistence_notice && (
+                <Alert className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/40">
+                  <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                  <AlertDescription className="text-blue-800 dark:text-blue-200">
+                    This public analysis is available in the current browser session and was not written to a workspace. Export or copy it now, or sign in and select a workspace before running another analysis to enable saving and sharing.
+                  </AlertDescription>
+                </Alert>
+              )}
 
               {/* Expiration Warning & Share Link */}
               <div className="space-y-3">
@@ -4647,7 +4690,7 @@ ${shortSummary}`
                   <p className="text-muted-foreground mb-6 max-w-md mx-auto">
                     Extract factual claims and analyze them for potential deception using multiple detection methods: internal consistency, source credibility, evidence quality, logical coherence, temporal consistency, and specificity.
                   </p>
-                  <Button onClick={runClaimsAnalysis} disabled={claimsLoading || !analysis} size="lg">
+                  <Button onClick={runClaimsAnalysis} disabled={claimsLoading || !analysis?.id} size="lg">
                     <Shield className="h-4 w-4 mr-2" />
                     {claimsLoading ? 'Analyzing Claims...' : 'Run Claims Analysis'}
                   </Button>
@@ -4678,7 +4721,7 @@ ${shortSummary}`
                   onChange={(e) => setQuestion(e.target.value)}
                   className="min-h-[60px]"
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
+                    if (e.key === 'Enter' && !e.shiftKey && analysis?.id) {
                       e.preventDefault()
                       handleAskQuestion()
                     }
@@ -4686,7 +4729,7 @@ ${shortSummary}`
                 />
                 <Button
                   onClick={handleAskQuestion}
-                  disabled={askingQuestion || !question.trim()}
+                  disabled={askingQuestion || !question.trim() || !analysis?.id}
                   className="shrink-0"
                 >
                   {askingQuestion ? (
@@ -5169,7 +5212,7 @@ ${shortSummary}`
                   <p className="text-muted-foreground mb-6 max-w-md mx-auto">
                     Analyze this content through the DIME framework lens: Diplomatic, Information, Military, and Economic dimensions.
                   </p>
-                  <Button onClick={runDIMEAnalysis} disabled={dimeLoading || !analysis} size="lg">
+                  <Button onClick={runDIMEAnalysis} disabled={dimeLoading || !analysis?.id} size="lg">
                     <Grid3x3 className="h-4 w-4 mr-2" />
                     {dimeLoading ? 'Analyzing...' : 'Run DIME Analysis'}
                   </Button>
@@ -5186,7 +5229,7 @@ ${shortSummary}`
       )}
 
       {/* Saved Links Library */}
-      <div id="saved-links" className="mt-8">
+      {currentWorkspaceId && <div id="saved-links" className="mt-8">
         <Card className="p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-bold flex items-center gap-2">
@@ -5391,7 +5434,7 @@ ${shortSummary}`
             </div>
           )}
         </Card>
-      </div>
+      </div>}
 
       {/* VirusTotal Security Modal */}
       <Dialog open={showVtModal} onOpenChange={setShowVtModal}>

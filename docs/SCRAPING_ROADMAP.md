@@ -136,6 +136,7 @@ flowchart LR
 - [x] Route content-intelligence analysis, saved-link titles/delegation, and the public Twitter image proxy through bounded purpose-specific adapters; disable dynamic rendering on the analysis path pending enforcing egress.
 - [ ] Add binding-backed abuse throttling and write budgets to the public Twitter image proxy before promoting it for higher-volume use.
 - [x] Scope `content-intelligence/analyze-url` `load_existing` reads to the authenticated analysis owner and require owner/editor/admin workspace authority for new writes.
+- [x] Keep `content-intelligence/analyze-url` usable without login through ephemeral, non-persisted results; retain auth for existing/trusted-content reads, require writable workspace authority for every write, and apply a dedicated per-IP public budget.
 - [x] Correct `enhancedFetch()` option typing, merged headers, abort propagation, total timeout, and bounded retry contract.
 - [ ] Add all `functions/`, `workers/`, and Container TypeScript entry points to build/CI validation. The current `type-check:scraping-surface` covers 24 inventoried roots with one explicit exclusion.
 - [x] Correct the web-scraper dataset authentication/response contract and final-redirect provenance.

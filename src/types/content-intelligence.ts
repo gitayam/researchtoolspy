@@ -95,9 +95,11 @@ export interface LinkInfo {
 }
 
 export interface ContentAnalysis {
-  id: number
-  user_id: number
+  id?: number
+  user_id?: number
   saved_link_id?: number
+  is_persisted?: boolean
+  persistence_notice?: string
 
   // Source
   url: string

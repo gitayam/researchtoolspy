@@ -7,6 +7,10 @@ import {
   extractUrlContent,
   onRequestPost,
 } from '../../../functions/api/content-intelligence/analyze-url'
+import {
+  isPublicContentAnalysisPath,
+  onRequest as apiMiddleware,
+} from '../../../functions/api/_middleware'
 
 type DnsAnswers = Record<string, string[]>
 
@@ -128,7 +132,36 @@ function expectRecursivelyAbsent(value: unknown, forbidden: readonly string[]): 
 test.describe('content-intelligence URL safe-fetch migration @smoke', () => {
   test.describe.configure({ mode: 'serial' })
 
-  test('@smoke preserves unauthenticated, missing URL, and workspace denial shapes', async () => {
+  test('@smoke public analysis has an exact-path IP budget', async () => {
+    expect(isPublicContentAnalysisPath('/api/content-intelligence/analyze-url')).toBe(true)
+    expect(isPublicContentAnalysisPath('/api/content-intelligence/analyze-url/extra')).toBe(false)
+
+    let nextCalled = false
+    const response = await apiMiddleware({
+      request: new Request('https://researchtools.example/api/content-intelligence/analyze-url', {
+        method: 'POST',
+        headers: { 'CF-Connecting-IP': '203.0.113.8' },
+      }),
+      env: {
+        CACHE: {
+          get: async () => '12',
+          put: async () => undefined,
+        },
+      },
+      next: async () => {
+        nextCalled = true
+        return new Response('unexpected')
+      },
+    })
+
+    expect(response.status).toBe(429)
+    expect(await response.json()).toEqual({
+      error: 'Public analysis limit reached. Please try again later.',
+    })
+    expect(nextCalled).toBe(false)
+  })
+
+  test('@smoke keeps existing-analysis auth while public requests pass the workspace gate', async () => {
     const sessions = {
       get: async (token: string) => token === 'session-token' ? JSON.stringify({ user_id: 7 }) : null,
     }
@@ -155,16 +188,96 @@ test.describe('content-intelligence URL safe-fetch migration @smoke', () => {
     } as never)
 
     const unauthenticated = await invoke({}, false)
-    expect(unauthenticated.status).toBe(401)
-    expect(await unauthenticated.json()).toEqual({ error: 'Authentication required' })
+    expect(unauthenticated.status).toBe(400)
+    expect(await unauthenticated.json()).toEqual({ error: 'URL is required' })
 
     const missingWorkspace = await invoke({})
     expect(missingWorkspace.status).toBe(400)
-    expect(await missingWorkspace.json()).toEqual({ error: 'Writable workspace context required' })
+    expect(await missingWorkspace.json()).toEqual({ error: 'URL is required' })
 
-    const deniedWorkspace = await invoke({ url: 'https://public.example/article' }, true, 'workspace-7')
-    expect(deniedWorkspace.status).toBe(403)
-    expect(await deniedWorkspace.json()).toEqual({ error: 'Workspace write access denied' })
+    const deniedWorkspace = await invoke({}, true, 'workspace-7')
+    expect(deniedWorkspace.status).toBe(400)
+    expect(await deniedWorkspace.json()).toEqual({ error: 'URL is required' })
+
+    const existing = await invoke({ load_existing: true, analysis_id: 42 }, false)
+    expect(existing.status).toBe(401)
+    expect(await existing.json()).toEqual({ error: 'Authentication required' })
+
+    const supplied = await invoke({
+      url: 'https://public.example/article',
+      content_text: 'caller supplied content '.repeat(160),
+    }, false)
+    expect(supplied.status).toBe(401)
+    expect(await supplied.json()).toEqual({ error: 'Authentication required for supplied content' })
+  })
+
+  test('@smoke anonymous normal analysis succeeds without database persistence', async () => {
+    let dbCalls = 0
+    const db = {
+      prepare() {
+        dbCalls++
+        throw new Error('Public successful analysis must not access D1')
+      },
+    }
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = new URL(String(input))
+      if (url.hostname === 'cloudflare-dns.com') {
+        const type = url.searchParams.get('type') === 'AAAA' ? 'AAAA' : 'A'
+        return Response.json({
+          Status: 0,
+          Answer: type === 'AAAA'
+            ? [{ type: 28, data: '2606:2800:220:1:248:1893:25c8:1946' }]
+            : [{ type: 1, data: '93.184.216.34' }],
+        })
+      }
+      if (url.hostname === 'public.example') {
+        return new Response(longArticle, { headers: { 'Content-Type': 'text/html' } })
+      }
+      expect(url.hostname).toBe('api.openai.com')
+      const request = JSON.parse(String(init?.body || '{}')) as { messages?: Array<{ content?: string }> }
+      const prompt = request.messages?.at(-1)?.content || ''
+      let content = JSON.stringify({
+        people: [], organizations: [], locations: [], dates: [], money: [],
+        events: [], products: [], percentages: [],
+      })
+      if (prompt.includes('Summarize this content')) content = 'Public summary'
+      if (prompt.includes('sentiment')) content = JSON.stringify({
+        overall: 'neutral', score: 0, confidence: 1,
+        emotions: { joy: 0, anger: 0, fear: 0, sadness: 0, surprise: 0 },
+        controversialClaims: [], keyInsights: [],
+      })
+      if (prompt.includes('main topics')) content = '[]'
+      if (prompt.includes('keyphrases')) content = '[]'
+      return Response.json({ choices: [{ message: { content } }] })
+    }) as typeof fetch
+
+    try {
+      const response = await onRequestPost({
+        request: new Request('https://researchtools.example/api/content-intelligence/analyze-url', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            url: 'https://public.example/supplied',
+            mode: 'normal',
+            save_link: true,
+          }),
+        }),
+        env: { DB: db, OPENAI_API_KEY: 'test-openai-key' },
+        params: {},
+      } as never)
+
+      expect(response.status).toBe(200)
+      expect(await response.json()).toMatchObject({
+        title: 'Validated Final Article',
+        summary: 'Public summary',
+        is_persisted: false,
+        persistence_notice: expect.stringContaining('Public analysis completed without saving'),
+      })
+      expect(dbCalls).toBe(0)
+    } finally {
+      globalThis.fetch = originalFetch
+    }
   })
 
   test('@smoke denies private, mixed-DNS, and private-redirect targets before transport', async () => {

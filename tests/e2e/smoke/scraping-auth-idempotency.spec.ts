@@ -508,13 +508,19 @@ test.describe('scraping authorization and idempotency contracts @smoke', () => {
     db.sqlite.close()
   })
 
-  test('@smoke analysis denies a viewer explicit and sole-derived write access', async () => {
+  test('@smoke viewer analysis remains ephemeral for explicit and derived workspace context', async () => {
     const db = new SqliteD1()
     db.sqlite.exec(`
       INSERT INTO users(id) VALUES(7);
       INSERT INTO workspaces(id, owner_id, created_at) VALUES('ws-view', 99, '2026-01-01');
       INSERT INTO workspace_members(id, workspace_id, user_id, role, joined_at)
       VALUES('wm-view', 'ws-view', 7, 'VIEWER', '2026-01-01');
+      CREATE TABLE saved_links (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER, workspace_id TEXT, bookmark_hash TEXT, url TEXT,
+        title TEXT, note TEXT, tags TEXT, domain TEXT, is_social_media INTEGER,
+        social_platform TEXT, is_processed INTEGER, analysis_id INTEGER
+      );
     `)
     const makeRequest = (explicit: boolean) => analyzeUrlPost({
       ...context(db, new Request('https://test/api/content-intelligence/analyze-url', {
@@ -524,15 +530,39 @@ test.describe('scraping authorization and idempotency contracts @smoke', () => {
           'Content-Type': 'application/json',
           ...(explicit ? { 'X-Workspace-ID': 'ws-view' } : {}),
         },
-        body: JSON.stringify({ url: 'https://example.com/article' }),
+        body: JSON.stringify({
+          url: 'https://example.com/article',
+          mode: 'quick',
+          save_link: true,
+          content_text: 'authenticated viewer supplied article text with evidence '.repeat(35),
+          content_title: 'Viewer analysis',
+          content_source: 'bot-scrape',
+        }),
       })),
       params: {},
     } as never)
 
-    const explicit = await makeRequest(true)
-    const derived = await makeRequest(false)
-    expect(explicit.status).toBe(403)
-    expect(derived.status).toBe(400)
-    db.sqlite.close()
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = (async () => Response.json({
+      choices: [{ message: { content: 'Ephemeral viewer summary' } }],
+    })) as typeof fetch
+    try {
+      const explicit = await makeRequest(true)
+      const derived = await makeRequest(false)
+      expect(explicit.status).toBe(200)
+      expect(derived.status).toBe(200)
+      expect(await explicit.json()).toMatchObject({
+        is_persisted: false,
+        persistence_notice: expect.stringContaining('no writable workspace'),
+      })
+      expect(await derived.json()).toMatchObject({
+        is_persisted: false,
+        persistence_notice: expect.stringContaining('no writable workspace'),
+      })
+      expect(db.sqlite.prepare('SELECT COUNT(*) AS n FROM saved_links').get()).toEqual({ n: 0 })
+    } finally {
+      globalThis.fetch = originalFetch
+      db.sqlite.close()
+    }
   })
 })

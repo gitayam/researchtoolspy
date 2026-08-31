@@ -50,6 +50,10 @@ export function isApifyScraperPath(pathname: string): boolean {
   return pathname.includes('/cop/') && pathname.endsWith('/scrape')
 }
 
+export function isPublicContentAnalysisPath(pathname: string): boolean {
+  return pathname === '/api/content-intelligence/analyze-url'
+}
+
 /**
  * Fixed-window KV rate limiter. Returns true if the caller is OVER the limit.
  * key: caller-scoped string (e.g. "ai:<hash>"). limit: max events per window.
@@ -101,6 +105,15 @@ export async function onRequest(context: any) {
   }
 
   const clientIp = request.headers.get('CF-Connecting-IP') || 'unknown'
+
+  // URL analysis is intentionally public, but one normal request can fan out to
+  // several paid model calls. Apply a tighter IP budget to authenticated and
+  // anonymous callers alike; the general AI and gateway caps remain backstops.
+  if (request.method === 'POST' && isPublicContentAnalysisPath(url.pathname)) {
+    if (await kvRateLimit(env, `content-analysis:${clientIp}`, 12, 60 * 60)) {
+      return json429('Public analysis limit reached. Please try again later.')
+    }
+  }
 
   // Auth: brute-force protection on login
   if (url.pathname.includes('/hash-auth/authenticate') && request.method === 'POST') {

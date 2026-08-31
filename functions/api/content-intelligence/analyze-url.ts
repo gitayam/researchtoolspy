@@ -104,14 +104,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    // Determine user_id using shared auth helper
+    // Authentication is optional for analysis. Signed-in users with a writable
+    // workspace may persist results; everyone else receives an ephemeral result.
     const userId = await getUserFromRequest(request, env)
-    if (!userId) {
-      return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401,
-        headers: JSON_HEADERS,
-      })
-    }
 
     // Parse request
     let body: AnalyzeUrlRequest
@@ -131,6 +126,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     // Existing analyses have an explicit, owner-only read path. A caller-supplied
     // workspace header is deliberately irrelevant to this lookup.
     if (load_existing && analysis_id) {
+      if (!userId) {
+        return new Response(JSON.stringify({ error: 'Authentication required' }), {
+          status: 401,
+          headers: JSON_HEADERS,
+        })
+      }
       try {
         const result = await env.DB.prepare(`
           SELECT *
@@ -173,23 +174,26 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       }
     }
 
-    // Analysis can spend external-service quota and may persist results/bookmarks,
-    // so it requires an owner or accepted workspace editor/admin role.
+    // Persistence requires an owner or accepted editor/admin role. Missing or
+    // denied workspace context downgrades to ephemeral analysis instead of
+    // blocking the public tool.
     const requestedWorkspaceId = request.headers.get('X-Workspace-ID') || null
-    const workspaceId = await resolveWritableWorkspaceId(env.DB, userId, requestedWorkspaceId)
-    if (!workspaceId) {
-      return new Response(JSON.stringify({
-        error: requestedWorkspaceId ? 'Workspace write access denied' : 'Writable workspace context required',
-      }), {
-        status: requestedWorkspaceId ? 403 : 400,
-        headers: JSON_HEADERS,
-      })
-    }
+    const workspaceId = userId
+      ? await resolveWritableWorkspaceId(env.DB, userId, requestedWorkspaceId)
+      : null
+    const canPersist = userId !== null && workspaceId !== null
+    const persistenceNotice = canPersist
+      ? undefined
+      : userId
+        ? 'Analysis completed without saving because no writable workspace was selected.'
+        : 'Public analysis completed without saving. Sign in and select a workspace to save or share results.'
 
     // Get user hash for legacy bookmark association only after write authorization.
     let bookmarkHash: string | null = null
-    const user = await env.DB.prepare('SELECT user_hash FROM users WHERE id = ?').bind(userId).first()
-    if (user?.user_hash) bookmarkHash = user.user_hash as string
+    if (canPersist) {
+      const user = await env.DB.prepare('SELECT user_hash FROM users WHERE id = ?').bind(userId).first()
+      if (user?.user_hash) bookmarkHash = user.user_hash as string
+    }
 
     if (!url) {
       console.error('[DEBUG] No URL provided')
@@ -219,6 +223,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     // Generate bypass/archive links immediately (no API calls needed)
     const bypassUrls = generateBypassUrls(normalizedUrl)
     const archiveUrls = generateArchiveUrls(normalizedUrl)
+
+    if (body.content_text !== undefined && !userId) {
+      return new Response(JSON.stringify({
+        error: 'Authentication required for supplied content',
+      }), { status: 401, headers: JSON_HEADERS })
+    }
 
     const suppliedText = typeof body.content_text === 'string'
       ? body.content_text.replace(/\0/g, '').trim().slice(0, 100 * 1024)
@@ -254,7 +264,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       await logEvent(env, await extractionFailureLog({
         url: normalizedUrl,
         errorCode: contentData.errorCode ?? 'extract_failed',
-        tenantScope: workspaceId,
+        tenantScope: workspaceId ?? 'public',
         telemetryKey: env.SCRAPE_TELEMETRY_KEY,
         correlationId: requestCorrelationId,
       }))
@@ -329,7 +339,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
       // Optionally save link for quick mode
       let savedLinkId: number | undefined
-      if (save_link) {
+      if (save_link && canPersist) {
         try {
           savedLinkId = await saveLinkToLibrary(env.DB, {
             user_id: userId,
@@ -375,7 +385,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           contentData.title,
           contentData.author,
           contentData.publishDate
-        )
+        ),
+        is_persisted: savedLinkId !== undefined,
+        persistence_notice: persistenceNotice,
       }
 
       return new Response(JSON.stringify(quickResult), {
@@ -448,48 +460,50 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     // Claim extraction - DISABLED for performance (manual tool via Claims tab)
     let claimAnalysis = null
 
-    // Save to database
-    let analysisId: number
-    try {
-      analysisId = await saveAnalysis(env.DB, {
-      user_id: userId,
-      bookmark_hash: bookmarkHash,
-      workspace_id: workspaceId,
-      url: normalizedUrl,
-      content_hash: contentHash,
-      title: contentData.title,
-      author: contentData.author,
-      publish_date: contentData.publishDate,
-      domain: new URL(normalizedUrl).hostname,
-      is_social_media: !!socialMediaInfo,
-      social_platform: socialMediaInfo?.platform,
-      extracted_text: contentData.text,
-      summary,
-      word_count: countWords(contentData.text),
-      word_frequency: wordFrequency,
-      top_phrases: topPhrases,
-      entities: entitiesData,
-      links_analysis: contentData.links || [],
-      sentiment_analysis: sentimentData,
-      keyphrases: keyphrases,
-      topics: topics,
-      claim_analysis: claimAnalysis,
-      archive_urls: archiveUrls,
-      bypass_urls: bypassUrls,
-      processing_mode: mode,
-      processing_duration_ms: Date.now() - startTime,
-      gpt_model_used: 'gpt-5.4-mini'
-    })
-
-    } catch (error) {
-      console.error('[DEBUG] Database save failed:', error)
-      console.error('[DEBUG] Error details:', error instanceof Error ? error.message : String(error))
-      throw new Error('Database save failed', { cause: error })
+    // Public analysis is intentionally ephemeral. Persist only when the caller
+    // is authenticated and the selected workspace grants write access.
+    let analysisId: number | undefined
+    if (canPersist) {
+      try {
+        analysisId = await saveAnalysis(env.DB, {
+          user_id: userId,
+          bookmark_hash: bookmarkHash,
+          workspace_id: workspaceId,
+          url: normalizedUrl,
+          content_hash: contentHash,
+          title: contentData.title,
+          author: contentData.author,
+          publish_date: contentData.publishDate,
+          domain: new URL(normalizedUrl).hostname,
+          is_social_media: !!socialMediaInfo,
+          social_platform: socialMediaInfo?.platform,
+          extracted_text: contentData.text,
+          summary,
+          word_count: countWords(contentData.text),
+          word_frequency: wordFrequency,
+          top_phrases: topPhrases,
+          entities: entitiesData,
+          links_analysis: contentData.links || [],
+          sentiment_analysis: sentimentData,
+          keyphrases: keyphrases,
+          topics: topics,
+          claim_analysis: claimAnalysis,
+          archive_urls: archiveUrls,
+          bypass_urls: bypassUrls,
+          processing_mode: mode,
+          processing_duration_ms: Date.now() - startTime,
+          gpt_model_used: 'gpt-5.4-mini'
+        })
+      } catch (error) {
+        console.error('[DEBUG] Database save failed:', error)
+        console.error('[DEBUG] Error details:', error instanceof Error ? error.message : String(error))
+        throw new Error('Database save failed', { cause: error })
+      }
     }
 
     // Optionally save link
     let savedLinkId: number | undefined
-    if (save_link) {
+    if (save_link && canPersist && analysisId !== undefined) {
       try {
         savedLinkId = await saveLinkToLibrary(env.DB, {
           user_id: userId,
@@ -513,7 +527,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     // Normalize claims to database (Phase 1: Claims & Entity Integration)
     let claimIds: string[] = []
-    if (claimAnalysis && claimAnalysis.claims && claimAnalysis.claims.length > 0) {
+    if (analysisId !== undefined && canPersist && claimAnalysis && claimAnalysis.claims && claimAnalysis.claims.length > 0) {
       try {
         claimIds = await normalizeClaims(env.DB, {
           content_analysis_id: analysisId,
@@ -600,7 +614,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         contentData.title,
         contentData.author,
         contentData.publishDate
-      )
+      ),
+      is_persisted: analysisId !== undefined,
+      persistence_notice: persistenceNotice,
     }
 
     return new Response(JSON.stringify(result), {
