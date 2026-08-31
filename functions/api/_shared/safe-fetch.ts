@@ -46,18 +46,29 @@ export interface SafeFetchOptions {
   maxRedirects?: number
   maxResponseBytes?: number
   allowedContentTypes?: readonly string[]
+  /** Exact normalized hostnames permitted for the initial URL and every redirect. */
+  allowedHostnames?: readonly string[]
   fetchImpl?: typeof fetch
   resolveHostname?: HostnameResolver
 }
 
-export interface SafeFetchTextResult {
+export interface SafeFetchResult {
   response: Response
-  text: string
   finalUrl: string
   redirects: string[]
   bytesRead: number
   contentType: string
 }
+
+export interface SafeFetchTextResult extends SafeFetchResult {
+  text: string
+}
+
+export interface SafeFetchBytesResult extends SafeFetchResult {
+  bytes: Uint8Array
+}
+
+export type SafeFetchHeadResult = SafeFetchResult
 
 const DEFAULT_TIMEOUT_MS = 15_000
 const DEFAULT_MAX_REDIRECTS = 5
@@ -71,6 +82,7 @@ const DEFAULT_ALLOWED_CONTENT_TYPES = [
   'application/xml',
   'application/json',
 ] as const
+const DEFAULT_ALLOWED_BINARY_CONTENT_TYPES = ['application/octet-stream'] as const
 
 const BLOCKED_HOST_SUFFIXES = [
   '.internal',
@@ -249,6 +261,43 @@ function validateIntegerLimit(name: string, value: number, minimum: number, maxi
   }
 }
 
+function normalizedHostname(url: URL): string {
+  return url.hostname.toLowerCase().replace(/^\[|\]$/g, '').replace(/\.$/, '')
+}
+
+function normalizeAllowedHostnames(values: readonly string[] | undefined): Set<string> | null {
+  if (values === undefined) return null
+  if (!Array.isArray(values) || values.length === 0) {
+    throw new SafeFetchError('invalid_options', 'allowedHostnames must contain at least one exact hostname')
+  }
+
+  const normalized = new Set<string>()
+  for (const value of values) {
+    if (typeof value !== 'string' || !value.trim()) {
+      throw new SafeFetchError('invalid_options', 'allowedHostnames must contain only exact hostnames')
+    }
+    try {
+      const candidate = value.trim().replace(/\.$/, '')
+      if (candidate.includes('*')) throw new Error('wildcards are not exact hostnames')
+      const parsed = new URL(`https://${candidate}`)
+      if (parsed.username || parsed.password || parsed.port || parsed.pathname !== '/'
+        || parsed.search || parsed.hash || !parsed.hostname) {
+        throw new Error('not an exact hostname')
+      }
+      normalized.add(normalizedHostname(parsed))
+    } catch (error) {
+      throw new SafeFetchError('invalid_options', `Invalid allowed hostname: ${value}`, { cause: error })
+    }
+  }
+  return normalized
+}
+
+function assertAllowedHostname(url: URL, allowedHostnames: Set<string> | null): void {
+  if (allowedHostnames && !allowedHostnames.has(normalizedHostname(url))) {
+    throw new SafeFetchError('unsafe_url', 'Destination hostname is not allowed by this outbound policy')
+  }
+}
+
 function sanitizeRequestInit(requestInit: RequestInit): { init: RequestInit; headers: Headers } {
   if (requestInit.method !== undefined && typeof requestInit.method !== 'string') {
     throw new SafeFetchError('unsafe_method', 'Outbound request method must be a string')
@@ -414,35 +463,103 @@ async function readBoundedText(response: Response, maxBytes: number): Promise<{ 
   }
 }
 
-/**
- * Fetch and read text under the shared outbound policy.
- * Redirects are never delegated to the runtime; every Location is resolved and
- * revalidated before the next request.
- */
-export async function safeFetchText(
+async function readBoundedBytes(response: Response, maxBytes: number): Promise<{ bytes: Uint8Array; bytesRead: number }> {
+  const contentLength = response.headers.get('content-length')
+  const declaredLength = contentLength === null ? null : Number(contentLength)
+  if (declaredLength !== null && Number.isFinite(declaredLength) && declaredLength > maxBytes) {
+    await cancelResponseBody(response, 'declared response size limit exceeded')
+    throw new SafeFetchError('response_too_large', `Response exceeds the ${maxBytes}-byte limit`)
+  }
+
+  if (!response.body) return { bytes: new Uint8Array(), bytesRead: 0 }
+  const reader = response.body.getReader()
+  const chunks: Uint8Array[] = []
+  let bytesRead = 0
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      bytesRead += value.byteLength
+      if (bytesRead > maxBytes) {
+        await reader.cancel('response size limit exceeded')
+        throw new SafeFetchError('response_too_large', `Response exceeds the ${maxBytes}-byte limit`)
+      }
+      chunks.push(value)
+    }
+
+    const bytes = new Uint8Array(bytesRead)
+    let offset = 0
+    for (const chunk of chunks) {
+      bytes.set(chunk, offset)
+      offset += chunk.byteLength
+    }
+    return { bytes, bytesRead }
+  } catch (error) {
+    try {
+      await reader.cancel('response body read failed')
+    } catch {
+      // Preserve the read/policy failure after awaiting cleanup.
+    }
+    throw error
+  } finally {
+    reader.releaseLock()
+  }
+}
+
+interface BodyReadResult<T> {
+  value: T
+  bytesRead: number
+}
+
+interface SharedFetchPolicy<T> {
+  method?: 'GET' | 'HEAD'
+  defaultMaxResponseBytes: number
+  defaultAllowedContentTypes: readonly string[]
+  skipContentTypeCheck?: boolean
+  read(response: Response, maxBytes: number): Promise<BodyReadResult<T>>
+}
+
+interface SharedFetchResult<T> extends SafeFetchResult {
+  value: T
+}
+
+function validateAllowedContentTypes(values: readonly string[]): void {
+  if (!Array.isArray(values)
+    || values.length === 0
+    || values.some(value => typeof value !== 'string' || value.trim() === '')) {
+    throw new SafeFetchError('invalid_options', 'allowedContentTypes must contain at least one MIME type')
+  }
+}
+
+async function safeFetchWithPolicy<T>(
   input: string | URL,
-  options: SafeFetchOptions = {},
-): Promise<SafeFetchTextResult> {
+  options: SafeFetchOptions,
+  policy: SharedFetchPolicy<T>,
+): Promise<SharedFetchResult<T>> {
   const {
     requestInit = {},
     timeoutMs = DEFAULT_TIMEOUT_MS,
     maxRedirects = DEFAULT_MAX_REDIRECTS,
-    maxResponseBytes = DEFAULT_MAX_RESPONSE_BYTES,
-    allowedContentTypes = DEFAULT_ALLOWED_CONTENT_TYPES,
+    maxResponseBytes = policy.defaultMaxResponseBytes,
+    allowedContentTypes = policy.defaultAllowedContentTypes,
+    allowedHostnames,
     fetchImpl = fetch,
     resolveHostname = resolvePublicHostname,
   } = options
   validateIntegerLimit('timeoutMs', timeoutMs, 1, MAX_TIMEOUT_MS)
   validateIntegerLimit('maxRedirects', maxRedirects, 0, MAX_REDIRECTS)
   validateIntegerLimit('maxResponseBytes', maxResponseBytes, 1, MAX_RESPONSE_BYTES)
-  if (!Array.isArray(allowedContentTypes)
-    || allowedContentTypes.length === 0
-    || allowedContentTypes.some(value => typeof value !== 'string' || value.trim() === '')) {
-    throw new SafeFetchError('invalid_options', 'allowedContentTypes must contain at least one MIME type')
-  }
+  if (!policy.skipContentTypeCheck) validateAllowedContentTypes(allowedContentTypes)
+  const normalizedAllowedHostnames = normalizeAllowedHostnames(allowedHostnames)
 
+  const requestedMethod = typeof requestInit.method === 'string'
+    ? requestInit.method.toUpperCase()
+    : requestInit.method
+  if (policy.method && requestedMethod && requestedMethod !== policy.method) {
+    throw new SafeFetchError('unsafe_method', `This outbound adapter requires ${policy.method}`)
+  }
   const callerSignal = requestInit.signal
-  const sanitized = sanitizeRequestInit(requestInit)
+  const sanitized = sanitizeRequestInit({ ...requestInit, method: policy.method || requestInit.method })
   const controller = new AbortController()
   let abortSource: 'caller' | 'timeout' | null = null
   const abortFromCaller = () => {
@@ -469,11 +586,11 @@ export async function safeFetchText(
     for (let redirectCount = 0; ; redirectCount += 1) {
       let url: URL
       try {
-        url = await assertSafeOutboundUrl(current, controller.signal, resolveHostname)
+        const parsed = parseSafeOutboundUrl(current)
+        assertAllowedHostname(parsed, normalizedAllowedHostnames)
+        url = await assertSafeOutboundUrl(parsed, controller.signal, resolveHostname)
       } catch (error) {
-        if (controller.signal.aborted) {
-          throw abortError(error)
-        }
+        if (controller.signal.aborted) throw abortError(error)
         throw error
       }
 
@@ -485,9 +602,7 @@ export async function safeFetchText(
           signal: controller.signal,
         })
       } catch (error) {
-        if (controller.signal.aborted) {
-          throw abortError(error)
-        }
+        if (controller.signal.aborted) throw abortError(error)
         throw new SafeFetchError('network_error', 'Outbound request failed', { cause: error })
       }
 
@@ -501,8 +616,11 @@ export async function safeFetchText(
           let nextUrl: URL
           try {
             nextUrl = new URL(location, url)
+            const parsedNext = parseSafeOutboundUrl(nextUrl)
+            assertAllowedHostname(parsedNext, normalizedAllowedHostnames)
           } catch (error) {
-            await cancelResponseBody(response, 'invalid redirect destination')
+            await cancelResponseBody(response, 'invalid or disallowed redirect destination')
+            if (error instanceof SafeFetchError) throw error
             throw new SafeFetchError('invalid_url', 'Redirect destination is not a valid URL', { cause: error })
           }
           redirects.push(nextUrl.href)
@@ -514,30 +632,97 @@ export async function safeFetchText(
       }
 
       const contentType = response.headers.get('content-type') || ''
-      if (response.body && !isAllowedContentType(contentType, allowedContentTypes)) {
+      if (!policy.skipContentTypeCheck && response.body
+        && !isAllowedContentType(contentType, allowedContentTypes)) {
         await cancelResponseBody(response, 'unsupported content type')
         throw new SafeFetchError('unsupported_content_type', 'Destination returned an unsupported content type')
       }
-      let text: string
-      let bytesRead: number
+
       try {
-        ({ text, bytesRead } = await readBoundedText(response, maxResponseBytes))
+        const body = await policy.read(response, maxResponseBytes)
+        return {
+          response,
+          value: body.value,
+          finalUrl: url.href,
+          redirects,
+          bytesRead: body.bytesRead,
+          contentType,
+        }
       } catch (error) {
         if (error instanceof SafeFetchError) throw error
         if (controller.signal.aborted) throw abortError(error)
         throw new SafeFetchError('network_error', 'Outbound response body could not be read', { cause: error })
       }
-      return { response, text, finalUrl: url.href, redirects, bytesRead, contentType }
     }
   } catch (error) {
     if (error instanceof SafeFetchError) throw error
-    if (controller.signal.aborted) {
-      throw abortError(error)
-    }
+    if (controller.signal.aborted) throw abortError(error)
     throw error
   } finally {
     clearTimeout(timeoutId)
     if (!controller.signal.aborted) controller.abort(new Error('safe fetch completed'))
     callerSignal?.removeEventListener('abort', abortFromCaller)
+  }
+}
+
+/**
+ * Fetch and read text under the shared outbound policy.
+ * Redirects are never delegated to the runtime; every Location is resolved and
+ * revalidated before the next request.
+ */
+export async function safeFetchText(
+  input: string | URL,
+  options: SafeFetchOptions = {},
+): Promise<SafeFetchTextResult> {
+  const result = await safeFetchWithPolicy(input, options, {
+    defaultMaxResponseBytes: DEFAULT_MAX_RESPONSE_BYTES,
+    defaultAllowedContentTypes: DEFAULT_ALLOWED_CONTENT_TYPES,
+    async read(response, maxBytes) {
+      const body = await readBoundedText(response, maxBytes)
+      return { value: body.text, bytesRead: body.bytesRead }
+    },
+  })
+  const { value: text, ...shared } = result
+  return { ...shared, text }
+}
+
+/** Fetch bounded binary content under the same outbound policy as safeFetchText. */
+export async function safeFetchBytes(
+  input: string | URL,
+  options: SafeFetchOptions = {},
+): Promise<SafeFetchBytesResult> {
+  const result = await safeFetchWithPolicy(input, options, {
+    defaultMaxResponseBytes: DEFAULT_MAX_RESPONSE_BYTES,
+    defaultAllowedContentTypes: DEFAULT_ALLOWED_BINARY_CONTENT_TYPES,
+    async read(response, maxBytes) {
+      const body = await readBoundedBytes(response, maxBytes)
+      return { value: body.bytes, bytesRead: body.bytesRead }
+    },
+  })
+  const { value: bytes, ...shared } = result
+  return { ...shared, bytes }
+}
+
+/** Resolve and perform a bodyless HEAD request with per-hop policy validation. */
+export async function safeFetchHead(
+  input: string | URL,
+  options: SafeFetchOptions = {},
+): Promise<SafeFetchHeadResult> {
+  const result = await safeFetchWithPolicy(input, options, {
+    method: 'HEAD',
+    defaultMaxResponseBytes: 1,
+    defaultAllowedContentTypes: DEFAULT_ALLOWED_CONTENT_TYPES,
+    skipContentTypeCheck: true,
+    async read(response) {
+      await cancelResponseBody(response, 'HEAD response body discarded')
+      return { value: undefined, bytesRead: 0 }
+    },
+  })
+  return {
+    response: result.response,
+    finalUrl: result.finalUrl,
+    redirects: result.redirects,
+    bytesRead: result.bytesRead,
+    contentType: result.contentType,
   }
 }

@@ -4,6 +4,8 @@ import {
   SafeFetchError,
   isUnsafeAddress,
   parseSafeOutboundUrl,
+  safeFetchBytes,
+  safeFetchHead,
   safeFetchText,
   type HostnameResolver,
   type SafeFetchErrorCode,
@@ -200,6 +202,62 @@ test.describe('safe outbound fetch policy @smoke', () => {
     expect(requests[1].headers.has('referer')).toBe(false)
   })
 
+  test('@smoke enforces exact normalized allowed hostnames initially and on redirects', async () => {
+    let fetchCalls = 0
+    await expect(safeFetchText('https://other.example/article', {
+      allowedHostnames: ['Allowed.Example.'],
+      fetchImpl: (async () => {
+        fetchCalls += 1
+        return new Response('unexpected')
+      }) as typeof fetch,
+      resolveHostname: publicResolver,
+    })).rejects.toMatchObject({ code: 'unsafe_url' })
+    expect(fetchCalls).toBe(0)
+
+    let redirectCancelled = false
+    const fetchedUrls: string[] = []
+    await expect(safeFetchText('https://allowed.example/start', {
+      allowedHostnames: ['Allowed.Example.'],
+      fetchImpl: (async (input: RequestInfo | URL) => {
+        fetchedUrls.push(String(input))
+        return new Response(new ReadableStream({
+          start(controller) {
+            controller.enqueue(new TextEncoder().encode('redirect'))
+          },
+          async cancel() {
+            await Promise.resolve()
+            redirectCancelled = true
+          },
+        }), {
+          status: 302,
+          headers: { Location: 'https://allowed.example.attacker.example/image' },
+        })
+      }) as typeof fetch,
+      resolveHostname: publicResolver,
+    })).rejects.toMatchObject({ code: 'unsafe_url' })
+    expect(fetchedUrls).toEqual(['https://allowed.example/start'])
+    expect(redirectCancelled).toBe(true)
+
+    const allowed = await safeFetchText('https://allowed.example/article', {
+      allowedHostnames: ['Allowed.Example.'],
+      fetchImpl: (async () => new Response('ok', {
+        headers: { 'Content-Type': 'text/plain' },
+      })) as typeof fetch,
+      resolveHostname: publicResolver,
+    })
+    expect(allowed.text).toBe('ok')
+  })
+
+  test('@smoke rejects malformed or empty exact-host policies', async () => {
+    for (const allowedHostnames of [[], ['example.com/path'], [''], ['example.com:8443'], ['*.example.com']]) {
+      await expect(safeFetchText('https://example.com/', {
+        allowedHostnames,
+        fetchImpl: (async () => new Response('unexpected')) as typeof fetch,
+        resolveHostname: publicResolver,
+      })).rejects.toMatchObject({ code: 'invalid_options' })
+    }
+  })
+
   test('@smoke rejects non-finite, fractional, and excessive policy limits', async () => {
     const invalidOptions = [
       { timeoutMs: Number.NaN },
@@ -322,6 +380,62 @@ test.describe('safe outbound fetch policy @smoke', () => {
       resolveHostname: publicResolver,
       maxResponseBytes: 10,
     })).rejects.toMatchObject({ code: 'response_too_large' })
+  })
+
+  test('@smoke returns bounded bytes through the shared policy loop', async () => {
+    const result = await safeFetchBytes('https://public.example.com/data', {
+      fetchImpl: (async () => new Response(new Uint8Array([1, 2, 3, 4]), {
+        headers: { 'Content-Type': 'application/octet-stream' },
+      })) as typeof fetch,
+      resolveHostname: publicResolver,
+      maxResponseBytes: 4,
+    })
+    expect([...result.bytes]).toEqual([1, 2, 3, 4])
+    expect(result.bytesRead).toBe(4)
+
+    await expect(safeFetchBytes('https://public.example.com/large', {
+      fetchImpl: (async () => new Response(new Uint8Array([1, 2, 3]), {
+        headers: { 'Content-Type': 'application/octet-stream' },
+      })) as typeof fetch,
+      resolveHostname: publicResolver,
+      maxResponseBytes: 2,
+    })).rejects.toMatchObject({ code: 'response_too_large' })
+
+    await expect(safeFetchBytes('https://public.example.com/broken', {
+      fetchImpl: (async () => new Response(new ReadableStream({
+        pull(controller) {
+          controller.error(new Error('binary stream failed'))
+        },
+      }), { headers: { 'Content-Type': 'application/octet-stream' } })) as typeof fetch,
+      resolveHostname: publicResolver,
+    })).rejects.toMatchObject({ code: 'network_error' })
+  })
+
+  test('@smoke performs HEAD through the shared loop and discards unexpected bodies', async () => {
+    let cancelled = false
+    const result = await safeFetchHead('https://public.example.com/resource', {
+      fetchImpl: (async (_input: RequestInfo | URL, init?: RequestInit) => {
+        expect(init?.method).toBe('HEAD')
+        return new Response(new ReadableStream({
+          start(controller) {
+            controller.enqueue(new Uint8Array([1]))
+          },
+          async cancel() {
+            await Promise.resolve()
+            cancelled = true
+          },
+        }), { headers: { 'Content-Type': 'application/octet-stream' } })
+      }) as typeof fetch,
+      resolveHostname: publicResolver,
+    })
+    expect(result.bytesRead).toBe(0)
+    expect(cancelled).toBe(true)
+
+    await expect(safeFetchHead('https://public.example.com/resource', {
+      requestInit: { method: 'GET' },
+      fetchImpl: (async () => new Response(null)) as typeof fetch,
+      resolveHostname: publicResolver,
+    })).rejects.toMatchObject({ code: 'unsafe_method' })
   })
 
   test('@smoke maps response stream read failures to network_error', async () => {
