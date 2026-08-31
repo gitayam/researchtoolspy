@@ -9,6 +9,7 @@ import {
 
 interface CacheState {
   deleteCalls?: string[]
+  deleteHook?: (request: Request) => Promise<boolean>
   directHit?: boolean
   matchCalls: string[]
   putCalls: Array<{ key: string; response: Response }>
@@ -30,7 +31,7 @@ function installCache(state: CacheState): () => void {
         },
         async delete(request: Request) {
           state.deleteCalls?.push(request.url)
-          return true
+          return state.deleteHook ? state.deleteHook(request) : true
         },
       },
     },
@@ -39,6 +40,16 @@ function installCache(state: CacheState): () => void {
     if (original) Object.defineProperty(globalThis, 'caches', original)
     else delete (globalThis as { caches?: unknown }).caches
   }
+}
+
+function deferred<T>() {
+  let resolve!: (value: T) => void
+  let reject!: (reason?: unknown) => void
+  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise
+    reject = rejectPromise
+  })
+  return { promise, reject, resolve }
 }
 
 function dnsResponse(query: URL, addresses: string[]): Response {
@@ -429,6 +440,50 @@ test.describe('Twitter image proxy safe fetch @smoke', () => {
     } finally {
       globalThis.fetch = originalFetch
       restoreCache()
+    }
+  })
+
+  test('@smoke orders replacement put after invalid-cache deletion settles', async () => {
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = (async (input: RequestInfo | URL) => {
+      const url = new URL(String(input))
+      if (url.hostname === 'cloudflare-dns.com') return dnsResponse(url, ['93.184.216.34'])
+      return new Response(pngBytes, { headers: { 'Content-Type': 'image/png' } })
+    }) as typeof fetch
+
+    try {
+      for (const outcome of ['resolve', 'reject'] as const) {
+        const deletion = deferred<boolean>()
+        const cacheState: CacheState = {
+          deleteCalls: [],
+          deleteHook: () => deletion.promise,
+          matchCalls: [],
+          putCalls: [],
+          hit: new Response(jpegBytes, {
+            headers: { 'Content-Type': 'text/html', 'Content-Length': String(jpegBytes.byteLength) },
+          }),
+        }
+        const restoreCache = installCache(cacheState)
+        try {
+          const request = contextFor(`https://pbs.twimg.com/deferred-delete-${outcome}.png`)
+          const response = await onRequestGet(request.context as never)
+          expect(response.status).toBe(200)
+          expect(new Uint8Array(await response.arrayBuffer())).toEqual(pngBytes)
+          expect(cacheState.deleteCalls).toHaveLength(1)
+          expect(cacheState.putCalls).toHaveLength(0)
+
+          if (outcome === 'resolve') deletion.resolve(true)
+          else deletion.reject(new Error('cache delete unavailable'))
+          await Promise.all(request.waits)
+
+          expect(cacheState.putCalls).toHaveLength(1)
+          expect(new Uint8Array(await cacheState.putCalls[0].response.arrayBuffer())).toEqual(pngBytes)
+        } finally {
+          restoreCache()
+        }
+      }
+    } finally {
+      globalThis.fetch = originalFetch
     }
   })
 

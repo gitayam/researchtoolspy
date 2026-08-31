@@ -219,6 +219,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   // Version the key so responses cached before byte/MIME validation are not reused.
   const cacheKey = createCacheKey(request.url, validatedImageUrl)
   const cachedResponse = await cache.match(cacheKey)
+  let invalidCacheCleanup: Promise<boolean> | undefined
 
   const cachedMetadata = cachedResponse ? cachedImageMetadata(cachedResponse) : null
   if (cachedResponse && cachedMetadata) {
@@ -234,7 +235,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     void cachedResponse.body.cancel().catch(() => undefined)
   }
   if (cachedResponse) {
-    context.waitUntil(cache.delete(cacheKey).catch(() => false))
+    invalidCacheCleanup = cache.delete(cacheKey).catch(() => false)
+    context.waitUntil(invalidCacheCleanup)
   }
 
   // Fetch from Twitter CDN
@@ -266,7 +268,11 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     })
 
     // Store in Cloudflare Cache API (async, don't wait)
-    context.waitUntil(cache.put(cacheKey, proxiedResponse.clone()))
+    const cacheResponse = proxiedResponse.clone()
+    const cacheWrite = invalidCacheCleanup
+      ? invalidCacheCleanup.then(() => cache.put(cacheKey, cacheResponse))
+      : cache.put(cacheKey, cacheResponse)
+    context.waitUntil(cacheWrite)
 
     // Optional: Upload to R2 for permanent backup
     if (env.UPLOADS) {
