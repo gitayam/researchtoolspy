@@ -132,6 +132,7 @@ async function extractPDFViaExternalService(pdfBuffer: ArrayBuffer, pdfCoApiKey:
         'x-api-key': pdfCoApiKey,
       },
       body: pdfBuffer,
+      redirect: 'error',
       signal: AbortSignal.timeout(30000)
     })
 
@@ -149,6 +150,7 @@ async function extractPDFViaExternalService(pdfBuffer: ArrayBuffer, pdfCoApiKey:
         'x-api-key': pdfCoApiKey,
       },
       body: JSON.stringify({ url: fileUrl, inline: true }),
+      redirect: 'error',
       signal: AbortSignal.timeout(30000)
     })
 

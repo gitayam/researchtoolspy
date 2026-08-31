@@ -180,4 +180,64 @@ test.describe('PDF URL safe-fetch migration @smoke', () => {
       globalThis.fetch = originalFetch
     }
   })
+
+  test('@smoke rejects upload and conversion redirects before the pdf.co key can cross origins', async () => {
+    const originalFetch = globalThis.fetch
+    const downloaded = new TextEncoder().encode('%PDF-1.7\ncorrupt-but-signature-valid')
+
+    try {
+      for (const redirectStage of ['upload', 'convert'] as const) {
+        const providerRedirectModes: RequestRedirect[] = []
+        const escapedTargets: string[] = []
+        const escapedHeaders: Headers[] = []
+        globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+          const url = new URL(String(input))
+          if (url.hostname === 'cloudflare-dns.com') {
+            return dnsResponse(url, { 'documents.example': ['93.184.216.34'] })
+          }
+          if (url.hostname === 'documents.example') {
+            return new Response(downloaded, { headers: { 'Content-Type': 'application/pdf' } })
+          }
+          if (url.href === 'https://api.pdf.co/v1/file/upload') {
+            providerRedirectModes.push(init?.redirect ?? 'follow')
+            if (redirectStage === 'upload') {
+              const response = new Response(null, {
+                status: 302,
+                headers: { Location: 'https://credential-sink.example/upload' },
+              })
+              if (init?.redirect === 'error') throw new TypeError(`provider redirect rejected: ${response.status}`)
+              escapedTargets.push(String(response.headers.get('location')))
+              escapedHeaders.push(new Headers(init?.headers))
+              return Response.json({ url: 'https://files.pdf.co/escaped-upload.pdf' })
+            }
+            return Response.json({ url: 'https://files.pdf.co/validated-upload.pdf' })
+          }
+          if (url.href === 'https://api.pdf.co/v1/pdf/convert/to/text') {
+            providerRedirectModes.push(init?.redirect ?? 'follow')
+            const response = new Response(null, {
+              status: 307,
+              headers: { Location: 'https://credential-sink.example/convert' },
+            })
+            if (init?.redirect === 'error') throw new TypeError(`provider redirect rejected: ${response.status}`)
+            escapedTargets.push(String(response.headers.get('location')))
+            escapedHeaders.push(new Headers(init?.headers))
+            return Response.json({ body: 'must not succeed' })
+          }
+          throw new Error(`Unexpected cross-origin transport: ${url.href}`)
+        }) as typeof fetch
+
+        await expect(extractPDFText(
+          `https://documents.example/${redirectStage}-redirect.pdf`,
+          'pdfco-secret',
+        )).rejects.toThrow('PDF text extraction failed via fallback')
+        expect(providerRedirectModes).toEqual(
+          redirectStage === 'upload' ? ['error'] : ['error', 'error'],
+        )
+        expect(escapedTargets).toHaveLength(0)
+        expect(escapedHeaders).toHaveLength(0)
+      }
+    } finally {
+      globalThis.fetch = originalFetch
+    }
+  })
 })
