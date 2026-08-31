@@ -6,6 +6,7 @@
  */
 import { extractText, getDocumentProxy, getMeta } from 'unpdf'
 import { callOpenAIViaGateway } from '../_shared/ai-gateway'
+import { safeFetchPdf } from '../_shared/safe-content'
 
 /** Cloudflare env subset needed to route OpenAI calls through the AI gateway. */
 type GatewayEnv = { OPENAI_API_KEY: string; OPENAI_ORGANIZATION?: string; AI_GATEWAY_ACCOUNT_ID?: string }
@@ -27,20 +28,26 @@ export async function extractPDFText(url: string, pdfCoApiKey?: string): Promise
   text: string
   metadata?: PdfMetadata
 }> {
-  // Realistic UA — observed that some hosts (e.g. w3.org) 403 the default Workers fetch
-  const response = await fetch(url, {
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-      'Accept': 'application/pdf,*/*;q=0.8'
+  // Caller-controlled URLs use the shared DNS/redirect/body policy. The
+  // optional pdf.co credential is deliberately not part of this request.
+  const downloaded = await safeFetchPdf(url, {
+    timeoutMs: 30_000,
+    requestInit: {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'Accept': 'application/pdf,*/*;q=0.8'
+      },
     },
-    signal: AbortSignal.timeout(30000)
   })
 
-  if (!response.ok) {
-    throw new Error(`Failed to download PDF: ${response.status}`)
+  if (!downloaded.response.ok) {
+    throw new Error(`Failed to download PDF: ${downloaded.response.status}`)
   }
 
-  const pdfBuffer = await response.arrayBuffer()
+  const pdfBuffer = downloaded.bytes.slice().buffer
+  // pdf.js may transfer/detach the buffer even when parsing fails. Preserve a
+  // validated copy only when the fixed-host pdf.co fallback can be used.
+  const fallbackBuffer = pdfCoApiKey ? pdfBuffer.slice(0) : null
 
   try {
     return await extractViaUnpdf(pdfBuffer)
@@ -48,8 +55,8 @@ export async function extractPDFText(url: string, pdfCoApiKey?: string): Promise
     const reason = unpdfError instanceof Error ? unpdfError.message : String(unpdfError)
     console.warn('[PDF Extractor] unpdf failed:', reason)
 
-    if (pdfCoApiKey) {
-      return await extractPDFViaExternalService(pdfBuffer, pdfCoApiKey)
+    if (pdfCoApiKey && fallbackBuffer) {
+      return await extractPDFViaExternalService(fallbackBuffer, pdfCoApiKey)
     }
 
     throw new Error(`PDF text extraction failed (${reason}). The PDF may be encrypted, scanned, or image-only.`)
