@@ -31,12 +31,22 @@ function installNetworkMock(mock: NetworkMock): () => void {
   return () => { globalThis.fetch = originalFetch }
 }
 
-function acceleratePolicyDeadline(): () => void {
+interface DeadlineShim {
+  requestedDelays: number[]
+  restore(): void
+}
+
+function acceleratePolicyDeadline(): DeadlineShim {
   const originalSetTimeout = globalThis.setTimeout
+  const requestedDelays: number[] = []
   globalThis.setTimeout = ((handler: TimerHandler, timeout?: number, ...args: unknown[]) => {
+    if (typeof timeout === 'number') requestedDelays.push(timeout)
     return originalSetTimeout(handler, timeout === 15_000 ? 10 : timeout, ...args)
   }) as typeof setTimeout
-  return () => { globalThis.setTimeout = originalSetTimeout }
+  return {
+    requestedDelays,
+    restore() { globalThis.setTimeout = originalSetTimeout },
+  }
 }
 
 function stalledResponse(signal: AbortSignal, onAbort: () => void): Response {
@@ -276,7 +286,7 @@ test.describe('tools analyze-url bounded outbound policy @smoke', () => {
   test('@smoke enforces the primary 15s total deadline through propagated body abort', async () => {
     let primaryAbortObserved = false
     const targets: string[] = []
-    const restoreTimer = acceleratePolicyDeadline()
+    const deadline = acceleratePolicyDeadline()
     const restoreFetch = installNetworkMock({
       target: (url, init) => {
         targets.push(url.href)
@@ -288,12 +298,13 @@ test.describe('tools analyze-url bounded outbound policy @smoke', () => {
       const response = await invoke({ url, checkWayback: true })
       expect(response.status).toBe(200)
       fetchFailureShape(await response.json() as Record<string, unknown>, url)
+      expect(deadline.requestedDelays.filter(delay => delay === 15_000)).toHaveLength(1)
       expect(primaryAbortObserved).toBe(true)
       expect(targets).toEqual([url])
       expect(targets.every(target => !target.includes('/save/') && !target.includes('archive.org'))).toBe(true)
     } finally {
       restoreFetch()
-      restoreTimer()
+      deadline.restore()
     }
   })
 
@@ -454,6 +465,8 @@ test.describe('tools analyze-url bounded outbound policy @smoke', () => {
 
   test('@smoke contains archive redirects and rejects mixed DNS, wrong MIME, and both provider oversize forms', async () => {
     let mode: 'cross-host' | 'downgrade' | 'mixed-dns' | 'oversize' | 'stream' | 'mime' = 'cross-host'
+    let archiveStreamChunks = 0
+    let archiveStreamCancelled = false
     const targets: string[] = []
     const restore = installNetworkMock({
       dns: (hostname, type) => {
@@ -478,14 +491,13 @@ test.describe('tools analyze-url bounded outbound policy @smoke', () => {
           })
         }
         if (mode === 'stream') {
-          let chunks = 0
           return new Response(new ReadableStream<Uint8Array>({
             pull(controller) {
-              chunks += 1
+              archiveStreamChunks += 1
               controller.enqueue(new Uint8Array(128 * 1024))
-              if (chunks === 3) controller.close()
             },
-          }), { headers: { 'Content-Type': 'application/json' } })
+            cancel() { archiveStreamCancelled = true },
+          }, { highWaterMark: 0 }), { headers: { 'Content-Type': 'application/json' } })
         }
         if (mode === 'mime') {
           return new Response('{}', { headers: { 'Content-Type': 'image/png' } })
@@ -511,6 +523,10 @@ test.describe('tools analyze-url bounded outbound policy @smoke', () => {
         expect(attemptTargets[0]).toBe('https://public.example/article')
         if (mode !== 'mixed-dns') {
           expect(attemptTargets[1]).toContain('https://archive.org/wayback/available?')
+        }
+        if (mode === 'stream') {
+          expect(archiveStreamChunks).toBe(3)
+          expect(archiveStreamCancelled).toBe(true)
         }
         expect(attemptTargets.every(url => !url.includes('attacker.example') && !url.startsWith('http://'))).toBe(true)
       }
@@ -562,7 +578,7 @@ test.describe('tools analyze-url bounded outbound policy @smoke', () => {
   test('@smoke enforces the archive 15s total deadline through propagated body abort', async () => {
     let archiveAbortObserved = false
     const targets: string[] = []
-    const restoreTimer = acceleratePolicyDeadline()
+    const deadline = acceleratePolicyDeadline()
     const restoreFetch = installNetworkMock({
       target: (url, init) => {
         targets.push(url.href)
@@ -579,13 +595,14 @@ test.describe('tools analyze-url bounded outbound policy @smoke', () => {
         status: { code: 200, ok: true },
         wayback: { isArchived: false },
       })
+      expect(deadline.requestedDelays.filter(delay => delay === 15_000)).toHaveLength(2)
       expect(archiveAbortObserved).toBe(true)
       expect(targets).toHaveLength(2)
       expect(targets[1]).toContain('https://archive.org/wayback/available?')
       expect(targets.every(url => !url.includes('/cdx/') && !url.includes('/save/'))).toBe(true)
     } finally {
       restoreFetch()
-      restoreTimer()
+      deadline.restore()
     }
   })
 })
