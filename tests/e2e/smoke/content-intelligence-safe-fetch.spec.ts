@@ -357,6 +357,61 @@ test.describe('content-intelligence URL safe-fetch migration @smoke', () => {
     }
   })
 
+  test('@smoke constrained scanned PDFs upload only validated bytes to the fixed OCR provider', async () => {
+    const downloaded = new TextEncoder().encode('%PDF-1.7\nvalidated-but-not-parseable')
+    let sourceHeaders = new Headers()
+    const providerRequests: Array<{ url: string; headers: Headers; body: BodyInit | null | undefined }> = []
+    const restore = installNetworkMock({
+      target: (url, init) => {
+        if (url.hostname === 'archive.ph') {
+          sourceHeaders = new Headers(init?.headers)
+          return new Response(downloaded, { headers: { 'Content-Type': 'application/pdf' } })
+        }
+        if (url.href === 'https://api.pdf.co/v1/file/upload') {
+          providerRequests.push({ url: url.href, headers: new Headers(init?.headers), body: init?.body })
+          return Response.json({ url: 'https://files.pdf.co/validated-upload.pdf' })
+        }
+        if (url.href === 'https://api.pdf.co/v1/pdf/convert/to/text') {
+          providerRequests.push({ url: url.href, headers: new Headers(init?.headers), body: init?.body })
+          return Response.json({ body: 'OCR text from constrained PDF', pageCount: 1 })
+        }
+        throw new Error(`Unexpected transport: ${url.href}`)
+      },
+    })
+
+    try {
+      const result = await extractUrlContent(
+        'https://archive.ph/scanned.pdf',
+        undefined,
+        'pdfco-secret',
+        ['archive.ph'],
+      )
+
+      expect(result).toMatchObject({
+        success: true,
+        text: 'OCR text from constrained PDF',
+        isPDF: true,
+        pdfMetadata: { pageCount: 1 },
+      })
+      expect(sourceHeaders.has('x-api-key')).toBe(false)
+      expect(sourceHeaders.has('authorization')).toBe(false)
+      expect(providerRequests.map(request => request.url)).toEqual([
+        'https://api.pdf.co/v1/file/upload',
+        'https://api.pdf.co/v1/pdf/convert/to/text',
+      ])
+      for (const request of providerRequests) {
+        expect(request.headers.get('x-api-key')).toBe('pdfco-secret')
+      }
+      expect([...new Uint8Array(providerRequests[0].body as ArrayBuffer)]).toEqual([...downloaded])
+      expect(JSON.parse(String(providerRequests[1].body))).toEqual({
+        url: 'https://files.pdf.co/validated-upload.pdf',
+        inline: true,
+      })
+    } finally {
+      restore()
+    }
+  })
+
   test('@smoke API key presence and an impostor social host cannot trigger provider disclosure', async () => {
     const targets: string[] = []
     const restore = installNetworkMock({

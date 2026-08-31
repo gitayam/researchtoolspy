@@ -19,12 +19,11 @@ import { normalizeClaims } from './normalize-claims'
 import { generateArchiveUrls } from './_archive-urls'
 import { extractAndSaveClaimEntities } from './extract-claim-entities'
 import { matchMultipleClaimsEntities } from './match-entities-to-actors'
-import { isPDFUrl, extractPDFText, extractPdfTextFromBuffer, intelligentPDFSummary } from './pdf-extractor'
+import { isPDFUrl, extractPDFText, intelligentPDFSummary } from './pdf-extractor'
 import { logEvent } from '../_shared/event-log'
 import { extractionFailureLog } from './_extraction-log'
 import { extractArticle } from '../_shared/article-extractor'
 import { SafeFetchError, safeFetchHead, safeFetchText, type SafeFetchErrorCode } from '../_shared/safe-fetch'
-import { safeFetchPdf } from '../_shared/safe-content'
 import type { NormalizedScrapeError } from '../_shared/scrape-contract'
 
 interface Env {
@@ -1097,24 +1096,13 @@ export async function extractUrlContent(
   // Check if URL is a PDF
   if (isPDFUrl(resolvedUrl)) {
     try {
-      const pdfResult = effectiveAllowedHostnames
-        ? await safeFetchPdf(resolvedUrl, {
-            timeoutMs: 30_000,
-            maxRedirects: 5,
-            allowedHostnames: effectiveAllowedHostnames,
-            requestInit: {
-              headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-                'Accept': 'application/pdf,*/*;q=0.8',
-              },
-            },
-          }).then(downloaded => {
-            if (!downloaded.response.ok) {
-              throw new Error(`Failed to download PDF: ${downloaded.response.status}`)
-            }
-            return extractPdfTextFromBuffer(downloaded.bytes.slice().buffer)
-          })
-        : await extractPDFText(resolvedUrl, pdfCoApiKey)
+      const pdfResult = await extractPDFText(
+        resolvedUrl,
+        pdfCoApiKey,
+        effectiveAllowedHostnames
+          ? { maxRedirects: 5, allowedHostnames: effectiveAllowedHostnames }
+          : undefined,
+      )
 
       return {
         success: true,

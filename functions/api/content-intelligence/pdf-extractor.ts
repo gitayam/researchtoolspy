@@ -6,7 +6,7 @@
  */
 import { extractText, getDocumentProxy, getMeta } from 'unpdf'
 import { callOpenAIViaGateway } from '../_shared/ai-gateway'
-import { safeFetchPdf } from '../_shared/safe-content'
+import { safeFetchPdf, type SafeContentFetchOptions } from '../_shared/safe-content'
 
 /** Cloudflare env subset needed to route OpenAI calls through the AI gateway. */
 type GatewayEnv = { OPENAI_API_KEY: string; OPENAI_ORGANIZATION?: string; AI_GATEWAY_ACCOUNT_ID?: string }
@@ -23,20 +23,30 @@ type PdfMetadata = {
  *
  * @param url - PDF URL to extract from
  * @param pdfCoApiKey - optional; if set, used as a fallback when in-Worker extraction fails
+ * @param fetchOptions - optional safe-download constraints such as an exact hostname allowlist
  */
-export async function extractPDFText(url: string, pdfCoApiKey?: string): Promise<{
+export async function extractPDFText(
+  url: string,
+  pdfCoApiKey?: string,
+  fetchOptions: SafeContentFetchOptions = {},
+): Promise<{
   text: string
   metadata?: PdfMetadata
 }> {
+  const headers = new Headers(fetchOptions.requestInit?.headers)
+  if (!headers.has('User-Agent')) {
+    headers.set('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36')
+  }
+  if (!headers.has('Accept')) headers.set('Accept', 'application/pdf,*/*;q=0.8')
+
   // Caller-controlled URLs use the shared DNS/redirect/body policy. The
   // optional pdf.co credential is deliberately not part of this request.
   const downloaded = await safeFetchPdf(url, {
-    timeoutMs: 30_000,
+    ...fetchOptions,
+    timeoutMs: fetchOptions.timeoutMs ?? 30_000,
     requestInit: {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-        'Accept': 'application/pdf,*/*;q=0.8'
-      },
+      ...fetchOptions.requestInit,
+      headers,
     },
   })
 
