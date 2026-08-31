@@ -10,6 +10,8 @@
  * egress proxy/boundary that resolves, connects, and validates in one place.
  */
 
+import { promises as dnsPromises } from 'node:dns'
+
 export const SAFE_FETCH_ERROR_CODES = [
   'invalid_url',
   'unsafe_url',
@@ -360,6 +362,46 @@ const DNS_JSON_RESOLVERS = [
   'https://dns.google/resolve',
 ] as const
 
+function isNoDnsData(error: unknown): boolean {
+  const code = error && typeof error === 'object' && 'code' in error
+    ? String((error as { code?: unknown }).code)
+    : ''
+  return code === 'ENODATA' || code === 'ENOTFOUND'
+}
+
+async function raceWithAbort<T>(operation: Promise<T>, signal: AbortSignal): Promise<T> {
+  if (signal.aborted) throw signal.reason ?? new Error('DNS resolution aborted')
+
+  let rejectOnAbort: ((reason?: unknown) => void) | undefined
+  const aborted = new Promise<never>((_, reject) => {
+    rejectOnAbort = reject
+  })
+  const onAbort = () => rejectOnAbort?.(signal.reason ?? new Error('DNS resolution aborted'))
+  signal.addEventListener('abort', onAbort, { once: true })
+  try {
+    return await Promise.race([operation, aborted])
+  } finally {
+    signal.removeEventListener('abort', onAbort)
+  }
+}
+
+async function resolveNativeDnsFamily(
+  hostname: string,
+  type: 'A' | 'AAAA',
+  signal: AbortSignal,
+): Promise<string[]> {
+  try {
+    const operation = type === 'A'
+      ? dnsPromises.resolve4(hostname)
+      : dnsPromises.resolve6(hostname)
+    return await raceWithAbort(operation, signal)
+  } catch (error) {
+    if (signal.aborted) throw error
+    if (isNoDnsData(error)) return []
+    throw error
+  }
+}
+
 async function resolveDnsJson(
   resolverUrl: string,
   hostname: string,
@@ -391,6 +433,25 @@ async function resolveDnsJson(
 
 export const resolvePublicHostname: HostnameResolver = async (hostname, signal) => {
   const failures: unknown[] = []
+
+  // Cloudflare's supported node:dns API performs DoH inside the runtime. Raw
+  // fetches to public DoH endpoints are not dependable from Pages Functions.
+  // The documented Workers user agent keeps local/test runtimes on the
+  // injectable fetch-based path below.
+  if (typeof navigator !== 'undefined' && navigator.userAgent === 'Cloudflare-Workers') {
+    try {
+      const nativeResults = await Promise.all([
+        resolveNativeDnsFamily(hostname, 'A', signal),
+        resolveNativeDnsFamily(hostname, 'AAAA', signal),
+      ])
+      const addresses = [...new Set(nativeResults.flat())]
+      if (addresses.length > 0) return addresses
+      failures.push(new Error('Hostname did not resolve to an address'))
+    } catch (error) {
+      if (signal.aborted) throw error
+      failures.push(error)
+    }
+  }
 
   // DNS validation must fail closed, but a single DoH provider outage must not
   // disable every scraper. Accept an answer only when one provider completes
