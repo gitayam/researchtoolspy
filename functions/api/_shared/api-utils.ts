@@ -5,6 +5,8 @@
  * and JSON response helpers.
  */
 
+import { parseSafeOutboundUrl } from './safe-fetch'
+
 /** Generate a UUID v4 identifier */
 export function generateId(): string {
   return crypto.randomUUID()
@@ -40,32 +42,15 @@ export function optionsResponse(): Response {
   return new Response(null, { status: 204, headers: CORS_HEADERS })
 }
 
-/** Block requests to private/internal IP ranges (SSRF protection) */
+/**
+ * Synchronous URL policy check retained for callers that only need a guard.
+ * Fetching code must use safeFetchText so DNS answers and redirects are checked.
+ */
 export function isPrivateUrl(urlString: string): boolean {
   try {
-    const url = new URL(urlString)
-    const hostname = url.hostname
-
-    // Block private IP ranges
-    if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1') return true
-    if (hostname.startsWith('10.')) return true
-    if (hostname.startsWith('192.168.')) return true
-    if (hostname.startsWith('169.254.')) return true
-    if (hostname === '0.0.0.0') return true
-
-    // Block 172.16.0.0 - 172.31.255.255
-    const parts = hostname.split('.')
-    if (parts[0] === '172') {
-      const second = parseInt(parts[1], 10)
-      if (second >= 16 && second <= 31) return true
-    }
-
-    // Block metadata endpoints
-    if (hostname === 'metadata.google.internal') return true
-    if (hostname === '169.254.169.254') return true
-
+    parseSafeOutboundUrl(urlString)
     return false
   } catch {
-    return true // Invalid URL = block
+    return true
   }
 }

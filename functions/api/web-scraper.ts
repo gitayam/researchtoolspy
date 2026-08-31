@@ -1,7 +1,8 @@
 // Cloudflare Pages Function for Web Scraping API
-import { enhancedFetch } from '../utils/browser-profiles'
+import { getRandomProfile } from '../utils/browser-profiles'
 import { getUserFromRequest } from './_shared/auth-helpers'
 import { CORS_HEADERS, JSON_HEADERS, isPrivateUrl } from './_shared/api-utils'
+import { SafeFetchError, safeFetchText } from './_shared/safe-fetch'
 
 interface ScrapingRequest {
   url: string
@@ -88,22 +89,22 @@ export async function onRequest(context: any) {
       })
     }
 
-    // Fetch the URL with enhanced browser headers and timeout
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 15000) // 15 second timeout
-
-    let response
+    // Fetch through the shared outbound policy. It validates DNS and every
+    // redirect hop, enforces the deadline, and bounds text response bodies.
+    let response: Response
+    let html: string
     try {
-      response = await enhancedFetch(url.toString(), {
-        maxRetries: 3,
-        retryDelay: 500,
-        signal: controller.signal
+      const fetched = await safeFetchText(url, {
+        timeoutMs: 15_000,
+        maxRedirects: 5,
+        maxResponseBytes: 2 * 1024 * 1024,
+        requestInit: { headers: getRandomProfile().headers },
       })
+      response = fetched.response
+      html = fetched.text
     } catch (fetchError: any) {
-      clearTimeout(timeoutId)
-
       // Handle timeout
-      if (fetchError.name === 'AbortError') {
+      if (fetchError instanceof SafeFetchError && fetchError.code === 'timeout') {
         return new Response(JSON.stringify({
           success: false,
           error: 'The website took too long to respond',
@@ -120,10 +121,38 @@ export async function onRequest(context: any) {
         })
       }
 
+      if (fetchError instanceof SafeFetchError
+        && (fetchError.code === 'invalid_url'
+          || fetchError.code === 'unsafe_url'
+          || fetchError.code === 'dns_resolution_failed')) {
+        return new Response(JSON.stringify({
+          success: false,
+          error: 'URLs pointing to private/internal or unresolvable addresses are not allowed',
+          errorType: 'invalid_url',
+          suggestions: ['Check that the URL is a public HTTP or HTTPS website'],
+        }), {
+          status: 400,
+          headers: JSON_HEADERS,
+        })
+      }
+
+      if (fetchError instanceof SafeFetchError
+        && (fetchError.code === 'response_too_large'
+          || fetchError.code === 'unsupported_content_type'
+          || fetchError.code === 'redirect_limit')) {
+        return new Response(JSON.stringify({
+          success: false,
+          error: 'The website response could not be safely processed',
+          errorType: 'http_error',
+          suggestions: ['Try a direct HTML page with fewer redirects'],
+        }), {
+          status: 400,
+          headers: JSON_HEADERS,
+        })
+      }
+
       // Handle other fetch errors
       throw fetchError
-    } finally {
-      clearTimeout(timeoutId)
     }
 
     if (!response.ok) {
@@ -171,8 +200,6 @@ export async function onRequest(context: any) {
         headers: JSON_HEADERS,
       })
     }
-
-    const html = await response.text()
 
     // Extract metadata using regex (lightweight parsing)
     const result: ScrapingResult = {

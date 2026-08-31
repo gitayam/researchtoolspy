@@ -7,6 +7,7 @@
 import { fetchSocialViaApify } from './apify-social'
 import { extractArticle } from './article-extractor'
 import { renderArticleFallback, shouldRenderFallback, type RendererBinding } from './rendered-content'
+import { parseSafeOutboundUrl, safeFetchText } from './safe-fetch'
 
 export interface ScrapedContent {
   title: string
@@ -20,6 +21,12 @@ export async function scrapeUrl(
   apifyApiKey?: string,
   renderer?: RendererBinding,
 ): Promise<ScrapedContent> {
+  try {
+    url = parseSafeOutboundUrl(url).href
+  } catch {
+    return { title: 'Error', content: '', error: 'Scraping failed' }
+  }
+
   // 1. Try Apify for Twitter/X and TikTok (richer content with engagement metrics)
   if (apifyApiKey) {
     try {
@@ -41,7 +48,9 @@ export async function scrapeUrl(
   }
 
   // 2. Fallback: Twitter/X oEmbed (no API key needed, but limited content)
-  const isTwitter = /twitter\.com|x\.com/.test(url)
+  const hostname = new URL(url).hostname.toLowerCase()
+  const isTwitter = hostname === 'twitter.com' || hostname.endsWith('.twitter.com')
+    || hostname === 'x.com' || hostname.endsWith('.x.com')
 
   if (isTwitter) {
     try {
@@ -81,18 +90,18 @@ export async function scrapeUrl(
 
   // 3. Standard Fetch
   try {
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 15000) // 15s timeout
-
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; ResearchToolsBot/1.0; +http://research.example.com)',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+    const fetched = await safeFetchText(url, {
+      timeoutMs: 15_000,
+      maxRedirects: 5,
+      maxResponseBytes: 2 * 1024 * 1024,
+      requestInit: {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; ResearchToolsBot/1.0; +http://research.example.com)',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        },
       },
-      signal: controller.signal
     })
-
-    clearTimeout(timeoutId)
+    const { response, text: html, finalUrl } = fetched
 
     if (!response.ok) {
       if (response.status === 403 || response.status === 401) {
@@ -101,10 +110,9 @@ export async function scrapeUrl(
       throw new Error(`HTTP ${response.status}`)
     }
 
-    const html = await response.text()
-    const article = extractArticle(html, url)
+    const article = extractArticle(html, finalUrl)
     const rendered = shouldRenderFallback(article, html)
-      ? await renderArticleFallback(renderer, url)
+      ? await renderArticleFallback(renderer, finalUrl)
       : null
     const content = rendered || article.text
 
