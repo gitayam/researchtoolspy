@@ -1,6 +1,6 @@
 # Tools Analyze-URL Safety Tranche Charter
 
-**Status:** accepted locally; ready for canonical push
+**Status:** accepted, merged to canonical `main`, and production-deployed
 
 **Delivery class:** safety foundation
 
@@ -111,7 +111,9 @@ Native work uses isolated worktrees and separate commits. The provider commits b
 | Integrated build | `npm run build` passed with the existing large-chunk warning |
 | Focused lint | new route/inventory specs passed; route has 13 inherited findings versus 18 at baseline, with no new finding over baseline |
 | Final review | independent security and test-oracle reviewers found no P0/P1/P2 after corrections and recommended release |
-| External mutation | none authorized or performed |
+| Tranche implementation phase | no external mutation was authorized or performed before acceptance |
+| Canonical release | merged through `c8c59067a`; Pages production deployment `680dda8a-1e2d-49a3-aabf-03fd42bbb747` on 2026-08-31 |
+| Production verification | canonical site, Pages domain, preview deployment, and `/api/health` returned 200; protected analyzer returned the expected unauthenticated 401 |
 
 ## Close decision
 

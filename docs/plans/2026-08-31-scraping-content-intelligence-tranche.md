@@ -1,6 +1,6 @@
 # Scraping Content-Intelligence Tranche Charter
 
-**Status:** accepted locally; ready for canonical push
+**Status:** accepted, merged to canonical `main`, and production-deployed
 
 **Delivery class:** safety foundation
 
@@ -125,7 +125,9 @@ existing safe adapters + opaque IDs
 | Focused lint | changed helpers/routes without inherited debt and all touched focused tests passed; analyze-url/pdf-extractor retain only their measured 25/13 pre-existing findings |
 | Independent review | multiple read-only rounds found and closed four release seams; final review at `d09bbd8cd` found no P0/P1 and recommended release |
 | Residual operational risk | the public image proxy remains unauthenticated and has no binding-backed abuse/write budget; its fixed one-second cache-read budget can also cause safe refetch churn on unusually slow large hits |
-| External mutation | none authorized or performed |
+| Tranche implementation phase | no external mutation was authorized or performed before acceptance |
+| Canonical release | merged through `28ec2a9be`; included in Pages production deployment `680dda8a-1e2d-49a3-aabf-03fd42bbb747` on 2026-08-31 |
+| Production verification | canonical site, Pages domain, preview deployment, and `/api/health` returned 200; protected analyzer returned the expected unauthenticated 401 |
 
 ## Close decision
 

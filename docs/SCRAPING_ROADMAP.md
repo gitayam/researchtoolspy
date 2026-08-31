@@ -405,16 +405,27 @@ Every job has an owner, limits, cancellation, provenance, cost accounting, termi
 
 ### Documentation
 
+- [x] Production deployment and rollback runbook for the current Pages/Functions scraping surface (`docs/operations/SCRAPING_DEPLOYMENT.md`)
 - [ ] One architecture document and gateway contract
 - [ ] Generated/verified endpoint documentation for all thin adapters
 - [ ] Error taxonomy and user-facing remediation guide
 - [ ] Provider and content-policy matrix
 - [ ] Local development and benchmark instructions
-- [ ] Production deployment, dashboard, alert, budget, and rollback runbook
+- [ ] Dashboard, alert, and budget runbook (deployment and rollback are documented)
 - [ ] Deprecation log for removed scraper implementations/routes
 - [ ] Decision records for semantic extractor, Browser Run routing, Scrapling, and multi-page orchestrator
 
 ## Release gates
+
+### Production release ledger
+
+| Date | Commit | Deployment | Evidence |
+|---|---|---|---|
+| 2026-08-31 | `c8c59067a` | Pages `680dda8a-1e2d-49a3-aabf-03fd42bbb747` | Build/type-check/pre-deploy gates passed; managed migration `0006_scraping_auth_idempotency.sql` applied after D1 export and Time Travel capture; canonical/custom/preview sites and health returned 200; auth boundary returned 401; new tables verified read-only |
+
+Analytics Engine telemetry, dashboards, alert thresholds, and production quality
+SLO evidence remain pending under `SCRAPE-04`; this deployment does not advance
+those gates.
 
 No milestone or strategy advances when any of the following is true:
 

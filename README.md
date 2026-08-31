@@ -82,7 +82,7 @@ Production secrets are stored as Cloudflare environment variables and bindings
 in `wrangler.toml`:
 - `OPENAI_API_KEY` (secret) — required for AI features
 - D1 binding `DB` → `researchtoolspy-prod`
-- R2 binding `R2_BUCKET` → image storage
+- R2 binding `UPLOADS` → file/image storage
 - AI Gateway endpoint for cached/observable OpenAI calls
 
 ## Documentation
@@ -93,6 +93,7 @@ in `wrangler.toml`:
 | Framework guides | [`docs/frameworks/`](docs/frameworks/) — ACH, COM-B / behavior, framework auto-population |
 | Integrations | [`docs/integrations/`](docs/integrations/) — Gephi, Neo4j, Maltego, i2 ANB, R, social-media extraction |
 | Operations | [`docs/operations/`](docs/operations/) — D1 migrations, accessibility, Cloudflare/general lessons learned, changelog |
+| Scraping deployment | [`docs/operations/SCRAPING_DEPLOYMENT.md`](docs/operations/SCRAPING_DEPLOYMENT.md) — release gates, topology, verification, logs, rollback |
 | Implementation plans | [`docs/plans/`](docs/plans/) — phase plans, design docs |
 | Upgrades | [`docs/upgrades/`](docs/upgrades/) — dependency upgrade reports |
 | Cypher queries | [`docs/neo4j-queries/`](docs/neo4j-queries/) |
