@@ -39,6 +39,92 @@ const longArticle = `<!doctype html><html><head><title>Validated Final Article</
   <body><article><p>${'bounded extraction words '.repeat(60)}</p>
   <a href="/next-source">Next source</a></article></body></html>`
 
+interface EventLogCall {
+  query: string
+  bindings: unknown[]
+}
+
+function authorizedRouteContext(
+  body: Record<string, unknown>,
+  options: { telemetryKey?: string; apifyKey?: string } = {},
+): { context: Record<string, unknown>; eventLogs: EventLogCall[] } {
+  const eventLogs: EventLogCall[] = []
+  const db = {
+    prepare(query: string) {
+      return {
+        bind(...bindings: unknown[]) {
+          return {
+            async first() {
+              if (query.includes('SELECT id FROM workspaces')) return { id: 'workspace-sensitive-42' }
+              if (query.includes('SELECT user_hash FROM users')) return { user_hash: 'user-hash-sensitive-1234' }
+              return null
+            },
+            async all() {
+              return { results: [] }
+            },
+            async run() {
+              if (query.includes('INSERT INTO event_logs')) eventLogs.push({ query, bindings })
+              return { meta: { changes: 1, last_row_id: 1 } }
+            },
+          }
+        },
+      }
+    },
+  }
+  const sessions = {
+    get: async (token: string) => token === 'session-token'
+      ? JSON.stringify({ user_id: 7 })
+      : null,
+  }
+  const env: Record<string, unknown> = {
+    DB: db,
+    SESSIONS: sessions,
+    OPENAI_API_KEY: 'openai-token-must-not-log',
+    APIFY_API_KEY: options.apifyKey,
+    SCRAPE_TELEMETRY_KEY: options.telemetryKey,
+  }
+
+  return {
+    eventLogs,
+    context: {
+      request: new Request('https://researchtools.example/api/content-intelligence/analyze-url', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer session-token',
+          'X-Workspace-ID': 'workspace-sensitive-42',
+        },
+        body: JSON.stringify(body),
+      }),
+      env,
+      params: {},
+    },
+  }
+}
+
+function eventLogContext(call: EventLogCall): Record<string, unknown> {
+  expect(call.bindings.slice(0, 3)).toEqual([
+    'warn',
+    'content-intelligence/analyze-url',
+    'URL extraction failed',
+  ])
+  expect(call.bindings[4]).toBeNull()
+  return JSON.parse(String(call.bindings[3])) as Record<string, unknown>
+}
+
+function expectRecursivelyAbsent(value: unknown, forbidden: readonly string[]): void {
+  const serialized = JSON.stringify(value)
+  for (const text of forbidden) expect(serialized).not.toContain(text)
+  const visit = (current: unknown): void => {
+    if (!current || typeof current !== 'object') return
+    for (const [key, child] of Object.entries(current as Record<string, unknown>)) {
+      expect(key).not.toMatch(/^(url|host|query|reason|user|user_id|workspace|workspace_id)$/i)
+      visit(child)
+    }
+  }
+  visit(value)
+}
+
 test.describe('content-intelligence URL safe-fetch migration @smoke', () => {
   test.describe.configure({ mode: 'serial' })
 
@@ -220,6 +306,179 @@ test.describe('content-intelligence URL safe-fetch migration @smoke', () => {
     }
   })
 
+  test('@smoke preserves archive and short-link host constraints for PDF redirects', async () => {
+    const requests: Array<{ url: string; method: string }> = []
+    let scenario: 'archive-cross-host' | 'short-private' = 'archive-cross-host'
+    const restore = installNetworkMock({
+      target: (url, init) => {
+        const method = String(init?.method || 'GET')
+        requests.push({ url: url.href, method })
+        if (scenario === 'archive-cross-host') {
+          return new Response(null, {
+            status: 302,
+            headers: { Location: 'https://archive.ph.attacker.example/stolen.pdf' },
+          })
+        }
+        if (url.hostname === 'spotify.link') {
+          return new Response(null, {
+            status: 302,
+            headers: { Location: 'https://open.spotify.com/document.pdf' },
+          })
+        }
+        if (method === 'HEAD') return new Response(null)
+        return new Response(null, {
+          status: 302,
+          headers: { Location: 'http://127.0.0.1/private.pdf' },
+        })
+      },
+    })
+
+    try {
+      const archive = await extractUrlContent(
+        'https://archive.ph/document.pdf',
+        undefined,
+        undefined,
+        ['archive.ph'],
+      )
+      expect(archive).toMatchObject({ success: false, errorCode: 'policy_denied', isPDF: true })
+      expect(requests).toEqual([{ url: 'https://archive.ph/document.pdf', method: 'GET' }])
+
+      scenario = 'short-private'
+      requests.length = 0
+      const shortened = await extractUrlContent('https://spotify.link/document.pdf')
+      expect(shortened).toMatchObject({ success: false, errorCode: 'policy_denied', isPDF: true })
+      expect(requests).toEqual([
+        { url: 'https://spotify.link/document.pdf', method: 'HEAD' },
+        { url: 'https://open.spotify.com/document.pdf', method: 'HEAD' },
+        { url: 'https://open.spotify.com/document.pdf', method: 'GET' },
+      ])
+    } finally {
+      restore()
+    }
+  })
+
+  test('@smoke API key presence and an impostor social host cannot trigger provider disclosure', async () => {
+    const targets: string[] = []
+    const restore = installNetworkMock({
+      target: url => {
+        targets.push(url.href)
+        if (url.hostname === 'web.archive.org') {
+          return new Response('not found', { status: 404, headers: { 'Content-Type': 'text/plain' } })
+        }
+        if (url.hostname === 'archive.ph') return new Response(null, { status: 404 })
+        return new Response('<html>upstream unavailable</html>', {
+          status: 503,
+          headers: { 'Content-Type': 'text/html' },
+        })
+      },
+    })
+
+    try {
+      const fixture = authorizedRouteContext({
+        url: 'https://x.com.attacker.example/status/123?token=caller-secret',
+      }, { apifyKey: 'apify-token-must-not-leave' })
+      const response = await onRequestPost(fixture.context as never)
+      expect(response.status).toBe(422)
+      expect(await response.json()).toMatchObject({
+        error: 'The website is experiencing issues. Try again later or use a bypass URL.',
+        technical_error: expect.stringContaining('HTTP 503'),
+      })
+      expect(targets.some(target => new URL(target).hostname === 'api.apify.com')).toBe(false)
+      expect(targets).toContain('https://x.com.attacker.example/status/123?token=caller-secret')
+      expect(fixture.eventLogs).toHaveLength(1)
+    } finally {
+      restore()
+    }
+  })
+
+  test('@smoke authorized hard failures persist only normalized opaque context with and without a key', async () => {
+    const rawUrl = 'https://secret.example/private/path?token=do-not-log'
+    const forbidden = [
+      rawUrl,
+      'secret.example',
+      '/private/path',
+      'token=do-not-log',
+      'upstream unavailable',
+      'openai-token-must-not-log',
+      'apify-token-must-not-leave',
+      'workspace-sensitive-42',
+      'user-hash-sensitive-1234',
+      'session-token',
+      'user_id',
+    ]
+    const restore = installNetworkMock({
+      target: url => {
+        if (url.hostname === 'web.archive.org') {
+          return new Response('not found', { status: 404, headers: { 'Content-Type': 'text/plain' } })
+        }
+        if (url.hostname === 'archive.ph') return new Response(null, { status: 404 })
+        return new Response('<html>upstream unavailable private customer material</html>', {
+          status: 503,
+          headers: { 'Content-Type': 'text/html' },
+        })
+      },
+    })
+
+    try {
+      for (const telemetryKey of [undefined, 'dedicated-scrape-telemetry-key']) {
+        const fixture = authorizedRouteContext({ url: rawUrl }, {
+          telemetryKey,
+          apifyKey: 'apify-token-must-not-leave',
+        })
+        const response = await onRequestPost(fixture.context as never)
+        expect(response.status).toBe(422)
+        expect(fixture.eventLogs).toHaveLength(1)
+        const logged = eventLogContext(fixture.eventLogs[0])
+        expect(logged.error_code).toBe('upstream_5xx')
+        if (telemetryKey) {
+          expect(logged).toMatchObject({
+            correlation_id: expect.stringMatching(/^[a-f0-9]{64}$/),
+            url_id: expect.stringMatching(/^[a-f0-9]{64}$/),
+            domain_id: expect.stringMatching(/^[a-f0-9]{64}$/),
+          })
+        } else {
+          expect(logged).toEqual({
+            correlation_id: expect.stringMatching(/^[0-9a-f-]{36}$/),
+            error_code: 'upstream_5xx',
+          })
+        }
+        expectRecursivelyAbsent(logged, forbidden)
+      }
+    } finally {
+      restore()
+    }
+  })
+
+  test('@smoke preserves the successful supplied-content quick envelope', async () => {
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = (async (input: RequestInfo | URL) => {
+      expect(new URL(String(input)).hostname).toBe('api.openai.com')
+      return Response.json({ choices: [{ message: { content: 'Compatible summary' } }] })
+    }) as typeof fetch
+    try {
+      const fixture = authorizedRouteContext({
+        url: 'https://public.example/supplied',
+        mode: 'quick',
+        content_text: 'trusted supplied article content with meaningful evidence '.repeat(35),
+        content_title: 'Supplied title',
+        content_source: 'bot-scrape',
+      })
+      const response = await onRequestPost(fixture.context as never)
+      expect(response.status).toBe(200)
+      expect(await response.json()).toMatchObject({
+        url: 'https://public.example/supplied',
+        title: 'Supplied title',
+        summary: 'Compatible summary',
+        processing_mode: 'quick',
+        content_source: 'bot-scrape',
+        fallback_attempts: ['bot-scrape'],
+      })
+      expect(fixture.eventLogs).toEqual([])
+    } finally {
+      globalThis.fetch = originalFetch
+    }
+  })
+
   test('@smoke uses the validated final URL for extraction and forwards no request credentials', async () => {
     const outboundHeaders: Headers[] = []
     const restore = installNetworkMock({
@@ -254,6 +513,9 @@ test.describe('content-intelligence URL safe-fetch migration @smoke', () => {
     expect(source).not.toContain('BROWSER_RENDERER')
     expect(source).not.toContain('renderArticleFallback')
     expect(source).not.toContain('RendererBinding')
+    expect(source).not.toContain("../_shared/apify-social")
+    expect(source).not.toContain('fetchSocialViaApify')
+    expect(source).not.toContain('APIFY_API_KEY')
     expect(source).not.toMatch(/\bfetch\s*\(/)
     expect(source).toContain('telemetryKey: env.SCRAPE_TELEMETRY_KEY')
     expect(source).not.toMatch(/telemetryKey:\s*env\.JWT_SECRET/)

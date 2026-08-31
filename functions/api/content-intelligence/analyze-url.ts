@@ -17,14 +17,14 @@ import { callOpenAIViaGateway, getOptimalCacheTTL } from '../_shared/ai-gateway'
 import { JSON_HEADERS, isPrivateUrl } from '../_shared/api-utils'
 import { normalizeClaims } from './normalize-claims'
 import { generateArchiveUrls } from './_archive-urls'
-import { fetchSocialViaApify } from '../_shared/apify-social'
 import { extractAndSaveClaimEntities } from './extract-claim-entities'
 import { matchMultipleClaimsEntities } from './match-entities-to-actors'
-import { isPDFUrl, extractPDFText, intelligentPDFSummary } from './pdf-extractor'
+import { isPDFUrl, extractPDFText, extractPdfTextFromBuffer, intelligentPDFSummary } from './pdf-extractor'
 import { logEvent } from '../_shared/event-log'
 import { extractionFailureLog } from './_extraction-log'
 import { extractArticle } from '../_shared/article-extractor'
 import { SafeFetchError, safeFetchHead, safeFetchText, type SafeFetchErrorCode } from '../_shared/safe-fetch'
+import { safeFetchPdf } from '../_shared/safe-content'
 import type { NormalizedScrapeError } from '../_shared/scrape-contract'
 
 interface Env {
@@ -34,7 +34,6 @@ interface Env {
   SESSIONS?: KVNamespace
   RATE_LIMIT?: KVNamespace
   JWT_SECRET?: string
-  APIFY_API_KEY?: string
   PDF_CO_API_KEY?: string
   SCRAPE_TELEMETRY_KEY?: string
 }
@@ -91,6 +90,7 @@ async function resolveWritableWorkspaceId(
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   const { request, env } = context
+  const requestCorrelationId = crypto.randomUUID()
 
   try {
 
@@ -244,7 +244,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       : await extractUrlContentWithFallback(
           normalizedUrl,
           env.OPENAI_API_KEY,
-          env.APIFY_API_KEY,
           env.PDF_CO_API_KEY,
         )
 
@@ -258,6 +257,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         errorCode: contentData.errorCode ?? 'extract_failed',
         tenantScope: workspaceId,
         telemetryKey: env.SCRAPE_TELEMETRY_KEY,
+        correlationId: requestCorrelationId,
       }))
 
       // Provide user-friendly error message
@@ -938,31 +938,9 @@ function isContentBlocked(result: {
 export async function extractUrlContentWithFallback(
   url: string,
   apiKey?: string,
-  apifyApiKey?: string,
   pdfCoApiKey?: string,
 ): Promise<ContentExtractionResult> {
   const fallbackAttempts: string[] = []
-
-  // Try Apify for Twitter/X and TikTok URLs first (richer content than oEmbed/fetch)
-  if (apifyApiKey) {
-    try {
-      const socialResult = await fetchSocialViaApify(url, apifyApiKey)
-      if (socialResult?.success && socialResult.text.length > 50) {
-        fallbackAttempts.push('apify')
-        return {
-          success: true,
-          text: socialResult.text,
-          title: socialResult.title,
-          author: socialResult.author,
-          publishDate: socialResult.publishDate,
-          source: 'apify',
-          fallback_attempts: fallbackAttempts,
-        }
-      }
-    } catch (error) {
-      console.error('[Fallback] Apify social extraction failed:', error)
-    }
-  }
 
   // Try original URL first
   fallbackAttempts.push('original')
@@ -1119,7 +1097,24 @@ export async function extractUrlContent(
   // Check if URL is a PDF
   if (isPDFUrl(resolvedUrl)) {
     try {
-      const pdfResult = await extractPDFText(resolvedUrl, pdfCoApiKey)
+      const pdfResult = effectiveAllowedHostnames
+        ? await safeFetchPdf(resolvedUrl, {
+            timeoutMs: 30_000,
+            maxRedirects: 5,
+            allowedHostnames: effectiveAllowedHostnames,
+            requestInit: {
+              headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+                'Accept': 'application/pdf,*/*;q=0.8',
+              },
+            },
+          }).then(downloaded => {
+            if (!downloaded.response.ok) {
+              throw new Error(`Failed to download PDF: ${downloaded.response.status}`)
+            }
+            return extractPdfTextFromBuffer(downloaded.bytes.slice().buffer)
+          })
+        : await extractPDFText(resolvedUrl, pdfCoApiKey)
 
       return {
         success: true,
