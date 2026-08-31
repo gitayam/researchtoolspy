@@ -1,5 +1,6 @@
 export const SCRAPE_SCHEMA_VERSION = 'scrape.v1' as const
 export const MAX_SCRAPE_ATTEMPT_SUMMARY = 8
+declare const scrapeAttemptSummaryBrand: unique symbol
 
 export type ScrapeRoute =
   | 'web-scraper'
@@ -91,6 +92,11 @@ export interface ScrapeAttemptV1 {
   extractedWords?: number
 }
 
+/** Construct with boundScrapeAttempts; the frozen value is capped at eight entries. */
+export type ScrapeAttemptSummaryV1 = readonly ScrapeAttemptV1[] & {
+  readonly [scrapeAttemptSummaryBrand]: true
+}
+
 export interface ScrapeProvenanceV1 {
   schemaVersion: typeof SCRAPE_SCHEMA_VERSION
   sourceMode: ScrapeSourceMode
@@ -102,7 +108,7 @@ export interface ScrapeProvenanceV1 {
     accepted: boolean
   }
   contentHash: string
-  attempts: readonly ScrapeAttemptV1[]
+  attempts: ScrapeAttemptSummaryV1
 }
 
 export interface ScrapeContentV1 {
@@ -130,7 +136,7 @@ export interface ScrapeFailureV1 {
     retryable: boolean
     stage: ScrapeStage
   }
-  attempts: readonly ScrapeAttemptV1[]
+  attempts: ScrapeAttemptSummaryV1
 }
 
 export type ScrapeResultV1 = ScrapeSuccessV1 | ScrapeFailureV1
@@ -138,8 +144,8 @@ export type ScrapeResultV1 = ScrapeSuccessV1 | ScrapeFailureV1
 /** Keep durable/returned attempt summaries small even when an adapter retries more. */
 export function boundScrapeAttempts(
   attempts: readonly ScrapeAttemptV1[],
-): readonly ScrapeAttemptV1[] {
-  return attempts.slice(0, MAX_SCRAPE_ATTEMPT_SUMMARY)
+): ScrapeAttemptSummaryV1 {
+  return Object.freeze(attempts.slice(0, MAX_SCRAPE_ATTEMPT_SUMMARY)) as ScrapeAttemptSummaryV1
 }
 
 export function isFiniteNonnegative(value: number | undefined): boolean {

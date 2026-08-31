@@ -12,25 +12,30 @@ import {
   type ScrapeRoute,
   type ScrapeStage,
   type ScrapeStrategy,
+  boundScrapeAttempts,
   isValidScrapeAttempt,
 } from './scrape-contract'
 
 export const SCRAPE_METRIC_SCHEMA_VERSION = 'scrape.metric.v1' as const
 
+declare const opaqueScrapeIdBrand: unique symbol
+export type OpaqueScrapeId = string & { readonly [opaqueScrapeIdBrand]: true }
+
 export interface OpaqueScrapeIdentifiers {
-  tenantId: string
-  urlId: string
-  domainId: string
+  requestId: OpaqueScrapeId
+  tenantId: OpaqueScrapeId
+  urlId: OpaqueScrapeId
+  domainId: OpaqueScrapeId
 }
 
 interface ScrapeMetricBaseV1 {
   schemaVersion: typeof SCRAPE_METRIC_SCHEMA_VERSION
-  requestId: string
+  requestId: OpaqueScrapeId
   route: ScrapeRoute
   purpose: ScrapePurpose
-  tenantId: string
-  urlId: string
-  domainId: string
+  tenantId: OpaqueScrapeId
+  urlId: OpaqueScrapeId
+  domainId: OpaqueScrapeId
 }
 
 export interface ScrapeAttemptMetricV1 extends ScrapeMetricBaseV1 {
@@ -65,7 +70,7 @@ export interface ScrapeTerminalMetricV1 extends ScrapeMetricBaseV1 {
 export type ScrapeMetricV1 = ScrapeAttemptMetricV1 | ScrapeTerminalMetricV1
 
 export interface ScrapeMetricSink {
-  emit(metric: ScrapeMetricV1): void
+  emit(metric: ScrapeMetricV1): void | Promise<void>
 }
 
 export const noopScrapeMetricSink: ScrapeMetricSink = Object.freeze({ emit: () => {} })
@@ -90,7 +95,8 @@ export interface AnalyticsEngineLike {
 
 function safeEmit(sink: ScrapeMetricSink, metric: ScrapeMetricV1): void {
   try {
-    sink.emit(metric)
+    const pending = sink.emit(metric)
+    if (pending && typeof pending.then === 'function') void pending.catch(() => {})
   } catch {
     // Metrics must never alter the request being observed.
   }
@@ -115,17 +121,35 @@ async function keyedId(key: string, scope: string, value: string): Promise<strin
   return toHex(await crypto.subtle.sign('HMAC', cryptoKey, new TextEncoder().encode(`${scope}\0${value}`)))
 }
 
+const OPAQUE_ID_PATTERN = /^[a-f0-9]{64}$/
+
+function asOpaqueScrapeId(value: string): OpaqueScrapeId {
+  return value as OpaqueScrapeId
+}
+
+export function isOpaqueScrapeIdentifiers(value: unknown): value is OpaqueScrapeIdentifiers {
+  if (!value || typeof value !== 'object') return false
+  const candidate = value as Record<string, unknown>
+  return ['requestId', 'tenantId', 'urlId', 'domainId'].every(key => (
+    typeof candidate[key] === 'string' && OPAQUE_ID_PATTERN.test(candidate[key])
+  ))
+}
+
 /** Returns no identifiers when a dedicated telemetry key is unavailable. */
 export async function buildOpaqueScrapeIdentifiers(
   telemetryKey: string | null | undefined,
-  input: { tenantScope: string; url: string },
+  input: { requestId: string; tenantScope: string; url: string },
 ): Promise<OpaqueScrapeIdentifiers | null> {
-  if (!telemetryKey?.trim()) return null
+  if (!telemetryKey?.trim()
+    || !input.tenantScope.trim()
+    || !input.requestId.trim()
+    || input.requestId.length > 128) return null
   const parsed = new URL(input.url)
   return {
-    tenantId: await keyedId(telemetryKey, 'scrape-tenant-v1', input.tenantScope),
-    urlId: await keyedId(telemetryKey, 'scrape-url-v1', parsed.href),
-    domainId: await keyedId(telemetryKey, 'scrape-domain-v1', parsed.hostname.toLowerCase()),
+    requestId: asOpaqueScrapeId(await keyedId(telemetryKey, 'scrape-request-v1', input.requestId)),
+    tenantId: asOpaqueScrapeId(await keyedId(telemetryKey, 'scrape-tenant-v1', input.tenantScope)),
+    urlId: asOpaqueScrapeId(await keyedId(telemetryKey, 'scrape-url-v1', parsed.href)),
+    domainId: asOpaqueScrapeId(await keyedId(telemetryKey, 'scrape-domain-v1', parsed.hostname.toLowerCase())),
   }
 }
 
@@ -134,7 +158,7 @@ export function createAnalyticsEngineScrapeMetricSink(
   binding: AnalyticsEngineLike | null | undefined,
   identifiers: OpaqueScrapeIdentifiers | null | undefined,
 ): ScrapeMetricSink {
-  if (!binding || !identifiers) return noopScrapeMetricSink
+  if (!binding || !isOpaqueScrapeIdentifiers(identifiers)) return noopScrapeMetricSink
   return {
     emit(metric): void {
       try {
@@ -145,7 +169,7 @@ export function createAnalyticsEngineScrapeMetricSink(
               metric.schemaVersion, metric.event, metric.route, metric.purpose,
               metric.stage, metric.strategy, metric.provider, metric.outcome,
               metric.errorCode, metric.httpStatusClass, metric.contentTypeClass,
-              identifiers.urlId, identifiers.domainId,
+              identifiers.requestId, identifiers.urlId, identifiers.domainId,
             ],
             doubles: [metric.count, metric.ordinal, metric.durationMs, metric.responseBytes, metric.extractedWords],
           })
@@ -155,7 +179,7 @@ export function createAnalyticsEngineScrapeMetricSink(
             blobs: [
               metric.schemaVersion, metric.event, metric.route, metric.purpose,
               metric.outcome, metric.errorCode, metric.terminalStage,
-              metric.finalStrategy, identifiers.urlId, identifiers.domainId,
+              metric.finalStrategy, identifiers.requestId, identifiers.urlId, identifiers.domainId,
             ],
             doubles: [metric.count, metric.attemptCount, metric.totalMs, metric.qualityScore, metric.accepted],
           })
@@ -182,7 +206,7 @@ export interface ObserveScrapeOptions {
 function metricBase(options: ObserveScrapeOptions): ScrapeMetricBaseV1 {
   return {
     schemaVersion: SCRAPE_METRIC_SCHEMA_VERSION,
-    requestId: options.request.requestId,
+    requestId: options.identifiers.requestId,
     route: options.request.route,
     purpose: options.request.purpose,
     tenantId: options.identifiers.tenantId,
@@ -207,15 +231,20 @@ export async function observeScrape(
   options: ObserveScrapeOptions,
   execute: (observer: ScrapeObserver) => Promise<ScrapeResultV1>,
 ): Promise<ScrapeResultV1> {
-  const sink = options.sink ?? noopScrapeMetricSink
+  const sink = isOpaqueScrapeIdentifiers(options.identifiers)
+    ? (options.sink ?? noopScrapeMetricSink)
+    : noopScrapeMetricSink
   const now = options.now ?? Date.now
   const startedAt = now()
   const attempts: ScrapeAttemptV1[] = []
-  let finished = false
+  let terminalEmitted = false
+  let finishStaged = false
+  let stagedResult: ScrapeResultV1 | null = null
+  let stagedTotalMs: number | undefined
 
-  const finish = (result: ScrapeResultV1, totalMs = finiteNonnegative(now() - startedAt)): boolean => {
-    if (finished) return false
-    finished = true
+  const emitTerminal = (result: ScrapeResultV1, totalMs = finiteNonnegative(now() - startedAt)): boolean => {
+    if (terminalEmitted) return false
+    terminalEmitted = true
     const finalAttempt = attempts.at(-1)
     const success = result.ok
     const terminal: ScrapeTerminalMetricV1 = {
@@ -237,7 +266,9 @@ export async function observeScrape(
 
   const observer: ScrapeObserver = {
     attempt(attempt): boolean {
-      if (finished || attempts.length >= MAX_SCRAPE_ATTEMPT_SUMMARY || !isValidScrapeAttempt(attempt)) return false
+      if (finishStaged || terminalEmitted
+        || attempts.length >= MAX_SCRAPE_ATTEMPT_SUMMARY
+        || !isValidScrapeAttempt(attempt)) return false
       if (attempt.requestId !== options.request.requestId || attempt.schemaVersion !== SCRAPE_SCHEMA_VERSION) return false
       attempts.push(attempt)
       safeEmit(sink, {
@@ -258,22 +289,28 @@ export async function observeScrape(
       })
       return true
     },
-    finish,
+    finish(result, totalMs): boolean {
+      if (finishStaged || terminalEmitted) return false
+      finishStaged = true
+      stagedResult = result
+      stagedTotalMs = totalMs
+      return true
+    },
   }
 
   try {
     const result = await execute(observer)
-    finish(result)
+    emitTerminal(result, stagedResult === result ? stagedTotalMs : undefined)
     return result
   } catch (error) {
-    if (!finished) {
+    if (!terminalEmitted) {
       const code = failureCode(error)
-      finish({
+      emitTerminal({
         schemaVersion: SCRAPE_SCHEMA_VERSION,
         ok: false,
         requestId: options.request.requestId,
         error: { code, retryable: code === 'timeout', stage: attempts.at(-1)?.stage ?? 'fetch' },
-        attempts,
+        attempts: boundScrapeAttempts(attempts),
       })
     }
     throw error

@@ -18,6 +18,7 @@ import {
 const RAW_URL = 'https://private.example.test/article?q=secret'
 const RAW_TENANT = 'workspace-sensitive-42'
 const REQUEST_ID = '018f6d5e-4d58-7ef0-8d12-a4e3aee55301'
+const identifierInput = { requestId: REQUEST_ID, tenantScope: RAW_TENANT, url: RAW_URL }
 
 function attempt(ordinal: number): ScrapeAttemptV1 {
   return {
@@ -72,48 +73,52 @@ test.describe('scrape observability contract @smoke', () => {
     expect(SCRAPE_METRIC_SCHEMA_VERSION).toBe('scrape.metric.v1')
     expect(bounded).toHaveLength(MAX_SCRAPE_ATTEMPT_SUMMARY)
     expect(bounded.map(item => item.ordinal)).toEqual([1, 2, 3, 4, 5, 6, 7, 8])
+    expect(Object.isFrozen(bounded)).toBe(true)
+    expect(attempts).toHaveLength(12)
     expect(isValidScrapeAttempt(attempt(1))).toBe(true)
     expect(isValidScrapeAttempt({ ...attempt(1), durationMs: Number.NaN })).toBe(false)
     expect(isValidScrapeAttempt({ ...attempt(1), responseBytes: -1 })).toBe(false)
   })
 
   test('@smoke creates domain-separated opaque identifiers only with an injected key', async () => {
-    await expect(buildOpaqueScrapeIdentifiers('', { tenantScope: RAW_TENANT, url: RAW_URL })).resolves.toBeNull()
-    await expect(buildOpaqueScrapeIdentifiers(undefined, { tenantScope: RAW_TENANT, url: RAW_URL })).resolves.toBeNull()
+    await expect(buildOpaqueScrapeIdentifiers('', identifierInput)).resolves.toBeNull()
+    await expect(buildOpaqueScrapeIdentifiers(undefined, identifierInput)).resolves.toBeNull()
+    await expect(buildOpaqueScrapeIdentifiers('key', { ...identifierInput, requestId: '' })).resolves.toBeNull()
+    await expect(buildOpaqueScrapeIdentifiers('key', { ...identifierInput, tenantScope: '' })).resolves.toBeNull()
 
-    const first = await buildOpaqueScrapeIdentifiers('dedicated-telemetry-key', {
-      tenantScope: RAW_TENANT,
-      url: RAW_URL,
-    })
-    const repeated = await buildOpaqueScrapeIdentifiers('dedicated-telemetry-key', {
-      tenantScope: RAW_TENANT,
-      url: RAW_URL,
-    })
+    const first = await buildOpaqueScrapeIdentifiers('dedicated-telemetry-key', identifierInput)
+    const repeated = await buildOpaqueScrapeIdentifiers('dedicated-telemetry-key', identifierInput)
     const anotherUrl = await buildOpaqueScrapeIdentifiers('dedicated-telemetry-key', {
-      tenantScope: RAW_TENANT,
-      url: 'https://private.example.test/another',
+      ...identifierInput, url: 'https://private.example.test/another',
+    })
+    const anotherRequest = await buildOpaqueScrapeIdentifiers('dedicated-telemetry-key', {
+      ...identifierInput, requestId: '018f6d5e-4d58-7ef0-8d12-a4e3aee55302',
     })
 
     expect(first).toEqual(repeated)
     expect(first?.urlId).not.toBe(anotherUrl?.urlId)
     expect(first?.domainId).toBe(anotherUrl?.domainId)
+    expect(first?.requestId).not.toBe(anotherRequest?.requestId)
     for (const opaque of Object.values(first ?? {})) {
       expect(opaque).toMatch(/^[a-f0-9]{64}$/)
       expect(opaque).not.toContain('private')
     }
   })
 
-  test('@smoke metric shapes recursively exclude raw and free-form request data', () => {
+  test('@smoke metric shapes recursively exclude raw and free-form request data', async () => {
     const sink = new RecordingScrapeMetricSink()
+    const identifiers = await buildOpaqueScrapeIdentifiers('dedicated-telemetry-key', identifierInput)
+    expect(identifiers).not.toBeNull()
+    if (!identifiers) return
     const metric: ScrapeMetricV1 = {
       schemaVersion: SCRAPE_METRIC_SCHEMA_VERSION,
       event: 'attempt',
-      requestId: REQUEST_ID,
+      requestId: identifiers.requestId,
       route: 'web-scraper',
       purpose: 'article-analysis',
-      tenantId: 'a'.repeat(64),
-      urlId: 'b'.repeat(64),
-      domainId: 'c'.repeat(64),
+      tenantId: identifiers.tenantId,
+      urlId: identifiers.urlId,
+      domainId: identifiers.domainId,
       ordinal: 1,
       stage: 'fetch',
       strategy: 'direct',
@@ -131,12 +136,12 @@ test.describe('scrape observability contract @smoke', () => {
     sink.emit({
       schemaVersion: SCRAPE_METRIC_SCHEMA_VERSION,
       event: 'terminal',
-      requestId: REQUEST_ID,
+      requestId: identifiers.requestId,
       route: 'web-scraper',
       purpose: 'article-analysis',
-      tenantId: 'a'.repeat(64),
-      urlId: 'b'.repeat(64),
-      domainId: 'c'.repeat(64),
+      tenantId: identifiers.tenantId,
+      urlId: identifiers.urlId,
+      domainId: identifiers.domainId,
       outcome: 'failed',
       errorCode: 'timeout',
       terminalStage: 'fetch',
@@ -153,14 +158,20 @@ test.describe('scrape observability contract @smoke', () => {
     assertPrivacySafe(sink.metrics)
   })
 
-  test('@smoke optional Analytics Engine adapter is noop without binding or keyed identifiers', () => {
+  test('@smoke Analytics projection correlates requests and fails closed on raw identifiers', async () => {
     const points: unknown[] = []
     const binding = { writeDataPoint: (point: unknown) => { points.push(point) } }
-    const identifiers = { tenantId: 'a'.repeat(64), urlId: 'b'.repeat(64), domainId: 'c'.repeat(64) }
+    const identifiers = await buildOpaqueScrapeIdentifiers('dedicated-telemetry-key', identifierInput)
+    const otherIdentifiers = await buildOpaqueScrapeIdentifiers('dedicated-telemetry-key', {
+      ...identifierInput, requestId: '018f6d5e-4d58-7ef0-8d12-a4e3aee55302',
+    })
+    expect(identifiers).not.toBeNull()
+    expect(otherIdentifiers).not.toBeNull()
+    if (!identifiers || !otherIdentifiers) return
     const metric: ScrapeMetricV1 = {
       schemaVersion: SCRAPE_METRIC_SCHEMA_VERSION,
       event: 'terminal',
-      requestId: REQUEST_ID,
+      requestId: identifiers.requestId,
       route: 'web-scraper',
       purpose: 'article-analysis',
       ...identifiers,
@@ -180,8 +191,55 @@ test.describe('scrape observability contract @smoke', () => {
     noopScrapeMetricSink.emit(metric)
     expect(points).toHaveLength(0)
 
+    const rawIdentifiers = {
+      requestId: REQUEST_ID,
+      tenantId: RAW_TENANT,
+      urlId: RAW_URL,
+      domainId: 'private.example.test',
+    }
+    createAnalyticsEngineScrapeMetricSink(binding, rawIdentifiers as never).emit(metric)
+    expect(points).toHaveLength(0)
+
+    const malformedIdentifiers = { ...identifiers, requestId: 'a'.repeat(63) }
+    createAnalyticsEngineScrapeMetricSink(binding, malformedIdentifiers as never).emit(metric)
+    expect(points).toHaveLength(0)
+
+    createAnalyticsEngineScrapeMetricSink(binding, identifiers).emit({
+      schemaVersion: SCRAPE_METRIC_SCHEMA_VERSION,
+      event: 'attempt',
+      requestId: identifiers.requestId,
+      route: 'web-scraper',
+      purpose: 'article-analysis',
+      tenantId: identifiers.tenantId,
+      urlId: identifiers.urlId,
+      domainId: identifiers.domainId,
+      ordinal: 1,
+      stage: 'fetch',
+      strategy: 'direct',
+      provider: 'none',
+      outcome: 'succeeded',
+      errorCode: 'none',
+      httpStatusClass: '2xx',
+      contentTypeClass: 'html',
+      count: 1,
+      durationMs: 20,
+      responseBytes: 100,
+      extractedWords: 10,
+    })
     createAnalyticsEngineScrapeMetricSink(binding, identifiers).emit(metric)
-    expect(points).toHaveLength(1)
+    createAnalyticsEngineScrapeMetricSink(binding, otherIdentifiers).emit({
+      ...metric,
+      requestId: otherIdentifiers.requestId,
+      tenantId: otherIdentifiers.tenantId,
+      urlId: otherIdentifiers.urlId,
+      domainId: otherIdentifiers.domainId,
+    })
+    expect(points).toHaveLength(3)
+    const projected = points as Array<{ blobs?: string[] }>
+    expect(projected[0].blobs).toContain(identifiers.requestId)
+    expect(projected[1].blobs).toContain(identifiers.requestId)
+    expect(projected[2].blobs).toContain(otherIdentifiers.requestId)
+    expect(projected[0].blobs).not.toContain(otherIdentifiers.requestId)
     assertPrivacySafe(points)
 
     const failingBinding = { writeDataPoint: () => { throw new Error('dataset unavailable') } }
