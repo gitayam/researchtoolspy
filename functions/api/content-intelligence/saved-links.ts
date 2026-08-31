@@ -13,10 +13,34 @@ import type { PagesFunction } from '@cloudflare/workers-types'
 
 import { getUserFromRequest } from '../_shared/auth-helpers'
 import { JSON_HEADERS, safeJsonParse } from '../_shared/api-utils'
+import { safeFetchText } from '../_shared/safe-fetch'
 
 interface Env {
   DB: D1Database
   SESSIONS?: KVNamespace
+}
+
+const TITLE_FETCH_TIMEOUT_MS = 10_000
+const TITLE_FETCH_MAX_BYTES = 2 * 1024 * 1024
+const INTERNAL_ANALYZE_TIMEOUT_MS = 30_000
+
+interface AnalyzeUrlResponse {
+  id: number
+}
+
+function isAnalyzeUrlResponse(value: unknown): value is AnalyzeUrlResponse {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+  const id = (value as Record<string, unknown>).id
+  return typeof id === 'number' && Number.isSafeInteger(id) && id > 0
+}
+
+function internalAnalyzeHeaders(request: Request): Headers {
+  const headers = new Headers({ 'Content-Type': 'application/json' })
+  for (const name of ['Authorization', 'X-User-Hash', 'X-Workspace-ID']) {
+    const value = request.headers.get(name)
+    if (value !== null) headers.set(name, value)
+  }
+  return headers
 }
 
 // ========================================
@@ -57,7 +81,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       LEFT JOIN content_analysis ca ON sl.analysis_id = ca.id
       WHERE sl.user_id = ?
     `
-    const bindings: any[] = [userId]
+    const bindings: unknown[] = [userId]
 
     // Search filter
     if (search) {
@@ -212,12 +236,16 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       // Call analyze-url endpoint internally
       const analyzeResponse = await fetch(`${new URL(request.url).origin}/api/content-intelligence/analyze-url`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url, mode: 'full' })
+        headers: internalAnalyzeHeaders(request),
+        body: JSON.stringify({ url, mode: 'full' }),
+        signal: AbortSignal.timeout(INTERNAL_ANALYZE_TIMEOUT_MS),
       })
 
       if (analyzeResponse.ok) {
-        const analysisData = await analyzeResponse.json()
+        const analysisData: unknown = await analyzeResponse.json()
+        if (!isAnalyzeUrlResponse(analysisData)) {
+          throw new Error('Analyze URL response did not contain a valid analysis id')
+        }
         analysisId = analysisData.id
 
         // Update saved link with analysis_id
@@ -297,7 +325,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
     // Build update query dynamically
     const updates: string[] = []
-    const bindings: any[] = []
+    const bindings: unknown[] = []
 
     if (title !== undefined) {
       updates.push('title = ?')
@@ -502,37 +530,23 @@ function detectSocialMedia(url: string): { platform: string } | null {
 // ========================================
 async function fetchUrlTitle(url: string): Promise<string | null> {
   try {
-    // SSRF protection: only allow http(s) and block private/internal IPs
-    const parsed = new URL(url)
-    if (!['http:', 'https:'].includes(parsed.protocol)) {
-      return null
-    }
-    const hostname = parsed.hostname
-    // Block private IP ranges and localhost
-    if (/^(127\.|10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|169\.254\.|0\.|localhost|::1|\[::1\])/.test(hostname)) {
-      return null
-    }
-
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; ResearchToolsBot/1.0)',
+    const result = await safeFetchText(url, {
+      timeoutMs: TITLE_FETCH_TIMEOUT_MS,
+      maxRedirects: 5,
+      maxResponseBytes: TITLE_FETCH_MAX_BYTES,
+      allowedContentTypes: ['text/html'],
+      requestInit: {
+        method: 'GET',
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; ResearchToolsBot/1.0)',
+        },
       },
-      // Limit response size to avoid downloading large files
-      signal: AbortSignal.timeout(10000) // 10 second timeout
     })
 
-    if (!response.ok) {
+    if (!result.response.ok) {
       return null
     }
-
-    // Only process HTML responses
-    const contentType = response.headers.get('content-type')
-    if (!contentType || !contentType.includes('text/html')) {
-      return null
-    }
-
-    const html = await response.text()
+    const html = result.text
 
     // Try to extract title from <title> tag
     const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i)
