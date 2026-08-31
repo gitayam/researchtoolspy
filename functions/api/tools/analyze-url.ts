@@ -1,12 +1,76 @@
 import type { Env } from '../../types'
-import { enhancedFetch } from '../../utils/browser-profiles'
 import { getUserFromRequest } from '../_shared/auth-helpers'
 import { JSON_HEADERS, CORS_HEADERS } from '../_shared/api-utils'
+import { safeFetchText } from '../_shared/safe-fetch'
+
+const PRIMARY_FETCH_TIMEOUT_MS = 15_000
+const ARCHIVE_FETCH_TIMEOUT_MS = 15_000
+const ARCHIVE_MAX_RESPONSE_BYTES = 256 * 1024
+const ARCHIVE_ORG_HOSTNAME = 'archive.org'
+const WAYBACK_HOSTNAME = 'web.archive.org'
 
 interface URLAnalysisRequest {
   url: string
   checkWayback?: boolean
   checkSEO?: boolean
+}
+
+interface WaybackSnapshot {
+  timestamp: string
+  url: string
+}
+
+function isExactHttpsUrl(value: unknown, hostname: string): value is string {
+  if (typeof value !== 'string') return false
+  try {
+    const url = new URL(value)
+    return url.protocol === 'https:'
+      && url.hostname.toLowerCase() === hostname
+      && url.port === ''
+      && url.username === ''
+      && url.password === ''
+  } catch {
+    return false
+  }
+}
+
+function validatedWaybackSnapshot(value: unknown): WaybackSnapshot | null {
+  if (!value || typeof value !== 'object') return null
+  const snapshot = value as Record<string, unknown>
+  if (typeof snapshot.timestamp !== 'string' || !/^\d{14}$/.test(snapshot.timestamp)) return null
+  if (!isExactHttpsUrl(snapshot.url, WAYBACK_HOSTNAME)) return null
+  return { timestamp: snapshot.timestamp, url: snapshot.url }
+}
+
+function validCdxTimestamps(value: unknown): string[] {
+  if (!Array.isArray(value) || value.length < 2 || !Array.isArray(value[0])) return []
+  const header = value[0]
+  const timestampIndex = header.indexOf('timestamp')
+  if (timestampIndex < 0) return []
+
+  return value.slice(1).flatMap(row => {
+    if (!Array.isArray(row)) return []
+    const timestamp = row[timestampIndex]
+    return typeof timestamp === 'string' && /^\d{14}$/.test(timestamp) ? [timestamp] : []
+  })
+}
+
+function exactHttpsFetch(hostname: string): typeof fetch {
+  return (async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = new URL(String(input))
+    if (!isExactHttpsUrl(url.href, hostname)) {
+      throw new Error('Archive provider destination rejected')
+    }
+    return await fetch(url, init)
+  }) as typeof fetch
+}
+
+function resolveMetadataUrl(value: string, baseUrl: string): string {
+  try {
+    return new URL(value, baseUrl).href
+  } catch {
+    return value
+  }
 }
 
 // Extract metadata from HTML
@@ -49,7 +113,7 @@ function extractMetadata(html: string, url: string): any {
         openGraph[prop.replace('og:', '')] = content
         if (prop === 'og:title' && !metadata.title) metadata.title = content
         if (prop === 'og:description' && !metadata.description) metadata.description = content
-        if (prop === 'og:image' && !metadata.image) metadata.image = content
+        if (prop === 'og:image' && !metadata.image) metadata.image = resolveMetadataUrl(content, url)
         if (prop === 'og:site_name' && !metadata.siteName) metadata.siteName = content
         if (prop === 'og:type' && !metadata.type) metadata.type = content
       }
@@ -258,23 +322,21 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const normalizedUrl = parsedUrl.href
     const startTime = Date.now()
 
-    // Fetch the URL with enhanced browser headers
+    // Fetch the URL through the shared bounded outbound policy.
     let response: Response
     let finalUrl = normalizedUrl
     const redirects: string[] = []
+    let html: string
 
     try {
-      response = await enhancedFetch(normalizedUrl, {
-        maxRetries: 3,
-        retryDelay: 500
+      const fetched = await safeFetchText(normalizedUrl, {
+        timeoutMs: PRIMARY_FETCH_TIMEOUT_MS,
       })
-
-      // Track redirects
-      if (response.redirected) {
-        redirects.push(response.url)
-        finalUrl = response.url
-      }
-    } catch (fetchError: any) {
+      response = fetched.response
+      html = fetched.text
+      finalUrl = fetched.finalUrl
+      redirects.push(...fetched.redirects)
+    } catch {
       return new Response(JSON.stringify({
         url: body.url,
         normalizedUrl,
@@ -295,11 +357,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     const responseTime = Date.now() - startTime
 
-    // Get HTML content
-    const html = await response.text()
-
     // Extract metadata
-    const { metadata, seo } = extractMetadata(html, normalizedUrl)
+    const { metadata, seo } = extractMetadata(html, finalUrl)
 
     // Domain info
     const domain = {
@@ -325,20 +384,25 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     let wayback: any = undefined
     if (body.checkWayback) {
       try {
-        const waybackResponse = await fetch(
-          `https://archive.org/wayback/available?url=${encodeURIComponent(normalizedUrl)}`,
-          { signal: AbortSignal.timeout(15000) }
-        )
+        const availabilityUrl = new URL('https://archive.org/wayback/available')
+        availabilityUrl.searchParams.set('url', normalizedUrl)
+        const availability = await safeFetchText(availabilityUrl, {
+          allowedHostnames: [ARCHIVE_ORG_HOSTNAME],
+          timeoutMs: ARCHIVE_FETCH_TIMEOUT_MS,
+          maxResponseBytes: ARCHIVE_MAX_RESPONSE_BYTES,
+          fetchImpl: exactHttpsFetch(ARCHIVE_ORG_HOSTNAME),
+        })
+        const waybackResponse = availability.response
 
         if (waybackResponse.ok) {
-          const waybackData = await waybackResponse.json() as {
+          const waybackData = JSON.parse(availability.text) as {
             archived_snapshots?: {
               closest?: { timestamp?: string; url?: string }
             }
           }
+          const snapshot = validatedWaybackSnapshot(waybackData.archived_snapshots?.closest)
 
-          if (waybackData.archived_snapshots?.closest) {
-            const snapshot = waybackData.archived_snapshots.closest
+          if (snapshot) {
             wayback = {
               isArchived: true,
               lastSnapshot: snapshot.timestamp,
@@ -348,66 +412,35 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
             // Try to get more snapshot data
             try {
-              const cdxResponse = await fetch(
-                `http://web.archive.org/cdx/search/cdx?url=${encodeURIComponent(normalizedUrl)}&output=json&limit=100`,
-                { signal: AbortSignal.timeout(15000) }
-              )
+              const cdxUrl = new URL('https://web.archive.org/cdx/search/cdx')
+              cdxUrl.searchParams.set('url', normalizedUrl)
+              cdxUrl.searchParams.set('output', 'json')
+              cdxUrl.searchParams.set('limit', '100')
+              const cdx = await safeFetchText(cdxUrl, {
+                allowedHostnames: [WAYBACK_HOSTNAME],
+                timeoutMs: ARCHIVE_FETCH_TIMEOUT_MS,
+                maxResponseBytes: ARCHIVE_MAX_RESPONSE_BYTES,
+                fetchImpl: exactHttpsFetch(WAYBACK_HOSTNAME),
+              })
+              const cdxResponse = cdx.response
               if (cdxResponse.ok) {
-                const cdxData = await cdxResponse.json()
-                if (Array.isArray(cdxData) && cdxData.length > 1) {
-                  wayback.totalSnapshots = cdxData.length - 1 // First row is header
-                  if (cdxData.length > 1) {
-                    wayback.firstSnapshot = cdxData[1][1] // timestamp of first snapshot
-                  }
+                const timestamps = validCdxTimestamps(JSON.parse(cdx.text))
+                if (timestamps.length > 0) {
+                  wayback.totalSnapshots = timestamps.length
+                  wayback.firstSnapshot = timestamps[0]
                 }
               }
-            } catch (cdxError) {
+            } catch {
               // CDX failed, continue with basic wayback data
             }
           } else {
-            // Not archived - attempt to save it to Wayback Machine
             wayback = {
               isArchived: false,
               saveRequested: false
             }
-
-            try {
-              // Send save request to Wayback Machine
-              const saveUrl = `https://web.archive.org/save/${normalizedUrl}`
-              const saveResponse = await fetch(saveUrl, {
-                headers: {
-                  'User-Agent': 'ResearchToolsPy URL Analyzer/1.0 (Academic Research Tool)'
-                },
-                signal: AbortSignal.timeout(30000)
-              })
-
-              // Consume response body to prevent connection leak
-              await saveResponse.text().catch(() => {})
-
-              if (saveResponse.ok) {
-                // Extract the archive URL from response headers or body
-                const contentLocation = saveResponse.headers.get('Content-Location')
-                const archiveUrl = contentLocation
-                  ? `https://web.archive.org${contentLocation}`
-                  : `https://web.archive.org/web/${new Date().toISOString().replace(/[-:]/g, '').split('.')[0]}/${normalizedUrl}`
-
-                wayback = {
-                  isArchived: true,
-                  saveRequested: true,
-                  archiveUrl,
-                  lastSnapshot: new Date().toISOString().replace(/[-:]/g, '').split('.')[0].replace('T', ''), // YYYYMMDDHHmmss format
-                  totalSnapshots: 1,
-                  message: 'URL has been saved to the Wayback Machine'
-                }
-              } else {
-                wayback.message = 'Failed to save to Wayback Machine. You can try manually at web.archive.org'
-              }
-            } catch (saveError) {
-              wayback.message = 'Could not automatically save to Wayback Machine'
-            }
           }
         }
-      } catch (waybackError) {
+      } catch {
         // Wayback check failed, continue without it
         wayback = { isArchived: false }
       }
