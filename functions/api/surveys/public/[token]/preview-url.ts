@@ -114,7 +114,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     // Validate the submitted URL (http(s) + length) BEFORE any network work.
     const validation = validatePreviewUrl(body.url)
     if (!validation.ok) {
-      return new Response(JSON.stringify({ ok: false, error: validation.error }), {
+      return new Response(JSON.stringify({
+        ok: false,
+        error: 'error' in validation ? validation.error : 'Invalid URL',
+      }), {
         status: 400, headers: JSON_HEADERS,
       })
     }

@@ -1,4 +1,4 @@
-import { Env } from '../../types'
+import type { Env } from '../../types'
 import { enhancedFetch } from '../../utils/browser-profiles'
 import { getUserFromRequest } from '../_shared/auth-helpers'
 import { JSON_HEADERS, CORS_HEADERS } from '../_shared/api-utils'

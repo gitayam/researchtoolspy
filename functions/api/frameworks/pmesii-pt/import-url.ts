@@ -60,7 +60,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       throw new Error('Failed to analyze URL')
     }
 
-    const { analysis } = await analyzeResponse.json()
+    const { analysis } = await analyzeResponse.json() as {
+      analysis: Parameters<typeof mapToPMESIIPT>[1]
+    }
 
     // Step 2: Use GPT to map content to PMESII-PT dimensions
     const mappedDimensions = await mapToPMESIIPT(context.env, analysis)
@@ -178,4 +180,3 @@ export const onRequestGet: PagesFunction = async () => {
     status: 405, headers: JSON_HEADERS,
   })
 }
-

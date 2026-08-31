@@ -57,7 +57,7 @@ export async function verifyPassword(password: string, storedHash: string): Prom
   // Constant-time comparison via HMAC: compute HMAC of both with same random key
   const hmacKey = await crypto.subtle.generateKey(
     { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
-  )
+  ) as CryptoKey
   const [sig1, sig2] = await Promise.all([
     crypto.subtle.sign('HMAC', hmacKey, encoder.encode(candidateHex)),
     crypto.subtle.sign('HMAC', hmacKey, encoder.encode(expectedHex)),

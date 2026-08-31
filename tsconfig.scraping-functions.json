@@ -17,6 +17,26 @@
   "files": [
     "functions/utils/browser-profiles.ts",
     "functions/api/web-scraper.ts",
-    "functions/api/tools/extract-timeline.ts"
+    "functions/api/tools/scrape-metadata.ts",
+    "functions/api/tools/batch-process.ts",
+    "functions/api/tools/analyze-url.ts",
+    "functions/api/tools/extract.ts",
+    "functions/api/tools/extract-claims.ts",
+    "functions/api/tools/extract-timeline.ts",
+    "functions/api/tools/rage-check.ts",
+    "functions/api/tools/geoconfirmed.ts",
+    "functions/api/ai/scrape-url.ts",
+    "functions/api/content-intelligence/social-extract.ts",
+    "functions/api/content-intelligence/social-media-extract.ts",
+    "functions/api/content-intelligence/starbursting.ts",
+    "functions/api/content-intelligence/twitter-image-proxy.ts",
+    "functions/api/content-intelligence/pdf-extractor.ts",
+    "functions/api/content-intelligence/domain-country.ts",
+    "functions/api/content-intelligence/virustotal-lookup.ts",
+    "functions/api/surveys/public/[token]/preview-url.ts",
+    "functions/api/surveys/public/[token]/submit.ts",
+    "functions/api/cop/public/intake/[token]/submit.ts",
+    "functions/api/cop/[id]/scrape.ts",
+    "functions/api/frameworks/pmesii-pt/import-url.ts"
   ]
 }

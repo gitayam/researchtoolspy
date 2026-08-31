@@ -1,4 +1,4 @@
-import { Env } from '../../types'
+import type { Env } from '../../types'
 import { enhancedFetch } from '../../utils/browser-profiles'
 import { getUserFromRequest } from '../_shared/auth-helpers'
 import { JSON_HEADERS, CORS_HEADERS } from '../_shared/api-utils'
@@ -331,7 +331,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         )
 
         if (waybackResponse.ok) {
-          const waybackData = await waybackResponse.json()
+          const waybackData = await waybackResponse.json() as {
+            archived_snapshots?: {
+              closest?: { timestamp?: string; url?: string }
+            }
+          }
 
           if (waybackData.archived_snapshots?.closest) {
             const snapshot = waybackData.archived_snapshots.closest
@@ -413,7 +417,17 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const reliability = calculateReliability(domain, status, metadata, wayback)
 
     // Build result
-    const result = {
+    const result: {
+      url: string
+      normalizedUrl: string
+      metadata: unknown
+      domain: unknown
+      status: typeof status
+      reliability: unknown
+      analyzedAt: string
+      wayback?: unknown
+      seo?: unknown
+    } = {
       url: body.url,
       normalizedUrl,
       metadata,

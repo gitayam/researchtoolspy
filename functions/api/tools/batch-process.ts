@@ -1,4 +1,4 @@
-import { Env } from '../../types'
+import type { Env } from '../../types'
 import { getUserFromRequest } from '../_shared/auth-helpers'
 import { JSON_HEADERS, CORS_HEADERS } from '../_shared/api-utils'
 
@@ -53,13 +53,14 @@ async function processSingleURL(url: string, operation: string, origin: string):
       signal: AbortSignal.timeout(30000),
     })
 
-    const data = await response.json()
+    const data = await response.json() as Record<string, unknown>
+    const responseError = data.error
     const duration = Date.now() - startTime
 
-    if (!response.ok || data.error) {
+    if (!response.ok || responseError) {
       return {
         success: false,
-        error: data.error || 'Request failed',
+        error: responseError || 'Request failed',
         duration
       }
     }
@@ -94,7 +95,7 @@ async function processInBatches(items: BatchItem[], operation: string, maxWorker
         id: item.id,
         type: item.type,
         source: item.source,
-        status: 'processing' as const,
+        status: 'processing' as 'processing' | 'success' | 'error',
         startedAt: new Date().toISOString(),
         completedAt: '',
         duration: 0,

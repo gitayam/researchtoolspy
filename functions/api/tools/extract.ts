@@ -1,4 +1,4 @@
-import { Env } from '../types'
+import type { Env } from '../types'
 import { getUserFromRequest } from '../_shared/auth-helpers'
 import { JSON_HEADERS, CORS_HEADERS } from '../_shared/api-utils'
 
@@ -145,7 +145,7 @@ function extractFromText(text: string): string {
 
 // Helper function to analyze text
 function analyzeText(text: string) {
-  const words = text.toLowerCase().match(/\b[a-z]+\b/g) || []
+  const words: string[] = text.toLowerCase().match(/\b[a-z]+\b/g) || []
   const wordCount = words.length
   const charCount = text.length
   const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0)
@@ -263,18 +263,20 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     // Handle file upload (multipart/form-data)
     if (contentType.includes('multipart/form-data')) {
       const formData = await request.formData()
-      const file = formData.get('file') as File
+      const file = formData.get('file') as unknown
 
-      if (!file) {
+      if (!file || typeof file !== 'object' || !('arrayBuffer' in file) || !('name' in file)) {
         return new Response(JSON.stringify({ error: 'No file provided' }), {
           status: 400,
           headers: JSON_HEADERS
         })
       }
 
-      const arrayBuffer = await file.arrayBuffer()
-      const mimeType = file.type
-      const size = file.size
+      const uploadedFile = file as File
+
+      const arrayBuffer = await uploadedFile.arrayBuffer()
+      const mimeType = uploadedFile.type
+      const size = uploadedFile.size
 
       // Check file size (max 10MB)
       if (size > 10 * 1024 * 1024) {
@@ -286,23 +288,23 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
       extractionData.source = {
         type: 'file',
-        name: file.name,
+        name: uploadedFile.name,
         size,
         mimeType,
-        fileType: file.name.split('.').pop()?.toLowerCase() || 'unknown'
+        fileType: uploadedFile.name.split('.').pop()?.toLowerCase() || 'unknown'
       }
 
       // Extract based on file type
-      if (mimeType === 'application/pdf' || file.name.endsWith('.pdf')) {
+      if (mimeType === 'application/pdf' || uploadedFile.name.endsWith('.pdf')) {
         const { text, pages } = await extractFromPDF(arrayBuffer)
         extractionData.text = text
         extractionData.pages = pages
-      } else if (mimeType === 'text/html' || file.name.endsWith('.html') || file.name.endsWith('.htm')) {
+      } else if (mimeType === 'text/html' || uploadedFile.name.endsWith('.html') || uploadedFile.name.endsWith('.htm')) {
         const html = new TextDecoder().decode(arrayBuffer)
         const { text, metadata } = extractFromHTML(html)
         extractionData.text = text
         extractionData.metadata = metadata
-      } else if (mimeType === 'text/plain' || file.name.endsWith('.txt')) {
+      } else if (mimeType === 'text/plain' || uploadedFile.name.endsWith('.txt')) {
         const text = new TextDecoder().decode(arrayBuffer)
         extractionData.text = extractFromText(text)
       } else {
