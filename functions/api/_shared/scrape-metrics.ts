@@ -246,18 +246,31 @@ export async function observeScrape(
     if (terminalEmitted) return false
     terminalEmitted = true
     const finalAttempt = attempts.at(-1)
-    const success = result.ok
+    const resultMatchesRequest = result.schemaVersion === SCRAPE_SCHEMA_VERSION
+      && result.requestId === options.request.requestId
+    const success = resultMatchesRequest && result.ok === true
+    const errorCode = !resultMatchesRequest
+      ? 'internal_error'
+      : result.ok === false ? result.error.code : 'none'
+    const terminalStage = !resultMatchesRequest
+      ? (finalAttempt?.stage ?? 'extract')
+      : result.ok === false
+      ? result.error.stage
+      : (finalAttempt?.stage ?? 'extract')
+    const finalStrategy = resultMatchesRequest && result.ok === true
+      ? result.provenance.fetchStrategy
+      : (finalAttempt?.strategy ?? options.request.requestedStrategy ?? 'direct')
     const terminal: ScrapeTerminalMetricV1 = {
       ...metricBase(options),
       event: 'terminal',
       outcome: success ? 'succeeded' : 'failed',
-      errorCode: success ? 'none' : result.error.code,
-      terminalStage: success ? (finalAttempt?.stage ?? 'extract') : result.error.stage,
-      finalStrategy: success ? result.provenance.fetchStrategy : (finalAttempt?.strategy ?? options.request.requestedStrategy ?? 'direct'),
+      errorCode,
+      terminalStage,
+      finalStrategy,
       attemptCount: attempts.length,
       totalMs: finiteNonnegative(totalMs),
-      qualityScore: success ? finiteNonnegative(result.provenance.quality.score) : 0,
-      accepted: success && result.provenance.quality.accepted ? 1 : 0,
+      qualityScore: resultMatchesRequest && result.ok === true ? finiteNonnegative(result.provenance.quality.score) : 0,
+      accepted: resultMatchesRequest && result.ok === true && result.provenance.quality.accepted ? 1 : 0,
       count: 1,
     }
     safeEmit(sink, terminal)

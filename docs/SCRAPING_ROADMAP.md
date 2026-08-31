@@ -130,6 +130,8 @@ flowchart LR
 - [ ] Enforce the same rules again inside Browser Run and Container service boundaries.
 - [ ] Route public survey/COP URL enrichment through the safe primitive.
 - [ ] Route `tools/analyze-url`, `scrape-metadata`, claims, timeline, RageCheck, AI scrape, social routes, and the web scraper through it.
+- [x] Route `tools/scrape-metadata` through bounded text fetch and `tools/extract` through the bounded text/PDF document adapter.
+- [x] Route the shared content-intelligence PDF helper through bounded MIME/signature-validated PDF fetch.
 - [x] Scope `content-intelligence/analyze-url` `load_existing` reads to the authenticated analysis owner and require owner/editor/admin workspace authority for new writes.
 - [x] Correct `enhancedFetch()` option typing, merged headers, abort propagation, total timeout, and bounded retry contract.
 - [ ] Add all `functions/`, `workers/`, and Container TypeScript entry points to build/CI validation. The current `type-check:scraping-surface` covers 22 inventoried roots with three explicit exclusions.
@@ -154,13 +156,19 @@ flowchart LR
 
 Every known caller-controlled outbound request uses the shared guard, Worker code type-checks, retries are bounded, repeated ingestion is idempotent, and no new raw URL enters `event_logs`.
 
+### Enforcing-egress decision gate
+
+The Cloudflare-native candidate is a service-only scraping Worker whose public egress is routed through [Workers VPC](https://developers.cloudflare.com/workers-vpc/configuration/vpc-networks/) and an account-scoped [Gateway L4 policy](https://developers.cloudflare.com/cloudflare-one/traffic-policies/network-policies/). It is not accepted from code review or DNS tests alone. Before activation, a live rebinding experiment must show that mixed A/AAAA, TTL-zero answer changes, redirects, IPv6 variants, and a private canary all produce zero private connections while Gateway records the actual denied destination IP. If any connection bypasses Gateway or reaches the canary, use a dedicated external proxy/firewall boundary instead.
+
+Dynamic Browser Run navigation remains disabled as a safety target until its top-level navigation, redirects, frames, workers, WebSockets, and every subresource are demonstrably forced through the same enforcing boundary. Offline rendering of already bounded HTML is the interim candidate when browser-based conversion materially improves the benchmark.
+
 ## Milestone 1 — Observable baseline
 
 **Priority:** P0 · **Status:** ⬜ planned · **Issue:** `SCRAPE-04`
 
 ### Deliverables
 
-- [ ] Define versioned `ScrapeRequest`, `ScrapeResult`, `ScrapeAttempt`, provenance, quality, and normalized-error contracts.
+- [x] Define versioned `ScrapeRequest`, `ScrapeResult`, `ScrapeAttempt`, provenance, quality, normalized-error, and privacy-safe metric contracts. Route adoption and the production sink remain pending.
 - [ ] Add a `SCRAPE_ANALYTICS` Workers Analytics Engine binding to Pages and scraping Workers/Containers.
 - [ ] Emit one non-blocking metric per attempt and exactly one terminal metric per request.
 - [ ] Add correlation IDs across Pages -> Browser Run/Container -> provider calls.

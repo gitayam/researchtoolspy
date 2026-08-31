@@ -183,6 +183,24 @@ test.describe('scrape terminal coverage @smoke', () => {
     expect(terminals(sink)[0]).toMatchObject({ outcome: 'failed', errorCode: 'quality_rejected', totalMs: 0 })
   })
 
+  test('@smoke a result for another request fails telemetry closed without changing the result', async () => {
+    const sink = new RecordingScrapeMetricSink()
+    const mismatched = { ...success([]), requestId: 'scrape_request_other' }
+    const returned = await observeScrape(
+      { request, identifiers: await identifiers(), sink },
+      async () => mismatched,
+    )
+
+    expect(returned).toBe(mismatched)
+    expect(terminals(sink)).toHaveLength(1)
+    expect(terminals(sink)[0]).toMatchObject({
+      outcome: 'failed',
+      errorCode: 'internal_error',
+      accepted: 0,
+      qualityScore: 0,
+    })
+  })
+
   test('@smoke attempt recording is bounded and rejects invalid measures', async () => {
     const sink = new RecordingScrapeMetricSink()
     await observeScrape({ request, identifiers: await identifiers(), sink }, async observer => {

@@ -1,6 +1,6 @@
 # Scraping Outbound-Fetch Inventory
 
-**Audited baseline:** canonical `origin/main` SHA `3f0eba98e33f2e2077367acbd553309eceedccbd`; updated on the `codex/scraping-foundation-20260830` integration milestone
+**Audited baseline:** canonical `origin/main` SHA `e8c41a1a4c0078f03bf2c3cdbd2685c1ec273df7`; updated on the `codex/scraping-adapters-observability-20260831` integration milestone
 
 **Last reviewed:** 2026-08-31
 
@@ -14,6 +14,8 @@ This inventory records the current implementation, including unsafe legacy paths
 - `unsafe-enhanced`: arbitrary URL reaches `enhancedFetch`; browser headers/retries exist, but it follows redirects automatically and has no DNS or body policy.
 - `unsafe-shared`: route delegates to the current shared scraper, which still uses legacy navigation on this audited baseline.
 - `safe-text`: caller URL uses the bounded shared text-fetch policy; any separate renderer boundary is tracked independently.
+- `safe-document`: caller URL uses the bounded text/PDF router with MIME-specific streaming limits and PDF signature validation.
+- `safe-pdf`: caller URL uses the bounded PDF adapter with MIME and `%PDF-` signature validation.
 - `delegated-unsafe`: the route calls another local endpoint whose current outbound behavior is unsafe; authorization forwarding must also be verified.
 - `constrained-provider`: the outbound hostname is constructed by the server for a named provider, but input validation, returned-URL handling, and response budgets are not yet centralized.
 - `third-party-job`: the Worker sends a caller URL to a scraping vendor rather than navigating it locally; target policy and data disclosure still require controls.
@@ -23,9 +25,9 @@ This inventory records the current implementation, including unsafe legacy paths
 | ID | Route or consumer | URL provenance | Auth exposure | Current mechanism | Status | Required target adapter |
 | --- | --- | --- | --- | --- | --- | --- |
 | INV-001 | `POST /api/web-scraper` (`functions/api/web-scraper.ts`) | JSON `body.url` | authenticated | bounded `safeFetchText` with manual redirect validation | `safe-text` | enforcing egress boundary; preserve API error envelope |
-| INV-002 | `POST /api/tools/scrape-metadata` (`functions/api/tools/scrape-metadata.ts`) | JSON `body.url` | authenticated | `enhancedFetch` | `unsafe-enhanced` | bounded `safeFetchText` |
+| INV-002 | `POST /api/tools/scrape-metadata` (`functions/api/tools/scrape-metadata.ts`) | JSON `body.url` | authenticated | bounded `safeFetchText` with manual redirect validation | `safe-text` | enforcing egress boundary; preserve API error envelope |
 | INV-003 | `POST /api/tools/analyze-url` (`functions/api/tools/analyze-url.ts`) | JSON `body.url`; archive services return more URLs | authenticated | `enhancedFetch` plus raw archive fetches | `unsafe-enhanced` | safe text fetch plus fixed-host archive adapter; validate returned snapshot URLs |
-| INV-004 | `POST /api/tools/extract` (`functions/api/tools/extract.ts`) | JSON `body.url` | authenticated | raw `fetch(body.url)` and unbounded `text()` | `unsafe-direct` | content-type-aware bounded text/PDF adapter |
+| INV-004 | `POST /api/tools/extract` (`functions/api/tools/extract.ts`) | JSON `body.url` | authenticated | bounded `safeFetchDocument` with 2 MiB text and 10 MiB validated PDF modes | `safe-document` | enforcing egress boundary; preserve extraction envelope |
 | INV-005 | `POST /api/tools/extract-claims` (`functions/api/tools/extract-claims.ts`) | JSON `url`; archive APIs return snapshot URLs | authenticated | `enhancedFetch`, raw cache/archive fallbacks | `unsafe-direct` | safe primary fetch plus fixed-host archive adapters |
 | INV-006 | `POST /api/tools/extract-timeline` (`functions/api/tools/extract-timeline.ts`) | JSON `body.url` | authenticated | `enhancedFetch`, then optional Browser Run navigation | `unsafe-enhanced` | safe text fetch; renderer must enforce top-level, redirect, and subresource policy |
 | INV-007 | `POST /api/ai/scrape-url` (`functions/api/ai/scrape-url.ts`) | JSON `url` | authenticated | raw `fetch(url)` after lexical guard; optional Apify | `unsafe-direct` | bounded safe text fetch and separately governed provider adapter |
@@ -46,12 +48,12 @@ This inventory records the current implementation, including unsafe legacy paths
 | INV-022 | `POST /api/tools/geoconfirmed` (`functions/api/tools/geoconfirmed.ts`) | JSON URL or conflict/search fields | authenticated | path is parsed, then fixed `https://geoconfirmed.org/api` provider routes | `constrained-provider` | exact input hostname plus fixed-host/body-bounded provider adapter |
 | INV-023 | `POST /api/content-intelligence/domain-country` (`functions/api/content-intelligence/domain-country.ts`) | hostname parsed from JSON `url` | authenticated | fixed `ip-api.com` lookup with hostname in path | `constrained-provider` | HTTPS provider adapter, input normalization, response budget |
 | INV-024 | `POST /api/content-intelligence/virustotal-lookup` (`functions/api/content-intelligence/virustotal-lookup.ts`) | domain parsed from JSON `url` | authenticated | fixed VirusTotal API hostname | `constrained-provider` | fixed-host provider adapter and normalized domain contract |
-| INV-025 | PDF helper (`functions/api/content-intelligence/pdf-extractor.ts`) | arbitrary URL passed by analyze-url | inherits caller route | raw `fetch(url)` then unbounded `arrayBuffer()` | `unsafe-direct` | bounded PDF fetch with MIME/signature checks before parsing |
+| INV-025 | PDF helper (`functions/api/content-intelligence/pdf-extractor.ts`) | arbitrary URL passed by analyze-url | inherits caller route | bounded `safeFetchPdf` with 10 MiB, MIME, and `%PDF-` checks | `safe-pdf` | enforcing egress boundary; keep provider fallback isolated |
 | INV-026 | social helper (`functions/api/_shared/apify-social.ts`) | URL passed by scrape routes/shared scraper | inherits caller route | Twitter oEmbed or URL disclosure to fixed Apify actors | `third-party-job` | exact social-host parser, disclosure policy, provider limits |
 
 ## Type-check boundary
 
-`npm run type-check:scraping-surface` compiles 22 Pages Function or scraping-helper roots plus their transitive imports with Cloudflare Workers types. It is intentionally named for the inventoried scraping surface; it is not a claim that every Pages Function compiles.
+`npm run type-check:scraping-surface` compiles 22 Pages Function or scraping-helper roots, the shared safe-content and observability contracts, and their transitive imports with Cloudflare Workers types. It is intentionally named for the inventoried scraping surface; it is not a claim that every Pages Function compiles.
 
 Three inventoried route roots remain explicit exclusions because fixing them crosses this corrective workstream's ownership boundary:
 

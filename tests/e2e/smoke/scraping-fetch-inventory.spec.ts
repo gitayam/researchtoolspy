@@ -11,6 +11,8 @@ import { resolve } from 'node:path'
 
 type SafetyStatus =
   | 'safe-text'
+  | 'safe-document'
+  | 'safe-pdf'
   | 'unsafe-direct'
   | 'unsafe-enhanced'
   | 'unsafe-shared'
@@ -28,9 +30,9 @@ interface InventoryEntry {
 
 const entries: InventoryEntry[] = [
   { id: 'INV-001', file: 'functions/api/web-scraper.ts', status: 'safe-text', evidence: /safeFetchText\(url,/, typecheck: 'root' },
-  { id: 'INV-002', file: 'functions/api/tools/scrape-metadata.ts', status: 'unsafe-enhanced', evidence: /enhancedFetch\(body\.url/, typecheck: 'root' },
+  { id: 'INV-002', file: 'functions/api/tools/scrape-metadata.ts', status: 'safe-text', evidence: /safeFetchText\(validUrl,/, typecheck: 'root' },
   { id: 'INV-003', file: 'functions/api/tools/analyze-url.ts', status: 'unsafe-enhanced', evidence: /enhancedFetch\(normalizedUrl/, typecheck: 'root' },
-  { id: 'INV-004', file: 'functions/api/tools/extract.ts', status: 'unsafe-direct', evidence: /fetch\(body\.url/, typecheck: 'root' },
+  { id: 'INV-004', file: 'functions/api/tools/extract.ts', status: 'safe-document', evidence: /safeFetchDocument\(body\.url,/, typecheck: 'root' },
   { id: 'INV-005', file: 'functions/api/tools/extract-claims.ts', status: 'unsafe-direct', evidence: /enhancedFetch\(url/, typecheck: 'root' },
   { id: 'INV-006', file: 'functions/api/tools/extract-timeline.ts', status: 'unsafe-enhanced', evidence: /renderArticleFallback\(context\.env\.BROWSER_RENDERER, url\)/, typecheck: 'root' },
   { id: 'INV-007', file: 'functions/api/ai/scrape-url.ts', status: 'unsafe-direct', evidence: /response = await fetch\(url/, typecheck: 'root' },
@@ -51,7 +53,7 @@ const entries: InventoryEntry[] = [
   { id: 'INV-022', file: 'functions/api/tools/geoconfirmed.ts', status: 'constrained-provider', evidence: /GC_API = 'https:\/\/geoconfirmed\.org\/api'/, typecheck: 'root' },
   { id: 'INV-023', file: 'functions/api/content-intelligence/domain-country.ts', status: 'constrained-provider', evidence: /ip-api\.com\/json/, typecheck: 'root' },
   { id: 'INV-024', file: 'functions/api/content-intelligence/virustotal-lookup.ts', status: 'constrained-provider', evidence: /www\.virustotal\.com\/api\/v3\/domains/, typecheck: 'root' },
-  { id: 'INV-025', file: 'functions/api/content-intelligence/pdf-extractor.ts', status: 'unsafe-direct', evidence: /fetch\(url,/, typecheck: 'root' },
+  { id: 'INV-025', file: 'functions/api/content-intelligence/pdf-extractor.ts', status: 'safe-pdf', evidence: /safeFetchPdf\(url,/, typecheck: 'root' },
   { id: 'INV-026', file: 'functions/api/_shared/apify-social.ts', status: 'third-party-job', evidence: /APIFY_BASE.*api\.apify\.com\/v2/, typecheck: 'transitive' },
 ]
 
