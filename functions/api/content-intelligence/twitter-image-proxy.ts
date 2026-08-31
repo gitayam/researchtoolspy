@@ -16,6 +16,7 @@ interface Env {
 }
 
 const CACHE_CONTROL = 'public, max-age=604800'
+const CACHE_HIT_READ_TIMEOUT_MS = 1_000
 const CACHE_POLICY_VERSION = 'safe-image-v1'
 const TWITTER_IMAGE_HOST = 'pbs.twimg.com'
 const ALLOWED_IMAGE_MIME_TYPES = new Set<SafeImageMimeType>([
@@ -93,6 +94,89 @@ function cachedImageMetadata(response: Response): CachedImageMetadata | null {
   return { contentLength, mimeType: mimeType as SafeImageMimeType }
 }
 
+function startsWith(bytes: Uint8Array, signature: readonly number[]): boolean {
+  return bytes.length >= signature.length && signature.every((byte, index) => bytes[index] === byte)
+}
+
+function asciiAt(bytes: Uint8Array, offset: number, expected: string): boolean {
+  if (bytes.length < offset + expected.length) return false
+  for (let index = 0; index < expected.length; index += 1) {
+    if (bytes[offset + index] !== expected.charCodeAt(index)) return false
+  }
+  return true
+}
+
+function hasCachedImageSignature(bytes: Uint8Array, mimeType: SafeImageMimeType): boolean {
+  switch (mimeType) {
+    case 'image/jpeg':
+      return startsWith(bytes, [0xff, 0xd8, 0xff])
+    case 'image/png':
+      return startsWith(bytes, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
+    case 'image/gif':
+      return asciiAt(bytes, 0, 'GIF87a') || asciiAt(bytes, 0, 'GIF89a')
+    case 'image/webp':
+      return asciiAt(bytes, 0, 'RIFF') && asciiAt(bytes, 8, 'WEBP')
+    case 'image/avif': {
+      if (!asciiAt(bytes, 4, 'ftyp')) return false
+      const scanLimit = Math.min(bytes.length - 3, 32)
+      for (let offset = 8; offset < scanLimit; offset += 4) {
+        if (asciiAt(bytes, offset, 'avif') || asciiAt(bytes, offset, 'avis')) return true
+      }
+      return false
+    }
+    default: {
+      const exhaustive: never = mimeType
+      return exhaustive
+    }
+  }
+}
+
+async function readValidatedCachedImage(
+  response: Response,
+  metadata: CachedImageMetadata,
+): Promise<Uint8Array | null> {
+  const reader = response.body?.getReader()
+  if (!reader) return null
+
+  let accepted = false
+  let timeoutId: number | undefined
+  const deadline = new Promise<never>((_resolve, reject) => {
+    timeoutId = globalThis.setTimeout(
+      () => reject(new Error('Cached image body read timed out')),
+      CACHE_HIT_READ_TIMEOUT_MS,
+    ) as unknown as number
+  })
+
+  try {
+    const chunks: Uint8Array[] = []
+    let bytesRead = 0
+    while (true) {
+      const { done, value } = await Promise.race([reader.read(), deadline])
+      if (done) break
+      if (!value?.byteLength) continue
+      bytesRead += value.byteLength
+      if (bytesRead > SAFE_IMAGE_MAX_BYTES || bytesRead > metadata.contentLength) return null
+      chunks.push(value)
+    }
+    if (bytesRead !== metadata.contentLength) return null
+
+    const bytes = new Uint8Array(bytesRead)
+    let offset = 0
+    for (const chunk of chunks) {
+      bytes.set(chunk, offset)
+      offset += chunk.byteLength
+    }
+    if (!hasCachedImageSignature(bytes, metadata.mimeType)) return null
+    accepted = true
+    return bytes
+  } catch {
+    return null
+  } finally {
+    if (timeoutId !== undefined) globalThis.clearTimeout(timeoutId)
+    if (!accepted) void reader.cancel().catch(() => undefined)
+  }
+}
+
 function imageResponseHeaders(mimeType: SafeImageMimeType, contentLength: number): Headers {
   return new Headers({
     'Content-Type': mimeType,
@@ -138,13 +222,19 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
   const cachedMetadata = cachedResponse ? cachedImageMetadata(cachedResponse) : null
   if (cachedResponse && cachedMetadata) {
-    return new Response(cachedResponse.body, {
-      status: cachedResponse.status,
-      headers: imageResponseHeaders(cachedMetadata.mimeType, cachedMetadata.contentLength),
-    })
+    const cachedBytes = await readValidatedCachedImage(cachedResponse, cachedMetadata)
+    if (cachedBytes) {
+      return new Response(cachedBytes, {
+        status: cachedResponse.status,
+        headers: imageResponseHeaders(cachedMetadata.mimeType, cachedBytes.byteLength),
+      })
+    }
   }
   if (cachedResponse?.body) {
     void cachedResponse.body.cancel().catch(() => undefined)
+  }
+  if (cachedResponse) {
+    context.waitUntil(cache.delete(cacheKey).catch(() => false))
   }
 
   // Fetch from Twitter CDN

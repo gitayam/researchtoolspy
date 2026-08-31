@@ -8,6 +8,8 @@ import {
 } from '../../../functions/api/content-intelligence/twitter-image-proxy'
 
 interface CacheState {
+  deleteCalls?: string[]
+  directHit?: boolean
   matchCalls: string[]
   putCalls: Array<{ key: string; response: Response }>
   hit?: Response
@@ -21,10 +23,14 @@ function installCache(state: CacheState): () => void {
       default: {
         async match(request: Request) {
           state.matchCalls.push(request.url)
-          return state.hit?.clone()
+          return state.hit && (state.directHit ? state.hit : state.hit.clone())
         },
         async put(request: Request, response: Response) {
           state.putCalls.push({ key: request.url, response: response.clone() })
+        },
+        async delete(request: Request) {
+          state.deleteCalls?.push(request.url)
+          return true
         },
       },
     },
@@ -352,6 +358,18 @@ test.describe('Twitter image proxy safe fetch @smoke', () => {
           headers: { 'Content-Type': 'image/jpeg', 'Content-Length': 'Infinity' },
         }),
         new Response(jpegBytes, { headers: { 'Content-Type': 'image/jpeg' } }),
+        new Response(new TextEncoder().encode('<html>attacker</html>'), {
+          headers: { 'Content-Type': 'image/jpeg', 'Content-Length': '21' },
+        }),
+        new Response(pngBytes, {
+          headers: { 'Content-Type': 'image/png', 'Content-Length': String(pngBytes.byteLength - 1) },
+        }),
+        new Response(pngBytes, {
+          headers: { 'Content-Type': 'image/png', 'Content-Length': String(pngBytes.byteLength + 1) },
+        }),
+        new Response(new Uint8Array(SAFE_IMAGE_MAX_BYTES + 1).fill(0xff), {
+          headers: { 'Content-Type': 'image/jpeg', 'Content-Length': String(SAFE_IMAGE_MAX_BYTES) },
+        }),
       ]
 
       for (const [index, invalidEntry] of invalidEntries.entries()) {
@@ -363,6 +381,51 @@ test.describe('Twitter image proxy safe fetch @smoke', () => {
         await Promise.all(request.waits)
       }
       expect(targetCalls).toBe(invalidEntries.length)
+    } finally {
+      globalThis.fetch = originalFetch
+      restoreCache()
+    }
+  })
+
+  test('@smoke times out and refetches a stalled cache body without hanging', async () => {
+    const originalFetch = globalThis.fetch
+    let canceled = false
+    const stalledBody = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(pngBytes.slice(0, 8))
+      },
+      cancel() {
+        canceled = true
+      },
+    })
+    const cacheState: CacheState = {
+      deleteCalls: [],
+      directHit: true,
+      matchCalls: [],
+      putCalls: [],
+      hit: new Response(stalledBody, {
+        headers: { 'Content-Type': 'image/png', 'Content-Length': String(pngBytes.byteLength) },
+      }),
+    }
+    const restoreCache = installCache(cacheState)
+    let targetCalls = 0
+    globalThis.fetch = (async (input: RequestInfo | URL) => {
+      const url = new URL(String(input))
+      if (url.hostname === 'cloudflare-dns.com') return dnsResponse(url, ['93.184.216.34'])
+      targetCalls += 1
+      return new Response(pngBytes, { headers: { 'Content-Type': 'image/png' } })
+    }) as typeof fetch
+
+    try {
+      const startedAt = Date.now()
+      const request = contextFor('https://pbs.twimg.com/stalled-cache.png')
+      const response = await onRequestGet(request.context as never)
+      expect(Date.now() - startedAt).toBeLessThan(5_000)
+      expect(new Uint8Array(await response.arrayBuffer())).toEqual(pngBytes)
+      await Promise.all(request.waits)
+      expect(canceled).toBe(true)
+      expect(targetCalls).toBe(1)
+      expect(cacheState.deleteCalls).toHaveLength(1)
     } finally {
       globalThis.fetch = originalFetch
       restoreCache()
