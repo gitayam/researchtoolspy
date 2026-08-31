@@ -8,7 +8,12 @@ import {
   type HostnameResolver,
   type SafeFetchErrorCode,
 } from '../../../functions/api/_shared/safe-fetch'
-import { safeFetchFailureResponse } from '../../../functions/api/web-scraper'
+import {
+  buildScrapeDatasetData,
+  buildScrapingProvenance,
+  createDatasetForScrape,
+  safeFetchFailureResponse,
+} from '../../../functions/api/web-scraper'
 
 const publicResolver: HostnameResolver = async () => ['93.184.216.34', '2606:2800:220:1:248:1893:25c8:1946']
 
@@ -281,6 +286,21 @@ test.describe('safe outbound fetch policy @smoke', () => {
     ])
   })
 
+  test('@smoke treats redirect responses without Location as terminal responses', async () => {
+    const result = await safeFetchText('https://public.example.com/start', {
+      fetchImpl: (async () => new Response('no redirect destination', {
+        status: 302,
+        headers: { 'Content-Type': 'text/plain' },
+      })) as typeof fetch,
+      resolveHostname: publicResolver,
+      maxRedirects: 0,
+    })
+
+    expect(result.response.status).toBe(302)
+    expect(result.text).toBe('no redirect destination')
+    expect(result.redirects).toEqual([])
+  })
+
   test('@smoke rejects unsupported content types and oversized streamed bodies', async () => {
     const binaryFetch = (async () => new Response('binary', {
       headers: { 'Content-Type': 'application/octet-stream' },
@@ -302,6 +322,89 @@ test.describe('safe outbound fetch policy @smoke', () => {
       resolveHostname: publicResolver,
       maxResponseBytes: 10,
     })).rejects.toMatchObject({ code: 'response_too_large' })
+  })
+
+  test('@smoke maps response stream read failures to network_error', async () => {
+    let pulls = 0
+    const brokenStream = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        if (pulls === 0) {
+          pulls += 1
+          controller.enqueue(new TextEncoder().encode('partial'))
+          return
+        }
+        controller.error(new Error('connection reset while reading'))
+      },
+    })
+
+    await expect(safeFetchText('https://public.example.com/broken', {
+      fetchImpl: (async () => new Response(brokenStream, {
+        headers: { 'Content-Type': 'text/plain' },
+      })) as typeof fetch,
+      resolveHostname: publicResolver,
+    })).rejects.toMatchObject({ code: 'network_error' })
+  })
+
+  test('@smoke creates datasets on the authenticated request origin only', async () => {
+    const request = new Request('https://researchtools.net/api/web-scraper', {
+      headers: {
+        Authorization: 'Bearer session-secret',
+        'X-User-Hash': '0123456789abcdef',
+        'X-Workspace-ID': 'workspace-7',
+        Cookie: 'private-cookie=yes',
+        'X-Other-Secret': 'do-not-forward',
+      },
+    })
+    let calledUrl = ''
+    let calledHeaders = new Headers()
+    let calledBody: Record<string, unknown> = {}
+    const fetchImpl = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      calledUrl = String(input)
+      calledHeaders = new Headers(init?.headers)
+      calledBody = JSON.parse(String(init?.body)) as Record<string, unknown>
+      return new Response(JSON.stringify({ id: 314 }), {
+        status: 201,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }) as typeof fetch
+
+    const datasetId = await createDatasetForScrape(request, {
+      source_url: 'https://arbitrary.example/article',
+    }, fetchImpl)
+
+    expect(datasetId).toBe(314)
+    expect(calledUrl).toBe('https://researchtools.net/api/datasets')
+    expect(calledHeaders.get('authorization')).toBe('Bearer session-secret')
+    expect(calledHeaders.get('x-user-hash')).toBe('0123456789abcdef')
+    expect(calledHeaders.get('x-workspace-id')).toBe('workspace-7')
+    expect(calledHeaders.has('cookie')).toBe(false)
+    expect(calledHeaders.has('x-other-secret')).toBe(false)
+    expect(calledBody.source_url).toBe('https://arbitrary.example/article')
+  })
+
+  test('@smoke records validated redirect provenance', () => {
+    const provenance = buildScrapingProvenance(
+      'https://final.example/article?from=redirect',
+      '2026-08-31T12:00:00.000Z',
+    )
+    expect(provenance).toEqual({
+      url: 'https://final.example/article?from=redirect',
+      domain: 'final.example',
+      extracted_at: '2026-08-31T12:00:00.000Z',
+    })
+
+    const datasetData = buildScrapeDatasetData({
+      ...provenance,
+      reliability_score: 7,
+    }, provenance.url, {}, '2026-08-31')
+    expect(datasetData).toMatchObject({
+      title: 'final.example',
+      description: 'Content from final.example',
+      source: 'https://final.example/article?from=redirect',
+      source_name: 'final.example',
+      source_url: 'https://final.example/article?from=redirect',
+      access_date: '2026-08-31',
+    })
   })
 
   test('@smoke awaits body cancellation on every response rejection path', async () => {

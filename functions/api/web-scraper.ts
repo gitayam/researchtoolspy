@@ -39,6 +39,76 @@ interface WebScraperContext {
   env: Parameters<typeof getUserFromRequest>[1]
 }
 
+const DATASET_CONTEXT_HEADERS = ['Authorization', 'X-User-Hash', 'X-Workspace-ID'] as const
+
+export function buildScrapingProvenance(
+  finalUrl: string,
+  extractedAt = new Date().toISOString(),
+): Pick<ScrapingResult, 'url' | 'domain' | 'extracted_at'> {
+  const validatedUrl = new URL(finalUrl)
+  return {
+    url: validatedUrl.href,
+    domain: validatedUrl.hostname,
+    extracted_at: extractedAt,
+  }
+}
+
+export function buildScrapeDatasetData(
+  result: ScrapingResult,
+  finalUrl: string,
+  metadata: NonNullable<ScrapingResult['metadata']>,
+  accessDate = new Date().toISOString().split('T')[0],
+): Record<string, unknown> {
+  const validatedUrl = new URL(finalUrl)
+  return {
+    title: result.title || validatedUrl.hostname,
+    description: result.description || `Content from ${validatedUrl.hostname}`,
+    source: validatedUrl.href,
+    type: 'web_article',
+    source_name: validatedUrl.hostname,
+    source_url: validatedUrl.href,
+    author: result.author,
+    reliability_rating: (result.reliability_score ?? 0) >= 7
+      ? 'high'
+      : (result.reliability_score ?? 0) >= 5 ? 'medium' : 'low',
+    tags: metadata.keywords || [],
+    metadata: JSON.stringify(metadata),
+    access_date: accessDate,
+  }
+}
+
+/**
+ * Create a dataset through the authenticated API on the scraper request's own
+ * origin. Only the narrow authentication/workspace context understood by our
+ * APIs is forwarded; scraped destinations can never receive these headers.
+ */
+export async function createDatasetForScrape(
+  request: Request,
+  datasetData: Record<string, unknown>,
+  fetchImpl: typeof fetch = fetch,
+): Promise<string | number | null> {
+  const requestUrl = new URL(request.url)
+  const datasetUrl = new URL('/api/datasets', requestUrl.origin)
+  const headers = new Headers({ 'Content-Type': 'application/json' })
+  for (const name of DATASET_CONTEXT_HEADERS) {
+    const value = request.headers.get(name)
+    if (value) headers.set(name, value)
+  }
+
+  const response = await fetchImpl(datasetUrl, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(datasetData),
+    signal: AbortSignal.timeout(30_000),
+  })
+  if (!response.ok) return null
+
+  const payload = await response.json() as { id?: unknown }
+  return typeof payload.id === 'string' || typeof payload.id === 'number'
+    ? payload.id
+    : null
+}
+
 export function safeFetchFailureResponse(error: SafeFetchError): Response {
   switch (error.code) {
     case 'timeout':
@@ -167,6 +237,7 @@ export async function onRequest(context: WebScraperContext) {
     // redirect hop, enforces the deadline, and bounds text response bodies.
     let response: Response
     let html: string
+    let finalUrl: URL
     try {
       const fetched = await safeFetchText(url, {
         timeoutMs: 15_000,
@@ -176,6 +247,7 @@ export async function onRequest(context: WebScraperContext) {
       })
       response = fetched.response
       html = fetched.text
+      finalUrl = new URL(fetched.finalUrl)
     } catch (fetchError: unknown) {
       if (fetchError instanceof SafeFetchError) return safeFetchFailureResponse(fetchError)
       throw fetchError
@@ -229,9 +301,7 @@ export async function onRequest(context: WebScraperContext) {
 
     // Extract metadata using regex (lightweight parsing)
     const result: ScrapingResult = {
-      url: url.toString(),
-      domain: url.hostname,
-      extracted_at: new Date().toISOString(),
+      ...buildScrapingProvenance(finalUrl.href),
     }
 
     // Extract title
@@ -314,7 +384,7 @@ export async function onRequest(context: WebScraperContext) {
 
     // Common reliable domains
     const reliableDomains = ['gov', 'edu', 'org']
-    if (reliableDomains.some(d => url.hostname.endsWith('.' + d))) {
+    if (reliableDomains.some(d => finalUrl.hostname.endsWith('.' + d))) {
       reliabilityScore += 2.0
     }
 
@@ -330,31 +400,10 @@ export async function onRequest(context: WebScraperContext) {
     // Optionally create dataset
     if (body.create_dataset) {
       try {
-        const datasetData = {
-          title: result.title || url.hostname,
-          description: result.description || `Content from ${url.hostname}`,
-          source: url.toString(),
-          type: 'web_article',
-          source_name: url.hostname,
-          source_url: url.toString(),
-          author: result.author,
-          reliability_rating: result.reliability_score >= 7 ? 'high' : result.reliability_score >= 5 ? 'medium' : 'low',
-          tags: metadata.keywords || [],
-          metadata: JSON.stringify(metadata),
-          access_date: new Date().toISOString().split('T')[0],
-        }
+        const datasetData = buildScrapeDatasetData(result, finalUrl.href, metadata)
 
-        const datasetResponse = await fetch(`${new URL(request.url).origin}/api/datasets`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-          body: JSON.stringify(datasetData),
-          signal: AbortSignal.timeout(30000),
-        })
-
-        if (datasetResponse.ok) {
-          const payload = await datasetResponse.json() as { dataset?: { id?: string | number } }
-          if (payload.dataset?.id) result.dataset_id = payload.dataset.id
-        }
+        const datasetId = await createDatasetForScrape(request, datasetData)
+        if (datasetId !== null) result.dataset_id = datasetId
       } catch (error) {
         console.error('Failed to create dataset:', error)
         // Don't fail the whole request if dataset creation fails

@@ -492,12 +492,12 @@ export async function safeFetchText(
       }
 
       if (isRedirectStatus(response.status)) {
-        if (redirectCount >= maxRedirects) {
-          await cancelResponseBody(response, 'redirect limit exceeded')
-          throw new SafeFetchError('redirect_limit', `Redirect limit of ${maxRedirects} exceeded`)
-        }
         const location = response.headers.get('location')
         if (location) {
+          if (redirectCount >= maxRedirects) {
+            await cancelResponseBody(response, 'redirect limit exceeded')
+            throw new SafeFetchError('redirect_limit', `Redirect limit of ${maxRedirects} exceeded`)
+          }
           let nextUrl: URL
           try {
             nextUrl = new URL(location, url)
@@ -518,7 +518,15 @@ export async function safeFetchText(
         await cancelResponseBody(response, 'unsupported content type')
         throw new SafeFetchError('unsupported_content_type', 'Destination returned an unsupported content type')
       }
-      const { text, bytesRead } = await readBoundedText(response, maxResponseBytes)
+      let text: string
+      let bytesRead: number
+      try {
+        ({ text, bytesRead } = await readBoundedText(response, maxResponseBytes))
+      } catch (error) {
+        if (error instanceof SafeFetchError) throw error
+        if (controller.signal.aborted) throw abortError(error)
+        throw new SafeFetchError('network_error', 'Outbound response body could not be read', { cause: error })
+      }
       return { response, text, finalUrl: url.href, redirects, bytesRead, contentType }
     }
   } catch (error) {
