@@ -1,6 +1,6 @@
 # ResearchTools scraping system roadmap
 
-**Last updated:** 2026-08-31 · **Status:** 🔄 in progress · **Owner:** platform/backend
+**Last updated:** 2026-09-01 · **Status:** 🔄 in progress · **Owner:** platform/backend
 
 **Evidence and experiment design:** [`plans/2026-08-30-scraping-modernization.md`](plans/2026-08-30-scraping-modernization.md)
 
@@ -175,12 +175,13 @@ Dynamic Browser Run navigation remains disabled as a safety target until its top
 
 ## Milestone 1 — Observable baseline
 
-**Priority:** P0 · **Status:** ⬜ planned · **Issue:** `SCRAPE-04`
+**Priority:** P0 · **Status:** 🔄 in progress · **Issue:** `SCRAPE-04`
 
 ### Deliverables
 
-- [x] Define versioned `ScrapeRequest`, `ScrapeResult`, `ScrapeAttempt`, provenance, quality, normalized-error, and privacy-safe metric contracts. Route adoption and the production sink remain pending.
-- [ ] Add a `SCRAPE_ANALYTICS` Workers Analytics Engine binding to Pages and scraping Workers/Containers.
+- [x] Define versioned `ScrapeRequest`, `ScrapeResult`, `ScrapeAttempt`, provenance, quality, normalized-error, and privacy-safe metric contracts.
+- [x] Add the Pages `SCRAPE_ANALYTICS` binding, dedicated HMAC-key deployment gate, and first production adoption on `content-intelligence/analyze-url`; direct, supplied, archive, and SMRY provider attempts plus exactly one terminal extraction outcome are non-blocking and privacy-safe.
+- [ ] Extend the Pages `SCRAPE_ANALYTICS` binding to remaining routes and add equivalent bindings to scraping Workers/Containers.
 - [ ] Emit one non-blocking metric per attempt and exactly one terminal metric per request.
 - [ ] Add correlation IDs across Pages -> Browser Run/Container -> provider calls.
 - [ ] Instrument direct fetch, renderer, parser, provider, archive, cache, PDF, social, and AI stage timings.
@@ -198,6 +199,11 @@ Dynamic Browser Run navigation remains disabled as a safety target until its top
   - browser/provider seconds and cost per success
   - social/provider health and duplicate ingestion prevented
 - [ ] Produce a daily aggregate health report and alert rules.
+
+The first route tests the falsifiable hypothesis that accepted extraction
+requests can sustain >=99% terminal coverage without raw identifiers or request
+behavior changes. Baseline queries and the 14-day evaluation procedure are in
+[`operations/SCRAPING_OBSERVABILITY.md`](operations/SCRAPING_OBSERVABILITY.md).
 
 ### Initial alert policy
 

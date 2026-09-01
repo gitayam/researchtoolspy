@@ -38,6 +38,10 @@ bucket_name = "researchtoolspy-uploads"
 binding = "BROWSER_RENDERER"
 service = "researchtools-browser-renderer"
 
+[[analytics_engine_datasets]]
+binding = "SCRAPE_ANALYTICS"
+dataset = "researchtoolspy_scrape_metrics_v1"
+
 # Environment Variables
 # Note: Secrets (OPENAI_API_KEY, VIRUSTOTAL_API_KEY) should be added via:
 # wrangler secret put OPENAI_API_KEY

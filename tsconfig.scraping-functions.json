@@ -30,6 +30,7 @@
     "functions/api/tools/geoconfirmed.ts",
     "functions/api/ai/scrape-url.ts",
     "functions/api/content-intelligence/analyze-url.ts",
+    "functions/api/content-intelligence/_scrape-observability.ts",
     "functions/api/content-intelligence/saved-links.ts",
     "functions/api/content-intelligence/social-extract.ts",
     "functions/api/content-intelligence/social-media-extract.ts",

@@ -94,9 +94,12 @@ pnpm exec wrangler pages deployment tail \
 
 The protected `/api/cron/event-logs` endpoint is the durable application-error
 sink. Pages tail output is transient and must not be treated as retained
-analytics. Scraping Analytics Engine telemetry, dashboards, and alert thresholds
-remain an explicit `SCRAPE-04` roadmap gate; do not claim strategy quality or
-cost SLOs from tail logs alone.
+analytics. The initial `SCRAPE_ANALYTICS` dataset covers accepted
+`content-intelligence/analyze-url` extraction requests. Use the schema, baseline
+queries, privacy rules, and rollout gates in
+[`SCRAPING_OBSERVABILITY.md`](SCRAPING_OBSERVABILITY.md). Other scraping routes,
+automated dashboards/alerts, and 14-day SLO evidence remain `SCRAPE-04` work; do
+not extrapolate system-wide quality or cost from this first route.
 
 ## Rollback
 

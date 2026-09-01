@@ -215,6 +215,7 @@ test.describe('content-intelligence URL safe-fetch migration @smoke', () => {
 
   test('@smoke anonymous normal analysis succeeds without database persistence', async () => {
     let dbCalls = 0
+    const analyticsPoints: unknown[] = []
     const db = {
       prepare() {
         dbCalls++
@@ -265,7 +266,14 @@ test.describe('content-intelligence URL safe-fetch migration @smoke', () => {
             save_link: true,
           }),
         }),
-        env: { DB: db, OPENAI_API_KEY: 'test-openai-key' },
+        env: {
+          DB: db,
+          OPENAI_API_KEY: 'test-openai-key',
+          SCRAPE_TELEMETRY_KEY: 'dedicated-test-telemetry-key',
+          SCRAPE_ANALYTICS: {
+            writeDataPoint: (point: unknown) => { analyticsPoints.push(point) },
+          },
+        },
         params: {},
       } as never)
 
@@ -277,6 +285,8 @@ test.describe('content-intelligence URL safe-fetch migration @smoke', () => {
         persistence_notice: expect.stringContaining('Public analysis completed without saving'),
       })
       expect(dbCalls).toBe(0)
+      expect(analyticsPoints).toHaveLength(2)
+      expect(JSON.stringify(analyticsPoints)).not.toContain('https://public.example/supplied')
     } finally {
       globalThis.fetch = originalFetch
     }

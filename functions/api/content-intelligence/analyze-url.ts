@@ -22,9 +22,14 @@ import { matchMultipleClaimsEntities } from './match-entities-to-actors'
 import { isPDFUrl, extractPDFText, intelligentPDFSummary } from './pdf-extractor'
 import { logEvent } from '../_shared/event-log'
 import { extractionFailureLog } from './_extraction-log'
+import {
+  observeContentIntelligenceExtraction,
+  type ExtractionAttemptObservation,
+} from './_scrape-observability'
 import { extractArticle } from '../_shared/article-extractor'
 import { SafeFetchError, safeFetchHead, safeFetchText, type SafeFetchErrorCode } from '../_shared/safe-fetch'
 import type { NormalizedScrapeError } from '../_shared/scrape-contract'
+import type { AnalyticsEngineLike } from '../_shared/scrape-metrics'
 
 interface Env {
   DB: D1Database
@@ -35,6 +40,7 @@ interface Env {
   JWT_SECRET?: string
   PDF_CO_API_KEY?: string
   SCRAPE_TELEMETRY_KEY?: string
+  SCRAPE_ANALYTICS?: AnalyticsEngineLike
 }
 
 interface AnalyzeUrlRequest {
@@ -242,19 +248,39 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     // Authenticated callers may provide content when their origin can reach a
     // source that blocks Cloudflare egress. Preserve provenance explicitly.
-    const contentData: ContentExtractionResult = suppliedText
-      ? {
+    const contentData = await observeContentIntelligenceExtraction({
+      requestId: requestCorrelationId,
+      url: normalizedUrl,
+      tenantScope: workspaceId ?? 'public',
+      telemetryKey: env.SCRAPE_TELEMETRY_KEY,
+      analytics: env.SCRAPE_ANALYTICS,
+    }, async recordAttempt => {
+      if (suppliedText) {
+        recordAttempt({
+          stage: 'extract',
+          strategy: 'supplied',
+          provider: 'none',
+          outcome: 'succeeded',
+          contentTypeClass: 'text',
+          durationMs: 0,
+          responseBytes: new TextEncoder().encode(suppliedText).byteLength,
+          extractedWords: countWords(suppliedText),
+        })
+        return {
           success: true,
           text: suppliedText,
           title: typeof body.content_title === 'string' ? body.content_title.trim().slice(0, 500) : undefined,
           source: 'bot-scrape' as const,
           fallback_attempts: ['bot-scrape'],
         }
-      : await extractUrlContentWithFallback(
-          normalizedUrl,
-          env.OPENAI_API_KEY,
-          env.PDF_CO_API_KEY,
-        )
+      }
+      return extractUrlContentWithFallback(
+        normalizedUrl,
+        env.OPENAI_API_KEY,
+        env.PDF_CO_API_KEY,
+        recordAttempt,
+      )
+    })
 
     if (!contentData.success) {
       console.error(`[DEBUG] Content extraction failed: ${contentData.error}`)
@@ -954,12 +980,44 @@ export async function extractUrlContentWithFallback(
   url: string,
   apiKey?: string,
   pdfCoApiKey?: string,
+  recordAttempt: (attempt: ExtractionAttemptObservation) => void = () => {},
 ): Promise<ContentExtractionResult> {
   const fallbackAttempts: string[] = []
 
+  const observeAttempt = (
+    startedAt: number,
+    result: ContentExtractionResult | null,
+    options: Pick<ExtractionAttemptObservation, 'stage' | 'strategy' | 'provider'>,
+  ): void => {
+    const usable = result !== null && result.success && !isContentBlocked(result)
+    const errorCode = result === null
+      ? undefined
+      : usable
+        ? undefined
+        : result.success ? 'quality_rejected' : (result.errorCode ?? 'extract_failed')
+    recordAttempt({
+      ...options,
+      outcome: result === null ? 'skipped' : usable ? 'succeeded' : 'failed',
+      ...(errorCode ? { errorCode } : {}),
+      httpStatusClass: errorCode === 'upstream_4xx' || errorCode === 'rate_limited'
+        ? '4xx'
+        : errorCode === 'upstream_5xx' ? '5xx' : result?.success ? '2xx' : 'none',
+      contentTypeClass: result?.isPDF ? 'pdf' : 'html',
+      durationMs: Date.now() - startedAt,
+      responseBytes: result ? new TextEncoder().encode(result.text).byteLength : 0,
+      extractedWords: result ? countWords(result.text) : 0,
+    })
+  }
+
   // Try original URL first
   fallbackAttempts.push('original')
+  const originalStartedAt = Date.now()
   const originalResult = await extractUrlContent(url, apiKey, pdfCoApiKey)
+  observeAttempt(originalStartedAt, originalResult, {
+    stage: originalResult.isPDF ? 'pdf' : 'fetch',
+    strategy: 'direct',
+    provider: 'none',
+  })
 
   // If successful and not blocked, return immediately
   if (originalResult.success && !isContentBlocked(originalResult)) {
@@ -973,6 +1031,7 @@ export async function extractUrlContentWithFallback(
 
   // Try Archive.ph
   try {
+    const archiveStartedAt = Date.now()
     const archivePhUrl = await checkArchivePh(url)
     if (archivePhUrl) {
       fallbackAttempts.push('archive.ph')
@@ -982,6 +1041,11 @@ export async function extractUrlContentWithFallback(
         pdfCoApiKey,
         ['archive.ph'],
       )
+      observeAttempt(archiveStartedAt, archivePhResult, {
+        stage: 'archive',
+        strategy: 'archive',
+        provider: 'archive',
+      })
 
       if (archivePhResult.success && !isContentBlocked(archivePhResult)) {
         return {
@@ -990,6 +1054,12 @@ export async function extractUrlContentWithFallback(
           fallback_attempts: fallbackAttempts
         }
       }
+    } else {
+      observeAttempt(archiveStartedAt, null, {
+        stage: 'archive',
+        strategy: 'archive',
+        provider: 'archive',
+      })
     }
   } catch (error) {
     console.error('[Fallback] Archive.ph attempt failed:', error)
@@ -997,6 +1067,7 @@ export async function extractUrlContentWithFallback(
 
   // Try Wayback Machine
   try {
+    const waybackStartedAt = Date.now()
     const waybackUrl = await checkWaybackMachine(url)
     if (waybackUrl) {
       fallbackAttempts.push('wayback')
@@ -1006,6 +1077,11 @@ export async function extractUrlContentWithFallback(
         pdfCoApiKey,
         ['web.archive.org'],
       )
+      observeAttempt(waybackStartedAt, waybackResult, {
+        stage: 'archive',
+        strategy: 'archive',
+        provider: 'archive',
+      })
 
       if (waybackResult.success && !isContentBlocked(waybackResult)) {
         return {
@@ -1014,6 +1090,12 @@ export async function extractUrlContentWithFallback(
           fallback_attempts: fallbackAttempts
         }
       }
+    } else {
+      observeAttempt(waybackStartedAt, null, {
+        stage: 'archive',
+        strategy: 'archive',
+        provider: 'archive',
+      })
     }
   } catch (error) {
     console.error('[Fallback] Wayback Machine attempt failed:', error)
@@ -1021,6 +1103,7 @@ export async function extractUrlContentWithFallback(
 
   // Try SMRY.ai as last resort
   try {
+    const smryStartedAt = Date.now()
     const smryUrl = `https://smry.ai/${encodeURIComponent(url)}`
     fallbackAttempts.push('smry.ai')
     const smryResult = await extractUrlContent(
@@ -1029,6 +1112,11 @@ export async function extractUrlContentWithFallback(
       pdfCoApiKey,
       ['smry.ai'],
     )
+    observeAttempt(smryStartedAt, smryResult, {
+      stage: 'provider',
+      strategy: 'provider',
+      provider: 'internal',
+    })
 
     if (smryResult.success && !isContentBlocked(smryResult)) {
       return {

@@ -302,6 +302,20 @@ if [ -f "wrangler.toml" ]; then
   else
     print_status 1 "Managed migration directory must be configured on both D1 bindings"
   fi
+
+  if grep -A2 '^\[\[analytics_engine_datasets\]\]' wrangler.toml \
+    | grep -q 'binding = "SCRAPE_ANALYTICS"'; then
+    print_status 0 "Scraping Analytics Engine binding configured"
+  else
+    print_status 1 "SCRAPE_ANALYTICS binding missing in wrangler.toml"
+  fi
+
+  if secret_list=$(pnpm exec wrangler pages secret list --project-name=researchtoolspy 2>&1) \
+    && printf '%s\n' "$secret_list" | grep -q 'SCRAPE_TELEMETRY_KEY'; then
+    print_status 0 "Privacy-safe scraping telemetry key configured"
+  else
+    print_status 1 "SCRAPE_TELEMETRY_KEY missing from production Pages secrets"
+  fi
 else
   print_status 1 "wrangler.toml not found"
 fi

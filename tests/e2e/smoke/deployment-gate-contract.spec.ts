@@ -21,4 +21,13 @@ test.describe('production deployment gate contract @smoke', () => {
     expect(script).toContain('if [ "$SCHEMA_SNAPSHOT_AVAILABLE" = true ]; then')
     expect(script).toContain('Schema object checks skipped because the remote snapshot was unavailable.')
   })
+
+  test('@smoke requires the privacy-safe production scraping telemetry bindings', () => {
+    const config = readFileSync(resolve(process.cwd(), 'wrangler.toml'), 'utf8')
+    const script = readFileSync(resolve(process.cwd(), 'scripts/pre-deployment-check.sh'), 'utf8')
+
+    expect(config).toContain('binding = "SCRAPE_ANALYTICS"')
+    expect(config).toContain('dataset = "researchtoolspy_scrape_metrics_v1"')
+    expect(script).toContain('SCRAPE_TELEMETRY_KEY missing from production Pages secrets')
+  })
 })
