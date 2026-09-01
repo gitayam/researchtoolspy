@@ -90,6 +90,9 @@ export interface ScrapeAttemptV1 {
   durationMs: number
   responseBytes?: number
   extractedWords?: number
+  itemsRead?: number
+  itemsWritten?: number
+  duplicatesPrevented?: number
 }
 
 /** Construct with boundScrapeAttempts; the frozen value is capped at eight entries. */
@@ -158,4 +161,7 @@ export function isValidScrapeAttempt(attempt: ScrapeAttemptV1): boolean {
     && isFiniteNonnegative(attempt.durationMs)
     && isFiniteNonnegative(attempt.responseBytes)
     && isFiniteNonnegative(attempt.extractedWords)
+    && isFiniteNonnegative(attempt.itemsRead)
+    && isFiniteNonnegative(attempt.itemsWritten)
+    && isFiniteNonnegative(attempt.duplicatesPrevented)
 }

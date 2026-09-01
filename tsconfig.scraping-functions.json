@@ -43,6 +43,7 @@
     "functions/api/surveys/public/[token]/submit.ts",
     "functions/api/cop/public/intake/[token]/submit.ts",
     "functions/api/cop/[id]/scrape.ts",
+    "functions/api/cop/[id]/_scrape-observability.ts",
     "functions/api/frameworks/pmesii-pt/import-url.ts"
   ]
 }

@@ -181,6 +181,7 @@ Dynamic Browser Run navigation remains disabled as a safety target until its top
 
 - [x] Define versioned `ScrapeRequest`, `ScrapeResult`, `ScrapeAttempt`, provenance, quality, normalized-error, and privacy-safe metric contracts.
 - [x] Add the Pages `SCRAPE_ANALYTICS` binding, dedicated HMAC-key deployment gate, and first production adoption on `content-intelligence/analyze-url`; direct, supplied, archive, and SMRY provider attempts plus exactly one terminal extraction outcome are non-blocking and privacy-safe.
+- [x] Instrument authorized COP/Apify start and poll requests after canonical paid-request fingerprinting; measure provider/status/dataset latency, item throughput, idempotent paid-start suppression, duplicate evidence prevention, and terminal provider job failures without emitting queries, URLs, run IDs, or workspace IDs.
 - [ ] Extend the Pages `SCRAPE_ANALYTICS` binding to remaining routes and add equivalent bindings to scraping Workers/Containers.
 - [ ] Emit one non-blocking metric per attempt and exactly one terminal metric per request.
 - [ ] Add correlation IDs across Pages -> Browser Run/Container -> provider calls.

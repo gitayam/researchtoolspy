@@ -2,11 +2,13 @@
 
 **Dataset:** `researchtoolspy_scrape_metrics_v1`  
 **Schema:** `scrape.metric.v1`  
-**Initial route:** `POST /api/content-intelligence/analyze-url`
+**Instrumented routes:** `POST /api/content-intelligence/analyze-url`,
+`POST/GET /api/cop/:id/scrape`
 
-This first `SCRAPE-04` production slice measures whether the main analysis
-extractor can emit one terminal outcome per accepted scrape without retaining
-raw URLs, domains, tenant identifiers, content, prompts, tokens, or IPs.
+The `SCRAPE-04` production baseline measures whether the main analysis extractor
+and authenticated COP provider jobs can emit one terminal outcome per accepted
+request without retaining raw URLs, search queries, provider run IDs, domains,
+tenant identifiers, content, prompts, tokens, or IPs.
 
 ## Privacy and failure contract
 
@@ -38,6 +40,7 @@ Attempt points use `blob1..blob14` for schema, event, route, purpose, stage,
 strategy, provider, outcome, error code, HTTP status class, content type class,
 opaque request ID, opaque URL ID, and opaque domain ID. `double1..double5` are
 count, ordinal, duration milliseconds, response bytes, and extracted words.
+`double6..double8` are items read, items written, and duplicates prevented.
 
 Terminal points use `blob1..blob11` for schema, event, route, purpose, outcome,
 error code, terminal stage, final strategy, opaque request ID, opaque URL ID,
@@ -103,9 +106,38 @@ GROUP BY stage, strategy, provider, outcome, error_code, http_status_class
 ORDER BY attempts DESC
 ```
 
+COP/Apify throughput, ingestion, and duplicate prevention:
+
+```sql
+SELECT
+  blob5 AS stage,
+  blob7 AS provider,
+  blob8 AS outcome,
+  sum(_sample_interval * double6) AS items_read,
+  sum(_sample_interval * double7) AS items_written,
+  sum(_sample_interval * double8) AS duplicates_prevented,
+  quantileExactWeighted(0.95)(double3, _sample_interval) AS p95_ms
+FROM researchtoolspy_scrape_metrics_v1
+WHERE blob1 = 'scrape.metric.v1'
+  AND blob2 = 'attempt'
+  AND blob3 = 'cop-scrape'
+  AND timestamp > NOW() - INTERVAL '1' DAY
+GROUP BY stage, provider, outcome
+ORDER BY stage, provider, outcome
+```
+
+COP telemetry begins only after authentication, authorization, canonical input
+validation, and paid-request fingerprinting. Each HTTP invocation gets a unique
+opaque request ID; retries of the same logical job share an opaque URL ID. A
+deduplicated paid start is a successful `cache` attempt with
+`duplicates_prevented=1` and makes no provider call. Provider job states
+`FAILED`, `ABORTED`, `TIMING-OUT`, and `TIMED-OUT` remain failed terminal metrics
+even when the status poll itself returned HTTP `200`.
+
 Fallback recovery is the number of successful terminal requests with more than
 one attempt (`double2 > 1`), grouped by final strategy (`blob8`). Duplicate
-request terminal rows (`blob9`) must remain zero; query any duplicate IDs before
+contention for a paid reservation is measured by attempt `double8`; duplicate
+terminal request IDs (`blob9`) must remain zero. Query any duplicate IDs before
 using terminal events as the success denominator.
 
 ## Falsifiable rollout gate

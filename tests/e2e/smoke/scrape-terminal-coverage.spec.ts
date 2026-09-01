@@ -210,6 +210,9 @@ test.describe('scrape terminal coverage @smoke', () => {
       expect(observer.attempt(attempt(9))).toBe(false)
       expect(observer.attempt({ ...attempt(10), durationMs: Number.NaN })).toBe(false)
       expect(observer.attempt({ ...attempt(11), responseBytes: -1 })).toBe(false)
+      expect(observer.attempt({ ...attempt(12), itemsRead: -1 })).toBe(false)
+      expect(observer.attempt({ ...attempt(13), itemsWritten: Number.NaN })).toBe(false)
+      expect(observer.attempt({ ...attempt(14), duplicatesPrevented: -1 })).toBe(false)
       return success()
     })
 

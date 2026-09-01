@@ -10,7 +10,9 @@ import { JSON_HEADERS } from '../../_shared/api-utils'
 import { assertApifyIdentifier, fetchApifyJson } from '../../_shared/apify-client'
 import { isApifySupportedUrl } from '../../_shared/apify-social'
 import { logEvent } from '../../_shared/event-log'
+import type { AnalyticsEngineLike } from '../../_shared/scrape-metrics'
 import { buildUpstreamFailureLog } from './_upstream-failure-log'
+import { observeCopScrapeRequest, type CopScrapeAttemptObservation } from './_scrape-observability'
 import {
   buildScrapeItemIdentity,
   buildScrapeRequestFingerprint,
@@ -23,6 +25,8 @@ interface Env {
   APIFY_API_KEY?: string
   SESSIONS?: KVNamespace
   JWT_SECRET?: string
+  SCRAPE_TELEMETRY_KEY?: string
+  SCRAPE_ANALYTICS?: AnalyticsEngineLike
 }
 
 
@@ -76,6 +80,7 @@ async function getCopScrapeWorkspace(
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   const { request, env, params } = context
   const sessionId = params.id as string
+  const telemetryRequestId = crypto.randomUUID()
   let activeReservationId: string | null = null
   let upstreamAccepted = false
 
@@ -212,7 +217,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const requestId = await buildScrapeRequestId(
       sessionId, workspaceId, userId, requestFingerprint, idempotencyKey,
     )
-    const reservation = await env.DB.prepare(`
+    return observeCopScrapeRequest({
+      requestId: telemetryRequestId,
+      requestFingerprint,
+      tenantScope: workspaceId,
+      telemetryKey: env.SCRAPE_TELEMETRY_KEY,
+      analytics: env.SCRAPE_ANALYTICS,
+    }, async recordAttempt => {
+      const reservation = await env.DB.prepare(`
       INSERT OR IGNORE INTO cop_scrape_requests (
         request_id, cop_session_id, workspace_id, requested_by,
         request_fingerprint, idempotency_key, state, created_at, updated_at
@@ -238,11 +250,17 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       }>()
 
       if (!existing) {
+        recordAttempt(internalAttempt('cache', 'failed', { errorCode: 'internal_error' }))
         return new Response(JSON.stringify({ error: 'Scrape reservation unavailable' }), {
           status: 409, headers: JSON_HEADERS,
         })
       }
       if (existing.state === 'started' && existing.run_id) {
+        const failed = typeof existing.status === 'string' && isFailedRunStatus(existing.status)
+        recordAttempt(internalAttempt('cache', failed ? 'failed' : 'succeeded', {
+          ...(failed ? { errorCode: 'provider_failed' as const } : {}),
+          duplicatesPrevented: 1,
+        }))
         const completed = existing.status === 'SUCCEEDED'
         return new Response(JSON.stringify({
           request_id: requestId,
@@ -252,6 +270,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         }), { status: completed ? 200 : 202, headers: JSON_HEADERS })
       }
       if (existing.state === 'failed') {
+        recordAttempt(internalAttempt('cache', 'failed', {
+          errorCode: 'provider_failed',
+          duplicatesPrevented: 1,
+        }))
         return new Response(JSON.stringify({
           request_id: requestId,
           status: 'failed',
@@ -260,6 +282,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           deduplicated: true,
         }), { status: 409, headers: JSON_HEADERS })
       }
+      recordAttempt(internalAttempt('cache', 'succeeded', { duplicatesPrevented: 1 }))
       return new Response(JSON.stringify({
         request_id: requestId,
         status: 'initiating',
@@ -271,16 +294,29 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     // Start the actor run (synchronous for small runs, async for large)
     const isSync = actorItemLimit <= 50
-    const runRes = await fetchApifyJson(apiKey, {
-      path: ['acts', actorId, 'runs'],
-      method: 'POST',
-      searchParams: isSync ? { waitForFinish: 120 } : undefined,
-      timeoutMs: isSync ? 125_000 : 15_000,
-      maxResponseBytes: 256 * 1024,
-      body: actorInput,
-    })
+    const runStartedAt = Date.now()
+    let runRes: Awaited<ReturnType<typeof fetchApifyJson>>
+    try {
+      runRes = await fetchApifyJson(apiKey, {
+        path: ['acts', actorId, 'runs'],
+        method: 'POST',
+        searchParams: isSync ? { waitForFinish: 120 } : undefined,
+        timeoutMs: isSync ? 125_000 : 15_000,
+        maxResponseBytes: 256 * 1024,
+        body: actorInput,
+      })
+    } catch (error) {
+      recordAttempt(providerAttempt(runStartedAt, 'failed', {
+        errorCode: error instanceof DOMException && error.name === 'AbortError' ? 'timeout' : 'provider_failed',
+      }))
+      throw error
+    }
 
     if (!runRes.ok) {
+      recordAttempt(providerAttempt(runStartedAt, 'failed', {
+        errorCode: providerStatusError(runRes.status),
+        httpStatusClass: statusClass(runRes.status),
+      }))
       // Parse Apify error for better messaging and structured logging
       let apifyError = `Apify returned ${runRes.status}`
       const parsed = isRecord(runRes.data) && isRecord(runRes.data.error) ? runRes.data.error : null
@@ -301,10 +337,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           : `Scraper service returned ${runRes.status}`,
       }), { status: 502, headers: JSON_HEADERS })
     }
+    recordAttempt(providerAttempt(runStartedAt, 'succeeded', {
+      httpStatusClass: statusClass(runRes.status),
+    }))
     upstreamAccepted = true
 
     const run = isRecord(runRes.data) && isRecord(runRes.data.data) ? runRes.data.data : null
     if (!run || typeof run.id !== 'string' || typeof run.status !== 'string') {
+      recordAttempt(providerAttempt(Date.now(), 'failed', { errorCode: 'provider_failed' }))
       // The provider accepted the paid request, so retain `initiating`. Retrying
       // automatically could create a duplicate chargeable run.
       return new Response(JSON.stringify({
@@ -320,12 +360,16 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         ? assertApifyIdentifier(run.defaultDatasetId, 'dataset ID')
         : null
     } catch {
+      recordAttempt(providerAttempt(Date.now(), 'failed', { errorCode: 'provider_failed' }))
       return new Response(JSON.stringify({
         request_id: requestId,
         error: 'Scraper accepted the request but returned an invalid run identity',
       }), { status: 502, headers: JSON_HEADERS })
     }
     const runStatus = run.status // READY, RUNNING, SUCCEEDED, FAILED, etc.
+    if (isFailedRunStatus(runStatus)) {
+      recordAttempt(providerAttempt(Date.now(), 'failed', { errorCode: 'provider_failed' }))
+    }
 
     // Persist run ownership from authenticated context. A later GET must resolve
     // this exact tuple before the caller-supplied run_id is sent to Apify.
@@ -354,9 +398,20 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           status: 502, headers: JSON_HEADERS,
         })
       }
-      const items = await fetchDatasetItems(env, apiKey, datasetId, MAX_EVIDENCE_BATCH)
+      const dataset = await fetchDatasetItems(env, apiKey, datasetId, MAX_EVIDENCE_BATCH, recordAttempt)
+      const items = dataset.items
       const evidence = transformToEvidence(items, scraperType)
-      const inserted = await batchInsertEvidence(env.DB, sessionId, workspaceId, userId, runId, scraperType, evidence)
+      let inserted = 0
+      if (dataset.ok) {
+        const ingestStartedAt = Date.now()
+        inserted = await batchInsertEvidence(env.DB, sessionId, workspaceId, userId, runId, scraperType, evidence)
+        recordAttempt(internalAttempt('extract', 'succeeded', {
+          durationMs: Date.now() - ingestStartedAt,
+          itemsRead: evidence.length,
+          itemsWritten: inserted,
+          duplicatesPrevented: Math.max(0, evidence.length - inserted),
+        }))
+      }
 
       return new Response(JSON.stringify({
         request_id: requestId,
@@ -375,6 +430,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       status: runStatus.toLowerCase(),
       message: `Scraper started. Poll GET /api/cop/${sessionId}/scrape?run_id=${runId} for results.`,
     }), { status: 202, headers: JSON_HEADERS })
+    })
 
   } catch (error) {
     if (activeReservationId && !upstreamAccepted) {
@@ -391,6 +447,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   const { request, env, params } = context
   const sessionId = params.id as string
+  const telemetryRequestId = crypto.randomUUID()
   const url = new URL(request.url)
   const runId = url.searchParams.get('run_id')
 
@@ -434,31 +491,60 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       })
     }
 
+    const requestFingerprint = await buildScrapeRequestFingerprint('apify-status', { runId })
+    return observeCopScrapeRequest({
+      requestId: telemetryRequestId,
+      requestFingerprint,
+      tenantScope: workspaceId,
+      telemetryKey: env.SCRAPE_TELEMETRY_KEY,
+      analytics: env.SCRAPE_ANALYTICS,
+    }, async recordAttempt => {
     // Check run status (10s timeout to prevent worker hang)
-    const statusRes = await fetchApifyJson(apiKey, {
-      path: ['actor-runs', assertApifyIdentifier(runId, 'run ID')],
-      timeoutMs: 10_000,
-      maxResponseBytes: 256 * 1024,
-    })
+    const statusStartedAt = Date.now()
+    let statusRes: Awaited<ReturnType<typeof fetchApifyJson>>
+    try {
+      statusRes = await fetchApifyJson(apiKey, {
+        path: ['actor-runs', assertApifyIdentifier(runId, 'run ID')],
+        timeoutMs: 10_000,
+        maxResponseBytes: 256 * 1024,
+      })
+    } catch (error) {
+      recordAttempt(providerAttempt(statusStartedAt, 'failed', {
+        errorCode: error instanceof DOMException && error.name === 'AbortError' ? 'timeout' : 'provider_failed',
+      }))
+      throw error
+    }
 
     if (!statusRes.ok) {
+      recordAttempt(providerAttempt(statusStartedAt, 'failed', {
+        errorCode: providerStatusError(statusRes.status),
+        httpStatusClass: statusClass(statusRes.status),
+      }))
       return new Response(JSON.stringify({ error: 'Failed to check run status' }), {
         status: 502, headers: JSON_HEADERS,
       })
     }
+    recordAttempt(providerAttempt(statusStartedAt, 'succeeded', {
+      httpStatusClass: statusClass(statusRes.status),
+    }))
 
     const run = isRecord(statusRes.data) && isRecord(statusRes.data.data) ? statusRes.data.data : null
     if (!run || typeof run.status !== 'string') {
+      recordAttempt(providerAttempt(Date.now(), 'failed', { errorCode: 'provider_failed' }))
       return new Response(JSON.stringify({ error: 'Scraper returned an invalid run status' }), {
         status: 502, headers: JSON_HEADERS,
       })
     }
     const runStatus = run.status
+    if (isFailedRunStatus(runStatus)) {
+      recordAttempt(providerAttempt(Date.now(), 'failed', { errorCode: 'provider_failed' }))
+    }
     let providerDatasetId: string | null = null
     if (typeof run.defaultDatasetId === 'string') {
       try {
         providerDatasetId = assertApifyIdentifier(run.defaultDatasetId, 'dataset ID')
       } catch {
+        recordAttempt(providerAttempt(Date.now(), 'failed', { errorCode: 'provider_failed' }))
         return new Response(JSON.stringify({ error: 'Scraper returned an invalid dataset identity' }), {
           status: 502, headers: JSON_HEADERS,
         })
@@ -479,12 +565,20 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
           status: 502, headers: JSON_HEADERS,
         })
       }
-      const items = await fetchDatasetItems(env, apiKey, datasetId, MAX_EVIDENCE_BATCH)
+      const dataset = await fetchDatasetItems(env, apiKey, datasetId, MAX_EVIDENCE_BATCH, recordAttempt)
+      const items = dataset.items
 
       if (ingest && items.length > 0) {
         const scraperType = registeredRun.scraper_type
         const evidence = transformToEvidence(items, scraperType)
+        const ingestStartedAt = Date.now()
         const inserted = await batchInsertEvidence(env.DB, sessionId, workspaceId, userId, runId, scraperType, evidence)
+        recordAttempt(internalAttempt('extract', 'succeeded', {
+          durationMs: Date.now() - ingestStartedAt,
+          itemsRead: evidence.length,
+          itemsWritten: inserted,
+          duplicatesPrevented: Math.max(0, evidence.length - inserted),
+        }))
 
         return new Response(JSON.stringify({
           run_id: runId,
@@ -507,6 +601,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       status: runStatus.toLowerCase(),
       started_at: run.startedAt,
     }), { headers: JSON_HEADERS })
+    })
 
   } catch (error) {
     await logEvent(env, buildUpstreamFailureLog('cop/scrape/status-check', { error })).catch(() => {})
@@ -517,6 +612,58 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 }
 
 // ── Helpers ────────────────────────────────────────────────────
+
+function statusClass(status: number): '2xx' | '3xx' | '4xx' | '5xx' | 'none' {
+  if (status >= 200 && status < 300) return '2xx'
+  if (status >= 300 && status < 400) return '3xx'
+  if (status >= 400 && status < 500) return '4xx'
+  if (status >= 500 && status < 600) return '5xx'
+  return 'none'
+}
+
+function providerStatusError(
+  status: number,
+): 'rate_limited' | 'upstream_4xx' | 'upstream_5xx' | 'provider_failed' {
+  if (status === 429) return 'rate_limited'
+  if (status >= 500 && status < 600) return 'upstream_5xx'
+  if (status >= 400 && status < 500) return 'upstream_4xx'
+  return 'provider_failed'
+}
+
+function isFailedRunStatus(status: string): boolean {
+  return ['FAILED', 'ABORTED', 'TIMING-OUT', 'TIMED-OUT'].includes(status.toUpperCase())
+}
+
+function providerAttempt(
+  startedAt: number,
+  outcome: CopScrapeAttemptObservation['outcome'],
+  extras: Partial<CopScrapeAttemptObservation> = {},
+): CopScrapeAttemptObservation {
+  return {
+    stage: 'provider',
+    strategy: 'provider',
+    provider: 'apify',
+    outcome,
+    contentTypeClass: 'json',
+    durationMs: Math.max(0, Date.now() - startedAt),
+    ...extras,
+  }
+}
+
+function internalAttempt(
+  stage: CopScrapeAttemptObservation['stage'],
+  outcome: CopScrapeAttemptObservation['outcome'],
+  extras: Partial<CopScrapeAttemptObservation> = {},
+): CopScrapeAttemptObservation {
+  return {
+    stage,
+    strategy: stage === 'cache' ? 'cache' : 'provider',
+    provider: 'internal',
+    outcome,
+    durationMs: 0,
+    ...extras,
+  }
+}
 
 async function markScrapeRequestFailed(
   db: D1Database,
@@ -539,7 +686,14 @@ async function markScrapeRequestFailed(
  * fetch would otherwise be silent. `env` is threaded in for the D1 binding logEvent
  * needs; logEvent never throws.
  */
-async function fetchDatasetItems(env: Env, apiKey: string, datasetId: string, limit: number): Promise<ProviderItem[]> {
+async function fetchDatasetItems(
+  env: Env,
+  apiKey: string,
+  datasetId: string,
+  limit: number,
+  recordAttempt: (attempt: CopScrapeAttemptObservation) => void = () => {},
+): Promise<{ items: ProviderItem[]; ok: boolean }> {
+  const startedAt = Date.now()
   try {
     const res = await fetchApifyJson(apiKey, {
       path: ['datasets', assertApifyIdentifier(datasetId, 'dataset ID'), 'items'],
@@ -548,16 +702,30 @@ async function fetchDatasetItems(env: Env, apiKey: string, datasetId: string, li
       maxResponseBytes: 2 * 1024 * 1024,
     })
     if (!res.ok) {
+      recordAttempt(providerAttempt(startedAt, 'failed', {
+        errorCode: providerStatusError(res.status),
+        httpStatusClass: statusClass(res.status),
+      }))
       await logEvent(env, buildUpstreamFailureLog('cop/scrape', { status: res.status })).catch(() => {})
-      return []
+      return { items: [], ok: false }
     }
-    const items = res.data
-    return Array.isArray(items)
-      ? items.filter(isRecord).slice(0, Math.max(0, limit))
-      : []
+    const rawItems = res.data
+    if (!Array.isArray(rawItems)) {
+      recordAttempt(providerAttempt(startedAt, 'failed', { errorCode: 'provider_failed' }))
+      return { items: [], ok: false }
+    }
+    const items = rawItems.filter(isRecord).slice(0, Math.max(0, limit))
+    recordAttempt(providerAttempt(startedAt, 'succeeded', {
+      httpStatusClass: statusClass(res.status),
+      itemsRead: items.length,
+    }))
+    return { items, ok: true }
   } catch (error) {
+    recordAttempt(providerAttempt(startedAt, 'failed', {
+      errorCode: error instanceof DOMException && error.name === 'AbortError' ? 'timeout' : 'provider_failed',
+    }))
     await logEvent(env, buildUpstreamFailureLog('cop/scrape', { error })).catch(() => {})
-    return []
+    return { items: [], ok: false }
   }
 }
 

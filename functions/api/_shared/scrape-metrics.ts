@@ -52,6 +52,9 @@ export interface ScrapeAttemptMetricV1 extends ScrapeMetricBaseV1 {
   durationMs: number
   responseBytes: number
   extractedWords: number
+  itemsRead: number
+  itemsWritten: number
+  duplicatesPrevented: number
 }
 
 export interface ScrapeTerminalMetricV1 extends ScrapeMetricBaseV1 {
@@ -171,7 +174,10 @@ export function createAnalyticsEngineScrapeMetricSink(
               metric.errorCode, metric.httpStatusClass, metric.contentTypeClass,
               identifiers.requestId, identifiers.urlId, identifiers.domainId,
             ],
-            doubles: [metric.count, metric.ordinal, metric.durationMs, metric.responseBytes, metric.extractedWords],
+            doubles: [
+              metric.count, metric.ordinal, metric.durationMs, metric.responseBytes,
+              metric.extractedWords, metric.itemsRead, metric.itemsWritten, metric.duplicatesPrevented,
+            ],
           })
         } else {
           binding.writeDataPoint({
@@ -299,6 +305,9 @@ export async function observeScrape(
         durationMs: finiteNonnegative(attempt.durationMs),
         responseBytes: finiteNonnegative(attempt.responseBytes),
         extractedWords: finiteNonnegative(attempt.extractedWords),
+        itemsRead: finiteNonnegative(attempt.itemsRead),
+        itemsWritten: finiteNonnegative(attempt.itemsWritten),
+        duplicatesPrevented: finiteNonnegative(attempt.duplicatesPrevented),
       })
       return true
     },

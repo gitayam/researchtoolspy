@@ -126,13 +126,19 @@ const sessions = {
   get: async (token: string) => token === 'session-token' ? JSON.stringify({ user_id: 7 }) : null,
 }
 
-function context(db: SqliteD1, request: Request) {
+function context(db: SqliteD1, request: Request, analyticsPoints?: unknown[]) {
   return {
     request,
     env: {
       DB: db as unknown as D1Database,
       SESSIONS: sessions as unknown as KVNamespace,
       APIFY_API_KEY: 'test-key',
+      ...(analyticsPoints ? {
+        SCRAPE_TELEMETRY_KEY: 'dedicated-test-telemetry-key',
+        SCRAPE_ANALYTICS: {
+          writeDataPoint: (point: unknown) => { analyticsPoints.push(point) },
+        },
+      } : {}),
     },
     params: { id: 'cop-1' },
   }
@@ -417,8 +423,46 @@ test.describe('scraping authorization and idempotency contracts @smoke', () => {
     }
   })
 
+  test('@smoke a retried paid start preserves a failed provider terminal and prevents a second charge', async () => {
+    const db = new SqliteD1()
+    const analyticsPoints: Array<{ blobs?: string[]; doubles?: number[] }> = []
+    seedOwner(db)
+    const originalFetch = globalThis.fetch
+    let fetchCalls = 0
+    globalThis.fetch = async () => {
+      fetchCalls += 1
+      return Response.json({
+        data: { id: 'run-failed-start', status: 'FAILED', defaultDatasetId: 'dataset-failed-start' },
+      })
+    }
+    const post = () => onRequestPost(context(db, new Request('https://test/api/cop/cop-1/scrape', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer session-token', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'twitter', query: 'same failed query' }),
+    }), analyticsPoints) as never)
+
+    try {
+      const first = await post()
+      const retry = await post()
+      expect(first.status).toBe(202)
+      expect(retry.status).toBe(202)
+      expect(await retry.json()).toMatchObject({ status: 'failed', deduplicated: true })
+      expect(fetchCalls).toBe(1)
+      const terminals = analyticsPoints.filter(point => point.blobs?.[1] === 'terminal')
+      expect(terminals).toHaveLength(2)
+      expect(terminals.map(point => point.blobs?.[4])).toEqual(['failed', 'failed'])
+      expect(analyticsPoints
+        .filter(point => point.blobs?.[1] === 'attempt')
+        .reduce((count, point) => count + Number(point.doubles?.[7] || 0), 0)).toBe(1)
+    } finally {
+      globalThis.fetch = originalFetch
+      db.sqlite.close()
+    }
+  })
+
   test('@smoke repeat route ingestion creates one evidence row and one trusted identity', async () => {
     const db = new SqliteD1()
+    const analyticsPoints: Array<{ blobs?: string[]; doubles?: number[] }> = []
     seedOwner(db)
     db.sqlite.exec(`
       INSERT INTO cop_scrape_runs(
@@ -443,14 +487,52 @@ test.describe('scraping authorization and idempotency contracts @smoke', () => {
     })
 
     try {
-      const first = await onRequestGet(context(db, request()) as never)
-      const second = await onRequestGet(context(db, request()) as never)
+      const first = await onRequestGet(context(db, request(), analyticsPoints) as never)
+      const second = await onRequestGet(context(db, request(), analyticsPoints) as never)
       expect(first.status).toBe(200)
       expect(second.status).toBe(200)
       expect((await first.json()).evidence_created).toBe(1)
       expect((await second.json()).evidence_created).toBe(0)
       expect(db.sqlite.prepare('SELECT COUNT(*) AS count FROM evidence_items').get().count).toBe(1)
       expect(db.sqlite.prepare('SELECT COUNT(*) AS count FROM cop_scrape_imports').get().count).toBe(1)
+      const terminals = analyticsPoints.filter(point => point.blobs?.[1] === 'terminal')
+      expect(terminals).toHaveLength(2)
+      expect(new Set(terminals.map(point => point.blobs?.[8])).size).toBe(2)
+      expect(analyticsPoints
+        .filter(point => point.blobs?.[1] === 'attempt')
+        .reduce((count, point) => count + Number(point.doubles?.[7] || 0), 0)).toBe(1)
+      expect(JSON.stringify(analyticsPoints)).not.toContain('run-1')
+      expect(JSON.stringify(analyticsPoints)).not.toContain('ws-1')
+    } finally {
+      globalThis.fetch = originalFetch
+      db.sqlite.close()
+    }
+  })
+
+  test('@smoke provider job failure is not reported as telemetry success on HTTP 200 polling', async () => {
+    const db = new SqliteD1()
+    const analyticsPoints: Array<{ blobs?: string[] }> = []
+    seedOwner(db)
+    db.sqlite.exec(`
+      INSERT INTO cop_scrape_runs(
+        run_id, cop_session_id, workspace_id, requested_by, scraper_type, actor_id, dataset_id, status
+      ) VALUES('run-failed', 'cop-1', 'ws-1', 7, 'twitter', 'actor', NULL, 'RUNNING');
+    `)
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = async () => Response.json({
+      data: { id: 'run-failed', status: 'FAILED' },
+    })
+    try {
+      const response = await onRequestGet(context(db, new Request(
+        'https://test/api/cop/cop-1/scrape?run_id=run-failed',
+        { headers: { Authorization: 'Bearer session-token' } },
+      ), analyticsPoints) as never)
+      expect(response.status).toBe(200)
+      expect(await response.json()).toMatchObject({ status: 'failed' })
+      const terminal = analyticsPoints.find(point => point.blobs?.[1] === 'terminal')
+      expect(terminal?.blobs?.slice(4, 8)).toEqual([
+        'failed', 'provider_failed', 'provider', 'provider',
+      ])
     } finally {
       globalThis.fetch = originalFetch
       db.sqlite.close()

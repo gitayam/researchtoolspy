@@ -78,6 +78,9 @@ test.describe('scrape observability contract @smoke', () => {
     expect(isValidScrapeAttempt(attempt(1))).toBe(true)
     expect(isValidScrapeAttempt({ ...attempt(1), durationMs: Number.NaN })).toBe(false)
     expect(isValidScrapeAttempt({ ...attempt(1), responseBytes: -1 })).toBe(false)
+    expect(isValidScrapeAttempt({ ...attempt(1), itemsRead: -1 })).toBe(false)
+    expect(isValidScrapeAttempt({ ...attempt(1), itemsWritten: Number.NaN })).toBe(false)
+    expect(isValidScrapeAttempt({ ...attempt(1), duplicatesPrevented: -1 })).toBe(false)
   })
 
   test('@smoke creates domain-separated opaque identifiers only with an injected key', async () => {
@@ -131,6 +134,9 @@ test.describe('scrape observability contract @smoke', () => {
       durationMs: 25,
       responseBytes: 0,
       extractedWords: 0,
+      itemsRead: 0,
+      itemsWritten: 0,
+      duplicatesPrevented: 0,
     }
     sink.emit(metric)
     sink.emit({
@@ -225,6 +231,9 @@ test.describe('scrape observability contract @smoke', () => {
       durationMs: 20,
       responseBytes: 100,
       extractedWords: 10,
+      itemsRead: 12,
+      itemsWritten: 9,
+      duplicatesPrevented: 3,
     })
     createAnalyticsEngineScrapeMetricSink(binding, identifiers).emit(metric)
     createAnalyticsEngineScrapeMetricSink(binding, otherIdentifiers).emit({
@@ -235,11 +244,12 @@ test.describe('scrape observability contract @smoke', () => {
       domainId: otherIdentifiers.domainId,
     })
     expect(points).toHaveLength(3)
-    const projected = points as Array<{ blobs?: string[] }>
+    const projected = points as Array<{ blobs?: string[]; doubles?: number[] }>
     expect(projected[0].blobs).toContain(identifiers.requestId)
     expect(projected[1].blobs).toContain(identifiers.requestId)
     expect(projected[2].blobs).toContain(otherIdentifiers.requestId)
     expect(projected[0].blobs).not.toContain(otherIdentifiers.requestId)
+    expect(projected[0].doubles?.slice(5, 8)).toEqual([12, 9, 3])
     assertPrivacySafe(points)
 
     const failingBinding = { writeDataPoint: () => { throw new Error('dataset unavailable') } }
