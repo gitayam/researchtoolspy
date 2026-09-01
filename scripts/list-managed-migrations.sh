@@ -9,6 +9,32 @@ set -euo pipefail
 DATABASE_NAME="researchtoolspy-prod"
 MIGRATION_DIR="schema/managed-migrations"
 REMOTE=false
+D1_READ_ATTEMPTS=5
+
+run_d1_json() {
+  local sql=$1
+  local attempt=1
+  local output=""
+
+  while [ "$attempt" -le "$D1_READ_ATTEMPTS" ]; do
+    if output=$(pnpm exec wrangler d1 execute "$DATABASE_NAME" \
+      --remote \
+      --json \
+      --command="$sql" 2>&1); then
+      printf '%s\n' "$output"
+      return 0
+    fi
+
+    if [ "$attempt" -lt "$D1_READ_ATTEMPTS" ]; then
+      echo "Remote migration read failed (attempt ${attempt}/${D1_READ_ATTEMPTS}); retrying..." >&2
+      sleep "$attempt"
+    fi
+    attempt=$((attempt + 1))
+  done
+
+  printf '%s\n' "$output" >&2
+  return 1
+}
 
 for arg in "$@"; do
   case "$arg" in
@@ -39,29 +65,23 @@ if [ "$REMOTE" = false ]; then
   exit 0
 fi
 
-TRACKER_JSON=$(pnpm exec wrangler d1 execute "$DATABASE_NAME" \
-  --remote \
-  --json \
-  --command="SELECT CASE WHEN EXISTS (
-    SELECT 1 FROM sqlite_master
-    WHERE type = 'table' AND name = 'd1_migrations'
-  ) THEN 1 ELSE 0 END AS tracker_exists;")
+TRACKER_JSON=$(run_d1_json "SELECT name FROM sqlite_master
+  WHERE type = 'table' AND name = 'd1_migrations';")
 
 TRACKER_EXISTS=$(printf '%s' "$TRACKER_JSON" | node -e '
   let input = ""
   process.stdin.on("data", chunk => { input += chunk })
   process.stdin.on("end", () => {
     const payload = JSON.parse(input)
-    process.stdout.write(String(payload?.[0]?.results?.[0]?.tracker_exists ?? 0))
+    const trackerExists = (payload?.[0]?.results ?? [])
+      .some(row => row.name === "d1_migrations")
+    process.stdout.write(trackerExists ? "1" : "0")
   })
 ')
 
 APPLIED_NAMES=""
 if [ "$TRACKER_EXISTS" = "1" ]; then
-  APPLIED_JSON=$(pnpm exec wrangler d1 execute "$DATABASE_NAME" \
-    --remote \
-    --json \
-    --command="SELECT name FROM d1_migrations ORDER BY id;")
+  APPLIED_JSON=$(run_d1_json "SELECT name FROM d1_migrations ORDER BY id;")
 
   APPLIED_NAMES=$(printf '%s' "$APPLIED_JSON" | node -e '
     let input = ""
