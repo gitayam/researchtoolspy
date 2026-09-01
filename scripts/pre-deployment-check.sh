@@ -303,11 +303,10 @@ if [ -f "wrangler.toml" ]; then
     print_status 1 "Managed migration directory must be configured on both D1 bindings"
   fi
 
-  if grep -A2 '^\[\[analytics_engine_datasets\]\]' wrangler.toml \
-    | grep -q 'binding = "SCRAPE_ANALYTICS"'; then
-    print_status 0 "Scraping Analytics Engine binding configured"
+  if [ "$(grep -c 'binding = \"SCRAPE_ANALYTICS\"' wrangler.toml)" -eq 2 ]; then
+    print_status 0 "Scraping Analytics Engine binding configured for default and production"
   else
-    print_status 1 "SCRAPE_ANALYTICS binding missing in wrangler.toml"
+    print_status 1 "SCRAPE_ANALYTICS binding must be configured for default and production"
   fi
 
   if secret_list=$(pnpm exec wrangler pages secret list --project-name=researchtoolspy 2>&1) \

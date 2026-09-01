@@ -105,6 +105,10 @@ bucket_name = "researchtoolspy-uploads"
 binding = "BROWSER_RENDERER"
 service = "researchtools-browser-renderer"
 
+[[env.production.analytics_engine_datasets]]
+binding = "SCRAPE_ANALYTICS"
+dataset = "researchtoolspy_scrape_metrics_v1"
+
 # ==========================================
 # Cloudflare Containers
 # Containers are deployed as a separate Worker: researchtoolspy-containers
