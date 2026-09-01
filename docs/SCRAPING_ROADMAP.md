@@ -134,6 +134,7 @@ flowchart LR
 - [x] Route `tools/analyze-url` and its optional Wayback metadata checks through bounded exact-host adapters; disable implicit archive-save writes from the read-like analysis request.
 - [x] Route authenticated AI scrape and Starbursting delegation through bounded direct/oEmbed adapters; require exact social host/path classification before any Apify disclosure.
 - [x] Route claims extraction through bounded primary/cache/archive adapters under one total deadline; make unsafe primary DNS or redirect policy failures terminal before fallback disclosure and constrain returned Wayback identity.
+- [x] Route timeline extraction through bounded static text fetch and validated final-URL provenance; remove Browser Run navigation until its complete request graph is forced through enforcing egress.
 - [x] Route the shared content-intelligence PDF helper through bounded MIME/signature-validated PDF fetch.
 - [x] Route content-intelligence analysis, saved-link titles/delegation, and the public Twitter image proxy through bounded purpose-specific adapters; disable dynamic rendering on the analysis path pending enforcing egress.
 - [ ] Add binding-backed abuse throttling and write budgets to the public Twitter image proxy before promoting it for higher-volume use.
