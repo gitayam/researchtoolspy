@@ -33,6 +33,7 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 ERRORS=0
+REMOTE_READ_ATTEMPTS=3
 
 # Function to check command exists
 command_exists() {
@@ -47,6 +48,54 @@ print_status() {
     echo -e "${RED}❌ $2${NC}"
     ERRORS=$((ERRORS + 1))
   fi
+}
+
+# Cloudflare's remote D1 reads can occasionally return a transient error or an
+# empty response. Retry read-only release checks without allowing a genuinely
+# missing migration, table, or column to pass.
+run_remote_read() {
+  local attempt=1
+  local output=""
+
+  while [ "$attempt" -le "$REMOTE_READ_ATTEMPTS" ]; do
+    if output=$("$@" 2>&1); then
+      printf '%s\n' "$output"
+      return 0
+    fi
+
+    if [ "$attempt" -lt "$REMOTE_READ_ATTEMPTS" ]; then
+      echo "Remote read failed (attempt ${attempt}/${REMOTE_READ_ATTEMPTS}); retrying..." >&2
+      sleep "$attempt"
+    fi
+    attempt=$((attempt + 1))
+  done
+
+  printf '%s\n' "$output"
+  return 1
+}
+
+read_d1_query() {
+  local sql=$1
+  local expected=$2
+  local attempt=1
+  local output=""
+
+  while [ "$attempt" -le "$REMOTE_READ_ATTEMPTS" ]; do
+    if output=$(pnpm exec wrangler d1 execute researchtoolspy-prod --remote --command="$sql" 2>&1) && \
+      printf '%s\n' "$output" | grep -Fq -- "$expected"; then
+      printf '%s\n' "$output"
+      return 0
+    fi
+
+    if [ "$attempt" -lt "$REMOTE_READ_ATTEMPTS" ]; then
+      echo "Remote schema read for '${expected}' was inconclusive (attempt ${attempt}/${REMOTE_READ_ATTEMPTS}); retrying..." >&2
+      sleep "$attempt"
+    fi
+    attempt=$((attempt + 1))
+  done
+
+  printf '%s\n' "$output"
+  return 1
 }
 
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -127,7 +176,7 @@ echo "4️⃣  Checking Managed Migrations and Database Schema (Production)"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 echo "Listing pending managed migrations (read-only)..."
-if MIGRATION_LIST=$(./scripts/list-managed-migrations.sh --remote 2>&1); then
+if MIGRATION_LIST=$(run_remote_read ./scripts/list-managed-migrations.sh --remote); then
   print_status 0 "Managed migration list available"
   echo "$MIGRATION_LIST"
 else
@@ -138,8 +187,54 @@ fi
 echo ""
 echo "Checking critical tables..."
 
+SCHEMA_SNAPSHOT_SQL="WITH expected(table_name, column_name) AS (
+  VALUES
+    ('__snapshot__', NULL),
+    ('evidence_items', NULL),
+    ('content_intelligence', NULL),
+    ('evidence_items', 'workspace_id'),
+    ('evidence_items', 'eve_assessment'),
+    ('framework_sessions', 'view_count'),
+    ('framework_sessions', 'clone_count'),
+    ('evidence_actors', 'auto_linked'),
+    ('evidence_citations', 'citation_format'),
+    ('evidence_citations', 'citation_type'),
+    ('evidence_citations', 'relevance_score'),
+    ('evidence_citations', 'notes'),
+    ('evidence_citations', 'created_by'),
+    ('ach_analyses', 'is_public')
+)
+SELECT CASE
+  WHEN table_name = '__snapshot__' THEN 'schema_snapshot_complete'
+  WHEN column_name IS NULL THEN 'table:' || table_name
+  ELSE 'column:' || table_name || '.' || column_name
+END AS schema_item
+FROM expected
+WHERE table_name = '__snapshot__'
+  OR (column_name IS NULL AND EXISTS (
+    SELECT 1 FROM sqlite_master
+    WHERE type = 'table' AND name = expected.table_name
+  ))
+  OR (column_name IS NOT NULL AND EXISTS (
+    SELECT 1 FROM pragma_table_info(expected.table_name)
+    WHERE name = expected.column_name
+  ));"
+
+SCHEMA_SNAPSHOT=""
+if SCHEMA_SNAPSHOT=$(read_d1_query "$SCHEMA_SNAPSHOT_SQL" "schema_snapshot_complete"); then
+  print_status 0 "Production schema snapshot available"
+else
+  print_status 1 "Unable to read production schema snapshot"
+  echo "Last remote schema response:" >&2
+  printf '%s\n' "$SCHEMA_SNAPSHOT" >&2
+fi
+
+schema_snapshot_contains() {
+  printf '%s\n' "$SCHEMA_SNAPSHOT" | grep -Fq -- "$1"
+}
+
 # Check canonical evidence table
-if pnpm exec wrangler d1 execute researchtoolspy-prod --remote --command="SELECT name FROM sqlite_master WHERE type='table' AND name='evidence_items';" 2>/dev/null | grep -q "evidence_items"; then
+if schema_snapshot_contains "table:evidence_items"; then
   print_status 0 "Table 'evidence_items' exists"
 else
   print_status 1 "Table 'evidence_items' missing"
@@ -149,8 +244,7 @@ check_column() {
   local table_name=$1
   local column_name=$2
 
-  if pnpm exec wrangler d1 execute researchtoolspy-prod --remote \
-    --command="PRAGMA table_info(${table_name});" 2>/dev/null | grep -qw "$column_name"; then
+  if schema_snapshot_contains "column:${table_name}.${column_name}"; then
     print_status 0 "Field '${table_name}.${column_name}' exists"
   else
     print_status 1 "Field '${table_name}.${column_name}' missing"
@@ -173,7 +267,7 @@ check_column "evidence_citations" "created_by"
 check_column "ach_analyses" "is_public"
 
 # Check content_intelligence table
-if pnpm exec wrangler d1 execute researchtoolspy-prod --remote --command="SELECT name FROM sqlite_master WHERE type='table' AND name='content_intelligence';" 2>/dev/null | grep -q "content_intelligence"; then
+if schema_snapshot_contains "table:content_intelligence"; then
   print_status 0 "Table 'content_intelligence' exists"
 else
   print_status 1 "Table 'content_intelligence' missing"
