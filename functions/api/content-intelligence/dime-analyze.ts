@@ -18,30 +18,67 @@ interface Env {
 }
 
 interface DIMEAnalysisRequest {
-  analysis_id: string // Reference to content_analysis record
-  content_text: string // The extracted content text
-  title: string
-  url: string
+  analysis_id?: string | number // Optional reference to a persisted content_analysis record
+  content_text?: string // The extracted content text
+  title?: string
+  url?: string
 }
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
+    // DIME generation is available for ephemeral public analyses. Authentication
+    // is required only when writing the result back to a saved analysis.
     const userId = await getUserFromRequest(context.request, context.env)
-    if (!userId) {
-      return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401,
+    let body: DIMEAnalysisRequest
+    try {
+      body = await context.request.json() as DIMEAnalysisRequest
+    } catch {
+      return new Response(JSON.stringify({ error: 'Invalid request body' }), {
+        status: 400,
         headers: JSON_HEADERS,
       })
     }
-    const body = await context.request.json() as DIMEAnalysisRequest
 
-    if (!body.analysis_id || !body.content_text) {
+    const submittedContent = typeof body.content_text === 'string' ? body.content_text : ''
+    if (submittedContent.length > 100_000) {
+      return new Response(JSON.stringify({ error: 'content_text exceeds the 100,000 character limit' }), {
+        status: 413,
+        headers: JSON_HEADERS,
+      })
+    }
+    const contentText = submittedContent.trim()
+
+    if (!contentText) {
       return new Response(JSON.stringify({
-        error: 'Missing required fields: analysis_id, content_text'
+        error: 'Missing required field: content_text'
       }), {
         status: 400,
         headers: JSON_HEADERS
       })
+    }
+
+    let persistedAnalysisId: string | number | null = null
+    if (body.analysis_id !== undefined && body.analysis_id !== null && body.analysis_id !== '') {
+      if (!userId) {
+        return new Response(JSON.stringify({
+          error: 'Authentication required to update a saved analysis'
+        }), {
+          status: 401,
+          headers: JSON_HEADERS,
+        })
+      }
+
+      // Never let a caller attach framework output to another user's analysis.
+      const ownedAnalysis = await context.env.DB.prepare(`
+        SELECT id FROM content_analysis WHERE id = ? AND user_id = ?
+      `).bind(body.analysis_id, userId).first<{ id: string | number }>()
+      if (!ownedAnalysis) {
+        return new Response(JSON.stringify({ error: 'Analysis not found' }), {
+          status: 404,
+          headers: JSON_HEADERS,
+        })
+      }
+      persistedAnalysisId = ownedAnalysis.id
     }
 
 
@@ -49,11 +86,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const dimePrompt = `Analyze the following content through the DIME framework (Diplomatic, Information, Military, Economic).
 For each dimension, generate 3-5 relevant questions and provide answers based on the content.
 
-Content Title: ${body.title}
-Content URL: ${body.url}
+Content Title: ${body.title || 'Untitled'}
+Content URL: ${body.url || 'Not provided'}
 
 Content:
-${body.content_text.substring(0, 6000)} ${body.content_text.length > 6000 ? '...(truncated)' : ''}
+${contentText.substring(0, 6000)} ${contentText.length > 6000 ? '...(truncated)' : ''}
 
 CRITICAL ANSWER REQUIREMENTS:
 1. Answers must be SELF-CONTAINED and understandable without additional context
@@ -111,7 +148,9 @@ Focus on aspects that are actually present in the content. If a dimension has no
       metadata: {
         endpoint: 'content-intelligence',
         operation: 'dime-analysis',
-        analysis_id: body.analysis_id
+        analysis_id: persistedAnalysisId,
+        persistence: persistedAnalysisId === null ? 'ephemeral' : 'saved',
+        user_id: userId,
       },
       timeout: 20000
     })
@@ -122,22 +161,25 @@ Focus on aspects that are actually present in the content. If a dimension has no
 
     const dimeAnalysis = JSON.parse(gptData.choices[0].message.content)
 
-    // Update content_analysis with DIME results
-    await context.env.DB.prepare(`
-      UPDATE content_analysis
-      SET dime_analysis = ?,
-          updated_at = datetime('now')
-      WHERE id = ?
-    `).bind(
-      JSON.stringify(dimeAnalysis),
-      body.analysis_id
-    ).run()
+    if (persistedAnalysisId !== null) {
+      await context.env.DB.prepare(`
+        UPDATE content_analysis
+        SET dime_analysis = ?,
+            updated_at = datetime('now')
+        WHERE id = ? AND user_id = ?
+      `).bind(
+        JSON.stringify(dimeAnalysis),
+        persistedAnalysisId,
+        userId
+      ).run()
+    }
 
 
     return new Response(JSON.stringify({
       success: true,
       dime_analysis: dimeAnalysis,
-      analysis_id: body.analysis_id
+      analysis_id: persistedAnalysisId,
+      is_persisted: persistedAnalysisId !== null,
     }), {
       status: 200,
       headers: JSON_HEADERS
@@ -161,4 +203,3 @@ export const onRequestGet: PagesFunction = async () => {
     status: 405, headers: JSON_HEADERS,
   })
 }
-

@@ -134,7 +134,9 @@ test.describe('content-intelligence URL safe-fetch migration @smoke', () => {
 
   test('@smoke public analysis has an exact-path IP budget', async () => {
     expect(isPublicContentAnalysisPath('/api/content-intelligence/analyze-url')).toBe(true)
+    expect(isPublicContentAnalysisPath('/api/content-intelligence/dime-analyze')).toBe(true)
     expect(isPublicContentAnalysisPath('/api/content-intelligence/analyze-url/extra')).toBe(false)
+    expect(isPublicContentAnalysisPath('/api/content-intelligence/dime-analyze/extra')).toBe(false)
 
     let nextCalled = false
     const response = await apiMiddleware({

@@ -52,6 +52,7 @@ export function isApifyScraperPath(pathname: string): boolean {
 
 export function isPublicContentAnalysisPath(pathname: string): boolean {
   return pathname === '/api/content-intelligence/analyze-url'
+    || pathname === '/api/content-intelligence/dime-analyze'
 }
 
 /**
@@ -106,9 +107,10 @@ export async function onRequest(context: any) {
 
   const clientIp = request.headers.get('CF-Connecting-IP') || 'unknown'
 
-  // URL analysis is intentionally public, but one normal request can fan out to
-  // several paid model calls. Apply a tighter IP budget to authenticated and
-  // anonymous callers alike; the general AI and gateway caps remain backstops.
+  // URL and ephemeral DIME analysis are intentionally public, but each request
+  // can fan out to paid model calls. Apply one shared, tighter IP budget to
+  // authenticated and anonymous callers alike; general AI/gateway caps remain
+  // backstops.
   if (request.method === 'POST' && isPublicContentAnalysisPath(url.pathname)) {
     if (await kvRateLimit(env, `content-analysis:${clientIp}`, 12, 60 * 60)) {
       return json429('Public analysis limit reached. Please try again later.')

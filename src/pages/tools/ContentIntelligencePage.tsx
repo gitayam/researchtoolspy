@@ -1071,8 +1071,9 @@ ${shortSummary}`
   }, [currentWorkspaceId])
 
   // Run DIME Framework Analysis (memoized with useCallback)
-  const runDIMEAnalysis = useCallback(async () => {
-    if (!analysis) {
+  const runDIMEAnalysis = useCallback(async (targetAnalysis?: ContentAnalysis) => {
+    const analysisToEnhance = targetAnalysis || analysis
+    if (!analysisToEnhance) {
       toast({ title: 'Error', description: 'No analysis available', variant: 'destructive' })
       return
     }
@@ -1083,21 +1084,23 @@ ${shortSummary}`
         method: 'POST',
         headers: getCopHeaders(),
         body: JSON.stringify({
-          analysis_id: String(analysis.id),
-          content_text: analysis.extracted_text,
-          title: analysis.title || 'Untitled',
-          url: analysis.url
+          analysis_id: analysisToEnhance.id ? String(analysisToEnhance.id) : undefined,
+          content_text: analysisToEnhance.extracted_text.slice(0, 100_000),
+          title: analysisToEnhance.title || 'Untitled',
+          url: analysisToEnhance.url
         })
       })
 
       if (!response.ok) {
-        if (response.status === 401) throw new Error('Session expired. Please refresh to continue.')
-        throw new Error('DIME analysis failed')
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'DIME analysis failed')
       }
 
       const data = await response.json()
       setDimeAnalysis(data.dime_analysis)
-      setAnalysis({ ...analysis, dime_analysis: data.dime_analysis })
+      setAnalysis((current) => current
+        ? { ...current, dime_analysis: data.dime_analysis }
+        : { ...analysisToEnhance, dime_analysis: data.dime_analysis })
 
       toast({
         title: 'DIME Analysis Complete',
@@ -1107,7 +1110,7 @@ ${shortSummary}`
       console.error('DIME analysis error:', error)
       toast({
         title: 'Error',
-        description: 'Failed to run DIME analysis',
+        description: error instanceof Error ? error.message : 'Failed to run DIME analysis',
         variant: 'destructive'
       })
     } finally {
@@ -1179,6 +1182,12 @@ ${shortSummary}`
         if (analysis.id) {
           await startStarburstingInBackground(analysis.id)
           setActiveTab('starbursting')
+        } else {
+          toast({
+            title: 'Saved Analysis Required',
+            description: 'Sign in and select a workspace to create a persistent Starbursting session.',
+            variant: 'destructive',
+          })
         }
         break
       case 'qa':
@@ -1469,24 +1478,27 @@ ${shortSummary}`
         checkEntityDuplicates(data.entities)
       }
 
-      // Auto-trigger DIME and Starbursting for Full mode
-      if (mode === 'full' && data.id) {
+      // Full mode always adds ephemeral DIME analysis. Persisted analyses can
+      // additionally create a saved Starbursting framework session.
+      if (mode === 'full' && data.extracted_text) {
         toast({
           title: 'Analysis Complete!',
-          description: 'Starting DIME and Starbursting analysis (Full mode)...'
+          description: data.id
+            ? 'Starting DIME and Starbursting analysis (Full mode)...'
+            : 'Starting DIME framework analysis (Full mode)...'
         })
 
-        // Start DIME analysis
-        if (data.extracted_text) {
-          runDIMEAnalysis().catch(err => {
-            console.error('[Full Mode] DIME analysis failed:', err)
+        // Pass the fresh response explicitly; React state still contains the
+        // previous analysis until the next render.
+        runDIMEAnalysis(data).catch(err => {
+          console.error('[Full Mode] DIME analysis failed:', err)
+        })
+
+        if (data.id) {
+          startStarburstingInBackground(data.id).catch(err => {
+            console.error('[Full Mode] Starbursting failed:', err)
           })
         }
-
-        // Start Starbursting in background
-        startStarburstingInBackground(data.id).catch(err => {
-          console.error('[Full Mode] Starbursting failed:', err)
-        })
       } else {
         toast({ title: 'Success', description: 'Analysis complete!' })
       }
@@ -3272,8 +3284,8 @@ ${shortSummary}`
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={runDIMEAnalysis}
-                    disabled={dimeLoading || !analysis.id || !analysis.extracted_text}
+                    onClick={() => runDIMEAnalysis()}
+                    disabled={dimeLoading || !analysis.extracted_text}
                   >
                     {dimeLoading ? (
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -5051,10 +5063,21 @@ ${shortSummary}`
                     Generate deep-dive 5W1H questions (Who, What, When, Where, Why, How) to explore all angles of this content.
                   </p>
                   {analysis ? (
-                    <Button onClick={() => analysis.id && startStarburstingInBackground(analysis.id)} size="lg">
-                      <Star className="h-4 w-4 mr-2" />
-                      Create Starbursting Session
-                    </Button>
+                    <div>
+                      <Button
+                        onClick={() => analysis.id && startStarburstingInBackground(analysis.id)}
+                        disabled={!analysis.id}
+                        size="lg"
+                      >
+                        <Star className="h-4 w-4 mr-2" />
+                        Create Starbursting Session
+                      </Button>
+                      {!analysis.id && (
+                        <p className="text-sm text-muted-foreground mt-4">
+                          Sign in and select a workspace to save this analysis before creating a Starbursting session.
+                        </p>
+                      )}
+                    </div>
                   ) : (
                     <p className="text-sm text-muted-foreground mt-4">
                       Analyze content first to generate Starbursting questions
@@ -5197,7 +5220,7 @@ ${shortSummary}`
                       <p className="text-sm font-medium">Need to refresh the analysis?</p>
                       <p className="text-xs text-muted-foreground">Run DIME analysis again to update results</p>
                     </div>
-                    <Button onClick={runDIMEAnalysis} disabled={dimeLoading} variant="outline" size="sm">
+                    <Button onClick={() => runDIMEAnalysis()} disabled={dimeLoading} variant="outline" size="sm">
                       <Grid3x3 className="h-4 w-4 mr-2" />
                       {dimeLoading ? 'Analyzing...' : 'Re-run Analysis'}
                     </Button>
@@ -5212,7 +5235,7 @@ ${shortSummary}`
                   <p className="text-muted-foreground mb-6 max-w-md mx-auto">
                     Analyze this content through the DIME framework lens: Diplomatic, Information, Military, and Economic dimensions.
                   </p>
-                  <Button onClick={runDIMEAnalysis} disabled={dimeLoading || !analysis?.id} size="lg">
+                  <Button onClick={() => runDIMEAnalysis()} disabled={dimeLoading || !analysis?.extracted_text} size="lg">
                     <Grid3x3 className="h-4 w-4 mr-2" />
                     {dimeLoading ? 'Analyzing...' : 'Run DIME Analysis'}
                   </Button>
