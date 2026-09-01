@@ -33,7 +33,9 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 ERRORS=0
-REMOTE_READ_ATTEMPTS=3
+# Five attempts add at most ten seconds of linear backoff while still failing
+# closed during a sustained Cloudflare API outage.
+REMOTE_READ_ATTEMPTS=5
 
 # Function to check command exists
 command_exists() {
