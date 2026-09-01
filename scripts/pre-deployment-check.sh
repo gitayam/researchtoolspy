@@ -223,7 +223,9 @@ WHERE table_name = '__snapshot__'
   ));"
 
 SCHEMA_SNAPSHOT=""
+SCHEMA_SNAPSHOT_AVAILABLE=false
 if SCHEMA_SNAPSHOT=$(read_d1_query "$SCHEMA_SNAPSHOT_SQL" "schema_snapshot_complete"); then
+  SCHEMA_SNAPSHOT_AVAILABLE=true
   print_status 0 "Production schema snapshot available"
 else
   print_status 1 "Unable to read production schema snapshot"
@@ -234,13 +236,6 @@ fi
 schema_snapshot_contains() {
   printf '%s\n' "$SCHEMA_SNAPSHOT" | grep -Fq -- "$1"
 }
-
-# Check canonical evidence table
-if schema_snapshot_contains "table:evidence_items"; then
-  print_status 0 "Table 'evidence_items' exists"
-else
-  print_status 1 "Table 'evidence_items' missing"
-fi
 
 check_column() {
   local table_name=$1
@@ -253,26 +248,34 @@ check_column() {
   fi
 }
 
-# Existing canonical scoping plus every column required by managed migrations.
-check_column "evidence_items" "workspace_id"
-check_column "evidence_items" "eve_assessment"
-check_column "framework_sessions" "view_count"
-check_column "framework_sessions" "clone_count"
-check_column "evidence_actors" "auto_linked"
-check_column "evidence_citations" "citation_format"
-check_column "evidence_citations" "citation_type"
-check_column "evidence_citations" "relevance_score"
-check_column "evidence_citations" "notes"
-check_column "evidence_citations" "created_by"
+if [ "$SCHEMA_SNAPSHOT_AVAILABLE" = true ]; then
+  # Check canonical evidence table
+  if schema_snapshot_contains "table:evidence_items"; then
+    print_status 0 "Table 'evidence_items' exists"
+  else
+    print_status 1 "Table 'evidence_items' missing"
+  fi
 
-# Check ach_analyses is_public
-check_column "ach_analyses" "is_public"
+  # Existing canonical scoping plus every column required by managed migrations.
+  check_column "evidence_items" "workspace_id"
+  check_column "evidence_items" "eve_assessment"
+  check_column "framework_sessions" "view_count"
+  check_column "framework_sessions" "clone_count"
+  check_column "evidence_actors" "auto_linked"
+  check_column "evidence_citations" "citation_format"
+  check_column "evidence_citations" "citation_type"
+  check_column "evidence_citations" "relevance_score"
+  check_column "evidence_citations" "notes"
+  check_column "evidence_citations" "created_by"
+  check_column "ach_analyses" "is_public"
 
-# Check content_intelligence table
-if schema_snapshot_contains "table:content_intelligence"; then
-  print_status 0 "Table 'content_intelligence' exists"
+  if schema_snapshot_contains "table:content_intelligence"; then
+    print_status 0 "Table 'content_intelligence' exists"
+  else
+    print_status 1 "Table 'content_intelligence' missing"
+  fi
 else
-  print_status 1 "Table 'content_intelligence' missing"
+  echo -e "${YELLOW}   Schema object checks skipped because the remote snapshot was unavailable.${NC}"
 fi
 
 echo ""

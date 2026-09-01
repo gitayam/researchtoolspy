@@ -6,8 +6,7 @@
  */
 
 import { safeFetchText } from './safe-fetch'
-
-const APIFY_BASE = 'https://api.apify.com/v2'
+import { assertApifyIdentifier, fetchApifyJson } from './apify-client'
 
 interface TwitterOEmbed {
   html?: string
@@ -126,38 +125,40 @@ export async function fetchTwitterViaApify(url: string, apiKey: string): Promise
 
   // 2. Fallback: Apify tweet-scraper (uses search, may not find specific tweets)
   try {
-    const runRes = await fetch(`${APIFY_BASE}/acts/apidojo~tweet-scraper/runs?waitForFinish=60`, {
+    const runRes = await fetchApifyJson(apiKey, {
+      path: ['acts', 'apidojo~tweet-scraper', 'runs'],
+      searchParams: { waitForFinish: 60 },
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
+      timeoutMs: 65_000,
+      maxResponseBytes: 256 * 1024,
+      body: {
         startUrls: [{ url }],
         maxItems: 1,
-      }),
+      },
     })
 
     if (!runRes.ok) {
       return { success: false, text: '', platform: 'twitter', error: `Apify returned ${runRes.status}` }
     }
 
-    const runData = await runRes.json() as ApifyRunResponse
+    const runData = runRes.data as ApifyRunResponse
     const run = runData.data
     if (run.status !== 'SUCCEEDED') {
       return { success: false, text: '', platform: 'twitter', error: `Run status: ${run.status}` }
     }
 
-    const datasetId = run.defaultDatasetId
-    const itemsRes = await fetch(`${APIFY_BASE}/datasets/${datasetId}/items?limit=1&format=json`, {
-      headers: { 'Authorization': `Bearer ${apiKey}` },
+    const datasetId = assertApifyIdentifier(run.defaultDatasetId || '', 'dataset ID')
+    const itemsRes = await fetchApifyJson(apiKey, {
+      path: ['datasets', datasetId, 'items'],
+      searchParams: { limit: 1, format: 'json' },
+      maxResponseBytes: 512 * 1024,
     })
 
     if (!itemsRes.ok) {
       return { success: false, text: '', platform: 'twitter', error: 'Failed to fetch results' }
     }
 
-    const items = await itemsRes.json() as TwitterItem[]
+    const items = itemsRes.data as TwitterItem[]
     if (items.length === 0) {
       return { success: false, text: '', platform: 'twitter', error: 'No results from scraper' }
     }
@@ -206,40 +207,42 @@ export async function fetchTikTokViaApify(url: string, apiKey: string): Promise<
   }
 
   try {
-    const runRes = await fetch(`${APIFY_BASE}/acts/clockworks~tiktok-scraper/runs?waitForFinish=60`, {
+    const runRes = await fetchApifyJson(apiKey, {
+      path: ['acts', 'clockworks~tiktok-scraper', 'runs'],
+      searchParams: { waitForFinish: 60 },
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
+      timeoutMs: 65_000,
+      maxResponseBytes: 256 * 1024,
+      body: {
         postURLs: [url],
         resultsPerPage: 1,
         shouldDownloadVideos: false,
         shouldDownloadCovers: false,
-      }),
+      },
     })
 
     if (!runRes.ok) {
       return { success: false, text: '', platform: 'tiktok', error: `Apify returned ${runRes.status}` }
     }
 
-    const runData = await runRes.json() as ApifyRunResponse
+    const runData = runRes.data as ApifyRunResponse
     const run = runData.data
     if (run.status !== 'SUCCEEDED') {
       return { success: false, text: '', platform: 'tiktok', error: `Run status: ${run.status}` }
     }
 
-    const datasetId = run.defaultDatasetId
-    const itemsRes = await fetch(`${APIFY_BASE}/datasets/${datasetId}/items?limit=1&format=json`, {
-      headers: { 'Authorization': `Bearer ${apiKey}` },
+    const datasetId = assertApifyIdentifier(run.defaultDatasetId || '', 'dataset ID')
+    const itemsRes = await fetchApifyJson(apiKey, {
+      path: ['datasets', datasetId, 'items'],
+      searchParams: { limit: 1, format: 'json' },
+      maxResponseBytes: 512 * 1024,
     })
 
     if (!itemsRes.ok) {
       return { success: false, text: '', platform: 'tiktok', error: 'Failed to fetch results' }
     }
 
-    const items = await itemsRes.json() as TikTokItem[]
+    const items = itemsRes.data as TikTokItem[]
     if (items.length === 0) {
       return { success: false, text: '', platform: 'tiktok', error: 'No results from scraper' }
     }

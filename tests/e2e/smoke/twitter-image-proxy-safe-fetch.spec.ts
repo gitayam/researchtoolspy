@@ -5,6 +5,7 @@ import { SAFE_IMAGE_MAX_BYTES } from '../../../functions/api/_shared/safe-conten
 import {
   onRequestGet,
   parseTwitterImageUrl,
+  TWITTER_IMAGE_REQUESTS_PER_HOUR,
 } from '../../../functions/api/content-intelligence/twitter-image-proxy'
 
 interface CacheState {
@@ -83,6 +84,14 @@ function contextFor(
 
 const pngBytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3])
 const jpegBytes = new Uint8Array([0xff, 0xd8, 0xff, 1, 2, 3])
+
+function allowingBudgetStore(): KVNamespace {
+  const values = new Map<string, string>()
+  return {
+    get: async (key: string) => values.get(key) ?? null,
+    put: async (key: string, value: string) => { values.set(key, value) },
+  } as unknown as KVNamespace
+}
 
 test.describe('Twitter image proxy safe fetch @smoke', () => {
   test.describe.configure({ mode: 'serial' })
@@ -243,7 +252,10 @@ test.describe('Twitter image proxy safe fetch @smoke', () => {
 
     try {
       const sourceUrl = 'https://pbs.twimg.com/media/caller-says-jpeg.jpg?format=png'
-      const { context, waits } = contextFor(sourceUrl, { UPLOADS: r2 })
+      const { context, waits } = contextFor(sourceUrl, {
+        CACHE: allowingBudgetStore(),
+        UPLOADS: r2,
+      })
       const response = await onRequestGet(context as never)
       expect(response.status).toBe(200)
       expect(response.headers.get('content-type')).toBe('image/png')
@@ -269,6 +281,53 @@ test.describe('Twitter image proxy safe fetch @smoke', () => {
         bytes: pngBytes,
         contentType: 'image/png',
       }])
+    } finally {
+      globalThis.fetch = originalFetch
+      restoreCache()
+    }
+  })
+
+  test('@smoke binding-backed request and archive budgets fail safely', async () => {
+    const originalFetch = globalThis.fetch
+    const cacheState: CacheState = { matchCalls: [], putCalls: [] }
+    const restoreCache = installCache(cacheState)
+    let targetCalls = 0
+    globalThis.fetch = (async (input: RequestInfo | URL) => {
+      const url = new URL(String(input))
+      if (url.hostname === 'cloudflare-dns.com') return dnsResponse(url, ['93.184.216.34'])
+      targetCalls += 1
+      return new Response(pngBytes, { headers: { 'Content-Type': 'image/png' } })
+    }) as typeof fetch
+
+    const deniedStore = {
+      get: async (key: string) => key.includes(':request:')
+        ? String(TWITTER_IMAGE_REQUESTS_PER_HOUR)
+        : null,
+      put: async () => undefined,
+    }
+    const r2 = {
+      headCalls: 0,
+      putCalls: 0,
+      async head() { this.headCalls += 1; return null },
+      async put() { this.putCalls += 1; return {} },
+    }
+
+    try {
+      let request = contextFor('https://pbs.twimg.com/rate-limited.png', { CACHE: deniedStore })
+      const limited = await onRequestGet(request.context as never)
+      expect(limited.status).toBe(429)
+      expect(limited.headers.get('retry-after')).toBe('3600')
+      expect(targetCalls).toBe(0)
+      expect(cacheState.matchCalls).toEqual([])
+
+      // If the budget binding is absent, serving remains available but durable
+      // archival is disabled rather than becoming an unmetered R2 write path.
+      request = contextFor('https://pbs.twimg.com/no-budget-store.png', { UPLOADS: r2 })
+      expect((await onRequestGet(request.context as never)).status).toBe(200)
+      await Promise.all(request.waits)
+      expect(r2.headCalls).toBe(0)
+      expect(r2.putCalls).toBe(0)
+      expect(targetCalls).toBe(1)
     } finally {
       globalThis.fetch = originalFetch
       restoreCache()

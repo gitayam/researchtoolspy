@@ -21,6 +21,7 @@ type SafetyStatus =
   | 'delegated-unsafe'
   | 'constrained-provider'
   | 'third-party-job'
+  | 'bounded-provider-job'
 
 interface InventoryEntry {
   id: string
@@ -48,7 +49,7 @@ const entries: InventoryEntry[] = [
   { id: 'INV-007', file: 'functions/api/ai/scrape-url.ts', status: 'safe-multi-source', evidence: /safeFetchText\(normalizedUrl,/, forbidden: [/fetch\(url[,)]/], typecheck: 'root' },
   { id: 'INV-008', file: 'functions/api/content-intelligence/analyze-url.ts', status: 'safe-multi-source', evidence: /safeFetchText\(resolvedUrl,/, typecheck: 'root' },
   { id: 'INV-009', file: 'functions/api/content-intelligence/saved-links.ts', status: 'safe-text', evidence: /safeFetchText\(url,/, typecheck: 'root' },
-  { id: 'INV-010', file: 'functions/api/content-intelligence/twitter-image-proxy.ts', status: 'safe-image', evidence: /safeFetchImage\(validatedImageUrl,/, typecheck: 'root' },
+  { id: 'INV-010', file: 'functions/api/content-intelligence/twitter-image-proxy.ts', status: 'safe-image', evidence: /reserveArchiveWrite\(env\.CACHE, clientId\)/, typecheck: 'root' },
   { id: 'INV-011', file: 'functions/api/tools/rage-check.ts', status: 'safe-multi-source', evidence: /scrapeUrl\(url, context\.env\.APIFY_API_KEY\)/, forbidden: [/BROWSER_RENDERER/, /renderArticleFallback/], typecheck: 'root' },
   { id: 'INV-012', file: 'functions/api/surveys/public/[token]/submit.ts', status: 'safe-multi-source', evidence: /enrichResponseUrls\(/, typecheck: 'root' },
   { id: 'INV-013', file: 'functions/api/cop/public/intake/[token]/submit.ts', status: 'safe-multi-source', evidence: /enrichResponseUrls\(/, typecheck: 'root' },
@@ -56,7 +57,7 @@ const entries: InventoryEntry[] = [
   { id: 'INV-015', file: 'functions/api/tools/batch-process.ts', status: 'delegated-unsafe', evidence: /endpoint = '\/api\/tools\/extract'/, typecheck: 'root' },
   { id: 'INV-016', file: 'functions/api/frameworks/pmesii-pt/import-url.ts', status: 'delegated-unsafe', evidence: /body: JSON\.stringify\(\{\s*url: body\.url/s, typecheck: 'root' },
   { id: 'INV-017', file: 'functions/api/content-intelligence/starbursting.ts', status: 'delegated-safe', evidence: /\/api\/ai\/scrape-url/, typecheck: 'root' },
-  { id: 'INV-018', file: 'functions/api/cop/[id]/scrape.ts', status: 'third-party-job', evidence: /canonicalizeScrapeRequestUrl\(value\)/, typecheck: 'root' },
+  { id: 'INV-018', file: 'functions/api/cop/[id]/scrape.ts', status: 'bounded-provider-job', evidence: /fetchApifyJson\(apiKey,/, forbidden: [/\bfetch\s*\(/], typecheck: 'root' },
   { id: 'INV-019', file: 'functions/api/content-intelligence/social-extract.ts', status: 'constrained-provider', evidence: /youtube\.com\/oembed/, typecheck: 'root' },
   { id: 'INV-020', file: 'functions/api/content-intelligence/social-media-extract.ts', status: 'constrained-provider', evidence: /selectedTrack\.baseUrl/, typecheck: 'root' },
   { id: 'INV-021', file: 'functions/api/content-intelligence/git-repository-extract.ts', status: 'constrained-provider', evidence: /api\.github\.com\/repos/, typecheck: 'excluded' },
@@ -64,7 +65,7 @@ const entries: InventoryEntry[] = [
   { id: 'INV-023', file: 'functions/api/content-intelligence/domain-country.ts', status: 'constrained-provider', evidence: /ip-api\.com\/json/, typecheck: 'root' },
   { id: 'INV-024', file: 'functions/api/content-intelligence/virustotal-lookup.ts', status: 'constrained-provider', evidence: /www\.virustotal\.com\/api\/v3\/domains/, typecheck: 'root' },
   { id: 'INV-025', file: 'functions/api/content-intelligence/pdf-extractor.ts', status: 'safe-pdf', evidence: /safeFetchPdf\(url,/, typecheck: 'root' },
-  { id: 'INV-026', file: 'functions/api/_shared/apify-social.ts', status: 'third-party-job', evidence: /APIFY_BASE.*api\.apify\.com\/v2/, typecheck: 'transitive' },
+  { id: 'INV-026', file: 'functions/api/_shared/apify-social.ts', status: 'bounded-provider-job', evidence: /fetchApifyJson\(apiKey,/, forbidden: [/\bfetch\s*\(/], typecheck: 'transitive' },
 ]
 
 const repositoryRoot = process.cwd()

@@ -204,6 +204,50 @@ test.describe('scraping authorization and idempotency contracts @smoke', () => {
     }
   })
 
+  test('@smoke rejects unapproved provider URLs and oversized paid requests before disclosure', async () => {
+    const db = new SqliteD1()
+    seedOwner(db)
+    const originalFetch = globalThis.fetch
+    let fetchCalls = 0
+    globalThis.fetch = (async () => {
+      fetchCalls += 1
+      return Response.json({ data: { id: 'unexpected', status: 'RUNNING' } })
+    }) as typeof fetch
+
+    const post = (body: Record<string, unknown>) => onRequestPost(context(db, new Request(
+      'https://test/api/cop/cop-1/scrape',
+      {
+        method: 'POST',
+        headers: { Authorization: 'Bearer session-token', 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      },
+    )) as never)
+
+    try {
+      const wrongHost = await post({ type: 'twitter', urls: ['https://evil.example/x.com/status/123'] })
+      expect(wrongHost.status).toBe(400)
+      expect(await wrongHost.json()).toMatchObject({ error: expect.stringContaining('approved platform hostname') })
+
+      const wrongPlatform = await post({ type: 'twitter', urls: ['https://www.tiktok.com/@a/video/123'] })
+      expect(wrongPlatform.status).toBe(400)
+
+      const tooMany = await post({
+        type: 'twitter',
+        urls: Array.from({ length: 26 }, (_, index) => `https://x.com/a/status/${index + 1}`),
+      })
+      expect(tooMany.status).toBe(400)
+      expect(await tooMany.json()).toEqual({ error: 'urls must contain at most 25 entries' })
+
+      const longQuery = await post({ type: 'twitter', query: 'q'.repeat(501) })
+      expect(longQuery.status).toBe(400)
+      expect(fetchCalls).toBe(0)
+      expect(db.sqlite.prepare('SELECT COUNT(*) AS count FROM cop_scrape_requests').get().count).toBe(0)
+    } finally {
+      globalThis.fetch = originalFetch
+      db.sqlite.close()
+    }
+  })
+
   test('@smoke accepted editor starts a paid run with authenticated requester identity', async () => {
     const db = new SqliteD1()
     db.sqlite.exec(`

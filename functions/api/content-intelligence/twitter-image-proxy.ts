@@ -12,6 +12,7 @@ import {
 } from '../_shared/safe-content'
 
 interface Env {
+  CACHE?: KVNamespace
   UPLOADS?: R2Bucket
 }
 
@@ -19,6 +20,9 @@ const CACHE_CONTROL = 'public, max-age=604800'
 const CACHE_HIT_READ_TIMEOUT_MS = 1_000
 const CACHE_POLICY_VERSION = 'safe-image-v1'
 const TWITTER_IMAGE_HOST = 'pbs.twimg.com'
+export const TWITTER_IMAGE_REQUESTS_PER_HOUR = 240
+export const TWITTER_IMAGE_ARCHIVE_WRITES_PER_HOUR = 20
+export const TWITTER_IMAGE_ARCHIVE_WRITES_PER_DAY = 1_000
 const ALLOWED_IMAGE_MIME_TYPES = new Set<SafeImageMimeType>([
   'image/jpeg',
   'image/png',
@@ -30,6 +34,53 @@ const ALLOWED_IMAGE_MIME_TYPES = new Set<SafeImageMimeType>([
 interface CachedImageMetadata {
   contentLength: number
   mimeType: SafeImageMimeType
+}
+
+type BudgetResult = 'allowed' | 'limited' | 'unavailable'
+
+async function opaqueClientId(request: Request): Promise<string> {
+  const clientIp = request.headers.get('CF-Connecting-IP') || 'unknown'
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(clientIp))
+  return [...new Uint8Array(digest)].slice(0, 12)
+    .map(byte => byte.toString(16).padStart(2, '0'))
+    .join('')
+}
+
+async function consumeBudget(
+  store: KVNamespace | undefined,
+  key: string,
+  limit: number,
+  windowSeconds: number,
+): Promise<BudgetResult> {
+  if (!store) return 'unavailable'
+  const bucket = Math.floor(Date.now() / (windowSeconds * 1000))
+  const budgetKey = `twitter-image:${key}:${bucket}`
+  try {
+    const current = Number.parseInt(await store.get(budgetKey) || '0', 10)
+    if (!Number.isSafeInteger(current) || current < 0) return 'unavailable'
+    if (current >= limit) return 'limited'
+    await store.put(budgetKey, String(current + 1), { expirationTtl: windowSeconds * 2 })
+    return 'allowed'
+  } catch {
+    return 'unavailable'
+  }
+}
+
+async function reserveArchiveWrite(store: KVNamespace | undefined, clientId: string): Promise<boolean> {
+  const clientBudget = await consumeBudget(
+    store,
+    `archive-client:${clientId}`,
+    TWITTER_IMAGE_ARCHIVE_WRITES_PER_HOUR,
+    60 * 60,
+  )
+  if (clientBudget !== 'allowed') return false
+  const globalBudget = await consumeBudget(
+    store,
+    'archive-global',
+    TWITTER_IMAGE_ARCHIVE_WRITES_PER_DAY,
+    24 * 60 * 60,
+  )
+  return globalBudget === 'allowed'
 }
 
 export function parseTwitterImageUrl(value: string): URL {
@@ -214,6 +265,20 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     })
   }
 
+  const clientId = await opaqueClientId(request)
+  const requestBudget = await consumeBudget(
+    env.CACHE,
+    `request:${clientId}`,
+    TWITTER_IMAGE_REQUESTS_PER_HOUR,
+    60 * 60,
+  )
+  if (requestBudget === 'limited') {
+    return new Response('Twitter image proxy rate limit exceeded', {
+      status: 429,
+      headers: { ...CORS_HEADERS, 'Retry-After': '3600' },
+    })
+  }
+
   // Check Cloudflare Cache API first
   const cache = caches.default
   // Version the key so responses cached before byte/MIME validation are not reused.
@@ -284,6 +349,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       context.waitUntil(
         (async () => {
           try {
+            if (!await reserveArchiveWrite(env.CACHE, clientId)) return
             // Check if already exists in R2
             const existing = await uploads.head(r2Key)
             if (!existing) {

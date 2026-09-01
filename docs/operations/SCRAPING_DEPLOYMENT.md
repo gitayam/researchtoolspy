@@ -19,8 +19,9 @@ unrelated browser, cron, or container rollout.
 ## Account and release gates
 
 Wrangler authentication currently exposes more than one Cloudflare account.
-Resolve the intended account with `pnpm exec wrangler whoami`, then export its
-ID for every release command:
+The canonical account is pinned in `wrangler.toml`; verify that the authenticated
+identity can access it with `pnpm exec wrangler whoami`. `CLOUDFLARE_ACCOUNT_ID`
+may still be exported explicitly in CI or an emergency shell:
 
 ```bash
 export CLOUDFLARE_ACCOUNT_ID="<researchtoolspy-account-id>"
@@ -40,6 +41,10 @@ The pre-deployment check is read-only against production D1. If a managed
 migration is pending, inspect it and its rollback notes before continuing. The
 release script exports D1 and records Time Travel state before applying any
 pending migration.
+
+If the D1 schema snapshot is unavailable, the gate reports that single remote
+dependency failure and skips per-object assertions. It must not misreport every
+table and column as missing, and deployment remains fail-closed.
 
 ## Pages and Functions deployment
 

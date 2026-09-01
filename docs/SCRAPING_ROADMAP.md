@@ -138,7 +138,8 @@ flowchart LR
 - [x] Route RageCheck and the shared `scrapeUrl` path through bounded static text/oEmbed adapters with exact social-provider classification; remove the shared Browser Run fallback pending enforcing egress.
 - [x] Route the shared content-intelligence PDF helper through bounded MIME/signature-validated PDF fetch.
 - [x] Route content-intelligence analysis, saved-link titles/delegation, and the public Twitter image proxy through bounded purpose-specific adapters; disable dynamic rendering on the analysis path pending enforcing egress.
-- [ ] Add binding-backed abuse throttling and write budgets to the public Twitter image proxy before promoting it for higher-volume use.
+- [x] Add binding-backed hourly request throttling plus per-client/hourly and global/daily R2 archival budgets to the public Twitter image proxy; disable durable archival when the budget store is unavailable.
+- [x] Constrain paid COP and shared Apify jobs to exact supported social-post URLs, fixed provider endpoints, bounded query/list sizes, manual redirects, timeouts, MIME checks, and streaming response ceilings.
 - [x] Scope `content-intelligence/analyze-url` `load_existing` reads to the authenticated analysis owner and require owner/editor/admin workspace authority for new writes.
 - [x] Keep `content-intelligence/analyze-url` usable without login through ephemeral, non-persisted results; retain auth for existing/trusted-content reads, require writable workspace authority for every write, and apply a dedicated per-IP public budget.
 - [x] Keep Content Intelligence Full-mode DIME enhancement usable without login through ephemeral results; pass the fresh analysis response into the framework runner, and owner-scope every saved DIME update. Persistent Starbursting sessions remain an explicit authenticated workspace feature.
