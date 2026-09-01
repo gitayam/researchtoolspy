@@ -10,13 +10,12 @@ import { logEvent } from '../../../../_shared/event-log'
 import {
   extractGeoFromRequest, isCountryAllowed, verifyPassword,
   hashSubmitterIP, hashFormData, checkSurveyResponseRateLimit,
+  type PublicSubmissionBody, type PublicSubmissionFormRow,
 } from '../../../../_shared/survey-drops'
 import { enrichResponseUrls } from '../../../../_shared/url-enrichment'
 
 interface Env {
   DB: D1Database
-  APIFY_API_KEY?: string
-  SYSTEM_USER_HASH?: string
 }
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
@@ -28,7 +27,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       `SELECT id, cop_session_id, status, require_location, require_contact, form_schema,
               access_level, password_hash, allowed_countries, rate_limit_per_hour, expires_at
        FROM cop_intake_forms WHERE share_token = ?`
-    ).bind(token).first() as any
+    ).bind(token).first<PublicSubmissionFormRow>()
 
     if (!form) {
       return new Response(JSON.stringify({ error: 'Form not found' }), {
@@ -69,7 +68,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       }), { status: 403, headers: JSON_HEADERS })
     }
 
-    const body = await request.json() as any
+    const body = await request.json() as PublicSubmissionBody
 
     // Password check (for password-protected forms)
     if (form.access_level === 'password') {

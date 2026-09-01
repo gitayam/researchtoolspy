@@ -128,7 +128,7 @@ flowchart LR
   - `redirect: manual` with validation at every hop
   - redirect, response-byte, content-type, and total-duration limits
 - [ ] Enforce the same rules again inside Browser Run and Container service boundaries.
-- [ ] Route public survey/COP URL enrichment through the safe primitive.
+- [x] Route public survey/COP URL enrichment through static-only bounded fetch and public ephemeral analysis; prohibit paid-provider disclosure, Browser Run navigation, synthetic auth, and persistence intent on these public background paths.
 - [ ] Route `tools/analyze-url`, `scrape-metadata`, claims, timeline, RageCheck, AI scrape, social routes, and the web scraper through it.
 - [x] Route `tools/scrape-metadata` through bounded text fetch and `tools/extract` through the bounded text/PDF document adapter.
 - [x] Route `tools/analyze-url` and its optional Wayback metadata checks through bounded exact-host adapters; disable implicit archive-save writes from the read-like analysis request.

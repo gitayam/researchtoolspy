@@ -2,6 +2,29 @@
  * Survey Drops — shared helpers for access control, geo-gating, rate limiting, dedup
  */
 
+export interface PublicSubmissionFormRow {
+  id: string
+  cop_session_id: string | null
+  status: string
+  require_location: number
+  require_contact: number
+  form_schema: string | null
+  access_level: string | null
+  password_hash: string | null
+  allowed_countries: string | null
+  rate_limit_per_hour: number
+  expires_at: string | null
+}
+
+export interface PublicSubmissionBody {
+  form_data?: Record<string, unknown>
+  submitter_name?: string
+  submitter_contact?: string
+  password?: string
+  lat?: number
+  lon?: number
+}
+
 // Hex encode a Uint8Array
 function toHex(bytes: Uint8Array): string {
   return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('')
@@ -120,7 +143,9 @@ export function extractGeoFromRequest(request: Request): {
   lat: number | null
   lon: number | null
 } {
-  const cf = (request as any).cf
+  const cf = (request as Request & {
+    cf?: { country?: string; city?: string; latitude?: string | number; longitude?: string | number }
+  }).cf
   return {
     country: cf?.country || request.headers.get('CF-IPCountry') || null,
     city: cf?.city || null,

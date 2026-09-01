@@ -3,8 +3,7 @@
  *
  * E-14: COP public intake now runs the SAME background URL-enrichment as System A
  * surveys submit, via the shared `functions/api/_shared/url-enrichment.ts` module.
- * The network-bound part (`enrichResponseUrls`) is not unit-tested here; instead we
- * pin the two pure pieces it is built from:
+ * Pins the pure record helpers plus the public network boundary:
  *   - `urlFieldsFromSchema` — which schema fields get enriched
  *   - `enrichmentRecord`    — the `_enriched_<field>` record shape written to form_data
  * If either drifts, COP and surveys enrichment would diverge or write a bad shape.
@@ -13,6 +12,7 @@ import { test, expect } from '@playwright/test'
 import {
   urlFieldsFromSchema,
   enrichmentRecord,
+  enrichResponseUrls,
 } from '../../../functions/api/_shared/url-enrichment'
 import type { ScrapedContent } from '../../../functions/api/_shared/scraper-utils'
 
@@ -106,5 +106,152 @@ test.describe('URL enrichment pure helpers @smoke', () => {
 
     expect(rec.title).toBe('Only title')
     expect(rec.excerpt).toBeUndefined()
+  })
+})
+
+function dnsResponse(type: string, addresses: string[]): Response {
+  const expectedType = type === 'AAAA' ? 28 : 1
+  return Response.json({
+    Status: 0,
+    Answer: addresses.map(data => ({ type: expectedType, data })),
+  })
+}
+
+function enrichmentDb(updates: string[]): D1Database {
+  return {
+    prepare(sql: string) {
+      return {
+        bind(...values: unknown[]) {
+          return {
+            async first() {
+              return sql.includes('SELECT form_data') ? { form_data: '{}' } : null
+            },
+            async run() {
+              if (sql.includes('UPDATE survey_responses')) updates.push(String(values[0]))
+              return { success: true }
+            },
+          }
+        },
+      }
+    },
+  } as unknown as D1Database
+}
+
+test.describe('public URL enrichment network boundary @smoke', () => {
+  test('@smoke uses bounded static fetch and ephemeral analysis without provider, renderer, or fake auth', async () => {
+    const originalFetch = globalThis.fetch
+    const updates: string[] = []
+    const targetUrls: string[] = []
+    let analysisInit: RequestInit | undefined
+    let rendererCalls = 0
+
+    globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = new URL(String(input))
+      if (url.hostname === 'cloudflare-dns.com') {
+        return dnsResponse(url.searchParams.get('type') || 'A',
+          url.searchParams.get('type') === 'A' ? ['93.184.216.34'] : [])
+      }
+      if (url.href === 'https://public.example/article') {
+        targetUrls.push(url.href)
+        return new Response(`<!doctype html><html><head><title>Public report</title></head><body><main><h1>Public report</h1><p>${'bounded evidence '.repeat(80)}</p></main></body></html>`, {
+          headers: { 'Content-Type': 'text/html' },
+        })
+      }
+      if (url.href === 'https://researchtools.test/api/content-intelligence/analyze-url') {
+        analysisInit = init
+        return Response.json({
+          title: 'Analyzed report',
+          summary: 'An ephemeral summary',
+          word_count: 160,
+          content_source: 'original',
+          is_persisted: false,
+        })
+      }
+      throw new Error(`Unexpected fetch: ${url.href}`)
+    }) as typeof fetch
+
+    try {
+      await enrichResponseUrls({
+        env: {
+          DB: enrichmentDb(updates),
+          APIFY_API_KEY: 'must-not-be-used',
+          BROWSER_RENDERER: {
+            async fetch() {
+              rendererCalls += 1
+              return Response.json({ markdown: 'must not render' })
+            },
+          },
+        } as never,
+        origin: 'https://researchtools.test',
+        responseId: 'response-1',
+        formSchema: [{ name: 'source_url', type: 'url' }],
+        formData: { source_url: 'https://public.example/article' },
+      })
+
+      expect(targetUrls).toEqual(['https://public.example/article'])
+      expect(rendererCalls).toBe(0)
+      expect(analysisInit?.headers).toEqual({ 'Content-Type': 'application/json' })
+      expect(JSON.parse(String(analysisInit?.body))).toEqual({
+        url: 'https://public.example/article',
+        mode: 'quick',
+        save_link: false,
+      })
+      expect(updates).toHaveLength(1)
+      const stored = JSON.parse(updates[0])
+      expect(stored._enriched_source_url).toMatchObject({
+        url: 'https://public.example/article',
+        summary: 'An ephemeral summary',
+        content_source: 'original',
+      })
+      expect(stored._enriched_source_url).not.toHaveProperty('analysis_id')
+    } finally {
+      globalThis.fetch = originalFetch
+    }
+  })
+
+  test('@smoke denies mixed public/private DNS before public enrichment target transport', async () => {
+    const originalFetch = globalThis.fetch
+    let targetCalls = 0
+    let rendererCalls = 0
+
+    globalThis.fetch = (async (input: RequestInfo | URL) => {
+      const url = new URL(String(input))
+      if (url.hostname === 'cloudflare-dns.com') {
+        return dnsResponse(url.searchParams.get('type') || 'A',
+          url.searchParams.get('type') === 'A' ? ['93.184.216.34', '10.0.0.8'] : [])
+      }
+      if (url.hostname === 'mixed.example') {
+        targetCalls += 1
+        return new Response('must not fetch')
+      }
+      if (url.pathname === '/api/content-intelligence/analyze-url') {
+        return Response.json({ error: 'denied' }, { status: 400 })
+      }
+      throw new Error(`Unexpected fetch: ${url.href}`)
+    }) as typeof fetch
+
+    try {
+      await enrichResponseUrls({
+        env: {
+          DB: enrichmentDb([]),
+          APIFY_API_KEY: 'must-not-be-used',
+          BROWSER_RENDERER: {
+            async fetch() {
+              rendererCalls += 1
+              return new Response('must not render')
+            },
+          },
+        } as never,
+        origin: 'https://researchtools.test',
+        responseId: 'response-2',
+        formSchema: [{ name: 'source_url', type: 'url' }],
+        formData: { source_url: 'https://mixed.example/private' },
+      })
+
+      expect(targetCalls).toBe(0)
+      expect(rendererCalls).toBe(0)
+    } finally {
+      globalThis.fetch = originalFetch
+    }
   })
 })

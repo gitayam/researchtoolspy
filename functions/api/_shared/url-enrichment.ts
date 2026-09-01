@@ -13,14 +13,10 @@
  * never throw into the request path — callers pass it to `context.waitUntil(...)`.
  */
 import { scrapeUrl, type ScrapedContent } from './scraper-utils'
-import type { RendererBinding } from './rendered-content'
 
 /** Env bindings the enrichment needs. Mirror these in each caller's Env. */
 export interface UrlEnrichmentEnv {
   DB: D1Database
-  APIFY_API_KEY?: string
-  SYSTEM_USER_HASH?: string
-  BROWSER_RENDERER?: RendererBinding
 }
 
 /** A single field definition out of a form schema. */
@@ -112,16 +108,19 @@ export async function enrichResponseUrls({
       if (!url || typeof url !== 'string' || !url.startsWith('http')) continue
 
       try {
-        // Quick scrape for title/excerpt
-        const scraped = await scrapeUrl(url, env.APIFY_API_KEY, env.BROWSER_RENDERER)
+        // Public form enrichment is deliberately static-only. Do not disclose a
+        // submitter URL to a paid provider or navigate it in Browser Run; the
+        // shared scraper's direct path applies DNS, redirect, MIME, byte, and
+        // total-duration policy before returning bounded text.
+        const scraped = await scrapeUrl(url)
 
         // Full content analysis via internal API call (entities, claims, sentiment, topics)
         let analysis: AnalysisResult | null = null
         try {
           const analysisRes = await fetch(`${origin}/api/content-intelligence/analyze-url`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-User-Hash': env.SYSTEM_USER_HASH || 'system-internal' },
-            body: JSON.stringify({ url, mode: 'quick' }),
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url, mode: 'quick', save_link: false }),
             signal: AbortSignal.timeout(25000),
           })
           if (analysisRes.ok) {

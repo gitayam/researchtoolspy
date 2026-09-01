@@ -28,7 +28,6 @@ import { validatePreviewUrl, shapePreview } from './_preview-url'
 
 interface Env {
   DB: D1Database
-  SYSTEM_USER_HASH?: string
 }
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
@@ -170,17 +169,15 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     // snapshot would block the response and add an external dependency.
     const archiveUrl = generateArchiveUrls(url).wayback
 
-    // Call analyze-url INTERNALLY with the system hash (it requires auth).
-    // Quick mode keeps it cheap. Graceful failure — never 500-crash the preview.
+    // Call the public ephemeral analysis path internally. It applies the full
+    // outbound URL policy and performs no persistence without authenticated
+    // writable workspace context. Graceful failure — never 500-crash preview.
     try {
       const origin = new URL(request.url).origin
       const analysisRes = await fetch(`${origin}/api/content-intelligence/analyze-url`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-User-Hash': env.SYSTEM_USER_HASH || 'system-internal',
-        },
-        body: JSON.stringify({ url, mode: 'quick' }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url, mode: 'quick', save_link: false }),
         signal: AbortSignal.timeout(20000),
       })
 
