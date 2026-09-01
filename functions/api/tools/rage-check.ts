@@ -2,7 +2,6 @@ import { callOpenAIViaGateway, getOptimalCacheTTL } from '../_shared/ai-gateway'
 import { scrapeUrl } from '../_shared/scraper-utils'
 import { getUserFromRequest } from '../_shared/auth-helpers'
 import { JSON_HEADERS } from '../_shared/api-utils'
-import type { RendererBinding } from '../_shared/rendered-content'
 
 interface Env {
   DB: D1Database
@@ -10,7 +9,10 @@ interface Env {
   AI_CONFIG: KVNamespace
   CACHE: KVNamespace
   APIFY_API_KEY?: string
-  BROWSER_RENDERER?: RendererBinding
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
@@ -30,7 +32,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     
     // Use shared scraper
-    const scraped = await scrapeUrl(url, context.env.APIFY_API_KEY, context.env.BROWSER_RENDERER)
+    const scraped = await scrapeUrl(url, context.env.APIFY_API_KEY)
 
     if (scraped.error) {
        console.error('[RageCheck] Scrape failed:', scraped.error)
@@ -110,9 +112,14 @@ Return ONLY valid JSON in this structure:
 
     const rawContent = aiData.choices[0].message.content
     const jsonContent = rawContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-    let analysis: any
-    try { analysis = JSON.parse(jsonContent) } catch {
+    let analysis: unknown
+    try { analysis = JSON.parse(jsonContent) as unknown } catch {
       console.warn('[rage-check] Failed to parse AI response:', jsonContent?.substring(0, 200))
+      return new Response(JSON.stringify({ error: 'AI returned invalid JSON' }), {
+        status: 502, headers: JSON_HEADERS,
+      })
+    }
+    if (!isRecord(analysis)) {
       return new Response(JSON.stringify({ error: 'AI returned invalid JSON' }), {
         status: 502, headers: JSON_HEADERS,
       })

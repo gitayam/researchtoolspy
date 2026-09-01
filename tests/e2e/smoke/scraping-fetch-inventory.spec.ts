@@ -49,7 +49,7 @@ const entries: InventoryEntry[] = [
   { id: 'INV-008', file: 'functions/api/content-intelligence/analyze-url.ts', status: 'safe-multi-source', evidence: /safeFetchText\(resolvedUrl,/, typecheck: 'root' },
   { id: 'INV-009', file: 'functions/api/content-intelligence/saved-links.ts', status: 'safe-text', evidence: /safeFetchText\(url,/, typecheck: 'root' },
   { id: 'INV-010', file: 'functions/api/content-intelligence/twitter-image-proxy.ts', status: 'safe-image', evidence: /safeFetchImage\(validatedImageUrl,/, typecheck: 'root' },
-  { id: 'INV-011', file: 'functions/api/tools/rage-check.ts', status: 'unsafe-shared', evidence: /scrapeUrl\(url,/, typecheck: 'root' },
+  { id: 'INV-011', file: 'functions/api/tools/rage-check.ts', status: 'safe-multi-source', evidence: /scrapeUrl\(url, context\.env\.APIFY_API_KEY\)/, forbidden: [/BROWSER_RENDERER/, /renderArticleFallback/], typecheck: 'root' },
   { id: 'INV-012', file: 'functions/api/surveys/public/[token]/submit.ts', status: 'safe-multi-source', evidence: /enrichResponseUrls\(/, typecheck: 'root' },
   { id: 'INV-013', file: 'functions/api/cop/public/intake/[token]/submit.ts', status: 'safe-multi-source', evidence: /enrichResponseUrls\(/, typecheck: 'root' },
   { id: 'INV-014', file: 'functions/api/surveys/public/[token]/preview-url.ts', status: 'delegated-safe', evidence: /save_link: false/, forbidden: [/X-User-Hash/, /system-internal/], typecheck: 'root' },

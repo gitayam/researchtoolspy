@@ -4,9 +4,8 @@
  * including platform-specific handlers (Twitter, TikTok via Apify)
  */
 
-import { fetchSocialViaApify } from './apify-social'
+import { fetchSocialViaApify, isApifySupportedUrl } from './apify-social'
 import { extractArticle } from './article-extractor'
-import { renderArticleFallback, shouldRenderFallback, type RendererBinding } from './rendered-content'
 import { parseSafeOutboundUrl, safeFetchText } from './safe-fetch'
 
 export interface ScrapedContent {
@@ -16,10 +15,14 @@ export interface ScrapedContent {
   extraction?: { method: string; quality: string; wordCount: number }
 }
 
+interface TwitterOEmbed {
+  html?: string
+  author_name?: string
+}
+
 export async function scrapeUrl(
   url: string,
   apifyApiKey?: string,
-  renderer?: RendererBinding,
 ): Promise<ScrapedContent> {
   try {
     url = parseSafeOutboundUrl(url).href
@@ -28,7 +31,8 @@ export async function scrapeUrl(
   }
 
   // 1. Try Apify for Twitter/X and TikTok (richer content with engagement metrics)
-  if (apifyApiKey) {
+  const socialPlatform = isApifySupportedUrl(url)
+  if (apifyApiKey && socialPlatform) {
     try {
       // Race Apify against a 20s deadline to avoid hanging the Worker
       const socialResult = await Promise.race([
@@ -48,18 +52,21 @@ export async function scrapeUrl(
   }
 
   // 2. Fallback: Twitter/X oEmbed (no API key needed, but limited content)
-  const hostname = new URL(url).hostname.toLowerCase()
-  const isTwitter = hostname === 'twitter.com' || hostname.endsWith('.twitter.com')
-    || hostname === 'x.com' || hostname.endsWith('.x.com')
-
-  if (isTwitter) {
+  if (socialPlatform === 'twitter') {
     try {
       const twitterUrl = url.replace('https://x.com/', 'https://twitter.com/')
       const oembedUrl = `https://publish.twitter.com/oembed?url=${encodeURIComponent(twitterUrl)}`
-      const twitterResponse = await fetch(oembedUrl, { signal: AbortSignal.timeout(10000) })
+      const oembed = await safeFetchText(oembedUrl, {
+        timeoutMs: 10_000,
+        maxRedirects: 2,
+        maxResponseBytes: 128 * 1024,
+        allowedHostnames: ['publish.twitter.com'],
+        allowedContentTypes: ['application/json'],
+      })
+      const twitterResponse = oembed.response
 
       if (twitterResponse.ok) {
-        const data = await twitterResponse.json() as any
+        const data = JSON.parse(oembed.text) as TwitterOEmbed
         const html = data.html || ''
         let content = ''
 
@@ -94,10 +101,11 @@ export async function scrapeUrl(
       timeoutMs: 15_000,
       maxRedirects: 5,
       maxResponseBytes: 2 * 1024 * 1024,
+      allowedContentTypes: ['text/', 'application/xhtml+xml', 'application/xml'],
       requestInit: {
         headers: {
           'User-Agent': 'Mozilla/5.0 (compatible; ResearchToolsBot/1.0; +http://research.example.com)',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,text/plain;q=0.8',
         },
       },
     })
@@ -111,17 +119,14 @@ export async function scrapeUrl(
     }
 
     const article = extractArticle(html, finalUrl)
-    const rendered = shouldRenderFallback(article, html)
-      ? await renderArticleFallback(renderer, finalUrl)
-      : null
-    const content = rendered || article.text
+    const content = article.text
 
     return {
       title: article.title || url,
       content: content.substring(0, 30000),
       extraction: {
-        method: rendered ? 'cloudflare-browser-run' : article.method,
-        quality: rendered ? 'rendered' : article.quality,
+        method: article.method,
+        quality: article.quality,
         wordCount: content ? content.split(/\s+/).length : 0,
       },
     }
