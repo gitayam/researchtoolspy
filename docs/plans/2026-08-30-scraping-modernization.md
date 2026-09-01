@@ -74,7 +74,7 @@ Seven-day D1 query insights show active use of the content-analysis path (128 co
 
 ### Code and correctness findings that gate scraper expansion
 
-1. **Public SSRF path:** [`url-enrichment.ts`](../../functions/api/_shared/url-enrichment.ts) accepts any string beginning with `http` and passes it to `scrapeUrl()` from public survey/COP intake processing. `scrapeUrl()` performs no private-network check.
+1. **Resolved — public SSRF path:** [`url-enrichment.ts`](../../functions/api/_shared/url-enrichment.ts) now uses the static-only bounded `scrapeUrl()` path, whose shared fetch policy validates DNS answers, redirect hops, address ranges, MIME type, response bytes, and total duration. Public follow-on analysis is ephemeral (`save_link:false`) and carries no synthetic credentials.
 2. **Inconsistent SSRF coverage:** `tools/analyze-url`, `tools/scrape-metadata`, `extract-claims`, `extract-timeline`, and `rage-check` also fetch caller-controlled URLs without the shared check. The existing lexical `isPrivateUrl()` does not validate every redirect hop, DNS answers/rebinding, IPv6/reserved ranges, credentials, or ports.
 3. **Timeout silently ignored:** [`web-scraper.ts`](../../functions/api/web-scraper.ts) passes `signal` to `enhancedFetch()`, but [`browser-profiles.ts`](../../functions/utils/browser-profiles.ts) neither accepts nor forwards it. Other callers pass `headers` that are also ignored.
 4. **Worker code is outside TypeScript validation:** `tsconfig.app.json` includes only `src`; the `functions/`, `workers/`, and `containers/` TypeScript paths are not checked by the main build.

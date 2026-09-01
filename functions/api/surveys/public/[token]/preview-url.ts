@@ -11,8 +11,8 @@
  * This is BACKEND only (the form-UI wiring is E-5b). It mirrors submit.ts:
  *  - same token resolution + active/access checks (404 / 403),
  *  - same per-IP-hash rate limit (preview is cheap but fetches a URL),
- *  - calls the auth-gated `analyze-url` endpoint INTERNALLY with the system hash
- *    (NEVER exposing analyze-url directly to the public).
+ *  - calls `analyze-url` through its public ephemeral path with no synthetic
+ *    credentials and `save_link: false` (no writable workspace is required).
  *
  * PRIVACY (hard rule): the submitter's raw IP / user-agent are NEVER stored or
  * returned. An IP *hash* is used transiently for rate-limiting only (mirrors
