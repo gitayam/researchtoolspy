@@ -8,10 +8,10 @@
  */
 
 import { callOpenAIViaGateway, getOptimalCacheTTL } from '../_shared/ai-gateway'
-import { enhancedFetch } from '../../utils/browser-profiles'
 import { getUserFromRequest } from '../_shared/auth-helpers'
-import { fetchSocialViaApify } from '../_shared/apify-social'
+import { fetchSocialViaApify, isApifySupportedUrl } from '../_shared/apify-social'
 import { JSON_HEADERS, optionsResponse } from '../_shared/api-utils'
+import { parseSafeOutboundUrl, SafeFetchError, safeFetchText } from '../_shared/safe-fetch'
 
 interface Env {
   DB: D1Database
@@ -34,6 +34,53 @@ interface OgMetadata {
   author?: string
   publishDate?: string
   siteName?: string
+}
+
+interface FetchWithFallbackResult {
+  html: string
+  text: string
+  ogMetadata: OgMetadata
+  source: string
+  paywalled: boolean
+  error?: string
+  policyDenied?: boolean
+}
+
+interface WaybackAvailability {
+  archived_snapshots?: {
+    closest?: { url?: unknown; timestamp?: unknown }
+  }
+}
+
+interface ClaimsAnalysis {
+  claims?: unknown[]
+  entities?: unknown
+  summary?: string
+}
+
+const PRIMARY_MAX_RESPONSE_BYTES = 2 * 1024 * 1024
+const FALLBACK_MAX_RESPONSE_BYTES = 2 * 1024 * 1024
+const ARCHIVE_METADATA_MAX_RESPONSE_BYTES = 256 * 1024
+
+function terminalPolicyFailure(error: unknown): boolean {
+  return error instanceof SafeFetchError && (
+    error.code === 'invalid_url'
+    || error.code === 'unsafe_url'
+    || error.code === 'dns_resolution_failed'
+  )
+}
+
+function validatedWaybackSnapshotUrl(value: unknown): string | null {
+  if (typeof value !== 'string') return null
+  try {
+    const parsed = new URL(value)
+    const hostname = parsed.hostname.toLowerCase().replace(/\.$/, '')
+    if (parsed.protocol !== 'https:' || hostname !== 'web.archive.org') return null
+    if (!/^\/web\/\d{6,14}(?:[a-z_]+)?\//i.test(parsed.pathname)) return null
+    return parsed.href
+  } catch {
+    return null
+  }
 }
 
 // ─── Paywall detection ───
@@ -173,22 +220,34 @@ function cleanHtmlText(html: string): string {
   return text
 }
 
-async function fetchWithFallback(url: string): Promise<{
-  html: string
-  text: string
-  ogMetadata: OgMetadata
-  source: string
-  paywalled: boolean
-  error?: string
-}> {
+export async function fetchWithFallback(url: string): Promise<FetchWithFallbackResult> {
   let ogMetadata: OgMetadata = {}
   let paywalled = false
+  const totalController = new AbortController()
+  const totalTimeout = setTimeout(
+    () => totalController.abort(new Error('extract-claims fetch chain timed out')),
+    30_000,
+  )
 
-  // 1. Try original URL with enhanced browser headers
   try {
-    const response = await enhancedFetch(url, { maxRetries: 2, retryDelay: 500 })
+  // 1. Try the original URL through the shared outbound policy. A destination
+  // policy failure is terminal: never disclose a denied URL to fallback providers.
+  try {
+    const fetched = await safeFetchText(url, {
+      timeoutMs: 15_000,
+      maxRedirects: 5,
+      maxResponseBytes: PRIMARY_MAX_RESPONSE_BYTES,
+      requestInit: {
+        signal: totalController.signal,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; ResearchToolsBot/1.0)',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,text/plain;q=0.8',
+        },
+      },
+    })
+    const response = fetched.response
     if (response.ok) {
-      const html = await response.text()
+      const html = fetched.text
       ogMetadata = extractOgMetadata(html)
       const text = cleanHtmlText(html)
 
@@ -200,20 +259,29 @@ async function fetchWithFallback(url: string): Promise<{
         paywalled = true
       }
     }
-  } catch (e) {
+  } catch (error) {
+    if (terminalPolicyFailure(error)) {
+      return {
+        html: '', text: '', ogMetadata, source: 'failed', paywalled,
+        error: 'Outbound URL policy denied the destination', policyDenied: true,
+      }
+    }
     // Fallthrough to next source — intentional silent failure
   }
 
   // 2. Try Google AMP cache (works for many news sites)
   try {
     const ampUrl = `https://cdn.ampproject.org/v/s/${url.replace(/^https?:\/\//, '')}?amp_js_v=0.1`
-    const ampResp = await fetch(ampUrl, {
-      headers: { 'User-Agent': 'Mozilla/5.0' },
-      redirect: 'follow',
-      signal: AbortSignal.timeout(15000)
+    const amp = await safeFetchText(ampUrl, {
+      timeoutMs: 15_000,
+      maxRedirects: 2,
+      maxResponseBytes: FALLBACK_MAX_RESPONSE_BYTES,
+      allowedHostnames: ['cdn.ampproject.org'],
+      requestInit: { signal: totalController.signal, headers: { 'User-Agent': 'Mozilla/5.0' } },
     })
+    const ampResp = amp.response
     if (ampResp.ok) {
-      const html = await ampResp.text()
+      const html = amp.text
       const text = cleanHtmlText(html)
       if (text.length > 500 && !isPaywalledContent(text, html)) {
         const meta = extractOgMetadata(html)
@@ -225,20 +293,26 @@ async function fetchWithFallback(url: string): Promise<{
         }
       }
     }
-  } catch (e) {
+  } catch {
     // Fallthrough to next source — intentional silent failure
   }
 
   // 3. Try Google webcache
   try {
     const cacheUrl = `https://webcache.googleusercontent.com/search?q=cache:${encodeURIComponent(url)}`
-    const cacheResp = await fetch(cacheUrl, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
-      redirect: 'follow',
-      signal: AbortSignal.timeout(15000)
+    const cached = await safeFetchText(cacheUrl, {
+      timeoutMs: 15_000,
+      maxRedirects: 2,
+      maxResponseBytes: FALLBACK_MAX_RESPONSE_BYTES,
+      allowedHostnames: ['webcache.googleusercontent.com'],
+      requestInit: {
+        signal: totalController.signal,
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+      },
     })
+    const cacheResp = cached.response
     if (cacheResp.ok) {
-      const html = await cacheResp.text()
+      const html = cached.text
       const text = cleanHtmlText(html)
       if (text.length > 500 && !isPaywalledContent(text, html)) {
         const meta = extractOgMetadata(html)
@@ -250,19 +324,22 @@ async function fetchWithFallback(url: string): Promise<{
         }
       }
     }
-  } catch (e) {
+  } catch {
     // Fallthrough to next source — intentional silent failure
   }
 
   // 4. Try archive.ph
   try {
-    const archiveResp = await fetch(`https://archive.ph/newest/${url}`, {
-      headers: { 'User-Agent': 'Mozilla/5.0' },
-      redirect: 'follow',
-      signal: AbortSignal.timeout(15000)
+    const archived = await safeFetchText(`https://archive.ph/newest/${url}`, {
+      timeoutMs: 15_000,
+      maxRedirects: 5,
+      maxResponseBytes: FALLBACK_MAX_RESPONSE_BYTES,
+      allowedHostnames: ['archive.ph'],
+      requestInit: { signal: totalController.signal, headers: { 'User-Agent': 'Mozilla/5.0' } },
     })
+    const archiveResp = archived.response
     if (archiveResp.ok) {
-      const html = await archiveResp.text()
+      const html = archived.text
       const text = cleanHtmlText(html)
       if (text.length > 500 && !isPaywalledContent(text, html)) {
         const meta = extractOgMetadata(html)
@@ -274,26 +351,38 @@ async function fetchWithFallback(url: string): Promise<{
         }
       }
     }
-  } catch (e) {
+  } catch {
     // Fallthrough to next source — intentional silent failure
   }
 
   // 5. Try Wayback Machine
   try {
-    const wbResp = await fetch(
-      `https://archive.org/wayback/available?url=${encodeURIComponent(url)}`,
-      { signal: AbortSignal.timeout(15000) }
-    )
+    const availabilityUrl = new URL('https://archive.org/wayback/available')
+    availabilityUrl.searchParams.set('url', url)
+    const availability = await safeFetchText(availabilityUrl, {
+      timeoutMs: 15_000,
+      maxRedirects: 2,
+      maxResponseBytes: ARCHIVE_METADATA_MAX_RESPONSE_BYTES,
+      allowedHostnames: ['archive.org'],
+      allowedContentTypes: ['application/json'],
+      requestInit: { signal: totalController.signal },
+    })
+    const wbResp = availability.response
     if (wbResp.ok) {
-      const wbData = await wbResp.json() as any
+      const wbData = JSON.parse(availability.text) as WaybackAvailability
       const snapshot = wbData?.archived_snapshots?.closest
-      if (snapshot?.url) {
-        const archiveResp = await fetch(snapshot.url, {
-          headers: { 'User-Agent': 'Mozilla/5.0' },
-          signal: AbortSignal.timeout(15000)
+      const snapshotUrl = validatedWaybackSnapshotUrl(snapshot?.url)
+      if (snapshotUrl) {
+        const archived = await safeFetchText(snapshotUrl, {
+          timeoutMs: 15_000,
+          maxRedirects: 2,
+          maxResponseBytes: FALLBACK_MAX_RESPONSE_BYTES,
+          allowedHostnames: ['web.archive.org'],
+          requestInit: { signal: totalController.signal, headers: { 'User-Agent': 'Mozilla/5.0' } },
         })
+        const archiveResp = archived.response
         if (archiveResp.ok) {
-          const html = await archiveResp.text()
+          const html = archived.text
           const text = cleanHtmlText(html)
           if (text.length > 500) {
             const meta = extractOgMetadata(html)
@@ -307,7 +396,7 @@ async function fetchWithFallback(url: string): Promise<{
         }
       }
     }
-  } catch (e) {
+  } catch {
     // Fallthrough to next source — intentional silent failure
   }
 
@@ -324,6 +413,10 @@ async function fetchWithFallback(url: string): Promise<{
   }
 
   return { html: '', text: '', ogMetadata, source: 'failed', paywalled, error: 'All fetch methods failed' }
+  } finally {
+    clearTimeout(totalTimeout)
+    if (!totalController.signal.aborted) totalController.abort(new Error('extract-claims fetch chain completed'))
+  }
 }
 
 // ─── GPT analysis ───
@@ -338,7 +431,7 @@ async function analyzeContent(
     source: string
     paywalled: boolean
   }
-): Promise<any> {
+): Promise<ClaimsAnalysis> {
   const truncated = text.substring(0, 14000)
 
   // Adjust prompt based on how much content we have
@@ -430,7 +523,7 @@ ${truncated}`
   })
 
   const rawContent = aiData.choices[0].message.content
-  try { return JSON.parse(rawContent) } catch {
+  try { return JSON.parse(rawContent) as ClaimsAnalysis } catch {
     console.warn('[extract-claims] Failed to parse AI response:', rawContent?.substring(0, 200))
     return { claims: [], summary: 'Failed to parse AI response' }
   }
@@ -460,41 +553,48 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
+    let parsedUrl: URL
+    try {
+      parsedUrl = parseSafeOutboundUrl(url)
+    } catch {
+      return new Response(JSON.stringify({ error: 'Invalid or unsafe URL format' }), {
+        status: 400,
+        headers: JSON_HEADERS,
+      })
+    }
+    const normalizedUrl = parsedUrl.href
+    const socialPlatform = isApifySupportedUrl(normalizedUrl)
+
     // Early detection: x.com/twitter.com and tiktok.com block server-side scraping
     // Use Apify if available, otherwise reject with helpful message
-    try {
-      const parsedUrl = new URL(url)
-      const host = parsedUrl.hostname.replace(/^www\./, '')
-      if ((host === 'x.com' || host === 'twitter.com') && !context.env.APIFY_API_KEY) {
-        return new Response(JSON.stringify({
-          error: 'Twitter/X posts cannot be scraped',
-          details: 'X.com blocks server-side requests. Configure APIFY_API_KEY to enable Twitter scraping, or paste the tweet text directly.',
-          url,
-          paywalled: false
-        }), {
-          status: 422,
-          headers: JSON_HEADERS
-        })
-      }
-      if (host === 'tiktok.com' && !context.env.APIFY_API_KEY) {
-        return new Response(JSON.stringify({
-          error: 'TikTok videos cannot be scraped',
-          details: 'TikTok blocks server-side requests. Configure APIFY_API_KEY to enable TikTok scraping.',
-          url,
-          paywalled: false
-        }), {
-          status: 422,
-          headers: JSON_HEADERS
-        })
-      }
-    } catch {
-      // Invalid URL — will be caught by fetch below
+    const host = parsedUrl.hostname.toLowerCase().replace(/^www\./, '').replace(/\.$/, '')
+    if ((host === 'x.com' || host === 'twitter.com') && !context.env.APIFY_API_KEY) {
+      return new Response(JSON.stringify({
+        error: 'Twitter/X posts cannot be scraped',
+        details: 'X.com blocks server-side requests. Configure APIFY_API_KEY to enable Twitter scraping, or paste the tweet text directly.',
+        url: normalizedUrl,
+        paywalled: false
+      }), {
+        status: 422,
+        headers: JSON_HEADERS
+      })
+    }
+    if (host === 'tiktok.com' && !context.env.APIFY_API_KEY) {
+      return new Response(JSON.stringify({
+        error: 'TikTok videos cannot be scraped',
+        details: 'TikTok blocks server-side requests. Configure APIFY_API_KEY to enable TikTok scraping.',
+        url: normalizedUrl,
+        paywalled: false
+      }), {
+        status: 422,
+        headers: JSON_HEADERS
+      })
     }
 
     // 1. Try Apify for social media URLs first (richer content than standard fetch)
     let fetched: Awaited<ReturnType<typeof fetchWithFallback>>
-    if (context.env.APIFY_API_KEY) {
-      const socialResult = await fetchSocialViaApify(url, context.env.APIFY_API_KEY)
+    if (context.env.APIFY_API_KEY && socialPlatform) {
+      const socialResult = await fetchSocialViaApify(normalizedUrl, context.env.APIFY_API_KEY)
       if (socialResult?.success && socialResult.text.length > 50) {
         fetched = {
           text: socialResult.text,
@@ -508,10 +608,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           paywalled: false,
         }
       } else {
-        fetched = await fetchWithFallback(url)
+        fetched = await fetchWithFallback(normalizedUrl)
       }
     } else {
-      fetched = await fetchWithFallback(url)
+      fetched = await fetchWithFallback(normalizedUrl)
     }
 
     if (fetched.error && !fetched.text) {
@@ -554,7 +654,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     // 4. Return structured response
     return new Response(JSON.stringify({
-      url,
+      url: normalizedUrl,
       title,
       author: fetched.ogMetadata.author,
       publish_date: fetched.ogMetadata.publishDate,

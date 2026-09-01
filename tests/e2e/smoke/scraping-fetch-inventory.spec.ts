@@ -43,7 +43,7 @@ const entries: InventoryEntry[] = [
     typecheck: 'root',
   },
   { id: 'INV-004', file: 'functions/api/tools/extract.ts', status: 'safe-document', evidence: /safeFetchDocument\(body\.url,/, typecheck: 'root' },
-  { id: 'INV-005', file: 'functions/api/tools/extract-claims.ts', status: 'unsafe-direct', evidence: /enhancedFetch\(url/, typecheck: 'root' },
+  { id: 'INV-005', file: 'functions/api/tools/extract-claims.ts', status: 'safe-multi-source', evidence: /safeFetchText\(url,/, forbidden: [/enhancedFetch\(/, /await fetch\(/], typecheck: 'root' },
   { id: 'INV-006', file: 'functions/api/tools/extract-timeline.ts', status: 'unsafe-enhanced', evidence: /renderArticleFallback\(context\.env\.BROWSER_RENDERER, url\)/, typecheck: 'root' },
   { id: 'INV-007', file: 'functions/api/ai/scrape-url.ts', status: 'safe-multi-source', evidence: /safeFetchText\(normalizedUrl,/, forbidden: [/fetch\(url[,)]/], typecheck: 'root' },
   { id: 'INV-008', file: 'functions/api/content-intelligence/analyze-url.ts', status: 'safe-multi-source', evidence: /safeFetchText\(resolvedUrl,/, typecheck: 'root' },
