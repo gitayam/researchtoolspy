@@ -19,9 +19,11 @@ unrelated browser, cron, or container rollout.
 ## Account and release gates
 
 Wrangler authentication currently exposes more than one Cloudflare account.
-The canonical account is pinned in `wrangler.toml`; verify that the authenticated
-identity can access it with `pnpm exec wrangler whoami`. `CLOUDFLARE_ACCOUNT_ID`
-may still be exported explicitly in CI or an emergency shell:
+Because Cloudflare Pages rejects `account_id` in `wrangler.toml`, the canonical
+account is selected by `deploy.sh` and `scripts/pre-deployment-check.sh` through
+`CLOUDFLARE_ACCOUNT_ID`. Verify that the authenticated identity can access it
+with `pnpm exec wrangler whoami`. The variable may still be exported explicitly
+in CI or an emergency shell:
 
 ```bash
 export CLOUDFLARE_ACCOUNT_ID="<researchtoolspy-account-id>"

@@ -30,6 +30,8 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 PROJECT_NAME="researchtoolspy"
+RESEARCHTOOLSPY_CLOUDFLARE_ACCOUNT_ID="04eac09ae835290383903273f68c79b0"
+export CLOUDFLARE_ACCOUNT_ID="${CLOUDFLARE_ACCOUNT_ID:-$RESEARCHTOOLSPY_CLOUDFLARE_ACCOUNT_ID}"
 
 # =============================================================================
 # Parse Arguments
