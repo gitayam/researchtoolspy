@@ -132,6 +132,7 @@ flowchart LR
 - [ ] Route `tools/analyze-url`, `scrape-metadata`, claims, timeline, RageCheck, AI scrape, social routes, and the web scraper through it.
 - [x] Route `tools/scrape-metadata` through bounded text fetch and `tools/extract` through the bounded text/PDF document adapter.
 - [x] Route `tools/analyze-url` and its optional Wayback metadata checks through bounded exact-host adapters; disable implicit archive-save writes from the read-like analysis request.
+- [x] Route authenticated AI scrape and Starbursting delegation through bounded direct/oEmbed adapters; require exact social host/path classification before any Apify disclosure.
 - [x] Route the shared content-intelligence PDF helper through bounded MIME/signature-validated PDF fetch.
 - [x] Route content-intelligence analysis, saved-link titles/delegation, and the public Twitter image proxy through bounded purpose-specific adapters; disable dynamic rendering on the analysis path pending enforcing egress.
 - [ ] Add binding-backed abuse throttling and write budgets to the public Twitter image proxy before promoting it for higher-volume use.

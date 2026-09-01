@@ -5,7 +5,50 @@
  * Falls back gracefully if APIFY_API_KEY is not configured.
  */
 
+import { safeFetchText } from './safe-fetch'
+
 const APIFY_BASE = 'https://api.apify.com/v2'
+
+interface TwitterOEmbed {
+  html?: string
+  author_name?: string
+  author_url?: string
+}
+
+interface ApifyRunResponse {
+  data: { status?: string; defaultDatasetId?: string }
+}
+
+interface TwitterItem {
+  author?: { name?: string; userName?: string }
+  user?: { name?: string }
+  username?: string
+  text?: string
+  full_text?: string
+  tweetText?: string
+  createdAt?: string
+  created_at?: string
+  viewCount?: number
+  views?: number
+  likeCount?: number
+  favoriteCount?: number
+  likes?: number
+  retweetCount?: number
+  retweets?: number
+  replyCount?: number
+  replies?: number
+}
+
+interface TikTokItem {
+  authorMeta?: { nickName?: string; name?: string; verified?: boolean }
+  text?: string
+  desc?: string
+  createTimeISO?: string
+  playCount?: number
+  diggCount?: number
+  shareCount?: number
+  commentCount?: number
+}
 
 export interface SocialContent {
   success: boolean
@@ -29,15 +72,26 @@ export interface SocialContent {
  * then Apify tweet-scraper as fallback (better for search-based scraping).
  */
 export async function fetchTwitterViaApify(url: string, apiKey: string): Promise<SocialContent> {
+  if (isApifySupportedUrl(url) !== 'twitter') {
+    return { success: false, text: '', platform: 'twitter', error: 'Unsupported Twitter URL' }
+  }
+
   // 1. Try oEmbed first — fast and works for individual tweet URLs
   // Note: oEmbed requires twitter.com domain (x.com returns 404)
   try {
     const twitterUrl = url.replace('https://x.com/', 'https://twitter.com/')
     const oembedUrl = `https://publish.twitter.com/oembed?url=${encodeURIComponent(twitterUrl)}`
-    const oembedRes = await fetch(oembedUrl, { signal: AbortSignal.timeout(8000) })
+    const oembed = await safeFetchText(oembedUrl, {
+      timeoutMs: 8_000,
+      maxRedirects: 2,
+      maxResponseBytes: 128 * 1024,
+      allowedHostnames: ['publish.twitter.com'],
+      allowedContentTypes: ['application/json'],
+    })
+    const oembedRes = oembed.response
 
     if (oembedRes.ok) {
-      const data = await oembedRes.json() as any
+      const data = JSON.parse(oembed.text) as TwitterOEmbed
       const html = data.html || ''
 
       // Extract text from the blockquote
@@ -88,7 +142,7 @@ export async function fetchTwitterViaApify(url: string, apiKey: string): Promise
       return { success: false, text: '', platform: 'twitter', error: `Apify returned ${runRes.status}` }
     }
 
-    const runData = await runRes.json() as any
+    const runData = await runRes.json() as ApifyRunResponse
     const run = runData.data
     if (run.status !== 'SUCCEEDED') {
       return { success: false, text: '', platform: 'twitter', error: `Run status: ${run.status}` }
@@ -103,7 +157,7 @@ export async function fetchTwitterViaApify(url: string, apiKey: string): Promise
       return { success: false, text: '', platform: 'twitter', error: 'Failed to fetch results' }
     }
 
-    const items = await itemsRes.json() as any[]
+    const items = await itemsRes.json() as TwitterItem[]
     if (items.length === 0) {
       return { success: false, text: '', platform: 'twitter', error: 'No results from scraper' }
     }
@@ -147,6 +201,10 @@ export async function fetchTwitterViaApify(url: string, apiKey: string): Promise
  * Extract content from a TikTok URL using Apify tiktok-scraper
  */
 export async function fetchTikTokViaApify(url: string, apiKey: string): Promise<SocialContent> {
+  if (isApifySupportedUrl(url) !== 'tiktok') {
+    return { success: false, text: '', platform: 'tiktok', error: 'Unsupported TikTok URL' }
+  }
+
   try {
     const runRes = await fetch(`${APIFY_BASE}/acts/clockworks~tiktok-scraper/runs?waitForFinish=60`, {
       method: 'POST',
@@ -166,7 +224,7 @@ export async function fetchTikTokViaApify(url: string, apiKey: string): Promise<
       return { success: false, text: '', platform: 'tiktok', error: `Apify returned ${runRes.status}` }
     }
 
-    const runData = await runRes.json() as any
+    const runData = await runRes.json() as ApifyRunResponse
     const run = runData.data
     if (run.status !== 'SUCCEEDED') {
       return { success: false, text: '', platform: 'tiktok', error: `Run status: ${run.status}` }
@@ -181,7 +239,7 @@ export async function fetchTikTokViaApify(url: string, apiKey: string): Promise<
       return { success: false, text: '', platform: 'tiktok', error: 'Failed to fetch results' }
     }
 
-    const items = await itemsRes.json() as any[]
+    const items = await itemsRes.json() as TikTokItem[]
     if (items.length === 0) {
       return { success: false, text: '', platform: 'tiktok', error: 'No results from scraper' }
     }
@@ -222,11 +280,24 @@ export async function fetchTikTokViaApify(url: string, apiKey: string): Promise<
  * Detect if a URL is a social media post that Apify can extract
  */
 export function isApifySupportedUrl(url: string): 'twitter' | 'tiktok' | null {
-  const lower = url.toLowerCase()
-  if ((lower.includes('twitter.com') || lower.includes('x.com')) && /\/status\/\d+/.test(lower)) {
+  let parsed: URL
+  try {
+    parsed = new URL(url)
+  } catch {
+    return null
+  }
+
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null
+  const hostname = parsed.hostname.toLowerCase().replace(/\.$/, '')
+  const path = parsed.pathname.toLowerCase()
+  const isTwitterHost = hostname === 'twitter.com' || hostname.endsWith('.twitter.com')
+    || hostname === 'x.com' || hostname.endsWith('.x.com')
+  const isTikTokHost = hostname === 'tiktok.com' || hostname.endsWith('.tiktok.com')
+
+  if (isTwitterHost && /\/status\/\d+(?:\/|$)/.test(path)) {
     return 'twitter'
   }
-  if (lower.includes('tiktok.com') && /\/video\/\d+/.test(lower)) {
+  if (isTikTokHost && /\/video\/\d+(?:\/|$)/.test(path)) {
     return 'tiktok'
   }
   return null

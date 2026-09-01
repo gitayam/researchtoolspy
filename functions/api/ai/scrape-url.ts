@@ -5,9 +5,10 @@
  */
 
 import { callOpenAIViaGateway, getOptimalCacheTTL } from '../_shared/ai-gateway'
-import { JSON_HEADERS, isPrivateUrl } from '../_shared/api-utils'
+import { JSON_HEADERS } from '../_shared/api-utils'
 import { getUserFromRequest } from '../_shared/auth-helpers'
-import { fetchSocialViaApify } from '../_shared/apify-social'
+import { fetchSocialViaApify, isApifySupportedUrl } from '../_shared/apify-social'
+import { parseSafeOutboundUrl, SafeFetchError, safeFetchText } from '../_shared/safe-fetch'
 
 interface Env {
   DB: D1Database
@@ -66,7 +67,7 @@ interface ScrapeResponse {
   title: string
   content: string
   summary: string
-  extractedData: Record<string, any>
+  extractedData: Record<string, unknown>
   metadata: {
     publishDate?: string
     author?: string
@@ -76,10 +77,55 @@ interface ScrapeResponse {
     id: string
     sourceType: 'website' | 'news'
     citationStyle: 'apa'
-    fields: any
+    fields: Record<string, unknown>
     citation: string
     inTextCitation: string
   }
+}
+
+interface TwitterOEmbed {
+  html?: string
+  author_name?: string
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function safeFetchFailureResponse(error: SafeFetchError): Response {
+  if (error.code === 'timeout') {
+    return new Response(JSON.stringify({
+      error: 'The website took too long to respond',
+      errorType: 'timeout',
+      suggestions: [
+        'Try again - the site might be temporarily slow',
+        'Check if the URL is accessible in your browser',
+        'The website might have anti-bot protection'
+      ],
+      technicalDetails: 'Request timeout after 15 seconds'
+    }), { status: 504, headers: JSON_HEADERS })
+  }
+
+  if (error.code === 'network_error') {
+    return new Response(JSON.stringify({
+      error: 'Unable to connect to the website',
+      errorType: 'network',
+      suggestions: ['Verify the URL is correct and accessible', 'Try again later']
+    }), { status: 502, headers: JSON_HEADERS })
+  }
+
+  const configurationError = error.code === 'unsafe_method'
+    || error.code === 'unsafe_headers'
+    || error.code === 'invalid_options'
+  return new Response(JSON.stringify({
+    error: configurationError
+      ? 'The scraper request policy is misconfigured'
+      : 'The website response could not be safely processed',
+    errorType: configurationError ? 'configuration' : 'invalid_url',
+    suggestions: configurationError
+      ? ['Contact support if this problem continues']
+      : ['Use a public HTTP or HTTPS page with a bounded HTML response']
+  }), { status: configurationError ? 500 : 400, headers: JSON_HEADERS })
 }
 
 // Simple HTML to text extraction
@@ -328,28 +374,23 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     // Get language instruction for AI prompts
     const languageInstruction = getLanguageInstruction(language)
 
-    // Validate URL
+    // Normalize before caching or disclosure to a provider. The outbound
+    // adapter repeats DNS and redirect validation at request time.
     let parsedUrl: URL
     try {
-      parsedUrl = new URL(url)
+      parsedUrl = parseSafeOutboundUrl(url)
     } catch {
-      return new Response(JSON.stringify({ error: 'Invalid URL format' }), {
+      return new Response(JSON.stringify({ error: 'Invalid or unsafe URL format' }), {
         status: 400,
         headers: JSON_HEADERS
       })
     }
-
-    // SSRF protection — block private/internal addresses
-    if (isPrivateUrl(url)) {
-      return new Response(JSON.stringify({ error: 'URLs pointing to private/internal addresses are not allowed' }), {
-        status: 400,
-        headers: JSON_HEADERS
-      })
-    }
+    const normalizedUrl = parsedUrl.href
+    const socialPlatform = isApifySupportedUrl(normalizedUrl)
 
     // KV Cache Check - save costs by caching AI responses
     // Include language in cache key so different languages are cached separately
-    const cacheKey = `scrape:${url}:${framework}:${language || 'en'}`
+    const cacheKey = `scrape:${normalizedUrl}:${framework}:${language || 'en'}`
     const cached = await context.env.CACHE.get(cacheKey, 'json')
     if (cached) {
       return new Response(JSON.stringify(cached), {
@@ -364,9 +405,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     let html = ''
 
     // 1. Try Apify for Twitter/X and TikTok (richer content with engagement data)
-    if (context.env.APIFY_API_KEY) {
+    if (context.env.APIFY_API_KEY && socialPlatform) {
       try {
-        const socialResult = await fetchSocialViaApify(url, context.env.APIFY_API_KEY)
+        const socialResult = await fetchSocialViaApify(normalizedUrl, context.env.APIFY_API_KEY)
         if (socialResult?.success && socialResult.text.length > 20) {
           content = socialResult.text
           title = socialResult.title || `${socialResult.platform} post`
@@ -378,16 +419,21 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     // 2. Fallback: Twitter/X oEmbed (no API key needed, limited content)
     if (!content) {
-      const isTwitter = /twitter\.com|x\.com/.test(url)
-
-      if (isTwitter) {
+      if (socialPlatform === 'twitter') {
         try {
-          const twitterUrl = url.replace('https://x.com/', 'https://twitter.com/')
+          const twitterUrl = normalizedUrl.replace('https://x.com/', 'https://twitter.com/')
           const oembedUrl = `https://publish.twitter.com/oembed?url=${encodeURIComponent(twitterUrl)}`
-          const twitterResponse = await fetch(oembedUrl, { signal: AbortSignal.timeout(10000) })
+          const oembed = await safeFetchText(oembedUrl, {
+            timeoutMs: 10_000,
+            maxRedirects: 2,
+            maxResponseBytes: 128 * 1024,
+            allowedHostnames: ['publish.twitter.com'],
+            allowedContentTypes: ['application/json'],
+          })
+          const twitterResponse = oembed.response
 
           if (twitterResponse.ok) {
-            const data = await twitterResponse.json() as any
+            const data = JSON.parse(oembed.text) as TwitterOEmbed
             html = data.html || ''
 
             // Extract text from blockquote
@@ -413,38 +459,24 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     // 2. Standard Fetch (if content not already extracted)
     if (!content) {
-      // Fetch the URL with timeout
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 15000) // 15 second timeout
-
-      let response
+      let response: Response
       try {
-        response = await fetch(url, {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (compatible; ResearchToolsBot/1.0)'
-          },
-          signal: controller.signal
+        const fetched = await safeFetchText(normalizedUrl, {
+          timeoutMs: 15_000,
+          maxRedirects: 5,
+          maxResponseBytes: 2 * 1024 * 1024,
+          requestInit: {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (compatible; ResearchToolsBot/1.0)',
+              'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,text/plain;q=0.8'
+            }
+          }
         })
+        response = fetched.response
+        html = fetched.text
       } catch (fetchError) {
-        clearTimeout(timeoutId)
-        if (fetchError instanceof Error && fetchError.name === 'AbortError') {
-          return new Response(JSON.stringify({
-            error: 'The website took too long to respond',
-            errorType: 'timeout',
-            suggestions: [
-              'Try again - the site might be temporarily slow',
-              'Check if the URL is accessible in your browser',
-              'The website might have anti-bot protection'
-            ],
-            technicalDetails: 'Request timeout after 15 seconds'
-          }), {
-            status: 504,
-            headers: JSON_HEADERS
-          })
-        }
+        if (fetchError instanceof SafeFetchError) return safeFetchFailureResponse(fetchError)
         throw fetchError
-      } finally {
-        clearTimeout(timeoutId)
       }
 
       if (!response.ok) {
@@ -491,8 +523,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         })
       }
 
-      html = await response.text()
-
       const extracted = extractTextFromHTML(html)
       title = extracted.title
       content = extracted.content
@@ -511,7 +541,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       year: today.getFullYear().toString(),
       month: (today.getMonth() + 1).toString().padStart(2, '0'),
       day: today.getDate().toString().padStart(2, '0'),
-      url: url,
+      url: normalizedUrl,
       accessDate: today.toISOString().split('T')[0],
       siteName: parsedUrl.hostname.replace('www.', ''),
       publisher: undefined
@@ -529,7 +559,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           citationFields.month = (pubDate.getMonth() + 1).toString().padStart(2, '0')
           citationFields.day = pubDate.getDate().toString().padStart(2, '0')
         }
-      } catch (e) {
+      } catch {
         // Keep default date
       }
     }
@@ -539,7 +569,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const year = citationFields.year
     const formattedDate = `${citationFields.year}, ${citationFields.month} ${citationFields.day}`
     const siteName = citationFields.siteName
-    const fullCitation = `${authors[0].lastName}. (${formattedDate}). ${title}. ${siteName}. ${url}`
+    const fullCitation = `${authors[0].lastName}. (${formattedDate}). ${title}. ${siteName}. ${normalizedUrl}`
     const inTextCitation = `(${authors[0].lastName}, ${year})`
 
     const generatedCitation = {
@@ -583,7 +613,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       metadata: {
         endpoint: 'ai-scrape',
         operation: 'generate-summary',
-        url: url
+        url: normalizedUrl
       },
       timeout: 15000
     })
@@ -597,12 +627,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const summary = summaryData.choices[0].message.content || 'No summary available'
 
     // Extract framework-specific data if prompt exists
-    let extractedData: Record<string, any> = {}
+    let extractedData: Record<string, unknown> = {}
 
     if (extractionPrompts[framework]) {
       const extractPrompt = extractionPrompts[framework]
         .replace('{title}', title)
-        .replace('{url}', url)
+        .replace('{url}', normalizedUrl)
         .replace('{content}', content.substring(0, 15000))
 
 
@@ -632,7 +662,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
             endpoint: 'ai-scrape',
             operation: 'extract-framework-data',
             framework: framework,
-            url: url
+            url: normalizedUrl
           },
           timeout: 20000
         })
@@ -661,18 +691,21 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
               throw new Error('AI returned empty response')
             }
 
-            extractedData = JSON.parse(jsonText)
+            const parsedExtraction: unknown = JSON.parse(jsonText)
+            if (!isRecord(parsedExtraction)) throw new Error('AI response must be a JSON object')
+            extractedData = parsedExtraction
 
             // Attach citation info to each Q&A item
             if (framework === 'starbursting' || framework === 'dime') {
               Object.keys(extractedData).forEach(category => {
-                if (Array.isArray(extractedData[category])) {
-                  extractedData[category] = extractedData[category].map((item: any) => {
-                    if (typeof item === 'object' && 'question' in item) {
+                const categoryItems = extractedData[category]
+                if (Array.isArray(categoryItems)) {
+                  extractedData[category] = categoryItems.map((item: unknown) => {
+                    if (isRecord(item) && 'question' in item) {
                       return {
                         ...item,
                         citationId: citationId,
-                        sourceUrl: url,
+                        sourceUrl: normalizedUrl,
                         sourceTitle: title,
                         sourceDate: `${citationFields.year}-${citationFields.month}-${citationFields.day}`,
                         sourceAuthor: citationFields.authors[0].lastName
@@ -715,7 +748,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         ? `Based on this article, generate 1-2 important follow-up questions for each category that CANNOT be answered from the article content.
 
 Article Title: ${title}
-Article URL: ${url}
+Article URL: ${normalizedUrl}
 Article Content: ${content.substring(0, 10000)}
 
 CRITICAL REQUIREMENTS:
@@ -733,7 +766,7 @@ Return ONLY JSON:
         : `Based on this article, generate 1-2 important follow-up questions for each DIME category that CANNOT be answered from the article content.
 
 Article Title: ${title}
-Article URL: ${url}
+Article URL: ${normalizedUrl}
 Article Content: ${content.substring(0, 10000)}
 
 CRITICAL REQUIREMENTS:
@@ -775,7 +808,7 @@ Return ONLY JSON:
             endpoint: 'ai-scrape',
             operation: 'generate-unanswered-questions',
             framework: framework,
-            url: url
+            url: normalizedUrl
           },
           timeout: 15000
         })
@@ -809,7 +842,7 @@ Return ONLY JSON:
 
     // Build response with all data
     const result: ScrapeResponse = {
-      url,
+      url: normalizedUrl,
       title,
       content: content.substring(0, 5000), // Return first 5KB for reference
       summary,
@@ -915,4 +948,3 @@ export const onRequestGet: PagesFunction = async () => {
     status: 405, headers: JSON_HEADERS,
   })
 }
-
