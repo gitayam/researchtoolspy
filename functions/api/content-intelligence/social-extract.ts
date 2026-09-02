@@ -125,10 +125,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    // Save extraction to database for caching
-    if (extractionResult.success) {
+    // YouTube extraction is deliberately ephemeral; preserve legacy persistence for other platforms.
+    if (extractionResult.success && normalizedPlatform !== 'youtube') {
       await saveExtraction(env.DB, {
-        url: youtubeTarget && normalizedPlatform === 'youtube' ? youtubeTarget.canonicalUrl : url,
+        url,
         platform: normalizedPlatform,
         extract_mode,
         metadata: extractionResult.metadata,
@@ -164,10 +164,9 @@ async function extractYouTube(
   signal: AbortSignal,
 ): Promise<Record<string, unknown> | null> {
   const includeTranscript = mode === 'full' && options.include_transcript === true
-  const includeMedia = mode === 'download' || mode === 'full'
   const provider = await fetchYouTubeProvider(target, {
     includeTranscript,
-    includeMedia,
+    includeMedia: true,
     signal,
     deadline: createYouTubeProviderDeadline(30_000, signal),
   })
@@ -199,7 +198,7 @@ async function extractYouTube(
   const transcript = includeTranscript ? provider.transcript : undefined
 
   const downloadOptions = {
-    download_helpers: includeMedia && provider.mediaFallback === 'watch_on_youtube'
+    download_helpers: provider.mediaFallback === 'watch_on_youtube'
       ? [{ name: 'Watch on YouTube', url: canonicalUrl, description: 'Open the canonical video on YouTube' }]
       : [],
     thumbnail_urls: {

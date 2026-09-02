@@ -131,7 +131,7 @@ test.describe('INV-019 canonical YouTube provider route @smoke', () => {
     }
   })
 
-  test('@smoke canonicalizes aliases, isolates credentials, preserves success fields, and persists canonical identity', async () => {
+  test('@smoke canonicalizes aliases, isolates credentials, preserves success fields, and stays ephemeral', async () => {
     const aliases = [
       CANONICAL_URL,
       `http://www.youtube.com/watch/?v=${VIDEO_ID}`,
@@ -181,8 +181,8 @@ test.describe('INV-019 canonical YouTube provider route @smoke', () => {
           expect(headers.has('x-user-hash')).toBe(false)
           expect(headers.has('x-workspace-id')).toBe(false)
         }
-        expect(subject.dbBindings).toHaveLength(1)
-        expect(subject.dbBindings[0][1]).toBe(CANONICAL_URL)
+        expect(subject.dbBindings).toEqual([])
+        expect(subject.dbCalls()).toBe(0)
       } finally {
         subject.restore()
       }
@@ -215,7 +215,8 @@ test.describe('INV-019 canonical YouTube provider route @smoke', () => {
         success: true,
         content: { transcript_available: false, transcript_word_count: 0 },
       })
-      expect(subject.dbBindings).toHaveLength(1)
+      expect(subject.dbBindings).toEqual([])
+      expect(subject.dbCalls()).toBe(0)
     } finally {
       subject.restore()
     }
@@ -236,15 +237,60 @@ test.describe('INV-019 canonical YouTube provider route @smoke', () => {
     }
   })
 
-  test('@smoke keeps successful extraction when the nonfatal D1 save fails', async () => {
-    const subject = harness({ saveFails: true })
+  test('@smoke treats abort during provider work as generic failure with zero persistence', async () => {
+    const controller = new AbortController()
+    let cancelled = false
+    const subject = harness({
+      signal: controller.signal,
+      provider: (_url, init) => new Response(new ReadableStream<Uint8Array>({
+        start(streamController) {
+          streamController.enqueue(new TextEncoder().encode('{'))
+          init?.signal?.addEventListener('abort', () => streamController.enqueue(new Uint8Array(129 * 1024)), { once: true })
+          setTimeout(() => controller.abort(new Error('caller stopped')), 5)
+        },
+        cancel() { cancelled = true },
+      }), { headers: { 'Content-Type': 'application/json' } }),
+    })
     try {
       const response = await subject.invoke({ url: CANONICAL_URL, platform: 'youtube' })
-      expect(response.status).toBe(200)
-      expect((await response.json() as { success: boolean }).success).toBe(true)
-      expect(subject.dbBindings[0][1]).toBe(CANONICAL_URL)
+      expect(response.status).toBe(500)
+      expect(await response.json()).toEqual({ error: 'Social media extraction failed' })
+      expect(cancelled).toBe(true)
+      expect(subject.dbCalls()).toBe(0)
     } finally {
       subject.restore()
+    }
+  })
+
+  test('@smoke always exposes one canonical watch helper across the legacy mode/options matrix', async () => {
+    const matrix = [
+      { extract_mode: 'metadata', options: undefined },
+      { extract_mode: 'metadata', options: { include_media: false } },
+      { extract_mode: 'download', options: undefined },
+      { extract_mode: 'download', options: { include_media: false } },
+      { extract_mode: 'full', options: { include_transcript: false, include_media: false } },
+    ]
+    for (const entry of matrix) {
+      const subject = harness()
+      try {
+        const response = await subject.invoke({ url: CANONICAL_URL, platform: 'youtube', ...entry })
+        expect(response.status).toBe(200)
+        const body = await response.json() as Record<string, unknown>
+        expect(body).toMatchObject({
+          success: true,
+          platform: 'youtube',
+          post_type: 'video',
+          metadata: { post_url: CANONICAL_URL, video_id: VIDEO_ID, post_type: 'video' },
+          content: { transcript_available: false, transcript_word_count: 0, description: 'YouTube video content extraction' },
+          media: { video_url: CANONICAL_URL, embed_url: `https://www.youtube.com/embed/${VIDEO_ID}` },
+        })
+        expect((body.media as { download_options: unknown }).download_options).toEqual([
+          { name: 'Watch on YouTube', url: CANONICAL_URL, description: 'Open the canonical video on YouTube' },
+        ])
+        expect(subject.dbCalls()).toBe(0)
+      } finally {
+        subject.restore()
+      }
     }
   })
 })
