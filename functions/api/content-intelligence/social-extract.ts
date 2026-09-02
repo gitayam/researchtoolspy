@@ -5,7 +5,7 @@
  *
  * Supported platforms:
  * - YouTube: yt-dlp API (metadata, transcripts, engagement)
- * - Instagram: Multiple extraction methods with fallbacks (posts, reels, stories)
+ * - Instagram: Canonical post/reel/TV identity with manual-upload guidance
  * - Twitter/X: yt-dlp/nitter (tweets, threads, media)
  * - TikTok: yt-dlp API (videos, metadata)
  * - Facebook: yt-dlp API (videos, posts)
@@ -15,7 +15,12 @@ import type { PagesFunction } from '@cloudflare/workers-types'
 
 import { getUserFromRequest } from '../_shared/auth-helpers'
 import { JSON_HEADERS } from '../_shared/api-utils'
-import { parseCanonicalYouTubeUrl, type CanonicalYouTubeTarget } from '../_shared/social-url'
+import {
+  parseCanonicalInstagramUrl,
+  parseCanonicalYouTubeUrl,
+  type CanonicalInstagramTarget,
+  type CanonicalYouTubeTarget,
+} from '../_shared/social-url'
 import { createYouTubeProviderDeadline, fetchYouTubeProvider } from '../_shared/youtube-provider'
 
 interface Env {
@@ -37,6 +42,14 @@ interface SocialExtractRequest {
 
 type YouTubeMode = NonNullable<SocialExtractRequest['extract_mode']>
 const YOUTUBE_MODES: readonly YouTubeMode[] = ['metadata', 'full', 'download']
+const INSTAGRAM_MODES: readonly YouTubeMode[] = ['metadata', 'full', 'download']
+
+function validInstagramOptions(options: unknown): options is NonNullable<SocialExtractRequest['options']> {
+  if (!options || typeof options !== 'object' || Array.isArray(options)) return false
+  const candidate = options as Record<string, unknown>
+  return ['include_comments', 'include_transcript', 'include_media']
+    .every(key => candidate[key] === undefined || typeof candidate[key] === 'boolean')
+}
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   const { request, env } = context
@@ -63,7 +76,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
 
     const youtubeTarget = typeof url === 'string' ? parseCanonicalYouTubeUrl(url) : null
+    const instagramTarget = typeof url === 'string' ? parseCanonicalInstagramUrl(url) : null
     if (youtubeTarget && normalizedPlatform !== 'youtube') {
+      return new Response(JSON.stringify({ error: 'URL does not match the selected platform' }), {
+        status: 400,
+        headers: JSON_HEADERS,
+      })
+    }
+    if (instagramTarget && normalizedPlatform !== 'instagram') {
       return new Response(JSON.stringify({ error: 'URL does not match the selected platform' }), {
         status: 400,
         headers: JSON_HEADERS,
@@ -71,6 +91,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
     if (normalizedPlatform === 'youtube' && (!YOUTUBE_MODES.includes(extract_mode)
       || !options || typeof options !== 'object' || Array.isArray(options))) {
+      return new Response(JSON.stringify({ error: 'Invalid extraction options' }), {
+        status: 400,
+        headers: JSON_HEADERS,
+      })
+    }
+    if (normalizedPlatform === 'instagram' && (!INSTAGRAM_MODES.includes(extract_mode)
+      || !validInstagramOptions(options))) {
       return new Response(JSON.stringify({ error: 'Invalid extraction options' }), {
         status: 400,
         headers: JSON_HEADERS,
@@ -96,7 +123,17 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         }
         break
       case 'instagram':
-        extractionResult = await extractInstagram(url, extract_mode, options)
+        if (!instagramTarget) {
+          extractionResult = { success: false, error: 'Invalid Instagram URL' }
+          break
+        }
+        if (request.signal.aborted) {
+          return new Response(JSON.stringify({ error: 'Social media extraction failed' }), {
+            status: 500,
+            headers: JSON_HEADERS,
+          })
+        }
+        extractionResult = extractInstagramUnavailable(instagramTarget)
         break
       case 'twitter':
       case 'x':
@@ -118,15 +155,16 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         })
     }
 
-    if (youtubeTarget && normalizedPlatform === 'youtube' && request.signal.aborted) {
+    if ((youtubeTarget && normalizedPlatform === 'youtube'
+      || instagramTarget && normalizedPlatform === 'instagram') && request.signal.aborted) {
       return new Response(JSON.stringify({ error: 'Social media extraction failed' }), {
         status: 500,
         headers: JSON_HEADERS,
       })
     }
 
-    // YouTube extraction is deliberately ephemeral; preserve legacy persistence for other platforms.
-    if (extractionResult.success && normalizedPlatform !== 'youtube') {
+    // YouTube and Instagram extraction are deliberately ephemeral; preserve legacy persistence for other platforms.
+    if (extractionResult.success && normalizedPlatform !== 'youtube' && normalizedPlatform !== 'instagram') {
       await saveExtraction(env.DB, {
         url,
         platform: normalizedPlatform,
@@ -235,283 +273,27 @@ async function extractYouTube(
   }
 }
 
-/**
- * Instagram extraction with multiple fallback methods
- * Attempts 5 different extraction strategies like instaloader
- */
-async function extractInstagram(url: string, mode: string, options: any): Promise<any> {
-  const errors: string[] = []
-  let attemptCount = 0
-
-  try {
-    // Extract Instagram shortcode from URL
-    const shortcodeMatch = url.match(/instagram\.com\/(p|reel|tv)\/([A-Za-z0-9_-]+)/)
-
-    if (!shortcodeMatch) {
-      return {
-        success: false,
-        error: 'Invalid Instagram URL',
-        suggestions: [
-          'URL should be in format: https://www.instagram.com/p/SHORTCODE/ or https://www.instagram.com/reel/SHORTCODE/'
-        ]
-      }
-    }
-
-    const shortcode = shortcodeMatch[2]
-    const postType = shortcodeMatch[1] === 'reel' ? 'reel' : shortcodeMatch[1] === 'tv' ? 'igtv' : 'post'
-
-
-    // Method 1: Instagram GraphQL Public API
-    attemptCount++
-    try {
-      const graphqlUrl = `https://www.instagram.com/graphql/query/?query_hash=b3055c01b4b222b8a47dc12b090e4e64&variables=${encodeURIComponent(JSON.stringify({ shortcode }))}`
-
-      const graphqlResponse = await fetch(graphqlUrl, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Accept': 'application/json',
-        },
-        signal: AbortSignal.timeout(15000),
-      })
-
-      if (graphqlResponse.ok) {
-        const data = await graphqlResponse.json() as any
-        if (data?.data?.shortcode_media) {
-          const media = data.data.shortcode_media
-          return formatInstagramSuccess(media, shortcode, postType, url, 'GraphQL API')
-        }
-      }
-      errors.push(`Method 1 failed: ${graphqlResponse.status}`)
-    } catch (err) {
-      errors.push(`Method 1 error: extraction failed`)
-    }
-
-    // Method 2: Instagram Public JSON Endpoint (Legacy)
-    attemptCount++
-    try {
-      const jsonUrl = `https://www.instagram.com/p/${shortcode}/?__a=1&__d=dis`
-
-      const jsonResponse = await fetch(jsonUrl, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-          'Accept': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest'
-        },
-        signal: AbortSignal.timeout(15000),
-      })
-
-      if (jsonResponse.ok) {
-        const data = await jsonResponse.json() as any
-        if (data?.items?.[0]) {
-          return formatInstagramSuccess(data.items[0], shortcode, postType, url, 'JSON Endpoint')
-        }
-      }
-      errors.push(`Method 2 failed: ${jsonResponse.status}`)
-    } catch (err) {
-      errors.push(`Method 2 error: extraction failed`)
-    }
-
-    // Method 3: Scrape HTML and extract JSON
-    attemptCount++
-    try {
-      const htmlResponse = await fetch(`https://www.instagram.com/p/${shortcode}/`, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-          'Accept-Language': 'en-US,en;q=0.5',
-        },
-        signal: AbortSignal.timeout(15000)
-      })
-
-      if (htmlResponse.ok) {
-        const html = await htmlResponse.text()
-
-        // Extract window._sharedData or window.__additionalDataLoaded
-        const sharedDataMatch = html.match(/window\._sharedData\s*=\s*({.+?});/)
-        if (sharedDataMatch) {
-          const sharedData = JSON.parse(sharedDataMatch[1])
-          const media = sharedData?.entry_data?.PostPage?.[0]?.graphql?.shortcode_media
-          if (media) {
-            return formatInstagramSuccess(media, shortcode, postType, url, 'HTML Scraping')
-          }
-        }
-
-        // Try alternative pattern
-        const additionalDataMatch = html.match(/window\.__additionalDataLoaded\('extra',\s*({.+?})\);/)
-        if (additionalDataMatch) {
-          const additionalData = JSON.parse(additionalDataMatch[1])
-          if (additionalData?.graphql?.shortcode_media) {
-            return formatInstagramSuccess(additionalData.graphql.shortcode_media, shortcode, postType, url, 'HTML Scraping')
-          }
-        }
-      }
-      errors.push(`Method 3 failed: No JSON data found in HTML`)
-    } catch (err) {
-      errors.push(`Method 3 error: extraction failed`)
-    }
-
-    // Method 4: Instagram oEmbed API
-    attemptCount++
-    try {
-      const oembedResponse = await fetch(
-        `https://graph.facebook.com/v18.0/instagram_oembed?url=${encodeURIComponent(url)}&access_token=&fields=author_name,author_url,media_id,thumbnail_url,title`,
-        { signal: AbortSignal.timeout(15000) }
-      )
-
-      if (oembedResponse.ok) {
-        const oembedData = await oembedResponse.json() as any
-        if (oembedData && !oembedData.error) {
-          return {
-            success: true,
-            platform: 'instagram',
-            post_type: postType,
-            extraction_method: 'oEmbed API (Limited)',
-            metadata: {
-              shortcode,
-              post_url: url,
-              platform: 'instagram',
-              post_type: postType,
-              author: oembedData.author_name,
-              author_url: oembedData.author_url,
-              title: oembedData.title,
-              thumbnail_url: oembedData.thumbnail_url
-            },
-            content: {
-              caption: oembedData.title || '',
-              note: 'Limited data - oEmbed API only provides basic information'
-            },
-            media: {
-              thumbnail_url: oembedData.thumbnail_url
-            },
-            limitations: [
-              'oEmbed API provides limited data',
-              'Full captions, comments, and high-res media not available',
-              'Download manually for complete content'
-            ]
-          }
-        }
-      }
-      errors.push(`Method 4 failed: ${oembedResponse.status}`)
-    } catch (err) {
-      errors.push(`Method 4 error: extraction failed`)
-    }
-
-    // Method 5: Fallback to basic metadata only
-    attemptCount++
-    return {
-      success: false,
-      error: 'Instagram extraction failed after trying 5 different methods. Instagram is blocking automated access.',
-      platform: 'instagram',
-      post_type: postType,
-      metadata: {
-        shortcode,
-        post_url: url,
-        direct_link: `https://www.instagram.com/p/${shortcode}/`,
-        platform: 'instagram'
-      },
-      attempts: attemptCount,
-      errors,
-      suggestions: [
-        '📋 **Manual Workarounds:**',
-        '1. Instagram frequently updates their anti-bot measures',
-        '2. Wait 10-15 minutes and try again',
-        '3. Try a different Instagram post first',
-        '4. Download manually from Instagram app/website',
-        '5. **Manual workaround:** Download from Instagram → Upload to Content Research',
-        '',
-        '🔗 **Alternative Access:**',
-        `• Direct link: https://www.instagram.com/p/${shortcode}/`,
-        `• Mobile app: instagram://media?id=${shortcode}`,
-        '',
-        '⚠️ **Why This Happens:**',
-        'Instagram actively blocks automated scraping to protect user privacy.',
-        'Even tools like instaloader require authenticated sessions.',
-        '',
-        '💡 **For Bulk Extraction:**',
-        'Use the Social Media page to set up profile tracking with proper authentication.'
-      ]
-    }
-
-  } catch (error) {
-    return {
-      success: false,
-      error: 'Instagram extraction failed',
-      platform: 'instagram',
-      attempts: attemptCount,
-      errors,
-      suggestions: [
-        'Instagram blocks automated access',
-        'Download manually and upload to Content Research',
-        'Try again in 10-15 minutes',
-        'Use the Social Media page for profile tracking'
-      ]
-    }
-  }
-}
-
-/**
- * Format successful Instagram extraction
- */
-function formatInstagramSuccess(media: any, shortcode: string, postType: string, url: string, method: string): any {
-  const owner = media.owner || {}
-  const caption = media.edge_media_to_caption?.edges?.[0]?.node?.text || media.caption || ''
-
+function extractInstagramUnavailable(target: CanonicalInstagramTarget): Record<string, unknown> {
+  const postType = target.kind === 'reel' ? 'reel' : target.kind === 'tv' ? 'igtv' : 'post'
   return {
-    success: true,
+    success: false,
+    error: 'Instagram extraction is unavailable. Download the post manually and upload it to Content Research.',
     platform: 'instagram',
     post_type: postType,
-    extraction_method: method,
     metadata: {
-      shortcode,
-      post_url: url,
+      shortcode: target.shortcode,
+      post_url: target.canonicalUrl,
+      direct_link: target.canonicalUrl,
       platform: 'instagram',
       post_type: postType,
-      author: owner.username || owner.full_name,
-      author_id: owner.id,
-      author_url: owner.username ? `https://www.instagram.com/${owner.username}/` : undefined,
-      media_id: media.id,
-      timestamp: media.taken_at_timestamp,
-      is_video: media.is_video || postType === 'reel',
-      dimensions: {
-        width: media.dimensions?.width,
-        height: media.dimensions?.height
-      },
-      engagement: {
-        likes: media.edge_media_preview_like?.count || media.like_count,
-        comments: media.edge_media_to_comment?.count || media.comment_count,
-        views: media.video_view_count
-      }
     },
-    content: {
-      caption,
-      hashtags: extractHashtags(caption),
-      mentions: extractMentions(caption),
-      accessibility_caption: media.accessibility_caption
-    },
-    media: {
-      thumbnail_url: media.thumbnail_src || media.display_url,
-      display_url: media.display_url,
-      is_video: media.is_video,
-      video_url: media.video_url,
-      media_type: media.is_video ? 'video' : 'image'
-    }
+    attempts: 0,
+    errors: [],
+    suggestions: [
+      'Download manually from the canonical Instagram post.',
+      'Upload the downloaded media to Content Research.',
+    ],
   }
-}
-
-/**
- * Extract hashtags from caption
- */
-function extractHashtags(text: string): string[] {
-  const matches = text.match(/#[\w]+/g)
-  return matches ? matches.map(tag => tag.substring(1)) : []
-}
-
-/**
- * Extract mentions from caption
- */
-function extractMentions(text: string): string[] {
-  const matches = text.match(/@[\w.]+/g)
-  return matches ? matches.map(mention => mention.substring(1)) : []
 }
 
 /**
