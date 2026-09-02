@@ -1,6 +1,7 @@
 import type { Env } from '../../types'
 import { getUserFromRequest } from '../_shared/auth-helpers'
 import { JSON_HEADERS, CORS_HEADERS } from '../_shared/api-utils'
+import { internalApiUrl, internalJsonHeaders } from '../_shared/internal-delegation'
 
 interface BatchItem {
   id: string
@@ -23,11 +24,11 @@ interface BatchRequest {
 }
 
 // Process a single URL based on operation type
-async function processSingleURL(url: string, operation: string, origin: string): Promise<any> {
+async function processSingleURL(url: string, operation: string, request: Request): Promise<any> {
   const startTime = Date.now()
 
   try {
-    let endpoint = ''
+    let endpoint: `/api/${string}`
     let body: any = { url }
 
     switch (operation) {
@@ -46,9 +47,10 @@ async function processSingleURL(url: string, operation: string, origin: string):
         throw new Error(`Unsupported operation: ${operation}`)
     }
 
-    const response = await fetch(`${origin}${endpoint}`, {
+    const response = await fetch(internalApiUrl(request, endpoint), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      redirect: 'error',
+      headers: internalJsonHeaders(request),
       body: JSON.stringify(body),
       signal: AbortSignal.timeout(30000),
     })
@@ -80,7 +82,7 @@ async function processSingleURL(url: string, operation: string, origin: string):
 }
 
 // Process items in parallel batches
-async function processInBatches(items: BatchItem[], operation: string, maxWorkers: number, stopOnError: boolean, origin: string) {
+async function processInBatches(items: BatchItem[], operation: string, maxWorkers: number, stopOnError: boolean, request: Request) {
   const results: any[] = []
   let succeeded = 0
   let failed = 0
@@ -104,7 +106,7 @@ async function processInBatches(items: BatchItem[], operation: string, maxWorker
       }
 
       try {
-        const result = await processSingleURL(item.source, operation, origin)
+        const result = await processSingleURL(item.source, operation, request)
 
         itemResult.completedAt = new Date().toISOString()
         itemResult.duration = result.duration
@@ -216,16 +218,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    // Get origin for API calls
-    const origin = new URL(request.url).origin
-
     // Process batch
     const { results, succeeded, failed } = await processInBatches(
       items,
       body.operation,
       options.maxWorkers,
       options.stopOnError,
-      origin
+      request
     )
 
     const duration = Date.now() - startTime

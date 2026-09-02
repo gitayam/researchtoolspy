@@ -8,6 +8,7 @@
 import { callOpenAIViaGateway, getOptimalCacheTTL, REFUSAL_BODY } from '../../_shared/ai-gateway'
 import { getUserFromRequest } from '../../_shared/auth-helpers'
 import { JSON_HEADERS } from '../../_shared/api-utils'
+import { internalApiUrl, internalJsonHeaders } from '../../_shared/internal-delegation'
 
 interface Env {
   DB: D1Database
@@ -20,6 +21,22 @@ interface Env {
 interface ImportRequest {
   url: string
   framework_id?: string
+}
+
+interface ImportedAnalysis {
+  id?: number
+  url: string
+  title?: string
+  summary?: string
+  content_hash?: string
+  entities?: Record<string, Array<{ name?: string }>>
+  top_phrases?: Array<{ phrase?: string }>
+}
+
+function isImportedAnalysis(value: unknown): value is ImportedAnalysis {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+  const candidate = value as Record<string, unknown>
+  return typeof candidate.url === 'string' && typeof candidate.summary === 'string'
 }
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
@@ -44,11 +61,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
 
     // Step 1: Analyze URL via Content Intelligence
-    const analyzeResponse = await fetch(`${new URL(context.request.url).origin}/api/content-intelligence/analyze`, {
+    const analyzeResponse = await fetch(internalApiUrl(
+      context.request,
+      '/api/content-intelligence/analyze-url',
+    ), {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      redirect: 'error',
+      headers: internalJsonHeaders(context.request),
       body: JSON.stringify({
         url: body.url,
         mode: 'quick'
@@ -60,9 +79,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       throw new Error('Failed to analyze URL')
     }
 
-    const { analysis } = await analyzeResponse.json() as {
-      analysis: Parameters<typeof mapToPMESIIPT>[1]
-    }
+    const analysis: unknown = await analyzeResponse.json()
+    if (!isImportedAnalysis(analysis)) throw new Error('Invalid URL analysis response')
 
     // Step 2: Use GPT to map content to PMESII-PT dimensions
     const mappedDimensions = await mapToPMESIIPT(context.env, analysis)
@@ -74,7 +92,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     return new Response(JSON.stringify({
       success: true,
-      analysis_id: analysis.id,
+      analysis_id: analysis.id ?? null,
       url: body.url,
       title: analysis.title,
       dimensions: mappedDimensions
@@ -95,7 +113,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   }
 }
 
-async function mapToPMESIIPT(env: Env, analysis: any) {
+async function mapToPMESIIPT(env: Env, analysis: ImportedAnalysis) {
   const prompt = `You are an expert analyst using the PMESII-PT framework (Political, Military, Economic, Social, Information, Infrastructure, Physical Environment, Time).
 
 Analyze the following content and generate 2-3 relevant questions and answers for EACH of the 8 PMESII-PT dimensions:
@@ -159,7 +177,9 @@ For dimensions where the content provides no relevant information, return an emp
     metadata: {
       endpoint: 'pmesii-pt',
       operation: 'import-url',
-      url: analysis.url
+      content_hash: typeof analysis.content_hash === 'string' && /^[a-f0-9]{64}$/i.test(analysis.content_hash)
+        ? analysis.content_hash.toLowerCase()
+        : undefined,
     },
     timeout: 20000
   })

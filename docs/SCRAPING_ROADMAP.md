@@ -129,7 +129,8 @@ flowchart LR
   - redirect, response-byte, content-type, and total-duration limits
 - [ ] Enforce the same rules again inside Browser Run and Container service boundaries.
 - [x] Route public survey/COP URL enrichment through static-only bounded fetch and public ephemeral analysis; prohibit paid-provider disclosure, Browser Run navigation, synthetic auth, and persistence intent on these public background paths.
-- [ ] Route `tools/analyze-url`, `scrape-metadata`, claims, timeline, RageCheck, AI scrape, social routes, and the web scraper through it.
+- [x] Route `tools/analyze-url`, `scrape-metadata`, claims, timeline, RageCheck, AI scrape, and the web scraper through bounded shared adapters.
+- [ ] Route the remaining content-intelligence social/provider routes through bounded shared adapters.
 - [x] Route `tools/scrape-metadata` through bounded text fetch and `tools/extract` through the bounded text/PDF document adapter.
 - [x] Route `tools/analyze-url` and its optional Wayback metadata checks through bounded exact-host adapters; disable implicit archive-save writes from the read-like analysis request.
 - [x] Route authenticated AI scrape and Starbursting delegation through bounded direct/oEmbed adapters; require exact social host/path classification before any Apify disclosure.
@@ -437,10 +438,13 @@ Every job has an owner, limits, cancellation, provenance, cost accounting, termi
 | Date | Commit | Deployment | Evidence |
 |---|---|---|---|
 | 2026-08-31 | `c8c59067a` | Pages `680dda8a-1e2d-49a3-aabf-03fd42bbb747` | Build/type-check/pre-deploy gates passed; managed migration `0006_scraping_auth_idempotency.sql` applied after D1 export and Time Travel capture; canonical/custom/preview sites and health returned 200; auth boundary returned 401; new tables verified read-only |
+| 2026-09-01 | `42694fc59` | Pages `4a452249-1aca-4af1-a3a7-cff511955ecc` | Analytics Engine binding and dedicated telemetry key verified in production; Content Intelligence public extraction returned 200 with privacy-safe attempt/terminal observation and no production Function errors |
+| 2026-09-01 | `fb9703cf5` | Pages `9ee03e5b-c1e9-4ed6-87ab-98d5f92f864d` | COP/Apify start and poll telemetry, provider terminal-state classification, item throughput, paid-start suppression, and duplicate-ingestion counters deployed; 252 scraping tests passed and non-billable production smoke invocations completed with `outcome: ok` and no exceptions |
 
-Analytics Engine telemetry, dashboards, alert thresholds, and production quality
-SLO evidence remain pending under `SCRAPE-04`; this deployment does not advance
-those gates.
+Analytics Engine collection is active on Content Intelligence and COP/Apify
+routes. Coverage expansion, dashboards, alert thresholds, the 14-day baseline,
+and production quality SLO evidence remain pending under `SCRAPE-04`; these
+deployments start but do not complete that milestone's evaluation gate.
 
 No milestone or strategy advances when any of the following is true:
 
@@ -474,7 +478,7 @@ No milestone or strategy advances when any of the following is true:
 | `SCRAPE-01` | Safe outbound URL/redirect primitive and coverage inventory | P0 | — | 🔄 |
 | `SCRAPE-02` | Worker TypeScript build, timeout and request-option contracts | P0 | — | 🔄 |
 | `SCRAPE-03` | Auth scoping, COP ownership/idempotency, dataset/score corrections | P0 | — | 🔄 |
-| `SCRAPE-04` | Privacy-safe analytics, durable provenance, dashboard, alerts | P0 | 01-03 | ⬜ |
+| `SCRAPE-04` | Privacy-safe analytics, durable provenance, dashboard, alerts | P0 | 01-03 | 🔄 |
 | `SCRAPE-05` | Versioned corpus, harness, candidates, paired decision report | P1 | 04 | ⬜ |
 | `SCRAPE-06` | Browser Run routing, usage metering, budgets, canary | P1 | 05 | ⬜ |
 | `SCRAPE-07` | Semantic extractor and versioned quality scorer | P1 | 05 | ⬜ |
