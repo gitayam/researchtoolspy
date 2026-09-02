@@ -1,6 +1,6 @@
 # ResearchTools scraping system roadmap
 
-**Last updated:** 2026-09-01 · **Status:** 🔄 in progress · **Owner:** platform/backend
+**Last updated:** 2026-09-02 · **Status:** 🔄 in progress · **Owner:** platform/backend
 
 **Evidence and experiment design:** [`plans/2026-08-30-scraping-modernization.md`](plans/2026-08-30-scraping-modernization.md)
 
@@ -145,6 +145,7 @@ flowchart LR
 - [x] Route public GitHub/GitLab/Bitbucket repository extraction through exact repository-root parsers and bounded fixed-provider adapters; scope the GitHub service token to its origin, require positive public visibility before optional reads/cache, and replace raw URL cache/log identities with an opaque canonical key.
 - [x] Add an exact ASCII YouTube URL canonicalization contract with adversarial normalization coverage as the parser foundation for the remaining social-route migration; keep both social inventory rows constrained until their outbound and returned-media paths consume the contract.
 - [x] Migrate the YouTube paths in both content-intelligence social routes to one bounded provider contract with canonical identity, terminal caller cancellation, exact caption/metadata origins, zero Cobalt/direct-media disclosure, and ephemeral execution with no KV/D1 mutation. Keep both multi-platform routes constrained until their non-YouTube branches are migrated.
+- [x] Retire the Instagram downloader, legacy GraphQL/HTML, and unauthenticated oEmbed paths in both social routes; require exact canonical post/reel/TV identity and return deterministic manual-upload guidance with zero provider, KV, or D1 work until an approved first-party provider contract is configured.
 - [x] Scope `content-intelligence/analyze-url` `load_existing` reads to the authenticated analysis owner and require owner/editor/admin workspace authority for new writes.
 - [x] Keep `content-intelligence/analyze-url` usable without login through ephemeral, non-persisted results; retain auth for existing/trusted-content reads, require writable workspace authority for every write, and apply a dedicated per-IP public budget.
 - [x] Keep Content Intelligence Full-mode DIME enhancement usable without login through ephemeral results; pass the fresh analysis response into the framework runner, and owner-scope every saved DIME update. Persistent Starbursting sessions remain an explicit authenticated workspace feature.
@@ -176,6 +177,17 @@ flowchart LR
 - **Falsified direction:** signal checks around KV/D1 cannot guarantee cancellation after a non-cancellable write starts. This tranche therefore does not cache or persist YouTube extraction results; persistence requires a separately designed commit boundary or idempotent job contract.
 - **Verification:** 92 focused Chromium tests passed; full-project and scraping-surface type checks passed; 470 broad scraping/content-intelligence tests passed across Chromium and mobile Safari; focused new-file lint and diff checks passed; and the production build passed. All provider behavior used deterministic mocks with no live provider calls.
 - **Remaining constrained scope:** Instagram, TikTok, Twitter/X, Facebook, and Bluesky branches still use legacy parsers/providers and keep INV-019/020 classified `constrained-provider`. Shared DNS validation still requires an enforcing connect-time egress boundary, and cleanup can exceed the nominal deadline if a nonconforming stream never settles cancellation.
+
+### Orchestrated Instagram route checkpoint — 2026-09-02
+
+- **Delivery class:** provider-retirement safety slice for both authenticated content-intelligence social routes. Exact Instagram post, reel, and legacy TV identities remain recognizable, but automatic extraction now fails deterministically with canonical open/manual-upload guidance instead of disclosing caller URLs to unapproved services.
+- **Baseline and topology:** canonical `origin/main` was freshly verified clean at `bea0935e744038ca0bbf5cea88113e038fce1446`. A reviewed parser foundation was joined before two isolated, non-overlapping route migrations; inventory, roadmap, cumulative verification, and publication remained integration-owner responsibilities.
+- **Provider provenance:** parser candidate `6a521d5934b58bb5c4ef5dcec8aee020bddc54d5` joined as `7b74374d9`. Active-route candidate `58e2ef416b625e13b42f731d78f5ecfe02157d81` joined as `67c874482`. Legacy-route candidate `3cf3c7c6e23ee9877bcf2886d473972867515f61` plus input-contract correction `19f65f22a8904283cafbff3264188b21ca80e34f` joined as `b29d44e7e`/`f37e937aa`.
+- **Independent review:** the parser passed raw-versus-normalized authority/path review. The active route was held until its stale cache/D1 regression expectation was removed. The legacy route was held until option keys formed a closed boolean schema and the exact invalid-URL guidance was restored.
+- **Falsified direction:** adding DNS, redirect, timeout, MIME, and byte bounds around Cobalt, SnapInsta, InstaDP, SaveInsta, legacy Instagram endpoints, or an uncredentialed oEmbed request would not establish provider authorization or make arbitrary browser-facing media/HTML trustworthy. Those paths were retired rather than cosmetically wrapped.
+- **Gated decision:** the repository has no configured Meta/Instagram credential and no authoritative local contract for a supported first-party endpoint, version, scopes, quota, or returned-media origins. Automatic Instagram metadata/media remains disabled until those inputs are approved and its adapter passes the fixed-origin provider gates.
+- **Behavioral invariant:** valid and invalid Instagram requests perform zero provider, DNS, KV, and D1 work; canonical identity never retains query data; pre-aborted requests are terminal; other social platforms remain on their existing constrained paths.
+- **Remaining constrained scope:** TikTok, Twitter/X, Facebook, and Bluesky branches retain legacy parsing/provider behavior, so INV-019 and INV-020 remain `constrained-provider`. Shared DNS validation still requires an enforcing connect-time egress boundary.
 
 ### Required tests
 

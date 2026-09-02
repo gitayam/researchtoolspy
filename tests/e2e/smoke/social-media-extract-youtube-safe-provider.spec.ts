@@ -303,7 +303,6 @@ test.describe('INV-020 canonical YouTube provider route @smoke', () => {
     const cases = [
       { platform: 'x', url: 'https://x.com/example/status/123', mode: 'full' },
       { platform: 'twitter', url: 'https://twitter.com/example/status/123', mode: 'metadata' },
-      { platform: 'instagram', url: 'https://instagram.com/p/Example123/', mode: 'download' },
     ]
     for (const entry of cases) {
       const cached = JSON.stringify({ success: true, platform: entry.platform, postType: 'cached' })
