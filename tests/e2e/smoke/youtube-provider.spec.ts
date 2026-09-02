@@ -70,7 +70,6 @@ function installProvider(
 function ordinaryProvider(call: ProviderCall): Response {
   if (call.url.pathname === '/oembed') return jsonResponse(oembed())
   if (call.url.pathname === '/youtubei/v1/player') return jsonResponse(innertube())
-  if (call.url.hostname === 'co.wuk.sh') return jsonResponse({ status: 'stream', url: 'https://media.example/video.mp4' })
   if (call.url.pathname === '/api/timedtext') {
     return new Response('<transcript><text>Hello &amp; goodbye</text><text>second line</text></transcript>', {
       headers: { 'Content-Type': 'application/xml' },
@@ -113,9 +112,9 @@ test.describe('bounded YouTube provider foundation @smoke', () => {
       success: true,
       metadata: { title: 'Bounded title', authorName: 'Bounded author', thumbnailWidth: 480 },
       transcript: 'Hello & goodbye second line',
-      mediaUrl: 'https://media.example/video.mp4',
+      mediaFallback: 'watch_on_youtube',
     })
-    expect(provider.calls).toHaveLength(4)
+    expect(provider.calls).toHaveLength(3)
     const oembedCall = provider.calls.find(call => call.url.pathname === '/oembed')!
     expect(oembedCall.url.href).toBe(`https://www.youtube.com/oembed?url=${encodeURIComponent(TARGET.canonicalUrl)}&format=json`)
     expect(oembedCall.method).toBe('GET')
@@ -130,14 +129,6 @@ test.describe('bounded YouTube provider foundation @smoke', () => {
       videoId: VIDEO_ID,
     })
 
-    const cobaltCall = provider.calls.find(call => call.url.hostname === 'co.wuk.sh')!
-    expect(cobaltCall.url.href).toBe('https://co.wuk.sh/api/json')
-    expect(cobaltCall.method).toBe('POST')
-    expect([...cobaltCall.headers]).toEqual([['accept', 'application/json'], ['content-type', 'application/json']])
-    expect(JSON.parse(cobaltCall.body!)).toEqual({
-      url: TARGET.canonicalUrl,
-      vCodec: 'h264', vQuality: '1080', aFormat: 'mp3', isAudioOnly: false, isTTFullAudio: false,
-    })
     expect(provider.calls.find(call => call.url.pathname === '/api/timedtext')?.method).toBe('GET')
     for (const call of provider.calls) {
       expect(call.redirect).toBe('manual')
@@ -146,7 +137,7 @@ test.describe('bounded YouTube provider foundation @smoke', () => {
       expect(call.headers.has('x-user-hash')).toBe(false)
       expect(call.headers.has('x-workspace-id')).toBe(false)
     }
-    expect(provider.calls.some(call => call.url.hostname === 'media.example')).toBe(false)
+    expect(provider.calls.some(call => call.url.hostname === 'co.wuk.sh' || call.url.hostname === 'media.example')).toBe(false)
   })
 
   test('@smoke rejects forged canonical targets before DNS or transport', async () => {
@@ -158,6 +149,26 @@ test.describe('bounded YouTube provider foundation @smoke', () => {
     expect(result).toEqual({ success: false, failure: { stage: 'target', code: 'invalid_target' } })
     expect(provider.calls).toEqual([])
     expect(resolutions).toBe(0)
+  })
+
+  test('@smoke snapshots canonical target identity before any provider await', async () => {
+    const mutable = { ...TARGET }
+    let mutated = false
+    const provider = installProvider(ordinaryProvider, async hostname => {
+      if (!mutated) {
+        mutated = true
+        mutable.videoId = 'ZyX_wVu-987'
+        mutable.canonicalUrl = 'https://www.youtube.com/watch?v=ZyX_wVu-987'
+      }
+      expect(hostname).toBe('www.youtube.com')
+      return PUBLIC_IP
+    })
+    const result = await fetchYouTubeProvider(mutable, { ...provider.options, includeTranscript: true })
+    expect(result.success).toBe(true)
+    const oembedCall = provider.calls.find(call => call.url.pathname === '/oembed')!
+    expect(oembedCall.url.searchParams.get('url')).toBe(TARGET.canonicalUrl)
+    const innerCall = provider.calls.find(call => call.url.pathname === '/youtubei/v1/player')!
+    expect(JSON.parse(innerCall.body!).videoId).toBe(VIDEO_ID)
   })
 
   test('@smoke rejects oEmbed redirect without contacting its target and awaits cancellation', async () => {
@@ -175,7 +186,8 @@ test.describe('bounded YouTube provider foundation @smoke', () => {
   })
 
   test('@smoke rejects wrong or missing oEmbed MIME and cancels both bodies', async () => {
-    for (const headers of [{ 'Content-Type': 'text/html' }, {}]) {
+    const headerCases: HeadersInit[] = [{ 'Content-Type': 'text/html' }, {}]
+    for (const headers of headerCases) {
       const body = cancellableResponse({ headers, firstChunk: new TextEncoder().encode('{}'), hang: true })
       const provider = installProvider(() => body.response)
       const result = await fetchYouTubeProvider(TARGET, provider.options)
@@ -208,12 +220,101 @@ test.describe('bounded YouTube provider foundation @smoke', () => {
     }
   })
 
-  test('@smoke applies caller abort and absolute deadline while awaiting and cancels the POST body', async () => {
+  test('@smoke origin-contains browser-facing oEmbed URLs and omits unsafe optional fields', async () => {
+    const unsafeUrls = [
+      'https://127.0.0.1/output',
+      'https://localhost/output',
+      'https://metadata.google.internal/output',
+      'https://attacker.example/output',
+      'https://www.youtube.com.evil.test/output',
+      'https://user@www.youtube.com/output',
+      'https://www.youtube.com:443/output',
+      'https://www%2eyoutube.com/output',
+      'https://www.youtube。com/output',
+      'https://www.youtube.com/output#fragment',
+      'https://www.youtube.com/\\escape',
+      'https://www.youtube.com/output\n',
+      'https://www.youtube.com/output%ZZ',
+    ]
+    for (const value of unsafeUrls) {
+      const provider = installProvider(() => jsonResponse(oembed({ author_url: value, thumbnail_url: value })))
+      const result = await fetchYouTubeProvider(TARGET, provider.options)
+      expect(result.success, value).toBe(true)
+      expect(result.metadata?.authorUrl, value).toBeUndefined()
+      expect(result.metadata?.thumbnailUrl, value).toBeUndefined()
+    }
+
+    const validProvider = installProvider(() => jsonResponse(oembed({
+      author_url: 'https://www.youtube.com/@bounded',
+      thumbnail_url: 'https://img.youtube.com/vi/test/default.jpg',
+      thumbnail_width: 0,
+      thumbnail_height: 10_001,
+    })))
+    const valid = await fetchYouTubeProvider(TARGET, validProvider.options)
+    expect(valid.metadata).toMatchObject({
+      authorUrl: 'https://www.youtube.com/@bounded',
+      thumbnailUrl: 'https://img.youtube.com/vi/test/default.jpg',
+      thumbnailWidth: 0,
+    })
+    expect(valid.metadata?.thumbnailHeight).toBeUndefined()
+
+    for (const dimensions of [
+      { thumbnail_width: -1, thumbnail_height: 1 },
+      { thumbnail_width: 1.5, thumbnail_height: 1 },
+      { thumbnail_width: 10_001, thumbnail_height: 1 },
+    ]) {
+      const provider = installProvider(() => jsonResponse(oembed(dimensions)))
+      const result = await fetchYouTubeProvider(TARGET, provider.options)
+      expect(result.metadata?.thumbnailWidth).toBeUndefined()
+      expect(result.metadata?.thumbnailHeight).toBe(1)
+    }
+  })
+
+  test('@smoke treats an already-aborted caller as terminal before DNS or transport', async () => {
+    const controller = new AbortController()
+    controller.abort(new Error('already stopped'))
+    let resolutions = 0
+    const provider = installProvider(() => { throw new Error('must not fetch') }, async () => { resolutions += 1; return PUBLIC_IP })
+    const result = await fetchYouTubeProvider(TARGET, { ...provider.options, signal: controller.signal })
+    expect(result).toEqual({ success: false, failure: { stage: 'target', code: 'aborted' } })
+    expect(provider.calls).toEqual([])
+    expect(resolutions).toBe(0)
+  })
+
+  test('@smoke treats caller abort during oEmbed as terminal and starts no optional work', async () => {
+    const controller = new AbortController()
+    let bodyCancelled = false
+    const provider = installProvider(call => {
+      const stream = new ReadableStream<Uint8Array>({
+        start(streamController) {
+          streamController.enqueue(new TextEncoder().encode('{'))
+          call.signal?.addEventListener('abort', () => {
+            streamController.enqueue(new Uint8Array(129 * 1024))
+          }, { once: true })
+          setTimeout(() => controller.abort(new Error('caller stopped')), 5)
+        },
+        cancel() { bodyCancelled = true },
+      })
+      return new Response(stream, { headers: { 'Content-Type': 'application/json' } })
+    })
+    const result = await fetchYouTubeProvider(TARGET, {
+      ...provider.options,
+      includeTranscript: true,
+      includeMedia: true,
+      deadline: createYouTubeProviderDeadline(1_000),
+      signal: controller.signal,
+    })
+    expect(result.success).toBe(false)
+    expect(result.failure).toEqual({ stage: 'oembed', code: 'aborted' })
+    expect(provider.calls).toHaveLength(1)
+    expect(bodyCancelled).toBe(true)
+  })
+
+  test('@smoke treats caller abort during optional transcript work as terminal and cancels without later work', async () => {
     const controller = new AbortController()
     let hanging: ReturnType<typeof cancellableResponse> | undefined
     const provider = installProvider(call => {
       if (call.url.pathname === '/oembed') return jsonResponse(oembed())
-      if (call.url.pathname === '/youtubei/v1/player') return jsonResponse({})
       hanging = cancellableResponse({ headers: { 'Content-Type': 'application/json' }, hang: true })
       setTimeout(() => controller.abort(new Error('caller stopped')), 5)
       return hanging.response
@@ -225,29 +326,35 @@ test.describe('bounded YouTube provider foundation @smoke', () => {
       deadline: createYouTubeProviderDeadline(1_000),
       signal: controller.signal,
     })
-    expect(result.success).toBe(true)
-    expect(result.mediaFailure).toEqual({ stage: 'cobalt', code: 'aborted' })
+    expect(result).toEqual({ success: false, failure: { stage: 'target', code: 'aborted' } })
+    expect(provider.calls).toHaveLength(2)
+    expect(provider.calls.some(call => call.url.pathname === '/api/timedtext' || call.url.hostname === 'co.wuk.sh')).toBe(false)
     expect(hanging?.wasCancelled()).toBe(true)
+  })
 
+  test('@smoke allows optional provider timeout to degrade to bounded metadata success', async () => {
     let deadlineBody: ReturnType<typeof cancellableResponse> | undefined
-    const deadlineProvider = installProvider(call => {
+    const provider = installProvider(call => {
       if (call.url.pathname === '/oembed') return jsonResponse(oembed())
       deadlineBody = cancellableResponse({ headers: { 'Content-Type': 'application/json' }, hang: true })
       return deadlineBody.response
     })
     const timedOut = await fetchYouTubeProvider(TARGET, {
-      ...deadlineProvider.options,
+      ...provider.options,
+      includeTranscript: true,
       includeMedia: true,
       deadline: createYouTubeProviderDeadline(100),
     })
-    expect(timedOut.mediaFailure).toEqual({ stage: 'cobalt', code: 'deadline' })
+    expect(timedOut).toMatchObject({
+      success: true,
+      metadata: { title: 'Bounded title' },
+      transcriptFailure: { stage: 'innertube', code: 'deadline' },
+      mediaFallback: 'watch_on_youtube',
+    })
     expect(deadlineBody?.wasCancelled()).toBe(true)
 
     const expiredProvider = installProvider(() => { throw new Error('must not fetch') })
-    const expired = await fetchYouTubeProvider(TARGET, {
-      ...expiredProvider.options,
-      deadline: { expiresAt: Date.now() - 1 },
-    })
+    const expired = await fetchYouTubeProvider(TARGET, { ...expiredProvider.options, deadline: { expiresAt: Date.now() - 1 } })
     expect(expired).toEqual({ success: false, failure: { stage: 'target', code: 'deadline' } })
     expect(expiredProvider.calls).toEqual([])
   })
@@ -258,6 +365,11 @@ test.describe('bounded YouTube provider foundation @smoke', () => {
       'https://www.youtube.com/not-timedtext?v=x',
       'https://user@www.youtube.com/api/timedtext?v=x',
       'https://www.youtube.com:443/api/timedtext?v=x',
+      'https://www%2eyoutube.com/api/timedtext?v=x',
+      'https://www.youtube。com/api/timedtext?v=x',
+      'https://www.youtube.com/api/timedtext?v=bad\\path',
+      'https://www.youtube.com/api/timedtext?v=bad%ZZ',
+      'https://www.youtube.com/api/timedtext?v=x\n',
     ]
     for (const baseUrl of invalid) {
       const provider = installProvider(call => {
@@ -285,19 +397,59 @@ test.describe('bounded YouTube provider foundation @smoke', () => {
       expect(result.transcriptFailure).toEqual({ stage: 'innertube', code: 'unavailable' })
       expect(provider.calls).toHaveLength(2)
     }
+
+    const boundaryProvider = installProvider(call => {
+      if (call.url.pathname === '/oembed') return jsonResponse(oembed())
+      if (call.url.pathname === '/youtubei/v1/player') {
+        return jsonResponse({
+          captions: { playerCaptionsTracklistRenderer: { captionTracks: Array.from({ length: 100 }, () => ordinaryTrack) } },
+        })
+      }
+      return new Response('<text>boundary accepted</text>', { headers: { 'Content-Type': 'application/xml' } })
+    })
+    const boundary = await fetchYouTubeProvider(TARGET, { ...boundaryProvider.options, includeTranscript: true })
+    expect(boundary.transcript).toBe('boundary accepted')
+    expect(boundaryProvider.calls).toHaveLength(3)
   })
 
   test('@smoke denies private and mixed caption DNS before caption transport', async () => {
     for (const denied of [['10.0.0.8'], ['93.184.216.34', '10.0.0.8']]) {
-      let resolutions = 0
+      const resolvedHosts: string[] = []
       const provider = installProvider(call => {
         if (call.url.pathname === '/oembed') return jsonResponse(oembed())
         if (call.url.pathname === '/youtubei/v1/player') return jsonResponse(innertube())
         throw new Error('caption transport must not run')
-      }, async () => (++resolutions === 3 ? denied : PUBLIC_IP))
+      }, async hostname => {
+        resolvedHosts.push(hostname)
+        return resolvedHosts.length === 3 ? denied : PUBLIC_IP
+      })
       const result = await fetchYouTubeProvider(TARGET, { ...provider.options, includeTranscript: true })
       expect(result.transcriptFailure).toEqual({ stage: 'caption', code: 'policy' })
       expect(provider.calls).toHaveLength(2)
+      expect(resolvedHosts).toEqual(['www.youtube.com', 'www.youtube.com', 'www.youtube.com'])
+    }
+  })
+
+  test('@smoke denies private, mixed, and failing InnerTube DNS before POST transport', async () => {
+    const deniedResolvers = [
+      async () => ['10.0.0.8'],
+      async () => ['93.184.216.34', '10.0.0.8'],
+      async () => { throw new Error('resolver unavailable') },
+    ]
+    for (const deniedResolver of deniedResolvers) {
+      const resolvedHosts: string[] = []
+      const provider = installProvider(call => {
+        if (call.url.pathname === '/oembed') return jsonResponse(oembed())
+        throw new Error('InnerTube POST transport must not run')
+      }, async hostname => {
+        resolvedHosts.push(hostname)
+        return resolvedHosts.length === 1 ? PUBLIC_IP : deniedResolver()
+      })
+      const result = await fetchYouTubeProvider(TARGET, { ...provider.options, includeTranscript: true })
+      expect(result.success).toBe(true)
+      expect(result.transcriptFailure).toEqual({ stage: 'innertube', code: 'policy' })
+      expect(provider.calls).toHaveLength(1)
+      expect(resolvedHosts).toEqual(['www.youtube.com', 'www.youtube.com'])
     }
   })
 
@@ -315,6 +467,14 @@ test.describe('bounded YouTube provider foundation @smoke', () => {
     const validProvider = installProvider(ordinaryProvider)
     const valid = await fetchYouTubeProvider(TARGET, { ...validProvider.options, includeTranscript: true })
     expect(valid.transcript).toBe('Hello & goodbye second line')
+
+    const cappedProvider = installProvider(call => {
+      if (call.url.pathname === '/oembed') return jsonResponse(oembed())
+      if (call.url.pathname === '/youtubei/v1/player') return jsonResponse(innertube())
+      return new Response(`<text>${'x'.repeat(200_001)}</text>`, { headers: { 'Content-Type': 'text/xml' } })
+    })
+    const capped = await fetchYouTubeProvider(TARGET, { ...cappedProvider.options, includeTranscript: true })
+    expect(capped.transcript).toHaveLength(200_000)
   })
 
   test('@smoke enforces InnerTube and caption byte ceilings with awaited cancellation', async () => {
@@ -343,90 +503,47 @@ test.describe('bounded YouTube provider foundation @smoke', () => {
     expect(captionBody?.wasCancelled()).toBe(true)
   })
 
-  test('@smoke makes InnerTube MIME and Cobalt stream failures optional with cleanup', async () => {
-    for (const stage of ['innertube', 'cobalt'] as const) {
-      let rejected: ReturnType<typeof cancellableResponse> | undefined
-      const provider = installProvider(call => {
-        if (call.url.pathname === '/oembed') return jsonResponse(oembed())
-        const isTarget = stage === 'innertube' ? call.url.pathname === '/youtubei/v1/player' : call.url.hostname === 'co.wuk.sh'
-        if (isTarget) {
-          rejected = stage === 'innertube'
-            ? cancellableResponse({ headers: {}, firstChunk: new TextEncoder().encode('{}'), hang: true })
-            : cancellableResponse({ headers: { 'Content-Type': 'application/json' }, firstChunk: new Uint8Array(256 * 1024 + 1), hang: true })
-          return rejected.response
-        }
-        throw new Error('unexpected optional transport')
+  test('@smoke makes InnerTube MIME failure optional with awaited cleanup', async () => {
+    const rejected = cancellableResponse({ headers: {}, firstChunk: new TextEncoder().encode('{}'), hang: true })
+    const provider = installProvider(call => call.url.pathname === '/oembed' ? jsonResponse(oembed()) : rejected.response)
+    const result = await fetchYouTubeProvider(TARGET, { ...provider.options, includeTranscript: true })
+    expect(result.success).toBe(true)
+    expect(result.transcriptFailure).toEqual({ stage: 'innertube', code: 'invalid_response' })
+    expect(rejected.wasCancelled()).toBe(true)
+  })
+
+  test('@smoke treats InnerTube redirect as terminal and never contacts its target', async () => {
+    const redirect = cancellableResponse({
+      status: 302,
+      headers: { Location: 'https://attacker.example/provider-escape', 'Content-Type': 'application/json' },
+      hang: true,
+    })
+    const provider = installProvider(call => call.url.pathname === '/oembed' ? jsonResponse(oembed()) : redirect.response)
+    const result = await fetchYouTubeProvider(TARGET, { ...provider.options, includeTranscript: true })
+    expect(result.transcriptFailure).toEqual({ stage: 'innertube', code: 'policy' })
+    expect(provider.calls).toHaveLength(2)
+    expect(provider.calls.some(call => call.url.hostname === 'attacker.example')).toBe(false)
+    expect(redirect.wasCancelled()).toBe(true)
+  })
+
+  test('@smoke emits only a typed watch fallback for media/full mode with zero media provider or DNS work', async () => {
+    for (const includeTranscript of [false, true]) {
+      const resolvedHosts: string[] = []
+      const provider = installProvider(ordinaryProvider, async hostname => {
+        resolvedHosts.push(hostname)
+        return PUBLIC_IP
       })
       const result = await fetchYouTubeProvider(TARGET, {
         ...provider.options,
-        includeTranscript: stage === 'innertube',
-        includeMedia: stage === 'cobalt',
+        includeMedia: true,
+        includeTranscript,
       })
       expect(result.success).toBe(true)
-      expect(stage === 'innertube' ? result.transcriptFailure : result.mediaFailure).toMatchObject({ stage })
-      expect(rejected?.wasCancelled()).toBe(true)
-    }
-  })
-
-  test('@smoke treats InnerTube and Cobalt redirects as terminal and never contacts their target', async () => {
-    for (const stage of ['innertube', 'cobalt'] as const) {
-      let redirect: ReturnType<typeof cancellableResponse> | undefined
-      const provider = installProvider(call => {
-        if (call.url.pathname === '/oembed') return jsonResponse(oembed())
-        const isTarget = stage === 'innertube' ? call.url.pathname === '/youtubei/v1/player' : call.url.hostname === 'co.wuk.sh'
-        if (isTarget) {
-          redirect = cancellableResponse({
-            status: 302,
-            headers: { Location: 'https://attacker.example/provider-escape', 'Content-Type': 'application/json' },
-            hang: true,
-          })
-          return redirect.response
-        }
-        throw new Error('redirect target must not run')
-      })
-      const result = await fetchYouTubeProvider(TARGET, {
-        ...provider.options,
-        includeTranscript: stage === 'innertube',
-        includeMedia: stage === 'cobalt',
-      })
-      expect(stage === 'innertube' ? result.transcriptFailure : result.mediaFailure).toEqual({ stage, code: 'policy' })
-      expect(provider.calls).toHaveLength(2)
-      expect(provider.calls.some(call => call.url.hostname === 'attacker.example')).toBe(false)
-      expect(redirect?.wasCancelled()).toBe(true)
-    }
-  })
-
-  test('@smoke treats malformed Cobalt JSON as an optional closed failure', async () => {
-    const provider = installProvider(call => call.url.pathname === '/oembed'
-      ? jsonResponse(oembed())
-      : new Response('{broken', { headers: { 'Content-Type': 'application/json' } }))
-    const result = await fetchYouTubeProvider(TARGET, { ...provider.options, includeMedia: true })
-    expect(result.success).toBe(true)
-    expect(result.mediaUrl).toBeUndefined()
-    expect(result.mediaFailure).toEqual({ stage: 'cobalt', code: 'invalid_response' })
-  })
-
-  test('@smoke accepts only closed Cobalt statuses and public validated output without fetching it', async () => {
-    const outputs: Array<{ payload: unknown; expected: 'policy' | 'unavailable' }> = [
-      { payload: { status: 'picker', url: 'https://media.example/video.mp4' }, expected: 'unavailable' },
-      { payload: { status: 'stream', url: 'http://media.example/video.mp4' }, expected: 'policy' },
-      { payload: { status: 'stream', url: 'https://127.0.0.1/video.mp4' }, expected: 'policy' },
-      { payload: { status: 'stream', url: 'https://media.internal/video.mp4' }, expected: 'policy' },
-      { payload: { status: 'stream', url: 'https://user@media.example/video.mp4' }, expected: 'policy' },
-      { payload: { status: 'stream', url: 'https://media.example:443/video.mp4' }, expected: 'policy' },
-      { payload: { status: 'stream', url: 'https://media.example/video.mp4#fragment' }, expected: 'policy' },
-      { payload: { status: 'stream', url: `https://media.example/${'x'.repeat(2049)}` }, expected: 'policy' },
-      { payload: { status: 'stream', url: 'https://media.example/video.mp4' }, expected: 'policy' },
-    ]
-    for (const scenario of outputs) {
-      const provider = installProvider(call => call.url.pathname === '/oembed'
-        ? jsonResponse(oembed())
-        : jsonResponse(scenario.payload), async hostname => hostname === 'media.example' ? ['10.0.0.8'] : PUBLIC_IP)
-      const result = await fetchYouTubeProvider(TARGET, { ...provider.options, includeMedia: true })
-      expect(result.mediaUrl).toBeUndefined()
-      expect(result.mediaFailure).toEqual({ stage: 'cobalt', code: scenario.expected })
-      expect(provider.calls).toHaveLength(2)
-      expect(provider.calls.every(call => call.url.hostname !== 'media.example')).toBe(true)
+      expect(result.mediaFallback).toBe('watch_on_youtube')
+      expect(provider.calls.every(call => call.url.hostname === 'www.youtube.com')).toBe(true)
+      expect(resolvedHosts.every(hostname => hostname === 'www.youtube.com')).toBe(true)
+      expect(provider.calls).toHaveLength(includeTranscript ? 3 : 1)
+      expect(resolvedHosts).toHaveLength(includeTranscript ? 3 : 1)
     }
   })
 })
