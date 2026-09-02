@@ -10,11 +10,11 @@ import {
 const YOUTUBE_ORIGIN = 'https://www.youtube.com'
 const OEMBED_URL = `${YOUTUBE_ORIGIN}/oembed`
 const INNERTUBE_URL = `${YOUTUBE_ORIGIN}/youtubei/v1/player?key=AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8`
-const COBALT_URL = 'https://co.wuk.sh/api/json'
 const MAX_CHAIN_MS = 30_000
 const MAX_TRANSCRIPT_CHARS = 200_000
+const MAX_OUTPUT_URL_LENGTH = 2048
 
-export type YouTubeProviderStage = 'target' | 'oembed' | 'innertube' | 'caption' | 'cobalt'
+export type YouTubeProviderStage = 'target' | 'oembed' | 'innertube' | 'caption'
 export type YouTubeProviderFailureCode =
   | 'invalid_target'
   | 'aborted'
@@ -57,10 +57,9 @@ export interface YouTubeProviderResult {
   success: boolean
   metadata?: YouTubeOEmbedMetadata
   transcript?: string
-  mediaUrl?: string
+  mediaFallback?: 'watch_on_youtube'
   failure?: YouTubeProviderFailure
   transcriptFailure?: YouTubeProviderFailure
-  mediaFailure?: YouTubeProviderFailure
 }
 
 interface ProviderContext {
@@ -160,7 +159,7 @@ function jsonMime(response: Response): boolean {
 }
 
 async function readBoundedPostJson(
-  url: typeof INNERTUBE_URL | typeof COBALT_URL,
+  url: typeof INNERTUBE_URL,
   body: string,
   maxBytes: number,
   timeoutMs: number,
@@ -247,11 +246,23 @@ function boundedString(value: unknown, maximum: number): string | undefined {
   return typeof value === 'string' && value.length > 0 && value.length <= maximum ? value : undefined
 }
 
-function boundedHttpsUrl(value: unknown, maximum: number): string | undefined {
-  if (typeof value !== 'string' || value.length === 0 || value.length > maximum) return undefined
+function containsAsciiControl(value: string): boolean {
+  return [...value].some(character => {
+    const point = character.codePointAt(0) ?? 0
+    return point <= 31 || point === 127
+  })
+}
+
+function exactOutputUrl(value: unknown, allowedAuthorities: readonly string[]): string | undefined {
+  if (typeof value !== 'string' || value.length === 0 || value.length > MAX_OUTPUT_URL_LENGTH
+    || value.includes('\\') || value.includes('#') || containsAsciiControl(value)
+    || /%(?![0-9a-f]{2})/i.test(value)) return undefined
+  const raw = /^https:\/\/([^/?#]+)(?:[/?][^#]*)?$/.exec(value)
+  if (!raw || !allowedAuthorities.includes(raw[1])) return undefined
   try {
     const parsed = new URL(value)
-    return parsed.protocol === 'https:' && !parsed.username && !parsed.password && !parsed.port && !parsed.hash
+    return parsed.protocol === 'https:' && allowedAuthorities.includes(parsed.hostname)
+      && parsed.host === raw[1] && !parsed.username && !parsed.password && !parsed.port && !parsed.hash
       ? parsed.href
       : undefined
   } catch { return undefined }
@@ -291,15 +302,17 @@ async function fetchOEmbed(target: CanonicalYouTubeTarget, context: ProviderCont
   const title = boundedString(data.title, 512)
   const authorName = boundedString(data.author_name, 256)
   if (!title || !authorName) throw new SafeFetchError('unsupported_content_type', 'YouTube oEmbed fields are invalid')
-  const width = typeof data.thumbnail_width === 'number' && Number.isFinite(data.thumbnail_width) && data.thumbnail_width >= 0
+  const width = typeof data.thumbnail_width === 'number' && Number.isInteger(data.thumbnail_width)
+    && data.thumbnail_width >= 0 && data.thumbnail_width <= 10_000
     ? data.thumbnail_width : undefined
-  const height = typeof data.thumbnail_height === 'number' && Number.isFinite(data.thumbnail_height) && data.thumbnail_height >= 0
+  const height = typeof data.thumbnail_height === 'number' && Number.isInteger(data.thumbnail_height)
+    && data.thumbnail_height >= 0 && data.thumbnail_height <= 10_000
     ? data.thumbnail_height : undefined
   return {
     title,
     authorName,
-    authorUrl: boundedHttpsUrl(data.author_url, 2048),
-    thumbnailUrl: boundedHttpsUrl(data.thumbnail_url, 2048),
+    authorUrl: exactOutputUrl(data.author_url, ['www.youtube.com']),
+    thumbnailUrl: exactOutputUrl(data.thumbnail_url, ['i.ytimg.com', 'img.youtube.com']),
     thumbnailWidth: width,
     thumbnailHeight: height,
   }
@@ -322,7 +335,7 @@ function captionTracks(value: unknown): CaptionTrack[] | null {
   const parsed: CaptionTrack[] = []
   for (const track of tracks) {
     if (!record(track)) return null
-    const baseUrl = boundedString(track.baseUrl, 4096)
+    const baseUrl = boundedString(track.baseUrl, MAX_OUTPUT_URL_LENGTH)
     const languageCode = boundedString(track.languageCode, 32)
     const kind = track.kind === undefined ? undefined : boundedString(track.kind, 32)
     if (!baseUrl || !languageCode || (track.kind !== undefined && !kind)) return null
@@ -332,6 +345,8 @@ function captionTracks(value: unknown): CaptionTrack[] | null {
 }
 
 function exactCaptionUrl(value: string): URL | null {
+  if (value.length > MAX_OUTPUT_URL_LENGTH || value.includes('\\') || containsAsciiControl(value)
+    || /%(?![0-9a-f]{2})/i.test(value)) return null
   const match = /^https:\/\/([^/?#]+)(\/[^?#]*)(?:\?[^#]*)?$/.exec(value)
   if (!match || match[1] !== 'www.youtube.com' || match[2] !== '/api/timedtext') return null
   try {
@@ -399,54 +414,9 @@ async function fetchTranscript(
   }
 }
 
-function cobaltBody(canonicalUrl: string): string {
-  return JSON.stringify({
-    url: canonicalUrl,
-    vCodec: 'h264',
-    vQuality: '1080',
-    aFormat: 'mp3',
-    isAudioOnly: false,
-    isTTFullAudio: false,
-  })
-}
-
-async function publicMediaUrl(value: unknown, context: ProviderContext): Promise<string | undefined> {
-  if (typeof value !== 'string' || value.length === 0 || value.length > 2048) return undefined
-  const authority = /^https:\/\/([^/?#]+)/.exec(value)?.[1]
-  if (!authority || authority.includes('@') || authority.includes(':') || value.includes('#')) return undefined
-  let parsed: URL
-  try { parsed = new URL(value) } catch { return undefined }
-  if (parsed.protocol !== 'https:' || parsed.username || parsed.password || parsed.port || parsed.hash) return undefined
-  const operation = operationSignal(context.deadline, 15_000)
-  try {
-    return (await assertSafeOutboundUrl(parsed, operation.signal, context.resolveHostname)).href
-  } catch (error) {
-    if (operation.signal.aborted) {
-      throw new SafeFetchError(context.deadline.signal?.aborted ? 'aborted' : 'timeout', 'Media URL validation aborted', { cause: error })
-    }
-    if (error instanceof SafeFetchError && (error.code === 'aborted' || error.code === 'timeout')) throw error
-    return undefined
-  } finally { operation.cleanup() }
-}
-
-async function fetchCobalt(
-  target: CanonicalYouTubeTarget,
-  context: ProviderContext,
-): Promise<{ value?: string; failure?: YouTubeProviderFailure }> {
-  try {
-    const raw = await readBoundedPostJson(COBALT_URL, cobaltBody(target.canonicalUrl), 256 * 1024, 15_000, context)
-    if (!record(raw) || (raw.status !== 'redirect' && raw.status !== 'stream')) {
-      return { failure: { stage: 'cobalt', code: 'unavailable' } }
-    }
-    const output = await publicMediaUrl(raw.url, context)
-    return output ? { value: output } : { failure: { stage: 'cobalt', code: 'policy' } }
-  } catch (error) {
-    return { failure: failure('cobalt', error) }
-  }
-}
-
 /**
- * Fetch bounded YouTube metadata and optional transcript/media under one absolute deadline.
+ * Fetch bounded YouTube metadata and an optional transcript under one absolute deadline.
+ * Media mode returns a typed Watch-on-YouTube fallback signal and performs no media-provider call.
  * This helper never accepts a raw caller URL, logs, persists, caches, or fetches returned media.
  */
 export async function fetchYouTubeProvider(
@@ -454,6 +424,11 @@ export async function fetchYouTubeProvider(
   options: YouTubeProviderOptions = {},
 ): Promise<YouTubeProviderResult> {
   if (!validTarget(target)) return { success: false, failure: { stage: 'target', code: 'invalid_target' } }
+  const snapshot: CanonicalYouTubeTarget = Object.freeze({
+    platform: 'youtube',
+    videoId: target.videoId,
+    canonicalUrl: target.canonicalUrl,
+  })
   let combined: CombinedDeadline
   try {
     const baseDeadline = options.deadline ?? createYouTubeProviderDeadline(MAX_CHAIN_MS, options.signal)
@@ -469,25 +444,28 @@ export async function fetchYouTubeProvider(
   }
   try {
     let metadata: YouTubeOEmbedMetadata
-    try { metadata = await fetchOEmbed(target, context) } catch (error) {
+    try { metadata = await fetchOEmbed(snapshot, context) } catch (error) {
+      if (context.deadline.signal?.aborted) {
+        return { success: false, failure: { stage: 'oembed', code: 'aborted' } }
+      }
       return { success: false, failure: failure('oembed', error) }
     }
+    if (context.deadline.signal?.aborted) {
+      return { success: false, failure: { stage: 'target', code: 'aborted' } }
+    }
 
-    const [transcript, media] = await Promise.all([
-      options.includeTranscript
-        ? fetchTranscript(target, options.preferredLanguage ?? 'en', context)
-        : Promise.resolve({} as { value?: string; failure?: YouTubeProviderFailure }),
-      options.includeMedia
-        ? fetchCobalt(target, context)
-        : Promise.resolve({} as { value?: string; failure?: YouTubeProviderFailure }),
-    ])
+    const transcript = options.includeTranscript
+      ? await fetchTranscript(snapshot, options.preferredLanguage ?? 'en', context)
+      : {}
+    if (context.deadline.signal?.aborted) {
+      return { success: false, failure: { stage: 'target', code: 'aborted' } }
+    }
     return {
       success: true,
       metadata,
       transcript: transcript.value,
       transcriptFailure: transcript.failure,
-      mediaUrl: media.value,
-      mediaFailure: media.failure,
+      mediaFallback: options.includeMedia ? 'watch_on_youtube' : undefined,
     }
   } finally {
     combined.cleanup()
