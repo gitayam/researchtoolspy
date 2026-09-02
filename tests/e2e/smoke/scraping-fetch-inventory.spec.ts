@@ -15,6 +15,7 @@ type SafetyStatus =
   | 'safe-pdf'
   | 'safe-multi-source'
   | 'safe-image'
+  | 'safe-provider'
   | 'unsafe-direct'
   | 'unsafe-enhanced'
   | 'unsafe-shared'
@@ -68,9 +69,9 @@ const entries: InventoryEntry[] = [
   { id: 'INV-019', file: 'functions/api/content-intelligence/social-extract.ts', status: 'constrained-provider', evidence: /youtube\.com\/oembed/, typecheck: 'root' },
   { id: 'INV-020', file: 'functions/api/content-intelligence/social-media-extract.ts', status: 'constrained-provider', evidence: /selectedTrack\.baseUrl/, typecheck: 'root' },
   { id: 'INV-021', file: 'functions/api/content-intelligence/git-repository-extract.ts', status: 'constrained-provider', evidence: /api\.github\.com\/repos/, typecheck: 'excluded' },
-  { id: 'INV-022', file: 'functions/api/tools/geoconfirmed.ts', status: 'constrained-provider', evidence: /GC_API = 'https:\/\/geoconfirmed\.org\/api'/, typecheck: 'root' },
+  { id: 'INV-022', file: 'functions/api/tools/geoconfirmed.ts', status: 'safe-provider', evidence: /fetchFixedProviderJson<GCConflict\[\]>/, forbidden: [/\bfetch\s*\(/], typecheck: 'root' },
   { id: 'INV-023', file: 'functions/api/content-intelligence/domain-country.ts', status: 'constrained-provider', evidence: /ip-api\.com\/json/, typecheck: 'root' },
-  { id: 'INV-024', file: 'functions/api/content-intelligence/virustotal-lookup.ts', status: 'constrained-provider', evidence: /www\.virustotal\.com\/api\/v3\/domains/, typecheck: 'root' },
+  { id: 'INV-024', file: 'functions/api/content-intelligence/virustotal-lookup.ts', status: 'safe-provider', evidence: /fetchFixedProviderJson<VirusTotalDomainReport>/, forbidden: [/\bfetch\s*\(/], typecheck: 'root' },
   { id: 'INV-025', file: 'functions/api/content-intelligence/pdf-extractor.ts', status: 'safe-pdf', evidence: /safeFetchPdf\(url,/, typecheck: 'root' },
   { id: 'INV-026', file: 'functions/api/_shared/apify-social.ts', status: 'bounded-provider-job', evidence: /fetchApifyJson\(apiKey,/, forbidden: [/\bfetch\s*\(/], typecheck: 'transitive' },
 ]

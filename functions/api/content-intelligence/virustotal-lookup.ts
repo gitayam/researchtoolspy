@@ -11,6 +11,9 @@
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest } from '../_shared/auth-helpers'
 import { JSON_HEADERS } from '../_shared/api-utils'
+import { fetchFixedProviderJson } from '../_shared/fixed-provider'
+
+const VIRUSTOTAL_ORIGIN = 'https://www.virustotal.com'
 
 interface Env {
   DB: D1Database
@@ -64,7 +67,20 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
 
     // Extract domain from URL
-    const domain = new URL(url).hostname
+    let parsedUrl: URL
+    try {
+      parsedUrl = new URL(url)
+    } catch {
+      return new Response(JSON.stringify({ error: 'A valid HTTP(S) URL is required' }), {
+        status: 400, headers: JSON_HEADERS,
+      })
+    }
+    if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+      return new Response(JSON.stringify({ error: 'A valid HTTP(S) URL is required' }), {
+        status: 400, headers: JSON_HEADERS,
+      })
+    }
+    const domain = parsedUrl.hostname.toLowerCase().replace(/\.$/, '')
 
     if (!env.VIRUSTOTAL_API_KEY) {
       console.error('[VirusTotal] API key not configured')
@@ -78,18 +94,17 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
 
     // Fetch domain report from VirusTotal
-    const vtResponse = await fetch(`https://www.virustotal.com/api/v3/domains/${domain}`, {
-      method: 'GET',
-      headers: {
-        'x-apikey': env.VIRUSTOTAL_API_KEY,
-        'Accept': 'application/json'
-      },
-      signal: AbortSignal.timeout(15000)
+    const vtResult = await fetchFixedProviderJson<VirusTotalDomainReport>(VIRUSTOTAL_ORIGIN, [
+      'api', 'v3', 'domains', domain,
+    ], {
+      credentialHeaders: { 'x-apikey': env.VIRUSTOTAL_API_KEY },
+      timeoutMs: 15_000,
+      maxResponseBytes: 1024 * 1024,
     })
+    const vtResponse = vtResult.response
 
     if (!vtResponse.ok) {
-      const errorText = await vtResponse.text()
-      console.error(`[VirusTotal] API error: ${vtResponse.status} - ${errorText}`)
+      console.error(`[VirusTotal] API error: ${vtResponse.status}`)
 
       // Still return the direct link even if API fails
       return new Response(JSON.stringify({
@@ -102,7 +117,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    const data = await vtResponse.json() as VirusTotalDomainReport
+    const data = vtResult.data
+    if (!data?.data?.attributes) throw new Error('VirusTotal returned an invalid domain report')
 
     // Format the response with key security information
     const securityInfo = {
@@ -127,8 +143,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       headers: JSON_HEADERS
     })
 
-  } catch (error) {
-    console.error('[VirusTotal] Error:', error)
+  } catch {
+    console.error('[VirusTotal] bounded provider request failed')
     return new Response(JSON.stringify({
       error: 'Failed to fetch VirusTotal data'
 
@@ -213,4 +229,3 @@ export const onRequestGet: PagesFunction = async () => {
     status: 405, headers: JSON_HEADERS,
   })
 }
-

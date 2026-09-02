@@ -17,6 +17,7 @@
 
 import { getUserFromRequest } from '../_shared/auth-helpers'
 import { JSON_HEADERS, optionsResponse } from '../_shared/api-utils'
+import { fetchFixedProviderBytes, fetchFixedProviderJson } from '../_shared/fixed-provider'
 
 interface Env {
   CACHE: KVNamespace
@@ -25,9 +26,21 @@ interface Env {
   JWT_SECRET?: string
 }
 
+interface GeoConfirmedRequest {
+  action?: 'conflicts'
+  conflict?: string
+  url?: string
+  search?: string
+  page?: number
+  pageSize?: number
+  enriched?: boolean
+}
+
 // ─── GeoConfirmed API endpoints ───
 
-const GC_API = 'https://geoconfirmed.org/api'
+const GC_ORIGIN = 'https://geoconfirmed.org'
+const MAX_KMZ_BYTES = 8 * 1024 * 1024
+const MAX_KML_BYTES = 16 * 1024 * 1024
 
 // ─── Types ───
 
@@ -51,13 +64,6 @@ interface GCConflict {
   longitude: number
 }
 
-interface GCFaction {
-  id: number
-  name: string
-  color: string
-  invertTextColor: boolean
-}
-
 interface EnrichedEvent {
   id: string
   date: string
@@ -71,6 +77,13 @@ interface EnrichedEvent {
   equipment_type: string | null
   destroyed: boolean
   icon_path: string
+}
+
+interface TimelineEvent extends Omit<EnrichedEvent, 'description' | 'sources' | 'geolocations'> {
+  description?: string | null
+  sources?: string[]
+  geolocations?: string[]
+  url: string
 }
 
 // ─── Faction color → name mapping (from API_EXPLORATION.md) ───
@@ -224,9 +237,10 @@ function parseGeoconfirmedUrl(url: string): { conflict: string; eventId: string 
   //   https://geoconfirmed.org/ukraine
   try {
     const u = new URL(url)
-    if (!u.hostname.includes('geoconfirmed.org')) return null
+    if (u.protocol !== 'https:' || u.port || !['geoconfirmed.org', 'www.geoconfirmed.org'].includes(u.hostname.toLowerCase())) return null
     const parts = u.pathname.split('/').filter(Boolean)
-    if (parts.length === 0) return null
+    if (parts.length === 0 || parts.length > 2) return null
+    if (!parts.every(part => /^[a-zA-Z0-9_-]{1,128}$/.test(part))) return null
     return {
       conflict: parts[0],
       eventId: parts[1] || null,
@@ -239,59 +253,73 @@ function parseGeoconfirmedUrl(url: string): { conflict: string; eventId: string 
 // ─── Fetch helpers ───
 
 async function fetchConflicts(): Promise<GCConflict[]> {
-  const res = await fetch(`${GC_API}/Conflict`, { signal: AbortSignal.timeout(15000) })
-  if (!res.ok) throw new Error(`Conflict API returned ${res.status}`)
-  return res.json()
-}
-
-async function fetchConflictDetail(shortName: string): Promise<{ factions: GCFaction[] }> {
-  const res = await fetch(`${GC_API}/Conflict/${shortName}`, { signal: AbortSignal.timeout(15000) })
-  if (!res.ok) throw new Error(`Conflict detail API returned ${res.status}`)
-  return res.json()
+  const result = await fetchFixedProviderJson<GCConflict[]>(GC_ORIGIN, ['api', 'Conflict'])
+  if (!result.response.ok || !Array.isArray(result.data)) throw new Error(`Conflict API returned ${result.response.status}`)
+  return result.data
 }
 
 async function fetchPlacemarks(conflict: string, page: number, pageSize: number, search?: string): Promise<{ items: GCPlacemark[]; count: number }> {
   // Note: search param returns 403 from server-side requests (needs browser session)
   // Fall back to unfiltered results if search fails
   if (search) {
-    const searchUrl = `${GC_API}/Placemark/${conflict}/${page}/${pageSize}?search=${encodeURIComponent(search)}`
-    const searchRes = await fetch(searchUrl, { signal: AbortSignal.timeout(15000) })
-    if (searchRes.ok) return searchRes.json()
+    const searchResult = await fetchFixedProviderJson<{ items: GCPlacemark[]; count: number }>(
+      GC_ORIGIN,
+      ['api', 'Placemark', conflict, String(page), String(pageSize)],
+      { searchParams: { search } },
+    )
+    if (searchResult.response.ok && searchResult.data) return searchResult.data
     // Fall through to unfiltered if search is blocked
   }
-  const url = `${GC_API}/Placemark/${conflict}/${page}/${pageSize}`
-  const res = await fetch(url, { signal: AbortSignal.timeout(15000) })
-  if (!res.ok) throw new Error(`Placemark API returned ${res.status}`)
-  return res.json()
+  const result = await fetchFixedProviderJson<{ items: GCPlacemark[]; count: number }>(
+    GC_ORIGIN,
+    ['api', 'Placemark', conflict, String(page), String(pageSize)],
+  )
+  if (!result.response.ok || !result.data) throw new Error(`Placemark API returned ${result.response.status}`)
+  return result.data
 }
 
 // ─── KML fetch + parse (async with DecompressionStream) ───
 async function fetchAndParseKML(conflict: string): Promise<KMLPlacemark[]> {
-  const res = await fetch(`${GC_API}/map/ExportAsKml/${conflict}`, { signal: AbortSignal.timeout(30000) })
-  if (!res.ok) throw new Error(`KML export returned ${res.status}`)
-
-  const arrayBuffer = await res.arrayBuffer()
-  const bytes = new Uint8Array(arrayBuffer)
+  const result = await fetchFixedProviderBytes(GC_ORIGIN, ['api', 'map', 'ExportAsKml', conflict], {
+    timeoutMs: 30_000,
+    maxResponseBytes: MAX_KMZ_BYTES,
+    allowedContentTypes: [
+      'application/vnd.google-earth.kmz',
+      'application/zip',
+      'application/octet-stream',
+    ],
+  })
+  if (!result.response.ok) throw new Error(`KML export returned ${result.response.status}`)
+  const bytes = result.bytes
+  if (bytes.length < 4 || bytes[0] !== 0x50 || bytes[1] !== 0x4b || bytes[2] !== 0x03 || bytes[3] !== 0x04) {
+    throw new Error('KML export did not return a valid KMZ archive')
+  }
 
   // Extract doc.kml from zip
   const kmlText = await extractDocKmlFromZipAsync(bytes)
   return parseKMLPlacemarks(kmlText)
 }
 
-async function extractDocKmlFromZipAsync(data: Uint8Array): Promise<string> {
+export async function extractDocKmlFromZipAsync(data: Uint8Array): Promise<string> {
   const textDecoder = new TextDecoder('utf-8')
 
-  for (let i = 0; i < data.length - 30; i++) {
+  for (let i = 0; i <= data.length - 30; i++) {
     if (data[i] === 0x50 && data[i + 1] === 0x4B && data[i + 2] === 0x03 && data[i + 3] === 0x04) {
       const compressionMethod = data[i + 8] | (data[i + 9] << 8)
-      const compressedSize = data[i + 18] | (data[i + 19] << 8) | (data[i + 20] << 16) | (data[i + 21] << 24)
-      const uncompressedSize = data[i + 22] | (data[i + 23] << 8) | (data[i + 24] << 16) | (data[i + 25] << 24)
+      const view = new DataView(data.buffer, data.byteOffset + i, 30)
+      const compressedSize = view.getUint32(18, true)
+      const uncompressedSize = view.getUint32(22, true)
       const filenameLength = data[i + 26] | (data[i + 27] << 8)
       const extraLength = data[i + 28] | (data[i + 29] << 8)
       const filename = textDecoder.decode(data.slice(i + 30, i + 30 + filenameLength))
 
       if (filename === 'doc.kml') {
         const dataStart = i + 30 + filenameLength + extraLength
+        if (compressedSize > MAX_KMZ_BYTES
+          || uncompressedSize > MAX_KML_BYTES
+          || dataStart + compressedSize > data.length) {
+          throw new Error('KMZ entry exceeds its bounded size')
+        }
 
         if (compressionMethod === 0) {
           return textDecoder.decode(data.slice(dataStart, dataStart + (uncompressedSize || compressedSize)))
@@ -300,18 +328,23 @@ async function extractDocKmlFromZipAsync(data: Uint8Array): Promise<string> {
           const compressedSlice = data.slice(dataStart, dataStart + compressedSize)
           const ds = new DecompressionStream('deflate-raw')
           const writer = ds.writable.getWriter()
-          writer.write(compressedSlice)
-          writer.close()
+          await writer.write(compressedSlice)
+          await writer.close()
 
           const reader = ds.readable.getReader()
           const chunks: Uint8Array[] = []
+          let totalLength = 0
           while (true) {
             const { done, value } = await reader.read()
             if (done) break
             chunks.push(value)
+            totalLength += value.length
+            if (totalLength > MAX_KML_BYTES) {
+              await reader.cancel('decompressed KML exceeds size limit')
+              throw new Error('Decompressed KML exceeds its bounded size')
+            }
           }
 
-          const totalLength = chunks.reduce((acc, c) => acc + c.length, 0)
           const result = new Uint8Array(totalLength)
           let offset = 0
           for (const chunk of chunks) {
@@ -361,7 +394,22 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   }
 
   try {
-    const body = await request.json() as any
+    const parsedBody: unknown = await request.json()
+    if (!parsedBody || typeof parsedBody !== 'object' || Array.isArray(parsedBody)) {
+      return new Response(JSON.stringify({ error: 'Invalid request body' }), {
+        status: 400, headers: JSON_HEADERS,
+      })
+    }
+    const body = parsedBody as GeoConfirmedRequest
+    if ((body.url !== undefined && (typeof body.url !== 'string' || body.url.length > 2048))
+      || (body.conflict !== undefined && (typeof body.conflict !== 'string' || body.conflict.length > 64))
+      || (body.search !== undefined && (typeof body.search !== 'string' || body.search.length > 500))
+      || (body.page !== undefined && (!Number.isInteger(body.page) || body.page < 1 || body.page > 100_000))
+      || (body.pageSize !== undefined && (!Number.isInteger(body.pageSize) || body.pageSize < 1 || body.pageSize > 200))) {
+      return new Response(JSON.stringify({ error: 'Invalid or oversized GeoConfirmed request parameters' }), {
+        status: 400, headers: JSON_HEADERS,
+      })
+    }
 
     // Mode: List conflicts
     if (body.action === 'conflicts' || (!body.conflict && !body.url && !body.search)) {
@@ -455,8 +503,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       }
 
       // No specific event — return conflict overview with recent events
-      const page = body.page || 1
-      const pageSize = Math.min(body.pageSize || 50, 200)
+      const page = body.page ?? 1
+      const pageSize = body.pageSize ?? 50
       const result = await fetchPlacemarks(conflict.shortName, page, pageSize)
 
       return new Response(JSON.stringify({
@@ -477,10 +525,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
 
     // Mode: Search or list
-    const conflict = body.conflict || 'Iran'
-    const page = body.page || 1
-    const pageSize = Math.min(body.pageSize || 50, 200)
-    const search = body.search || undefined
+    const conflict = body.conflict?.trim() || 'Iran'
+    const page = body.page ?? 1
+    const pageSize = body.pageSize ?? 50
+    const search = body.search?.trim() || undefined
 
     // Validate conflict exists
     const conflicts = await fetchConflicts()
@@ -502,7 +550,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     // If enriched detail requested and page is small enough, merge with KML
     const enriched = body.enriched !== false && pageSize <= 50
 
-    let events: any[]
+    let events: TimelineEvent[]
     if (enriched) {
       let kmlPlacemarks = await getCachedKML(env, conflictInfo.shortName)
       if (!kmlPlacemarks) {
@@ -554,8 +602,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       events,
     }), { headers: JSON_HEADERS })
 
-  } catch (error: any) {
-    console.error('[GeoConfirmed Crawler] Error:', error)
+  } catch {
+    console.error('[GeoConfirmed Crawler] bounded provider request failed')
     return new Response(JSON.stringify({
       error: 'Failed to fetch GeoConfirmed data',
     }), { status: 500, headers: JSON_HEADERS })
