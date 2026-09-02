@@ -43,12 +43,23 @@ interface SocialExtractRequest {
 type YouTubeMode = NonNullable<SocialExtractRequest['extract_mode']>
 const YOUTUBE_MODES: readonly YouTubeMode[] = ['metadata', 'full', 'download']
 const INSTAGRAM_MODES: readonly YouTubeMode[] = ['metadata', 'full', 'download']
+const INSTAGRAM_OPTION_KEYS = new Set(['include_comments', 'include_transcript', 'include_media'])
 
 function validInstagramOptions(options: unknown): options is NonNullable<SocialExtractRequest['options']> {
   if (!options || typeof options !== 'object' || Array.isArray(options)) return false
   const candidate = options as Record<string, unknown>
-  return ['include_comments', 'include_transcript', 'include_media']
-    .every(key => candidate[key] === undefined || typeof candidate[key] === 'boolean')
+  return Object.keys(candidate).every(key => INSTAGRAM_OPTION_KEYS.has(key)
+    && typeof candidate[key] === 'boolean')
+}
+
+function invalidInstagramResult(): Record<string, unknown> {
+  return {
+    success: false,
+    error: 'Invalid Instagram URL',
+    suggestions: [
+      'URL should be in format: https://www.instagram.com/p/SHORTCODE/ or https://www.instagram.com/reel/SHORTCODE/',
+    ],
+  }
 }
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
@@ -124,7 +135,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         break
       case 'instagram':
         if (!instagramTarget) {
-          extractionResult = { success: false, error: 'Invalid Instagram URL' }
+          extractionResult = invalidInstagramResult()
           break
         }
         if (request.signal.aborted) {

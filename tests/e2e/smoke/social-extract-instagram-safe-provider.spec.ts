@@ -138,10 +138,17 @@ test.describe('INV-019 deterministic Instagram route @smoke', () => {
   })
 
   test('@smoke rejects spoofed, malformed, and mismatched Instagram targets before side effects', async () => {
+    const invalidInstagram = {
+      success: false,
+      error: 'Invalid Instagram URL',
+      suggestions: [
+        'URL should be in format: https://www.instagram.com/p/SHORTCODE/ or https://www.instagram.com/reel/SHORTCODE/',
+      ],
+    }
     const scenarios = [
-      { body: { url: 'https://instagram.com.evil.test/p/AbC_123-xYz', platform: 'instagram' }, status: 500, json: { success: false, error: 'Invalid Instagram URL' } },
-      { body: { url: 'http://instagram.com/p/AbC_123-xYz', platform: 'instagram' }, status: 500, json: { success: false, error: 'Invalid Instagram URL' } },
-      { body: { url: 'https://instagram.com/p/AbC_123-xYz?igsh=secret', platform: 'instagram' }, status: 500, json: { success: false, error: 'Invalid Instagram URL' } },
+      { body: { url: 'https://instagram.com.evil.test/p/AbC_123-xYz', platform: 'instagram' }, status: 500, json: invalidInstagram },
+      { body: { url: 'http://instagram.com/p/AbC_123-xYz', platform: 'instagram' }, status: 500, json: invalidInstagram },
+      { body: { url: 'https://instagram.com/p/AbC_123-xYz?igsh=secret', platform: 'instagram' }, status: 500, json: invalidInstagram },
       { body: { url: 'https://instagram.com/p/AbC_123-xYz', platform: 'youtube' }, status: 400, json: { error: 'URL does not match the selected platform' } },
       { body: { url: 'https://instagram.com/p/AbC_123-xYz', platform: 'twitter' }, status: 400, json: { error: 'URL does not match the selected platform' } },
     ]
@@ -167,6 +174,8 @@ test.describe('INV-019 deterministic Instagram route @smoke', () => {
       { url, platform: 'instagram', options: { include_comments: 1 } },
       { url, platform: 'instagram', options: { include_transcript: null } },
       { url, platform: 'instagram', options: { include_media: 'yes' } },
+      { url, platform: 'instagram', options: { unknown: true } },
+      { url, platform: 'instagram', options: { include_media: false, credential: 'secret' } },
     ]
     for (const body of scenarios) {
       const subject = harness()
@@ -178,6 +187,18 @@ test.describe('INV-019 deterministic Instagram route @smoke', () => {
       } finally {
         subject.restore()
       }
+    }
+  })
+
+  test('@smoke preserves the non-Instagram invalid-Twitter envelope without transport or persistence', async () => {
+    const subject = harness()
+    try {
+      const response = await subject.invoke({ url: 'https://twitter.com/example/not-a-status', platform: 'twitter' })
+      expect(response.status).toBe(500)
+      expect(await response.json()).toEqual({ success: false, error: 'Invalid Twitter/X URL' })
+      expectNoSideEffects(subject)
+    } finally {
+      subject.restore()
     }
   })
 
