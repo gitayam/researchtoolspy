@@ -64,14 +64,15 @@ function installNetwork(target: (call: ProviderCall) => Response | Promise<Respo
   return { calls, restore: () => { globalThis.fetch = original } }
 }
 
-function githubPrimary(isPrivate = false) {
+function githubPrimary(overrides: Record<string, unknown> = {}) {
   return {
-    private: isPrivate,
+    private: false, visibility: 'public',
     name: 'demo', full_name: 'acme/demo', owner: { login: 'acme' },
     description: 'Public demo', homepage: 'https://demo.example', language: 'TypeScript',
     stargazers_count: 12, forks_count: 3, watchers_count: 4, open_issues_count: 2,
     license: { name: 'MIT' }, topics: ['research'], created_at: '2020-01-01', updated_at: '2026-01-01',
     pushed_at: '2026-08-31', size: 42, default_branch: 'main', archived: false, fork: false,
+    ...overrides,
   }
 }
 
@@ -115,18 +116,40 @@ test.describe('git repository fixed-provider route @smoke', () => {
       expect(missing.status).toBe(400)
       expect(await missing.json()).toEqual({ success: false, error: 'URL is required' })
 
+      const unknown = await invoke({ url: 'https://evil.example/path/github.com/acme/demo' }, { cache })
+      expect(unknown.status).toBe(400)
+      expect(await unknown.json()).toEqual({
+        success: false,
+        error: 'Could not detect Git platform from URL. Supported platforms: GitHub, GitLab, Bitbucket',
+      })
+      for (const platform of ['github', 'unsupported']) {
+        const mismatch = await invoke({ url: 'https://bitbucket.org/workspace/demo', platform }, { cache })
+        expect(mismatch.status).toBe(422)
+        expect(await mismatch.json()).toEqual({
+          success: false,
+          platform: 'bitbucket',
+          error: 'Invalid Bitbucket URL format. Expected: bitbucket.org/workspace/repo',
+        })
+      }
+      const overlongGitLab = `https://gitlab.com/${Array.from({ length: 6 }, () => 'a'.repeat(90)).join('/')}`
+      const overlong = await invoke({ url: overlongGitLab }, { cache })
+      expect(overlong.status).toBe(422)
+      expect(await overlong.json()).toEqual({
+        success: false,
+        platform: 'gitlab',
+        error: 'Invalid GitLab URL format. Expected: gitlab.com/group/project',
+      })
+
       const rejected = [
         { url: 'http://github.com/acme/demo' },
         { url: 'https://github.com:443/acme/demo' },
         { url: 'https://user:pass@github.com/acme/demo' },
         { url: 'https://github.com/acme/demo?token=raw-secret' },
         { url: 'https://github.com/acme/demo#fragment' },
-        { url: 'https://evil.example/path/github.com/acme/demo' },
         { url: 'https://github.com/acme/demo/issues' },
         { url: 'https://github.com/acme/./demo' },
         { url: 'https://gitlab.com/group/-/issues' },
         { url: 'https://gitlab.com/group/%64emo' },
-        { url: 'https://bitbucket.org/workspace/demo', platform: 'github' },
       ]
       for (const body of rejected) expect((await invoke(body, { cache })).status).toBeGreaterThanOrEqual(400)
       expect(networkCalls).toBe(0)
@@ -177,19 +200,24 @@ test.describe('git repository fixed-provider route @smoke', () => {
     } finally { network.restore() }
   })
 
-  test('@smoke treats non-public GitHub payloads as not-found before optional calls and never caches them', async () => {
-    const cache = new MemoryCache()
-    const network = installNetwork(call => githubTarget(call, githubPrimary(true)))
-    try {
-      const response = await invoke({ url: 'https://github.com/acme/demo' }, { cache, githubToken: 'github-provider-secret' })
-      expect(response.status).toBe(422)
-      expect(await response.json()).toEqual({
-        success: false, platform: 'github', error: 'Repository not found. It may be private or the URL is incorrect.',
-      })
-      expect(network.calls).toHaveLength(1)
-      expect(network.calls[0].headers.get('authorization')).toBe('token github-provider-secret')
-      expect(cache.puts).toEqual([])
-    } finally { network.restore() }
+  test('@smoke treats private, non-public, and missing-visibility GitHub payloads as not-found before optional calls and cache', async () => {
+    const missingVisibility: Record<string, unknown> = githubPrimary()
+    delete missingVisibility.visibility
+    const payloads = [githubPrimary({ private: true }), githubPrimary({ visibility: 'internal' }), missingVisibility]
+    for (const payload of payloads) {
+      const cache = new MemoryCache()
+      const network = installNetwork(call => githubTarget(call, payload))
+      try {
+        const response = await invoke({ url: 'https://github.com/acme/demo' }, { cache, githubToken: 'github-provider-secret' })
+        expect(response.status).toBe(422)
+        expect(await response.json()).toEqual({
+          success: false, platform: 'github', error: 'Repository not found. It may be private or the URL is incorrect.',
+        })
+        expect(network.calls).toHaveLength(1)
+        expect(network.calls[0].headers.get('authorization')).toBe('token github-provider-secret')
+        expect(cache.puts).toEqual([])
+      } finally { network.restore() }
+    }
   })
 
   test('@smoke constructs encoded GitLab and Bitbucket API calls and preserves their ordinary envelopes', async () => {
@@ -238,12 +266,35 @@ test.describe('git repository fixed-provider route @smoke', () => {
       })
       const bitbucketCalls = network.calls.filter(call => call.url.hostname === 'api.bitbucket.org')
       expect(bitbucketCalls).toHaveLength(3)
-      expect(bitbucketCalls.some(call => call.url.pathname.includes('/src/feature%2Freadme/README.md'))).toBe(true)
+      expect(bitbucketCalls.find(call => call.url.pathname.includes('/src/'))?.url.pathname)
+        .toBe('/2.0/repositories/team/demo/src/feature%2Freadme/README.md')
       for (const call of [...gitlabCalls, ...bitbucketCalls]) {
         expect(call.redirect).toBe('manual')
         expect(call.headers.has('authorization')).toBe(false)
       }
     } finally { network.restore() }
+  })
+
+  test('@smoke omits Bitbucket README transport for unsafe provider-derived branch refs', async () => {
+    for (const branch of ['.', '..', '', '\u0001control', 'x'.repeat(256)]) {
+      const network = installNetwork(call => {
+        if (call.url.pathname === '/2.0/repositories/team/demo') return Response.json({
+          name: 'demo', full_name: 'team/demo', owner: { display_name: 'Team' }, mainbranch: { name: branch },
+        })
+        if (call.url.pathname.endsWith('/commits')) return Response.json({ values: [] })
+        throw new Error('README transport must not run')
+      })
+      try {
+        const response = await invoke({ url: 'https://bitbucket.org/team/demo' })
+        expect(response.status, JSON.stringify(branch)).toBe(200)
+        const body = await response.json() as Record<string, unknown>
+        expect(body).toMatchObject({ success: true, platform: 'bitbucket', repository: { fullName: 'team/demo' } })
+        expect(body.readme).toBeUndefined()
+        expect((body.repository as Record<string, unknown>).defaultBranch).toBeUndefined()
+        expect(network.calls).toHaveLength(2)
+        expect(network.calls.some(call => call.url.pathname.includes('/src/'))).toBe(false)
+      } finally { network.restore() }
+    }
   })
 
   test('@smoke fails primary redirect, mixed DNS, MIME, size, and malformed JSON closed with compatible envelope', async () => {

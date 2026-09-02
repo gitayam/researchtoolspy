@@ -106,9 +106,8 @@ function invalidPlatform() {
     status: 400 as const,
     body: {
       success: false,
-      platform: '',
       error: 'Could not detect Git platform from URL. Supported platforms: GitHub, GitLab, Bitbucket',
-    } satisfies RepositoryInfo,
+    },
   }
 }
 function invalidFormat(platform: Platform) {
@@ -143,6 +142,7 @@ function parseRepositoryUrl(input: string, hint: unknown): { repository: Canonic
   if (segments.some(segment => !SLUG.test(segment))) return { failure: invalidFormat(platform) }
   if (platform === 'gitlab') {
     if (segments.length < 2 || segments.length > 20 || segments.includes('-')) return { failure: invalidFormat(platform) }
+    if (segments.join('/').length > 512) return { failure: invalidFormat(platform) }
   } else if (segments.length !== 2) return { failure: invalidFormat(platform) }
   const last = segments.length - 1
   if (segments[last].endsWith('.git')) segments[last] = segments[last].slice(0, -4)
@@ -200,6 +200,14 @@ function json<T>(origin: string, path: readonly string[], options: {
   })
 }
 function preview(content: string) { return { content: content.substring(0, 5000), truncated: content.length > 5000 } }
+function validProviderRef(value: string | undefined): value is string {
+  return typeof value === 'string' && value.length > 0 && value.length <= 255
+    && value !== '.' && value !== '..'
+    && ![...value].some(character => {
+      const codePoint = character.codePointAt(0) ?? 0
+      return codePoint <= 31 || codePoint === 127
+    })
+}
 function decodeBase64Readme(value: unknown) {
   if (!record(value) || value.encoding !== 'base64' || typeof value.content !== 'string') return undefined
   const encoded = value.content.replace(/[\t\n\r ]/g, '')
@@ -284,7 +292,9 @@ async function extractGitHub(repository: CanonicalRepository, env: Env): Promise
     }
     const data = primary.data
     if (!record(data)) throw new Error('invalid primary')
-    if (data.private !== false) return { success: false, platform: 'github', error: 'Repository not found. It may be private or the URL is incorrect.' }
+    if (data.private !== false || data.visibility !== 'public') {
+      return { success: false, platform: 'github', error: 'Repository not found. It may be private or the URL is incorrect.' }
+    }
     const name = req(data, 'name'); const fullName = req(data, 'full_name'); const ownerData = child(data, 'owner')
     const ownerName = ownerData && req(ownerData, 'login')
     if (!name || !fullName || !ownerName) throw new Error('invalid primary')
@@ -369,14 +379,17 @@ async function extractBitbucket(repository: CanonicalRepository): Promise<Reposi
     const data = primary.data; if (!record(data)) throw new Error('invalid primary')
     const name = req(data, 'name'); const fullName = req(data, 'full_name'); const ownerData = child(data, 'owner'); const owner = ownerData && req(ownerData, 'display_name')
     if (!name || !fullName || !owner) throw new Error('invalid primary')
-    const mainbranch = child(data, 'mainbranch'); const branch = (mainbranch && str(mainbranch, 'name')) || 'master'
+    const mainbranch = child(data, 'mainbranch')
+    const providerBranch = mainbranch ? str(mainbranch, 'name') : undefined
+    const branch = mainbranch ? (validProviderRef(providerBranch) ? providerBranch : undefined) : 'master'
     const calls = await Promise.allSettled([
-      rawReadme(ORIGINS.bitbucket, [...base, 'src', branch, 'README.md']),
+      branch ? rawReadme(ORIGINS.bitbucket, [...base, 'src', branch, 'README.md']) : Promise.resolve(undefined),
       json<RecordValue>(ORIGINS.bitbucket, [...base, 'commits'], { bytes: OPTIONAL_BYTES, query: { pagelen: 5 } }),
     ])
     const result: RepositoryInfo = { success: true, platform: 'bitbucket', repository: {
       name, fullName, owner, description: nullable(data, 'description'), homepage: nullable(data, 'website'), language: nullable(data, 'language'),
-      size: num(data, 'size'), createdAt: str(data, 'created_on'), updatedAt: str(data, 'updated_on'), defaultBranch: mainbranch ? str(mainbranch, 'name') : undefined,
+      size: num(data, 'size'), createdAt: str(data, 'created_on'), updatedAt: str(data, 'updated_on'),
+      defaultBranch: validProviderRef(providerBranch) ? providerBranch : undefined,
       isFork: data.parent !== undefined,
     } }
     if (calls[0].status === 'fulfilled' && calls[0].value) result.readme = calls[0].value
