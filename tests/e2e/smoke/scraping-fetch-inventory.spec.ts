@@ -66,8 +66,8 @@ const entries: InventoryEntry[] = [
   },
   { id: 'INV-017', file: 'functions/api/content-intelligence/starbursting.ts', status: 'delegated-safe', evidence: /\/api\/ai\/scrape-url/, typecheck: 'root' },
   { id: 'INV-018', file: 'functions/api/cop/[id]/scrape.ts', status: 'bounded-provider-job', evidence: /fetchApifyJson\(apiKey,/, forbidden: [/\bfetch\s*\(/], typecheck: 'root' },
-  { id: 'INV-019', file: 'functions/api/content-intelligence/social-extract.ts', status: 'constrained-provider', evidence: /youtube\.com\/oembed/, typecheck: 'root' },
-  { id: 'INV-020', file: 'functions/api/content-intelligence/social-media-extract.ts', status: 'constrained-provider', evidence: /selectedTrack\.baseUrl/, typecheck: 'root' },
+  { id: 'INV-019', file: 'functions/api/content-intelligence/social-extract.ts', status: 'constrained-provider', evidence: /fetchYouTubeProvider\(target,/, forbidden: [/function extractYouTubeId/, /function fetchYouTubeTranscript/], typecheck: 'root' },
+  { id: 'INV-020', file: 'functions/api/content-intelligence/social-media-extract.ts', status: 'constrained-provider', evidence: /fetchYouTubeProvider\(target,/, forbidden: [/function extractYouTubeVideoId/, /function fetchYouTubeTranscript/], typecheck: 'root' },
   {
     id: 'INV-021',
     file: 'functions/api/content-intelligence/git-repository-extract.ts',

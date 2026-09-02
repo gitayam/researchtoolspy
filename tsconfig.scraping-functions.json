@@ -19,6 +19,7 @@
     "functions/api/_shared/scrape-contract.ts",
     "functions/api/_shared/scrape-metrics.ts",
     "functions/api/_shared/social-url.ts",
+    "functions/api/_shared/youtube-provider.ts",
     "functions/utils/browser-profiles.ts",
     "functions/api/web-scraper.ts",
     "functions/api/tools/scrape-metadata.ts",
