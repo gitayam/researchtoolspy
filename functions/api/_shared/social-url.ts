@@ -11,6 +11,10 @@ const YOUTUBE_HOSTS = new Set([
   'www.youtube.com',
   'm.youtube.com',
 ])
+const ACCEPTED_RAW_YOUTUBE_HOSTS = new Set([
+  ...YOUTUBE_HOSTS,
+  'youtu.be',
+])
 
 function containsAsciiControlCharacter(value: string): boolean {
   return Array.from(value).some((character) => {
@@ -42,7 +46,12 @@ export function parseCanonicalYouTubeUrl(input: string): CanonicalYouTubeTarget 
   if (!rawMatch || rawMatch[5]) return null
 
   const [, , rawAuthority, rawPath, rawQuery] = rawMatch
-  if (rawAuthority.includes('@') || rawAuthority.includes(':') || rawAuthority.includes('%')) {
+  if (
+    rawAuthority.includes('@')
+    || rawAuthority.includes(':')
+    || rawAuthority.includes('%')
+    || !ACCEPTED_RAW_YOUTUBE_HOSTS.has(rawAuthority.toLowerCase())
+  ) {
     return null
   }
   // Accepted paths and IDs contain no escapes. Rejecting them before parsing
