@@ -13,6 +13,8 @@ import type { PagesFunction } from '@cloudflare/workers-types'
 
 import { getUserFromRequest } from '../_shared/auth-helpers'
 import { JSON_HEADERS } from '../_shared/api-utils'
+import { parseCanonicalYouTubeUrl, type CanonicalYouTubeTarget } from '../_shared/social-url'
+import { createYouTubeProviderDeadline, fetchYouTubeProvider } from '../_shared/youtube-provider'
 
 interface Env {
   DB: D1Database
@@ -55,6 +57,10 @@ interface SocialMediaExtractionResult {
   transcript?: string
   error?: string
 }
+
+type YouTubeMode = NonNullable<SocialMediaExtractRequest['mode']>
+const YOUTUBE_MODES: readonly YouTubeMode[] = ['metadata', 'download', 'stream', 'transcript', 'full']
+const TRANSCRIPT_FALLBACK = 'Transcript not available for this video. Try using YouTube\'s built-in transcript feature.'
 
 // ========================================
 // Helper Functions
@@ -162,8 +168,26 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       }), { status: 400, headers: JSON_HEADERS })
     }
 
-    // Detect platform
-    const platform = providedPlatform || detectPlatform(url)
+    const normalizedHint = typeof providedPlatform === 'string'
+      ? (providedPlatform.toLowerCase() === 'x' ? 'twitter' : providedPlatform.toLowerCase())
+      : providedPlatform
+    const youtubeTarget = typeof url === 'string' ? parseCanonicalYouTubeUrl(url) : null
+
+    if (youtubeTarget && normalizedHint && normalizedHint !== 'youtube') {
+      const result = createUserFriendlyError('youtube', 'Platform mismatch', 'The selected platform does not match the YouTube URL.')
+      return new Response(JSON.stringify(result), { status: 422, headers: JSON_HEADERS })
+    }
+    if (normalizedHint === 'youtube' && !youtubeTarget) {
+      const result = invalidYouTubeResult()
+      return new Response(JSON.stringify(result), { status: 422, headers: JSON_HEADERS })
+    }
+    if ((youtubeTarget || normalizedHint === 'youtube') && !YOUTUBE_MODES.includes(mode)) {
+      const result = createUserFriendlyError('youtube', 'Invalid mode', 'YouTube extraction mode is invalid.')
+      return new Response(JSON.stringify(result), { status: 422, headers: JSON_HEADERS })
+    }
+
+    // Detect platform. YouTube is detected only by the strict canonical parser.
+    const platform = normalizedHint || (youtubeTarget ? 'youtube' : detectPlatform(url))
 
     if (!platform) {
       return new Response(JSON.stringify({
@@ -173,18 +197,25 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
 
 
-    // Create cache key
-    const cacheKey = `social:${platform}:${mode}:${encodeURIComponent(url)}`
-
-    // Route to platform-specific extraction with caching
-    const result = await getCached<SocialMediaExtractionResult>(
-      env.CACHE,
-      cacheKey,
-      3600, // 1 hour TTL
-      async () => {
-        switch (platform) {
-          case 'youtube':
-            return await extractYouTube(url, mode)
+    let result: SocialMediaExtractionResult
+    if (platform === 'youtube' && youtubeTarget) {
+      const youtubeResult = await getCachedYouTube(env.CACHE, youtubeTarget, mode, request.signal)
+      if (youtubeResult === null) {
+        return new Response(JSON.stringify({ success: false, error: 'Failed to extract social media content' }), {
+          status: 500,
+          headers: JSON_HEADERS,
+        })
+      }
+      result = youtubeResult
+    } else {
+      // Preserve the legacy cache contract for every non-YouTube platform.
+      const cacheKey = `social:${platform}:${mode}:${encodeURIComponent(url)}`
+      result = await getCached<SocialMediaExtractionResult>(
+        env.CACHE,
+        cacheKey,
+        3600, // 1 hour TTL
+        async () => {
+          switch (platform) {
           case 'instagram':
             return await extractInstagram(url, mode, env)
           case 'tiktok':
@@ -200,16 +231,24 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
               `Platform '${platform}' not supported`,
               `Sorry, ${platform} extraction is not yet available. Supported platforms: YouTube, Instagram, TikTok, Twitter/X, Bluesky.`
             )
-        }
-      }
-    )
+          }
+        },
+      )
+    }
+
+    if (platform === 'youtube' && request.signal.aborted) {
+      return new Response(JSON.stringify({ success: false, error: 'Failed to extract social media content' }), {
+        status: 500,
+        headers: JSON_HEADERS,
+      })
+    }
 
     // Save to database if successful
     if (result.success && env.DB) {
       try {
         await saveSocialMediaExtraction(env.DB, {
           user_id: authUserId,
-          url,
+          url: youtubeTarget && platform === 'youtube' ? youtubeTarget.canonicalUrl : url,
           platform,
           post_type: result.postType,
           media_urls: result.mediaUrls,
@@ -249,9 +288,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 function detectPlatform(url: string): string | null {
   const urlLower = url.toLowerCase()
 
-  if (urlLower.includes('youtube.com') || urlLower.includes('youtu.be')) {
-    return 'youtube'
-  }
   if (urlLower.includes('instagram.com')) {
     return 'instagram'
   }
@@ -274,290 +310,175 @@ function detectPlatform(url: string): string | null {
   return null
 }
 
+function record(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
+}
+
+function hasOnlyKeys(value: Record<string, unknown>, allowed: readonly string[]): boolean {
+  return Object.keys(value).every(key => allowed.includes(key))
+}
+
+function containsAsciiControl(value: string): boolean {
+  return [...value].some(character => {
+    const point = character.codePointAt(0) ?? 0
+    return point <= 31 || point === 127
+  })
+}
+
+function exactCachedUrl(value: unknown, authorities: readonly string[]): boolean {
+  if (value === undefined) return true
+  if (typeof value !== 'string' || value.length === 0 || value.length > 2048 || value.includes('\\')
+    || value.includes('#') || containsAsciiControl(value) || /%(?![0-9a-f]{2})/i.test(value)) return false
+  const match = /^https:\/\/([^/?#]+)(?:[/?][^#]*)?$/.exec(value)
+  if (!match || !authorities.includes(match[1])) return false
+  try {
+    const parsed = new URL(value)
+    return parsed.protocol === 'https:' && parsed.host === match[1] && !parsed.username && !parsed.password && !parsed.port && !parsed.hash
+  } catch {
+    return false
+  }
+}
+
+function validCachedYouTubeResult(
+  value: unknown,
+  target: CanonicalYouTubeTarget,
+  mode: YouTubeMode,
+): value is SocialMediaExtractionResult {
+  if (!record(value) || !hasOnlyKeys(value, [
+    'success', 'platform', 'postType', 'mediaUrls', 'downloadOptions', 'streamUrl', 'embedCode', 'metadata', 'transcript',
+  ])) return false
+  if (value.success !== true || value.platform !== 'youtube' || value.postType !== 'video') return false
+
+  const embedUrl = `https://www.youtube.com/embed/${target.videoId}`
+  const embedCode = `<iframe width="560" height="315" src="${embedUrl}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`
+  if (value.streamUrl !== embedUrl || value.embedCode !== embedCode) return false
+
+  if (!record(value.metadata) || !hasOnlyKeys(value.metadata, [
+    'title', 'author', 'channelUrl', 'thumbnail', 'videoId', 'watchUrl',
+  ])) return false
+  if (typeof value.metadata.title !== 'string' || value.metadata.title.length === 0 || value.metadata.title.length > 512
+    || typeof value.metadata.author !== 'string' || value.metadata.author.length === 0 || value.metadata.author.length > 256
+    || value.metadata.videoId !== target.videoId || value.metadata.watchUrl !== target.canonicalUrl
+    || !exactCachedUrl(value.metadata.channelUrl, ['www.youtube.com'])
+    || !exactCachedUrl(value.metadata.thumbnail, ['i.ytimg.com', 'img.youtube.com'])) return false
+
+  if (!record(value.mediaUrls) || !hasOnlyKeys(value.mediaUrls, ['thumbnail'])
+    || value.mediaUrls.thumbnail !== value.metadata.thumbnail) return false
+  if (!Array.isArray(value.downloadOptions)) return false
+  const needsWatchFallback = mode === 'download' || mode === 'full'
+  if (needsWatchFallback) {
+    if (value.downloadOptions.length !== 1 || !record(value.downloadOptions[0])
+      || !hasOnlyKeys(value.downloadOptions[0], ['quality', 'format', 'url', 'hasAudio', 'hasVideo'])) return false
+    const option = value.downloadOptions[0]
+    if (option.quality !== 'Watch on YouTube' || option.format !== 'web' || option.url !== target.canonicalUrl
+      || option.hasAudio !== true || option.hasVideo !== true) return false
+  } else if (value.downloadOptions.length !== 0) return false
+
+  const needsTranscript = mode === 'transcript' || mode === 'full'
+  if (needsTranscript) {
+    if (typeof value.transcript !== 'string' || value.transcript.length === 0 || value.transcript.length > 200_000) return false
+  } else if (value.transcript !== undefined) return false
+  return true
+}
+
+async function youtubeCacheKey(target: CanonicalYouTubeTarget, mode: YouTubeMode): Promise<string> {
+  const input = new TextEncoder().encode(`youtube-route-cache.v1\0${target.canonicalUrl}\0${mode}`)
+  const digest = await crypto.subtle.digest('SHA-256', input)
+  const opaque = [...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, '0')).join('')
+  return `social-youtube:v1:${opaque}`
+}
+
+async function getCachedYouTube(
+  cache: KVNamespace | undefined,
+  target: CanonicalYouTubeTarget,
+  mode: YouTubeMode,
+  signal: AbortSignal,
+): Promise<SocialMediaExtractionResult | null> {
+  if (signal.aborted) return null
+  const key = await youtubeCacheKey(target, mode)
+  if (cache) {
+    try {
+      const cached = await cache.get(key)
+      if (signal.aborted) return null
+      if (cached) {
+        const parsed = JSON.parse(cached) as unknown
+        if (validCachedYouTubeResult(parsed, target, mode)) return parsed
+      }
+    } catch (error) {
+      console.warn('[Cache] YouTube read failed:', error)
+    }
+  }
+
+  const result = await extractYouTube(target, mode, signal)
+  if (!result || signal.aborted) return null
+  if (cache && result.success) {
+    try {
+      await cache.put(key, JSON.stringify(result), { expirationTtl: 3600 })
+    } catch (error) {
+      console.warn('[Cache] YouTube write failed:', error)
+    }
+  }
+  return result
+}
+
+function invalidYouTubeResult(): SocialMediaExtractionResult {
+  return createUserFriendlyError(
+    'youtube',
+    'Invalid URL format',
+    'Could not find a valid YouTube video ID in the URL. Please use a standard YouTube link (e.g., youtube.com/watch?v=... or youtu.be/...).',
+  )
+}
+
 // ========================================
 // YouTube Extraction
 // ========================================
 
-async function extractYouTube(url: string, mode: string): Promise<SocialMediaExtractionResult> {
-  try {
-
-    // Extract video ID
-    const videoId = extractYouTubeVideoId(url)
-    if (!videoId) {
-      return createUserFriendlyError(
-        'youtube',
-        'Invalid URL format',
-        'Could not find a valid YouTube video ID in the URL. Please use a standard YouTube link (e.g., youtube.com/watch?v=... or youtu.be/...).'
-      )
-    }
-
-
-    // Use YouTube oEmbed API for reliable metadata with retry
-    const oembedData = await fetchWithRetry(async () => {
-      const oembedUrl = `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`
-      const oembedResponse = await fetch(oembedUrl, { signal: AbortSignal.timeout(15000) })
-
-      if (!oembedResponse.ok) {
-        throw new Error(`YouTube oEmbed API failed with status ${oembedResponse.status}`)
-      }
-
-      return await oembedResponse.json() as any
-    })
-
-    // Build embed URLs
-    const embedUrl = `https://www.youtube.com/embed/${videoId}`
-    const embedCode = `<iframe width="560" height="315" src="${embedUrl}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`
-
-    // Build download options using external service (cobalt.tools)
-    let downloadOptions: DownloadOption[] = []
-    let mediaUrls: MediaUrls = {
-      thumbnail: oembedData.thumbnail_url
-    }
-
-    if (mode === 'download' || mode === 'full') {
-      try {
-
-        // Use retry logic for cobalt.tools API
-        const cobaltData = await fetchWithRetry(async () => {
-          const cobaltResponse = await fetch('https://co.wuk.sh/api/json', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json'
-            },
-            body: JSON.stringify({
-              url: `https://www.youtube.com/watch?v=${videoId}`,
-              vCodec: 'h264',
-              vQuality: '1080',
-              aFormat: 'mp3',
-              isAudioOnly: false,
-              isTTFullAudio: false
-            }),
-            signal: AbortSignal.timeout(15000)
-          })
-
-          if (!cobaltResponse.ok) {
-            throw new Error(`Cobalt API returned status ${cobaltResponse.status}`)
-          }
-
-          return await cobaltResponse.json() as any
-        }, 2, 1000) // 2 retries with 1s base delay
-
-
-        if (cobaltData.status === 'redirect' || cobaltData.status === 'stream') {
-          mediaUrls.video = cobaltData.url
-          downloadOptions.push({
-            quality: '1080p (via cobalt)',
-            format: 'mp4',
-            url: cobaltData.url,
-            hasAudio: true,
-            hasVideo: true
-          })
-        } else {
-          console.warn('[YouTube] Cobalt returned unexpected status:', cobaltData.status)
-        }
-
-        // Always provide the YouTube watch link as fallback
-        downloadOptions.push({
-          quality: 'Watch on YouTube',
-          format: 'web',
-          url: `https://www.youtube.com/watch?v=${videoId}`,
-          hasAudio: true,
-          hasVideo: true
-        })
-
-        // Add yt-dlp service link as option
-        downloadOptions.push({
-          quality: 'Use yt-dlp (external)',
-          format: 'various',
-          url: `https://yt-dlp.org/`,
-          hasAudio: true,
-          hasVideo: true
-        })
-      } catch (downloadError) {
-        console.error('[YouTube] Download extraction failed:', downloadError)
-        // Provide YouTube link as fallback
-        downloadOptions.push({
-          quality: 'Watch on YouTube',
-          format: 'web',
-          url: `https://www.youtube.com/watch?v=${videoId}`,
-          hasAudio: true,
-          hasVideo: true
-        })
-      }
-    }
-
-    // Get transcript if requested
-    let transcript: string | undefined
-    if (mode === 'transcript' || mode === 'full') {
-      try {
-        transcript = await fetchYouTubeTranscript(videoId)
-      } catch (transcriptError) {
-        console.error('[YouTube] Transcript extraction failed:', transcriptError)
-        transcript = 'Transcript not available for this video. Try using YouTube\'s built-in transcript feature.'
-      }
-    }
-
-    return {
-      success: true,
-      platform: 'youtube',
-      postType: 'video',
-      mediaUrls,
-      downloadOptions,
-      streamUrl: embedUrl,
-      embedCode,
-      metadata: {
-        title: oembedData.title,
-        author: oembedData.author_name,
-        channelUrl: oembedData.author_url,
-        thumbnail: oembedData.thumbnail_url,
-        videoId: videoId,
-        watchUrl: `https://www.youtube.com/watch?v=${videoId}`
-      },
-      transcript
-    }
-
-  } catch (error) {
-    console.error('[YouTube] Extraction failed:', error)
+async function extractYouTube(
+  target: CanonicalYouTubeTarget,
+  mode: YouTubeMode,
+  signal: AbortSignal,
+): Promise<SocialMediaExtractionResult | null> {
+  const includeTranscript = mode === 'transcript' || mode === 'full'
+  const includeMedia = mode === 'download' || mode === 'full'
+  const provider = await fetchYouTubeProvider(target, {
+    includeTranscript,
+    includeMedia,
+    signal,
+    deadline: createYouTubeProviderDeadline(30_000, signal),
+  })
+  if (!provider.success || !provider.metadata) {
+    if (provider.failure?.code === 'aborted') return null
     return createUserFriendlyError(
       'youtube',
       'Extraction failed',
-      'YouTube video could not be extracted. The video may be private, age-restricted, or unavailable in your region.'
+      'YouTube video could not be extracted. The video may be private, age-restricted, or unavailable in your region.',
     )
   }
-}
 
-// Helper: Extract YouTube video ID from various URL formats
-function extractYouTubeVideoId(url: string): string | null {
-  const patterns = [
-    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
-    /youtube\.com\/watch\?.*v=([a-zA-Z0-9_-]{11})/
-  ]
+  const { videoId, canonicalUrl } = target
+  const embedUrl = `https://www.youtube.com/embed/${videoId}`
+  const embedCode = `<iframe width="560" height="315" src="${embedUrl}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`
+  const downloadOptions: DownloadOption[] = includeMedia && provider.mediaFallback === 'watch_on_youtube'
+    ? [{ quality: 'Watch on YouTube', format: 'web', url: canonicalUrl, hasAudio: true, hasVideo: true }]
+    : []
 
-  for (const pattern of patterns) {
-    const match = url.match(pattern)
-    if (match && match[1]) {
-      return match[1]
-    }
-  }
-
-  return null
-}
-
-// Helper: Fetch YouTube transcript using YouTube's timedtext API
-/**
- * Fetch YouTube transcript using InnerTube API (2025 method)
- * Supports auto-generated and manual captions with multi-language fallback
- *
- * @param videoId - YouTube video ID (11 characters)
- * @param preferredLang - Preferred language code (default: 'en')
- * @returns Transcript text or throws error if unavailable
- */
-async function fetchYouTubeTranscript(videoId: string, preferredLang: string = 'en'): Promise<string> {
-  try {
-
-    // Use YouTube InnerTube API with Android client for reliability
-    // This API key is public and used by YouTube's Android app
-    const playerResponse = await fetch(
-      `https://www.youtube.com/youtubei/v1/player?key=AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        signal: AbortSignal.timeout(15000),
-        body: JSON.stringify({
-          context: {
-            client: {
-              clientName: 'ANDROID',
-              clientVersion: '17.31.35',
-              androidSdkVersion: 30,
-              hl: 'en',
-              gl: 'US',
-            }
-          },
-          videoId: videoId
-        })
-      }
-    )
-
-    if (!playerResponse.ok) {
-      throw new Error(`InnerTube API returned ${playerResponse.status}`)
-    }
-
-    const playerData = await playerResponse.json() as any
-    const captionTracks = playerData?.captions?.playerCaptionsTracklistRenderer?.captionTracks
-
-    if (!captionTracks || captionTracks.length === 0) {
-      throw new Error('No captions available for this video')
-    }
-
-
-    // Multi-language fallback chain:
-    // 1. Preferred language (exact match)
-    // 2. English (if not already preferred)
-    // 3. Auto-generated in preferred language
-    // 4. First available track
-    let selectedTrack = captionTracks.find((t: any) => t.languageCode === preferredLang && !t.kind)
-      || captionTracks.find((t: any) => t.languageCode === 'en' && !t.kind)
-      || captionTracks.find((t: any) => t.languageCode === preferredLang)
-      || captionTracks.find((t: any) => t.languageCode === 'en')
-      || captionTracks[0]
-
-    if (!selectedTrack || !selectedTrack.baseUrl) {
-      throw new Error('Selected caption track has no baseUrl')
-    }
-
-
-    // Fetch transcript XML
-    const transcriptResponse = await fetch(selectedTrack.baseUrl, { signal: AbortSignal.timeout(15000) })
-
-    if (!transcriptResponse.ok) {
-      throw new Error(`Failed to fetch transcript: ${transcriptResponse.status}`)
-    }
-
-    const xml = await transcriptResponse.text()
-
-    // Parse XML and extract text from <text> tags
-    const textMatches = xml.match(/<text[^>]*>(.*?)<\/text>/g)
-
-    if (!textMatches || textMatches.length === 0) {
-      throw new Error('No transcript text found in XML')
-    }
-
-    // Clean up and decode HTML entities
-    const transcript = textMatches
-      .map(match => {
-        const content = match.replace(/<text[^>]*>/, '').replace(/<\/text>/, '')
-        return content
-          .replace(/&amp;/g, '&')
-          .replace(/&lt;/g, '<')
-          .replace(/&gt;/g, '>')
-          .replace(/&quot;/g, '"')
-          .replace(/&#39;/g, "'")
-          .replace(/&nbsp;/g, ' ')
-          .trim()
-      })
-      .filter(line => line.length > 0)
-      .join(' ')
-
-    if (!transcript || transcript.length === 0) {
-      throw new Error('Transcript fetched but appears to be empty')
-    }
-
-    return transcript
-
-  } catch (error) {
-    console.error('[YouTube Transcript] Error:', error)
-
-    // Provide user-friendly error messages
-    if (error instanceof Error) {
-      if (error.message.includes('No captions available')) {
-        throw new Error('This video does not have captions or transcripts available.')
-      } else if (error.message.includes('InnerTube API returned')) {
-        throw new Error('YouTube API is temporarily unavailable. Please try again later.')
-      }
-    }
-
-    throw new Error('Could not fetch transcript. The video may not have captions available or YouTube blocked the request.')
+  return {
+    success: true,
+    platform: 'youtube',
+    postType: 'video',
+    mediaUrls: { thumbnail: provider.metadata.thumbnailUrl },
+    downloadOptions,
+    streamUrl: embedUrl,
+    embedCode,
+    metadata: {
+      title: provider.metadata.title,
+      author: provider.metadata.authorName,
+      channelUrl: provider.metadata.authorUrl,
+      thumbnail: provider.metadata.thumbnailUrl,
+      videoId,
+      watchUrl: canonicalUrl,
+    },
+    transcript: includeTranscript ? (provider.transcript ?? TRANSCRIPT_FALLBACK) : undefined,
   }
 }
 
@@ -1618,4 +1539,3 @@ export const onRequestGet: PagesFunction = async () => {
     status: 405, headers: JSON_HEADERS,
   })
 }
-
