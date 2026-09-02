@@ -1,6 +1,6 @@
 # Scraping Outbound-Fetch Inventory
 
-**Audited baseline:** reconciliation following production SHA `fb9703cf597d69b376e8ba7c5f3dfad2eb2575ae`
+**Audited baseline:** orchestrated provider tranche based on canonical SHA `3510a3ed4355b0d5856291fa142a9e8c3c050871`
 
 **Last reviewed:** 2026-09-01
 
@@ -49,7 +49,7 @@ This inventory records the current implementation, including unsafe legacy paths
 | INV-018 | `POST /api/cop/:id/scrape` (`functions/api/cop/[id]/scrape.ts`) | JSON `body.urls[]` or search query | authenticated owner/editor/admin | reserves an idempotent paid run, permits at most 25 exact platform post URLs or a 500-character query, uses the fixed-host bounded Apify JSON client, and emits opaque attempt/terminal metrics with item and duplicate-prevention counts | `bounded-provider-job` | enforce account-level spend alerts and retain authenticated ownership checks on polling/ingest |
 | INV-019 | `POST /api/content-intelligence/social-extract` (`functions/api/content-intelligence/social-extract.ts`) | JSON social URL parsed into platform identifiers | authenticated | server-constructed YouTube/Instagram/Twitter/provider URLs; some returned media URLs | `constrained-provider` | exact platform parsers, fixed-host adapters, bounded returned-URL fetches |
 | INV-020 | `POST /api/content-intelligence/social-media-extract` (`functions/api/content-intelligence/social-media-extract.ts`) | JSON social URL parsed into platform identifiers | authenticated | fixed oEmbed/downloader APIs plus provider-returned caption/media URLs | `constrained-provider` | per-provider allowlists and bounded media/transcript adapters |
-| INV-021 | `POST /api/content-intelligence/git-repository-extract` (`functions/api/content-intelligence/git-repository-extract.ts`) | JSON repository URL parsed into owner/path | authenticated | server-constructed GitHub/GitLab/Bitbucket API URLs | `constrained-provider` | exact origin parser and fixed-host repository adapters |
+| INV-021 | `POST /api/content-intelligence/git-repository-extract` (`functions/api/content-intelligence/git-repository-extract.ts`) | exact canonical HTTPS repository-root URL parsed into bounded provider identifiers | authenticated | fixed-origin bounded GitHub/GitLab/Bitbucket adapters with encoded path/query components, public-DNS checks, zero redirects, MIME/byte/time limits, origin-scoped GitHub credentials, public-only GitHub proof, and an opaque versioned cache key | `safe-provider` | enforcing egress boundary; document one-hour formerly-public snapshot retention and strengthen optional cached-field validation |
 | INV-022 | `POST /api/tools/geoconfirmed` (`functions/api/tools/geoconfirmed.ts`) | JSON URL or conflict/search fields | authenticated | exact input hostname and bounded fields feed encoded paths/query into a fixed HTTPS JSON/KMZ adapter with public-DNS, zero-redirect, MIME, compressed-byte, and decompressed-byte limits | `safe-provider` | retain provider response-shape tests and KMZ decompression ceilings |
 | INV-023 | `POST /api/content-intelligence/domain-country` (`functions/api/content-intelligence/domain-country.ts`) | hostname parsed from JSON `url` | authenticated | fixed `ip-api.com` lookup with hostname in path | `constrained-provider` | HTTPS provider adapter, input normalization, response budget |
 | INV-024 | `POST /api/content-intelligence/virustotal-lookup` (`functions/api/content-intelligence/virustotal-lookup.ts`) | domain parsed from validated HTTP(S) JSON `url` | authenticated | normalized domain is an encoded segment in the fixed HTTPS provider adapter; the API key is injected only after exact-origin validation and responses are redirect/MIME/byte/time bounded | `safe-provider` | retain credential non-forwarding and response-shape tests |
@@ -58,15 +58,9 @@ This inventory records the current implementation, including unsafe legacy paths
 
 ## Type-check boundary
 
-`npm run type-check:scraping-surface` compiles 24 Pages Function or scraping-helper roots, the shared safe-content and observability contracts, and their transitive imports with Cloudflare Workers types. It is intentionally named for the inventoried scraping surface; it is not a claim that every Pages Function compiles.
+`npm run type-check:scraping-surface` compiles all 25 explicit inventoried route roots, the shared scraping helpers and observability contracts, and their transitive imports with Cloudflare Workers types. It is intentionally named for the inventoried scraping surface; it is not a claim that every Pages Function compiles.
 
-One inventoried route root remains an explicit exclusion because fixing it crosses this corrective workstream's ownership boundary:
-
-| Excluded root | Existing type debt | Owner required |
-| --- | --- | --- |
-| `functions/api/content-intelligence/git-repository-extract.ts` | Node `Buffer` use and browser-only `import.meta.env` logger dependency under the Worker type surface | content-intelligence/runtime owner |
-
-These exclusions are still represented in the static inventory test and must not be described as type-checked. Removing an exclusion requires adding the root to `tsconfig.scraping-functions.json` and making the focused command pass without masking Worker/runtime incompatibilities.
+No inventoried route is currently excluded from this focused type-check boundary. New inventory rows must either enter this root list (or be transitively compiled through a named helper) or carry an explicit documented exclusion that the static inventory test can enforce.
 
 ## Maintenance rule
 

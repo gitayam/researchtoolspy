@@ -142,17 +142,28 @@ flowchart LR
 - [x] Add binding-backed hourly request throttling plus per-client/hourly and global/daily R2 archival budgets to the public Twitter image proxy; disable durable archival when the budget store is unavailable.
 - [x] Constrain paid COP and shared Apify jobs to exact supported social-post URLs, fixed provider endpoints, bounded query/list sizes, manual redirects, timeouts, MIME checks, and streaming response ceilings.
 - [x] Route GeoConfirmed JSON/KMZ and VirusTotal domain reports through the fixed-provider adapter with encoded components, public-DNS validation, zero redirects, bounded MIME/bytes/time, origin-scoped credentials, and bounded KMZ decompression.
+- [x] Route public GitHub/GitLab/Bitbucket repository extraction through exact repository-root parsers and bounded fixed-provider adapters; scope the GitHub service token to its origin, require positive public visibility before optional reads/cache, and replace raw URL cache/log identities with an opaque canonical key.
+- [x] Add an exact ASCII YouTube URL canonicalization contract with adversarial normalization coverage as the parser foundation for the remaining social-route migration; keep both social inventory rows constrained until their outbound and returned-media paths consume the contract.
 - [x] Scope `content-intelligence/analyze-url` `load_existing` reads to the authenticated analysis owner and require owner/editor/admin workspace authority for new writes.
 - [x] Keep `content-intelligence/analyze-url` usable without login through ephemeral, non-persisted results; retain auth for existing/trusted-content reads, require writable workspace authority for every write, and apply a dedicated per-IP public budget.
 - [x] Keep Content Intelligence Full-mode DIME enhancement usable without login through ephemeral results; pass the fresh analysis response into the framework runner, and owner-scope every saved DIME update. Persistent Starbursting sessions remain an explicit authenticated workspace feature.
 - [x] Use the Cloudflare-supported `node:dns` runtime API for shared A/AAAA validation, with bounded DoH-provider failover; continue to fail closed when all resolvers fail or any returned address is non-public.
 - [x] Correct `enhancedFetch()` option typing, merged headers, abort propagation, total timeout, and bounded retry contract.
-- [ ] Add all `functions/`, `workers/`, and Container TypeScript entry points to build/CI validation. The current `type-check:scraping-surface` covers 24 inventoried roots with one explicit exclusion.
+- [ ] Add all `functions/`, `workers/`, and Container TypeScript entry points to build/CI validation. The current `type-check:scraping-surface` covers all 25 explicit inventoried route roots with no inventory exclusion, but it is not yet a repository-wide Worker/Container compile gate.
 - [x] Correct the web-scraper dataset authentication/response contract and final-redirect provenance.
 - [ ] Rename the metadata-completeness score so it is not represented as source reliability.
 - [x] Reserve paid COP scrape requests before Apify, bind runs to authenticated user/workspace/session, enforce editor/admin/owner writes, and validate ownership when polling.
 - [x] Add trusted provider item identity and idempotent evidence ingest semantics with a managed local-D1 migration.
 - [x] Replace content-intelligence extraction-failure raw URL/reason context with dedicated-key URL/domain identifiers, opaque correlation, and normalized errors; omit identifiers when the key is unavailable.
+
+### Orchestrated provider checkpoint — 2026-09-01
+
+- **Delivery class:** safety-foundation; the authenticated repository-extraction response contract is preserved and no UI change is intended. The next user-visible gate is the bounded YouTube slice across both social extraction routes.
+- **Baseline and topology:** canonical `origin/main` was freshly verified clean at `3510a3ed4355b0d5856291fa142a9e8c3c050871` with `0/0` divergence. Native providers used isolated worktrees and disjoint ownership; the integration owner retained inventory, typecheck, roadmap, join, and release gates.
+- **Provider provenance:** YouTube parser candidate `dc11b83baa40dff8fa8ffed8f4a14dbfca23ffb1` plus normalization correction `b7178bf8db6d224cb2494e570921968b29cf0a95` joined as `1def8657b`/`db8c6c3fe`. Repository provider candidate `576b0fd465b224e388f913e6c133d09a2ce96684` plus public-visibility/path/envelope correction `3178802cd8bf1b22e6d1ab78d1fd4465a08fb74e` joined as `5d84cc8d1`/`21d7f545c`.
+- **Independent review:** the parser was held until raw Unicode/IDNA-compatible authorities failed before WHATWG normalization. The repository provider was held until GitHub required positive `visibility: public`, unsafe Bitbucket provider refs skipped README transport, the unknown-platform envelope matched baseline, and overlong GitLab identities failed before cache or network.
+- **Gated decision:** INV-023 remains constrained. The current free `ip-api.com` service is HTTP-only and its compatible HTTPS/commercial service requires an approved subscription, query-string credential policy, quota/cache policy, and DNS/multi-address semantics. No replacement provider or secret was invented in this tranche.
+- **Accepted limitations:** shared DNS validation still lacks an enforcing connect-time egress boundary; repository cache entries are formerly-public snapshots for up to one hour; cached optional-field validation remains intentionally minimal for the new versioned namespace; provider-returned links remain output-only; caller disconnect is not yet propagated through fixed-provider helpers.
 
 ### Required tests
 
