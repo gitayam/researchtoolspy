@@ -168,26 +168,25 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       }), { status: 400, headers: JSON_HEADERS })
     }
 
-    const normalizedHint = typeof providedPlatform === 'string'
-      ? (providedPlatform.toLowerCase() === 'x' ? 'twitter' : providedPlatform.toLowerCase())
-      : providedPlatform
     const youtubeTarget = typeof url === 'string' ? parseCanonicalYouTubeUrl(url) : null
+    const youtubeHint = typeof providedPlatform === 'string' && providedPlatform.toLowerCase() === 'youtube'
+    const malformedYouTubeAuthority = !providedPlatform && !youtubeTarget && hasExactRawYouTubeAuthority(url)
 
-    if (youtubeTarget && normalizedHint && normalizedHint !== 'youtube') {
+    if (youtubeTarget && providedPlatform && !youtubeHint) {
       const result = createUserFriendlyError('youtube', 'Platform mismatch', 'The selected platform does not match the YouTube URL.')
       return new Response(JSON.stringify(result), { status: 422, headers: JSON_HEADERS })
     }
-    if (normalizedHint === 'youtube' && !youtubeTarget) {
+    if ((youtubeHint || malformedYouTubeAuthority) && !youtubeTarget) {
       const result = invalidYouTubeResult()
       return new Response(JSON.stringify(result), { status: 422, headers: JSON_HEADERS })
     }
-    if ((youtubeTarget || normalizedHint === 'youtube') && !YOUTUBE_MODES.includes(mode)) {
+    if ((youtubeTarget || youtubeHint || malformedYouTubeAuthority) && !YOUTUBE_MODES.includes(mode)) {
       const result = createUserFriendlyError('youtube', 'Invalid mode', 'YouTube extraction mode is invalid.')
       return new Response(JSON.stringify(result), { status: 422, headers: JSON_HEADERS })
     }
 
-    // Detect platform. YouTube is detected only by the strict canonical parser.
-    const platform = normalizedHint || (youtubeTarget ? 'youtube' : detectPlatform(url))
+    // Outside the YouTube-only decision, retain the caller's exact legacy platform identity.
+    const platform = youtubeHint ? 'youtube' : (providedPlatform || (youtubeTarget ? 'youtube' : detectPlatform(url)))
 
     if (!platform) {
       return new Response(JSON.stringify({
@@ -199,7 +198,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     let result: SocialMediaExtractionResult
     if (platform === 'youtube' && youtubeTarget) {
-      const youtubeResult = await getCachedYouTube(env.CACHE, youtubeTarget, mode, request.signal)
+      const youtubeResult = await extractYouTube(youtubeTarget, mode, request.signal)
       if (youtubeResult === null) {
         return new Response(JSON.stringify({ success: false, error: 'Failed to extract social media content' }), {
           status: 500,
@@ -244,11 +243,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
 
     // Save to database if successful
-    if (result.success && env.DB) {
+    if (result.success && env.DB && platform !== 'youtube') {
       try {
         await saveSocialMediaExtraction(env.DB, {
           user_id: authUserId,
-          url: youtubeTarget && platform === 'youtube' ? youtubeTarget.canonicalUrl : url,
+          url,
           platform,
           post_type: result.postType,
           media_urls: result.mediaUrls,
@@ -310,14 +309,6 @@ function detectPlatform(url: string): string | null {
   return null
 }
 
-function record(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
-}
-
-function hasOnlyKeys(value: Record<string, unknown>, allowed: readonly string[]): boolean {
-  return Object.keys(value).every(key => allowed.includes(key))
-}
-
 function containsAsciiControl(value: string): boolean {
   return [...value].some(character => {
     const point = character.codePointAt(0) ?? 0
@@ -325,100 +316,12 @@ function containsAsciiControl(value: string): boolean {
   })
 }
 
-function exactCachedUrl(value: unknown, authorities: readonly string[]): boolean {
-  if (value === undefined) return true
-  if (typeof value !== 'string' || value.length === 0 || value.length > 2048 || value.includes('\\')
-    || value.includes('#') || containsAsciiControl(value) || /%(?![0-9a-f]{2})/i.test(value)) return false
-  const match = /^https:\/\/([^/?#]+)(?:[/?][^#]*)?$/.exec(value)
-  if (!match || !authorities.includes(match[1])) return false
-  try {
-    const parsed = new URL(value)
-    return parsed.protocol === 'https:' && parsed.host === match[1] && !parsed.username && !parsed.password && !parsed.port && !parsed.hash
-  } catch {
-    return false
-  }
-}
-
-function validCachedYouTubeResult(
-  value: unknown,
-  target: CanonicalYouTubeTarget,
-  mode: YouTubeMode,
-): value is SocialMediaExtractionResult {
-  if (!record(value) || !hasOnlyKeys(value, [
-    'success', 'platform', 'postType', 'mediaUrls', 'downloadOptions', 'streamUrl', 'embedCode', 'metadata', 'transcript',
-  ])) return false
-  if (value.success !== true || value.platform !== 'youtube' || value.postType !== 'video') return false
-
-  const embedUrl = `https://www.youtube.com/embed/${target.videoId}`
-  const embedCode = `<iframe width="560" height="315" src="${embedUrl}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`
-  if (value.streamUrl !== embedUrl || value.embedCode !== embedCode) return false
-
-  if (!record(value.metadata) || !hasOnlyKeys(value.metadata, [
-    'title', 'author', 'channelUrl', 'thumbnail', 'videoId', 'watchUrl',
-  ])) return false
-  if (typeof value.metadata.title !== 'string' || value.metadata.title.length === 0 || value.metadata.title.length > 512
-    || typeof value.metadata.author !== 'string' || value.metadata.author.length === 0 || value.metadata.author.length > 256
-    || value.metadata.videoId !== target.videoId || value.metadata.watchUrl !== target.canonicalUrl
-    || !exactCachedUrl(value.metadata.channelUrl, ['www.youtube.com'])
-    || !exactCachedUrl(value.metadata.thumbnail, ['i.ytimg.com', 'img.youtube.com'])) return false
-
-  if (!record(value.mediaUrls) || !hasOnlyKeys(value.mediaUrls, ['thumbnail'])
-    || value.mediaUrls.thumbnail !== value.metadata.thumbnail) return false
-  if (!Array.isArray(value.downloadOptions)) return false
-  const needsWatchFallback = mode === 'download' || mode === 'full'
-  if (needsWatchFallback) {
-    if (value.downloadOptions.length !== 1 || !record(value.downloadOptions[0])
-      || !hasOnlyKeys(value.downloadOptions[0], ['quality', 'format', 'url', 'hasAudio', 'hasVideo'])) return false
-    const option = value.downloadOptions[0]
-    if (option.quality !== 'Watch on YouTube' || option.format !== 'web' || option.url !== target.canonicalUrl
-      || option.hasAudio !== true || option.hasVideo !== true) return false
-  } else if (value.downloadOptions.length !== 0) return false
-
-  const needsTranscript = mode === 'transcript' || mode === 'full'
-  if (needsTranscript) {
-    if (typeof value.transcript !== 'string' || value.transcript.length === 0 || value.transcript.length > 200_000) return false
-  } else if (value.transcript !== undefined) return false
-  return true
-}
-
-async function youtubeCacheKey(target: CanonicalYouTubeTarget, mode: YouTubeMode): Promise<string> {
-  const input = new TextEncoder().encode(`youtube-route-cache.v1\0${target.canonicalUrl}\0${mode}`)
-  const digest = await crypto.subtle.digest('SHA-256', input)
-  const opaque = [...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, '0')).join('')
-  return `social-youtube:v1:${opaque}`
-}
-
-async function getCachedYouTube(
-  cache: KVNamespace | undefined,
-  target: CanonicalYouTubeTarget,
-  mode: YouTubeMode,
-  signal: AbortSignal,
-): Promise<SocialMediaExtractionResult | null> {
-  if (signal.aborted) return null
-  const key = await youtubeCacheKey(target, mode)
-  if (cache) {
-    try {
-      const cached = await cache.get(key)
-      if (signal.aborted) return null
-      if (cached) {
-        const parsed = JSON.parse(cached) as unknown
-        if (validCachedYouTubeResult(parsed, target, mode)) return parsed
-      }
-    } catch (error) {
-      console.warn('[Cache] YouTube read failed:', error)
-    }
-  }
-
-  const result = await extractYouTube(target, mode, signal)
-  if (!result || signal.aborted) return null
-  if (cache && result.success) {
-    try {
-      await cache.put(key, JSON.stringify(result), { expirationTtl: 3600 })
-    } catch (error) {
-      console.warn('[Cache] YouTube write failed:', error)
-    }
-  }
-  return result
+function hasExactRawYouTubeAuthority(value: string): boolean {
+  if (value.length === 0 || value.length > 2048 || value !== value.trim() || value.includes('\\')
+    || containsAsciiControl(value) || /%(?![0-9a-f]{2})/i.test(value)) return false
+  const match = /^https?:\/\/([^/?#]+)/i.exec(value)
+  if (!match || match[1].includes('@') || match[1].includes(':') || match[1].includes('%')) return false
+  return ['youtube.com', 'www.youtube.com', 'm.youtube.com', 'youtu.be'].includes(match[1].toLowerCase())
 }
 
 function invalidYouTubeResult(): SocialMediaExtractionResult {

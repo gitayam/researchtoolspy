@@ -133,7 +133,11 @@ test.describe('INV-020 canonical YouTube provider route @smoke', () => {
       { body: { url: CANONICAL_URL }, authenticated: false, status: 401, exact: { error: 'Authentication required' } },
       { body: {}, status: 400, exact: { success: false, error: 'URL is required' } },
       { body: { url: 'https://youtube.com/watch?v=bad', platform: 'youtube' }, status: 422, message: 'Could not find a valid YouTube video ID in the URL. Please use a standard YouTube link (e.g., youtube.com/watch?v=... or youtu.be/...).' },
+      { body: { url: 'https://youtube.com/watch?v=bad' }, status: 422, message: 'Could not find a valid YouTube video ID in the URL. Please use a standard YouTube link (e.g., youtube.com/watch?v=... or youtu.be/...).' },
+      { body: { url: 'http://m.youtube.com/playlist?list=PL123' }, status: 422, message: 'Could not find a valid YouTube video ID in the URL. Please use a standard YouTube link (e.g., youtube.com/watch?v=... or youtu.be/...).' },
+      { body: { url: 'https://youtu.be/not-an-id?secret=value' }, status: 422, message: 'Could not find a valid YouTube video ID in the URL. Please use a standard YouTube link (e.g., youtube.com/watch?v=... or youtu.be/...).' },
       { body: { url: `https://youtube.com.evil.test/watch?v=${VIDEO_ID}` }, status: 400, exact: { success: false, error: 'Could not detect social media platform from URL' } },
+      { body: { url: `https://youtube。com/watch?v=${VIDEO_ID}` }, status: 400, exact: { success: false, error: 'Could not detect social media platform from URL' } },
       { body: { url: CANONICAL_URL, platform: 'instagram' }, status: 422, message: 'The selected platform does not match the YouTube URL.' },
       { body: { url: CANONICAL_URL, mode: 'unsafe' }, status: 422, message: 'YouTube extraction mode is invalid.' },
     ]
@@ -155,8 +159,7 @@ test.describe('INV-020 canonical YouTube provider route @smoke', () => {
     }
   })
 
-  test('@smoke canonical aliases share opaque cache identity, modes are distinct, and credentials never reach YouTube', async () => {
-    const keys: string[] = []
+  test('@smoke canonical aliases remain ephemeral and credentials never reach YouTube', async () => {
     for (const { url, mode } of [
       { url: `http://youtu.be/${VIDEO_ID}`, mode: 'full' },
       { url: `https://m.youtube.com/live/${VIDEO_ID}/`, mode: 'full' },
@@ -179,12 +182,8 @@ test.describe('INV-020 canonical YouTube provider route @smoke', () => {
         expect(body.downloadOptions).toEqual(mode === 'full'
           ? [{ quality: 'Watch on YouTube', format: 'web', url: CANONICAL_URL, hasAudio: true, hasVideo: true }]
           : [])
-        expect(subject.cacheGets).toHaveLength(1)
-        expect(subject.cachePuts).toHaveLength(1)
-        keys.push(subject.cacheGets[0])
-        expect(subject.cacheGets[0]).toMatch(/^social-youtube:v1:[0-9a-f]{64}$/)
-        expect(subject.cacheGets[0]).not.toContain(VIDEO_ID)
-        expect(subject.cacheGets[0]).not.toContain('watch?v=')
+        expect(subject.cacheGets).toEqual([])
+        expect(subject.cachePuts).toEqual([])
         expect(subject.transport.every(call => call.url.hostname === 'www.youtube.com')).toBe(true)
         expect(subject.transport.every(call => ['/oembed', '/youtubei/v1/player'].includes(call.url.pathname))).toBe(true)
         expect(subject.transport[0].url.searchParams.get('url')).toBe(CANONICAL_URL)
@@ -195,46 +194,10 @@ test.describe('INV-020 canonical YouTube provider route @smoke', () => {
           expect(headers.has('x-user-hash')).toBe(false)
           expect(headers.has('x-workspace-id')).toBe(false)
         }
-        expect(subject.dbBindings[0][1]).toBe(CANONICAL_URL)
+        expect(subject.dbBindings).toEqual([])
+        expect(subject.dbCalls()).toBe(0)
       } finally {
         subject.restore()
-      }
-    }
-    expect(keys[0]).toBe(keys[1])
-    expect(keys[2]).not.toBe(keys[0])
-  })
-
-  test('@smoke accepts only a matching bounded cache hit and ignores malformed or mismatched entries', async () => {
-    const seed = harness()
-    let validValue: string
-    try {
-      const response = await seed.invoke({ url: CANONICAL_URL, mode: 'download' })
-      expect(response.status).toBe(200)
-      validValue = seed.cachePuts[0].value
-    } finally {
-      seed.restore()
-    }
-
-    const hit = harness({ cached: validValue, provider: () => { throw new Error('cache hit must not fetch') } })
-    try {
-      const response = await hit.invoke({ url: `https://youtu.be/${VIDEO_ID}`, mode: 'download' })
-      expect(response.status).toBe(200)
-      expect(hit.transport).toEqual([])
-      expect(hit.cachePuts).toEqual([])
-      expect(hit.dbBindings[0][1]).toBe(CANONICAL_URL)
-    } finally {
-      hit.restore()
-    }
-
-    for (const cached of ['{broken', validValue.replace(CANONICAL_URL, 'https://www.youtube.com/watch?v=Other_Id12')]) {
-      const ignored = harness({ cached })
-      try {
-        const response = await ignored.invoke({ url: CANONICAL_URL, mode: 'download' })
-        expect(response.status).toBe(200)
-        expect(ignored.transport.length).toBeGreaterThan(0)
-        expect(ignored.cachePuts).toHaveLength(1)
-      } finally {
-        ignored.restore()
       }
     }
   })
@@ -245,6 +208,7 @@ test.describe('INV-020 canonical YouTube provider route @smoke', () => {
       const response = await failed.invoke({ url: CANONICAL_URL, platform: 'youtube' })
       expect(response.status).toBe(422)
       expectFriendlyYouTubeError(await response.json(), 'YouTube video could not be extracted. The video may be private, age-restricted, or unavailable in your region.')
+      expect(failed.cacheGets).toEqual([])
       expect(failed.cachePuts).toEqual([])
       expect(failed.dbCalls()).toBe(0)
     } finally {
@@ -267,20 +231,48 @@ test.describe('INV-020 canonical YouTube provider route @smoke', () => {
     }
   })
 
-  test('@smoke maps optional transcript transport failure to the exact legacy fallback and caches success', async () => {
-    const subject = harness({ provider: url => url.pathname === '/oembed' ? json(oembed()) : json({}, 503) })
+  test('@smoke abort during provider work remains ephemeral', async () => {
+    const controller = new AbortController()
+    let cancelled = false
+    const subject = harness({
+      signal: controller.signal,
+      provider: (_url, init) => new Response(new ReadableStream<Uint8Array>({
+        start(streamController) {
+          streamController.enqueue(new TextEncoder().encode('{'))
+          init?.signal?.addEventListener('abort', () => streamController.enqueue(new Uint8Array(129 * 1024)), { once: true })
+          setTimeout(() => controller.abort(new Error('caller stopped')), 5)
+        },
+        cancel() { cancelled = true },
+      }), { headers: { 'Content-Type': 'application/json' } }),
+    })
     try {
-      const response = await subject.invoke({ url: CANONICAL_URL, mode: 'transcript' })
-      expect(response.status).toBe(200)
-      expect((await response.json() as { transcript: string }).transcript).toBe(TRANSCRIPT_FALLBACK)
-      expect(subject.cachePuts).toHaveLength(1)
-      expect(subject.dbBindings).toHaveLength(1)
+      const response = await subject.invoke({ url: CANONICAL_URL, platform: 'youtube' })
+      expect(response.status).toBe(500)
+      expect(await response.json()).toEqual({ success: false, error: 'Failed to extract social media content' })
+      expect(cancelled).toBe(true)
+      expect(subject.cacheGets).toEqual([])
+      expect(subject.cachePuts).toEqual([])
+      expect(subject.dbCalls()).toBe(0)
     } finally {
       subject.restore()
     }
   })
 
-  test('@smoke preserves transcript success and nonfatal canonical D1 persistence', async () => {
+  test('@smoke maps optional transcript transport failure to the exact legacy fallback ephemerally', async () => {
+    const subject = harness({ provider: url => url.pathname === '/oembed' ? json(oembed()) : json({}, 503) })
+    try {
+      const response = await subject.invoke({ url: CANONICAL_URL, mode: 'transcript' })
+      expect(response.status).toBe(200)
+      expect((await response.json() as { transcript: string }).transcript).toBe(TRANSCRIPT_FALLBACK)
+      expect(subject.cacheGets).toEqual([])
+      expect(subject.cachePuts).toEqual([])
+      expect(subject.dbBindings).toEqual([])
+    } finally {
+      subject.restore()
+    }
+  })
+
+  test('@smoke preserves transcript success without KV or D1 mutation', async () => {
     const subject = harness({
       saveFails: true,
       provider: url => {
@@ -298,10 +290,36 @@ test.describe('INV-020 canonical YouTube provider route @smoke', () => {
       const response = await subject.invoke({ url: CANONICAL_URL, mode: 'transcript' })
       expect(response.status).toBe(200)
       expect((await response.json() as { transcript: string }).transcript).toBe('bounded transcript')
-      expect(subject.cachePuts).toHaveLength(1)
-      expect(subject.dbBindings[0][1]).toBe(CANONICAL_URL)
+      expect(subject.cacheGets).toEqual([])
+      expect(subject.cachePuts).toEqual([])
+      expect(subject.dbBindings).toEqual([])
+      expect(subject.dbCalls()).toBe(0)
     } finally {
       subject.restore()
+    }
+  })
+
+  test('@smoke preserves exact legacy non-YouTube platform identity through cache and D1', async () => {
+    const cases = [
+      { platform: 'x', url: 'https://x.com/example/status/123', mode: 'full' },
+      { platform: 'twitter', url: 'https://twitter.com/example/status/123', mode: 'metadata' },
+      { platform: 'instagram', url: 'https://instagram.com/p/Example123/', mode: 'download' },
+    ]
+    for (const entry of cases) {
+      const cached = JSON.stringify({ success: true, platform: entry.platform, postType: 'cached' })
+      const subject = harness({ cached, provider: () => { throw new Error('cached non-YouTube route must not fetch') } })
+      try {
+        const response = await subject.invoke(entry)
+        expect(response.status).toBe(200)
+        expect(subject.transport).toEqual([])
+        expect(subject.cacheGets).toEqual([`social:${entry.platform}:${entry.mode}:${encodeURIComponent(entry.url)}`])
+        expect(subject.cachePuts).toEqual([])
+        expect(subject.dbBindings).toHaveLength(1)
+        expect(subject.dbBindings[0][1]).toBe(entry.url)
+        expect(subject.dbBindings[0][2]).toBe(entry.platform)
+      } finally {
+        subject.restore()
+      }
     }
   })
 })
