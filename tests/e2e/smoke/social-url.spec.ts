@@ -1,5 +1,8 @@
 import { expect, test } from '@playwright/test'
-import { parseCanonicalYouTubeUrl } from '../../../functions/api/_shared/social-url'
+import {
+  parseCanonicalInstagramUrl,
+  parseCanonicalYouTubeUrl,
+} from '../../../functions/api/_shared/social-url'
 
 const VIDEO_ID = 'AbC_dEf-123'
 const CANONICAL_URL = `https://www.youtube.com/watch?v=${VIDEO_ID}`
@@ -86,5 +89,93 @@ test.describe('canonical social URL contract @smoke', () => {
     expect(parseCanonicalYouTubeUrl(`https://youtu.be/${VIDEO_ID}`)?.canonicalUrl).toBe(CANONICAL_URL)
     expect(parseCanonicalYouTubeUrl(`https://youtu.be/${secondId}`)?.canonicalUrl)
       .toBe(`https://www.youtube.com/watch?v=${secondId}`)
+  })
+})
+
+test.describe('canonical Instagram URL contract @smoke', () => {
+  const accepted = [
+    ['https://instagram.com/p/AbC_123-xYz', 'p'],
+    ['https://www.instagram.com/p/AbC_123-xYz/', 'p'],
+    ['HTTPS://INSTAGRAM.COM/reel/a', 'reel'],
+    ['https://WWW.INSTAGRAM.COM/reel/a/', 'reel'],
+    ['https://instagram.com/tv/0123456789_-', 'tv'],
+    [`https://www.instagram.com/p/${'a'.repeat(64)}`, 'p'],
+  ] as const
+
+  for (const [input, kind] of accepted) {
+    test(`@smoke canonicalizes ${input}`, () => {
+      const shortcode = input.match(/\/(?:p|reel|tv)\/([^/]+)/)?.[1]
+      expect(parseCanonicalInstagramUrl(input)).toEqual({
+        platform: 'instagram',
+        kind,
+        shortcode,
+        canonicalUrl: `https://www.instagram.com/${kind}/${shortcode}/`,
+      })
+    })
+  }
+
+  const rejected = [
+    '',
+    ' https://instagram.com/p/AbC_123-xYz',
+    'https://instagram.com/p/AbC_123-xYz ',
+    'https://instagram.com/p/AbC_123-xYz\n',
+    `https://instagram.com/p/${'a'.repeat(64)}\u0000`,
+    `https://instagram.com/p/${'a'.repeat(65)}`,
+    'http://instagram.com/p/AbC_123-xYz',
+    'ftp://instagram.com/p/AbC_123-xYz',
+    'javascript:alert(1)',
+    'https://user@instagram.com/p/AbC_123-xYz',
+    'https://user:pass@instagram.com/p/AbC_123-xYz',
+    'https://instagram.com:443/p/AbC_123-xYz',
+    'https://instagram.com./p/AbC_123-xYz',
+    'https://m.instagram.com/p/AbC_123-xYz',
+    'https://instagram.com.evil.test/p/AbC_123-xYz',
+    'https://notinstagram.com/p/AbC_123-xYz',
+    'https://evil.test/instagram.com/p/AbC_123-xYz',
+    'https://instagram%2ecom/p/AbC_123-xYz',
+    'https://instagram。com/p/AbC_123-xYz',
+    'https://instagram．com/p/AbC_123-xYz',
+    'https://instagram｡com/p/AbC_123-xYz',
+    'https://ｗｗｗ.instagram.com/p/AbC_123-xYz',
+    'https://ｉｎｓｔａｇｒａｍ.com/p/AbC_123-xYz',
+    'https://instagram.com\\@evil.test/p/AbC_123-xYz',
+    'https://instagram.com/p/AbC_123-xYz?igsh=secret',
+    'https://instagram.com/p/AbC_123-xYz?',
+    'https://instagram.com/p/AbC_123-xYz#fragment',
+    'https://instagram.com/p/AbC_123-xYz%2fextra',
+    'https://instagram.com/p/%41bC_123-xYz',
+    'https://instagram.com/%70/AbC_123-xYz',
+    'https://instagram.com/p/AbC_123-xYz/extra',
+    'https://instagram.com/p//AbC_123-xYz',
+    'https://instagram.com//p/AbC_123-xYz',
+    'https://instagram.com/p/../AbC_123-xYz',
+    'https://instagram.com/p/./AbC_123-xYz',
+    'https://instagram.com/P/AbC_123-xYz',
+    'https://instagram.com/reels/AbC_123-xYz',
+    'https://instagram.com/stories/AbC_123-xYz',
+    'https://instagram.com/p/',
+    'https://instagram.com/p/a.b',
+    'https://instagram.com/p/a~b',
+    'https://instagram.com/p/a+b',
+    'https://instagram.com/p/a=b',
+    'https://instagram.com/p/a%20b',
+    'https://instagram.com/',
+  ]
+
+  for (const input of rejected) {
+    test(`@smoke rejects ${JSON.stringify(input)}`, () => {
+      expect(parseCanonicalInstagramUrl(input)).toBeNull()
+    })
+  }
+
+  test('@smoke preserves kind and shortcode as distinct canonical identities', () => {
+    expect(parseCanonicalInstagramUrl('https://instagram.com/p/same_id')?.canonicalUrl)
+      .toBe('https://www.instagram.com/p/same_id/')
+    expect(parseCanonicalInstagramUrl('https://instagram.com/reel/same_id')?.canonicalUrl)
+      .toBe('https://www.instagram.com/reel/same_id/')
+  })
+
+  test('@smoke rejects input longer than 2048 characters', () => {
+    expect(parseCanonicalInstagramUrl(`https://instagram.com/p/a${'b'.repeat(2048)}`)).toBeNull()
   })
 })
