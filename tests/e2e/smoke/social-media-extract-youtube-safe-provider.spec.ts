@@ -299,14 +299,14 @@ test.describe('INV-020 canonical YouTube provider route @smoke', () => {
     }
   })
 
-  test('@smoke preserves exact legacy non-YouTube platform identity through cache and D1', async () => {
+  test('@smoke preserves legacy unconstrained platform identity through cache and D1', async () => {
     const cases = [
-      { platform: 'x', url: 'https://x.com/example/status/123', mode: 'full' },
-      { platform: 'twitter', url: 'https://twitter.com/example/status/123', mode: 'metadata' },
+      { platform: 'tiktok', url: 'https://www.tiktok.com/@example/video/123', mode: 'full' },
+      { platform: 'bluesky', url: 'https://bsky.app/profile/example.test/post/abc', mode: 'metadata' },
     ]
     for (const entry of cases) {
       const cached = JSON.stringify({ success: true, platform: entry.platform, postType: 'cached' })
-      const subject = harness({ cached, provider: () => { throw new Error('cached non-YouTube route must not fetch') } })
+      const subject = harness({ cached, provider: () => { throw new Error('cached unconstrained route must not fetch') } })
       try {
         const response = await subject.invoke(entry)
         expect(response.status).toBe(200)

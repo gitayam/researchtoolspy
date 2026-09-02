@@ -17,10 +17,13 @@ import { getUserFromRequest } from '../_shared/auth-helpers'
 import { JSON_HEADERS } from '../_shared/api-utils'
 import {
   parseCanonicalInstagramUrl,
+  parseCanonicalTwitterUrl,
   parseCanonicalYouTubeUrl,
   type CanonicalInstagramTarget,
+  type CanonicalTwitterTarget,
   type CanonicalYouTubeTarget,
 } from '../_shared/social-url'
+import { fetchTwitterProvider } from '../_shared/twitter-provider'
 import { createYouTubeProviderDeadline, fetchYouTubeProvider } from '../_shared/youtube-provider'
 
 interface Env {
@@ -43,6 +46,7 @@ interface SocialExtractRequest {
 type YouTubeMode = NonNullable<SocialExtractRequest['extract_mode']>
 const YOUTUBE_MODES: readonly YouTubeMode[] = ['metadata', 'full', 'download']
 const INSTAGRAM_MODES: readonly YouTubeMode[] = ['metadata', 'full', 'download']
+const TWITTER_MODES: readonly YouTubeMode[] = ['metadata', 'full', 'download']
 const INSTAGRAM_OPTION_KEYS = new Set(['include_comments', 'include_transcript', 'include_media'])
 
 function validInstagramOptions(options: unknown): options is NonNullable<SocialExtractRequest['options']> {
@@ -88,6 +92,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     const youtubeTarget = typeof url === 'string' ? parseCanonicalYouTubeUrl(url) : null
     const instagramTarget = typeof url === 'string' ? parseCanonicalInstagramUrl(url) : null
+    const twitterTarget = typeof url === 'string' ? parseCanonicalTwitterUrl(url) : null
     if (youtubeTarget && normalizedPlatform !== 'youtube') {
       return new Response(JSON.stringify({ error: 'URL does not match the selected platform' }), {
         status: 400,
@@ -95,6 +100,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
     if (instagramTarget && normalizedPlatform !== 'instagram') {
+      return new Response(JSON.stringify({ error: 'URL does not match the selected platform' }), {
+        status: 400,
+        headers: JSON_HEADERS,
+      })
+    }
+    if (twitterTarget && normalizedPlatform !== 'twitter') {
       return new Response(JSON.stringify({ error: 'URL does not match the selected platform' }), {
         status: 400,
         headers: JSON_HEADERS,
@@ -108,6 +119,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
     if (normalizedPlatform === 'instagram' && (!INSTAGRAM_MODES.includes(extract_mode)
+      || !validInstagramOptions(options))) {
+      return new Response(JSON.stringify({ error: 'Invalid extraction options' }), {
+        status: 400,
+        headers: JSON_HEADERS,
+      })
+    }
+    if (normalizedPlatform === 'twitter' && (!TWITTER_MODES.includes(extract_mode)
       || !validInstagramOptions(options))) {
       return new Response(JSON.stringify({ error: 'Invalid extraction options' }), {
         status: 400,
@@ -148,7 +166,17 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         break
       case 'twitter':
       case 'x':
-        extractionResult = await extractTwitter(url, extract_mode, options)
+        if (!twitterTarget) {
+          extractionResult = { success: false, error: 'Invalid Twitter/X URL' }
+          break
+        }
+        extractionResult = await extractTwitter(twitterTarget, request.signal)
+        if (extractionResult === null) {
+          return new Response(JSON.stringify({ error: 'Social media extraction failed' }), {
+            status: 500,
+            headers: JSON_HEADERS,
+          })
+        }
         break
       case 'tiktok':
         extractionResult = await extractTikTok(url, extract_mode, options)
@@ -167,15 +195,16 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
 
     if ((youtubeTarget && normalizedPlatform === 'youtube'
-      || instagramTarget && normalizedPlatform === 'instagram') && request.signal.aborted) {
+      || instagramTarget && normalizedPlatform === 'instagram'
+      || twitterTarget && normalizedPlatform === 'twitter') && request.signal.aborted) {
       return new Response(JSON.stringify({ error: 'Social media extraction failed' }), {
         status: 500,
         headers: JSON_HEADERS,
       })
     }
 
-    // YouTube and Instagram extraction are deliberately ephemeral; preserve legacy persistence for other platforms.
-    if (extractionResult.success && normalizedPlatform !== 'youtube' && normalizedPlatform !== 'instagram') {
+    // Constrained first-party extraction is deliberately ephemeral; preserve legacy persistence elsewhere.
+    if (extractionResult.success && !['youtube', 'instagram', 'twitter'].includes(normalizedPlatform)) {
       await saveExtraction(env.DB, {
         url,
         platform: normalizedPlatform,
@@ -307,135 +336,55 @@ function extractInstagramUnavailable(target: CanonicalInstagramTarget): Record<s
   }
 }
 
-/**
- * Twitter/X extraction using oEmbed API
- */
-async function extractTwitter(url: string, mode: string, options: any): Promise<any> {
-  try {
-    // Extract tweet ID
-    const tweetIdMatch = url.match(/status\/(\d+)/)
-
-    if (!tweetIdMatch) {
-      return {
-        success: false,
-        error: 'Invalid Twitter/X URL'
-      }
-    }
-
-    const tweetId = tweetIdMatch[1]
-
-    // Try Twitter oEmbed API (public, no auth required)
-    try {
-      const oembedUrl = `https://publish.twitter.com/oembed?url=${encodeURIComponent(url)}&omit_script=true&dnt=true`
-      const oembedResponse = await fetch(oembedUrl, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        },
-        signal: AbortSignal.timeout(15000),
-      })
-
-      if (oembedResponse.ok) {
-        const oembedData = await oembedResponse.json() as any
-
-        // Extract text from HTML (remove HTML tags)
-        let tweetText = ''
-        if (oembedData.html) {
-          // Extract text content from the HTML, removing tags
-          tweetText = oembedData.html
-            .replace(/<script[^>]*>.*?<\/script>/gi, '') // Remove scripts
-            .replace(/<style[^>]*>.*?<\/style>/gi, '') // Remove styles
-            .replace(/<br\s*\/?>/gi, '\n') // Convert breaks to newlines
-            .replace(/<\/p>/gi, '\n') // Convert paragraph ends to newlines
-            .replace(/<[^>]+>/g, '') // Remove all other HTML tags
-            .replace(/&nbsp;/g, ' ') // Decode nbsp
-            .replace(/&amp;/g, '&') // Decode ampersand
-            .replace(/&lt;/g, '<') // Decode lt
-            .replace(/&gt;/g, '>') // Decode gt
-            .replace(/&quot;/g, '"') // Decode quot
-            .replace(/&#39;/g, "'") // Decode apos
-            .replace(/\n\s*\n/g, '\n') // Collapse multiple newlines
-            .trim()
-        }
-
-        // Extract username from author_url
-        const username = oembedData.author_url?.split('/').pop() || 'unknown'
-
-        // Extract pic.twitter.com links from HTML
-        const picLinks: string[] = []
-        const picMatches = oembedData.html?.match(/pic\.twitter\.com\/([a-zA-Z0-9]+)/g) || []
-
-        for (const picLink of picMatches) {
-          picLinks.push(`https://${picLink}`)
-        }
-
-        // Also check for direct pbs.twimg.com links in HTML (rare in oEmbed)
-        const pbsMatches = oembedData.html?.match(/https:\/\/pbs\.twimg\.com\/media\/[^"'\s]+/g) || []
-
-        return {
-          success: true,
-          platform: 'twitter',
-          post_type: 'tweet',
-          extraction_method: 'oEmbed API + Media Extraction',
-          metadata: {
-            post_url: url,
-            tweet_id: tweetId,
-            platform: 'twitter',
-            author: oembedData.author_name || username,
-            author_url: oembedData.author_url,
-            author_username: username
-          },
-          content: {
-            text: tweetText,
-            html: oembedData.html,
-            word_count: tweetText.split(/\s+/).filter(w => w.length > 0).length
-          },
-          media: {
-            image_links: picLinks.length > 0 ? picLinks : undefined,
-            direct_images: pbsMatches.length > 0 ? pbsMatches : undefined,
-            image_count: picLinks.length + pbsMatches.length,
-            extraction_note: picLinks.length > 0
-              ? 'pic.twitter.com links detected - open in browser to view images'
-              : 'No images detected in tweet'
-          },
-          limitations: [
-            'oEmbed API provides tweet text but limited media metadata',
-            'pic.twitter.com links require opening in browser or authenticated API access',
-            'For high-quality downloads, open pic.twitter.com link in browser and save image',
-            'For video downloads, use yt-dlp or download manually',
-            'Thread context not included - only this tweet'
-          ]
-        }
-      }
-    } catch (oembedError) {
-      console.warn('[Twitter] oEmbed extraction failed:', oembedError)
-    }
-
-    // Fallback if oEmbed fails
+/** Twitter/X extraction through one bounded first-party oEmbed request. */
+async function extractTwitter(
+  target: CanonicalTwitterTarget,
+  signal: AbortSignal,
+): Promise<Record<string, unknown> | null> {
+  const provider = await fetchTwitterProvider(target, { signal })
+  if (!provider.success || !provider.metadata) {
+    if (provider.failure?.code === 'aborted') return null
     return {
       success: false,
-      error: 'Twitter oEmbed extraction failed. Tweet may be deleted, private, or from suspended account.',
+      error: 'Twitter/X extraction failed. The post may be deleted, protected, or unavailable.',
       platform: 'twitter',
       post_type: 'tweet',
       metadata: {
-        post_url: url,
-        tweet_id: tweetId,
-        platform: 'twitter'
+        post_url: target.canonicalUrl,
+        tweet_id: target.tweetId,
+        platform: 'twitter',
       },
       suggestions: [
-        'Tweet may be deleted, private, or from suspended account',
-        'Try viewing directly on Twitter/X',
-        `View on Twitter: ${url}`,
-        `View on Nitter (privacy-friendly): https://nitter.net/i/status/${tweetId}`,
-        'For authenticated access, use the Social Media page'
-      ]
+        'The post may be deleted, protected, or unavailable.',
+        `Open on X: ${target.canonicalUrl}`,
+      ],
     }
-
-  } catch (error) {
-    return {
-      success: false,
-      error: 'Twitter extraction failed',
-      platform: 'twitter'
-    }
+  }
+  return {
+    success: true,
+    platform: 'twitter',
+    post_type: 'tweet',
+    extraction_method: 'X oEmbed API',
+    metadata: {
+      post_url: target.canonicalUrl,
+      tweet_id: target.tweetId,
+      platform: 'twitter',
+      author: provider.metadata.authorName,
+      author_url: provider.metadata.authorUrl,
+      author_username: target.username,
+    },
+    content: {
+      text: provider.metadata.text,
+      word_count: provider.metadata.text.split(/\s+/).filter(word => word.length > 0).length,
+    },
+    media: {
+      image_count: 0,
+      extraction_note: 'Direct media is not returned by the public X oEmbed API. Open the canonical post to view or download media.',
+    },
+    limitations: [
+      'Public oEmbed provides bounded post text and author metadata, not direct media URLs.',
+      'Thread context is not included.',
+    ],
   }
 }
 

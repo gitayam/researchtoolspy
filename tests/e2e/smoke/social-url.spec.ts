@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test'
 import {
   parseCanonicalInstagramUrl,
+  parseCanonicalTwitterUrl,
   parseCanonicalYouTubeUrl,
 } from '../../../functions/api/_shared/social-url'
 
@@ -178,4 +179,55 @@ test.describe('canonical Instagram URL contract @smoke', () => {
   test('@smoke rejects input longer than 2048 characters', () => {
     expect(parseCanonicalInstagramUrl(`https://instagram.com/p/a${'b'.repeat(2048)}`)).toBeNull()
   })
+})
+
+test.describe('canonical Twitter/X URL contract @smoke', () => {
+  const tweetId = '1973141012345678901'
+  const accepted = [
+    'https://x.com/OpenAI/status/1973141012345678901',
+    'https://www.x.com/open_ai/status/1973141012345678901/',
+    'https://twitter.com/OPENAI/status/1973141012345678901',
+    'HTTPS://WWW.TWITTER.COM/OpenAI/status/1973141012345678901',
+  ]
+  for (const input of accepted) {
+    test(`@smoke canonicalizes ${input}`, () => {
+      const username = input.match(/(?:x|twitter)\.com\/([^/]+)/i)?.[1].toLowerCase()
+      expect(parseCanonicalTwitterUrl(input)).toEqual({
+        platform: 'twitter',
+        username,
+        tweetId,
+        canonicalUrl: `https://x.com/${username}/status/${tweetId}`,
+      })
+    })
+  }
+
+  const rejected = [
+    '',
+    ' https://x.com/openai/status/1973141012345678901',
+    'http://x.com/openai/status/1973141012345678901',
+    'https://user@x.com/openai/status/1973141012345678901',
+    'https://x.com:443/openai/status/1973141012345678901',
+    'https://x.com.evil.test/openai/status/1973141012345678901',
+    'https://notx.com/openai/status/1973141012345678901',
+    'https://x%2ecom/openai/status/1973141012345678901',
+    'https://ｘ.com/openai/status/1973141012345678901',
+    'https://x.com\\@evil.test/openai/status/1973141012345678901',
+    'https://x.com/openai/status/1973141012345678901?s=20',
+    'https://x.com/openai/status/1973141012345678901#fragment',
+    'https://x.com/openai/status/1973141012345678901/extra',
+    'https://x.com/openai/statuses/1973141012345678901',
+    'https://x.com/i/web/status/1973141012345678901',
+    'https://x.com/open-ai/status/1973141012345678901',
+    `https://x.com/${'a'.repeat(16)}/status/1973141012345678901`,
+    'https://x.com/openai/status/0',
+    'https://x.com/openai/status/0123',
+    'https://x.com/openai/status/not-a-number',
+    `https://x.com/openai/status/${'1'.repeat(21)}`,
+    'https://x.com/openai/status/%31',
+  ]
+  for (const input of rejected) {
+    test(`@smoke rejects ${JSON.stringify(input)}`, () => {
+      expect(parseCanonicalTwitterUrl(input)).toBeNull()
+    })
+  }
 })

@@ -11,6 +11,13 @@ export interface CanonicalInstagramTarget {
   canonicalUrl: string
 }
 
+export interface CanonicalTwitterTarget {
+  platform: 'twitter'
+  username: string
+  tweetId: string
+  canonicalUrl: string
+}
+
 const MAX_SOCIAL_URL_LENGTH = 2048
 const YOUTUBE_ID_PATTERN = /^[A-Za-z0-9_-]{11}$/
 const YOUTUBE_HOSTS = new Set([
@@ -25,6 +32,12 @@ const ACCEPTED_RAW_YOUTUBE_HOSTS = new Set([
 const INSTAGRAM_HOSTS = new Set([
   'instagram.com',
   'www.instagram.com',
+])
+const TWITTER_HOSTS = new Set([
+  'x.com',
+  'www.x.com',
+  'twitter.com',
+  'www.twitter.com',
 ])
 
 function containsAsciiControlCharacter(value: string): boolean {
@@ -177,5 +190,60 @@ export function parseCanonicalInstagramUrl(input: string): CanonicalInstagramTar
     kind,
     shortcode,
     canonicalUrl: `https://www.instagram.com/${kind}/${shortcode}/`,
+  }
+}
+
+/**
+ * Parses one exact public Twitter/X post shape. Tracking parameters, fragments,
+ * alternate paths, encoded separators, credentials, and explicit ports are
+ * rejected before URL normalization. The returned identity is always on x.com.
+ */
+export function parseCanonicalTwitterUrl(input: string): CanonicalTwitterTarget | null {
+  if (
+    input.length === 0
+    || input.length > MAX_SOCIAL_URL_LENGTH
+    || input !== input.trim()
+    || input.includes('\\')
+    || containsAsciiControlCharacter(input)
+  ) {
+    return null
+  }
+
+  const rawMatch = /^https:\/\/([^/?#]+)([^?#]*)(\?[^#]*)?(#.*)?$/i.exec(input)
+  if (!rawMatch) return null
+  const [, rawAuthority, rawPath, rawQuery, rawFragment] = rawMatch
+  if (
+    rawQuery
+    || rawFragment
+    || rawAuthority.includes('@')
+    || rawAuthority.includes(':')
+    || rawAuthority.includes('%')
+    || !TWITTER_HOSTS.has(rawAuthority.toLowerCase())
+    || rawPath.includes('%')
+  ) {
+    return null
+  }
+
+  let parsed: URL
+  try { parsed = new URL(input) } catch { return null }
+  if (
+    parsed.protocol !== 'https:'
+    || parsed.username !== ''
+    || parsed.password !== ''
+    || parsed.port !== ''
+    || !TWITTER_HOSTS.has(parsed.hostname.toLowerCase())
+  ) {
+    return null
+  }
+
+  const pathMatch = /^\/([A-Za-z0-9_]{1,15})\/status\/([1-9][0-9]{0,19})\/?$/.exec(rawPath)
+  if (!pathMatch) return null
+  const username = pathMatch[1].toLowerCase()
+  const tweetId = pathMatch[2]
+  return {
+    platform: 'twitter',
+    username,
+    tweetId,
+    canonicalUrl: `https://x.com/${username}/status/${tweetId}`,
   }
 }

@@ -15,10 +15,13 @@ import { getUserFromRequest } from '../_shared/auth-helpers'
 import { JSON_HEADERS } from '../_shared/api-utils'
 import {
   parseCanonicalInstagramUrl,
+  parseCanonicalTwitterUrl,
   parseCanonicalYouTubeUrl,
   type CanonicalInstagramTarget,
+  type CanonicalTwitterTarget,
   type CanonicalYouTubeTarget,
 } from '../_shared/social-url'
+import { fetchTwitterProvider } from '../_shared/twitter-provider'
 import { createYouTubeProviderDeadline, fetchYouTubeProvider } from '../_shared/youtube-provider'
 
 interface Env {
@@ -181,6 +184,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const instagramHint = typeof providedPlatform === 'string' && providedPlatform.toLowerCase() === 'instagram'
     const malformedInstagramAuthority = !providedPlatform && !instagramTarget
       && typeof url === 'string' && hasExactRawInstagramAuthority(url)
+    const twitterTarget = typeof url === 'string' ? parseCanonicalTwitterUrl(url) : null
+    const twitterHint = typeof providedPlatform === 'string'
+      && ['twitter', 'x'].includes(providedPlatform.toLowerCase())
+    const malformedTwitterAuthority = !providedPlatform && !twitterTarget
+      && typeof url === 'string' && hasExactRawTwitterAuthority(url)
 
     if (youtubeTarget && providedPlatform && !youtubeHint) {
       const result = createUserFriendlyError('youtube', 'Platform mismatch', 'The selected platform does not match the YouTube URL.')
@@ -188,6 +196,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
     if (instagramTarget && providedPlatform && !instagramHint) {
       const result = createUserFriendlyError('instagram', 'Platform mismatch', 'The selected platform does not match the Instagram URL.')
+      return new Response(JSON.stringify(result), { status: 422, headers: JSON_HEADERS })
+    }
+    if (twitterTarget && providedPlatform && !twitterHint) {
+      const result = createUserFriendlyError('twitter', 'Platform mismatch', 'The selected platform does not match the Twitter/X URL.')
       return new Response(JSON.stringify(result), { status: 422, headers: JSON_HEADERS })
     }
     if ((youtubeHint || malformedYouTubeAuthority) && !youtubeTarget) {
@@ -198,6 +210,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       const result = invalidInstagramResult()
       return new Response(JSON.stringify(result), { status: 422, headers: JSON_HEADERS })
     }
+    if ((twitterHint || malformedTwitterAuthority) && !twitterTarget) {
+      const result = invalidTwitterResult()
+      return new Response(JSON.stringify(result), { status: 422, headers: JSON_HEADERS })
+    }
     if ((youtubeTarget || youtubeHint || malformedYouTubeAuthority) && !EXTRACTION_MODES.includes(mode)) {
       const result = createUserFriendlyError('youtube', 'Invalid mode', 'YouTube extraction mode is invalid.')
       return new Response(JSON.stringify(result), { status: 422, headers: JSON_HEADERS })
@@ -206,13 +222,19 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       const result = createUserFriendlyError('instagram', 'Invalid mode', 'Instagram extraction mode is invalid.')
       return new Response(JSON.stringify(result), { status: 422, headers: JSON_HEADERS })
     }
+    if ((twitterTarget || twitterHint || malformedTwitterAuthority) && !EXTRACTION_MODES.includes(mode)) {
+      const result = createUserFriendlyError('twitter', 'Invalid mode', 'Twitter/X extraction mode is invalid.')
+      return new Response(JSON.stringify(result), { status: 422, headers: JSON_HEADERS })
+    }
 
     // Outside the constrained platform decisions, retain the caller's exact legacy platform identity.
     const platform = youtubeHint
       ? 'youtube'
       : instagramHint
         ? 'instagram'
-        : (providedPlatform || (youtubeTarget ? 'youtube' : instagramTarget ? 'instagram' : detectPlatform(url)))
+        : twitterHint
+          ? 'twitter'
+          : (providedPlatform || (youtubeTarget ? 'youtube' : instagramTarget ? 'instagram' : twitterTarget ? 'twitter' : detectPlatform(url)))
 
     if (!platform) {
       return new Response(JSON.stringify({
@@ -230,6 +252,15 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       }
       return new Response(JSON.stringify(instagramUnavailableResult(instagramTarget)), {
         status: 422,
+        headers: JSON_HEADERS,
+      })
+    }
+
+    if (platform === 'twitter' && twitterTarget) {
+      const twitterResult = await extractTwitter(twitterTarget, mode, request.signal)
+      if (twitterResult === null) return genericExtractionFailure()
+      return new Response(JSON.stringify(twitterResult), {
+        status: twitterResult.success ? 200 : 422,
         headers: JSON_HEADERS,
       })
     }
@@ -255,9 +286,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           switch (platform) {
           case 'tiktok':
             return await extractTikTok(url, mode)
-          case 'twitter':
-          case 'x':
-            return await extractTwitter(url, mode)
           case 'bluesky':
             return await extractBluesky(url, mode)
           default:
@@ -326,9 +354,6 @@ function detectPlatform(url: string): string | null {
   if (urlLower.includes('tiktok.com')) {
     return 'tiktok'
   }
-  if (urlLower.includes('twitter.com') || urlLower.includes('x.com')) {
-    return 'twitter'
-  }
   if (urlLower.includes('bsky.app') || urlLower.startsWith('at://')) {
     return 'bluesky'
   }
@@ -365,6 +390,14 @@ function hasExactRawInstagramAuthority(value: string): boolean {
   return ['instagram.com', 'www.instagram.com'].includes(match[1].toLowerCase())
 }
 
+function hasExactRawTwitterAuthority(value: string): boolean {
+  if (value.length === 0 || value.length > 2048 || value !== value.trim() || value.includes('\\')
+    || containsAsciiControl(value)) return false
+  const match = /^https?:\/\/([^/?#]+)/i.exec(value)
+  if (!match || match[1].includes('@') || match[1].includes(':') || match[1].includes('%')) return false
+  return ['x.com', 'www.x.com', 'twitter.com', 'www.twitter.com'].includes(match[1].toLowerCase())
+}
+
 function invalidYouTubeResult(): SocialMediaExtractionResult {
   return createUserFriendlyError(
     'youtube',
@@ -378,6 +411,14 @@ function invalidInstagramResult(): SocialMediaExtractionResult {
     'instagram',
     'Invalid URL format',
     'Could not find a valid Instagram post ID in the URL. Please use a standard Instagram link (e.g., instagram.com/p/...).',
+  )
+}
+
+function invalidTwitterResult(): SocialMediaExtractionResult {
+  return createUserFriendlyError(
+    'twitter',
+    'Invalid URL format',
+    'Could not find a valid tweet ID in the URL. Please use a canonical Twitter/X link (for example, x.com/user/status/123...).',
   )
 }
 
@@ -538,328 +579,49 @@ async function extractTikTok(url: string, mode: string): Promise<SocialMediaExtr
 // Twitter/X Extraction
 // ========================================
 
-async function extractTwitter(url: string, mode: string): Promise<SocialMediaExtractionResult> {
-  try {
-
-    // Extract tweet ID from URL
-    const tweetId = extractTweetId(url)
-    if (!tweetId) {
-      return createUserFriendlyError(
-        'twitter',
-        'Invalid URL format',
-        'Could not find a valid tweet ID in the URL. Please use a standard Twitter/X link (e.g., twitter.com/user/status/123... or x.com/user/status/123...)'
-      )
-    }
-
-
-    // Strategy 1: Try cobalt.tools for media downloads (if download mode)
-    let cobaltData: any = null
-    if (mode === 'download' || mode === 'full') {
-      try {
-        cobaltData = await fetchWithRetry(async () => {
-          const cobaltResponse = await fetch('https://co.wuk.sh/api/json', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json'
-            },
-            body: JSON.stringify({
-              url,
-              vCodec: 'h264',
-              vQuality: '720',
-              aFormat: 'mp3',
-              isAudioOnly: false
-            }),
-            signal: AbortSignal.timeout(15000)
-          })
-
-          if (!cobaltResponse.ok) {
-            throw new Error(`Cobalt API returned status ${cobaltResponse.status}`)
-          }
-
-          return await cobaltResponse.json() as any
-        }, 2, 1000)
-
-      } catch (cobaltError) {
-        console.warn('[Twitter] Cobalt extraction failed:', cobaltError)
-        // Continue with oEmbed even if cobalt fails
-      }
-    }
-
-    // Strategy 2: Get metadata via Twitter oEmbed API
-    const oembedData = await fetchWithRetry(async () => {
-      const oembedUrl = `https://publish.twitter.com/oembed?url=${encodeURIComponent(url)}`
-      const response = await fetch(oembedUrl, { signal: AbortSignal.timeout(15000) })
-
-      if (!response.ok) {
-        throw new Error(`Twitter oEmbed API returned status ${response.status}`)
-      }
-
-      return await response.json() as any
-    }, 2, 1000)
-
-    // Parse tweet text from embed HTML
-    const embedHtml = oembedData.html
-    const tweetText = extractTweetTextFromHTML(embedHtml)
-    const authorHandle = extractAuthorHandleFromHTML(embedHtml)
-
-
-    // Build media URLs from cobalt if available
-    const mediaUrls: MediaUrls = {}
-    const downloadOptions: DownloadOption[] = []
-
-    if (cobaltData && (cobaltData.status === 'redirect' || cobaltData.status === 'stream' || cobaltData.status === 'picker')) {
-      if (cobaltData.status === 'picker') {
-        // Multiple media items (carousel)
-        const images: string[] = []
-        const videos: string[] = []
-
-        for (const item of cobaltData.picker || []) {
-          if (item.type === 'photo') {
-            images.push(item.url)
-            downloadOptions.push({
-              quality: 'Original',
-              format: 'jpg',
-              url: item.url,
-              hasAudio: false,
-              hasVideo: false
-            })
-          } else if (item.type === 'video') {
-            videos.push(item.url)
-            downloadOptions.push({
-              quality: 'Original',
-              format: 'mp4',
-              url: item.url,
-              hasAudio: true,
-              hasVideo: true
-            })
-          }
-        }
-
-        if (images.length > 0) mediaUrls.images = images
-        if (videos.length > 0) mediaUrls.video = videos[0]
-      } else if (cobaltData.url) {
-        // Single media item
-        const isVideo = cobaltData.url.includes('.mp4') || cobaltData.url.includes('video')
-
-        if (isVideo) {
-          mediaUrls.video = cobaltData.url
-        } else {
-          mediaUrls.images = [cobaltData.url]
-        }
-
-        downloadOptions.push({
-          quality: isVideo ? 'Original' : 'High quality',
-          format: isVideo ? 'mp4' : 'jpg',
-          url: cobaltData.url,
-          hasAudio: isVideo,
-          hasVideo: isVideo
-        })
-      }
-    }
-
-    // Strategy 3: Try vxTwitter API as fallback for reliable image extraction
-    // Run for all modes to ensure images are always extracted
-    if (!mediaUrls.images && !mediaUrls.video && (mode !== 'stream')) {
-      try {
-
-        // Extract username from URL for vxTwitter endpoint
-        const usernameMatch = url.match(/(?:twitter\.com|x\.com)\/([^\/]+)\/status/)
-        const username = usernameMatch ? usernameMatch[1] : 'Twitter'
-
-        const vxData = await fetchWithRetry(async () => {
-          const vxUrl = `https://api.vxtwitter.com/${username}/status/${tweetId}`
-          const vxResponse = await fetch(vxUrl, { signal: AbortSignal.timeout(15000) })
-
-          if (!vxResponse.ok) {
-            throw new Error(`VxTwitter API returned status ${vxResponse.status}`)
-          }
-
-          return await vxResponse.json() as any
-        }, 2, 1000)
-
-
-        // Map vxTwitter response to mediaUrls
-        if (vxData.mediaURLs && vxData.mediaURLs.length > 0) {
-          const images: string[] = []
-          let videoUrl: string | undefined
-
-          for (const mediaUrl of vxData.mediaURLs) {
-            const isVideo = mediaUrl.includes('.mp4')
-
-            if (isVideo) {
-              videoUrl = mediaUrl
-              downloadOptions.push({
-                quality: 'Original',
-                format: 'mp4',
-                url: mediaUrl,
-                hasAudio: true,
-                hasVideo: true
-              })
-            } else {
-              images.push(mediaUrl)
-              downloadOptions.push({
-                quality: 'Original',
-                format: 'jpg',
-                url: mediaUrl,
-                hasAudio: false,
-                hasVideo: false
-              })
-            }
-          }
-
-          if (images.length > 0) {
-            mediaUrls.images = images
-            mediaUrls.thumbnail = images[0]
-          }
-          if (videoUrl) {
-            mediaUrls.video = videoUrl
-          }
-
-        }
-
-      } catch (vxError) {
-        console.warn('[Twitter] VxTwitter API fallback failed:', vxError)
-        // Continue to metadata even if vxTwitter fails
-      }
-    }
-
-    // Strategy 4: Extract pic.twitter.com links from oEmbed HTML as last resort
-    // Run for ALL modes to ensure basic image links are always available
-    if (!mediaUrls.images && !mediaUrls.video && embedHtml && mode !== 'stream') {
-      const picLinks: string[] = []
-      const picMatches = embedHtml.match(/pic\.twitter\.com\/([a-zA-Z0-9]+)/g) || []
-
-      for (const picLink of picMatches) {
-        const fullLink = `https://${picLink}`
-        picLinks.push(fullLink)
-        downloadOptions.push({
-          quality: 'View in Browser',
-          format: 'pic.twitter.com',
-          url: fullLink,
-          hasAudio: false,
-          hasVideo: false
-        })
-      }
-
-      if (picLinks.length > 0) {
-        mediaUrls.images = picLinks
-        mediaUrls.thumbnail = picLinks[0]
-      }
-    }
-
-    // Build enhanced metadata
-    const metadata: Record<string, any> = {
-      tweetId,
-      authorName: oembedData.author_name,
-      authorHandle: authorHandle || oembedData.author_name,
-      authorUrl: oembedData.author_url,
-      text: tweetText || 'Unable to extract tweet text',
-      tweetUrl: url,
-      hasMedia: !!(mediaUrls.video || mediaUrls.images?.length),
-      mediaCount: (mediaUrls.images?.length || 0) + (mediaUrls.video ? 1 : 0),
-      width: oembedData.width,
-      height: oembedData.height,
-      extractedVia: cobaltData?.status === 'picker' || cobaltData?.url
-        ? 'cobalt.tools + oEmbed'
-        : (mediaUrls.images?.length || mediaUrls.video) && downloadOptions.length > 0
-        ? 'vxTwitter + oEmbed'
-        : 'oEmbed only'
-    }
-
-    // Determine post type
-    let postType = 'tweet'
-    if (tweetText?.includes('RT @') || tweetText?.toLowerCase().includes('retweet')) {
-      postType = 'retweet'
-    } else if (url.includes('/status/') && url.split('/').length > 6) {
-      postType = 'reply'
-    }
-
-    return {
-      success: true,
-      platform: 'twitter',
-      postType,
-      mediaUrls: Object.keys(mediaUrls).length > 0 ? mediaUrls : undefined,
-      downloadOptions: downloadOptions.length > 0 ? downloadOptions : undefined,
-      embedCode: embedHtml,
-      metadata
-    }
-
-  } catch (error) {
-    console.error('[Twitter] Extraction failed:', error)
+async function extractTwitter(
+  target: CanonicalTwitterTarget,
+  mode: YouTubeMode,
+  signal: AbortSignal,
+): Promise<SocialMediaExtractionResult | null> {
+  const provider = await fetchTwitterProvider(target, { signal })
+  if (!provider.success || !provider.metadata) {
+    if (provider.failure?.code === 'aborted') return null
     return createUserFriendlyError(
       'twitter',
       'Extraction failed',
-      'Tweet could not be extracted. The tweet may be from a protected account, deleted, or temporarily unavailable. Try copying the tweet URL again or check if the account is public.'
+      'Tweet could not be extracted. The post may be protected, deleted, or temporarily unavailable. Open the canonical post on X to verify it.',
     )
   }
-}
-
-// Helper: Extract tweet ID from various Twitter/X URL formats
-function extractTweetId(url: string): string | null {
-  const patterns = [
-    /(?:twitter\.com|x\.com)\/(?:#!\/)?[\w]+\/status(?:es)?\/(\d+)/,
-    /(?:twitter\.com|x\.com)\/[\w]+\/status\/(\d+)/
-  ]
-
-  for (const pattern of patterns) {
-    const match = url.match(pattern)
-    if (match && match[1]) {
-      return match[1]
-    }
-  }
-
-  return null
-}
-
-// Helper: Extract tweet text from oEmbed HTML
-function extractTweetTextFromHTML(html: string): string | null {
-  try {
-    // The oEmbed HTML contains a blockquote with the tweet text
-    // Format: <blockquote class="twitter-tweet"><p lang="en" dir="ltr">TWEET TEXT HERE</p>&mdash; @author...
-
-    // Extract content from <p> tag
-    const pMatch = html.match(/<p[^>]*>(.*?)<\/p>/)
-    if (pMatch && pMatch[1]) {
-      // Clean up HTML entities and tags
-      let text = pMatch[1]
-        .replace(/<a[^>]*>(.*?)<\/a>/g, '$1') // Remove link tags but keep text
-        .replace(/<br\s*\/?>/g, '\n') // Convert <br> to newlines
-        .replace(/&amp;/g, '&')
-        .replace(/&lt;/g, '<')
-        .replace(/&gt;/g, '>')
-        .replace(/&quot;/g, '"')
-        .replace(/&#39;/g, "'")
-        .replace(/&mdash;/g, '—')
-        .trim()
-
-      return text
-    }
-
-    return null
-  } catch (error) {
-    console.error('[Twitter] Failed to parse tweet text:', error)
-    return null
+  const includeOpenAction = mode === 'download' || mode === 'stream' || mode === 'full'
+  return {
+    success: true,
+    platform: 'twitter',
+    postType: 'tweet',
+    downloadOptions: includeOpenAction
+      ? [{
+        quality: 'Open on X',
+        format: 'web',
+        url: target.canonicalUrl,
+        hasAudio: false,
+        hasVideo: false,
+      }]
+      : undefined,
+    metadata: {
+      tweetId: target.tweetId,
+      authorName: provider.metadata.authorName,
+      authorHandle: provider.metadata.authorHandle,
+      authorUrl: provider.metadata.authorUrl,
+      text: provider.metadata.text,
+      tweetUrl: target.canonicalUrl,
+      hasMedia: false,
+      mediaCount: 0,
+      extractedVia: 'X oEmbed API',
+      directMediaAvailable: false,
+    },
   }
 }
 
-// Helper: Extract author handle from oEmbed HTML
-function extractAuthorHandleFromHTML(html: string): string | null {
-  try {
-    // Look for @username pattern in the HTML
-    const handleMatch = html.match(/@(\w+)/)
-    if (handleMatch && handleMatch[1]) {
-      return '@' + handleMatch[1]
-    }
-
-    return null
-  } catch (error) {
-    console.error('[Twitter] Failed to parse author handle:', error)
-    return null
-  }
-}
-
-// ========================================
 // Bluesky (AT Protocol) Extraction
 // ========================================
 
