@@ -130,7 +130,7 @@ flowchart LR
 - [ ] Enforce the same rules again inside Browser Run and Container service boundaries.
 - [x] Route public survey/COP URL enrichment through static-only bounded fetch and public ephemeral analysis; prohibit paid-provider disclosure, Browser Run navigation, synthetic auth, and persistence intent on these public background paths.
 - [x] Route `tools/analyze-url`, `scrape-metadata`, claims, timeline, RageCheck, AI scrape, and the web scraper through bounded shared adapters.
-- [ ] Route the remaining content-intelligence social/provider routes through bounded shared adapters.
+- [x] Route the remaining content-intelligence social/provider routes through bounded shared adapters.
 - [x] Route `tools/scrape-metadata` through bounded text fetch and `tools/extract` through the bounded text/PDF document adapter.
 - [x] Route `tools/analyze-url` and its optional Wayback metadata checks through bounded exact-host adapters; disable implicit archive-save writes from the read-like analysis request.
 - [x] Route authenticated AI scrape and Starbursting delegation through bounded direct/oEmbed adapters; require exact social host/path classification before any Apify disclosure.
