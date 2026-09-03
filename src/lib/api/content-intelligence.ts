@@ -72,12 +72,19 @@ export interface ClaimsAnalysisResponse {
 }
 
 export interface CountryLookupResponse {
+  success: true
+  domain: string
+  ip: string
   country: string
-  country_code: string
-  registrar?: string
-  organization?: string
-  ip_address?: string
-  asn?: string
+  countryCode: string
+  flag: string
+  region?: string
+  city?: string
+  org?: string
+  scope: 'resolved-ip'
+  resolvedAddressCount: number
+  sampledAddressCount: 1
+  caveat: string
 }
 
 export interface VirusTotalResponse {

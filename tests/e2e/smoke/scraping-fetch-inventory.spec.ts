@@ -77,7 +77,7 @@ const entries: InventoryEntry[] = [
     typecheck: 'root',
   },
   { id: 'INV-022', file: 'functions/api/tools/geoconfirmed.ts', status: 'safe-provider', evidence: /fetchFixedProviderJson<GCConflict\[\]>/, forbidden: [/\bfetch\s*\(/], typecheck: 'root' },
-  { id: 'INV-023', file: 'functions/api/content-intelligence/domain-country.ts', status: 'constrained-provider', evidence: /ip-api\.com\/json/, typecheck: 'root' },
+  { id: 'INV-023', file: 'functions/api/content-intelligence/domain-country.ts', status: 'safe-provider', evidence: /fetchFixedProviderJson<CountryProviderResponse>/, forbidden: [/\bfetch\s*\(/, /ip-api\.com/], typecheck: 'root' },
   { id: 'INV-024', file: 'functions/api/content-intelligence/virustotal-lookup.ts', status: 'safe-provider', evidence: /fetchFixedProviderJson<VirusTotalDomainReport>/, forbidden: [/\bfetch\s*\(/], typecheck: 'root' },
   { id: 'INV-025', file: 'functions/api/content-intelligence/pdf-extractor.ts', status: 'safe-pdf', evidence: /safeFetchPdf\(url,/, typecheck: 'root' },
   { id: 'INV-026', file: 'functions/api/_shared/apify-social.ts', status: 'bounded-provider-job', evidence: /fetchApifyJson\(apiKey,/, forbidden: [/\bfetch\s*\(/], typecheck: 'transitive' },

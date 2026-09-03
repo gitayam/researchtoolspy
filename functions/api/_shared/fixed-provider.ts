@@ -20,6 +20,8 @@ export interface FixedProviderOptions {
   credentialHeaders?: Readonly<Record<string, string | undefined>>
   fetchImpl?: typeof fetch
   resolveHostname?: HostnameResolver
+  /** Caller cancellation or an enclosing total-deadline signal. */
+  signal?: AbortSignal
 }
 
 export interface FixedProviderJsonResult<T> extends SafeFetchResult {
@@ -104,7 +106,7 @@ export async function fetchFixedProviderJson<T>(
     maxResponseBytes: options.maxResponseBytes ?? 1024 * 1024,
     resolveHostname: options.resolveHostname,
     fetchImpl: scopedTransport(origin, options.credentialHeaders, options.fetchImpl ?? fetch),
-    requestInit: { headers: { Accept: 'application/json' } },
+    requestInit: { headers: { Accept: 'application/json' }, signal: options.signal },
   })
 
   let data: T | null = null
@@ -137,6 +139,6 @@ export async function fetchFixedProviderBytes(
     maxResponseBytes: options.maxResponseBytes ?? 8 * 1024 * 1024,
     resolveHostname: options.resolveHostname,
     fetchImpl: scopedTransport(origin, undefined, options.fetchImpl ?? fetch),
-    requestInit: { headers: { Accept: options.allowedContentTypes.join(', ') } },
+    requestInit: { headers: { Accept: options.allowedContentTypes.join(', ') }, signal: options.signal },
   })
 }

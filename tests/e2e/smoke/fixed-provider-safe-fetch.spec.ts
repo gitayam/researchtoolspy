@@ -96,6 +96,22 @@ test.describe('fixed provider outbound policy @smoke', () => {
     }
   })
 
+  test('@smoke propagates caller cancellation before provider transport', async () => {
+    const controller = new AbortController()
+    controller.abort(new Error('caller stopped'))
+    let fetchCalls = 0
+
+    await expect(fetchFixedProviderJson('https://provider.example', ['api', 'report'], {
+      signal: controller.signal,
+      resolveHostname: publicResolver,
+      fetchImpl: async () => {
+        fetchCalls += 1
+        return Response.json({ ok: true })
+      },
+    })).rejects.toMatchObject({ code: 'aborted' })
+    expect(fetchCalls).toBe(0)
+  })
+
   test('@smoke bounds fixed-provider binary responses under an explicit MIME contract', async () => {
     const bytes = new Uint8Array([0x50, 0x4b, 0x03, 0x04])
     const result = await fetchFixedProviderBytes('https://provider.example', ['api', 'export'], {

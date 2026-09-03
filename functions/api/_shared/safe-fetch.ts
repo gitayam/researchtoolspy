@@ -720,7 +720,10 @@ async function safeFetchWithPolicy<T>(
       try {
         const parsed = parseSafeOutboundUrl(current)
         assertAllowedHostname(parsed, normalizedAllowedHostnames)
-        url = await assertSafeOutboundUrl(parsed, controller.signal, resolveHostname)
+        url = await raceWithAbort(
+          assertSafeOutboundUrl(parsed, controller.signal, resolveHostname),
+          controller.signal,
+        )
       } catch (error) {
         if (controller.signal.aborted) throw abortError(error)
         throw error
@@ -728,11 +731,14 @@ async function safeFetchWithPolicy<T>(
 
       let response: Response
       try {
-        response = await fetchImpl(url, {
-          ...sanitized.init,
-          headers: outboundHeaders,
-          signal: controller.signal,
-        })
+        response = await raceWithAbort(
+          fetchImpl(url, {
+            ...sanitized.init,
+            headers: outboundHeaders,
+            signal: controller.signal,
+          }),
+          controller.signal,
+        )
       } catch (error) {
         if (controller.signal.aborted) throw abortError(error)
         throw new SafeFetchError('network_error', 'Outbound request failed', { cause: error })
@@ -771,9 +777,12 @@ async function safeFetchWithPolicy<T>(
       }
 
       try {
-        const body = await policy.read(
-          response,
-          responseByteLimit(contentType, maxResponseBytes, contentTypeMaxResponseBytes),
+        const body = await raceWithAbort(
+          policy.read(
+            response,
+            responseByteLimit(contentType, maxResponseBytes, contentTypeMaxResponseBytes),
+          ),
+          controller.signal,
         )
         return {
           response,

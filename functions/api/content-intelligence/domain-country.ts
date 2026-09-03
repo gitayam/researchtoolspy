@@ -1,201 +1,219 @@
 /**
- * Domain Country Origin Lookup
+ * Resolved IP location estimate for a URL hostname.
  *
- * Determines the country where a domain is hosted using DNS and IP geolocation
+ * This is deliberately not described as the publisher's country or origin:
+ * DNS answers can identify a CDN edge, can vary by resolver, and can span
+ * several countries. The response names the exact sampled address and scope.
  */
 
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest } from '../_shared/auth-helpers'
 import { JSON_HEADERS } from '../_shared/api-utils'
+import { fetchFixedProviderJson } from '../_shared/fixed-provider'
+import {
+  assertSafeOutboundUrl,
+  parseSafeOutboundUrl,
+  SafeFetchError,
+  type HostnameResolver,
+  resolvePublicHostname,
+} from '../_shared/safe-fetch'
+
+const COUNTRY_PROVIDER_ORIGIN = 'https://api.country.is'
+const LOOKUP_TIMEOUT_MS = 12_000
+const MAX_PROVIDER_BYTES = 16 * 1024
 
 interface Env {
   DB: D1Database
   SESSIONS: KVNamespace
 }
 
-interface CountryInfo {
+interface CountryProviderResponse {
+  ip?: unknown
+  country?: unknown
+  city?: unknown
+  subdivision?: unknown
+  asn?: { organization?: unknown } | unknown
+}
+
+export interface CountryInfo {
   domain: string
-  ip?: string
+  ip: string
   country: string
   countryCode: string
   flag: string
   region?: string
   city?: string
   org?: string
-  success: boolean
-  error?: string
+  success: true
+  scope: 'resolved-ip'
+  resolvedAddressCount: number
+  sampledAddressCount: 1
+  caveat: string
 }
 
-// Country code to flag emoji mapping
+export interface CountryLookupOptions {
+  signal?: AbortSignal
+  resolveTargetHostname?: HostnameResolver
+  resolveProviderHostname?: HostnameResolver
+  fetchImpl?: typeof fetch
+}
+
+export class DomainCountryInputError extends Error {}
+
+export class DomainCountryProviderError extends Error {
+  constructor(public readonly status: number) {
+    super('IP location provider request failed')
+  }
+}
+
 function getFlagEmoji(countryCode: string): string {
-  if (!countryCode || countryCode.length !== 2) return '🌍'
-
-  const codePoints = countryCode
-    .toUpperCase()
-    .split('')
-    .map(char => 127397 + char.charCodeAt(0))
-
-  return String.fromCodePoint(...codePoints)
+  return String.fromCodePoint(...countryCode.split('').map(char => 127397 + char.charCodeAt(0)))
 }
 
-// Country code to full name mapping (top countries)
-const COUNTRY_NAMES: Record<string, string> = {
-  'US': 'United States',
-  'GB': 'United Kingdom',
-  'CA': 'Canada',
-  'AU': 'Australia',
-  'DE': 'Germany',
-  'FR': 'France',
-  'JP': 'Japan',
-  'CN': 'China',
-  'IN': 'India',
-  'BR': 'Brazil',
-  'RU': 'Russia',
-  'NL': 'Netherlands',
-  'SG': 'Singapore',
-  'IE': 'Ireland',
-  'IT': 'Italy',
-  'ES': 'Spain',
-  'SE': 'Sweden',
-  'CH': 'Switzerland',
-  'NO': 'Norway',
-  'DK': 'Denmark',
-  'FI': 'Finland',
-  'PL': 'Poland',
-  'BE': 'Belgium',
-  'AT': 'Austria',
-  'NZ': 'New Zealand',
-  'KR': 'South Korea',
-  'MX': 'Mexico',
-  'AR': 'Argentina',
-  'ZA': 'South Africa',
-  'TH': 'Thailand',
-  'MY': 'Malaysia',
-  'ID': 'Indonesia',
-  'PH': 'Philippines',
-  'VN': 'Vietnam',
-  'UA': 'Ukraine',
-  'RO': 'Romania',
-  'CZ': 'Czech Republic',
-  'PT': 'Portugal',
-  'GR': 'Greece',
-  'HU': 'Hungary',
-  'TR': 'Turkey',
-  'IL': 'Israel',
-  'AE': 'United Arab Emirates',
-  'SA': 'Saudi Arabia',
-  'EG': 'Egypt',
-  'NG': 'Nigeria',
-  'KE': 'Kenya',
-  'CL': 'Chile',
-  'CO': 'Colombia',
-  'PE': 'Peru',
-  'VE': 'Venezuela',
-  'PK': 'Pakistan',
-  'BD': 'Bangladesh',
-  'HK': 'Hong Kong',
-  'TW': 'Taiwan'
-}
-
-export const onRequestPost: PagesFunction<Env> = async (context) => {
-  const { request } = context
-
+function countryName(countryCode: string): string {
   try {
-    const authUserId = await getUserFromRequest(request, context.env)
-    if (!authUserId) {
-      return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: JSON_HEADERS,
-      })
-    }
+    return new Intl.DisplayNames(['en'], { type: 'region' }).of(countryCode) || countryCode
+  } catch {
+    return countryCode
+  }
+}
 
-    const body = await request.json() as { url: string }
-    const { url } = body
+function normalizedIp(value: string): string {
+  const candidate = value.includes(':') ? `[${value.replace(/^\[|\]$/g, '')}]` : value
+  const parsed = new URL(`http://${candidate}/`)
+  return parsed.hostname.replace(/^\[|\]$/g, '').toLowerCase()
+}
 
-    if (!url) {
-      return new Response(JSON.stringify({
-        success: false,
-        error: 'URL is required'
-      }), {
-        status: 400,
-        headers: JSON_HEADERS
-      })
-    }
+function boundedOptionalString(value: unknown, maximum: number): string | undefined {
+  return typeof value === 'string' && value.length > 0 && value.length <= maximum ? value : undefined
+}
 
-    // Extract domain from URL
-    let domain: string
-    try {
-      domain = new URL(url).hostname
-    } catch {
-      return new Response(JSON.stringify({
-        success: false,
-        error: 'Invalid URL'
-      }), {
-        status: 400,
-        headers: JSON_HEADERS
-      })
-    }
-
-
-    // Use ip-api.com free API (no key required, 45 requests/min)
-    // Alternative: ipapi.co (1000 requests/day free)
-    const geoResponse = await fetch(`http://ip-api.com/json/${domain}?fields=status,message,country,countryCode,region,city,org,query`, {
-      signal: AbortSignal.timeout(15000)
-    })
-
-    if (!geoResponse.ok) {
-      throw new Error('Geolocation API unavailable')
-    }
-
-    const geoData = await geoResponse.json() as any
-
-    if (geoData.status === 'fail') {
-      return new Response(JSON.stringify({
-        success: false,
-        domain,
-        error: geoData.message || 'Failed to lookup domain country'
-      }), {
-        status: 200,
-        headers: JSON_HEADERS
-      })
-    }
-
-    const countryCode = geoData.countryCode || 'XX'
-    const country = COUNTRY_NAMES[countryCode] || geoData.country || 'Unknown'
-
-    const countryInfo: CountryInfo = {
-      domain,
-      ip: geoData.query,
-      country,
-      countryCode,
-      flag: getFlagEmoji(countryCode),
-      region: geoData.region,
-      city: geoData.city,
-      org: geoData.org,
-      success: true
-    }
-
-
-    return new Response(JSON.stringify(countryInfo), {
-      status: 200,
-      headers: JSON_HEADERS
-    })
-
+/** Resolve and geolocate one deterministic public address through a fixed HTTPS provider. */
+export async function lookupDomainCountry(
+  input: string,
+  options: CountryLookupOptions = {},
+): Promise<CountryInfo> {
+  if (options.signal?.aborted) {
+    throw new SafeFetchError('aborted', 'IP location lookup was cancelled', { cause: options.signal.reason })
+  }
+  let parsed: URL
+  try {
+    parsed = parseSafeOutboundUrl(input)
   } catch (error) {
-    console.error('[Domain Country] Error:', error)
-    return new Response(JSON.stringify({
-      success: false,
-      error: 'Failed to lookup country'
-    }), {
-      status: 500,
-      headers: JSON_HEADERS
+    throw new DomainCountryInputError(error instanceof SafeFetchError ? error.message : 'Invalid URL')
+  }
+
+  const domain = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, '').replace(/\.$/, '')
+  let resolvedAddresses: string[] = []
+  try {
+    await assertSafeOutboundUrl(parsed, options.signal ?? new AbortController().signal, async (hostname, signal) => {
+      resolvedAddresses = await (options.resolveTargetHostname ?? resolvePublicHostname)(hostname, signal)
+      return resolvedAddresses
+    })
+    if (options.signal?.aborted) {
+      throw new SafeFetchError('aborted', 'IP location lookup was cancelled', { cause: options.signal.reason })
+    }
+  } catch (error) {
+    if (options.signal?.aborted) {
+      throw new SafeFetchError('aborted', 'IP location lookup was cancelled', { cause: error })
+    }
+    throw new DomainCountryInputError('The URL hostname must resolve only to public IP addresses')
+  }
+
+  // assertSafeOutboundUrl does not invoke DNS for an IP-literal target.
+  if (resolvedAddresses.length === 0) resolvedAddresses = [domain]
+  const addresses = [...new Set(resolvedAddresses.map(normalizedIp))]
+    .sort((left, right) => Number(left.includes(':')) - Number(right.includes(':')) || left.localeCompare(right))
+  const selectedIp = addresses[0]
+  if (!selectedIp) throw new DomainCountryInputError('The URL hostname did not resolve to a public IP address')
+
+  const result = await fetchFixedProviderJson<CountryProviderResponse>(COUNTRY_PROVIDER_ORIGIN, [selectedIp], {
+    searchParams: { fields: 'city,subdivision,asn' },
+    timeoutMs: LOOKUP_TIMEOUT_MS,
+    maxResponseBytes: MAX_PROVIDER_BYTES,
+    signal: options.signal,
+    resolveHostname: options.resolveProviderHostname,
+    fetchImpl: options.fetchImpl,
+  })
+  if (!result.response.ok) throw new DomainCountryProviderError(result.response.status)
+
+  const data = result.data
+  const providerIp = boundedOptionalString(data?.ip, 64)
+  const countryCode = boundedOptionalString(data?.country, 2)?.toUpperCase()
+  if (!data || !providerIp || normalizedIp(providerIp) !== selectedIp || !countryCode || !/^[A-Z]{2}$/.test(countryCode)) {
+    throw new DomainCountryProviderError(502)
+  }
+  const asn = data.asn && typeof data.asn === 'object' && !Array.isArray(data.asn)
+    ? data.asn as { organization?: unknown }
+    : undefined
+
+  return {
+    domain,
+    ip: selectedIp,
+    country: countryName(countryCode),
+    countryCode,
+    flag: getFlagEmoji(countryCode),
+    region: boundedOptionalString(data.subdivision, 128),
+    city: boundedOptionalString(data.city, 128),
+    org: boundedOptionalString(asn?.organization, 256),
+    success: true,
+    scope: 'resolved-ip',
+    resolvedAddressCount: addresses.length,
+    sampledAddressCount: 1,
+    caveat: 'Estimate for one resolved IP; CDNs and multi-address DNS may return a different location.',
+  }
+}
+
+export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
+  const authUserId = await getUserFromRequest(request, env)
+  if (!authUserId) {
+    return Response.json({ error: 'Authentication required' }, { status: 401, headers: JSON_HEADERS })
+  }
+
+  let body: { url?: unknown }
+  try {
+    body = await request.json() as { url?: unknown }
+  } catch {
+    return Response.json({ success: false, error: 'A valid JSON body is required' }, { status: 400, headers: JSON_HEADERS })
+  }
+  if (typeof body.url !== 'string' || !body.url || body.url.length > 4096) {
+    return Response.json({ success: false, error: 'A bounded HTTP(S) URL is required' }, { status: 400, headers: JSON_HEADERS })
+  }
+
+  const totalSignal = AbortSignal.any([request.signal, AbortSignal.timeout(LOOKUP_TIMEOUT_MS)])
+  try {
+    return Response.json(await lookupDomainCountry(body.url, { signal: totalSignal }), {
+      headers: { ...JSON_HEADERS, 'Cache-Control': 'private, max-age=300' },
+    })
+  } catch (error) {
+    if (error instanceof DomainCountryInputError) {
+      return Response.json({ success: false, error: error.message }, { status: 400, headers: JSON_HEADERS })
+    }
+    if (error instanceof DomainCountryProviderError) {
+      console.error(`[Domain Country] bounded provider failure: ${error.status}`)
+      const status = error.status === 429 ? 503 : 502
+      return Response.json({ success: false, error: 'IP location estimate is temporarily unavailable' }, {
+        status,
+        headers: { ...JSON_HEADERS, ...(status === 503 ? { 'Retry-After': '60' } : {}) },
+      })
+    }
+    if (error instanceof SafeFetchError && (error.code === 'aborted' || error.code === 'timeout')) {
+      const timedOut = error.code === 'timeout'
+        || (totalSignal.reason instanceof DOMException && totalSignal.reason.name === 'TimeoutError')
+      return Response.json({
+        success: false,
+        error: timedOut ? 'IP location lookup timed out' : 'IP location lookup was cancelled',
+      }, { status: timedOut ? 504 : 499, headers: JSON_HEADERS })
+    }
+    console.error('[Domain Country] bounded lookup failed')
+    return Response.json({ success: false, error: 'IP location estimate is temporarily unavailable' }, {
+      status: 502,
+      headers: JSON_HEADERS,
     })
   }
 }
 
-// Reject GET requests (POST-only endpoint)
-export const onRequestGet: PagesFunction = async () => {
-  return new Response(JSON.stringify({ error: 'Method not allowed. Use POST.' }), {
-    status: 405, headers: JSON_HEADERS,
-  })
-}
-
+export const onRequestGet: PagesFunction = async () => Response.json(
+  { error: 'Method not allowed. Use POST.' },
+  { status: 405, headers: JSON_HEADERS },
+)

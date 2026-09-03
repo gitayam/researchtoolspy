@@ -2053,7 +2053,7 @@ ${shortSummary}`
   }
 
   // Country origin lookup
-  const lookupCountryOrigin = async (urlToLookup: string) => {
+  const lookupCountryOrigin = async (urlToLookup: string, signal: AbortSignal) => {
     if (!urlToLookup) return
 
     setCountryLoading(true)
@@ -2061,7 +2061,8 @@ ${shortSummary}`
       const response = await fetch('/api/content-intelligence/domain-country', {
         method: 'POST',
         headers: getCopHeaders(),
-        body: JSON.stringify({ url: urlToLookup })
+        body: JSON.stringify({ url: urlToLookup }),
+        signal,
       })
 
       const data = await response.json()
@@ -2072,20 +2073,25 @@ ${shortSummary}`
         setCountryInfo(null)
       }
     } catch (error) {
+      if (signal.aborted) return
       console.error('Country lookup error:', error)
       setCountryInfo(null)
     } finally {
-      setCountryLoading(false)
+      if (!signal.aborted) setCountryLoading(false)
     }
   }
 
   // Auto-lookup country when URL is entered
   useEffect(() => {
+    const controller = new AbortController()
     if (url && url.startsWith('http')) {
       const timer = setTimeout(() => {
-        lookupCountryOrigin(url)
+        lookupCountryOrigin(url, controller.signal)
       }, 500) // Debounce
-      return () => clearTimeout(timer)
+      return () => {
+        clearTimeout(timer)
+        controller.abort()
+      }
     } else {
       setCountryInfo(null)
     }
@@ -2488,14 +2494,14 @@ ${shortSummary}`
         </Card>
       )}
 
-      {/* Country Origin Info - Auto-detected (only when not processing) */}
+      {/* Resolved IP location estimate (only when not processing) */}
       {!processing && countryInfo && (
         <Card className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 border-blue-300">
           <div className="flex items-center gap-3">
             <div className="text-3xl">{countryInfo.flag}</div>
             <div className="flex-1">
               <h3 className="font-semibold text-blue-900 dark:text-blue-100">
-                Hosted in {countryInfo.country}
+                Resolved IP location: {countryInfo.country}
               </h3>
               <div className="text-sm text-blue-700 dark:text-blue-300 space-y-0.5">
                 <p>Domain: {countryInfo.domain}</p>
@@ -2504,6 +2510,7 @@ ${shortSummary}`
                   <p>Location: {countryInfo.city}, {countryInfo.region}</p>
                 )}
                 {countryInfo.org && <p>Organization: {countryInfo.org}</p>}
+                <p className="text-xs opacity-80">{countryInfo.caveat}</p>
               </div>
             </div>
           </div>

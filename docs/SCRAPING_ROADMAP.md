@@ -155,6 +155,7 @@ flowchart LR
 - [x] Keep Content Intelligence Full-mode DIME enhancement usable without login through ephemeral results; pass the fresh analysis response into the framework runner, and owner-scope every saved DIME update. Persistent Starbursting sessions remain an explicit authenticated workspace feature.
 - [x] Use the Cloudflare-supported `node:dns` runtime API for shared A/AAAA validation, with bounded DoH-provider failover; continue to fail closed when all resolvers fail or any returned address is non-public.
 - [x] Correct `enhancedFetch()` option typing, merged headers, abort propagation, total timeout, and bounded retry contract.
+- [x] Replace INV-023's HTTP-only domain-country request with a bounded fixed-HTTPS Country.is adapter; validate public DNS/IP identity, propagate cancellation, and reframe the result as a one-address IP-location estimate rather than publisher origin.
 - [ ] Add all `functions/`, `workers/`, and Container TypeScript entry points to build/CI validation. The current `type-check:scraping-surface` covers all 25 explicit inventoried route roots with no inventory exclusion, but it is not yet a repository-wide Worker/Container compile gate.
 - [x] Correct the web-scraper dataset authentication/response contract and final-redirect provenance.
 - [ ] Rename the metadata-completeness score so it is not represented as source reliability.
@@ -232,6 +233,16 @@ flowchart LR
 - **Cancellation invariant:** invalid, spoofed, mismatched, and pre-aborted inputs perform zero provider, cache, and persistence work. Caller cancellation is terminal and cannot fall through into later work.
 - **Verification:** full-project and scraping-surface type checks passed; 484 focused Bluesky/social-route tests and 614 broad social-provider regressions passed across Chromium and mobile Safari; changed-file lint and diff checks passed; the production build passed; and live handle/DID AppView probes returned HTTP 200 JSON with zero redirects.
 - **Inventory result:** INV-020 advances from `constrained-provider` to `safe-provider`; both multi-platform social routes have now left the legacy constrained-provider class.
+
+### Domain IP-location checkpoint — 2026-09-03
+
+- **Delivery class:** fixed-provider safety migration for authenticated `POST /api/content-intelligence/domain-country`, including its shared fixed-provider cancellation contract and Content Intelligence display semantics.
+- **Falsified product hypothesis:** resolving a domain establishes where its publisher is hosted. CDN edges, resolver-dependent answers, and multi-address DNS make that claim unprovable from one lookup. The feature is now explicitly a geolocation estimate for one named resolved IP, with address counts and a visible caveat.
+- **Provider decision:** [Country.is](https://country.is/) documents a keyless HTTPS API, IPv4/IPv6 support, commercial use, a 10 requests/second abuse ceiling, daily data refresh, and an open-source/self-host path. The old `ip-api.com` free endpoint was HTTP-only and prohibited commercial use. A bounded live probe of Country.is returned HTTP 200 JSON for `8.8.8.8` with zero redirects and an IP-bound response.
+- **Provider boundary:** caller input must be a bounded HTTP(S) URL and every DNS answer must be public. One deterministic IPv4-first address is sent as an encoded fixed-origin path segment; provider DNS, zero redirects, JSON MIME, 16 KiB, a 12-second total deadline, caller cancellation, exact returned-IP identity, country-code schema, and bounded optional fields are enforced.
+- **Operational limit:** the hosted public service has no SLA. Move the same open-source service/MaxMind data behind an owned deployment if traffic, availability, or policy requires it; never silently add a paid credential or broaden the result into publisher-attribution evidence.
+- **Verification:** deterministic provider, mixed/private DNS, IP identity, malformed schema, IP-literal, inventory, and cancellation tests pass. Full-project and scraping-surface type checks, changed-backend/test lint, diff checks, and the production build pass. The legacy Content Intelligence page retains pre-existing file-wide lint debt outside this slice.
+- **Inventory result:** INV-023 advances from `constrained-provider` to `safe-provider`, and the shared fixed-provider adapter now propagates caller cancellation through DNS validation, transport, and response-body reads.
 
 ### Required tests
 
