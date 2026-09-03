@@ -148,6 +148,7 @@ flowchart LR
 - [x] Retire the Instagram downloader, legacy GraphQL/HTML, and unauthenticated oEmbed paths in both social routes; after authentication, require exact canonical post/reel/TV identity and return deterministic manual-upload guidance with zero provider, extraction-cache, or extraction-persistence work until an approved first-party provider contract is configured.
 - [x] Migrate Twitter/X in both social routes to one exact canonical identity and the bounded first-party `publish.x.com` oEmbed contract; retire Cobalt, VxTwitter, raw embed HTML, and arbitrary returned-media URLs; keep extraction ephemeral and expose only canonical open-on-X guidance for media modes.
 - [x] Migrate TikTok in both social routes to one exact canonical video identity and the bounded first-party `www.tiktok.com/oembed` contract; retire Cobalt and arbitrary returned-media URLs, keep extraction ephemeral, and construct only documented first-party player/open links.
+- [x] Retire the false-success Facebook branch in `social-extract`; accept only Meta Embeds' documented canonical post/reel shapes, return deterministic manual-open guidance, and guarantee zero provider, cache, or persistence work.
 - [x] Scope `content-intelligence/analyze-url` `load_existing` reads to the authenticated analysis owner and require owner/editor/admin workspace authority for new writes.
 - [x] Keep `content-intelligence/analyze-url` usable without login through ephemeral, non-persisted results; retain auth for existing/trusted-content reads, require writable workspace authority for every write, and apply a dedicated per-IP public budget.
 - [x] Keep Content Intelligence Full-mode DIME enhancement usable without login through ephemeral results; pass the fresh analysis response into the framework runner, and owner-scope every saved DIME update. Persistent Starbursting sessions remain an explicit authenticated workspace feature.
@@ -211,6 +212,15 @@ flowchart LR
 - **Cancellation invariant:** TikTok is structurally excluded from extraction KV and D1. Invalid, mismatched, and pre-aborted requests perform zero provider, cache, and persistence work.
 - **Verification:** full-project and scraping-surface type checks passed; 336 focused TikTok parser/provider/route tests passed across Chromium and mobile Safari; 452 broad social-provider regression tests passed across both projects; the production build passed; and a live probe of TikTok's documented oEmbed fixture returned HTTP 200 JSON with zero redirects.
 - **Remaining constrained scope:** Facebook in INV-019 and Bluesky in INV-020 retain legacy behavior. The paid TikTok flow in shared INV-026 remains a separate bounded provider-job surface.
+
+### Facebook route checkpoint — 2026-09-02
+
+- **Delivery class:** provider retirement and strict identity migration for authenticated `/api/content-intelligence/social-extract`. Only Meta Embeds' documented public post and reel URL shapes are accepted and canonicalized.
+- **Falsifiable hypothesis:** Meta's current tokenless oEmbed response contains bounded, analysis-grade post text or author metadata that justifies a first-party Facebook extraction adapter. A live public-reel probe falsified the hypothesis: HTTP 200 JSON contained provider identity and executable embed HTML, but no content or author fields.
+- **Retired behavior:** arbitrary Facebook-like strings no longer return success, advertise a nonexistent yt-dlp service, or persist false-positive extraction records. The route does not ingest or emit Meta's executable embed HTML.
+- **Safety invariant:** canonical Facebook results are deterministic and ephemeral. Authentication failure, malformed/spoofed/mismatched input, invalid options, and caller cancellation perform zero provider, cache, and D1 work.
+- **Verification:** full-project and scraping-surface type checks passed; 384 focused parser/Facebook route tests and 436 broad INV-019 regression tests passed across Chromium and mobile Safari; changed-file lint, diff checks, and the production build passed; and the live Meta oEmbed probe completed with zero redirects.
+- **Inventory result:** INV-019 advances from `constrained-provider` to `safe-provider`. Bluesky in INV-020 is the only remaining legacy social-route branch.
 
 ### Required tests
 

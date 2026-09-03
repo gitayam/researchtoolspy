@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test'
 import {
+  parseCanonicalFacebookUrl,
   parseCanonicalInstagramUrl,
   parseCanonicalTikTokUrl,
   parseCanonicalTwitterUrl,
@@ -278,6 +279,70 @@ test.describe('canonical TikTok URL contract @smoke', () => {
   for (const input of rejected) {
     test(`@smoke rejects ${JSON.stringify(input)}`, () => {
       expect(parseCanonicalTikTokUrl(input)).toBeNull()
+    })
+  }
+})
+
+test.describe('canonical Facebook URL contract @smoke', () => {
+  const accepted = [
+    {
+      input: 'https://facebook.com/Meta/posts/1234567890123456',
+      expected: {
+        platform: 'facebook', kind: 'post', owner: 'meta', contentId: '1234567890123456',
+        canonicalUrl: 'https://www.facebook.com/meta/posts/1234567890123456/',
+      },
+    },
+    {
+      input: 'HTTPS://WWW.FACEBOOK.COM/Facebook.Developers/posts/987654321/',
+      expected: {
+        platform: 'facebook', kind: 'post', owner: 'facebook.developers', contentId: '987654321',
+        canonicalUrl: 'https://www.facebook.com/facebook.developers/posts/987654321/',
+      },
+    },
+    {
+      input: 'https://www.facebook.com/reel/1173275247059289/',
+      expected: {
+        platform: 'facebook', kind: 'reel', contentId: '1173275247059289',
+        canonicalUrl: 'https://www.facebook.com/reel/1173275247059289/',
+      },
+    },
+  ]
+  for (const { input, expected } of accepted) {
+    test(`@smoke canonicalizes ${input}`, () => {
+      expect(parseCanonicalFacebookUrl(input)).toEqual(expected)
+    })
+  }
+
+  const rejected = [
+    '',
+    ' https://facebook.com/meta/posts/123456789',
+    'http://facebook.com/meta/posts/123456789',
+    'https://user@facebook.com/meta/posts/123456789',
+    'https://facebook.com:443/meta/posts/123456789',
+    'https://facebook.com.evil.test/meta/posts/123456789',
+    'https://m.facebook.com/meta/posts/123456789',
+    'https://fb.watch/short-code',
+    'https://facebook%2ecom/meta/posts/123456789',
+    'https://ｆａｃｅｂｏｏｋ.com/meta/posts/123456789',
+    'https://facebook.com\\@evil.test/meta/posts/123456789',
+    'https://facebook.com/meta/posts/123456789?tracking=secret',
+    'https://facebook.com/meta/posts/123456789#fragment',
+    'https://facebook.com/meta/posts/123456789/extra',
+    'https://facebook.com/meta/posts/%31',
+    'https://facebook.com/meta/posts/0',
+    'https://facebook.com/meta/posts/0123',
+    'https://facebook.com/meta-name/posts/123456789',
+    'https://facebook.com/reel/0',
+    'https://facebook.com/reel/0123',
+    'https://facebook.com/reel/not-a-number',
+    'https://facebook.com/watch/?v=123456789',
+    'https://facebook.com/story.php?story_fbid=123&id=456',
+    `https://facebook.com/${'a'.repeat(81)}/posts/123456789`,
+    `https://facebook.com/meta/posts/${'1'.repeat(41)}`,
+  ]
+  for (const input of rejected) {
+    test(`@smoke rejects ${JSON.stringify(input)}`, () => {
+      expect(parseCanonicalFacebookUrl(input)).toBeNull()
     })
   }
 })

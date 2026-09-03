@@ -66,7 +66,7 @@ const entries: InventoryEntry[] = [
   },
   { id: 'INV-017', file: 'functions/api/content-intelligence/starbursting.ts', status: 'delegated-safe', evidence: /\/api\/ai\/scrape-url/, typecheck: 'root' },
   { id: 'INV-018', file: 'functions/api/cop/[id]/scrape.ts', status: 'bounded-provider-job', evidence: /fetchApifyJson\(apiKey,/, forbidden: [/\bfetch\s*\(/], typecheck: 'root' },
-  { id: 'INV-019', file: 'functions/api/content-intelligence/social-extract.ts', status: 'constrained-provider', evidence: /parseCanonicalTikTokUrl\(url\)/, forbidden: [/function extractYouTubeId/, /function fetchYouTubeTranscript/, /function extractInstagram\(/, /instagram_oembed/, /query_hash=/, /__a=1/, /publish\.twitter\.com/, /api\.vxtwitter\.com/, /co\.wuk\.sh/], typecheck: 'root' },
+  { id: 'INV-019', file: 'functions/api/content-intelligence/social-extract.ts', status: 'safe-provider', evidence: /parseCanonicalFacebookUrl\(url\)/, forbidden: [/function extractYouTubeId/, /function fetchYouTubeTranscript/, /function extractInstagram\(/, /async function extractFacebook\(/, /saveExtraction/, /social_media_extractions/, /instagram_oembed/, /query_hash=/, /__a=1/, /publish\.twitter\.com/, /api\.vxtwitter\.com/, /co\.wuk\.sh/], typecheck: 'root' },
   { id: 'INV-020', file: 'functions/api/content-intelligence/social-media-extract.ts', status: 'constrained-provider', evidence: /parseCanonicalTikTokUrl\(url\)/, forbidden: [/function extractYouTubeVideoId/, /function fetchYouTubeTranscript/, /function extractInstagramVia/, /snapinsta\.app/, /instadp\.com/, /saveinsta\.app/, /api\.instagram\.com\/oembed/, /publish\.twitter\.com/, /api\.vxtwitter\.com/, /co\.wuk\.sh/], typecheck: 'root' },
   {
     id: 'INV-021',

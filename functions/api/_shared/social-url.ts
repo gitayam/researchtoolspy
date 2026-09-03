@@ -25,6 +25,14 @@ export interface CanonicalTikTokTarget {
   canonicalUrl: string
 }
 
+export interface CanonicalFacebookTarget {
+  platform: 'facebook'
+  kind: 'post' | 'reel'
+  contentId: string
+  owner?: string
+  canonicalUrl: string
+}
+
 const MAX_SOCIAL_URL_LENGTH = 2048
 const YOUTUBE_ID_PATTERN = /^[A-Za-z0-9_-]{11}$/
 const YOUTUBE_HOSTS = new Set([
@@ -47,6 +55,7 @@ const TWITTER_HOSTS = new Set([
   'www.twitter.com',
 ])
 const TIKTOK_HOSTS = new Set(['tiktok.com', 'www.tiktok.com'])
+const FACEBOOK_HOSTS = new Set(['facebook.com', 'www.facebook.com'])
 
 function containsAsciiControlCharacter(value: string): boolean {
   return Array.from(value).some((character) => {
@@ -298,5 +307,62 @@ export function parseCanonicalTikTokUrl(input: string): CanonicalTikTokTarget | 
     username,
     videoId,
     canonicalUrl: `https://www.tiktok.com/@${username}/video/${videoId}`,
+  }
+}
+
+/** Parse the public Facebook post and reel URL shapes supported by Meta Embeds. */
+export function parseCanonicalFacebookUrl(input: string): CanonicalFacebookTarget | null {
+  if (
+    input.length === 0
+    || input.length > MAX_SOCIAL_URL_LENGTH
+    || input !== input.trim()
+    || input.includes('\\')
+    || containsAsciiControlCharacter(input)
+  ) return null
+
+  const rawMatch = /^https:\/\/([^/?#]+)([^?#]*)(\?[^#]*)?(#.*)?$/i.exec(input)
+  if (!rawMatch) return null
+  const [, rawAuthority, rawPath, rawQuery, rawFragment] = rawMatch
+  if (
+    rawQuery
+    || rawFragment
+    || rawAuthority.includes('@')
+    || rawAuthority.includes(':')
+    || rawAuthority.includes('%')
+    || !FACEBOOK_HOSTS.has(rawAuthority.toLowerCase())
+    || rawPath.includes('%')
+  ) return null
+
+  let parsed: URL
+  try { parsed = new URL(input) } catch { return null }
+  if (
+    parsed.protocol !== 'https:'
+    || parsed.username !== ''
+    || parsed.password !== ''
+    || parsed.port !== ''
+    || !FACEBOOK_HOSTS.has(parsed.hostname.toLowerCase())
+  ) return null
+
+  const postMatch = /^\/([A-Za-z0-9.]{1,80})\/posts\/([1-9][0-9]{0,39})\/?$/.exec(rawPath)
+  if (postMatch) {
+    const owner = postMatch[1].toLowerCase()
+    const contentId = postMatch[2]
+    return {
+      platform: 'facebook',
+      kind: 'post',
+      owner,
+      contentId,
+      canonicalUrl: `https://www.facebook.com/${owner}/posts/${contentId}/`,
+    }
+  }
+
+  const reelMatch = /^\/reel\/([1-9][0-9]{0,39})\/?$/.exec(rawPath)
+  if (!reelMatch) return null
+  const contentId = reelMatch[1]
+  return {
+    platform: 'facebook',
+    kind: 'reel',
+    contentId,
+    canonicalUrl: `https://www.facebook.com/reel/${contentId}/`,
   }
 }

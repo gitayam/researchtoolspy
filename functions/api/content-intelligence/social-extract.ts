@@ -8,7 +8,7 @@
  * - Instagram: Canonical post/reel/TV identity with manual-upload guidance
  * - Twitter/X: Bounded first-party oEmbed metadata and canonical status links
  * - TikTok: Bounded first-party oEmbed metadata and canonical player links
- * - Facebook: yt-dlp API (videos, posts)
+ * - Facebook: Canonical public post/reel identity with manual-open guidance
  */
 
 import type { PagesFunction } from '@cloudflare/workers-types'
@@ -16,10 +16,12 @@ import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest } from '../_shared/auth-helpers'
 import { JSON_HEADERS } from '../_shared/api-utils'
 import {
+  parseCanonicalFacebookUrl,
   parseCanonicalInstagramUrl,
   parseCanonicalTikTokUrl,
   parseCanonicalTwitterUrl,
   parseCanonicalYouTubeUrl,
+  type CanonicalFacebookTarget,
   type CanonicalInstagramTarget,
   type CanonicalTikTokTarget,
   type CanonicalTwitterTarget,
@@ -51,12 +53,13 @@ const YOUTUBE_MODES: readonly YouTubeMode[] = ['metadata', 'full', 'download']
 const INSTAGRAM_MODES: readonly YouTubeMode[] = ['metadata', 'full', 'download']
 const TWITTER_MODES: readonly YouTubeMode[] = ['metadata', 'full', 'download']
 const TIKTOK_MODES: readonly YouTubeMode[] = ['metadata', 'full', 'download']
-const INSTAGRAM_OPTION_KEYS = new Set(['include_comments', 'include_transcript', 'include_media'])
+const FACEBOOK_MODES: readonly YouTubeMode[] = ['metadata', 'full', 'download']
+const SOCIAL_OPTION_KEYS = new Set(['include_comments', 'include_transcript', 'include_media'])
 
-function validInstagramOptions(options: unknown): options is NonNullable<SocialExtractRequest['options']> {
+function validSocialOptions(options: unknown): options is NonNullable<SocialExtractRequest['options']> {
   if (!options || typeof options !== 'object' || Array.isArray(options)) return false
   const candidate = options as Record<string, unknown>
-  return Object.keys(candidate).every(key => INSTAGRAM_OPTION_KEYS.has(key)
+  return Object.keys(candidate).every(key => SOCIAL_OPTION_KEYS.has(key)
     && typeof candidate[key] === 'boolean')
 }
 
@@ -98,6 +101,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const instagramTarget = typeof url === 'string' ? parseCanonicalInstagramUrl(url) : null
     const twitterTarget = typeof url === 'string' ? parseCanonicalTwitterUrl(url) : null
     const tiktokTarget = typeof url === 'string' ? parseCanonicalTikTokUrl(url) : null
+    const facebookTarget = typeof url === 'string' ? parseCanonicalFacebookUrl(url) : null
     if (youtubeTarget && normalizedPlatform !== 'youtube') {
       return new Response(JSON.stringify({ error: 'URL does not match the selected platform' }), {
         status: 400,
@@ -122,6 +126,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         headers: JSON_HEADERS,
       })
     }
+    if (facebookTarget && normalizedPlatform !== 'facebook') {
+      return new Response(JSON.stringify({ error: 'URL does not match the selected platform' }), {
+        status: 400,
+        headers: JSON_HEADERS,
+      })
+    }
     if (normalizedPlatform === 'youtube' && (!YOUTUBE_MODES.includes(extract_mode)
       || !options || typeof options !== 'object' || Array.isArray(options))) {
       return new Response(JSON.stringify({ error: 'Invalid extraction options' }), {
@@ -130,21 +140,28 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
     if (normalizedPlatform === 'instagram' && (!INSTAGRAM_MODES.includes(extract_mode)
-      || !validInstagramOptions(options))) {
+      || !validSocialOptions(options))) {
       return new Response(JSON.stringify({ error: 'Invalid extraction options' }), {
         status: 400,
         headers: JSON_HEADERS,
       })
     }
     if (normalizedPlatform === 'twitter' && (!TWITTER_MODES.includes(extract_mode)
-      || !validInstagramOptions(options))) {
+      || !validSocialOptions(options))) {
       return new Response(JSON.stringify({ error: 'Invalid extraction options' }), {
         status: 400,
         headers: JSON_HEADERS,
       })
     }
     if (normalizedPlatform === 'tiktok' && (!TIKTOK_MODES.includes(extract_mode)
-      || !validInstagramOptions(options))) {
+      || !validSocialOptions(options))) {
+      return new Response(JSON.stringify({ error: 'Invalid extraction options' }), {
+        status: 400,
+        headers: JSON_HEADERS,
+      })
+    }
+    if (normalizedPlatform === 'facebook' && (!FACEBOOK_MODES.includes(extract_mode)
+      || !validSocialOptions(options))) {
       return new Response(JSON.stringify({ error: 'Invalid extraction options' }), {
         status: 400,
         headers: JSON_HEADERS,
@@ -153,7 +170,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
 
     // Route to platform-specific extractor
-    let extractionResult: any
+    let extractionResult: Record<string, unknown>
 
     switch (normalizedPlatform) {
       case 'youtube':
@@ -210,7 +227,17 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         }
         break
       case 'facebook':
-        extractionResult = await extractFacebook(url, extract_mode, options)
+        if (!facebookTarget) {
+          extractionResult = { success: false, error: 'Invalid Facebook URL' }
+          break
+        }
+        if (request.signal.aborted) {
+          return new Response(JSON.stringify({ error: 'Social media extraction failed' }), {
+            status: 500,
+            headers: JSON_HEADERS,
+          })
+        }
+        extractionResult = extractFacebookUnavailable(facebookTarget)
         break
       default:
         return new Response(JSON.stringify({
@@ -225,23 +252,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if ((youtubeTarget && normalizedPlatform === 'youtube'
       || instagramTarget && normalizedPlatform === 'instagram'
       || twitterTarget && normalizedPlatform === 'twitter'
-      || tiktokTarget && normalizedPlatform === 'tiktok') && request.signal.aborted) {
+      || tiktokTarget && normalizedPlatform === 'tiktok'
+      || facebookTarget && normalizedPlatform === 'facebook') && request.signal.aborted) {
       return new Response(JSON.stringify({ error: 'Social media extraction failed' }), {
         status: 500,
         headers: JSON_HEADERS,
       })
-    }
-
-    // Constrained first-party extraction is deliberately ephemeral; preserve legacy persistence elsewhere.
-    if (extractionResult.success && !['youtube', 'instagram', 'twitter', 'tiktok'].includes(normalizedPlatform)) {
-      await saveExtraction(env.DB, {
-        url,
-        platform: normalizedPlatform,
-        extract_mode,
-        metadata: extractionResult.metadata,
-        content: extractionResult.content,
-        media: extractionResult.media
-      }, userId)
     }
 
     return new Response(JSON.stringify(extractionResult), {
@@ -471,66 +487,26 @@ async function extractTikTok(
 /**
  * Facebook extraction
  */
-async function extractFacebook(url: string, mode: string, options: any): Promise<any> {
-  try {
-    return {
-      success: true,
+function extractFacebookUnavailable(target: CanonicalFacebookTarget): Record<string, unknown> {
+  return {
+    success: false,
+    error: 'Automatic Facebook extraction is unavailable. Open the public post on Facebook and capture the required content manually.',
+    platform: 'facebook',
+    post_type: target.kind,
+    metadata: {
+      content_id: target.contentId,
+      owner: target.owner,
+      post_url: target.canonicalUrl,
+      direct_link: target.canonicalUrl,
       platform: 'facebook',
-      post_type: 'post',
-      metadata: {
-        post_url: url,
-        platform: 'facebook'
-      },
-      content: {
-        note: 'Facebook requires authentication for content extraction. Use yt-dlp service for video downloads.'
-      },
-      suggestions: [
-        'For full extraction, use the Social Media page',
-        `Direct Facebook link: ${url}`
-      ]
-    }
-
-  } catch (error) {
-    return {
-      success: false,
-      error: 'Facebook extraction failed',
-      platform: 'facebook'
-    }
-  }
-}
-
-/**
- * Save extraction to database for caching
- */
-async function saveExtraction(db: D1Database, data: any, userId: number): Promise<void> {
-  try {
-    const content = data.content || {}
-    const metadata = {
-      ...(data.metadata || {}),
-      content,
-    }
-    const transcript = typeof content.transcript === 'string'
-      ? content.transcript
-      : (typeof content.text === 'string' ? content.text : null)
-
-    await db.prepare(`
-      INSERT INTO social_media_extractions (
-        user_id, url, platform, post_type, media_urls,
-        metadata, transcript, extraction_mode
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).bind(
-      userId,
-      data.url,
-      data.platform,
-      data.metadata?.post_type || 'unknown',
-      JSON.stringify(data.media || {}),
-      JSON.stringify(metadata),
-      transcript,
-      data.extract_mode || 'metadata'
-    ).run()
-  } catch (error) {
-    console.error('[Social Extract] Failed to save extraction:', error)
-    // Don't throw - extraction succeeded even if save failed
+      post_type: target.kind,
+    },
+    attempts: 0,
+    errors: [],
+    suggestions: [
+      'Open the canonical public Facebook post.',
+      'Capture the required text or media, then upload it to Content Research.',
+    ],
   }
 }
 
