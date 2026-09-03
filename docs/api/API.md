@@ -122,6 +122,14 @@ Prefix: `/api/intelligence/*` — synthesis, predictions, network analysis, enti
 | `POST /api/content-intelligence/analyze-url` | Full URL extraction (entities, claims, text, archive) |
 | `POST /api/content-intelligence/summarize-entity` | AI summary for an entity |
 
+### Web scraping
+
+| Endpoint | Description |
+|----------|-------------|
+| `POST /api/web-scraper` | Authenticated, bounded single-page metadata/text extraction |
+
+Request, response, safety, dataset, score, and migration details are documented in [`SCRAPING-API.md`](SCRAPING-API.md).
+
 ### Tools
 
 | Endpoint | Description |
