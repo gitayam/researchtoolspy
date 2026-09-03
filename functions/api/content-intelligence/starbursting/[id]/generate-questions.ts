@@ -89,7 +89,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const fullText = (analysis.extracted_text as string || '').substring(0, 8000)
     const summary = analysis.summary as string || ''
     const entities = JSON.parse(analysis.entities as string || '{}')
-    const title = analysis.title as string || session.title
+    const title = String(analysis.title || session.title || '')
 
     // Generate new questions using AI
     const newQuestions = await generateAdditionalQuestions(

@@ -50,7 +50,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       }
 
       let query = `SELECT * FROM sources WHERE workspace_id = ?`
-      const params = [workspaceId]
+      const params: Array<string | number> = [workspaceId]
 
       const type = url.searchParams.get('type')
       if (type) {

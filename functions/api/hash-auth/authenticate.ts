@@ -30,7 +30,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     if (!result.success) {
       return Response.json(
-        { error: 'Validation failed', details: result.error.errors },
+        { error: 'Validation failed', details: result.error.issues },
         { status: 400, headers: JSON_HEADERS }
       )
     }

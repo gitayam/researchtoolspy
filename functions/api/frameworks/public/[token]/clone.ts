@@ -11,10 +11,21 @@ interface Env {
   DB: D1Database
 }
 
+interface PublicFrameworkRow {
+  id: string | number
+  title: string
+  description: string | null
+  framework_type: string
+  data: string | null
+  config: string | null
+  tags: string | null
+  category: string | null
+}
+
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
     const { token } = context.params as { token: string }
-    const userId = context.data?.user?.id
+    const userId = (context.data as { user?: { id?: string | number } } | undefined)?.user?.id
 
     // Get the public framework
     const framework = await context.env.DB
@@ -26,7 +37,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         WHERE share_token = ? AND is_public = 1
       `)
       .bind(token)
-      .first()
+      .first<PublicFrameworkRow>()
 
     if (!framework) {
       return Response.json({ error: 'Public framework not found' }, { status: 404 })

@@ -14,6 +14,12 @@ interface Env {
   OPENAI_API_KEY: string
 }
 
+interface GenerateTitleRequest {
+  frameworkType?: string
+  data?: Record<string, unknown>
+  description?: string
+}
+
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   const { request, env } = context
 
@@ -31,7 +37,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       )
     }
 
-    const { frameworkType, data, description } = await request.json()
+    const { frameworkType, data, description } = await request.json() as GenerateTitleRequest
 
     if (!frameworkType) {
       return new Response(
@@ -51,7 +57,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (data) {
       const itemCount = Object.keys(data)
         .filter(key => Array.isArray(data[key]))
-        .reduce((sum, key) => sum + data[key].length, 0)
+        .reduce((sum, key) => sum + (data[key] as unknown[]).length, 0)
 
       if (itemCount > 0) {
         context += `Total items: ${itemCount}\n`
@@ -123,4 +129,3 @@ export const onRequestGet: PagesFunction = async () => {
     status: 405, headers: JSON_HEADERS,
   })
 }
-

@@ -17,6 +17,16 @@ interface CreateFromContentRequest {
   workspace_id?: string
 }
 
+interface ContentAnalysisRow {
+  id: string | number
+  title: string | null
+  summary: string | null
+  domain: string | null
+  entities: string | null
+  extracted_text: string | null
+  topics: string | null
+}
+
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
     const data = await context.request.json() as CreateFromContentRequest
@@ -41,7 +51,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     // Fetch content analysis
     const analysis = await context.env.DB.prepare(`
       SELECT * FROM content_analysis WHERE id = ? AND user_id = ?
-    `).bind(data.analysis_id, userId).first()
+    `).bind(data.analysis_id, userId).first<ContentAnalysisRow>()
 
     if (!analysis) {
       return new Response(JSON.stringify({

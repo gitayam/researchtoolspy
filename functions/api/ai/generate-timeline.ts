@@ -19,6 +19,7 @@ interface Env {
   OPENAI_API_KEY?: string
   OPENAI_ORGANIZATION?: string
   ENABLE_AI_FEATURES?: string
+  DEFAULT_AI_MODEL?: string
 }
 
 interface TimelineSubStep {

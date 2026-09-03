@@ -379,14 +379,14 @@ export async function onRequest(context: any) {
               AND LENGTH(name) > 3
               AND workspace_id = ?
             LIMIT 10
-          `).bind(body.who, workspaceId).all<{ id: string }>()
+          `).bind(body.who, workspaceId).all() as { results: Array<{ id: string }> }
 
           const manualActorIds = Array.isArray(body.linked_actors)
             ? body.linked_actors.map(String)
-            : (await env.DB.prepare(`
+            : ((await env.DB.prepare(`
                 SELECT actor_id FROM evidence_actors
                 WHERE evidence_id = ? AND (auto_linked IS NULL OR auto_linked = 0)
-              `).bind(evidenceId).all<{ actor_id: string }>()).results.map((row) => String(row.actor_id))
+              `).bind(evidenceId).all()) as { results: Array<{ actor_id: string }> }).results.map((row) => String(row.actor_id))
           const manualActorSet = new Set(manualActorIds)
           autoActorIds = [...new Set(
             (actors.results || []).map((actor) => String(actor.id))

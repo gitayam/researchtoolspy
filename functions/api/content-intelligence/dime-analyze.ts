@@ -148,9 +148,9 @@ Focus on aspects that are actually present in the content. If a dimension has no
       metadata: {
         endpoint: 'content-intelligence',
         operation: 'dime-analysis',
-        analysis_id: persistedAnalysisId,
+        analysis_id: persistedAnalysisId === null ? undefined : String(persistedAnalysisId),
         persistence: persistedAnalysisId === null ? 'ephemeral' : 'saved',
-        user_id: userId,
+        user_id: userId === null ? undefined : String(userId),
       },
       timeout: 20000
     })

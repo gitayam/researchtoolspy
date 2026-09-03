@@ -32,6 +32,19 @@ interface ProcessSubmissionRequest {
   notes?: string
 }
 
+interface SubmissionRow {
+  id: string
+  survey_id: string
+  form_data: string
+  submitter_name: string | null
+  submitter_contact: string | null
+  status: string
+  linked_evidence_id: string | null
+  created_at: string
+  form_name: string
+  survey_workspace_id: string | null
+}
+
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
     const userId = await getUserFromRequest(context.request, context.env)
@@ -68,7 +81,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       FROM survey_responses s
       JOIN survey_drops d ON s.survey_id = d.id
       WHERE s.id = ? AND d.created_by = ?
-    `).bind(body.submissionId, userId).first()
+    `).bind(body.submissionId, userId).first<SubmissionRow>()
 
     if (!submission) {
       return new Response(JSON.stringify({

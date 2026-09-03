@@ -58,9 +58,9 @@ This inventory records the current implementation, including unsafe legacy paths
 
 ## Type-check boundary
 
-`npm run type-check:scraping-surface` compiles all 25 explicit inventoried route roots, the shared scraping helpers and observability contracts, and their transitive imports with Cloudflare Workers types. It is intentionally named for the inventoried scraping surface; it is not a claim that every Pages Function compiles.
+`npm run type-check:scraping-surface` compiles all 25 explicit inventoried route roots, the shared scraping helpers and observability contracts, and their transitive imports with Cloudflare Workers types. The broader `npm run type-check` also compiles every `functions/**/*.ts` and `workers/**/*.ts` entry point; CI separately installs `containers/package-lock.json` and runs `npm run type-check:containers` for every Container Worker source.
 
-No inventoried route is currently excluded from this focused type-check boundary. New inventory rows must either enter this root list (or be transitively compiled through a named helper) or carry an explicit documented exclusion that the static inventory test can enforce.
+No inventoried route is currently excluded from this focused type-check boundary, and no TypeScript file is excluded from the broad runtime projects. New inventory rows must still enter the focused root list (or be transitively compiled through a named helper) so the static inventory test can enforce its adapter-specific evidence.
 
 ## Maintenance rule
 

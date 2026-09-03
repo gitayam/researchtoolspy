@@ -15,7 +15,9 @@ interface Env {
   DB: D1Database
 }
 
-export const onSchedule: PagesFunction<Env> = async (context) => {
+interface ScheduleContext { env: Env }
+
+export const onSchedule = async (context: ScheduleContext): Promise<void> => {
   const { env } = context
 
   try {

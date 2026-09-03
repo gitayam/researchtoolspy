@@ -306,7 +306,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       WHERE i.id = ?
     `).bind(id).first()
 
-    const parsed = {
+    const parsed: Record<string, unknown> = {
       ...investigation,
       tags: sj(investigation.tags, []),
       metadata: sj(investigation.metadata, {})

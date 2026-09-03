@@ -17,7 +17,7 @@ export const SENSITIVE_AI_CONSENT_VERSION = 1
 export const ALLOWED_CONSENT_TYPES = [SENSITIVE_AI_CONSENT]
 
 interface ConsentEnv {
-  DB: any // D1Database
+  DB: D1Database
 }
 
 /**

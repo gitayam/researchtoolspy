@@ -201,8 +201,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     // Collect the uploaded File entries (accept `files` and `file` field names).
     const files: File[] = []
     for (const [name, value] of formData.entries()) {
-      if (value instanceof File && (name === 'files' || name === 'file')) {
-        files.push(value)
+      if (typeof value !== 'string' && (name === 'files' || name === 'file')) {
+        files.push(value as File)
       }
     }
 
@@ -220,7 +220,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     // Validate every file BEFORE writing any — all-or-nothing on validation.
     for (const file of files) {
       const v = validateUpload({ mime: file.type, size: file.size })
-      if (!v.ok) {
+      if (v.ok === false) {
         return new Response(JSON.stringify({ error: v.error, filename: file.name }), {
           status: 415, headers: JSON_HEADERS,
         })

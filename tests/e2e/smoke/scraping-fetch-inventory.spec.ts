@@ -120,7 +120,7 @@ test.describe('scraping outbound-fetch inventory @smoke', () => {
       }
     }
 
-    expect(inventory).toContain('It is intentionally named for the inventoried scraping surface')
-    expect(inventory).toContain('it is not a claim that every Pages Function compiles')
+    expect(inventory).toContain('The broader `npm run type-check` also compiles every `functions/**/*.ts`')
+    expect(inventory).toContain('no TypeScript file is excluded from the broad runtime projects')
   })
 })

@@ -156,7 +156,7 @@ flowchart LR
 - [x] Use the Cloudflare-supported `node:dns` runtime API for shared A/AAAA validation, with bounded DoH-provider failover; continue to fail closed when all resolvers fail or any returned address is non-public.
 - [x] Correct `enhancedFetch()` option typing, merged headers, abort propagation, total timeout, and bounded retry contract.
 - [x] Replace INV-023's HTTP-only domain-country request with a bounded fixed-HTTPS Country.is adapter; validate public DNS/IP identity, propagate cancellation, and reframe the result as a one-address IP-location estimate rather than publisher origin.
-- [ ] Add all `functions/`, `workers/`, and Container TypeScript entry points to build/CI validation. The current `type-check:scraping-surface` covers all 25 explicit inventoried route roots with no inventory exclusion, but it is not yet a repository-wide Worker/Container compile gate.
+- [x] Add all `functions/`, `workers/`, and Container TypeScript entry points to build/CI validation through broad include-based projects, an isolated Container install/check job, and a static coverage contract; retain the narrower scraping-surface project for inventory-specific assertions.
 - [x] Correct the web-scraper dataset authentication/response contract and final-redirect provenance.
 - [ ] Rename the metadata-completeness score so it is not represented as source reliability.
 - [x] Reserve paid COP scrape requests before Apify, bind runs to authenticated user/workspace/session, enforce editor/admin/owner writes, and validate ownership when polling.
@@ -243,6 +243,16 @@ flowchart LR
 - **Operational limit:** the hosted public service has no SLA. Move the same open-source service/MaxMind data behind an owned deployment if traffic, availability, or policy requires it; never silently add a paid credential or broaden the result into publisher-attribution evidence.
 - **Verification:** deterministic provider, mixed/private DNS, IP identity, malformed schema, IP-literal, inventory, and cancellation tests pass. Full-project and scraping-surface type checks, changed-backend/test lint, diff checks, and the production build pass. The legacy Content Intelligence page retains pre-existing file-wide lint debt outside this slice.
 - **Inventory result:** INV-023 advances from `constrained-provider` to `safe-provider`, and the shared fixed-provider adapter now propagates caller cancellation through DNS validation, transport, and response-body reads.
+
+### Runtime TypeScript coverage checkpoint — 2026-09-03
+
+- **Delivery class:** P0 build-contract hardening for SCRAPE-02. Root CI now runs the application projects plus every `functions/**/*.ts` and `workers/**/*.ts` source; a separate job installs the Container lockfile and compiles every `containers/src/**/*` source.
+- **Falsified hypothesis:** a successful client build or Wrangler deployment proves the complete server runtime tree type-checks. The first broad compile found drift in scheduled-handler typing, D1 row shapes, request JSON, SQL binding arrays, AI environment contracts, activity enums, upload narrowing, OIDC claims, Zod errors, and browser-only logger metadata across previously unchecked Functions.
+- **Corrections:** errors were resolved with explicit request/row/environment types and safe narrowing. Compiler strictness was not weakened relative to the existing scraping project, no files were excluded, and missing AI credentials now fail explicitly before authorization-header construction.
+- **Container toolchain:** the isolated project was pinned to `@cloudflare/containers` 0.3.7, Wrangler 4.128.0, Workers types 5.20260903.1, and TypeScript 5.9.3. Its dependency audit moved from five high-severity development-tool findings to zero known vulnerabilities, and the updated Container API compiles unchanged.
+- **Coverage invariant:** broad glob projects automatically include new Pages Function and standalone Worker TypeScript files. A smoke contract pins those globs, the root package scripts, the isolated Container lockfile cache/install, and all CI invocations so coverage cannot silently narrow.
+- **Operational boundary:** the Python OSINT image and shell/config assets remain governed by their container build/runtime checks; this checkpoint covers the roadmap's TypeScript entry-point requirement only. Repository-wide ESLint debt remains a separate non-blocking CI job and is not represented as solved here.
+- **Verification:** application, all-Functions, both standalone Worker, focused scraping, and Container TypeScript projects pass; 182 targeted runtime regressions pass across Chromium and mobile Safari; both standalone Worker bundle dry-runs pass; the Container Worker bundle/bindings/configuration validate with rollout disabled; the production client build and diff checks pass. Docker image rebuilding was not rerun because the local Docker daemon is stopped and neither image nor Container runtime source changed.
 
 ### Required tests
 

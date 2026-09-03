@@ -18,6 +18,15 @@ interface InitWorkflowRequest {
   researchContext: 'osint' | 'investigation' | 'business' | 'journalism' | 'academic' | 'personal'
 }
 
+interface WorkflowTemplateRow {
+  template_name: string
+  stages: string | null
+  default_tasks: string | null
+  evidence_types: string | null
+  analysis_types: string | null
+  [key: string]: unknown
+}
+
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
     const userId = await getUserFromRequest(context.request, context.env)
@@ -44,7 +53,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       SELECT * FROM workflow_templates
       WHERE research_context = ?
       LIMIT 1
-    `).bind(body.researchContext).first()
+    `).bind(body.researchContext).first<WorkflowTemplateRow>()
 
     if (!templateResult) {
       return new Response(JSON.stringify({

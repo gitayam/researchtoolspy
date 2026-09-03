@@ -12,7 +12,7 @@ compatibility_flags = ["nodejs_compat"]
 class_name = "SearXNGContainer"
 image = "./searxng/Dockerfile"
 max_instances = 3
-instance_type = "standard"
+instance_type = "standard-1"
 
 # OSINT Agent container for intelligent search collection
 [[containers]]

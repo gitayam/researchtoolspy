@@ -205,7 +205,7 @@ export async function onRequest(context: any) {
 
       const currentDataset = await env.DB.prepare(
         'SELECT * FROM datasets WHERE id = ? AND created_by = ?'
-      ).bind(datasetId, authUserId).first<Record<string, any>>()
+      ).bind(datasetId, authUserId).first() as Record<string, any> | null
       if (!currentDataset) {
         return new Response(JSON.stringify({ error: 'Dataset not found or access denied' }), {
           status: 404,

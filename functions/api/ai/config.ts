@@ -124,7 +124,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       return Response.json({ error: 'Authentication required' }, { status: 401 })
     }
 
-    const newConfig = await context.request.json()
+    const newConfig = await context.request.json() as Partial<typeof DEFAULT_CONFIG>
 
     // Validate configuration
     if (!newConfig.defaultModel || !['gpt-5.4', 'gpt-5.4-mini', 'gpt-5.4-nano'].includes(newConfig.defaultModel)) {

@@ -16,7 +16,7 @@ import { logEvent } from './event-log'
 
 interface Env {
   AI_GATEWAY_ACCOUNT_ID?: string
-  OPENAI_API_KEY: string
+  OPENAI_API_KEY?: string
   OPENAI_ORGANIZATION?: string
   RATE_LIMIT?: KVNamespace
   CACHE?: KVNamespace // reused as the rate-limit counter store when RATE_LIMIT isn't bound
@@ -76,6 +76,7 @@ async function enforceRateLimit(env: Env, metadata: any): Promise<void> {
  * scoping for every gateway-routed call.)
  */
 function openaiAuthHeaders(env: Env): Record<string, string> {
+  if (!env.OPENAI_API_KEY) throw new Error('OpenAI API key is not configured')
   const headers: Record<string, string> = {
     'Authorization': `Bearer ${env.OPENAI_API_KEY}`,
     'Content-Type': 'application/json',

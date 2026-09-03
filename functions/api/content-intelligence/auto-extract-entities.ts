@@ -12,6 +12,21 @@ interface Env {
   SESSIONS?: KVNamespace
 }
 
+interface AutoExtractRequest {
+  analysis_id?: string | number
+  workspace_id?: string | null
+  user_id?: string | number
+}
+
+interface AnalysisRow {
+  id: string | number
+  entities: string | null
+  url: string | null
+  title: string | null
+}
+
+interface ActorRow { id: string; name: string }
+
 export async function onRequestPost(context: { request: Request; env: Env }) {
   const { request, env } = context
 
@@ -20,7 +35,7 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
   }
 
   try {
-    const body = await request.json()
+    const body = await request.json() as AutoExtractRequest
     const userId = await getUserFromRequest(request, env)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
@@ -43,7 +58,7 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
       SELECT id, entities, url, title
       FROM content_analysis
       WHERE id = ?
-    `).bind(analysis_id).first()
+    `).bind(analysis_id).first<AnalysisRow>()
 
     if (!analysis) {
       return new Response(JSON.stringify({ error: 'Analysis not found' }), {
@@ -64,7 +79,7 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
         SELECT id, name FROM actors
         WHERE LOWER(name) = LOWER(?) AND workspace_id = ?
         LIMIT 1
-      `).bind(name, workspace_id).first()
+      `).bind(name, workspace_id).first<ActorRow>()
 
       if (existing) {
         matchedActors.push({ id: existing.id, name: existing.name, matched: true })
@@ -204,4 +219,3 @@ export const onRequestGet: PagesFunction = async () => {
     status: 405, headers: JSON_HEADERS,
   })
 }
-

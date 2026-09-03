@@ -8,8 +8,8 @@ export interface LogActivityParams {
   actorUserId: string  // User ID as string, or user hash for guests
   actorUserHash?: string  // Optional hash for guests
   actorNickname?: string  // Display name
-  actionType: 'CREATED' | 'UPDATED' | 'DELETED' | 'COMMENTED' | 'VOTED' | 'RATED' | 'SHARED' | 'FORKED' | 'PUBLISHED' | 'CLONED'
-  entityType: 'FRAMEWORK' | 'ENTITY' | 'COMMENT' | 'WORKSPACE' | 'MEMBER' | 'INVESTIGATION' | 'RESEARCH_QUESTION'
+  actionType: 'CREATED' | 'UPDATED' | 'DELETED' | 'COMMENTED' | 'VOTED' | 'RATED' | 'SHARED' | 'FORKED' | 'PUBLISHED' | 'CLONED' | 'ENABLED' | 'DISABLED'
+  entityType: 'FRAMEWORK' | 'ENTITY' | 'COMMENT' | 'WORKSPACE' | 'MEMBER' | 'INVESTIGATION' | 'RESEARCH_QUESTION' | 'SUBMISSION_FORM'
   entityId: string
   entityTitle?: string
   details?: Record<string, any>

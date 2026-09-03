@@ -39,6 +39,15 @@ git rev-parse origin/main
 ./scripts/pre-deployment-check.sh
 ```
 
+The root pre-deployment check runs application, all-Pages-Function, standalone
+Worker, and focused scraping type checks. Before deploying Container Worker
+changes, install its isolated lockfile and run its separate compile gate:
+
+```bash
+npm --prefix containers ci --legacy-peer-deps
+npm run type-check:containers
+```
+
 The pre-deployment check is read-only against production D1. If a managed
 migration is pending, inspect it and its rollback notes before continuing. The
 release script exports D1 and records Time Travel state before applying any

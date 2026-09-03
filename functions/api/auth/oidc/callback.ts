@@ -19,6 +19,7 @@ import { generateToken } from '../../../utils/jwt'
 interface OIDCUserInfo {
   sub: string
   email?: string
+  email_verified?: boolean
   preferred_username?: string
   name?: string
   given_name?: string

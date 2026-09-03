@@ -74,7 +74,8 @@ export class BrowserLogger {
   constructor(context: string) {
     this.context = context
     // Check if we're in development mode
-    this.isDevelopment = import.meta.env.DEV || import.meta.env.MODE === 'development'
+    const meta = import.meta as ImportMeta & { env?: { DEV?: boolean; MODE?: string } }
+    this.isDevelopment = meta.env?.DEV === true || meta.env?.MODE === 'development'
   }
 
   private formatMessage(level: LogLevel, message: string): string {

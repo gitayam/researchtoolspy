@@ -60,9 +60,9 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     for (const swot of swotFrameworks) {
       for (const cog of cogFrameworks) {
-        const strengths = (swot.parsedData.strengths || []).map((s: any) => (s.text || s.name || s).toLowerCase())
+        const strengths: string[] = (swot.parsedData.strengths || []).map((s: any) => String(s.text || s.name || s).toLowerCase())
         const vulnerabilities = (cog.parsedData.cogs || cog.parsedData.centers_of_gravity || [])
-          .flatMap((c: any) => (c.vulnerabilities || []).map((v: any) => (v.name || v.text || v).toLowerCase()))
+          .flatMap((c: any) => (c.vulnerabilities || []).map((v: any) => String(v.name || v.text || v).toLowerCase())) as string[]
 
         for (const strength of strengths) {
           for (const vuln of vulnerabilities) {

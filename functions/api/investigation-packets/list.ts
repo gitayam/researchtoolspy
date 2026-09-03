@@ -103,7 +103,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       countBindings.push(status)
     }
 
-    const totalCount = await context.env.DB.prepare(countSql).bind(...countBindings).first()
+    const totalCount = await context.env.DB.prepare(countSql).bind(...countBindings).first<{ total: number }>()
 
     return new Response(JSON.stringify({
       success: true,
