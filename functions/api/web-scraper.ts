@@ -3,6 +3,13 @@ import { getRandomProfile } from '../utils/browser-profiles'
 import { getUserFromRequest } from './_shared/auth-helpers'
 import { CORS_HEADERS, JSON_HEADERS, isPrivateUrl } from './_shared/api-utils'
 import { SafeFetchError, safeFetchText } from './_shared/safe-fetch'
+import {
+  normalizeWebScrapeError,
+  observeWebScrapeRequest,
+  scrapeContentTypeClass,
+  scrapeHttpStatusClass,
+} from './_shared/web-scraper-observability'
+import type { AnalyticsEngineLike } from './_shared/scrape-metrics'
 
 interface ScrapingRequest {
   url: string
@@ -34,9 +41,14 @@ interface ScrapingResult {
   extracted_at: string
 }
 
+type WebScraperEnv = Parameters<typeof getUserFromRequest>[1] & {
+  SCRAPE_ANALYTICS?: AnalyticsEngineLike
+  SCRAPE_TELEMETRY_KEY?: string
+}
+
 interface WebScraperContext {
   request: Request
-  env: Parameters<typeof getUserFromRequest>[1]
+  env: WebScraperEnv
 }
 
 const DATASET_CONTEXT_HEADERS = ['Authorization', 'X-User-Hash', 'X-Workspace-ID'] as const
@@ -236,6 +248,24 @@ export async function onRequest(context: WebScraperContext) {
       })
     }
 
+    const rawExtractMode: unknown = body.extract_mode
+    if (rawExtractMode !== undefined
+      && rawExtractMode !== 'metadata'
+      && rawExtractMode !== 'summary'
+      && rawExtractMode !== 'full') {
+      return new Response(JSON.stringify({ error: 'Invalid extract_mode' }), {
+        status: 400,
+        headers: JSON_HEADERS,
+      })
+    }
+    if (body.create_dataset !== undefined && typeof body.create_dataset !== 'boolean') {
+      return new Response(JSON.stringify({ error: 'Invalid create_dataset' }), {
+        status: 400,
+        headers: JSON_HEADERS,
+      })
+    }
+    const extractMode = (rawExtractMode ?? 'metadata') as NonNullable<ScrapingRequest['extract_mode']>
+
     // Validate URL
     let url: URL
     try {
@@ -258,175 +288,234 @@ export async function onRequest(context: WebScraperContext) {
       })
     }
 
-    // Fetch through the shared outbound policy. It validates DNS and every
-    // redirect hop, enforces the deadline, and bounds text response bodies.
-    let response: Response
-    let html: string
-    let finalUrl: URL
-    try {
-      const fetched = await safeFetchText(url, {
-        timeoutMs: 15_000,
-        maxRedirects: 5,
-        maxResponseBytes: 2 * 1024 * 1024,
-        requestInit: { headers: getRandomProfile().headers },
-      })
-      response = fetched.response
-      html = fetched.text
-      finalUrl = new URL(fetched.finalUrl)
-    } catch (fetchError: unknown) {
-      if (fetchError instanceof SafeFetchError) return safeFetchFailureResponse(fetchError)
-      throw fetchError
-    }
-
-    if (!response.ok) {
-      let userMessage = 'Failed to access the website'
-      let suggestions: string[] = []
-
-      if (response.status === 403 || response.status === 401) {
-        userMessage = 'The website is blocking automated access'
-        suggestions = [
-          'This website has anti-bot protection',
-          'Try accessing the URL directly in your browser',
-          'The content may require authentication',
-          'Consider manually copying the content instead'
-        ]
-      } else if (response.status === 404) {
-        userMessage = 'The page was not found'
-        suggestions = [
-          'Check if the URL is correct',
-          'The page might have been moved or deleted',
-          'Try searching for the content on the website'
-        ]
-      } else if (response.status >= 500) {
-        userMessage = 'The website server is having issues'
-        suggestions = [
-          'Try again later - the server might be temporarily down',
-          'Check if the website is accessible in your browser',
-          'The website might be experiencing technical difficulties'
-        ]
-      } else {
-        suggestions = [
-          'Try again later',
-          'Check if the URL is correct and accessible',
-          'The website might be experiencing issues'
-        ]
-      }
-
-      return new Response(JSON.stringify({
-        success: false,
-        error: userMessage,
-        errorType: 'http_error',
-        suggestions,
-        technicalDetails: `HTTP ${response.status} ${response.statusText}`
-      }), {
-        status: 400,
-        headers: JSON_HEADERS,
-      })
-    }
-
-    // Extract metadata using regex (lightweight parsing)
-    const result: ScrapingResult = {
-      ...buildScrapingProvenance(finalUrl.href),
-    }
-
-    // Extract title
-    const titleMatch = html.match(/<title[^>]*>(.*?)<\/title>/i)
-    if (titleMatch) {
-      result.title = titleMatch[1].trim()
-    }
-
-    // Extract meta description
-    const descMatch = html.match(/<meta\s+name=["']description["']\s+content=["'](.*?)["']/i)
-    if (descMatch) {
-      result.description = descMatch[1].trim()
-    }
-
-    // Extract author
-    const authorMatch = html.match(/<meta\s+name=["']author["']\s+content=["'](.*?)["']/i)
-    if (authorMatch) {
-      result.author = authorMatch[1].trim()
-    }
-
-    // Extract keywords
-    const keywordsMatch = html.match(/<meta\s+name=["']keywords["']\s+content=["'](.*?)["']/i)
-    const keywords = keywordsMatch ? keywordsMatch[1].split(',').map(k => k.trim()) : []
-
-    // Extract Open Graph metadata
-    const metadata: NonNullable<ScrapingResult['metadata']> = {}
-
-    const ogTitleMatch = html.match(/<meta\s+property=["']og:title["']\s+content=["'](.*?)["']/i)
-    if (ogTitleMatch) metadata.og_title = ogTitleMatch[1].trim()
-
-    const ogDescMatch = html.match(/<meta\s+property=["']og:description["']\s+content=["'](.*?)["']/i)
-    if (ogDescMatch) metadata.og_description = ogDescMatch[1].trim()
-
-    const ogImageMatch = html.match(/<meta\s+property=["']og:image["']\s+content=["'](.*?)["']/i)
-    if (ogImageMatch) metadata.og_image = ogImageMatch[1].trim()
-
-    const ogTypeMatch = html.match(/<meta\s+property=["']og:type["']\s+content=["'](.*?)["']/i)
-    if (ogTypeMatch) metadata.og_type = ogTypeMatch[1].trim()
-
-    if (keywords.length > 0) metadata.keywords = keywords
-
-    result.metadata = metadata
-
-    // Extract content if requested
-    if (body.extract_mode === 'full' || body.extract_mode === 'summary') {
-      // Remove scripts, styles, and other non-content tags
-      let textContent = html
-        .replace(/<script[^>]*>.*?<\/script>/gis, '')
-        .replace(/<style[^>]*>.*?<\/style>/gis, '')
-        .replace(/<[^>]+>/g, ' ')
-        .replace(/&nbsp;/g, ' ')
-        .replace(/&amp;/g, '&')
-        .replace(/&lt;/g, '<')
-        .replace(/&gt;/g, '>')
-        .replace(/&quot;/g, '"')
-        .replace(/\s+/g, ' ')
-        .trim()
-
-      // Limit content size
-      const maxLength = 10000
-      if (textContent.length > maxLength) {
-        textContent = textContent.substring(0, maxLength) + '...'
-      }
-
-      const wordCount = textContent.split(/\s+/).length
-
-      result.content = {
-        text: textContent,
-        word_count: wordCount,
-      }
-
-      // Simple summary (first 500 characters)
-      if (body.extract_mode === 'summary' && textContent.length > 500) {
-        result.content.summary = textContent.substring(0, 500) + '...'
-      }
-    }
-
-    result.metadata_completeness_score = calculateMetadataCompletenessScore(result, metadata)
-
-    // Optionally create dataset
-    if (body.create_dataset) {
+    const telemetryRequestId = crypto.randomUUID()
+    return observeWebScrapeRequest({
+      requestId: telemetryRequestId,
+      url: url.href,
+      tenantScope: String(authUserId),
+      extractMode,
+      telemetryKey: env.SCRAPE_TELEMETRY_KEY,
+      analytics: env.SCRAPE_ANALYTICS,
+    }, async recordAttempt => {
+      // Fetch through the shared outbound policy. It validates DNS and every
+      // redirect hop, enforces the deadline, and bounds text response bodies.
+      const fetchStartedAt = Date.now()
+      let response: Response
+      let html: string
+      let finalUrl: URL
       try {
-        const datasetData = buildScrapeDatasetData(result, finalUrl.href, metadata)
-
-        const datasetId = await createDatasetForScrape(request, datasetData)
-        if (datasetId !== null) result.dataset_id = datasetId
-      } catch (error) {
-        console.error('Failed to create dataset:', error)
-        // Don't fail the whole request if dataset creation fails
+        const fetched = await safeFetchText(url, {
+          timeoutMs: 15_000,
+          maxRedirects: 5,
+          maxResponseBytes: 2 * 1024 * 1024,
+          requestInit: { headers: getRandomProfile().headers },
+        })
+        response = fetched.response
+        html = fetched.text
+        finalUrl = new URL(fetched.finalUrl)
+        recordAttempt({
+          stage: 'fetch',
+          strategy: 'direct',
+          provider: 'none',
+          outcome: response.ok ? 'succeeded' : 'failed',
+          ...(response.ok ? {} : {
+            errorCode: response.status >= 500 ? 'upstream_5xx' : 'upstream_4xx',
+          }),
+          httpStatusClass: scrapeHttpStatusClass(response.status),
+          contentTypeClass: scrapeContentTypeClass(fetched.contentType),
+          durationMs: Date.now() - fetchStartedAt,
+          responseBytes: fetched.bytesRead,
+        })
+      } catch (fetchError: unknown) {
+        recordAttempt({
+          stage: 'fetch',
+          strategy: 'direct',
+          provider: 'none',
+          outcome: 'failed',
+          errorCode: normalizeWebScrapeError(fetchError),
+          durationMs: Date.now() - fetchStartedAt,
+        })
+        if (fetchError instanceof SafeFetchError) {
+          return { response: safeFetchFailureResponse(fetchError), accepted: false }
+        }
+        throw fetchError
       }
-    }
 
-    return new Response(JSON.stringify({
-      success: true,
-      data: result
-    }), {
-      status: 200,
-      headers: JSON_HEADERS,
+      if (!response.ok) {
+        let userMessage = 'Failed to access the website'
+        let suggestions: string[]
+
+        if (response.status === 403 || response.status === 401) {
+          userMessage = 'The website is blocking automated access'
+          suggestions = [
+            'This website has anti-bot protection',
+            'Try accessing the URL directly in your browser',
+            'The content may require authentication',
+            'Consider manually copying the content instead'
+          ]
+        } else if (response.status === 404) {
+          userMessage = 'The page was not found'
+          suggestions = [
+            'Check if the URL is correct',
+            'The page might have been moved or deleted',
+            'Try searching for the content on the website'
+          ]
+        } else if (response.status >= 500) {
+          userMessage = 'The website server is having issues'
+          suggestions = [
+            'Try again later - the server might be temporarily down',
+            'Check if the website is accessible in your browser',
+            'The website might be experiencing technical difficulties'
+          ]
+        } else {
+          suggestions = [
+            'Try again later',
+            'Check if the URL is correct and accessible',
+            'The website might be experiencing issues'
+          ]
+        }
+
+        return { response: new Response(JSON.stringify({
+          success: false,
+          error: userMessage,
+          errorType: 'http_error',
+          suggestions,
+          technicalDetails: `HTTP ${response.status} ${response.statusText}`
+        }), {
+          status: 400,
+          headers: JSON_HEADERS,
+        }), accepted: false }
+      }
+
+      const extractionStartedAt = Date.now()
+      try {
+        // Extract metadata using regex (lightweight parsing)
+        const result: ScrapingResult = {
+          ...buildScrapingProvenance(finalUrl.href),
+        }
+
+        // Extract title
+        const titleMatch = html.match(/<title[^>]*>(.*?)<\/title>/i)
+        if (titleMatch) {
+          result.title = titleMatch[1].trim()
+        }
+
+        // Extract meta description
+        const descMatch = html.match(/<meta\s+name=["']description["']\s+content=["'](.*?)["']/i)
+        if (descMatch) {
+          result.description = descMatch[1].trim()
+        }
+
+        // Extract author
+        const authorMatch = html.match(/<meta\s+name=["']author["']\s+content=["'](.*?)["']/i)
+        if (authorMatch) {
+          result.author = authorMatch[1].trim()
+        }
+
+        // Extract keywords
+        const keywordsMatch = html.match(/<meta\s+name=["']keywords["']\s+content=["'](.*?)["']/i)
+        const keywords = keywordsMatch ? keywordsMatch[1].split(',').map(k => k.trim()) : []
+
+        // Extract Open Graph metadata
+        const metadata: NonNullable<ScrapingResult['metadata']> = {}
+
+        const ogTitleMatch = html.match(/<meta\s+property=["']og:title["']\s+content=["'](.*?)["']/i)
+        if (ogTitleMatch) metadata.og_title = ogTitleMatch[1].trim()
+
+        const ogDescMatch = html.match(/<meta\s+property=["']og:description["']\s+content=["'](.*?)["']/i)
+        if (ogDescMatch) metadata.og_description = ogDescMatch[1].trim()
+
+        const ogImageMatch = html.match(/<meta\s+property=["']og:image["']\s+content=["'](.*?)["']/i)
+        if (ogImageMatch) metadata.og_image = ogImageMatch[1].trim()
+
+        const ogTypeMatch = html.match(/<meta\s+property=["']og:type["']\s+content=["'](.*?)["']/i)
+        if (ogTypeMatch) metadata.og_type = ogTypeMatch[1].trim()
+
+        if (keywords.length > 0) metadata.keywords = keywords
+
+        result.metadata = metadata
+
+        // Extract content if requested
+        if (extractMode === 'full' || extractMode === 'summary') {
+          // Remove scripts, styles, and other non-content tags
+          let textContent = html
+            .replace(/<script[^>]*>.*?<\/script>/gis, '')
+            .replace(/<style[^>]*>.*?<\/style>/gis, '')
+            .replace(/<[^>]+>/g, ' ')
+            .replace(/&nbsp;/g, ' ')
+            .replace(/&amp;/g, '&')
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/&quot;/g, '"')
+            .replace(/\s+/g, ' ')
+            .trim()
+
+          // Limit content size
+          const maxLength = 10000
+          if (textContent.length > maxLength) {
+            textContent = textContent.substring(0, maxLength) + '...'
+          }
+
+          const wordCount = textContent.split(/\s+/).length
+
+          result.content = {
+            text: textContent,
+            word_count: wordCount,
+          }
+
+          // Simple summary (first 500 characters)
+          if (extractMode === 'summary' && textContent.length > 500) {
+            result.content.summary = textContent.substring(0, 500) + '...'
+          }
+        }
+
+        result.metadata_completeness_score = calculateMetadataCompletenessScore(result, metadata)
+        recordAttempt({
+          stage: 'extract',
+          strategy: 'direct',
+          provider: 'none',
+          outcome: 'succeeded',
+          contentTypeClass: 'text',
+          durationMs: Date.now() - extractionStartedAt,
+          extractedWords: result.content?.word_count ?? 0,
+        })
+
+        // Optionally create dataset
+        if (body.create_dataset) {
+          try {
+            const datasetData = buildScrapeDatasetData(result, finalUrl.href, metadata)
+
+            const datasetId = await createDatasetForScrape(request, datasetData)
+            if (datasetId !== null) result.dataset_id = datasetId
+          } catch (error) {
+            console.error('Failed to create dataset:', error)
+            // Don't fail the whole request if dataset creation fails
+          }
+        }
+
+        return {
+          response: new Response(JSON.stringify({
+            success: true,
+            data: result
+          }), {
+            status: 200,
+            headers: JSON_HEADERS,
+          }),
+          qualityScore: result.metadata_completeness_score / 100,
+          accepted: true,
+        }
+      } catch (extractionError) {
+        recordAttempt({
+          stage: 'extract',
+          strategy: 'direct',
+          provider: 'none',
+          outcome: 'failed',
+          errorCode: 'extract_failed',
+          durationMs: Date.now() - extractionStartedAt,
+        })
+        throw extractionError
+      }
     })
-
   } catch (error: unknown) {
     console.error('Web scraping error:', error)
     const errorName = error instanceof Error ? error.name : ''

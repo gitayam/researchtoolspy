@@ -294,6 +294,7 @@ Dynamic Browser Run navigation remains disabled as a safety target until its top
 - [x] Define versioned `ScrapeRequest`, `ScrapeResult`, `ScrapeAttempt`, provenance, quality, normalized-error, and privacy-safe metric contracts.
 - [x] Add the Pages `SCRAPE_ANALYTICS` binding, dedicated HMAC-key deployment gate, and first production adoption on `content-intelligence/analyze-url`; direct, supplied, archive, and SMRY provider attempts plus exactly one terminal extraction outcome are non-blocking and privacy-safe.
 - [x] Instrument authorized COP/Apify start and poll requests after canonical paid-request fingerprinting; measure provider/status/dataset latency, item throughput, idempotent paid-start suppression, duplicate evidence prevention, and terminal provider job failures without emitting queries, URLs, run IDs, or workspace IDs.
+- [x] Instrument authenticated, validated `web-scraper` requests with bounded fetch/extract attempts, metadata-completeness quality, and exactly one terminal outcome without emitting raw URLs or user identifiers.
 - [ ] Extend the Pages `SCRAPE_ANALYTICS` binding to remaining routes and add equivalent bindings to scraping Workers/Containers.
 - [ ] Emit one non-blocking metric per attempt and exactly one terminal metric per request.
 - [ ] Add correlation IDs across Pages -> Browser Run/Container -> provider calls.
@@ -317,6 +318,15 @@ The first route tests the falsifiable hypothesis that accepted extraction
 requests can sustain >=99% terminal coverage without raw identifiers or request
 behavior changes. Baseline queries and the 14-day evaluation procedure are in
 [`operations/SCRAPING_OBSERVABILITY.md`](operations/SCRAPING_OBSERVABILITY.md).
+
+### Web Scraper observability checkpoint — 2026-09-03
+
+- **Delivery class:** P0 SCRAPE-04 expansion for authenticated `POST /api/web-scraper`; the extraction response and existing fetch limits remain unchanged.
+- **Falsifiable hypothesis:** an authenticated request that passes lexical URL policy can produce one privacy-safe metric for every executed fetch/extract stage and exactly one terminal metric without changing its HTTP response. Deterministic success, response-failure, thrown-error, missing-configuration, and throwing-sink tests enforce that claim.
+- **Denominator:** telemetry begins after authentication and synchronous URL/private-address validation, before DNS resolution. Therefore DNS denials, redirect/byte/MIME failures, upstream failures, parser failures, and successes are terminal outcomes; rejected auth/input requests remain outside this scraper-execution denominator.
+- **Stage contract:** direct fetch attempts record bounded duration, response bytes, HTTP status class, and content type. Successful parsing records extraction duration and extracted word count. Terminal quality is the domain-neutral metadata-completeness value normalized to 0–1.
+- **Privacy boundary:** request, user, URL, and domain identities are dedicated-key HMAC values. Raw URLs, query strings, user IDs, content, metadata, free-form errors, and dataset IDs never enter Analytics Engine. Missing keys/bindings and write failures remain non-blocking.
+- **Verification:** the complete runtime type boundary, focused lint, deterministic metric cardinality/privacy/error-taxonomy tests, web-scraper safety regressions, cross-browser smoke coverage, and production build pass before release.
 
 ### Initial alert policy
 

@@ -29,7 +29,7 @@ This inventory records the current implementation, including unsafe legacy paths
 
 | ID | Route or consumer | URL provenance | Auth exposure | Current mechanism | Status | Required target adapter |
 | --- | --- | --- | --- | --- | --- | --- |
-| INV-001 | `POST /api/web-scraper` (`functions/api/web-scraper.ts`) | JSON `body.url` | authenticated | bounded `safeFetchText` with manual redirect validation | `safe-text` | enforcing egress boundary; preserve API error envelope |
+| INV-001 | `POST /api/web-scraper` (`functions/api/web-scraper.ts`) | JSON `body.url` | authenticated | bounded `safeFetchText` with manual redirect validation; privacy-safe fetch/extract/terminal Analytics Engine metrics | `safe-text` | enforcing egress boundary; preserve API error envelope |
 | INV-002 | `POST /api/tools/scrape-metadata` (`functions/api/tools/scrape-metadata.ts`) | JSON `body.url` | authenticated | bounded `safeFetchText` with manual redirect validation | `safe-text` | enforcing egress boundary; preserve API error envelope |
 | INV-003 | `POST /api/tools/analyze-url` (`functions/api/tools/analyze-url.ts`) | JSON `body.url`; archive services return snapshot metadata | authenticated | bounded text fetch plus exact-host bounded Wayback availability/CDX adapters; automatic archive writes disabled | `safe-multi-source` | enforcing egress boundary; preserve analysis envelope |
 | INV-004 | `POST /api/tools/extract` (`functions/api/tools/extract.ts`) | JSON `body.url` | authenticated | bounded `safeFetchDocument` with 2 MiB text and 10 MiB validated PDF modes | `safe-document` | enforcing egress boundary; preserve extraction envelope |

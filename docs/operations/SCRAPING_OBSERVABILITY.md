@@ -3,12 +3,12 @@
 **Dataset:** `researchtoolspy_scrape_metrics_v1`  
 **Schema:** `scrape.metric.v1`  
 **Instrumented routes:** `POST /api/content-intelligence/analyze-url`,
-`POST/GET /api/cop/:id/scrape`
+`POST/GET /api/cop/:id/scrape`, `POST /api/web-scraper`
 
-The `SCRAPE-04` production baseline measures whether the main analysis extractor
-and authenticated COP provider jobs can emit one terminal outcome per accepted
-request without retaining raw URLs, search queries, provider run IDs, domains,
-tenant identifiers, content, prompts, tokens, or IPs.
+The `SCRAPE-04` production baseline measures whether the main analysis extractor,
+authenticated web scraper, and authenticated COP provider jobs can emit one
+terminal outcome per accepted request without retaining raw URLs, search queries,
+provider run IDs, domains, tenant identifiers, content, prompts, tokens, or IPs.
 
 ## Privacy and failure contract
 
@@ -139,6 +139,17 @@ one attempt (`double2 > 1`), grouped by final strategy (`blob8`). Duplicate
 contention for a paid reservation is measured by attempt `double8`; duplicate
 terminal request IDs (`blob9`) must remain zero. Query any duplicate IDs before
 using terminal events as the success denominator.
+
+Web Scraper telemetry begins after authentication and synchronous URL/private
+address validation, immediately before DNS resolution and the bounded fetch.
+Invalid auth/input is outside the denominator. A successful request emits a
+`fetch` attempt and an `extract` attempt; a fetch-policy or upstream failure emits
+only the failed `fetch` attempt. All accepted invocations emit exactly one
+terminal point. `double4` on the terminal point is metadata completeness divided
+by 100; it measures extraction coverage, not source reliability. Dataset creation
+is intentionally outside scraping-stage telemetry and never emits a dataset ID.
+Metadata-only requests use purpose `metadata`; `summary` and `full` requests use
+`structured-extraction`.
 
 ## Falsifiable rollout gate
 

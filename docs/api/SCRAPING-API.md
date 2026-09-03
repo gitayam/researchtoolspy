@@ -41,6 +41,9 @@ Content-Type: application/json
 | `extract_mode` | `metadata` \| `summary` \| `full` | no | `metadata` | `metadata` returns page metadata only. `summary` and `full` also return bounded plain text; `summary` adds the first 500 characters when the text is longer than 500 characters. |
 | `create_dataset` | boolean | no | `false` | Attempts to create a dataset for the authenticated user. Dataset failure does not fail extraction; `dataset_id` is present only when creation succeeds. |
 
+Unsupported `extract_mode` values or non-boolean `create_dataset` values return
+`400` before a scraping attempt begins.
+
 Example:
 
 ```bash
@@ -138,6 +141,21 @@ When a dataset is created, `metadata_completeness_score` is stored inside the da
 | Browser rendering | Disabled |
 
 DNS validation is fail-closed, but application-level DNS checking alone cannot eliminate resolution-to-connection rebinding races. The enforcing-egress boundary tracked in the [scraping roadmap](../SCRAPING_ROADMAP.md) remains required before dynamic browser navigation is enabled.
+
+## Observability and privacy
+
+After authentication and synchronous URL validation, the endpoint emits
+non-blocking Analytics Engine metrics for each executed fetch/extract stage and
+exactly one terminal outcome. Telemetry records bounded timings, byte/word
+counts, status/content-type classes, normalized errors, and metadata
+completeness. Request, user, URL, and domain correlation values are HMAC-derived
+with the dedicated telemetry key.
+
+Raw URLs, query strings, user IDs, content, extracted metadata, free-form errors,
+credentials, and dataset IDs are not written to scraping analytics. A missing
+binding/key or an Analytics Engine write failure does not change the API response.
+See the [scraping observability runbook](../operations/SCRAPING_OBSERVABILITY.md)
+for the schema and baseline queries.
 
 ## Errors
 
