@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test'
 import {
+  parseCanonicalBlueskyUrl,
   parseCanonicalFacebookUrl,
   parseCanonicalInstagramUrl,
   parseCanonicalTikTokUrl,
@@ -343,6 +344,82 @@ test.describe('canonical Facebook URL contract @smoke', () => {
   for (const input of rejected) {
     test(`@smoke rejects ${JSON.stringify(input)}`, () => {
       expect(parseCanonicalFacebookUrl(input)).toBeNull()
+    })
+  }
+})
+
+test.describe('canonical Bluesky URL contract @smoke', () => {
+  const rkey = '3k5nobkf2w72g'
+  const did = 'did:plc:vwzwgnygau7ed7b7wt5ux7y2'
+  const accepted = [
+    {
+      input: `https://bsky.app/profile/Retr0.ID/post/${rkey}`,
+      actor: 'retr0.id', actorKind: 'handle',
+    },
+    {
+      input: `HTTPS://WWW.BSKY.APP/profile/${did}/post/${rkey}/`,
+      actor: did, actorKind: 'did',
+    },
+    {
+      input: `at://retr0.id/app.bsky.feed.post/${rkey}`,
+      actor: 'retr0.id', actorKind: 'handle',
+    },
+    {
+      input: `at://${did}/app.bsky.feed.post/${rkey}`,
+      actor: did, actorKind: 'did',
+    },
+    {
+      input: `at://did:web:alice.example.com/app.bsky.feed.post/${rkey}`,
+      actor: 'did:web:alice.example.com', actorKind: 'did',
+    },
+  ]
+  for (const entry of accepted) {
+    test(`@smoke canonicalizes ${entry.input}`, () => {
+      expect(parseCanonicalBlueskyUrl(entry.input)).toEqual({
+        platform: 'bluesky',
+        actor: entry.actor,
+        actorKind: entry.actorKind,
+        rkey,
+        atUri: `at://${entry.actor}/app.bsky.feed.post/${rkey}`,
+        canonicalUrl: `https://bsky.app/profile/${entry.actor}/post/${rkey}`,
+      })
+    })
+  }
+
+  const rejected = [
+    '',
+    ` https://bsky.app/profile/retr0.id/post/${rkey}`,
+    `http://bsky.app/profile/retr0.id/post/${rkey}`,
+    `https://user@bsky.app/profile/retr0.id/post/${rkey}`,
+    `https://bsky.app:443/profile/retr0.id/post/${rkey}`,
+    `https://bsky.app.evil.test/profile/retr0.id/post/${rkey}`,
+    `https://notbsky.app/profile/retr0.id/post/${rkey}`,
+    `https://bsky%2eapp/profile/retr0.id/post/${rkey}`,
+    `https://ｂｓｋｙ.app/profile/retr0.id/post/${rkey}`,
+    `https://bsky.app\\@evil.test/profile/retr0.id/post/${rkey}`,
+    `https://bsky.app/profile/retr0.id/post/${rkey}?tracking=secret`,
+    `https://bsky.app/profile/retr0.id/post/${rkey}#fragment`,
+    `https://bsky.app/profile/retr0.id/post/${rkey}/extra`,
+    `https://bsky.app/profile/retr0.id/post/%33k5nobkf2w72g`,
+    `https://bsky.app/profile/singlelabel/post/${rkey}`,
+    `https://bsky.app/profile/user.test/post/${rkey}`,
+    `https://bsky.app/profile/-bad.example/post/${rkey}`,
+    `at://@retr0.id/app.bsky.feed.post/${rkey}`,
+    `AT://retr0.id/app.bsky.feed.post/${rkey}`,
+    `at://retr0.id/app.bsky.feed.post/${rkey}/`,
+    `at://retr0.id/app.bsky.feed.post/${rkey}?query=1`,
+    `at://retr0.id/app.bsky.feed.like/${rkey}`,
+    `at://did:key:zQ3shZ/app.bsky.feed.post/${rkey}`,
+    `at://did:plc:short/app.bsky.feed.post/${rkey}`,
+    `at://did:web:LOCALHOST/app.bsky.feed.post/${rkey}`,
+    'at://retr0.id/app.bsky.feed.post/.',
+    'at://retr0.id/app.bsky.feed.post/..',
+    'at://retr0.id/app.bsky.feed.post/a+b',
+    `at://retr0.id/app.bsky.feed.post/${'a'.repeat(513)}`,
+  ]
+  for (const input of rejected) {
+    test(`@smoke rejects ${JSON.stringify(input).slice(0, 160)}`, () => {
+      expect(parseCanonicalBlueskyUrl(input)).toBeNull()
     })
   }
 })

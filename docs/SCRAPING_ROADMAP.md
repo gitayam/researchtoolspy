@@ -149,6 +149,7 @@ flowchart LR
 - [x] Migrate Twitter/X in both social routes to one exact canonical identity and the bounded first-party `publish.x.com` oEmbed contract; retire Cobalt, VxTwitter, raw embed HTML, and arbitrary returned-media URLs; keep extraction ephemeral and expose only canonical open-on-X guidance for media modes.
 - [x] Migrate TikTok in both social routes to one exact canonical video identity and the bounded first-party `www.tiktok.com/oembed` contract; retire Cobalt and arbitrary returned-media URLs, keep extraction ephemeral, and construct only documented first-party player/open links.
 - [x] Retire the false-success Facebook branch in `social-extract`; accept only Meta Embeds' documented canonical post/reel shapes, return deterministic manual-open guidance, and guarantee zero provider, cache, or persistence work.
+- [x] Migrate Bluesky in `social-media-extract` to exact web/AT-URI identity and one bounded public AppView request; remove separate handle resolution, raw fetch/retry logic, provider media URLs, KV caching, and D1 persistence.
 - [x] Scope `content-intelligence/analyze-url` `load_existing` reads to the authenticated analysis owner and require owner/editor/admin workspace authority for new writes.
 - [x] Keep `content-intelligence/analyze-url` usable without login through ephemeral, non-persisted results; retain auth for existing/trusted-content reads, require writable workspace authority for every write, and apply a dedicated per-IP public budget.
 - [x] Keep Content Intelligence Full-mode DIME enhancement usable without login through ephemeral results; pass the fresh analysis response into the framework runner, and owner-scope every saved DIME update. Persistent Starbursting sessions remain an explicit authenticated workspace feature.
@@ -221,6 +222,16 @@ flowchart LR
 - **Safety invariant:** canonical Facebook results are deterministic and ephemeral. Authentication failure, malformed/spoofed/mismatched input, invalid options, and caller cancellation perform zero provider, cache, and D1 work.
 - **Verification:** full-project and scraping-surface type checks passed; 384 focused parser/Facebook route tests and 436 broad INV-019 regression tests passed across Chromium and mobile Safari; changed-file lint, diff checks, and the production build passed; and the live Meta oEmbed probe completed with zero redirects.
 - **Inventory result:** INV-019 advances from `constrained-provider` to `safe-provider`. Bluesky in INV-020 is the only remaining legacy social-route branch.
+
+### Bluesky route checkpoint — 2026-09-03
+
+- **Delivery class:** final social-route provider migration for authenticated `/api/content-intelligence/social-media-extract`. Exact `bsky.app/profile/{handle-or-did}/post/{rkey}` URLs and normalized `app.bsky.feed.post` AT URIs reduce to one canonical identity.
+- **Falsifiable hypothesis:** Bluesky's public AppView accepts handle-based record AT URIs directly, making the legacy `resolveHandle` request unnecessary. Live DID and handle probes both returned HTTP 200 for the same record, proving the one-request path for the tested identity.
+- **Provider boundary:** the adapter contacts only `https://public.api.bsky.app/xrpc/app.bsky.feed.getPostThread` with depth and parent height zero, public-DNS validation, zero redirects, JSON-only MIME, a 10-second timeout, and a 256 KiB response ceiling. Returned post URI, DID/handle relationship, record type, strings, counts, embed type, and media cardinality are validated.
+- **Retired behavior:** the route no longer performs a separate handle lookup, raw fetches, retries/backoff, KV reads/writes, D1 persistence, or disclosure of provider-returned avatar, image, thumbnail, playlist, external, or CID values. Media modes expose only the canonical Open on Bluesky action.
+- **Cancellation invariant:** invalid, spoofed, mismatched, and pre-aborted inputs perform zero provider, cache, and persistence work. Caller cancellation is terminal and cannot fall through into later work.
+- **Verification:** full-project and scraping-surface type checks passed; 484 focused Bluesky/social-route tests and 614 broad social-provider regressions passed across Chromium and mobile Safari; changed-file lint and diff checks passed; the production build passed; and live handle/DID AppView probes returned HTTP 200 JSON with zero redirects.
+- **Inventory result:** INV-020 advances from `constrained-provider` to `safe-provider`; both multi-platform social routes have now left the legacy constrained-provider class.
 
 ### Required tests
 

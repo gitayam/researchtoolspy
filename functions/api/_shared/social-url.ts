@@ -33,6 +33,15 @@ export interface CanonicalFacebookTarget {
   canonicalUrl: string
 }
 
+export interface CanonicalBlueskyTarget {
+  platform: 'bluesky'
+  actor: string
+  actorKind: 'handle' | 'did'
+  rkey: string
+  atUri: string
+  canonicalUrl: string
+}
+
 const MAX_SOCIAL_URL_LENGTH = 2048
 const YOUTUBE_ID_PATTERN = /^[A-Za-z0-9_-]{11}$/
 const YOUTUBE_HOSTS = new Set([
@@ -56,6 +65,8 @@ const TWITTER_HOSTS = new Set([
 ])
 const TIKTOK_HOSTS = new Set(['tiktok.com', 'www.tiktok.com'])
 const FACEBOOK_HOSTS = new Set(['facebook.com', 'www.facebook.com'])
+const BLUESKY_HOSTS = new Set(['bsky.app', 'www.bsky.app'])
+const BLOCKED_HANDLE_SUFFIXES = ['.arpa', '.internal', '.invalid', '.lan', '.local', '.localhost', '.test'] as const
 
 function containsAsciiControlCharacter(value: string): boolean {
   return Array.from(value).some((character) => {
@@ -364,5 +375,93 @@ export function parseCanonicalFacebookUrl(input: string): CanonicalFacebookTarge
     kind: 'reel',
     contentId,
     canonicalUrl: `https://www.facebook.com/reel/${contentId}/`,
+  }
+}
+
+function validBlueskyHandle(value: string): boolean {
+  if (value.length < 3 || value.length > 253 || value !== value.toLowerCase()) return false
+  if (BLOCKED_HANDLE_SUFFIXES.some(suffix => value.endsWith(suffix))) return false
+  const labels = value.split('.')
+  if (labels.length < 2 || labels.some(label => !/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(label))) return false
+  return /[a-z]/.test(labels.at(-1) ?? '')
+}
+
+function parseBlueskyActor(value: string): Pick<CanonicalBlueskyTarget, 'actor' | 'actorKind'> | null {
+  const normalized = value.toLowerCase()
+  if (/^did:plc:[a-z2-7]{24}$/.test(value)) {
+    return { actor: value, actorKind: 'did' }
+  }
+  if (value.startsWith('did:web:')) {
+    const hostname = value.slice('did:web:'.length)
+    return validBlueskyHandle(hostname) && hostname === normalized.slice('did:web:'.length)
+      ? { actor: value, actorKind: 'did' }
+      : null
+  }
+  return validBlueskyHandle(normalized)
+    ? { actor: normalized, actorKind: 'handle' }
+    : null
+}
+
+function validBlueskyRkey(value: string): boolean {
+  return value.length >= 1
+    && value.length <= 512
+    && value !== '.'
+    && value !== '..'
+    && /^[A-Za-z0-9._:~-]+$/.test(value)
+}
+
+/** Parse one normalized Bluesky web URL or app.bsky.feed.post AT URI. */
+export function parseCanonicalBlueskyUrl(input: string): CanonicalBlueskyTarget | null {
+  if (
+    input.length === 0
+    || input.length > MAX_SOCIAL_URL_LENGTH
+    || input !== input.trim()
+    || input.includes('\\')
+    || input.includes('%')
+    || containsAsciiControlCharacter(input)
+  ) return null
+
+  let rawActor: string
+  let rkey: string
+  if (input.startsWith('at://')) {
+    const match = /^at:\/\/([^/?#]+)\/app\.bsky\.feed\.post\/([^/?#]+)$/.exec(input)
+    if (!match) return null
+    rawActor = match[1]
+    rkey = match[2]
+  } else {
+    const rawMatch = /^https:\/\/([^/?#]+)([^?#]*)(\?[^#]*)?(#.*)?$/i.exec(input)
+    if (!rawMatch) return null
+    const [, rawAuthority, rawPath, rawQuery, rawFragment] = rawMatch
+    if (
+      rawQuery
+      || rawFragment
+      || rawAuthority.includes('@')
+      || rawAuthority.includes(':')
+      || !BLUESKY_HOSTS.has(rawAuthority.toLowerCase())
+    ) return null
+    let parsed: URL
+    try { parsed = new URL(input) } catch { return null }
+    if (
+      parsed.protocol !== 'https:'
+      || parsed.username !== ''
+      || parsed.password !== ''
+      || parsed.port !== ''
+      || !BLUESKY_HOSTS.has(parsed.hostname.toLowerCase())
+    ) return null
+    const match = /^\/profile\/([^/]+)\/post\/([^/]+)\/?$/.exec(rawPath)
+    if (!match) return null
+    rawActor = match[1]
+    rkey = match[2]
+  }
+
+  const actor = parseBlueskyActor(rawActor)
+  if (!actor || !validBlueskyRkey(rkey)) return null
+  const atUri = `at://${actor.actor}/app.bsky.feed.post/${rkey}`
+  return {
+    platform: 'bluesky',
+    ...actor,
+    rkey,
+    atUri,
+    canonicalUrl: `https://bsky.app/profile/${actor.actor}/post/${rkey}`,
   }
 }

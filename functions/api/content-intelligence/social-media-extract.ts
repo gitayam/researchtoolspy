@@ -6,7 +6,7 @@
  * - Instagram: Canonical post identity and manual extraction guidance
  * - TikTok: Bounded first-party oEmbed metadata and canonical player links
  * - Twitter/X: Bounded first-party oEmbed metadata and canonical status links
- * - Bluesky: Post media, text, author info, engagement metrics (via AT Protocol API)
+ * - Bluesky: Bounded public AppView metadata and canonical post links
  */
 
 import type { PagesFunction } from '@cloudflare/workers-types'
@@ -14,23 +14,24 @@ import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest } from '../_shared/auth-helpers'
 import { JSON_HEADERS } from '../_shared/api-utils'
 import {
+  parseCanonicalBlueskyUrl,
   parseCanonicalInstagramUrl,
   parseCanonicalTikTokUrl,
   parseCanonicalTwitterUrl,
   parseCanonicalYouTubeUrl,
+  type CanonicalBlueskyTarget,
   type CanonicalInstagramTarget,
   type CanonicalTikTokTarget,
   type CanonicalTwitterTarget,
   type CanonicalYouTubeTarget,
 } from '../_shared/social-url'
+import { fetchBlueskyProvider } from '../_shared/bluesky-provider'
 import { fetchTikTokProvider } from '../_shared/tiktok-provider'
 import { fetchTwitterProvider } from '../_shared/twitter-provider'
 import { createYouTubeProviderDeadline, fetchYouTubeProvider } from '../_shared/youtube-provider'
 
 interface Env {
   DB: D1Database
-  OPENAI_API_KEY: string
-  CACHE: KVNamespace
   SESSIONS?: KVNamespace
 }
 
@@ -64,7 +65,7 @@ interface SocialMediaExtractionResult {
   downloadOptions?: DownloadOption[]
   streamUrl?: string
   embedCode?: string
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
   transcript?: string
   error?: string
 }
@@ -72,71 +73,6 @@ interface SocialMediaExtractionResult {
 type YouTubeMode = NonNullable<SocialMediaExtractRequest['mode']>
 const EXTRACTION_MODES: readonly YouTubeMode[] = ['metadata', 'download', 'stream', 'transcript', 'full']
 const TRANSCRIPT_FALLBACK = 'Transcript not available for this video. Try using YouTube\'s built-in transcript feature.'
-
-// ========================================
-// Helper Functions
-// ========================================
-
-/**
- * Fetch with retry and exponential backoff
- */
-async function fetchWithRetry<T>(
-  fetcher: () => Promise<T>,
-  maxRetries: number = 3,
-  baseDelay: number = 1000
-): Promise<T> {
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
-    try {
-      return await fetcher()
-    } catch (error) {
-      if (attempt === maxRetries - 1) throw error
-
-      const delay = baseDelay * Math.pow(2, attempt)
-      await new Promise(resolve => setTimeout(resolve, delay))
-    }
-  }
-
-  throw new Error('Max retries exceeded')
-}
-
-/**
- * Get cached result or fetch fresh
- */
-async function getCached<T>(
-  cache: KVNamespace | undefined,
-  key: string,
-  ttl: number,
-  fetcher: () => Promise<T>
-): Promise<T> {
-  // If no cache available, just fetch
-  if (!cache) {
-    return await fetcher()
-  }
-
-  // Try cache first
-  try {
-    const cached = await cache.get(key)
-    if (cached) {
-      return JSON.parse(cached) as T
-    }
-  } catch (cacheError) {
-    console.warn('[Cache] Read error:', cacheError)
-  }
-
-  // Cache miss - fetch fresh
-  const result = await fetcher()
-
-  // Store in cache
-  try {
-    await cache.put(key, JSON.stringify(result), {
-      expirationTtl: ttl
-    })
-  } catch (cacheError) {
-    console.warn('[Cache] Write error:', cacheError)
-  }
-
-  return result
-}
 
 /**
  * Create user-friendly error result
@@ -196,6 +132,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const tiktokHint = typeof providedPlatform === 'string' && providedPlatform.toLowerCase() === 'tiktok'
     const malformedTikTokAuthority = !providedPlatform && !tiktokTarget
       && typeof url === 'string' && hasExactRawTikTokAuthority(url)
+    const blueskyTarget = typeof url === 'string' ? parseCanonicalBlueskyUrl(url) : null
+    const blueskyHint = typeof providedPlatform === 'string' && providedPlatform.toLowerCase() === 'bluesky'
+    const malformedBlueskyAuthority = !providedPlatform && !blueskyTarget
+      && typeof url === 'string' && hasExactRawBlueskyAuthority(url)
 
     if (youtubeTarget && providedPlatform && !youtubeHint) {
       const result = createUserFriendlyError('youtube', 'Platform mismatch', 'The selected platform does not match the YouTube URL.')
@@ -211,6 +151,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
     if (tiktokTarget && providedPlatform && !tiktokHint) {
       const result = createUserFriendlyError('tiktok', 'Platform mismatch', 'The selected platform does not match the TikTok URL.')
+      return new Response(JSON.stringify(result), { status: 422, headers: JSON_HEADERS })
+    }
+    if (blueskyTarget && providedPlatform && !blueskyHint) {
+      const result = createUserFriendlyError('bluesky', 'Platform mismatch', 'The selected platform does not match the Bluesky URL.')
       return new Response(JSON.stringify(result), { status: 422, headers: JSON_HEADERS })
     }
     if ((youtubeHint || malformedYouTubeAuthority) && !youtubeTarget) {
@@ -229,6 +173,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       const result = invalidTikTokResult()
       return new Response(JSON.stringify(result), { status: 422, headers: JSON_HEADERS })
     }
+    if ((blueskyHint || malformedBlueskyAuthority) && !blueskyTarget) {
+      const result = invalidBlueskyResult()
+      return new Response(JSON.stringify(result), { status: 422, headers: JSON_HEADERS })
+    }
     if ((youtubeTarget || youtubeHint || malformedYouTubeAuthority) && !EXTRACTION_MODES.includes(mode)) {
       const result = createUserFriendlyError('youtube', 'Invalid mode', 'YouTube extraction mode is invalid.')
       return new Response(JSON.stringify(result), { status: 422, headers: JSON_HEADERS })
@@ -245,8 +193,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       const result = createUserFriendlyError('tiktok', 'Invalid mode', 'TikTok extraction mode is invalid.')
       return new Response(JSON.stringify(result), { status: 422, headers: JSON_HEADERS })
     }
+    if ((blueskyTarget || blueskyHint || malformedBlueskyAuthority) && !EXTRACTION_MODES.includes(mode)) {
+      const result = createUserFriendlyError('bluesky', 'Invalid mode', 'Bluesky extraction mode is invalid.')
+      return new Response(JSON.stringify(result), { status: 422, headers: JSON_HEADERS })
+    }
 
-    // Outside the constrained platform decisions, retain the caller's exact legacy platform identity.
+    // Normalize supported aliases before retaining an explicit unsupported platform label.
     const platform = youtubeHint
       ? 'youtube'
       : instagramHint
@@ -255,7 +207,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           ? 'twitter'
           : tiktokHint
             ? 'tiktok'
-            : (providedPlatform || (youtubeTarget ? 'youtube' : instagramTarget ? 'instagram' : twitterTarget ? 'twitter' : tiktokTarget ? 'tiktok' : detectPlatform(url)))
+            : blueskyHint
+              ? 'bluesky'
+              : (providedPlatform || (youtubeTarget ? 'youtube' : instagramTarget ? 'instagram' : twitterTarget ? 'twitter' : tiktokTarget ? 'tiktok' : blueskyTarget ? 'bluesky' : null))
 
     if (!platform) {
       return new Response(JSON.stringify({
@@ -295,6 +249,15 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
+    if (platform === 'bluesky' && blueskyTarget) {
+      const blueskyResult = await extractBluesky(blueskyTarget, mode, request.signal)
+      if (blueskyResult === null) return genericExtractionFailure()
+      return new Response(JSON.stringify(blueskyResult), {
+        status: blueskyResult.success ? 200 : 422,
+        headers: JSON_HEADERS,
+      })
+    }
+
     let result: SocialMediaExtractionResult
     if (platform === 'youtube' && youtubeTarget) {
       const youtubeResult = await extractYouTube(youtubeTarget, mode, request.signal)
@@ -306,24 +269,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       }
       result = youtubeResult
     } else {
-      // Preserve the legacy cache contract for every non-YouTube platform.
-      const cacheKey = `social:${platform}:${mode}:${encodeURIComponent(url)}`
-      result = await getCached<SocialMediaExtractionResult>(
-        env.CACHE,
-        cacheKey,
-        3600, // 1 hour TTL
-        async () => {
-          switch (platform) {
-          case 'bluesky':
-            return await extractBluesky(url, mode)
-          default:
-            return createUserFriendlyError(
-              platform,
-              `Platform '${platform}' not supported`,
-              `Sorry, ${platform} extraction is not yet available. Supported platforms: YouTube, Instagram, TikTok, Twitter/X, Bluesky.`
-            )
-          }
-        },
+      result = createUserFriendlyError(
+        platform,
+        `Platform '${platform}' not supported`,
+        `Sorry, ${platform} extraction is not yet available. Supported platforms: YouTube, Instagram, TikTok, Twitter/X, Bluesky.`
       )
     }
 
@@ -332,27 +281,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         status: 500,
         headers: JSON_HEADERS,
       })
-    }
-
-    // Save to database if successful
-    if (result.success && env.DB && platform !== 'youtube') {
-      try {
-        await saveSocialMediaExtraction(env.DB, {
-          user_id: authUserId,
-          url,
-          platform,
-          post_type: result.postType,
-          media_urls: result.mediaUrls,
-          download_options: result.downloadOptions,
-          stream_url: result.streamUrl,
-          embed_code: result.embedCode,
-          metadata: result.metadata,
-          transcript: result.transcript,
-          extraction_mode: mode
-        })
-      } catch (dbError) {
-        console.error('[Social Extract] Database save failed (non-fatal):', dbError)
-      }
     }
 
     return new Response(JSON.stringify(result), {
@@ -370,26 +298,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       headers: JSON_HEADERS
     })
   }
-}
-
-// ========================================
-// Platform Detection
-// ========================================
-
-function detectPlatform(url: string): string | null {
-  const urlLower = url.toLowerCase()
-
-  if (urlLower.includes('bsky.app') || urlLower.startsWith('at://')) {
-    return 'bluesky'
-  }
-  if (urlLower.includes('facebook.com')) {
-    return 'facebook'
-  }
-  if (urlLower.includes('reddit.com')) {
-    return 'reddit'
-  }
-
-  return null
 }
 
 function containsAsciiControl(value: string): boolean {
@@ -431,6 +339,15 @@ function hasExactRawTikTokAuthority(value: string): boolean {
   return ['tiktok.com', 'www.tiktok.com'].includes(match[1].toLowerCase())
 }
 
+function hasExactRawBlueskyAuthority(value: string): boolean {
+  if (value.length === 0 || value.length > 2048 || value !== value.trim() || value.includes('\\')
+    || containsAsciiControl(value)) return false
+  if (value.startsWith('at://')) return true
+  const match = /^https?:\/\/([^/?#]+)/i.exec(value)
+  if (!match || match[1].includes('@') || match[1].includes(':') || match[1].includes('%')) return false
+  return ['bsky.app', 'www.bsky.app'].includes(match[1].toLowerCase())
+}
+
 function invalidYouTubeResult(): SocialMediaExtractionResult {
   return createUserFriendlyError(
     'youtube',
@@ -460,6 +377,14 @@ function invalidTikTokResult(): SocialMediaExtractionResult {
     'tiktok',
     'Invalid URL format',
     'Could not find a valid TikTok video ID in the URL. Please use a canonical link (for example, tiktok.com/@user/video/123...).',
+  )
+}
+
+function invalidBlueskyResult(): SocialMediaExtractionResult {
+  return createUserFriendlyError(
+    'bluesky',
+    'Invalid URL format',
+    'Could not parse a canonical Bluesky post. Use https://bsky.app/profile/{handle-or-did}/post/{rkey} or at://{handle-or-did}/app.bsky.feed.post/{rkey}.',
   )
 }
 
@@ -632,185 +557,54 @@ async function extractTwitter(
 // Bluesky (AT Protocol) Extraction
 // ========================================
 
-async function extractBluesky(url: string, mode: string): Promise<SocialMediaExtractionResult> {
-  try {
-
-    // Parse Bluesky URL to extract handle and post ID
-    // Format: https://bsky.app/profile/{handle}/post/{rkey}
-    // Or AT URI: at://{did}/app.bsky.feed.post/{rkey}
-
-    let handle: string
-    let rkey: string
-
-    if (url.startsWith('at://')) {
-      // AT Protocol URI format
-      const match = url.match(/at:\/\/([^/]+)\/app\.bsky\.feed\.post\/(.+)/)
-      if (!match) {
-        return createUserFriendlyError(
-          'bluesky',
-          'Invalid AT URI format',
-          'Could not parse AT Protocol URI. Expected format: at://{did}/app.bsky.feed.post/{rkey}'
-        )
-      }
-      handle = match[1] // This is actually a DID, but we'll resolve it
-      rkey = match[2]
-    } else {
-      // Web URL format
-      const match = url.match(/bsky\.app\/profile\/([^/]+)\/post\/([^/?#]+)/)
-      if (!match) {
-        return createUserFriendlyError(
-          'bluesky',
-          'Invalid Bluesky URL format',
-          'Could not parse Bluesky URL. Expected format: https://bsky.app/profile/{handle}/post/{rkey}'
-        )
-      }
-      handle = match[1]
-      rkey = match[2]
-    }
-
-
-    // Fetch post using Bluesky public API
-    const postData = await fetchWithRetry(async () => {
-      // First resolve the handle to DID if needed
-      let did = handle
-      if (!handle.startsWith('did:')) {
-        const resolveUrl = `https://public.api.bsky.app/xrpc/com.atproto.identity.resolveHandle?handle=${encodeURIComponent(handle)}`
-        const resolveResponse = await fetch(resolveUrl, { signal: AbortSignal.timeout(15000) })
-        if (!resolveResponse.ok) {
-          throw new Error(`Failed to resolve handle: ${resolveResponse.status}`)
-        }
-        const resolveData = await resolveResponse.json() as any
-        did = resolveData.did
-      }
-
-      // Now fetch the post
-      const postUrl = `https://public.api.bsky.app/xrpc/app.bsky.feed.getPostThread?uri=at://${did}/app.bsky.feed.post/${rkey}&depth=0`
-      const postResponse = await fetch(postUrl, { signal: AbortSignal.timeout(15000) })
-
-      if (!postResponse.ok) {
-        throw new Error(`Bluesky API returned status ${postResponse.status}`)
-      }
-
-      return await postResponse.json() as any
-    }, 2, 1000)
-
-    const post = postData.thread?.post
-    if (!post) {
-      throw new Error('Post data not found in response')
-    }
-
-    // Extract media URLs from embeds
-    const mediaUrls: MediaUrls = {}
-    const images: string[] = []
-
-    if (post.embed) {
-      // Handle images
-      if (post.embed.$type === 'app.bsky.embed.images#view') {
-        for (const img of post.embed.images || []) {
-          if (img.fullsize) {
-            images.push(img.fullsize)
-          }
-        }
-      }
-
-      // Handle videos
-      if (post.embed.$type === 'app.bsky.embed.video#view') {
-        mediaUrls.video = post.embed.playlist || post.embed.thumbnail
-        mediaUrls.thumbnail = post.embed.thumbnail
-      }
-
-      // Handle external links with thumbnails
-      if (post.embed.$type === 'app.bsky.embed.external#view') {
-        if (post.embed.external?.thumb) {
-          mediaUrls.thumbnail = post.embed.external.thumb
-        }
-      }
-
-      // Handle record with media (quote posts with images)
-      if (post.embed.$type === 'app.bsky.embed.recordWithMedia#view') {
-        if (post.embed.media?.$type === 'app.bsky.embed.images#view') {
-          for (const img of post.embed.media.images || []) {
-            if (img.fullsize) {
-              images.push(img.fullsize)
-            }
-          }
-        }
-      }
-    }
-
-    if (images.length > 0) {
-      mediaUrls.images = images
-    }
-
-    // Build metadata
-    const metadata = {
-      author: post.author?.displayName || post.author?.handle,
-      authorHandle: post.author?.handle,
-      authorDid: post.author?.did,
-      authorAvatar: post.author?.avatar,
-      text: post.record?.text || '',
-      createdAt: post.record?.createdAt,
-      replyCount: post.replyCount || 0,
-      repostCount: post.repostCount || 0,
-      likeCount: post.likeCount || 0,
-      quoteCount: post.quoteCount || 0,
-      uri: post.uri,
-      cid: post.cid,
-      hasMedia: !!(mediaUrls.images?.length || mediaUrls.video),
-      mediaCount: (mediaUrls.images?.length || 0) + (mediaUrls.video ? 1 : 0)
-    }
-
-    // Determine post type
-    let postType = 'post'
-    if (post.record?.reply) {
-      postType = 'reply'
-    } else if (post.embed?.$type?.includes('recordWithMedia') || post.embed?.$type?.includes('record')) {
-      postType = 'quote'
-    }
-
-    return {
-      success: true,
-      platform: 'bluesky',
-      postType,
-      mediaUrls,
-      metadata
-    }
-
-  } catch (error) {
-    console.error('[Bluesky] Extraction failed:', error)
+async function extractBluesky(
+  target: CanonicalBlueskyTarget,
+  mode: YouTubeMode,
+  signal: AbortSignal,
+): Promise<SocialMediaExtractionResult | null> {
+  const provider = await fetchBlueskyProvider(target, { signal })
+  if (!provider.success || !provider.metadata) {
+    if (provider.failure?.code === 'aborted') return null
     return createUserFriendlyError(
       'bluesky',
       'Extraction failed',
-      'Bluesky post could not be extracted. The post may be from a private account, deleted, or the Bluesky API may be temporarily unavailable. Please verify the URL is correct and try again.'
+      'Bluesky post could not be extracted. The post may be deleted, unavailable, or the public Bluesky API may be temporarily unavailable.',
     )
   }
-}
-
-// ========================================
-// Database Save
-// ========================================
-
-async function saveSocialMediaExtraction(db: D1Database, data: any): Promise<number> {
-  const result = await db.prepare(`
-    INSERT INTO social_media_extractions (
-      user_id, url, platform, post_type, media_urls, download_options,
-      stream_url, embed_code, metadata, transcript, extraction_mode
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).bind(
-    data.user_id,
-    data.url,
-    data.platform,
-    data.post_type,
-    JSON.stringify(data.media_urls || {}),
-    JSON.stringify(data.download_options || []),
-    data.stream_url,
-    data.embed_code,
-    JSON.stringify(data.metadata || {}),
-    data.transcript,
-    data.extraction_mode
-  ).run()
-
-  return result.meta.last_row_id as number
+  const metadata = provider.metadata
+  const includeOpenAction = mode === 'download' || mode === 'stream' || mode === 'full'
+  return {
+    success: true,
+    platform: 'bluesky',
+    postType: metadata.postType,
+    downloadOptions: includeOpenAction
+      ? [{
+        quality: 'Open on Bluesky',
+        format: 'web',
+        url: target.canonicalUrl,
+        hasAudio: false,
+        hasVideo: false,
+      }]
+      : undefined,
+    metadata: {
+      author: metadata.authorName,
+      authorHandle: metadata.authorHandle,
+      authorDid: metadata.authorDid,
+      authorUrl: metadata.authorUrl,
+      text: metadata.text,
+      createdAt: metadata.createdAt,
+      replyCount: metadata.replyCount,
+      repostCount: metadata.repostCount,
+      likeCount: metadata.likeCount,
+      quoteCount: metadata.quoteCount,
+      uri: metadata.postUri,
+      postUrl: target.canonicalUrl,
+      hasMedia: metadata.hasMedia,
+      mediaCount: metadata.mediaCount,
+      directMediaAvailable: false,
+      extractedVia: 'Bluesky public AppView API',
+    },
+  }
 }
 
 // Reject GET requests (POST-only endpoint)

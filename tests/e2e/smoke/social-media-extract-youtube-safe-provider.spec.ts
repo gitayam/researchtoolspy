@@ -299,26 +299,20 @@ test.describe('INV-020 canonical YouTube provider route @smoke', () => {
     }
   })
 
-  test('@smoke preserves legacy unconstrained platform identity through cache and D1', async () => {
-    const cases = [
-      { platform: 'reddit', url: 'https://www.reddit.com/r/example/comments/abc/post', mode: 'full' },
-      { platform: 'bluesky', url: 'https://bsky.app/profile/example.test/post/abc', mode: 'metadata' },
-    ]
-    for (const entry of cases) {
-      const cached = JSON.stringify({ success: true, platform: entry.platform, postType: 'cached' })
-      const subject = harness({ cached, provider: () => { throw new Error('cached unconstrained route must not fetch') } })
-      try {
-        const response = await subject.invoke(entry)
-        expect(response.status).toBe(200)
-        expect(subject.transport).toEqual([])
-        expect(subject.cacheGets).toEqual([`social:${entry.platform}:${entry.mode}:${encodeURIComponent(entry.url)}`])
-        expect(subject.cachePuts).toEqual([])
-        expect(subject.dbBindings).toHaveLength(1)
-        expect(subject.dbBindings[0][1]).toBe(entry.url)
-        expect(subject.dbBindings[0][2]).toBe(entry.platform)
-      } finally {
-        subject.restore()
-      }
+  test('@smoke rejects an unsupported legacy platform without transport, cache, or D1', async () => {
+    const entry = { platform: 'reddit', url: 'https://www.reddit.com/r/example/comments/abc/post', mode: 'full' }
+    const subject = harness({ provider: () => { throw new Error('unsupported route must not fetch') } })
+    try {
+      const response = await subject.invoke(entry)
+      expect(response.status).toBe(422)
+      expect(await response.json()).toMatchObject({ success: false, platform: 'reddit' })
+      expect(subject.transport).toEqual([])
+      expect(subject.cacheGets).toEqual([])
+      expect(subject.cachePuts).toEqual([])
+      expect(subject.dbBindings).toEqual([])
+      expect(subject.dbCalls()).toBe(0)
+    } finally {
+      subject.restore()
     }
   })
 })
