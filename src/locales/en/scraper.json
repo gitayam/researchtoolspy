@@ -28,23 +28,23 @@
       "domain": "Domain",
       "author": "Author",
       "published": "Published",
-      "reliability": "Reliability Score",
+      "metadataCompleteness": "Metadata completeness",
       "extractedAt": "Extracted At",
       "description": "Description",
       "keywords": "Keywords",
       "content": "Content Preview",
       "wordCount": "Word count:"
     },
+    "metadataCompletenessNote": "Measures extracted metadata coverage, not source credibility.",
     "actions": {
       "export": "Export JSON",
       "createDataset": "Create Dataset"
     }
   },
-  "reliability": {
-    "high": "High Reliability",
-    "medium": "Medium Reliability",
-    "low": "Low Reliability",
-    "unknown": "Unknown"
+  "completeness": {
+    "high": "High coverage",
+    "partial": "Partial coverage",
+    "limited": "Limited coverage"
   },
   "alerts": {
     "emptyUrl": "Please enter a URL",

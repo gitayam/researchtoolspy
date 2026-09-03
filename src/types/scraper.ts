@@ -14,7 +14,7 @@ export interface ScrapingMetadata {
   og_description?: string
   og_image?: string
   og_type?: string
-  [key: string]: any
+  [key: string]: unknown
 }
 
 export interface ScrapingContent {
@@ -32,7 +32,8 @@ export interface ScrapingResult {
   domain?: string
   content?: ScrapingContent
   metadata?: ScrapingMetadata
-  reliability_score?: number
+  /** Extraction metadata coverage (0-100); not source credibility. */
+  metadata_completeness_score?: number
   extracted_at: string
   dataset_id?: number
 }

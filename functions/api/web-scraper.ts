@@ -29,7 +29,7 @@ interface ScrapingResult {
     og_image?: string
     [key: string]: unknown
   }
-  reliability_score?: number
+  metadata_completeness_score?: number
   dataset_id?: string | number
   extracted_at: string
 }
@@ -60,6 +60,11 @@ export function buildScrapeDatasetData(
   accessDate = new Date().toISOString().split('T')[0],
 ): Record<string, unknown> {
   const validatedUrl = new URL(finalUrl)
+  const datasetMetadata = {
+    ...metadata,
+    metadata_completeness_score: result.metadata_completeness_score ?? 0,
+  }
+
   return {
     title: result.title || validatedUrl.hostname,
     description: result.description || `Content from ${validatedUrl.hostname}`,
@@ -68,13 +73,33 @@ export function buildScrapeDatasetData(
     source_name: validatedUrl.hostname,
     source_url: validatedUrl.href,
     author: result.author,
-    reliability_rating: (result.reliability_score ?? 0) >= 7
-      ? 'high'
-      : (result.reliability_score ?? 0) >= 5 ? 'medium' : 'low',
     tags: metadata.keywords || [],
-    metadata: JSON.stringify(metadata),
+    metadata: JSON.stringify(datasetMetadata),
     access_date: accessDate,
   }
+}
+
+/**
+ * Measure only whether the metadata fields this extractor understands are
+ * present. This is extraction coverage, not a claim about source credibility.
+ */
+export function calculateMetadataCompletenessScore(
+  result: Pick<ScrapingResult, 'title' | 'description' | 'author'>,
+  metadata: NonNullable<ScrapingResult['metadata']>,
+): number {
+  const present = (value: unknown): boolean => typeof value === 'string' && value.trim().length > 0
+  let score = 0
+
+  if (present(result.title)) score += 20
+  if (present(result.description)) score += 20
+  if (present(result.author)) score += 15
+  if (Array.isArray(metadata.keywords) && metadata.keywords.some(present)) score += 10
+  if (present(metadata.og_title)) score += 10
+  if (present(metadata.og_description)) score += 10
+  if (present(metadata.og_image)) score += 10
+  if (present(metadata.og_type)) score += 5
+
+  return score
 }
 
 /**
@@ -379,23 +404,7 @@ export async function onRequest(context: WebScraperContext) {
       }
     }
 
-    // Calculate basic reliability score based on domain and metadata completeness
-    let reliabilityScore = 5.0
-
-    // Common reliable domains
-    const reliableDomains = ['gov', 'edu', 'org']
-    if (reliableDomains.some(d => finalUrl.hostname.endsWith('.' + d))) {
-      reliabilityScore += 2.0
-    }
-
-    // Check metadata completeness
-    if (result.title) reliabilityScore += 0.5
-    if (result.description) reliabilityScore += 0.5
-    if (result.author) reliabilityScore += 1.0
-    if (metadata.keywords && metadata.keywords.length > 0) reliabilityScore += 0.5
-    if (metadata.og_title) reliabilityScore += 0.5
-
-    result.reliability_score = Math.min(10, reliabilityScore)
+    result.metadata_completeness_score = calculateMetadataCompletenessScore(result, metadata)
 
     // Optionally create dataset
     if (body.create_dataset) {

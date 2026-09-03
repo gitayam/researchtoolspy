@@ -7,7 +7,6 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import type { ExtractionMode, ScrapingResult } from '@/types/scraper'
-import { cn } from '@/lib/utils'
 import { useTranslation } from 'react-i18next'
 import { getCopHeaders } from '@/lib/cop-auth'
 
@@ -47,8 +46,8 @@ export function WebScraperPage() {
       }
 
       setResult(data.data)
-    } catch (err: any) {
-      setError(err.message || t('scraper:alerts.failed'))
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : t('scraper:alerts.failed'))
     } finally {
       setLoading(false)
     }
@@ -69,21 +68,22 @@ export function WebScraperPage() {
           source_name: result.domain,
           source_url: result.url,
           author: result.author,
-          reliability_rating: result.reliability_score && result.reliability_score >= 7 ? 'high' :
-                              result.reliability_score && result.reliability_score >= 5 ? 'medium' : 'low',
           tags: result.metadata?.keywords || [],
-          metadata: JSON.stringify(result.metadata),
+          metadata: JSON.stringify({
+            ...result.metadata,
+            metadata_completeness_score: result.metadata_completeness_score ?? 0,
+          }),
           access_date: new Date().toISOString().split('T')[0],
         })
       })
 
       if (response.ok) {
-        const { dataset } = await response.json()
-        alert(t('scraper:alerts.createSuccess', { id: dataset.id }))
+        const payload = await response.json() as { id?: string | number }
+        alert(t('scraper:alerts.createSuccess', { id: payload.id ?? 'unknown' }))
       } else {
         throw new Error(t('scraper:alerts.createFailed'))
       }
-    } catch (err: any) {
+    } catch {
       alert(t('scraper:alerts.createFailed'))
     }
   }
@@ -101,24 +101,21 @@ export function WebScraperPage() {
     URL.revokeObjectURL(url)
   }
 
-  const getReliabilityBadge = (score?: number) => {
-    if (!score) return null
+  const getCompletenessBadge = (score?: number) => {
+    if (score === undefined) return null
 
     let variant: 'default' | 'secondary' | 'destructive' = 'secondary'
-    let label = t('scraper:reliability.unknown')
+    let label = t('scraper:completeness.limited')
 
-    if (score >= 8) {
+    if (score >= 80) {
       variant = 'default'
-      label = t('scraper:reliability.high')
-    } else if (score >= 6) {
+      label = t('scraper:completeness.high')
+    } else if (score >= 50) {
       variant = 'secondary'
-      label = t('scraper:reliability.medium')
-    } else {
-      variant = 'destructive'
-      label = t('scraper:reliability.low')
+      label = t('scraper:completeness.partial')
     }
 
-    return <Badge variant={variant}>{label} ({score}/10)</Badge>
+    return <Badge variant={variant}>{label} ({score}%)</Badge>
   }
 
   return (
@@ -220,10 +217,13 @@ export function WebScraperPage() {
                 </div>
               )}
 
-              {result.reliability_score && (
+              {result.metadata_completeness_score !== undefined && (
                 <div>
-                  <Label className="text-xs text-gray-500 dark:text-gray-400">{t('scraper:results.labels.reliability')}</Label>
-                  <div className="mt-1">{getReliabilityBadge(result.reliability_score)}</div>
+                  <Label className="text-xs text-gray-500 dark:text-gray-400">{t('scraper:results.labels.metadataCompleteness')}</Label>
+                  <div className="mt-1">{getCompletenessBadge(result.metadata_completeness_score)}</div>
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    {t('scraper:results.metadataCompletenessNote')}
+                  </p>
                 </div>
               )}
 

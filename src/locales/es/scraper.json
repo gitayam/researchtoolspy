@@ -28,23 +28,23 @@
       "domain": "Dominio",
       "author": "Autor",
       "published": "Publicado",
-      "reliability": "Puntuación de Confiabilidad",
+      "metadataCompleteness": "Integridad de metadatos",
       "extractedAt": "Extraído El",
       "description": "Descripción",
       "keywords": "Palabras Clave",
       "content": "Vista Previa del Contenido",
       "wordCount": "Conteo de palabras:"
     },
+    "metadataCompletenessNote": "Mide la cobertura de metadatos extraídos, no la credibilidad de la fuente.",
     "actions": {
       "export": "Exportar JSON",
       "createDataset": "Crear Conjunto de Datos"
     }
   },
-  "reliability": {
-    "high": "Alta Confiabilidad",
-    "medium": "Confiabilidad Media",
-    "low": "Baja Confiabilidad",
-    "unknown": "Desconocido"
+  "completeness": {
+    "high": "Cobertura alta",
+    "partial": "Cobertura parcial",
+    "limited": "Cobertura limitada"
   },
   "alerts": {
     "emptyUrl": "Por favor ingresa una URL",

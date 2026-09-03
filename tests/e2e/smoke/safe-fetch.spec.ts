@@ -568,7 +568,7 @@ test.describe('safe outbound fetch policy @smoke', () => {
 
     const datasetData = buildScrapeDatasetData({
       ...provenance,
-      reliability_score: 7,
+      metadata_completeness_score: 70,
     }, provenance.url, {}, '2026-08-31')
     expect(datasetData).toMatchObject({
       title: 'final.example',
@@ -577,6 +577,10 @@ test.describe('safe outbound fetch policy @smoke', () => {
       source_name: 'final.example',
       source_url: 'https://final.example/article?from=redirect',
       access_date: '2026-08-31',
+    })
+    expect(datasetData).not.toHaveProperty('reliability_rating')
+    expect(JSON.parse(String(datasetData.metadata))).toMatchObject({
+      metadata_completeness_score: 70,
     })
   })
 

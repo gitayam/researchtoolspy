@@ -223,7 +223,7 @@ Adopt Crawlee or Scrapling's spider framework only if `/crawl` cannot meet a mea
 - [ ] Make `enhancedFetch` accept/forward standard `RequestInit` fields or remove it; add deterministic abort tests.
 - [ ] Add a Functions/Workers TypeScript project to the build and CI.
 - [ ] Register COP/Apify runs to session/workspace/user at start, verify ownership on poll, and add an idempotency key/unique source identity to evidence ingestion.
-- [ ] Fix the web-scraper dataset response/auth contract and rename the metadata-completeness “reliability” score.
+- [x] Fix the web-scraper dataset response/auth contract and rename the metadata-completeness “reliability” score. Completed 2026-09-03; see the metadata-completeness checkpoint in the scraping roadmap.
 - [ ] Stop putting raw URLs in `event_logs`; purge them at the normal 30-day retention boundary or perform an approved earlier redaction migration.
 
 **Exit gate:** all caller-controlled fetches pass redirect-aware SSRF tests; Worker code type-checks; repeated polling cannot duplicate evidence; no raw URL is newly written to logs.

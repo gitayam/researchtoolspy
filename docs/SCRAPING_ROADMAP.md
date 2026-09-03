@@ -1,6 +1,6 @@
 # ResearchTools scraping system roadmap
 
-**Last updated:** 2026-09-02 · **Status:** 🔄 in progress · **Owner:** platform/backend
+**Last updated:** 2026-09-03 · **Status:** 🔄 in progress · **Owner:** platform/backend
 
 **Evidence and experiment design:** [`plans/2026-08-30-scraping-modernization.md`](plans/2026-08-30-scraping-modernization.md)
 
@@ -158,7 +158,7 @@ flowchart LR
 - [x] Replace INV-023's HTTP-only domain-country request with a bounded fixed-HTTPS Country.is adapter; validate public DNS/IP identity, propagate cancellation, and reframe the result as a one-address IP-location estimate rather than publisher origin.
 - [x] Add all `functions/`, `workers/`, and Container TypeScript entry points to build/CI validation through broad include-based projects, an isolated Container install/check job, and a static coverage contract; retain the narrower scraping-surface project for inventory-specific assertions.
 - [x] Correct the web-scraper dataset authentication/response contract and final-redirect provenance.
-- [ ] Rename the metadata-completeness score so it is not represented as source reliability.
+- [x] Rename the web-scraper metadata-completeness score so it is not represented as source reliability, remove domain-suffix reputation inference, and stop mapping it into dataset reliability.
 - [x] Reserve paid COP scrape requests before Apify, bind runs to authenticated user/workspace/session, enforce editor/admin/owner writes, and validate ownership when polling.
 - [x] Add trusted provider item identity and idempotent evidence ingest semantics with a managed local-D1 migration.
 - [x] Replace content-intelligence extraction-failure raw URL/reason context with dedicated-key URL/domain identifiers, opaque correlation, and normalized errors; omit identifiers when the key is unavailable.
@@ -253,6 +253,16 @@ flowchart LR
 - **Coverage invariant:** broad glob projects automatically include new Pages Function and standalone Worker TypeScript files. A smoke contract pins those globs, the root package scripts, the isolated Container lockfile cache/install, and all CI invocations so coverage cannot silently narrow.
 - **Operational boundary:** the Python OSINT image and shell/config assets remain governed by their container build/runtime checks; this checkpoint covers the roadmap's TypeScript entry-point requirement only. Repository-wide ESLint debt remains a separate non-blocking CI job and is not represented as solved here.
 - **Verification:** application, all-Functions, both standalone Worker, focused scraping, and Container TypeScript projects pass; 182 targeted runtime regressions pass across Chromium and mobile Safari; both standalone Worker bundle dry-runs pass; the Container Worker bundle/bindings/configuration validate with rollout disabled; the production client build and diff checks pass. Docker image rebuilding was not rerun because the local Docker daemon is stopped and neither image nor Container runtime source changed.
+
+### Metadata-completeness semantics checkpoint — 2026-09-03
+
+- **Delivery class:** P0 product/data-contract correction for SCRAPE-03 on authenticated `POST /api/web-scraper` and its dataset-creation paths.
+- **Falsified hypothesis:** a top-level domain suffix plus metadata presence can estimate source reliability. Identical pages previously received different scores solely because one hostname ended in `.gov`, `.edu`, or `.org`; neither the suffix nor metadata tags establish publisher credibility or information accuracy.
+- **Corrected contract:** `reliability_score` is replaced by `metadata_completeness_score`, a domain-neutral 0–100 extraction-coverage measure over title, description, author, keywords, and Open Graph fields. The UI explicitly says the measure is not source credibility.
+- **Persistence boundary:** automatic and user-triggered dataset creation no longer writes this heuristic to `reliability_rating`. The coverage value is retained only in dataset metadata under its accurate name, leaving source-reliability assessment unset for a researcher to determine.
+- **Compatibility decision:** the misleading response field is removed rather than aliased, because retaining it would continue to present extraction coverage as evidence reliability. Repository consumers and English/Spanish labels were migrated together.
+- **Adjacent contract fix:** the Web Scraper UI now consumes the datasets endpoint's actual `{ id }` success envelope instead of the nonexistent `{ dataset: { id } }` shape.
+- **Verification:** the full application/Functions/Workers scraping type boundary, focused lint, deterministic score/source guards, safe-fetch regressions, and production build pass before release.
 
 ### Required tests
 
