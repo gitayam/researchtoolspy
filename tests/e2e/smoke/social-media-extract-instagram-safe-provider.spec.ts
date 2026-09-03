@@ -196,7 +196,6 @@ test.describe('canonical Instagram no-provider route @smoke', () => {
     ]) {
       expect(source).not.toContain(forbidden)
     }
-    // The only remaining Cobalt transport belongs to the unchanged TikTok branch.
-    expect(source.match(/https:\/\/co\.wuk\.sh/g)).toHaveLength(1)
+    expect(source).not.toContain('https://co.wuk.sh')
   })
 })

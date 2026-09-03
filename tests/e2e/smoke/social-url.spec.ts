@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test'
 import {
   parseCanonicalInstagramUrl,
+  parseCanonicalTikTokUrl,
   parseCanonicalTwitterUrl,
   parseCanonicalYouTubeUrl,
 } from '../../../functions/api/_shared/social-url'
@@ -228,6 +229,55 @@ test.describe('canonical Twitter/X URL contract @smoke', () => {
   for (const input of rejected) {
     test(`@smoke rejects ${JSON.stringify(input)}`, () => {
       expect(parseCanonicalTwitterUrl(input)).toBeNull()
+    })
+  }
+})
+
+test.describe('canonical TikTok URL contract @smoke', () => {
+  const videoId = '6718335390845095173'
+  const accepted = [
+    'https://www.tiktok.com/@Scout2015/video/6718335390845095173',
+    'https://tiktok.com/@scout.2015/video/6718335390845095173/',
+    'HTTPS://WWW.TIKTOK.COM/@SCOUT_2015/video/6718335390845095173',
+  ]
+  for (const input of accepted) {
+    test(`@smoke canonicalizes ${input}`, () => {
+      const username = input.match(/\/@([^/]+)/)?.[1].toLowerCase()
+      expect(parseCanonicalTikTokUrl(input)).toEqual({
+        platform: 'tiktok',
+        username,
+        videoId,
+        canonicalUrl: `https://www.tiktok.com/@${username}/video/${videoId}`,
+      })
+    })
+  }
+
+  const rejected = [
+    '',
+    ' https://www.tiktok.com/@scout/video/6718335390845095173',
+    'http://www.tiktok.com/@scout/video/6718335390845095173',
+    'https://user@www.tiktok.com/@scout/video/6718335390845095173',
+    'https://www.tiktok.com:443/@scout/video/6718335390845095173',
+    'https://www.tiktok.com.evil.test/@scout/video/6718335390845095173',
+    'https://m.tiktok.com/@scout/video/6718335390845095173',
+    'https://vm.tiktok.com/short-code',
+    'https://tiktok%2ecom/@scout/video/6718335390845095173',
+    'https://ｔｉｋｔｏｋ.com/@scout/video/6718335390845095173',
+    'https://www.tiktok.com\\@evil.test/@scout/video/6718335390845095173',
+    'https://www.tiktok.com/@scout/video/6718335390845095173?is_from_webapp=1',
+    'https://www.tiktok.com/@scout/video/6718335390845095173#fragment',
+    'https://www.tiktok.com/@scout/video/6718335390845095173/extra',
+    'https://www.tiktok.com/scout/video/6718335390845095173',
+    `https://www.tiktok.com/@${'a'.repeat(25)}/video/6718335390845095173`,
+    'https://www.tiktok.com/@scout-name/video/6718335390845095173',
+    'https://www.tiktok.com/@scout/video/0',
+    'https://www.tiktok.com/@scout/video/0123',
+    `https://www.tiktok.com/@scout/video/${'1'.repeat(21)}`,
+    'https://www.tiktok.com/@scout/video/%31',
+  ]
+  for (const input of rejected) {
+    test(`@smoke rejects ${JSON.stringify(input)}`, () => {
+      expect(parseCanonicalTikTokUrl(input)).toBeNull()
     })
   }
 })

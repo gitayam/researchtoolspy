@@ -18,6 +18,13 @@ export interface CanonicalTwitterTarget {
   canonicalUrl: string
 }
 
+export interface CanonicalTikTokTarget {
+  platform: 'tiktok'
+  username: string
+  videoId: string
+  canonicalUrl: string
+}
+
 const MAX_SOCIAL_URL_LENGTH = 2048
 const YOUTUBE_ID_PATTERN = /^[A-Za-z0-9_-]{11}$/
 const YOUTUBE_HOSTS = new Set([
@@ -39,6 +46,7 @@ const TWITTER_HOSTS = new Set([
   'twitter.com',
   'www.twitter.com',
 ])
+const TIKTOK_HOSTS = new Set(['tiktok.com', 'www.tiktok.com'])
 
 function containsAsciiControlCharacter(value: string): boolean {
   return Array.from(value).some((character) => {
@@ -245,5 +253,50 @@ export function parseCanonicalTwitterUrl(input: string): CanonicalTwitterTarget 
     username,
     tweetId,
     canonicalUrl: `https://x.com/${username}/status/${tweetId}`,
+  }
+}
+
+/** Parse one exact public TikTok video URL into a query-free identity. */
+export function parseCanonicalTikTokUrl(input: string): CanonicalTikTokTarget | null {
+  if (
+    input.length === 0
+    || input.length > MAX_SOCIAL_URL_LENGTH
+    || input !== input.trim()
+    || input.includes('\\')
+    || containsAsciiControlCharacter(input)
+  ) return null
+
+  const rawMatch = /^https:\/\/([^/?#]+)([^?#]*)(\?[^#]*)?(#.*)?$/i.exec(input)
+  if (!rawMatch) return null
+  const [, rawAuthority, rawPath, rawQuery, rawFragment] = rawMatch
+  if (
+    rawQuery
+    || rawFragment
+    || rawAuthority.includes('@')
+    || rawAuthority.includes(':')
+    || rawAuthority.includes('%')
+    || !TIKTOK_HOSTS.has(rawAuthority.toLowerCase())
+    || rawPath.includes('%')
+  ) return null
+
+  let parsed: URL
+  try { parsed = new URL(input) } catch { return null }
+  if (
+    parsed.protocol !== 'https:'
+    || parsed.username !== ''
+    || parsed.password !== ''
+    || parsed.port !== ''
+    || !TIKTOK_HOSTS.has(parsed.hostname.toLowerCase())
+  ) return null
+
+  const match = /^\/@([A-Za-z0-9._]{1,24})\/video\/([1-9][0-9]{0,19})\/?$/.exec(rawPath)
+  if (!match) return null
+  const username = match[1].toLowerCase()
+  const videoId = match[2]
+  return {
+    platform: 'tiktok',
+    username,
+    videoId,
+    canonicalUrl: `https://www.tiktok.com/@${username}/video/${videoId}`,
   }
 }

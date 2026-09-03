@@ -301,7 +301,7 @@ test.describe('INV-020 canonical YouTube provider route @smoke', () => {
 
   test('@smoke preserves legacy unconstrained platform identity through cache and D1', async () => {
     const cases = [
-      { platform: 'tiktok', url: 'https://www.tiktok.com/@example/video/123', mode: 'full' },
+      { platform: 'reddit', url: 'https://www.reddit.com/r/example/comments/abc/post', mode: 'full' },
       { platform: 'bluesky', url: 'https://bsky.app/profile/example.test/post/abc', mode: 'metadata' },
     ]
     for (const entry of cases) {

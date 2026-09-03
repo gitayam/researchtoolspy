@@ -6,8 +6,8 @@
  * Supported platforms:
  * - YouTube: yt-dlp API (metadata, transcripts, engagement)
  * - Instagram: Canonical post/reel/TV identity with manual-upload guidance
- * - Twitter/X: yt-dlp/nitter (tweets, threads, media)
- * - TikTok: yt-dlp API (videos, metadata)
+ * - Twitter/X: Bounded first-party oEmbed metadata and canonical status links
+ * - TikTok: Bounded first-party oEmbed metadata and canonical player links
  * - Facebook: yt-dlp API (videos, posts)
  */
 
@@ -17,12 +17,15 @@ import { getUserFromRequest } from '../_shared/auth-helpers'
 import { JSON_HEADERS } from '../_shared/api-utils'
 import {
   parseCanonicalInstagramUrl,
+  parseCanonicalTikTokUrl,
   parseCanonicalTwitterUrl,
   parseCanonicalYouTubeUrl,
   type CanonicalInstagramTarget,
+  type CanonicalTikTokTarget,
   type CanonicalTwitterTarget,
   type CanonicalYouTubeTarget,
 } from '../_shared/social-url'
+import { fetchTikTokProvider } from '../_shared/tiktok-provider'
 import { fetchTwitterProvider } from '../_shared/twitter-provider'
 import { createYouTubeProviderDeadline, fetchYouTubeProvider } from '../_shared/youtube-provider'
 
@@ -47,6 +50,7 @@ type YouTubeMode = NonNullable<SocialExtractRequest['extract_mode']>
 const YOUTUBE_MODES: readonly YouTubeMode[] = ['metadata', 'full', 'download']
 const INSTAGRAM_MODES: readonly YouTubeMode[] = ['metadata', 'full', 'download']
 const TWITTER_MODES: readonly YouTubeMode[] = ['metadata', 'full', 'download']
+const TIKTOK_MODES: readonly YouTubeMode[] = ['metadata', 'full', 'download']
 const INSTAGRAM_OPTION_KEYS = new Set(['include_comments', 'include_transcript', 'include_media'])
 
 function validInstagramOptions(options: unknown): options is NonNullable<SocialExtractRequest['options']> {
@@ -93,6 +97,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const youtubeTarget = typeof url === 'string' ? parseCanonicalYouTubeUrl(url) : null
     const instagramTarget = typeof url === 'string' ? parseCanonicalInstagramUrl(url) : null
     const twitterTarget = typeof url === 'string' ? parseCanonicalTwitterUrl(url) : null
+    const tiktokTarget = typeof url === 'string' ? parseCanonicalTikTokUrl(url) : null
     if (youtubeTarget && normalizedPlatform !== 'youtube') {
       return new Response(JSON.stringify({ error: 'URL does not match the selected platform' }), {
         status: 400,
@@ -106,6 +111,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
     if (twitterTarget && normalizedPlatform !== 'twitter') {
+      return new Response(JSON.stringify({ error: 'URL does not match the selected platform' }), {
+        status: 400,
+        headers: JSON_HEADERS,
+      })
+    }
+    if (tiktokTarget && normalizedPlatform !== 'tiktok') {
       return new Response(JSON.stringify({ error: 'URL does not match the selected platform' }), {
         status: 400,
         headers: JSON_HEADERS,
@@ -126,6 +137,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
     if (normalizedPlatform === 'twitter' && (!TWITTER_MODES.includes(extract_mode)
+      || !validInstagramOptions(options))) {
+      return new Response(JSON.stringify({ error: 'Invalid extraction options' }), {
+        status: 400,
+        headers: JSON_HEADERS,
+      })
+    }
+    if (normalizedPlatform === 'tiktok' && (!TIKTOK_MODES.includes(extract_mode)
       || !validInstagramOptions(options))) {
       return new Response(JSON.stringify({ error: 'Invalid extraction options' }), {
         status: 400,
@@ -179,7 +197,17 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         }
         break
       case 'tiktok':
-        extractionResult = await extractTikTok(url, extract_mode, options)
+        if (!tiktokTarget) {
+          extractionResult = { success: false, error: 'Invalid TikTok URL' }
+          break
+        }
+        extractionResult = await extractTikTok(tiktokTarget, extract_mode, request.signal)
+        if (extractionResult === null) {
+          return new Response(JSON.stringify({ error: 'Social media extraction failed' }), {
+            status: 500,
+            headers: JSON_HEADERS,
+          })
+        }
         break
       case 'facebook':
         extractionResult = await extractFacebook(url, extract_mode, options)
@@ -196,7 +224,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     if ((youtubeTarget && normalizedPlatform === 'youtube'
       || instagramTarget && normalizedPlatform === 'instagram'
-      || twitterTarget && normalizedPlatform === 'twitter') && request.signal.aborted) {
+      || twitterTarget && normalizedPlatform === 'twitter'
+      || tiktokTarget && normalizedPlatform === 'tiktok') && request.signal.aborted) {
       return new Response(JSON.stringify({ error: 'Social media extraction failed' }), {
         status: 500,
         headers: JSON_HEADERS,
@@ -204,7 +233,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
 
     // Constrained first-party extraction is deliberately ephemeral; preserve legacy persistence elsewhere.
-    if (extractionResult.success && !['youtube', 'instagram', 'twitter'].includes(normalizedPlatform)) {
+    if (extractionResult.success && !['youtube', 'instagram', 'twitter', 'tiktok'].includes(normalizedPlatform)) {
       await saveExtraction(env.DB, {
         url,
         platform: normalizedPlatform,
@@ -391,38 +420,51 @@ async function extractTwitter(
 /**
  * TikTok extraction
  */
-async function extractTikTok(url: string, mode: string, options: any): Promise<any> {
-  try {
-    // TikTok video ID extraction
-    const videoIdMatch = url.match(/\/video\/(\d+)/)
-
-    const metadata = {
-      post_url: url,
-      platform: 'tiktok',
-      post_type: 'video',
-      video_id: videoIdMatch?.[1]
-    }
-
-    return {
-      success: true,
-      platform: 'tiktok',
-      post_type: 'video',
-      metadata,
-      content: {
-        note: 'TikTok requires specialized extraction tools. Use yt-dlp service for complete data.'
-      },
-      suggestions: [
-        'For full extraction including video downloads, use the Social Media page',
-        `Direct TikTok link: ${url}`
-      ]
-    }
-
-  } catch (error) {
+async function extractTikTok(
+  target: CanonicalTikTokTarget,
+  mode: YouTubeMode,
+  signal: AbortSignal,
+): Promise<Record<string, unknown> | null> {
+  const provider = await fetchTikTokProvider(target, { signal })
+  if (!provider.success || !provider.metadata) {
+    if (provider.failure?.code === 'aborted') return null
     return {
       success: false,
-      error: 'TikTok extraction failed',
-      platform: 'tiktok'
+      error: 'TikTok extraction failed. The video may be private, deleted, or unavailable.',
+      platform: 'tiktok',
+      post_type: 'video',
+      metadata: {
+        post_url: target.canonicalUrl,
+        video_id: target.videoId,
+        platform: 'tiktok',
+      },
+      suggestions: [`Open on TikTok: ${target.canonicalUrl}`],
     }
+  }
+  const includeMediaAction = mode === 'full' || mode === 'download'
+  return {
+    success: true,
+    platform: 'tiktok',
+    post_type: 'video',
+    extraction_method: 'TikTok oEmbed API',
+    metadata: {
+      post_url: target.canonicalUrl,
+      video_id: target.videoId,
+      platform: 'tiktok',
+      author: provider.metadata.authorName,
+      author_url: provider.metadata.authorUrl,
+      author_username: target.username,
+    },
+    content: {
+      text: provider.metadata.description,
+      word_count: provider.metadata.description.split(/\s+/).filter(word => word.length > 0).length,
+    },
+    media: includeMediaAction ? {
+      player_url: `https://www.tiktok.com/player/v1/${target.videoId}`,
+      direct_media_available: false,
+      extraction_note: 'Open the canonical TikTok post or first-party player to view media.',
+    } : undefined,
+    suggestions: [`Open on TikTok: ${target.canonicalUrl}`],
   }
 }
 

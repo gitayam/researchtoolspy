@@ -4,8 +4,8 @@
  * Provides specialized extraction for social media platforms:
  * - YouTube: Video download URLs, transcripts, metadata
  * - Instagram: Canonical post identity and manual extraction guidance
- * - TikTok: Video URLs, metadata (via external API)
- * - Twitter/X: Tweet data, media URLs
+ * - TikTok: Bounded first-party oEmbed metadata and canonical player links
+ * - Twitter/X: Bounded first-party oEmbed metadata and canonical status links
  * - Bluesky: Post media, text, author info, engagement metrics (via AT Protocol API)
  */
 
@@ -15,12 +15,15 @@ import { getUserFromRequest } from '../_shared/auth-helpers'
 import { JSON_HEADERS } from '../_shared/api-utils'
 import {
   parseCanonicalInstagramUrl,
+  parseCanonicalTikTokUrl,
   parseCanonicalTwitterUrl,
   parseCanonicalYouTubeUrl,
   type CanonicalInstagramTarget,
+  type CanonicalTikTokTarget,
   type CanonicalTwitterTarget,
   type CanonicalYouTubeTarget,
 } from '../_shared/social-url'
+import { fetchTikTokProvider } from '../_shared/tiktok-provider'
 import { fetchTwitterProvider } from '../_shared/twitter-provider'
 import { createYouTubeProviderDeadline, fetchYouTubeProvider } from '../_shared/youtube-provider'
 
@@ -189,6 +192,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       && ['twitter', 'x'].includes(providedPlatform.toLowerCase())
     const malformedTwitterAuthority = !providedPlatform && !twitterTarget
       && typeof url === 'string' && hasExactRawTwitterAuthority(url)
+    const tiktokTarget = typeof url === 'string' ? parseCanonicalTikTokUrl(url) : null
+    const tiktokHint = typeof providedPlatform === 'string' && providedPlatform.toLowerCase() === 'tiktok'
+    const malformedTikTokAuthority = !providedPlatform && !tiktokTarget
+      && typeof url === 'string' && hasExactRawTikTokAuthority(url)
 
     if (youtubeTarget && providedPlatform && !youtubeHint) {
       const result = createUserFriendlyError('youtube', 'Platform mismatch', 'The selected platform does not match the YouTube URL.')
@@ -200,6 +207,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
     if (twitterTarget && providedPlatform && !twitterHint) {
       const result = createUserFriendlyError('twitter', 'Platform mismatch', 'The selected platform does not match the Twitter/X URL.')
+      return new Response(JSON.stringify(result), { status: 422, headers: JSON_HEADERS })
+    }
+    if (tiktokTarget && providedPlatform && !tiktokHint) {
+      const result = createUserFriendlyError('tiktok', 'Platform mismatch', 'The selected platform does not match the TikTok URL.')
       return new Response(JSON.stringify(result), { status: 422, headers: JSON_HEADERS })
     }
     if ((youtubeHint || malformedYouTubeAuthority) && !youtubeTarget) {
@@ -214,6 +225,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       const result = invalidTwitterResult()
       return new Response(JSON.stringify(result), { status: 422, headers: JSON_HEADERS })
     }
+    if ((tiktokHint || malformedTikTokAuthority) && !tiktokTarget) {
+      const result = invalidTikTokResult()
+      return new Response(JSON.stringify(result), { status: 422, headers: JSON_HEADERS })
+    }
     if ((youtubeTarget || youtubeHint || malformedYouTubeAuthority) && !EXTRACTION_MODES.includes(mode)) {
       const result = createUserFriendlyError('youtube', 'Invalid mode', 'YouTube extraction mode is invalid.')
       return new Response(JSON.stringify(result), { status: 422, headers: JSON_HEADERS })
@@ -226,6 +241,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       const result = createUserFriendlyError('twitter', 'Invalid mode', 'Twitter/X extraction mode is invalid.')
       return new Response(JSON.stringify(result), { status: 422, headers: JSON_HEADERS })
     }
+    if ((tiktokTarget || tiktokHint || malformedTikTokAuthority) && !EXTRACTION_MODES.includes(mode)) {
+      const result = createUserFriendlyError('tiktok', 'Invalid mode', 'TikTok extraction mode is invalid.')
+      return new Response(JSON.stringify(result), { status: 422, headers: JSON_HEADERS })
+    }
 
     // Outside the constrained platform decisions, retain the caller's exact legacy platform identity.
     const platform = youtubeHint
@@ -234,7 +253,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         ? 'instagram'
         : twitterHint
           ? 'twitter'
-          : (providedPlatform || (youtubeTarget ? 'youtube' : instagramTarget ? 'instagram' : twitterTarget ? 'twitter' : detectPlatform(url)))
+          : tiktokHint
+            ? 'tiktok'
+            : (providedPlatform || (youtubeTarget ? 'youtube' : instagramTarget ? 'instagram' : twitterTarget ? 'twitter' : tiktokTarget ? 'tiktok' : detectPlatform(url)))
 
     if (!platform) {
       return new Response(JSON.stringify({
@@ -265,6 +286,15 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
+    if (platform === 'tiktok' && tiktokTarget) {
+      const tiktokResult = await extractTikTok(tiktokTarget, mode, request.signal)
+      if (tiktokResult === null) return genericExtractionFailure()
+      return new Response(JSON.stringify(tiktokResult), {
+        status: tiktokResult.success ? 200 : 422,
+        headers: JSON_HEADERS,
+      })
+    }
+
     let result: SocialMediaExtractionResult
     if (platform === 'youtube' && youtubeTarget) {
       const youtubeResult = await extractYouTube(youtubeTarget, mode, request.signal)
@@ -284,8 +314,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         3600, // 1 hour TTL
         async () => {
           switch (platform) {
-          case 'tiktok':
-            return await extractTikTok(url, mode)
           case 'bluesky':
             return await extractBluesky(url, mode)
           default:
@@ -351,9 +379,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 function detectPlatform(url: string): string | null {
   const urlLower = url.toLowerCase()
 
-  if (urlLower.includes('tiktok.com')) {
-    return 'tiktok'
-  }
   if (urlLower.includes('bsky.app') || urlLower.startsWith('at://')) {
     return 'bluesky'
   }
@@ -398,6 +423,14 @@ function hasExactRawTwitterAuthority(value: string): boolean {
   return ['x.com', 'www.x.com', 'twitter.com', 'www.twitter.com'].includes(match[1].toLowerCase())
 }
 
+function hasExactRawTikTokAuthority(value: string): boolean {
+  if (value.length === 0 || value.length > 2048 || value !== value.trim() || value.includes('\\')
+    || containsAsciiControl(value)) return false
+  const match = /^https?:\/\/([^/?#]+)/i.exec(value)
+  if (!match || match[1].includes('@') || match[1].includes(':') || match[1].includes('%')) return false
+  return ['tiktok.com', 'www.tiktok.com'].includes(match[1].toLowerCase())
+}
+
 function invalidYouTubeResult(): SocialMediaExtractionResult {
   return createUserFriendlyError(
     'youtube',
@@ -419,6 +452,14 @@ function invalidTwitterResult(): SocialMediaExtractionResult {
     'twitter',
     'Invalid URL format',
     'Could not find a valid tweet ID in the URL. Please use a canonical Twitter/X link (for example, x.com/user/status/123...).',
+  )
+}
+
+function invalidTikTokResult(): SocialMediaExtractionResult {
+  return createUserFriendlyError(
+    'tiktok',
+    'Invalid URL format',
+    'Could not find a valid TikTok video ID in the URL. Please use a canonical link (for example, tiktok.com/@user/video/123...).',
   )
 }
 
@@ -502,80 +543,46 @@ async function extractYouTube(
 // TikTok Extraction
 // ========================================
 
-async function extractTikTok(url: string, mode: string): Promise<SocialMediaExtractionResult> {
-  try {
-
-    // TikTok extraction via cobalt.tools with retry logic
-    const cobaltData = await fetchWithRetry(async () => {
-      const cobaltResponse = await fetch('https://co.wuk.sh/api/json', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify({
-          url,
-          vCodec: 'h264',
-          vQuality: '720',
-          aFormat: 'mp3',
-          isAudioOnly: false
-        }),
-        signal: AbortSignal.timeout(15000)
-      })
-
-      if (!cobaltResponse.ok) {
-        throw new Error(`Cobalt API returned status ${cobaltResponse.status}`)
-      }
-
-      return await cobaltResponse.json() as any
-    }, 2, 1000)
-
-
-    if (cobaltData.status === 'error') {
-      throw new Error(cobaltData.text || 'TikTok extraction failed')
-    }
-
-    if (cobaltData.status !== 'redirect' && cobaltData.status !== 'stream') {
-      throw new Error(`Unexpected response status: ${cobaltData.status}`)
-    }
-
-    const videoUrl = cobaltData.url
-    const audioUrl = cobaltData.audio
-
-    return {
-      success: true,
-      platform: 'tiktok',
-      postType: 'video',
-      mediaUrls: {
-        video: videoUrl,
-        audio: audioUrl
-      },
-      downloadOptions: [
-        {
-          quality: '720p',
-          format: 'mp4',
-          url: videoUrl,
-          hasAudio: true,
-          hasVideo: true
-        }
-      ],
-      metadata: {
-        extractedVia: 'cobalt.tools',
-        note: 'TikTok metadata limited due to anti-bot measures'
-      }
-    }
-
-  } catch (error) {
-    console.error('[TikTok] Extraction failed:', error)
+async function extractTikTok(
+  target: CanonicalTikTokTarget,
+  mode: YouTubeMode,
+  signal: AbortSignal,
+): Promise<SocialMediaExtractionResult | null> {
+  const provider = await fetchTikTokProvider(target, { signal })
+  if (!provider.success || !provider.metadata) {
+    if (provider.failure?.code === 'aborted') return null
     return createUserFriendlyError(
       'tiktok',
       'Extraction failed',
-      'TikTok video could not be extracted. The video may be private, deleted, or temporarily unavailable. Please try again later.'
+      'TikTok video could not be extracted. The video may be private, deleted, or temporarily unavailable.',
     )
+  }
+  const playerUrl = `https://www.tiktok.com/player/v1/${target.videoId}`
+  const includePlayer = mode === 'stream' || mode === 'download' || mode === 'full'
+  return {
+    success: true,
+    platform: 'tiktok',
+    postType: 'video',
+    downloadOptions: includePlayer
+      ? [{ quality: 'Open on TikTok', format: 'web', url: target.canonicalUrl, hasAudio: false, hasVideo: false }]
+      : undefined,
+    streamUrl: includePlayer ? playerUrl : undefined,
+    embedCode: includePlayer
+      ? `<iframe src="${playerUrl}" allow="encrypted-media; fullscreen" allowfullscreen></iframe>`
+      : undefined,
+    metadata: {
+      videoId: target.videoId,
+      authorName: provider.metadata.authorName,
+      authorHandle: provider.metadata.authorHandle,
+      authorUrl: provider.metadata.authorUrl,
+      description: provider.metadata.description,
+      videoUrl: target.canonicalUrl,
+      extractedVia: 'TikTok oEmbed API',
+      directMediaAvailable: false,
+    },
   }
 }
 
-// ========================================
 // Twitter/X Extraction
 // ========================================
 

@@ -4,8 +4,8 @@ import { expect, test } from '@playwright/test'
 import { onRequestPost as legacyRoute } from '../../../functions/api/content-intelligence/social-extract'
 import { onRequestPost as activeRoute } from '../../../functions/api/content-intelligence/social-media-extract'
 
-const INPUT_URL = 'https://twitter.com/OpenAI/status/1973141012345678901'
-const CANONICAL_URL = 'https://x.com/openai/status/1973141012345678901'
+const INPUT_URL = 'https://tiktok.com/@Scout2015/video/6718335390845095173'
+const CANONICAL_URL = 'https://www.tiktok.com/@scout2015/video/6718335390845095173'
 
 function harness(route: typeof legacyRoute | typeof activeRoute, signal?: AbortSignal) {
   const fetchCalls: URL[] = []
@@ -20,9 +20,11 @@ function harness(route: typeof legacyRoute | typeof activeRoute, signal?: AbortS
     }
     fetchCalls.push(url)
     return Response.json({
-      html: '<blockquote class="twitter-tweet"><p>Hello &amp; goodbye <a href="https://attacker.example">link</a></p></blockquote>',
-      author_name: 'OpenAI',
+      title: 'Scramble up your name #example',
+      author_name: 'Scout & Suki',
       author_url: 'https://attacker.example/not-emitted',
+      thumbnail_url: 'https://attacker.example/not-emitted.jpg',
+      html: '<script src="https://attacker.example/not-emitted.js"></script>',
     })
   }) as typeof fetch
   const env = {
@@ -31,85 +33,65 @@ function harness(route: typeof legacyRoute | typeof activeRoute, signal?: AbortS
       get: async () => { cacheCalls.push('get'); return null },
       put: async () => { cacheCalls.push('put') },
     },
-    DB: { prepare: () => { dbCalls.push('prepare'); throw new Error('Twitter route must not access D1') } },
+    DB: { prepare: () => { dbCalls.push('prepare'); throw new Error('TikTok route must not access D1') } },
   }
   const invoke = (body: Record<string, unknown>) => route({
     request: new Request('https://researchtools.example/api/content-intelligence/social', {
-      method: 'POST',
-      signal,
+      method: 'POST', signal,
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer session-token', Cookie: 'private=1' },
       body: JSON.stringify(body),
     }),
-    env,
-    params: {},
+    env, params: {},
   } as never)
   return { invoke, fetchCalls, cacheCalls, dbCalls, restore: () => { globalThis.fetch = originalFetch } }
 }
 
-test.describe('canonical Twitter/X routes @smoke', () => {
+test.describe('canonical TikTok routes @smoke', () => {
   test.describe.configure({ mode: 'serial' })
 
-  test('@smoke legacy route canonicalizes and stays ephemeral', async () => {
+  test('@smoke legacy route preserves bounded metadata and remains ephemeral', async () => {
     const subject = harness(legacyRoute)
     try {
-      const response = await subject.invoke({
-        url: INPUT_URL,
-        platform: 'X',
-        extract_mode: 'full',
-        options: { include_media: true },
-      })
+      const response = await subject.invoke({ url: INPUT_URL, platform: 'TikTok', extract_mode: 'full' })
       expect(response.status).toBe(200)
-      expect(await response.json()).toEqual({
+      const body = await response.json()
+      expect(body).toMatchObject({
         success: true,
-        platform: 'twitter',
-        post_type: 'tweet',
-        extraction_method: 'X oEmbed API',
+        platform: 'tiktok',
+        post_type: 'video',
+        extraction_method: 'TikTok oEmbed API',
         metadata: {
           post_url: CANONICAL_URL,
-          tweet_id: '1973141012345678901',
-          platform: 'twitter',
-          author: 'OpenAI',
-          author_url: 'https://x.com/openai',
-          author_username: 'openai',
+          video_id: '6718335390845095173',
+          author: 'Scout & Suki',
+          author_url: 'https://www.tiktok.com/@scout2015',
         },
-        content: { text: 'Hello & goodbye link', word_count: 4 },
-        media: {
-          image_count: 0,
-          extraction_note: 'Direct media is not returned by the public X oEmbed API. Open the canonical post to view or download media.',
-        },
-        limitations: [
-          'Public oEmbed provides bounded post text and author metadata, not direct media URLs.',
-          'Thread context is not included.',
-        ],
+        content: { text: 'Scramble up your name #example', word_count: 5 },
+        media: { player_url: 'https://www.tiktok.com/player/v1/6718335390845095173', direct_media_available: false },
       })
+      expect(JSON.stringify(body)).not.toContain('attacker.example')
       expect(subject.fetchCalls).toHaveLength(1)
-      expect(subject.fetchCalls[0].hostname).toBe('publish.x.com')
       expect(subject.fetchCalls[0].searchParams.get('url')).toBe(CANONICAL_URL)
       expect(subject.dbCalls).toEqual([])
     } finally { subject.restore() }
   })
 
-  test('@smoke active route returns canonical open action without cache or persistence', async () => {
+  test('@smoke active route emits only first-party player and canonical open action', async () => {
     const subject = harness(activeRoute)
     try {
-      const response = await subject.invoke({ url: INPUT_URL, platform: 'twitter', mode: 'full' })
+      const response = await subject.invoke({ url: INPUT_URL, mode: 'full' })
       expect(response.status).toBe(200)
       expect(await response.json()).toEqual({
         success: true,
-        platform: 'twitter',
-        postType: 'tweet',
-        downloadOptions: [{ quality: 'Open on X', format: 'web', url: CANONICAL_URL, hasAudio: false, hasVideo: false }],
+        platform: 'tiktok',
+        postType: 'video',
+        downloadOptions: [{ quality: 'Open on TikTok', format: 'web', url: CANONICAL_URL, hasAudio: false, hasVideo: false }],
+        streamUrl: 'https://www.tiktok.com/player/v1/6718335390845095173',
+        embedCode: '<iframe src="https://www.tiktok.com/player/v1/6718335390845095173" allow="encrypted-media; fullscreen" allowfullscreen></iframe>',
         metadata: {
-          tweetId: '1973141012345678901',
-          authorName: 'OpenAI',
-          authorHandle: '@openai',
-          authorUrl: 'https://x.com/openai',
-          text: 'Hello & goodbye link',
-          tweetUrl: CANONICAL_URL,
-          hasMedia: false,
-          mediaCount: 0,
-          extractedVia: 'X oEmbed API',
-          directMediaAvailable: false,
+          videoId: '6718335390845095173', authorName: 'Scout & Suki', authorHandle: '@scout2015',
+          authorUrl: 'https://www.tiktok.com/@scout2015', description: 'Scramble up your name #example',
+          videoUrl: CANONICAL_URL, extractedVia: 'TikTok oEmbed API', directMediaAvailable: false,
         },
       })
       expect(subject.fetchCalls).toHaveLength(1)
@@ -120,11 +102,11 @@ test.describe('canonical Twitter/X routes @smoke', () => {
 
   test('@smoke rejects malformed, spoofed, mismatched, and invalid-mode inputs before side effects', async () => {
     const cases = [
-      { url: 'http://x.com/openai/status/1973141012345678901', platform: 'twitter' },
-      { url: `${INPUT_URL}?s=20`, platform: 'x' },
-      { url: 'https://x.com.evil.test/openai/status/1973141012345678901', platform: 'twitter' },
-      { url: INPUT_URL, platform: 'instagram' },
-      { url: INPUT_URL, platform: 'twitter', mode: 'unsafe', extract_mode: 'unsafe' },
+      { url: 'http://www.tiktok.com/@scout/video/6718335390845095173', platform: 'tiktok' },
+      { url: `${INPUT_URL}?is_from_webapp=1`, platform: 'tiktok' },
+      { url: 'https://www.tiktok.com.evil.test/@scout/video/6718335390845095173', platform: 'tiktok' },
+      { url: INPUT_URL, platform: 'twitter' },
+      { url: INPUT_URL, platform: 'tiktok', mode: 'unsafe', extract_mode: 'unsafe' },
     ]
     for (const route of [legacyRoute, activeRoute]) {
       for (const body of cases) {
@@ -140,14 +122,13 @@ test.describe('canonical Twitter/X routes @smoke', () => {
     }
   })
 
-  test('@smoke pre-aborted canonical requests perform no provider, cache, or persistence work', async () => {
+  test('@smoke pre-aborted requests perform no provider, cache, or persistence work', async () => {
     const controller = new AbortController()
     controller.abort(new Error('caller stopped'))
     for (const route of [legacyRoute, activeRoute]) {
       const subject = harness(route, controller.signal)
       try {
-        const response = await subject.invoke({ url: INPUT_URL, platform: 'twitter' })
-        expect(response.status).toBe(500)
+        expect((await subject.invoke({ url: INPUT_URL, platform: 'tiktok' })).status).toBe(500)
         expect(subject.fetchCalls).toEqual([])
         expect(subject.cacheCalls).toEqual([])
         expect(subject.dbCalls).toEqual([])
@@ -155,13 +136,10 @@ test.describe('canonical Twitter/X routes @smoke', () => {
     }
   })
 
-  test('@smoke source contains no retired Twitter/X provider or raw embed implementation', () => {
-    const files = ['social-extract.ts', 'social-media-extract.ts']
-      .map(file => readFileSync(resolve(process.cwd(), 'functions/api/content-intelligence', file), 'utf8'))
-      .join('\n')
-    for (const forbidden of ['api.vxtwitter.com', 'publish.twitter.com', 'extractTweetId', 'extractTweetTextFromHTML', 'embedCode: embedHtml']) {
-      expect(files).not.toContain(forbidden)
-    }
-    expect(files).not.toContain('co.wuk.sh')
+  test('@smoke route sources contain no retired TikTok Cobalt transport', () => {
+    const source = ['social-extract.ts', 'social-media-extract.ts']
+      .map(file => readFileSync(resolve(process.cwd(), 'functions/api/content-intelligence', file), 'utf8')).join('\n')
+    expect(source).not.toContain('co.wuk.sh')
+    expect(source).not.toContain('extractedVia: \'cobalt.tools\'')
   })
 })

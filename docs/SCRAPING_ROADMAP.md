@@ -147,6 +147,7 @@ flowchart LR
 - [x] Migrate the YouTube paths in both content-intelligence social routes to one bounded provider contract with canonical identity, terminal caller cancellation, exact caption/metadata origins, zero Cobalt/direct-media disclosure, and ephemeral execution with no KV/D1 mutation. Keep both multi-platform routes constrained until their non-YouTube branches are migrated.
 - [x] Retire the Instagram downloader, legacy GraphQL/HTML, and unauthenticated oEmbed paths in both social routes; after authentication, require exact canonical post/reel/TV identity and return deterministic manual-upload guidance with zero provider, extraction-cache, or extraction-persistence work until an approved first-party provider contract is configured.
 - [x] Migrate Twitter/X in both social routes to one exact canonical identity and the bounded first-party `publish.x.com` oEmbed contract; retire Cobalt, VxTwitter, raw embed HTML, and arbitrary returned-media URLs; keep extraction ephemeral and expose only canonical open-on-X guidance for media modes.
+- [x] Migrate TikTok in both social routes to one exact canonical video identity and the bounded first-party `www.tiktok.com/oembed` contract; retire Cobalt and arbitrary returned-media URLs, keep extraction ephemeral, and construct only documented first-party player/open links.
 - [x] Scope `content-intelligence/analyze-url` `load_existing` reads to the authenticated analysis owner and require owner/editor/admin workspace authority for new writes.
 - [x] Keep `content-intelligence/analyze-url` usable without login through ephemeral, non-persisted results; retain auth for existing/trusted-content reads, require writable workspace authority for every write, and apply a dedicated per-IP public budget.
 - [x] Keep Content Intelligence Full-mode DIME enhancement usable without login through ephemeral results; pass the fresh analysis response into the framework runner, and owner-scope every saved DIME update. Persistent Starbursting sessions remain an explicit authenticated workspace feature.
@@ -200,6 +201,16 @@ flowchart LR
 - **Cancellation invariant:** Twitter/X is structurally excluded from extraction KV and D1. Pre-aborted and in-flight aborted requests are terminal; canonical identity contains no query or fragment data.
 - **Verification:** full-project and scraping-surface type checks passed; 288 targeted tests passed across Chromium and mobile Safari with deterministic provider mocks and no live provider dependency.
 - **Remaining constrained scope:** TikTok, Facebook, and Bluesky keep INV-019/020 classified `constrained-provider`. The shared `apify-social.ts` helper is a separate INV-026 provider surface and remains outside this route tranche.
+
+### TikTok route checkpoint — 2026-09-02
+
+- **Delivery class:** first-party provider migration for both authenticated content-intelligence social routes. Exact `tiktok.com/@user/video/id` links canonicalize to one query-free `www.tiktok.com` identity.
+- **Falsifiable hypothesis:** TikTok's public oEmbed contract can preserve description and author metadata while the documented player URL preserves viewing functionality without Cobalt or provider-returned media URLs. The hypothesis fails if valid canonical fixtures cannot be resolved through the first-party endpoint or materially useful descriptions are absent.
+- **Provider boundary:** requests use only `https://www.tiktok.com/oembed`, canonical target input, public-DNS checks, zero redirects, a 10-second timeout, JSON-only MIME, and a 128 KiB ceiling. Only bounded title and author strings are consumed; provider HTML, thumbnail URLs, and returned author URLs are discarded.
+- **Retired behavior:** TikTok no longer sends caller URLs to Cobalt, retries third-party download requests, returns arbitrary video/audio URLs, or labels unverified downloads as 720p. Media modes use only the documented `www.tiktok.com/player/v1/{post_id}` URL and canonical open-on-TikTok action.
+- **Cancellation invariant:** TikTok is structurally excluded from extraction KV and D1. Invalid, mismatched, and pre-aborted requests perform zero provider, cache, and persistence work.
+- **Verification:** full-project and scraping-surface type checks passed; 336 focused TikTok parser/provider/route tests passed across Chromium and mobile Safari; 452 broad social-provider regression tests passed across both projects; the production build passed; and a live probe of TikTok's documented oEmbed fixture returned HTTP 200 JSON with zero redirects.
+- **Remaining constrained scope:** Facebook in INV-019 and Bluesky in INV-020 retain legacy behavior. The paid TikTok flow in shared INV-026 remains a separate bounded provider-job surface.
 
 ### Required tests
 
