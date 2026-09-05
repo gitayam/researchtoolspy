@@ -54,6 +54,28 @@ Falsifiable gates:
 
 ## Recently shipped
 
+### Guest sessions and workspace-wide 401 remediation (2026-09-05)
+
+- ✅ Replaced the guest first-render race with synchronous, cryptographically
+  strong seven-day guest session creation.
+- ✅ Added explicit `X-Guest-Session` transport. The API hashes the browser
+  session into an opaque guest principal and retains the existing row-level
+  ownership checks without changing the client into authenticated mode.
+- ✅ Added an independent guest workspace ID and idempotent, owner-checked
+  workspace bootstrap in the shared auth resolver. Workspace-scoped pages now
+  have valid context on their first request instead of emitting 400/401 errors.
+- ✅ Forwarded the guest identity through internal API delegation and all active
+  CORS allow-header definitions; AI and paid-scraper rate limits now scope guest
+  calls by guest session.
+- ✅ Hardened Cross Table rendering for legacy root-level scoring and Delphi
+  configuration, preventing old records from crashing the editor.
+- ✅ Production log review found no durable records for these expected 401s
+  because those routes do not log authorization denials. The browser/API sweep
+  established the affected route inventory; post-deploy verification must repeat
+  the guest sweep and confirm zero unexpected 400/401 responses.
+- ⬜ Follow-up: implement durable guest-data conversion when **Save Bookmark** is
+  used and a documented retention cleanup for abandoned server-side guest rows.
+
 ### v0.22.71 — Agentic Research LOW hygiene fixes (2026-06-30)
 - ✅ **`relevanceScore || 0.5` falsy-zero bug fixed** in `functions/api/collection/callback.ts`: `||` → `??` (nullish coalescing). A 0.0 relevance score was previously being replaced with 0.5 due to falsy-zero coercion; now only `null`/`undefined` fall back to the default. (`1c73e53fc`)
 - ✅ **`approve → batch-process` auth forwarding fixed** in `functions/api/collection/[jobId]/approve.ts`: the internal cross-origin fetch to `/api/tools/batch-process` now forwards `X-User-Hash` from the incoming request so the batch endpoint receives the user's auth identity. Previously the header was missing, causing silent auth failures. (`1c73e53fc`)

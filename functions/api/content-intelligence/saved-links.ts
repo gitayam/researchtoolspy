@@ -36,7 +36,7 @@ function isAnalyzeUrlResponse(value: unknown): value is AnalyzeUrlResponse {
 
 function internalAnalyzeHeaders(request: Request): Headers {
   const headers = new Headers({ 'Content-Type': 'application/json' })
-  for (const name of ['Authorization', 'X-User-Hash', 'X-Workspace-ID']) {
+  for (const name of ['Authorization', 'X-User-Hash', 'X-Guest-Session', 'X-Workspace-ID']) {
     const value = request.headers.get(name)
     if (value !== null) headers.set(name, value)
   }

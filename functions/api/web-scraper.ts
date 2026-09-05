@@ -52,7 +52,7 @@ interface WebScraperContext {
   env: WebScraperEnv
 }
 
-const DATASET_CONTEXT_HEADERS = ['Authorization', 'X-User-Hash', 'X-Workspace-ID'] as const
+const DATASET_CONTEXT_HEADERS = ['Authorization', 'X-User-Hash', 'X-Guest-Session', 'X-Workspace-ID'] as const
 
 export function buildScrapingProvenance(
   finalUrl: string,

@@ -3,6 +3,10 @@ import type { ReactNode } from 'react'
 import { safeJSONParse, safeJSONStringify } from '@/utils/safe-json'
 import { useAuthStore } from '@/stores/auth'
 import { getCopHeaders } from '@/lib/cop-auth'
+import {
+  clearGuestStorage,
+  getOrCreateGuestSessionId,
+} from '@/lib/guest-session'
 
 export type UserMode = 'guest' | 'authenticated'
 
@@ -21,47 +25,25 @@ interface GuestModeContextType {
 
 const GuestModeContext = createContext<GuestModeContextType | undefined>(undefined)
 
-const GUEST_SESSION_KEY = 'guest_session_id'
 const GUEST_DATA_PREFIX = 'guest_'
-const GUEST_SESSION_EXPIRY = 7 * 24 * 60 * 60 * 1000 // 7 days
 
 interface GuestModeProviderProps {
   children: ReactNode
 }
 
 export function GuestModeProvider({ children }: GuestModeProviderProps) {
-  const [guestSessionId, setGuestSessionId] = useState<string | null>(null)
-  
   // Use auth store as source of truth
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
   const mode: UserMode = isAuthenticated ? 'authenticated' : 'guest'
+  const [guestSessionId, setGuestSessionId] = useState<string | null>(() =>
+    isAuthenticated ? null : getOrCreateGuestSessionId()
+  )
 
   // Initialize guest session
   useEffect(() => {
     if (isAuthenticated) return
 
-    // Initialize or load guest session
-    let sessionId = localStorage.getItem(GUEST_SESSION_KEY)
-    const sessionTimestamp = localStorage.getItem(`${GUEST_SESSION_KEY}_timestamp`)
-
-    // Check if session expired
-    if (sessionTimestamp) {
-      const elapsed = Date.now() - parseInt(sessionTimestamp)
-      if (elapsed > GUEST_SESSION_EXPIRY) {
-        // Session expired, clear data
-        clearGuestData()
-        sessionId = null
-      }
-    }
-
-    // Create new session if needed
-    if (!sessionId) {
-      sessionId = `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-      localStorage.setItem(GUEST_SESSION_KEY, sessionId)
-      localStorage.setItem(`${GUEST_SESSION_KEY}_timestamp`, Date.now().toString())
-    }
-
-    setGuestSessionId(sessionId)
+    setGuestSessionId(getOrCreateGuestSessionId())
   }, [isAuthenticated])
 
   const setMode = (newMode: UserMode) => {
@@ -131,15 +113,7 @@ export function GuestModeProvider({ children }: GuestModeProviderProps) {
   }
 
   const clearGuestData = () => {
-    // Clear all guest-prefixed data
-    const keysToRemove: string[] = []
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i)
-      if (key && (key.startsWith(GUEST_DATA_PREFIX) || key === GUEST_SESSION_KEY || key === `${GUEST_SESSION_KEY}_timestamp`)) {
-        keysToRemove.push(key)
-      }
-    }
-    keysToRemove.forEach((key) => localStorage.removeItem(key))
+    clearGuestStorage()
     setGuestSessionId(null)
   }
 

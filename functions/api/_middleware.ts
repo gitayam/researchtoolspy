@@ -91,7 +91,7 @@ export async function onRequest(context: any) {
   const corsHeaders = {
     'Access-Control-Allow-Origin': allowOrigin,
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Workspace-ID',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Guest-Session, X-Workspace-ID',
   }
 
   const json429 = (msg: string) =>
@@ -127,7 +127,7 @@ export async function onRequest(context: any) {
   // AI endpoints: prevent OpenAI billing abuse. Per-user (hash), generous so it only
   // catches abuse/runaway, not normal use. Backstopped by the gateway's global limiter.
   if (request.method === 'POST' && AI_RATE_LIMITED_PATHS.some(p => url.pathname.includes(p))) {
-    const id = request.headers.get('X-User-Hash') || clientIp
+    const id = request.headers.get('X-User-Hash') || request.headers.get('X-Guest-Session') || clientIp
     if (await kvRateLimit(env, `ai:${id}`, 40, 60)) {
       return json429('AI rate limit exceeded. Please wait before making more requests.')
     }
@@ -135,7 +135,7 @@ export async function onRequest(context: any) {
 
   // Apify scrapers cost real money per run — throttle per-user, tighter than AI.
   if (request.method === 'POST' && isApifyScraperPath(url.pathname)) {
-    const id = request.headers.get('X-User-Hash') || clientIp
+    const id = request.headers.get('X-User-Hash') || request.headers.get('X-Guest-Session') || clientIp
     if (await kvRateLimit(env, `scrape:${id}`, 10, 60)) {
       return json429('Scraper rate limit exceeded. Please wait before starting more scrapes.')
     }

@@ -346,7 +346,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           'Content-Disposition': `attachment; filename="${result.filename}"`,
           'Access-Control-Allow-Origin': '*',
           'Access-Control-Allow-Methods': 'POST, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Workspace-ID',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Guest-Session, X-Workspace-ID',
           'Access-Control-Expose-Headers': 'Content-Disposition',
           'X-Export-Id': exportId,
         },

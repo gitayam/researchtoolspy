@@ -93,6 +93,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         headers: {
           'Content-Type': 'application/json',
           'X-User-Hash': context.request.headers.get('X-User-Hash') ?? '',
+          'X-Guest-Session': context.request.headers.get('X-Guest-Session') ?? '',
         },
         body: JSON.stringify({
           operation: 'analyze-url',

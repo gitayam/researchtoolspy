@@ -8,35 +8,54 @@
 
 ## Authentication
 
-All endpoints that mutate data or read private resources require a **user hash** passed as a request header:
+External API clients that mutate data or read private resources require a **user hash** passed as a request header:
 
 ```http
 X-User-Hash: <your-16+-character-hash>
 ```
 
-A hash auto-creates a guest account on first use (no registration step required). Hashes are permanent — back yours up via `/dashboard/settings`.
+A hash auto-creates an account on first use (no registration step required). Hashes are permanent — back yours up via `/dashboard/settings`.
 
 **Minimum length:** 16 characters. Shorter hashes are rejected with `400 Bad Request`.
 
 ### Obtaining a hash
 
-- **New user:** visit `/dashboard` — a hash is generated and stored in `localStorage`.
+- **New user:** use **Save Bookmark** in the dashboard to create a permanent hash.
 - **CLI / scripts:** copy the hash from your settings page and export it:
   ```bash
   export RESEARCHTOOLS_USER_HASH="your-hash-here"
   ```
 
-### No JWT / no Bearer tokens
+### Browser guest sessions
 
-There is no JWT exchange step. The raw hash IS the credential. Pass it as `X-User-Hash` on every request that needs auth.
+The dashboard can be used without login. The frontend creates a cryptographically
+random, seven-day guest session and sends both headers below on API requests:
+
+```http
+X-Guest-Session: guest_<uuid>
+X-Workspace-ID: guest-workspace-<uuid>
+```
+
+The server hashes the guest session before resolving its isolated guest principal,
+validates the workspace identifier, and creates only that principal's temporary
+workspace. A supplied workspace ID is never attached when it belongs to another
+principal. Guest and permanent-account state remain distinct in the client.
+
+These headers are an internal browser-session transport, not a replacement for a
+permanent API credential. CLI and integration clients should use `X-User-Hash`.
+
+### JWT and Bearer tokens
+
+The API also accepts supported JWT/session bearer credentials. For hash-auth clients,
+the raw hash is the credential and must be passed as `X-User-Hash`.
 
 ### Auth helpers (`functions/api/_shared/auth-helpers.ts`)
 
 | Helper | Behaviour |
 |--------|-----------|
-| `getUserFromRequest(req)` | Returns user row or `null` — never throws |
-| `getUserIdOrDefault(req, env)` | Guest-friendly; falls back to user ID 1 |
-| `requireAuth(req)` | Throws `401` if no valid hash |
+| `getUserFromRequest(req, env)` | Resolves JWT, hash, or valid guest session; returns a user ID or `null`; datastore failures throw `AuthDbError` |
+| `getUserIdOrDefault(req, env)` | Compatibility alias; returns a user ID or `null` and never falls back to another user |
+| `requireAuth(req, env)` | Returns a resolved user ID, throws `401` for no identity, or retryable `503` for auth-datastore failure |
 
 ---
 

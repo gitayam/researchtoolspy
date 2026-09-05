@@ -8,7 +8,7 @@ interface Env {
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Guest-Session',
   'Content-Type': 'application/json',
 }
 

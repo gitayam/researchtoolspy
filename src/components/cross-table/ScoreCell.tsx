@@ -71,11 +71,24 @@ export function ScoreCell({
   const [localNotes, setLocalNotes] = useState(notes ?? '')
   const cellRef = useRef<HTMLDivElement>(null)
 
-  const method = getColumnScoringMethod(column, config.scoring.method)
+  // Read legacy root-level scoring fields as well as the current nested shape.
+  // This prevents older saved matrices from taking down the entire editor.
+  const legacyConfig = config as CrossTableConfig & {
+    scoring_method?: ScoringMethod
+    numeric_config?: { min: number; max: number }
+    scoring_range?: { min: number; max: number }
+    likert_labels?: string[]
+  }
+  const scoring = config.scoring ?? {
+    method: legacyConfig.scoring_method ?? 'numeric',
+    scale: legacyConfig.numeric_config ?? legacyConfig.scoring_range ?? null,
+    labels: legacyConfig.likert_labels ?? null,
+  }
+  const method = getColumnScoringMethod(column, scoring.method)
   const normConfig = getColumnNormConfig(column, {
-    min: config.scoring.scale?.min,
-    max: config.scoring.scale?.max,
-    likert_labels: config.scoring.labels ?? undefined,
+    min: scoring.scale?.min,
+    max: scoring.scale?.max,
+    likert_labels: scoring.labels ?? undefined,
   })
 
   const norm = normalizeScore(value, method, normConfig)

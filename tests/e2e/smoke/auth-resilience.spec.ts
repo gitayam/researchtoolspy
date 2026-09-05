@@ -45,6 +45,10 @@ function makeResolvingDb(id: number): Env['DB'] {
   return { prepare: () => stmt } as unknown as Env['DB']
 }
 
+function activeGuestUser() {
+  return { created_at: new Date().toISOString(), role: 'guest' }
+}
+
 test.describe('Auth resilience: 503 on D1 error, not spurious 401 @smoke', () => {
   test('@smoke transient D1 failure on a valid hash yields a retryable 503', async () => {
     const env = { DB: makeThrowingDb() } as unknown as Env
@@ -95,5 +99,85 @@ test.describe('Auth resilience: 503 on D1 error, not spurious 401 @smoke', () =>
 
     const required = await requireAuth(request, env)
     expect(required).toBe(42)
+  })
+
+  test('@smoke guest session resolves an opaque isolated principal', async () => {
+    const boundValues: unknown[] = []
+    const db = {
+      prepare: () => ({
+        bind: (...values: unknown[]) => {
+          boundValues.push(...values)
+          return { first: async () => values[0] === 73 ? activeGuestUser() : { id: 73 } }
+        },
+      }),
+    } as unknown as Env['DB']
+    const sessionId = 'guest_018f47ce-f8f4-7ad5-9f6d-83e61296f891'
+    const request = new Request('https://researchtools.net/api/cross-table', {
+      headers: { 'X-Guest-Session': sessionId },
+    })
+
+    await expect(getUserFromRequest(request, { DB: db })).resolves.toBe(73)
+    expect(boundValues[0]).toMatch(/^guest-session:[a-f0-9]{64}$/)
+    expect(String(boundValues[0])).not.toContain(sessionId)
+  })
+
+  test('@smoke malformed guest session is not authenticated', async () => {
+    const env = { DB: makeResolvingDb(7) } as unknown as Env
+    const request = new Request('https://researchtools.net/api/anything', {
+      headers: { 'X-Guest-Session': 'guest_short' },
+    })
+
+    await expect(getUserFromRequest(request, env)).resolves.toBeNull()
+  })
+
+  test('@smoke guest workspace is provisioned only for its owning principal', async () => {
+    const statements: Array<{ sql: string; values: unknown[] }> = []
+    const db = {
+      prepare: (sql: string) => ({
+        bind: (...values: unknown[]) => {
+          statements.push({ sql, values })
+          return {
+            first: async () => {
+              if (sql.includes('JOIN workspace_members')) return null
+              if (sql.includes('SELECT created_at, role')) return activeGuestUser()
+              return sql.includes('SELECT owner_id') ? { owner_id: 73 } : { id: 73 }
+            },
+            run: async () => ({ success: true }),
+          }
+        },
+      }),
+    } as unknown as Env['DB']
+    const workspaceId = 'guest-workspace-018f47ce-f8f4-7ad5-9f6d-83e61296f891'
+    const request = new Request('https://researchtools.net/api/evidence-items', {
+      headers: {
+        'X-Guest-Session': 'guest_018f47ce-f8f4-7ad5-9f6d-83e61296f891',
+        'X-Workspace-ID': workspaceId,
+      },
+    })
+
+    await expect(getUserFromRequest(request, { DB: db })).resolves.toBe(73)
+    expect(statements.some(({ sql, values }) =>
+      sql.includes('INSERT OR IGNORE INTO workspaces') && values[0] === workspaceId && values[1] === 73
+    )).toBe(true)
+    expect(statements.some(({ sql, values }) =>
+      sql.includes('INSERT OR IGNORE INTO workspace_members') && values[1] === workspaceId && values[2] === 73
+    )).toBe(true)
+  })
+
+  test('@smoke expired guest session is rejected server-side', async () => {
+    const db = {
+      prepare: (sql: string) => ({
+        bind: () => ({
+          first: async () => sql.includes('SELECT created_at, role')
+            ? { created_at: '2020-01-01T00:00:00.000Z', role: 'guest' }
+            : { id: 73 },
+        }),
+      }),
+    } as unknown as Env['DB']
+    const request = new Request('https://researchtools.net/api/anything', {
+      headers: { 'X-Guest-Session': 'guest_018f47ce-f8f4-7ad5-9f6d-83e61296f891' },
+    })
+
+    await expect(getUserFromRequest(request, { DB: db })).resolves.toBeNull()
   })
 })

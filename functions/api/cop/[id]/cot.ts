@@ -33,7 +33,7 @@ const xmlHeaders = {
   'Content-Type': 'application/xml',
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Workspace-ID',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Guest-Session, X-Workspace-ID',
 }
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {

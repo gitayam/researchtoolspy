@@ -5,6 +5,26 @@
 
 ---
 
+## Fixed (2026-09-05) — Guest session and workspace API failures
+
+- [x] Guest-visible pages now attach a separate `X-Guest-Session` identity on
+  their first API call; no login or bookmark hash is required.
+- [x] Guest principals receive an isolated, owner-checked workspace before the
+  endpoint proceeds, fixing workspace-context failures across Research Question
+  Generator, Cross Table, evidence, intelligence, datasets, COP, and related tools.
+- [x] Guest sessions use `crypto.randomUUID()` and rotate after seven days;
+  expiration clears guest-prefixed browser data and the temporary workspace key.
+- [x] Guest headers are allowed by shared/route CORS definitions and forwarded by
+  same-origin API delegations. AI and scraper rate limits include guest identity.
+- [x] Legacy Cross Table config is accepted by the editor instead of throwing on
+  missing nested `scoring` or `delphi` objects.
+- [x] Regression tests cover creation, reuse, expiry, malformed IDs, opaque server
+  principals, owner-scoped workspace bootstrap, and auth datastore resilience.
+- [ ] Post-deploy guest route/action sweep remains required before this entry is
+  promoted from **Fixed** to **Released**.
+
+---
+
 ## Released (2026-09-04) — Grounded scraping and Answer Packet pipeline
 
 - [x] Added versioned scraping, crawl-job, OSINT-event, source-artifact,

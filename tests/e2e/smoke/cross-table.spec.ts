@@ -3,6 +3,7 @@ import { test, expect } from '../fixtures/base-test'
 // ── Mock data ───────────────────────────────────────────────────────
 
 const TABLE_ID = 'ct-test-001'
+const NEW_TABLE_ID = 'c7a55f51-1b3f-4dcc-8f95-75cb80996759'
 
 const mockCrossTable = {
   id: TABLE_ID,
@@ -166,7 +167,7 @@ async function mockCrossTableRoutes(
     // POST — create (NewCrossTableView reads data.table.id)
     return route.fulfill({
       status: 201,
-      json: { table: { ...mockCrossTable, id: 'ct-new-001' } },
+      json: { table: { ...mockCrossTable, id: NEW_TABLE_ID } },
     })
   })
 }
@@ -278,6 +279,8 @@ test.describe('Cross Table -- Template Selection', () => {
     await crossTablePage.waitForLoad()
 
     await crossTablePage.selectTemplate('Course of Action Analysis')
+    await crossTablePage.page.getByPlaceholder(/Choosing a new office location/i).fill('Test decision')
+    await crossTablePage.page.getByRole('button', { name: /Skip, use template defaults/i }).click()
 
     // Should navigate to editor for newly created table
     await crossTablePage.page.waitForURL(/cross-table\/[a-f0-9-]+/, { timeout: 10000 })

@@ -1,4 +1,4 @@
-const FORWARDED_AUTH_HEADERS = ['Authorization', 'X-User-Hash', 'X-Workspace-ID'] as const
+const FORWARDED_AUTH_HEADERS = ['Authorization', 'X-User-Hash', 'X-Guest-Session', 'X-Workspace-ID'] as const
 
 /**
  * Build headers for a fixed, same-origin API delegation. Only the authentication

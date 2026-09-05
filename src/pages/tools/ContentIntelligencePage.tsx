@@ -28,7 +28,7 @@ import { ClaimAnalysisDisplay } from '@/components/content-intelligence/ClaimAna
 import { AnalysisLayout } from '@/components/content-intelligence/AnalysisLayout'
 import { createLogger } from '@/lib/logger'
 import { getCopHeaders } from '@/lib/cop-auth'
-import { getAuthIdentifier, ensureAuthIdentifier } from '@/lib/auth-utils'
+import { getAuthIdentifier } from '@/lib/auth-utils'
 import { StarburstingEntityLinker } from '@/components/content-intelligence/StarburstingEntityLinker'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
 // New extracted components from refactor
@@ -1736,11 +1736,6 @@ ${shortSummary}`
       if (!currentWorkspaceId) {
         throw new Error('Select a workspace before saving entities')
       }
-      if (!getAuthIdentifier()) {
-        // Auto-generate a hash bookmark so the user can save entities
-        ensureAuthIdentifier()
-      }
-
       // Check if entity already exists for this user
       const actorType = entityType === 'person' ? 'PERSON' :
                         entityType === 'organization' ? 'ORGANIZATION' : 'OTHER'

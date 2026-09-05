@@ -95,6 +95,62 @@ async function resolveHashUser(db: D1Database, hash: string): Promise<number> {
   throw new AuthDbError()
 }
 
+async function guestPrincipalHash(sessionId: string): Promise<string | null> {
+  // Accept current UUID-based IDs and legacy timestamp/random IDs, but reject
+  // arbitrary attacker-controlled headers and keep the DB identity opaque.
+  if (!/^guest_[A-Za-z0-9_-]{16,96}$/.test(sessionId)) return null
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(sessionId))
+  const hex = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('')
+  return `guest-session:${hex}`
+}
+
+const GUEST_SESSION_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000
+
+async function guestSessionIsActive(db: D1Database, userId: number): Promise<boolean> {
+  try {
+    const user = await db.prepare('SELECT created_at, role FROM users WHERE id = ?')
+      .bind(userId).first<{ created_at: string; role: string }>()
+    if (!user || user.role !== 'guest') return false
+    const createdAt = Date.parse(user.created_at)
+    return Number.isFinite(createdAt) && Date.now() - createdAt < GUEST_SESSION_MAX_AGE_MS
+  } catch (err) {
+    throw new AuthDbError(err)
+  }
+}
+
+async function ensureGuestWorkspace(db: D1Database, userId: number, workspaceId: string | null): Promise<void> {
+  if (!workspaceId || !/^guest-workspace-[0-9a-f-]{36}$/.test(workspaceId)) return
+  const now = new Date().toISOString()
+  try {
+    const existingMembership = await db.prepare(`
+      SELECT w.owner_id FROM workspaces w
+      JOIN workspace_members wm ON wm.workspace_id = w.id
+      WHERE w.id = ? AND wm.user_id = ?
+    `).bind(workspaceId, userId).first<{ owner_id: number }>()
+    if (existingMembership && Number(existingMembership.owner_id) === userId) return
+
+    await db.prepare(`
+      INSERT OR IGNORE INTO workspaces
+        (id, name, description, type, owner_id, is_public, created_at, updated_at)
+      VALUES (?, 'Guest Workspace', 'Temporary guest workspace', 'PERSONAL', ?, 0, ?, ?)
+    `).bind(workspaceId, userId, now, now).run()
+
+    // Never attach a caller to a pre-existing workspace they do not own, even
+    // if they supply its ID. UUID entropy makes collisions unlikely; this
+    // ownership check makes the authorization boundary explicit.
+    const workspace = await db.prepare('SELECT owner_id FROM workspaces WHERE id = ?')
+      .bind(workspaceId).first<{ owner_id: number }>()
+    if (!workspace || Number(workspace.owner_id) !== userId) return
+
+    await db.prepare(`
+      INSERT OR IGNORE INTO workspace_members (id, workspace_id, user_id, role, joined_at)
+      VALUES (?, ?, ?, 'ADMIN', ?)
+    `).bind(`guest-member-${userId}`, workspaceId, userId, now).run()
+  } catch (err) {
+    throw new AuthDbError(err)
+  }
+}
+
 /**
  * Get user ID from request Authorization header
  * Supports JWT tokens, session-based auth, and hash-based auth
@@ -147,6 +203,20 @@ export async function getUserFromRequest(
   const userHash = request.headers.get('X-User-Hash')
   if (userHash && userHash !== 'default' && userHash.length >= 16 && env.DB) {
     return await resolveHashUser(env.DB, userHash)
+  }
+
+  // Anonymous browser sessions get an isolated, opaque guest principal. This
+  // grants the same row-level ownership checks as hash auth without presenting
+  // the visitor as logged in or exposing the local session identifier in D1.
+  const guestSession = request.headers.get('X-Guest-Session')
+  if (guestSession && env.DB) {
+    const guestHash = await guestPrincipalHash(guestSession)
+    if (guestHash) {
+      const guestUserId = await resolveHashUser(env.DB, guestHash)
+      if (!(await guestSessionIsActive(env.DB, guestUserId))) return null
+      await ensureGuestWorkspace(env.DB, guestUserId, request.headers.get('X-Workspace-ID'))
+      return guestUserId
+    }
   }
 
   return null
