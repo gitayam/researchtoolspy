@@ -5,6 +5,24 @@
 
 ---
 
+## Released (2026-09-04) — Grounded scraping and Answer Packet pipeline
+
+- [x] Added versioned scraping, crawl-job, OSINT-event, source-artifact,
+  source-passage, claim-link, and Answer Packet contracts.
+- [x] Added semantic article extraction, quality rejection signals, a labeled
+  benchmark corpus, and privacy-safe scrape telemetry coverage.
+- [x] Enforced workspace/owner trust boundaries for Content Q&A, evidence
+  recommendations, collection jobs, and intelligence graph identities.
+- [x] Added authenticated Answer Packet create/list/detail APIs with exact
+  source-excerpt verification and transactional lineage persistence.
+- [x] Applied managed migration `0007_answer_packet_storage.sql` through the
+  backed-up production path and verified all tables, bridge columns, and the
+  primary artifact foreign key. Zero managed migrations remain pending.
+- [x] Deployed Cloudflare Pages and verified the custom-domain Content
+  Intelligence, health, and authentication-enforcing Answer Packet routes.
+
+---
+
 ## Released (2026-07-28) — Narrow redundant-index cleanup
 
 - [x] Reviewed five days of post-`0004` D1 insights and repeated the live

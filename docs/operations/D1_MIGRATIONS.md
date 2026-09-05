@@ -153,6 +153,9 @@ The current managed lane requires:
 
 These migration `0007` objects are included in `pre-deployment-check.sh`; the
 full deploy path fails closed if any are absent after migration application.
+Migration `0007` was applied to production through the backed-up deployment
+path on 2026-09-04; the post-migration gate passed and no managed migration was
+pending after deployment.
 
 For migration 0004, also run the read-only planner audit:
 

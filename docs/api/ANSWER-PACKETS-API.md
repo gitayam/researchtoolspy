@@ -85,6 +85,8 @@ Returns:
 
 Every `packet.claims[].evidenceLinkIds[]` resolves to a returned link, every link resolves to a returned passage, and every passage resolves to the packet's primary artifact. Consumers should display citations from returned passage text and source identity rather than regenerating excerpts from the answer.
 
-## Release prerequisite
+## Deployment status and prerequisite
 
-Before deploying the handlers, apply migration `0007` through the backed-up managed migration workflow in [`../operations/D1_MIGRATIONS.md`](../operations/D1_MIGRATIONS.md), then verify all five tables, three nullable legacy bridge columns, and `answer_packets.primary_artifact_id`.
+Migration `0007` and these handlers were deployed to production on 2026-09-04. Production verification confirmed all five tables, three nullable legacy bridge columns, `answer_packets.primary_artifact_id`, zero pending managed migrations, and an authentication-enforcing live route.
+
+For any new environment, apply migration `0007` through the backed-up managed migration workflow in [`../operations/D1_MIGRATIONS.md`](../operations/D1_MIGRATIONS.md) before deploying the handlers.
