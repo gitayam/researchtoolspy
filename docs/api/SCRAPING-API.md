@@ -1,10 +1,10 @@
 # ResearchTools Web Scraper API
 
-**Last updated:** 2026-09-03  
+**Last updated:** 2026-09-04
 **Endpoint:** `POST https://researchtools.net/api/web-scraper`  
 **Authentication:** required
 
-The Web Scraper API extracts metadata and optionally bounded text from one public HTTP(S) page. It is a static-fetch endpoint: it does not execute page JavaScript or attempt to bypass authentication, CAPTCHAs, robots/content policy, or access controls.
+The Web Scraper API extracts metadata and optionally bounded semantic article text from one public HTTP(S) page. It is a static-fetch endpoint: it does not execute page JavaScript or attempt to bypass authentication, CAPTCHAs, robots/content policy, or access controls.
 
 ## Authentication
 
@@ -68,12 +68,24 @@ curl --request POST 'https://researchtools.net/api/web-scraper' \
     "title": "Example article",
     "description": "An example article description.",
     "author": "Example Reporter",
+    "published_date": "2026-09-04T12:00:00Z",
     "metadata": {
       "keywords": ["research", "example"],
       "og_title": "Example article",
       "og_description": "An example article description.",
       "og_image": "https://www.example.com/image.jpg",
-      "og_type": "article"
+      "og_type": "article",
+      "extractor_version": "heuristic.v2",
+      "extraction_method": "article",
+      "extraction_quality": {
+        "version": "article-quality.v2",
+        "accepted": true,
+        "score": 100,
+        "reasons": [],
+        "paragraphCount": 12,
+        "textToMarkupRatio": 0.64,
+        "linkDensity": 0.03
+      }
     },
     "metadata_completeness_score": 100,
     "extracted_at": "2026-09-03T16:00:00.000Z"
@@ -89,12 +101,13 @@ curl --request POST 'https://researchtools.net/api/web-scraper' \
 |---|---|---|---|
 | `url` | string | always | Final validated page URL. |
 | `domain` | string | always | Hostname from the final validated URL. |
-| `title` | string | when found | HTML `<title>` value. |
-| `description` | string | when found | Meta description. |
-| `author` | string | when found | Meta author. |
-| `metadata` | object | always | Extracted keywords and supported Open Graph fields. May be empty. |
+| `title` | string | when found | Semantic title selected from article JSON-LD, Open Graph, Twitter metadata, or HTML title. |
+| `description` | string | when found | Semantic description selected from article JSON-LD or page metadata. |
+| `author` | string | when found | Author selected from article JSON-LD or page metadata. |
+| `published_date` | string | when found | Publication time selected from article JSON-LD or page metadata. |
+| `metadata` | object | always | Extracted keywords, supported Open Graph fields, extractor version/method, and explainable extraction-quality signals. |
 | `metadata_completeness_score` | number | always | Integer from 0 through 100 measuring supported metadata coverage. It is not source credibility or information reliability. |
-| `content` | object | `summary`/`full` modes | Plain text, word count, and optional summary. Text is capped at 10,000 characters. |
+| `content` | object | `summary`/`full` modes | Semantic article/main/paragraph text, word count, and optional summary. Navigation, headers, footers, forms, scripts, and styles are excluded where recognized. Text is capped at 10,000 characters. |
 | `dataset_id` | string or number | dataset creation success | Identifier returned by the same-origin datasets API. |
 | `extracted_at` | ISO 8601 string | always | Extraction timestamp. |
 
@@ -107,6 +120,12 @@ Content shape:
   "word_count": 742
 }
 ```
+
+`metadata.extraction_quality` is an extraction diagnostic, not a source-quality
+or factual-reliability judgment. Its versioned signals currently include
+paragraph count, text-to-markup ratio, link density, short login/paywall
+markers, and structured short-document acceptance. Consumers must tolerate
+additional quality signals in future versions.
 
 ## Metadata completeness score
 

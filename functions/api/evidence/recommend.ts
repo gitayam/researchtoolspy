@@ -5,6 +5,7 @@
 
 import { getUserFromRequest } from '../_shared/auth-helpers'
 import { JSON_HEADERS, optionsResponse } from '../_shared/api-utils'
+import { checkWorkspaceAccess } from '../_shared/workspace-helpers'
 
 interface Env {
   DB: D1Database
@@ -60,13 +61,26 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
 
   try {
     const body: RecommendRequest = await request.json()
-    const { framework_type, context: ctx, workspace_id = request.headers.get('X-Workspace-ID') || null } = body
+    const { context: ctx, workspace_id = request.headers.get('X-Workspace-ID') || null } = body
 
     if (!ctx || typeof ctx !== 'object') {
       return new Response(JSON.stringify({
         error: 'Missing required field: context (object with title, keywords, entities, or timeframe)',
       }), { status: 400, headers: JSON_HEADERS })
     }
+
+    if (workspace_id && !await checkWorkspaceAccess(workspace_id, userId, env, 'VIEWER')) {
+      return new Response(JSON.stringify({ error: 'Access denied' }), {
+        status: 403,
+        headers: JSON_HEADERS,
+      })
+    }
+
+    // An explicit workspace may include evidence contributed by any authorized
+    // member. Without one, recommendations are limited to the caller's own
+    // evidence instead of searching the global table.
+    const evidenceScope = workspace_id ? 'e.workspace_id = ?' : 'e.created_by = ?'
+    const evidenceScopeValue = workspace_id ?? userId
 
     const allEvidence: any[] = []
     const matchReasons = new Map<number, string[]>()
@@ -79,9 +93,10 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
           SELECT DISTINCT e.*, ea.relevance
           FROM evidence_items e
           LEFT JOIN evidence_actors ea ON e.id = ea.evidence_id
-          WHERE ea.actor_id IN (${ctx.entities.map(() => '?').join(',')})
+          WHERE ${evidenceScope}
+            AND ea.actor_id IN (${ctx.entities.map(() => '?').join(',')})
           LIMIT 20
-        `).bind(...ctx.entities).all()
+        `).bind(evidenceScopeValue, ...ctx.entities).all()
 
         allEvidence.push(...actorResult.results)
 
@@ -96,10 +111,11 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
       // Also search in who/what/description fields
       for (const entityId of ctx.entities) {
         const entityTextResult = await env.DB.prepare(`
-          SELECT * FROM evidence_items
-          WHERE (who_involved LIKE ? OR what_happened LIKE ? OR description LIKE ?)
+          SELECT e.* FROM evidence_items e
+          WHERE ${evidenceScope}
+            AND (e.who_involved LIKE ? OR e.what_happened LIKE ? OR e.description LIKE ?)
           LIMIT 20
-        `).bind(`%${entityId}%`, `%${entityId}%`, `%${entityId}%`).all()
+        `).bind(evidenceScopeValue, `%${entityId}%`, `%${entityId}%`, `%${entityId}%`).all()
 
         for (const ev of (entityTextResult.results || []) as any[]) {
           if (!allEvidence.find(e => e.id === ev.id)) {
@@ -115,10 +131,11 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
     if (ctx.keywords && ctx.keywords.length > 0) {
       for (const keyword of ctx.keywords.slice(0, 5)) { // Limit to 5 keywords
         const kwResult = await env.DB.prepare(`
-          SELECT * FROM evidence_items
-          WHERE title LIKE ? OR description LIKE ? OR what_happened LIKE ? OR tags LIKE ?
+          SELECT e.* FROM evidence_items e
+          WHERE ${evidenceScope}
+            AND (e.title LIKE ? OR e.description LIKE ? OR e.what_happened LIKE ? OR e.tags LIKE ?)
           LIMIT 15
-        `).bind(`%${keyword}%`, `%${keyword}%`, `%${keyword}%`, `%${keyword}%`).all()
+        `).bind(evidenceScopeValue, `%${keyword}%`, `%${keyword}%`, `%${keyword}%`, `%${keyword}%`).all()
 
         for (const ev of (kwResult.results || []) as any[]) {
           if (!allEvidence.find(e => e.id === ev.id)) {
@@ -134,10 +151,11 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
     if (ctx.timeframe) {
       try {
         const tfResult = await env.DB.prepare(`
-          SELECT * FROM evidence_items
-          WHERE when_occurred BETWEEN ? AND ?
+          SELECT e.* FROM evidence_items e
+          WHERE ${evidenceScope}
+            AND e.when_occurred BETWEEN ? AND ?
           LIMIT 20
-        `).bind(ctx.timeframe.start, ctx.timeframe.end).all()
+        `).bind(evidenceScopeValue, ctx.timeframe.start, ctx.timeframe.end).all()
 
         for (const ev of (tfResult.results || []) as any[]) {
           if (!allEvidence.find(e => e.id === ev.id)) {
@@ -158,10 +176,11 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
 
       for (const word of words) {
         const ctxResult = await env.DB.prepare(`
-          SELECT * FROM evidence_items
-          WHERE LOWER(title) LIKE ? OR LOWER(description) LIKE ? OR LOWER(what_happened) LIKE ?
+          SELECT e.* FROM evidence_items e
+          WHERE ${evidenceScope}
+            AND (LOWER(e.title) LIKE ? OR LOWER(e.description) LIKE ? OR LOWER(e.what_happened) LIKE ?)
           LIMIT 10
-        `).bind(`%${word}%`, `%${word}%`, `%${word}%`).all()
+        `).bind(evidenceScopeValue, `%${word}%`, `%${word}%`, `%${word}%`).all()
 
         for (const ev of (ctxResult.results || []) as any[]) {
           if (!allEvidence.find(e => e.id === ev.id)) {
@@ -178,11 +197,12 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
     // 5. If still no results, get recent high-quality evidence
     if (allEvidence.length === 0) {
       const recentResult = await env.DB.prepare(`
-        SELECT * FROM evidence_items
-        WHERE status = 'verified'
-        ORDER BY created_at DESC
+        SELECT e.* FROM evidence_items e
+        WHERE ${evidenceScope}
+          AND e.status = 'verified'
+        ORDER BY e.created_at DESC
         LIMIT 10
-      `).all()
+      `).bind(evidenceScopeValue).all()
 
       allEvidence.push(...recentResult.results)
 
@@ -329,4 +349,3 @@ export const onRequestGet: PagesFunction = async () => {
     status: 405, headers: JSON_HEADERS,
   })
 }
-

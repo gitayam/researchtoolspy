@@ -28,7 +28,8 @@
     "test:e2e": "npx playwright test",
     "test:e2e:smoke": "npx playwright test --grep @smoke",
     "test:e2e:ui": "npx playwright test --ui",
-    "test:e2e:debug": "npx playwright test --debug"
+    "test:e2e:debug": "npx playwright test --debug",
+    "benchmark:scraping": "npx playwright test tests/e2e/benchmark/scraping-extractor-benchmark.spec.ts --project=chromium"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -93,6 +94,7 @@
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260611.1",
     "@eslint/js": "^10.0.1",
+    "@mozilla/readability": "0.6.0",
     "@playwright/test": "^1.59.1",
     "@tailwindcss/postcss": "^4.2.2",
     "@types/node": "^25.6.0",
@@ -106,6 +108,7 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.5.0",
+    "linkedom": "0.18.13",
     "postcss": "^8.5.9",
     "tailwindcss": "^4.2.2",
     "typescript": "^6.0.2",

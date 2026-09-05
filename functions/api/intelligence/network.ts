@@ -6,6 +6,10 @@ interface Env {
   SESSIONS: KVNamespace
 }
 
+export function entityNodeId(entityType: string, entityId: string | number): string {
+  return `${entityType.toUpperCase()}:${String(entityId)}`
+}
+
 // Simple graph algorithms (no external deps needed)
 function computeDegreeCentrality(adjList: Map<string, Set<string>>): Map<string, number> {
   const result = new Map<string, number>()
@@ -158,7 +162,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     const entityMap = new Map<string, { name: string; type: string }>()
     for (const e of entities.results || []) {
-      entityMap.set(e.id, { name: e.name, type: e.entity_type })
+      entityMap.set(entityNodeId(e.entity_type, e.id), { name: e.name, type: e.entity_type })
     }
 
     // Build adjacency list
@@ -166,8 +170,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     const edgeList: { source: string; target: string; relationship_type: string; confidence: number }[] = []
 
     for (const r of relationships.results || []) {
-      const src = r.source_entity_id
-      const tgt = r.target_entity_id
+      const src = entityNodeId(r.source_entity_type, r.source_entity_id)
+      const tgt = entityNodeId(r.target_entity_type, r.target_entity_id)
       if (!adjList.has(src)) adjList.set(src, new Set())
       if (!adjList.has(tgt)) adjList.set(tgt, new Set())
       adjList.get(src)!.add(tgt)

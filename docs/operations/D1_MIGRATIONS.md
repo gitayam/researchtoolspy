@@ -144,6 +144,15 @@ The current managed lane requires:
   `idx_framework_sessions_workspace_type_updated`,
   `idx_evidence_items_workspace_status_created`, and
   `idx_cop_activity_session_created`
+- Answer Packet lineage tables from migration `0007`: `source_artifacts`,
+  `source_passages`, `source_claim_links`, `answer_packets`, and
+  `answer_packet_claims`, plus the nullable legacy bridge columns
+  `content_analysis.source_artifact_id`, `evidence_items.source_artifact_id`,
+  and `claim_evidence_links.source_passage_id`; also verify the required
+  `answer_packets.primary_artifact_id` foreign-key column
+
+These migration `0007` objects are included in `pre-deployment-check.sh`; the
+full deploy path fails closed if any are absent after migration application.
 
 For migration 0004, also run the read-only planner audit:
 
@@ -185,13 +194,16 @@ checking indexes, constraints, and deployed-code dependencies.
 
 Migration-specific reverse order, if a targeted schema rollback is approved:
 
-1. `0005`: recreate `idx_content_analysis_hash(content_hash)` and
+1. `0007`: drop the five Answer Packet lineage tables and their indexes in the
+   order documented in the migration. Leave the three nullable bridge columns
+   in place unless a separately reviewed legacy-table rebuild is approved.
+2. `0005`: recreate `idx_content_analysis_hash(content_hash)` and
    `idx_content_analysis_user(user_id)`.
-2. `0004`: drop the 24 indexes listed in its rollback comment.
-3. `0003`: drop `evidence_citations.created_by`, `notes`, `relevance_score`,
+3. `0004`: drop the 24 indexes listed in its rollback comment.
+4. `0003`: drop `evidence_citations.created_by`, `notes`, `relevance_score`,
    `citation_type`, then `evidence_actors.auto_linked`.
-4. `0002`: drop `framework_sessions.clone_count`, then `view_count`.
-5. `0001`: drop `idx_evidence_items_workspace_eve`, then
+5. `0002`: drop `framework_sessions.clone_count`, then `view_count`.
+6. `0001`: drop `idx_evidence_items_workspace_eve`, then
    `evidence_items.eve_assessment`.
 
 Export the current database before any rollback, even if a pre-migration backup

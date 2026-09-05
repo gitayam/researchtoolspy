@@ -189,7 +189,7 @@ Returns a full network graph of entity relationships with graph-theoretic centra
 {
   "nodes": [
     {
-      "id": "55",
+      "id": "ACTOR:55",
       "name": "Organization Alpha",
       "type": "ACTOR",
       "community_id": 0,
@@ -200,8 +200,8 @@ Returns a full network graph of entity relationships with graph-theoretic centra
   ],
   "edges": [
     {
-      "source": "55",
-      "target": "72",
+      "source": "ACTOR:55",
+      "target": "EVENT:72",
       "relationship_type": "FUNDS",
       "confidence": 0.75
     }
@@ -209,20 +209,20 @@ Returns a full network graph of entity relationships with graph-theoretic centra
   "communities": [
     {
       "id": 0,
-      "members": ["55", "72"],
+      "members": ["ACTOR:55", "EVENT:72"],
       "dominant_type": "ACTOR",
       "size": 2
     }
   ],
   "key_influencers": [
     {
-      "entity_id": "55",
+      "entity_id": "ACTOR:55",
       "entity_name": "Organization Alpha",
       "composite_score": 0.454,
       "role": "Information broker"
     }
   ],
-  "bridge_nodes": ["81"],
+  "bridge_nodes": ["SOURCE:81"],
   "metrics": {
     "total_nodes": 12,
     "total_edges": 18,
@@ -236,7 +236,7 @@ Returns a full network graph of entity relationships with graph-theoretic centra
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `id` | string | Entity ID (TEXT) |
+| `id` | string | Collision-safe graph identity in `TYPE:id` form, such as `ACTOR:55` |
 | `type` | string | `ACTOR`, `SOURCE`, `EVENT`, `PLACE`, `BEHAVIOR`, or `UNKNOWN` |
 | `community_id` | number | Integer community label from label propagation (0-indexed, sequential) |
 | `degree_centrality` | number | Degree / max degree in graph, 0–1, 3 decimal places |

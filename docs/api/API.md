@@ -75,6 +75,7 @@ Standard HTTP status codes: `400` bad input · `401` auth required · `403` acce
 | `/api/behaviors` | Behaviors / TTPs |
 | `/api/relationships` | Entity-to-entity relationships |
 | `/api/evidence-items` | **Canonical evidence store** (replaces legacy `/api/evidence` — now 410 Gone) |
+| `/api/answer-packets` | Grounded, investigation-scoped cited answers; see [`ANSWER-PACKETS-API.md`](ANSWER-PACKETS-API.md) |
 
 ### Analytical frameworks
 

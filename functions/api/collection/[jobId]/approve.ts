@@ -6,9 +6,10 @@
  */
 
 import type { PagesFunction } from '@cloudflare/workers-types'
-import type { ApproveResultsRequest, ApproveResultsResponse, ApprovalStatus } from '../../../../src/types/collection'
+import type { ApproveResultsRequest, ApproveResultsResponse } from '../../../../src/types/collection'
 import { getUserFromRequest } from '../../_shared/auth-helpers'
 import { JSON_HEADERS, CORS_HEADERS } from '../../_shared/api-utils'
+import { checkWorkspaceAccess } from '../../_shared/workspace-helpers'
 
 interface Env {
   DB: D1Database
@@ -43,12 +44,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
 
     // Verify job exists and user has workspace access
-    const workspaceId = context.request.headers.get('X-Workspace-ID')
     const job = await context.env.DB.prepare(`
-      SELECT id FROM collection_jobs WHERE id = ?${workspaceId ? ' AND workspace_id = ?' : ''}
-    `).bind(...(workspaceId ? [jobId, workspaceId] : [jobId])).first()
+      SELECT id, workspace_id FROM collection_jobs WHERE id = ?
+    `).bind(jobId).first<{ id: string; workspace_id: string }>()
 
-    if (!job) {
+    if (!job || !await checkWorkspaceAccess(job.workspace_id, userId, context.env, 'EDITOR')) {
       return new Response(JSON.stringify({ error: 'Job not found' }), {
         status: 404,
         headers: JSON_HEADERS
@@ -184,12 +184,11 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     }
 
     // Verify job exists and user has workspace access
-    const workspaceId = context.request.headers.get('X-Workspace-ID')
     const job = await context.env.DB.prepare(`
-      SELECT id FROM collection_jobs WHERE id = ?${workspaceId ? ' AND workspace_id = ?' : ''}
-    `).bind(...(workspaceId ? [jobId, workspaceId] : [jobId])).first()
+      SELECT id, workspace_id FROM collection_jobs WHERE id = ?
+    `).bind(jobId).first<{ id: string; workspace_id: string }>()
 
-    if (!job) {
+    if (!job || !await checkWorkspaceAccess(job.workspace_id, userId, context.env, 'EDITOR')) {
       return new Response(JSON.stringify({ error: 'Job not found' }), {
         status: 404,
         headers: JSON_HEADERS

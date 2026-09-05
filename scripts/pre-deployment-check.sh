@@ -197,6 +197,11 @@ SCHEMA_SNAPSHOT_SQL="WITH expected(table_name, column_name) AS (
     ('__snapshot__', NULL),
     ('evidence_items', NULL),
     ('content_intelligence', NULL),
+    ('source_artifacts', NULL),
+    ('source_passages', NULL),
+    ('source_claim_links', NULL),
+    ('answer_packets', NULL),
+    ('answer_packet_claims', NULL),
     ('evidence_items', 'workspace_id'),
     ('evidence_items', 'eve_assessment'),
     ('framework_sessions', 'view_count'),
@@ -207,6 +212,10 @@ SCHEMA_SNAPSHOT_SQL="WITH expected(table_name, column_name) AS (
     ('evidence_citations', 'relevance_score'),
     ('evidence_citations', 'notes'),
     ('evidence_citations', 'created_by'),
+    ('content_analysis', 'source_artifact_id'),
+    ('evidence_items', 'source_artifact_id'),
+    ('claim_evidence_links', 'source_passage_id'),
+    ('answer_packets', 'primary_artifact_id'),
     ('ach_analyses', 'is_public')
 )
 SELECT CASE
@@ -270,7 +279,19 @@ if [ "$SCHEMA_SNAPSHOT_AVAILABLE" = true ]; then
   check_column "evidence_citations" "relevance_score"
   check_column "evidence_citations" "notes"
   check_column "evidence_citations" "created_by"
+  check_column "content_analysis" "source_artifact_id"
+  check_column "evidence_items" "source_artifact_id"
+  check_column "claim_evidence_links" "source_passage_id"
+  check_column "answer_packets" "primary_artifact_id"
   check_column "ach_analyses" "is_public"
+
+  for answer_packet_table in source_artifacts source_passages source_claim_links answer_packets answer_packet_claims; do
+    if schema_snapshot_contains "table:${answer_packet_table}"; then
+      print_status 0 "Table '${answer_packet_table}' exists"
+    else
+      print_status 1 "Table '${answer_packet_table}' missing"
+    fi
+  done
 
   if schema_snapshot_contains "table:content_intelligence"; then
     print_status 0 "Table 'content_intelligence' exists"

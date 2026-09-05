@@ -1,6 +1,6 @@
 # ResearchTools scraping system roadmap
 
-**Last updated:** 2026-09-03 · **Status:** 🔄 in progress · **Owner:** platform/backend
+**Last updated:** 2026-09-04 · **Status:** 🔄 in progress · **Owner:** platform/backend
 
 **Evidence and experiment design:** [`plans/2026-08-30-scraping-modernization.md`](plans/2026-08-30-scraping-modernization.md)
 
@@ -342,12 +342,48 @@ behavior changes. Baseline queries and the 14-day evaluation procedure are in
 
 Collect at least 14 days and 100 terminal failures with >=99% terminal coverage. Evaluate hypotheses H1, H7, and H9 from the evidence plan. Do not use retained `content_analysis` rows as the success denominator.
 
+### External scraping and OSINT research checkpoint — 2026-09-04
+
+The next implementation stages are informed by current upstream behavior, not
+repository popularity. The reviewed projects and the bounded patterns selected
+for evaluation are:
+
+| Reference | Current signal | Pattern to evaluate here | Decision boundary |
+|---|---|---|---|
+| [Scrapling](https://github.com/D4Vinci/Scrapling/blob/main/CHANGELOG.md) | v0.4.15, August 2026 | checkpoints, AutoThrottle, repeated-domain adaptive selectors | Container experiment only; no generic stealth fallback |
+| [Crawlee](https://github.com/apify/crawlee) | active v4 work and current documentation | durable request queues, canonical deduplication, domain throttling, shared concurrency | copy contracts or adopt only after the managed `/crawl` pilot exposes a gap |
+| [Crawl4AI](https://github.com/unclecode/crawl4ai/releases) | v0.9.2, July 2026 | browser cleanup, structured Markdown, cancellation; proxy/route SSRF lessons | security reference and benchmark candidate, not a public crawler service |
+| [Trafilatura](https://github.com/adbar/trafilatura) | active extraction/evaluation project | precision/recall extraction, metadata, links, tables, benchmark calibration | isolated candidate; promote only on corpus evidence |
+| [Mozilla Readability](https://github.com/mozilla/readability) | maintained Firefox Reader View extractor | lightweight DOM semantic extraction | first in-runtime third-party candidate |
+| [Cloudflare Browser Run `/crawl`](https://developers.cloudflare.com/browser-run/quick-actions/crawl-endpoint/) | managed crawl API | bounded sitemap/link discovery and conditional rendering | first multi-page pilot behind owned job records |
+| [BBOT](https://github.com/blacklanternsecurity/bbot/releases) | v3.0, July 2026 | typed events, parent chains, scope distance, module lifecycle | passive research event contract only; no offensive modules |
+| [OpenCTI](https://github.com/OpenCTI-Platform/opencti/releases) and [connectors](https://github.com/OpenCTI-Platform/docs/blob/main/docs/development/connectors.md) | active August 2026 releases | work IDs, connector checkpoints, provenance-preserving ingestion | adopt the job semantics, not the full platform |
+| [IntelOwl](https://github.com/intelowlproject/IntelOwl/releases) | active analyzer ecosystem | independently cancellable/retryable analyzers | use for provider/analyzer interface design |
+| [OWASP Amass](https://github.com/owasp-amass/amass/releases) | v5.1.1, April 2026 | durable backlog plus bounded in-memory dispatch and asset relationships | use for queue/graph design only |
+| [Katana](https://github.com/projectdiscovery/katana) | active 2026 development | explicit crawl scope and standard/headless separation | comparison input for the crawl-job contract |
+
+The research strengthens the existing ordering: finish enforcing egress before
+adding browsers, establish a paired corpus before selecting extractors, and
+introduce owned job/event contracts before recursive discovery. Crawl4AI's 2026
+SSRF fixes demonstrate that validating only the requested URL is insufficient:
+proxy and browser-routing inputs require the same destination policy.
+
+#### Falsifiable adoption hypotheses
+
+- **H10 — semantic extraction:** Readability or Trafilatura reduces extraction errors by at least 30%, holds wrong-content acceptance to <=2%, and stays within the p95 latency gate versus `heuristic.v2`.
+- **H11 — enforcing egress:** DNS-rebinding, redirect, alternate-address, proxy, and browser-subresource tests cause zero private/reserved/metadata connections.
+- **H12 — domain-aware queueing:** honoring `Retry-After` and coordinating delay by domain reduces rate-limit retries by at least 30% without reducing successful documents.
+- **H13 — scoped OSINT events:** a hostile cross-domain discovery corpus causes zero active requests beyond the configured scope distance.
+- **H14 — adaptive selectors:** on approved repeated-domain fixtures, Scrapling improves layout-drift recovery by at least 20 percentage points with <2% wrong-element relocation.
+- **H15 — managed crawling:** Browser Run `/crawl` satisfies the owned job contract and recovers the target cohort without an additional orchestrator; Crawlee/Scrapling spiders are evaluated only if this is falsified.
+
 ## Milestone 2 — Reproducible scraper benchmark
 
 **Priority:** P1 · **Status:** ⬜ planned · **Issue:** `SCRAPE-05`
 
 ### Corpus
 
+- [x] Establish the `scrape-corpus.v1` manifest, synthetic permitted fixture layout, candidate interface, and repeatable `npm run benchmark:scraping` control run.
 - [ ] Build a versioned 200-300 page corpus using permitted/public content.
 - [ ] Cover static articles, JavaScript shells, public WAF-blocked pages, valid short documents, PDFs, multilingual pages, structured documents, social URLs, and archive snapshots.
 - [ ] Save sanitized HTML for extractor replay; keep live-fetch tests separate and polite.
@@ -356,9 +392,9 @@ Collect at least 14 days and 100 terminal failures with >=99% terminal coverage.
 
 ### Candidate adapters
 
-- [ ] Current `extractArticle` implementation
+- [x] Version and retain the current `extractArticle` implementation as the `heuristic.v2` control, with explainable `article-quality.v2` signals.
 - [ ] Trafilatura
-- [ ] Mozilla Readability with a compatible DOM runtime
+- [x] Mozilla Readability 0.6.0 with LinkeDOM 0.18.13 as an exact-version, offline-only paired benchmark candidate; production remains unchanged pending corpus expansion.
 - [ ] Cloudflare Browser Run + each semantic extractor
 - [ ] Scrapling `Fetcher`, `DynamicFetcher`, and `StealthyFetcher` on eligible cohorts only
 
@@ -377,6 +413,15 @@ Collect at least 14 days and 100 terminal failures with >=99% terminal coverage.
 
 Publish a paired comparison with 95% confidence intervals and explicit decisions for hypotheses H2-H6 and H8. No candidate advances based on repository popularity or a single demonstration URL.
 
+### Initial paired-extractor checkpoint — 2026-09-04
+
+- **Delivery class:** benchmark foundation only; no production strategy or response routing changed.
+- **Candidates:** the Worker-safe `heuristic.v2` control and exact benchmark-only `@mozilla/readability` 0.6.0 + LinkeDOM 0.18.13 candidate consume identical stored HTML/final URLs without network access or script execution.
+- **Starter corpus:** four synthetic permitted fixtures cover a static article, valid short public notice, login/paywall placeholder, and JavaScript/navigation shell. The manifest records stable IDs, page classes, expected acceptance/title, required main-text markers, and forbidden boilerplate.
+- **Result:** with the shared `article-quality.v2` gate, both candidates classified all four accept/reject outcomes correctly. `heuristic.v2` matched all four complete fixture expectations. Readability matched three; it retained navigation text on the JavaScript-shell fixture.
+- **Security/dependency review:** the two new exact dev dependencies are not present in the current `npm audit` vulnerability list. The repository still has 17 unrelated audit findings (1 low, 4 moderate, 12 high), which are not represented as fixed by this work.
+- **Decision:** H10 remains untested at production scale. Four synthetic fixtures provide a runner contract, not statistically useful extractor evidence; neither candidate is promoted until the 200-300-page labeled/held-out corpus and latency measurements exist.
+
 ## Milestone 3 — Modern extraction core
 
 **Priority:** P1 · **Status:** ⬜ planned · **Issues:** `SCRAPE-06`, `SCRAPE-07`
@@ -390,6 +435,8 @@ Publish a paired comparison with 95% confidence intervals and explicit decisions
 
 ### Semantic extraction and quality
 
+- [x] Route the authenticated Web Scraper's metadata/full/summary modes through the shared versioned article extractor instead of its duplicate whole-page regex stripper.
+- [x] Add initial explainable quality signals for paragraph count, text/markup ratio, link density, login/paywall markers, and structured valid-short-document acceptance.
 - [ ] Adopt the benchmark-winning semantic extractor or improve the current extractor if no candidate clears the gate.
 - [ ] Introduce a versioned, content-type-aware quality score using body length, boilerplate ratio, duplication, login/paywall markers, title/body coherence, and structure signals.
 - [ ] Preserve Markdown structure, tables, lists, and code only where benchmark/user requirements justify it.
@@ -504,6 +551,9 @@ Publish an adopt/defer decision. If the gates fail, keep Scrapling out of the ge
 ### Deliverables
 
 - [ ] Create owned, cancellable, expiring crawl-job records.
+- [x] Define and validate versioned owned crawl-job/request contracts with canonical strategy-aware `unique_key`, parent request, scope/domain key, hard limits, leases, attempts, `available_at`, expiry/cancellation, and explicit terminal state machines; durable storage remains pending.
+- [x] Define and validate passive `OsintEventV1` and analyzer capability manifests with parent provenance, scope distance, consumed/produced types, canonical provider origins, and timeout/request/byte/cost limits; lifecycle execution remains pending.
+- [ ] Give every connector run an owned work ID and idempotent checkpoint/commit boundary.
 - [ ] Make polling and result ingestion idempotent.
 - [ ] Pilot Cloudflare Browser Run `/crawl` before adding another crawler orchestrator.
 - [ ] Default to `render: false`; render only page classes proven to need it.

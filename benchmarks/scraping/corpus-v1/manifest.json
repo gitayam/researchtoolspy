@@ -1,0 +1,45 @@
+{
+  "schemaVersion": "scrape-corpus.v1",
+  "fixtures": [
+    {
+      "id": "static-article",
+      "file": "static-article.html",
+      "url": "https://example.com/report",
+      "pageClass": "static-article",
+      "expectedAccepted": true,
+      "expectedTitle": "Public records investigation",
+      "requiredText": ["contract records", "public evidence"],
+      "forbiddenText": ["Site navigation", "Privacy policy"]
+    },
+    {
+      "id": "valid-short-notice",
+      "file": "valid-short-notice.html",
+      "url": "https://example.gov/notice",
+      "pageClass": "valid-short-document",
+      "expectedAccepted": true,
+      "expectedTitle": "Emergency meeting notice",
+      "requiredText": ["public meeting", "September 8"],
+      "forbiddenText": ["Agency navigation"]
+    },
+    {
+      "id": "login-placeholder",
+      "file": "login-placeholder.html",
+      "url": "https://example.com/subscriber-story",
+      "pageClass": "login-or-paywall",
+      "expectedAccepted": false,
+      "expectedTitle": "Subscriber investigation",
+      "requiredText": ["Sign in to continue"],
+      "forbiddenText": []
+    },
+    {
+      "id": "navigation-shell",
+      "file": "navigation-shell.html",
+      "url": "https://example.com/shell",
+      "pageClass": "javascript-shell",
+      "expectedAccepted": false,
+      "expectedTitle": "Loading report",
+      "requiredText": [],
+      "forbiddenText": ["Navigation story"]
+    }
+  ]
+}

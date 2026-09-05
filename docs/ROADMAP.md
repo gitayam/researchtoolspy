@@ -30,6 +30,26 @@ The last month of work has been a deliberate **production-hardening pivot** — 
 
 New features are welcome but should ride on top of this hardened base, not around it.
 
+### Strategic capability direction — 2026-09-04
+
+The next product objective is a defensible **Research Question -> Answer Packet** workflow, not another disconnected tool. Existing collection, extraction, canonical `evidence_items`, claims, entities, investigations, ACH, COP, synthesis, and export capabilities should be composed into one traceable chain:
+
+`question -> bounded collection -> source artifact -> passage -> claim/evidence stance -> assessment -> cited answer + uncertainty + collection gaps`
+
+The first trust-boundary tranche is implemented locally: content Q&A owner-scopes its source analysis; evidence recommendations are owner/workspace scoped; collection creation, reads, approval, and rejection are authorized against the job's authoritative workspace; and intelligence-network node identities include entity type so equal numeric IDs from different tables cannot collapse.
+
+The versioned contract for canonical source artifacts, exact passages, `supports|contradicts|contextualizes` claim links, and evidence-grounded Answer Packets is implemented in `functions/api/_shared/answer-packet-contract.ts`. Managed migration `0007_answer_packet_storage.sql` adds durable workspace/investigation-owned storage plus nullable bridges from `content_analysis`, `evidence_items`, and `claim_evidence_links`; shared adapters and a transactional D1 graph repository are implemented alongside it.
+
+The first product integration is now implemented locally: `POST /api/answer-packets` promotes an authenticated user's persisted Content Intelligence analysis into an authorized investigation, rejects every cited excerpt that is not an exact substring of the stored source, and persists the artifact, passages, claims, links, packet, and legacy bridge in one D1 batch. `GET /api/answer-packets` and `GET /api/answer-packets/:id` provide viewer-authorized list/detail reads and revalidate the stored evidence graph on detail retrieval. Migration `0007` must be applied and verified before these handlers are deployed. The next slice is UI promotion/review, followed by multi-source packet composition and evidence-item adapters; do not broaden scraper/provider or framework breadth first.
+
+Falsifiable gates:
+
+- Integrated workflow reduces median time to a cited assessment by >=40%.
+- Every material generated statement is passage-linked and unsupported statements remain below 2% on a labeled set.
+- Static/PDF/social extraction clears 80% acceptable extraction on the real user cohort before broad renderer investment.
+- Entity resolution reduces duplicate extracted entities by >=30% with <2% incorrect merges.
+- Evidence-grounded synthesis improves analyst-rated correctness and traceability by >=25% over summary-only synthesis.
+
 ---
 
 ## Recently shipped

@@ -8,6 +8,7 @@
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest } from '../_shared/auth-helpers'
 import { JSON_HEADERS, CORS_HEADERS } from '../_shared/api-utils'
+import { checkWorkspaceAccess } from '../_shared/workspace-helpers'
 import type { CollectionCategory, TimeRange, CollectionJobRequest, CollectionJobResponse, AgentCollectionRequest } from '../../../src/types/collection'
 
 interface Env {
@@ -32,7 +33,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    let workspaceId = request.headers.get('X-Workspace-ID') || url.searchParams.get('workspace_id') || null
+    const requestedWorkspaceId = request.headers.get('X-Workspace-ID') || url.searchParams.get('workspace_id') || null
+    let workspaceId: string | null = requestedWorkspaceId
 
     const body = await request.json() as CollectionJobRequest
     const { query, categories, timeRange, maxResults, useLocalLLM } = body
@@ -47,19 +49,27 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    // Resolve a valid, existing workspace before inserting. collection_jobs.workspace_id
-    // is NOT NULL with a FK to workspaces(id), so a null (guest with no X-Workspace-ID)
-    // or a stale localStorage id both throw and surface as a 500 "Failed to start
-    // collection". Validate a provided id and otherwise get-or-create the user's personal
-    // workspace (mirrors functions/api/investigations/index.ts).
+    // Resolve a writable workspace before inserting. An explicit workspace is
+    // authoritative and fails closed; without one, choose an owned/editor
+    // workspace or create a personal workspace.
     if (workspaceId) {
-      const ws = await env.DB.prepare('SELECT id FROM workspaces WHERE id = ?').bind(workspaceId).first()
-      if (!ws) workspaceId = null
+      const canWrite = await checkWorkspaceAccess(workspaceId, userId, env, 'EDITOR')
+      if (!canWrite) {
+        return new Response(JSON.stringify({ error: 'Access denied' }), {
+          status: 403,
+          headers: JSON_HEADERS,
+        })
+      }
     }
     if (!workspaceId) {
-      const existing = await env.DB.prepare(
-        'SELECT workspace_id FROM workspace_members WHERE user_id = ? LIMIT 1'
-      ).bind(userId).first<{ workspace_id: string }>()
+      const existing = await env.DB.prepare(`
+        SELECT id AS workspace_id FROM workspaces WHERE owner_id = ?
+        UNION
+        SELECT workspace_id FROM workspace_members
+        WHERE user_id = ? AND upper(role) IN ('ADMIN', 'EDITOR')
+        ORDER BY workspace_id ASC
+        LIMIT 1
+      `).bind(userId, userId).first<{ workspace_id: string }>()
       if (existing) {
         workspaceId = existing.workspace_id
       } else {

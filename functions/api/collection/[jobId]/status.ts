@@ -9,6 +9,7 @@ import type { PagesFunction } from '@cloudflare/workers-types'
 import type { CollectionJob, CollectionResultsSummary } from '../../../../src/types/collection'
 import { getUserFromRequest } from '../../_shared/auth-helpers'
 import { JSON_HEADERS, optionsResponse } from '../../_shared/api-utils'
+import { checkWorkspaceAccess } from '../../_shared/workspace-helpers'
 
 interface Env {
   DB: D1Database
@@ -76,6 +77,13 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       return new Response(JSON.stringify({ error: 'Job not found' }), {
         status: 404,
         headers: JSON_HEADERS
+      })
+    }
+
+    if (!await checkWorkspaceAccess(job.workspace_id as string, userId, context.env, 'VIEWER')) {
+      return new Response(JSON.stringify({ error: 'Job not found' }), {
+        status: 404,
+        headers: JSON_HEADERS,
       })
     }
 

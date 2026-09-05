@@ -79,7 +79,7 @@ Initiates a new agentic collection job. Inserts a `collection_jobs` row with `st
 
 | Header | Description |
 |--------|-------------|
-| `X-Workspace-ID` | UUID of an existing workspace to associate this job with. Falls back to the user's personal workspace; auto-creates one if none exists. |
+| `X-Workspace-ID` | UUID of a workspace where the caller is owner, admin, or editor. Without it, the API selects a writable workspace or creates a personal one. |
 
 **Response (202):**
 
@@ -97,6 +97,7 @@ Initiates a new agentic collection job. Inserts a `collection_jobs` row with `st
 |--------|---------------|-------|
 | `400` | `"Query must be at least 3 characters"` | `query` missing or too short |
 | `401` | `"Authentication required"` | No valid identity in request |
+| `403` | `"Access denied"` | Requested workspace is missing or is not writable by the caller |
 | `500` | `"Failed to start collection"` | Unexpected D1 or runtime error |
 
 **Side Effects:**
@@ -225,7 +226,7 @@ On error status:
 
 Returns the current state of a collection job. If the job is still `running`/`pending` and has exceeded the 15-minute timeout, it transitions the job to `error` on first read (lazy timeout pattern).
 
-**Authentication**: Required.
+**Authentication**: Required. The caller must have viewer access to the job's authoritative workspace; unauthorized jobs return `404` to avoid existence disclosure.
 
 **Path Parameters:**
 
@@ -309,7 +310,7 @@ Returns the current state of a collection job. If the job is still `running`/`pe
 
 Returns paginated, filterable results for a completed collection job, ordered by `relevance_score` descending.
 
-**Authentication**: Required.
+**Authentication**: Required. The caller must be the workspace owner or have an admin/editor role on the job's authoritative workspace.
 
 **Path Parameters:**
 
@@ -389,12 +390,7 @@ Marks selected results as approved (`approved = 1`). Optionally triggers a batch
 |-------|-------------|
 | `jobId` | UUID of the collection job. |
 
-**Headers (optional):**
-
-| Header | Description |
-|--------|-------------|
-| `X-Workspace-ID` | If provided, the job must belong to this workspace (scoped access check). |
-| `X-User-Hash` | Forwarded to `POST /api/tools/batch-process` for auth. |
+`X-User-Hash` is forwarded to `POST /api/tools/batch-process` for authentication. A caller-provided workspace header is not trusted for authorization; the stored job workspace is authoritative.
 
 **Request Body** (`application/json`):
 
@@ -437,7 +433,7 @@ Marks selected results as approved (`approved = 1`). Optionally triggers a batch
 | `400` | `"No results selected"` | `selectedIds` empty or missing |
 | `400` | `"No valid URLs found"` | Approved result rows had no URLs |
 | `401` | `"Authentication required"` | No valid identity |
-| `404` | `"Job not found"` | Unknown `jobId` (or workspace mismatch if `X-Workspace-ID` provided) |
+| `404` | `"Job not found"` | Unknown job or caller lacks editor access to its workspace |
 | `500` | `"Failed to approve results"` | Unexpected error |
 | `502` | `"Batch analysis failed to start"` | Downstream `POST /api/tools/batch-process` returned non-2xx |
 
@@ -451,19 +447,13 @@ Marks selected results as approved (`approved = 1`). Optionally triggers a batch
 
 Marks selected results as rejected (`approved = -1`).
 
-**Authentication**: Required.
+**Authentication**: Required. The caller must be the workspace owner or have an admin/editor role on the job's authoritative workspace.
 
 **Path Parameters:**
 
 | Param | Description |
 |-------|-------------|
 | `jobId` | UUID of the collection job. |
-
-**Headers (optional):**
-
-| Header | Description |
-|--------|-------------|
-| `X-Workspace-ID` | If provided, the job must belong to this workspace. |
 
 **Request Body** (`application/json`):
 
@@ -550,9 +540,10 @@ The `unsigned-allowed` path exists to avoid breaking the live agent during the r
 
 ### Workspace Scoping
 
-- `POST /api/collection/start` auto-resolves a valid workspace for the authenticated user, preventing FK violations on `collection_jobs.workspace_id`.
-- `POST /api/collection/{jobId}/approve` and `DELETE /api/collection/{jobId}/approve` accept an optional `X-Workspace-ID` header; when present, only jobs owned by that workspace are accessible.
-- There is no cross-user job access check on the `status` and `results` endpoints beyond requiring valid authentication — access is gated by knowing the `jobId` (a UUID).
+- `POST /api/collection/start` accepts only a workspace the caller can edit. Without an explicit workspace it selects an owned/admin/editor workspace, or creates a personal workspace.
+- Status and results require viewer access to the workspace stored on the job.
+- Approval and rejection require owner/admin/editor access to the workspace stored on the job.
+- Unauthorized job reads and mutations return the same `404` as an unknown job.
 
 ### Status Guard
 

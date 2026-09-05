@@ -3,6 +3,7 @@ import { getRandomProfile } from '../utils/browser-profiles'
 import { getUserFromRequest } from './_shared/auth-helpers'
 import { CORS_HEADERS, JSON_HEADERS, isPrivateUrl } from './_shared/api-utils'
 import { SafeFetchError, safeFetchText } from './_shared/safe-fetch'
+import { extractArticle } from './_shared/article-extractor'
 import {
   normalizeWebScrapeError,
   observeWebScrapeRequest,
@@ -389,78 +390,37 @@ export async function onRequest(context: WebScraperContext) {
 
       const extractionStartedAt = Date.now()
       try {
-        // Extract metadata using regex (lightweight parsing)
+        const article = extractArticle(html, finalUrl.href)
         const result: ScrapingResult = {
           ...buildScrapingProvenance(finalUrl.href),
+          title: article.title,
+          description: article.excerpt,
+          author: article.author,
+          published_date: article.publishedTime,
         }
-
-        // Extract title
-        const titleMatch = html.match(/<title[^>]*>(.*?)<\/title>/i)
-        if (titleMatch) {
-          result.title = titleMatch[1].trim()
+        const metadata: NonNullable<ScrapingResult['metadata']> = {
+          ...(article.keywords.length > 0 ? { keywords: article.keywords } : {}),
+          ...(article.ogTitle ? { og_title: article.ogTitle } : {}),
+          ...(article.ogDescription ? { og_description: article.ogDescription } : {}),
+          ...(article.image ? { og_image: article.image } : {}),
+          ...(article.ogType ? { og_type: article.ogType } : {}),
+          extractor_version: article.extractorVersion,
+          extraction_method: article.method,
+          extraction_quality: article.qualitySignals,
         }
-
-        // Extract meta description
-        const descMatch = html.match(/<meta\s+name=["']description["']\s+content=["'](.*?)["']/i)
-        if (descMatch) {
-          result.description = descMatch[1].trim()
-        }
-
-        // Extract author
-        const authorMatch = html.match(/<meta\s+name=["']author["']\s+content=["'](.*?)["']/i)
-        if (authorMatch) {
-          result.author = authorMatch[1].trim()
-        }
-
-        // Extract keywords
-        const keywordsMatch = html.match(/<meta\s+name=["']keywords["']\s+content=["'](.*?)["']/i)
-        const keywords = keywordsMatch ? keywordsMatch[1].split(',').map(k => k.trim()) : []
-
-        // Extract Open Graph metadata
-        const metadata: NonNullable<ScrapingResult['metadata']> = {}
-
-        const ogTitleMatch = html.match(/<meta\s+property=["']og:title["']\s+content=["'](.*?)["']/i)
-        if (ogTitleMatch) metadata.og_title = ogTitleMatch[1].trim()
-
-        const ogDescMatch = html.match(/<meta\s+property=["']og:description["']\s+content=["'](.*?)["']/i)
-        if (ogDescMatch) metadata.og_description = ogDescMatch[1].trim()
-
-        const ogImageMatch = html.match(/<meta\s+property=["']og:image["']\s+content=["'](.*?)["']/i)
-        if (ogImageMatch) metadata.og_image = ogImageMatch[1].trim()
-
-        const ogTypeMatch = html.match(/<meta\s+property=["']og:type["']\s+content=["'](.*?)["']/i)
-        if (ogTypeMatch) metadata.og_type = ogTypeMatch[1].trim()
-
-        if (keywords.length > 0) metadata.keywords = keywords
-
         result.metadata = metadata
 
         // Extract content if requested
         if (extractMode === 'full' || extractMode === 'summary') {
-          // Remove scripts, styles, and other non-content tags
-          let textContent = html
-            .replace(/<script[^>]*>.*?<\/script>/gis, '')
-            .replace(/<style[^>]*>.*?<\/style>/gis, '')
-            .replace(/<[^>]+>/g, ' ')
-            .replace(/&nbsp;/g, ' ')
-            .replace(/&amp;/g, '&')
-            .replace(/&lt;/g, '<')
-            .replace(/&gt;/g, '>')
-            .replace(/&quot;/g, '"')
-            .replace(/\s+/g, ' ')
-            .trim()
-
-          // Limit content size
+          let textContent = article.text
           const maxLength = 10000
           if (textContent.length > maxLength) {
             textContent = textContent.substring(0, maxLength) + '...'
           }
 
-          const wordCount = textContent.split(/\s+/).length
-
           result.content = {
             text: textContent,
-            word_count: wordCount,
+            word_count: textContent ? textContent.split(/\s+/).length : 0,
           }
 
           // Simple summary (first 500 characters)
@@ -477,7 +437,7 @@ export async function onRequest(context: WebScraperContext) {
           outcome: 'succeeded',
           contentTypeClass: 'text',
           durationMs: Date.now() - extractionStartedAt,
-          extractedWords: result.content?.word_count ?? 0,
+          extractedWords: article.wordCount,
         })
 
         // Optionally create dataset

@@ -51,8 +51,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     // Fetch content analysis
     const analysis = await env.DB.prepare(`
-      SELECT * FROM content_analysis WHERE id = ?
-    `).bind(analysis_id).first()
+      SELECT * FROM content_analysis WHERE id = ? AND user_id = ?
+    `).bind(analysis_id, userId).first()
 
     if (!analysis) {
       return new Response(JSON.stringify({ error: 'Analysis not found' }), {
