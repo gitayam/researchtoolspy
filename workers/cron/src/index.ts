@@ -10,6 +10,7 @@
 export interface Env {
   CLEANUP_URL: string
   UPLOADS_CLEANUP_URL: string
+  GUEST_CLEANUP_URL: string
   CRON_SECRET: string
 }
 
@@ -55,10 +56,29 @@ async function runUploadCleanup(env: Env): Promise<void> {
   }
 }
 
+async function runGuestCleanup(env: Env): Promise<void> {
+  if (!env.CRON_SECRET) {
+    console.error('[cron] CRON_SECRET not set — skipping guest cleanup')
+    return
+  }
+  try {
+    const res = await fetch(env.GUEST_CLEANUP_URL, {
+      method: 'POST',
+      headers: { 'X-Cron-Secret': env.CRON_SECRET },
+    })
+    const body = await res.text()
+    if (!res.ok) console.error(`[cron] guest cleanup failed: status=${res.status} body=${body}`)
+    else console.log(`[cron] guest cleanup ok: ${body}`)
+  } catch (err) {
+    console.error('[cron] guest cleanup threw:', err)
+  }
+}
+
 export default {
   async scheduled(_event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
     ctx.waitUntil(runContentCleanup(env))
     ctx.waitUntil(runUploadCleanup(env))
+    ctx.waitUntil(runGuestCleanup(env))
   },
 
   // Not publicly useful; scheduled-only. Returns a liveness string.

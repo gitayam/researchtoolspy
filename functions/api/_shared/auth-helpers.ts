@@ -108,12 +108,52 @@ const GUEST_SESSION_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000
 
 async function guestSessionIsActive(db: D1Database, userId: number): Promise<boolean> {
   try {
-    const user = await db.prepare('SELECT created_at, role FROM users WHERE id = ?')
-      .bind(userId).first<{ created_at: string; role: string }>()
-    if (!user || user.role !== 'guest') return false
+    const user = await db.prepare('SELECT created_at, role, is_active FROM users WHERE id = ?')
+      .bind(userId).first<{ created_at: string; role: string; is_active: number }>()
+    if (!user || user.role !== 'guest' || Number(user.is_active) !== 1) return false
     const createdAt = Date.parse(user.created_at)
     return Number.isFinite(createdAt) && Date.now() - createdAt < GUEST_SESSION_MAX_AGE_MS
   } catch (err) {
+    throw new AuthDbError(err)
+  }
+}
+
+export interface ExistingGuestPrincipal {
+  userId: number
+  /** Opaque database identity. The raw browser credential must never be persisted. */
+  principalHash: string
+  isActive: boolean
+}
+
+/**
+ * Resolve an already-provisioned guest from the possession-bound session header.
+ * Unlike the normal guest auth path this never creates a user. Conversion and
+ * cleanup callers use it to avoid manufacturing a source principal on demand.
+ */
+export async function getExistingGuestPrincipalFromRequest(
+  request: Request,
+  env: Env,
+  options: { allowInactive?: boolean } = {},
+): Promise<ExistingGuestPrincipal | null> {
+  const sessionId = request.headers.get('X-Guest-Session')
+  if (!sessionId || !env.DB) return null
+
+  const principalHash = await guestPrincipalHash(sessionId)
+  if (!principalHash) return null
+
+  try {
+    const row = await env.DB.prepare(
+      'SELECT id, created_at, role, is_active FROM users WHERE user_hash = ?'
+    ).bind(principalHash).first<{ id: number; created_at: string; role: string; is_active: number }>()
+    if (!row || row.role !== 'guest') return null
+    const createdAt = Date.parse(row.created_at)
+    const isActive = Number(row.is_active) === 1
+      && Number.isFinite(createdAt)
+      && Date.now() - createdAt < GUEST_SESSION_MAX_AGE_MS
+    if (!isActive && !options.allowInactive) return null
+    return { userId: Number(row.id), principalHash, isActive }
+  } catch (err) {
+    if (err instanceof AuthDbError) throw err
     throw new AuthDbError(err)
   }
 }

@@ -5,7 +5,9 @@ import { useAuthStore } from '@/stores/auth'
 import { getCopHeaders } from '@/lib/cop-auth'
 import {
   clearGuestStorage,
+  getActiveGuestSessionId,
   getOrCreateGuestSessionId,
+  transferGuestStorage,
 } from '@/lib/guest-session'
 
 export type UserMode = 'guest' | 'authenticated'
@@ -54,34 +56,20 @@ export function GuestModeProvider({ children }: GuestModeProviderProps) {
     // To switch to authenticated, user must login via login page
   }
 
-  const convertToAuthenticated = async (userId: number) => {
+  const convertToAuthenticated = async (_userId: number) => {
     // Transfer guest data to authenticated user
     try {
-      // Collect guest data
-      const guestData: Record<string, any> = {}
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i)
-        if (key && key.startsWith(GUEST_DATA_PREFIX)) {
-          const value = localStorage.getItem(key)
-          if (value) {
-            guestData[key] = safeJSONParse(value)
-          }
-        }
-      }
+      const sessionId = guestSessionId || getActiveGuestSessionId()
+      if (!sessionId) return
 
-      // Send to backend (implement this based on your API)
       const response = await fetch('/api/guest-conversions', {
         method: 'POST',
-        headers: getCopHeaders(),
-        body: JSON.stringify({
-          guest_session_id: guestSessionId,
-          user_id: userId,
-          data: guestData,
-        }),
+        headers: { ...getCopHeaders(), 'X-Guest-Session': sessionId },
+        body: JSON.stringify({}),
       })
 
       if (response.ok) {
-        // Clear guest data
+        transferGuestStorage()
         clearGuestData()
         // Auth state update happens elsewhere (e.g. login)
       } else {
@@ -92,6 +80,17 @@ export function GuestModeProvider({ children }: GuestModeProviderProps) {
       throw error
     }
   }
+
+  // Authentication is the explicit save boundary. Once login succeeds, attach
+  // any active anonymous workspace to that account; ordinary guest use never
+  // invokes this endpoint and remains login-free.
+  useEffect(() => {
+    const userId = useAuthStore.getState().user?.id
+    if (!isAuthenticated || !userId || !getActiveGuestSessionId()) return
+    void convertToAuthenticated(userId)
+  // convertToAuthenticated intentionally uses current storage/auth state.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated])
 
   const getStorageKey = (key: string): string => {
     if (mode === 'guest') {

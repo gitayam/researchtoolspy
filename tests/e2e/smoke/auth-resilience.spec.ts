@@ -46,7 +46,7 @@ function makeResolvingDb(id: number): Env['DB'] {
 }
 
 function activeGuestUser() {
-  return { created_at: new Date().toISOString(), role: 'guest' }
+  return { created_at: new Date().toISOString(), role: 'guest', is_active: 1 }
 }
 
 test.describe('Auth resilience: 503 on D1 error, not spurious 401 @smoke', () => {
@@ -169,7 +169,24 @@ test.describe('Auth resilience: 503 on D1 error, not spurious 401 @smoke', () =>
       prepare: (sql: string) => ({
         bind: () => ({
           first: async () => sql.includes('SELECT created_at, role')
-            ? { created_at: '2020-01-01T00:00:00.000Z', role: 'guest' }
+            ? { created_at: '2020-01-01T00:00:00.000Z', role: 'guest', is_active: 1 }
+            : { id: 73 },
+        }),
+      }),
+    } as unknown as Env['DB']
+    const request = new Request('https://researchtools.net/api/anything', {
+      headers: { 'X-Guest-Session': 'guest_018f47ce-f8f4-7ad5-9f6d-83e61296f891' },
+    })
+
+    await expect(getUserFromRequest(request, { DB: db })).resolves.toBeNull()
+  })
+
+  test('@smoke revoked guest session is rejected server-side', async () => {
+    const db = {
+      prepare: (sql: string) => ({
+        bind: () => ({
+          first: async () => sql.includes('SELECT created_at, role')
+            ? { created_at: new Date().toISOString(), role: 'guest', is_active: 0 }
             : { id: 73 },
         }),
       }),

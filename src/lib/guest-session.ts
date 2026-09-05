@@ -24,6 +24,34 @@ export function clearGuestStorage(storage: BrowserStorage | null = browserStorag
   keys.forEach((key) => storage.removeItem(key))
 }
 
+export function getActiveGuestSessionId(
+  storage: BrowserStorage | null = browserStorage(),
+  now = Date.now(),
+): string | null {
+  if (!storage) return null
+  const sessionId = storage.getItem(GUEST_SESSION_KEY)
+  const timestamp = Number(storage.getItem(GUEST_SESSION_TIMESTAMP_KEY))
+  if (!sessionId || !Number.isFinite(timestamp) || now - timestamp >= GUEST_SESSION_EXPIRY_MS) return null
+  return sessionId
+}
+
+/** Move guest-only browser drafts into their authenticated keys after the server transfer. */
+export function transferGuestStorage(storage: BrowserStorage | null = browserStorage()): void {
+  if (!storage) return
+  const reserved = new Set([GUEST_SESSION_KEY, GUEST_SESSION_TIMESTAMP_KEY, GUEST_WORKSPACE_KEY])
+  const moves: Array<{ from: string; to: string; value: string }> = []
+  for (let index = 0; index < storage.length; index += 1) {
+    const from = storage.key(index)
+    if (!from?.startsWith(GUEST_DATA_PREFIX) || reserved.has(from)) continue
+    const value = storage.getItem(from)
+    if (value !== null) moves.push({ from, to: from.slice(GUEST_DATA_PREFIX.length), value })
+  }
+  for (const move of moves) {
+    if (storage.getItem(move.to) === null) storage.setItem(move.to, move.value)
+    storage.removeItem(move.from)
+  }
+}
+
 export function getOrCreateGuestSessionId(
   storage: BrowserStorage | null = browserStorage(),
   now = Date.now(),

@@ -6,6 +6,8 @@ import {
   GUEST_WORKSPACE_KEY,
   getOrCreateGuestSessionId,
   getOrCreateGuestWorkspaceId,
+  getActiveGuestSessionId,
+  transferGuestStorage,
 } from '../../../src/lib/guest-session'
 
 class MemoryStorage implements Storage {
@@ -48,5 +50,24 @@ test.describe('Guest session identity @smoke', () => {
     expect(storage.getItem('guest_cross_tables')).toBeNull()
     expect(storage.getItem(GUEST_WORKSPACE_KEY)).toBeNull()
     expect(storage.getItem('unrelated')).toBe('keep')
+  })
+
+  test('@smoke transfers browser drafts only after authenticated conversion', () => {
+    const storage = new MemoryStorage()
+    storage.setItem(GUEST_SESSION_KEY, 'guest_018f47ce-f8f4-7ad5-9f6d-83e61296f891')
+    storage.setItem(GUEST_SESSION_TIMESTAMP_KEY, '1000')
+    storage.setItem(GUEST_WORKSPACE_KEY, 'guest-workspace-018f47ce-f8f4-7ad5-9f6d-83e61296f891')
+    storage.setItem('guest_draft', '{"answer":42}')
+    storage.setItem('draft_timestamp', 'existing-wins')
+    storage.setItem('guest_draft_timestamp', 'guest-timestamp')
+
+    expect(getActiveGuestSessionId(storage, 2_000)).toContain('guest_')
+    transferGuestStorage(storage)
+
+    expect(storage.getItem('draft')).toBe('{"answer":42}')
+    expect(storage.getItem('draft_timestamp')).toBe('existing-wins')
+    expect(storage.getItem('guest_draft')).toBeNull()
+    expect(storage.getItem(GUEST_SESSION_KEY)).toContain('guest_')
+    expect(storage.getItem(GUEST_WORKSPACE_KEY)).toContain('guest-workspace-')
   })
 })

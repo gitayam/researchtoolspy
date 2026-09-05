@@ -41,6 +41,17 @@ validates the workspace identifier, and creates only that principal's temporary
 workspace. A supplied workspace ID is never attached when it belongs to another
 principal. Guest and permanent-account state remain distinct in the client.
 
+Guest access is intentionally temporary and does not enable saved/bookmarked
+work, collaboration, teams, or groups. **Save Bookmark requires login or account
+creation.** After successful authentication, `POST /api/guest-conversions`
+proves possession of the active guest session, transfers that session's isolated
+workspace and user-scoped records to the authenticated account, then revokes the
+guest credential. The raw guest session is never stored in D1.
+
+Unconverted guest work expires after seven days. The daily, secret-guarded
+`POST /api/cron/cleanup-guests` retention job removes expired temporary data;
+`GET` (or `POST ?dry=1`) reports the count without deleting anything.
+
 These headers are an internal browser-session transport, not a replacement for a
 permanent API credential. CLI and integration clients should use `X-User-Hash`.
 

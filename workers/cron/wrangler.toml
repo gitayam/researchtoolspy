@@ -18,6 +18,8 @@ crons = ["0 4 * * *"]
 CLEANUP_URL = "https://researchtools.net/api/cron/cleanup-content"
 # Canonical prod endpoint for the 90-day uploaded-file retention sweep (E-6d).
 UPLOADS_CLEANUP_URL = "https://researchtools.net/api/cron/cleanup-uploads"
+# Seven-day retention sweep for anonymous, unconverted guest work.
+GUEST_CLEANUP_URL = "https://researchtools.net/api/cron/cleanup-guests"
 
 # Secrets — set via: wrangler secret put <NAME>  (run from this directory)
 # Required:

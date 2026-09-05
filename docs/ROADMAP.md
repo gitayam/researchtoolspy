@@ -73,8 +73,13 @@ Falsifiable gates:
   because those routes do not log authorization denials. The browser/API sweep
   established the affected route inventory; post-deploy verification must repeat
   the guest sweep and confirm zero unexpected 400/401 responses.
-- ⬜ Follow-up: implement durable guest-data conversion when **Save Bookmark** is
-  used and a documented retention cleanup for abandoned server-side guest rows.
+- ✅ Kept **Save Bookmark** as an explicit login/account boundary. After a real
+  hash or OIDC login, the possession-bound guest session transfers its temporary
+  workspace, user-scoped records, and browser drafts to the authenticated user;
+  the guest credential is then revoked. Guest use itself never authenticates.
+- ✅ Added a secret-guarded daily guest-retention sweep. Unconverted guest
+  principals and temporary workspaces expire after seven days; converted guest
+  provenance is excluded from deletion.
 
 ### v0.22.71 — Agentic Research LOW hygiene fixes (2026-06-30)
 - ✅ **`relevanceScore || 0.5` falsy-zero bug fixed** in `functions/api/collection/callback.ts`: `||` → `??` (nullish coalescing). A 0.0 relevance score was previously being replaced with 0.5 due to falsy-zero coercion; now only `null`/`undefined` fall back to the default. (`1c73e53fc`)
