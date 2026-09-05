@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { readFileSync } from 'node:fs'
 import { onRequest } from '../../../functions/api/guest-conversions'
 import { onRequestGet as getGuestCleanup } from '../../../functions/api/cron/cleanup-guests'
 
@@ -53,6 +54,13 @@ test.describe('Guest save boundary @smoke', () => {
       env: { DB: authDb('user'), CRON_SECRET: 'configured-secret' },
     } as never)
     expect(response.status).toBe(401)
+  })
+
+  test('@smoke retention SQL uses valid dependency-aware deletes', () => {
+    const source = readFileSync('functions/api/cron/cleanup-guests.ts', 'utf8')
+    expect(source).not.toContain('DELETE OR IGNORE')
+    expect(source).toContain('pass < 2')
+    expect(source).toContain('workspace_id')
   })
 
   test('@smoke authenticated conversion transfers ownership and stores only opaque guest identity', async () => {

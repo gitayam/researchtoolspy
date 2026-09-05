@@ -61,27 +61,54 @@ async function cleanup(env: Env, dryRun: boolean): Promise<Response> {
     `SELECT name, sql FROM sqlite_master WHERE type = 'table' AND sql IS NOT NULL ORDER BY rowid DESC`
   ).all<{ name: string; sql: string }>()
   const skip = new Set(['users', 'workspaces', 'workspace_members', 'guest_conversions'])
-  const statements: D1PreparedStatement[] = [
-    env.DB.prepare(`DELETE FROM workspaces WHERE owner_id IN (${EXPIRED_GUESTS})`),
-  ]
+  const deleteSql: string[] = []
+  const expiredWorkspaces = `SELECT id FROM workspaces WHERE owner_id IN (${EXPIRED_GUESTS})`
 
   // Legacy/user-scoped tools are not uniformly attached to workspaces. Walk
   // schema-owned identifiers (never request input) in reverse creation order.
-  // OR IGNORE retains constrained provenance rather than aborting the sweep.
+  // Some older foreign keys do not cascade, so workspace_id is swept as well.
   for (const row of schema.results || []) {
     if (!row?.name || !row.sql || skip.has(row.name) || row.name.startsWith('sqlite_')) continue
     const table = quoteIdentifier(row.name)
+    if (/\bworkspace_id\b/i.test(row.sql)) {
+      deleteSql.push(`DELETE FROM ${table} WHERE "workspace_id" IN (${expiredWorkspaces})`)
+    }
     for (const column of USER_REFERENCE_COLUMNS) {
       if (!new RegExp(`\\b${column}\\b`, 'i').test(row.sql)) continue
-      statements.push(
-        env.DB.prepare(`DELETE OR IGNORE FROM ${table} WHERE ${quoteIdentifier(column)} IN (${EXPIRED_GUESTS})`)
-      )
+      deleteSql.push(`DELETE FROM ${table} WHERE ${quoteIdentifier(column)} IN (${EXPIRED_GUESTS})`)
     }
   }
-  statements.push(env.DB.prepare(`DELETE OR IGNORE FROM users WHERE id IN (${EXPIRED_GUESTS})`))
 
-  const results = await env.DB.batch(statements)
-  const changes = results.reduce((sum, result) => sum + Number(result.meta?.changes || 0), 0)
+  // A small number of legacy tables were rebuilt after their dependants, so
+  // sqlite_master order alone is not a complete dependency graph. Two passes
+  // let a parent blocked on pass one succeed after its child is removed. A
+  // constraint failure is retained and reported; it never aborts other cleanup.
+  let changes = 0
+  let constrainedStatements = 0
+  for (let pass = 0; pass < 2; pass += 1) {
+    constrainedStatements = 0
+    for (const sql of deleteSql) {
+      try {
+        const result = await env.DB.prepare(sql).run()
+        changes += Number(result.meta?.changes || 0)
+      } catch {
+        constrainedStatements += 1
+      }
+    }
+  }
+
+  for (const sql of [
+    `DELETE FROM workspace_members WHERE workspace_id IN (${expiredWorkspaces}) OR user_id IN (${EXPIRED_GUESTS})`,
+    `DELETE FROM workspaces WHERE owner_id IN (${EXPIRED_GUESTS})`,
+    `DELETE FROM users WHERE id IN (${EXPIRED_GUESTS})`,
+  ]) {
+    try {
+      const result = await env.DB.prepare(sql).run()
+      changes += Number(result.meta?.changes || 0)
+    } catch {
+      constrainedStatements += 1
+    }
+  }
   const after = await env.DB.prepare(`SELECT COUNT(*) AS n FROM (${EXPIRED_GUESTS})`)
     .first<{ n: number }>()
 
@@ -90,6 +117,7 @@ async function cleanup(env: Env, dryRun: boolean): Promise<Response> {
     expired_guests: expired,
     guest_rows_remaining: Number(after?.n || 0),
     rows_deleted: changes,
+    constrained_statements: constrainedStatements,
   }), { status: 200, headers: JSON_HEADERS })
 }
 
