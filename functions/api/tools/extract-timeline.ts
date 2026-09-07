@@ -8,8 +8,8 @@
 import { callOpenAIViaGateway, getOptimalCacheTTL } from '../_shared/ai-gateway'
 import { getUserFromRequest } from '../_shared/auth-helpers'
 import { JSON_HEADERS, optionsResponse } from '../_shared/api-utils'
-import { extractArticle } from '../_shared/article-extractor'
-import { parseSafeOutboundUrl, safeFetchText } from '../_shared/safe-fetch'
+import { scrapeUrl } from '../_shared/scraper-utils'
+import { parseSafeOutboundUrl } from '../_shared/safe-fetch'
 
 interface Env {
   DB: D1Database
@@ -27,40 +27,12 @@ interface TimelineEvent {
   importance: string
 }
 
-interface TimelineSource {
-  response: Response
-  html: string
-  finalUrl: string
-}
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-export async function fetchTimelineSource(url: string): Promise<TimelineSource> {
-  const fetched = await safeFetchText(url, {
-    timeoutMs: 15_000,
-    maxRedirects: 5,
-    maxResponseBytes: 2 * 1024 * 1024,
-    allowedContentTypes: ['text/', 'application/xhtml+xml', 'application/xml'],
-    requestInit: {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; ResearchToolsBot/1.0)',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,text/plain;q=0.8',
-      },
-    },
-  })
-  return { response: fetched.response, html: fetched.text, finalUrl: fetched.finalUrl }
-}
-
-function extractTitle(html: string): string {
-  // OG title
-  const ogMatch = html.match(/<meta[^>]*property=["']og:title["'][^>]*content=["']([^"']+)["']/i)
-  if (ogMatch) return ogMatch[1]
-  // <title> tag
-  const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i)
-  if (titleMatch) return titleMatch[1].trim()
-  return ''
+export function scrapeTimelineSource(url: string) {
+  return scrapeUrl(url, undefined, { purpose: 'timeline', allowArchives: true })
 }
 
 // ─── AI extraction ───
@@ -162,34 +134,23 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       }), { status: 422, headers: JSON_HEADERS })
     }
 
-    // Static-only until Browser Run navigation and subresources are forced
-    // through the same enforcing egress boundary as this bounded request.
-    let source: TimelineSource
-    try {
-      source = await fetchTimelineSource(url)
-    } catch {
-      return new Response(JSON.stringify({ error: 'Failed to fetch URL' }), {
-        status: 422, headers: JSON_HEADERS,
-      })
-    }
-    const res = source.response
-
-    if (!res.ok) {
+    // Static extraction and exact-host archives share one analysis-quality gate.
+    // Browser navigation remains excluded until it can use the same egress policy.
+    const source = await scrapeTimelineSource(url)
+    if (source.error || !source.quality?.accepted) {
       return new Response(JSON.stringify({
-        error: `Failed to fetch URL (${res.status})`,
+        error: source.content
+          ? 'Insufficient content to extract timeline events'
+          : 'Failed to fetch URL',
+        details: source.error,
+        content_source: source.source,
+        fallback_attempts: source.fallbackAttempts || [],
+        extraction_quality: source.quality,
       }), { status: 422, headers: JSON_HEADERS })
     }
 
-    const html = source.html
-    const article = extractArticle(html, source.finalUrl)
-    const text = article.text
-    const title = article.title || extractTitle(html) || url
-
-    if (text.length < 100) {
-      return new Response(JSON.stringify({
-        error: 'Insufficient content to extract timeline events',
-      }), { status: 422, headers: JSON_HEADERS })
-    }
+    const text = source.content
+    const title = source.title || url
 
     // Extract timeline events via AI
     const events = await extractTimelineFromText(context.env, text, title)
@@ -203,10 +164,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       url,
       event_count: events.length,
       extraction: {
-        method: article.method,
-        quality: article.quality,
-        word_count: text ? text.split(/\s+/).length : 0,
+        method: source.extraction?.method,
+        quality: source.extraction?.quality,
+        word_count: source.extraction?.wordCount ?? (text ? text.split(/\s+/).length : 0),
       },
+      content_source: source.source,
+      fallback_attempts: source.fallbackAttempts || [],
+      extraction_quality: source.quality,
     }), { headers: JSON_HEADERS })
   } catch (error) {
     console.error('[ExtractTimeline] Error:', error)

@@ -72,7 +72,10 @@ test.describe('RageCheck shared bounded scraper @smoke', () => {
     try {
       const response = await onRequestPost(routeContext('http://127.0.0.1/private') as never)
       expect(response.status).toBe(422)
-      expect(await response.json()).toEqual({ error: 'Failed to scrape URL content' })
+      expect(await response.json()).toMatchObject({
+        error: 'Failed to scrape URL content',
+        fallback_attempts: [],
+      })
       expect(networkCalls).toBe(0)
     } finally {
       globalThis.fetch = originalFetch
@@ -162,6 +165,111 @@ test.describe('RageCheck shared bounded scraper @smoke', () => {
       expect(targets).toEqual(['evil.example'])
       expect(targets).not.toContain('publish.twitter.com')
       expect(targets).not.toContain('api.apify.com')
+    } finally {
+      restore()
+    }
+  })
+
+  test('@smoke RageCheck continues from a thin shell to an archive', async () => {
+    const targets: string[] = []
+    const restore = installNetworkMock({
+      target: url => {
+        targets.push(url.hostname)
+        if (url.hostname === 'archive.ph') {
+          return new Response(`<html><head><title>Archived analysis source</title></head><body><article><p>${'framing evidence phrase '.repeat(90)}</p></article></body></html>`, {
+            headers: { 'Content-Type': 'text/html' },
+          })
+        }
+        return new Response('<html><head><title>Thin shell</title></head><body><main>Loading article</main></body></html>', {
+          headers: { 'Content-Type': 'text/html' },
+        })
+      },
+    })
+    try {
+      const result = await scrapeUrl('https://public.example/thin', undefined, {
+        purpose: 'rage-check',
+        allowArchives: true,
+      })
+      expect(result).toMatchObject({
+        source: 'archive.ph',
+        fallbackAttempts: ['original', 'archive.ph'],
+        quality: { accepted: true },
+      })
+      expect(targets).toEqual(['public.example', 'archive.ph'])
+    } finally {
+      restore()
+    }
+  })
+
+  test('@smoke analysis archives may recover a 403 but never a 401 challenge', async () => {
+    let targets: string[] = []
+    let restore = installNetworkMock({
+      target: url => {
+        targets.push(url.hostname)
+        if (url.hostname === 'archive.ph') {
+          return new Response(`<html><head><title>Public archived copy</title></head><body><article><p>${'public archived evidence '.repeat(90)}</p></article></body></html>`, {
+            headers: { 'Content-Type': 'text/html' },
+          })
+        }
+        return new Response('automated client blocked', {
+          status: 403,
+          headers: { 'Content-Type': 'text/html' },
+        })
+      },
+    })
+    try {
+      const recovered = await scrapeUrl('https://public.example/blocked', undefined, {
+        purpose: 'rage-check',
+        allowArchives: true,
+      })
+      expect(recovered).toMatchObject({ source: 'archive.ph', quality: { accepted: true } })
+      expect(targets).toEqual(['public.example', 'archive.ph'])
+    } finally {
+      restore()
+    }
+
+    targets = []
+    restore = installNetworkMock({
+      target: url => {
+        targets.push(url.hostname)
+        return new Response('authentication required', {
+          status: 401,
+          headers: { 'Content-Type': 'text/html' },
+        })
+      },
+    })
+    try {
+      const denied = await scrapeUrl('https://public.example/private-account', undefined, {
+        purpose: 'rage-check',
+        allowArchives: true,
+      })
+      expect(denied).toMatchObject({
+        source: 'original',
+        error: 'Access Denied: The website blocked automated access.',
+        quality: { accepted: false },
+      })
+      expect(targets).toEqual(['public.example'])
+    } finally {
+      restore()
+    }
+  })
+
+  test('@smoke RageCheck rejects all-thin sources before AI analysis', async () => {
+    const restore = installNetworkMock({
+      target: url => url.hostname === 'archive.org'
+        ? Response.json({ archived_snapshots: {} })
+        : new Response('<html><head><title>Thin shell</title></head><body><main>Loading article</main></body></html>', {
+            headers: { 'Content-Type': 'text/html' },
+          }),
+    })
+    try {
+      const response = await onRequestPost(routeContext('https://public.example/thin') as never)
+      expect(response.status).toBe(422)
+      expect(await response.json()).toMatchObject({
+        error: 'Failed to scrape URL content',
+        fallback_attempts: ['original', 'archive.ph', 'wayback'],
+        extraction_quality: { accepted: false, reason: 'placeholder' },
+      })
     } finally {
       restore()
     }

@@ -607,6 +607,32 @@ test.describe('content-intelligence URL safe-fetch migration @smoke', () => {
     }
   })
 
+  test('@smoke a 401 authentication challenge is terminal before archive disclosure', async () => {
+    const targets: string[] = []
+    const restore = installNetworkMock({
+      target: url => {
+        targets.push(url.hostname)
+        return new Response('authentication required', {
+          status: 401,
+          headers: { 'Content-Type': 'text/html' },
+        })
+      },
+    })
+
+    try {
+      const result = await extractUrlContentWithFallback('https://public.example/account')
+      expect(result).toMatchObject({
+        success: false,
+        source: 'original',
+        fallback_attempts: ['original'],
+        errorCode: 'upstream_4xx',
+      })
+      expect(targets).toEqual(['public.example'])
+    } finally {
+      restore()
+    }
+  })
+
   test('@smoke reports and logs quality rejection after bounded fallbacks stay thin', async () => {
     const directThin = `<html><head><title>Thin public page</title></head><body><main>
       ${'direct public loader text '.repeat(24)}

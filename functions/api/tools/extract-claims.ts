@@ -1,17 +1,25 @@
 /**
  * Full-pipeline claim extraction endpoint for poly-sniff integration.
  *
- * Uses the same scraping approach as content-intelligence (browser profiles,
- * paywall bypass via archive.ph/wayback), extracts full article text, then
- * runs GPT for claims + entities + key phrases. Returns rich structured data
- * without requiring auth or persisting to DB.
+ * Uses the same quality-aware archive recovery approach as content-intelligence,
+ * extracts article text, then runs GPT for claims + entities + key phrases.
+ * The route requires auth but does not persist the result.
  */
 
 import { callOpenAIViaGateway, getOptimalCacheTTL } from '../_shared/ai-gateway'
 import { getUserFromRequest } from '../_shared/auth-helpers'
 import { fetchSocialViaApify, isApifySupportedUrl } from '../_shared/apify-social'
 import { JSON_HEADERS, optionsResponse } from '../_shared/api-utils'
+import { extractArticle, type ArticleQualitySignals } from '../_shared/article-extractor'
+import {
+  ARTICLE_CANDIDATE_POLICIES,
+  assessArticleCandidate,
+  createArticleCandidateSelector,
+  type ArticleCandidateAssessment,
+} from '../_shared/article-candidate'
+import { fetchArchivePhSource, fetchWaybackSource } from '../_shared/archive-sources'
 import { parseSafeOutboundUrl, SafeFetchError, safeFetchText } from '../_shared/safe-fetch'
+import type { NormalizedScrapeError } from '../_shared/scrape-contract'
 
 interface Env {
   DB: D1Database
@@ -42,14 +50,24 @@ interface FetchWithFallbackResult {
   ogMetadata: OgMetadata
   source: string
   paywalled: boolean
+  fallback_attempts: string[]
+  quality: ArticleCandidateAssessment
   error?: string
   policyDenied?: boolean
 }
 
-interface WaybackAvailability {
-  archived_snapshots?: {
-    closest?: { url?: unknown; timestamp?: unknown }
-  }
+interface ClaimsCandidate {
+  html: string
+  text: string
+  ogMetadata: OgMetadata
+  source: string
+  paywalled: boolean
+  success: boolean
+  contentKind?: 'article' | 'social'
+  qualitySignals?: ArticleQualitySignals
+  errorCode?: NormalizedScrapeError
+  error?: string
+  policyDenied?: boolean
 }
 
 interface ClaimsAnalysis {
@@ -59,8 +77,6 @@ interface ClaimsAnalysis {
 }
 
 const PRIMARY_MAX_RESPONSE_BYTES = 2 * 1024 * 1024
-const FALLBACK_MAX_RESPONSE_BYTES = 2 * 1024 * 1024
-const ARCHIVE_METADATA_MAX_RESPONSE_BYTES = 256 * 1024
 
 function terminalPolicyFailure(error: unknown): boolean {
   return error instanceof SafeFetchError && (
@@ -68,19 +84,6 @@ function terminalPolicyFailure(error: unknown): boolean {
     || error.code === 'unsafe_url'
     || error.code === 'dns_resolution_failed'
   )
-}
-
-function validatedWaybackSnapshotUrl(value: unknown): string | null {
-  if (typeof value !== 'string') return null
-  try {
-    const parsed = new URL(value)
-    const hostname = parsed.hostname.toLowerCase().replace(/\.$/, '')
-    if (parsed.protocol !== 'https:' || hostname !== 'web.archive.org') return null
-    if (!/^\/web\/\d{6,14}(?:[a-z_]+)?\//i.test(parsed.pathname)) return null
-    return parsed.href
-  } catch {
-    return null
-  }
 }
 
 // ─── Paywall detection ───
@@ -114,11 +117,6 @@ function isPaywalledContent(text: string, html: string): boolean {
       lowerHtml.includes('name="robots" content="noarchive"')) {
     return true
   }
-
-  // Very short article body relative to HTML size = likely paywall
-  // Real articles typically have >500 words; paywall pages have <200 words of actual content
-  const wordCount = text.split(/\s+/).length
-  if (wordCount < 150 && html.length > 10000) return true
 
   return false
 }
@@ -201,218 +199,174 @@ function decodeEntities(text: string): string {
     .replace(/&#8221;/g, "\u201D")
 }
 
-function cleanHtmlText(html: string): string {
-  let text = html
-  // Remove scripts, styles, nav, footer, header, aside, forms
-  text = text.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-  text = text.replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
-  text = text.replace(/<nav\b[^<]*(?:(?!<\/nav>)<[^<]*)*<\/nav>/gi, '')
-  text = text.replace(/<footer\b[^<]*(?:(?!<\/footer>)<[^<]*)*<\/footer>/gi, '')
-  text = text.replace(/<header\b[^<]*(?:(?!<\/header>)<[^<]*)*<\/header>/gi, '')
-  text = text.replace(/<aside\b[^<]*(?:(?!<\/aside>)<[^<]*)*<\/aside>/gi, '')
-  text = text.replace(/<form\b[^<]*(?:(?!<\/form>)<[^<]*)*<\/form>/gi, '')
-  // Remove all remaining tags
-  text = text.replace(/<[^>]+>/g, ' ')
-  // Decode entities
-  text = decodeEntities(text).replace(/&nbsp;/g, ' ')
-  // Collapse whitespace
-  text = text.replace(/\s+/g, ' ').trim()
-  return text
-}
-
 export async function fetchWithFallback(url: string): Promise<FetchWithFallbackResult> {
   let ogMetadata: OgMetadata = {}
   let paywalled = false
+  const attempts: string[] = []
+  const candidates = createArticleCandidateSelector(
+    ARTICLE_CANDIDATE_POLICIES.claims,
+    (candidate: ClaimsCandidate) => ({
+      success: candidate.success,
+      text: candidate.text,
+      title: candidate.ogMetadata.title,
+      blocked: candidate.paywalled,
+      contentKind: candidate.contentKind,
+      errorCode: candidate.errorCode,
+      qualitySignals: candidate.qualitySignals,
+    }),
+  )
   const totalController = new AbortController()
   const totalTimeout = setTimeout(
     () => totalController.abort(new Error('extract-claims fetch chain timed out')),
     30_000,
   )
 
-  try {
-  // 1. Try the original URL through the shared outbound policy. A destination
-  // policy failure is terminal: never disclose a denied URL to fallback providers.
-  try {
-    const fetched = await safeFetchText(url, {
-      timeoutMs: 15_000,
-      maxRedirects: 5,
-      maxResponseBytes: PRIMARY_MAX_RESPONSE_BYTES,
-      requestInit: {
-        signal: totalController.signal,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (compatible; ResearchToolsBot/1.0)',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,text/plain;q=0.8',
-        },
-      },
-    })
-    const response = fetched.response
-    if (response.ok) {
-      const html = fetched.text
-      ogMetadata = extractOgMetadata(html)
-      const text = cleanHtmlText(html)
-
-      if (text.length > 200 && !isPaywalledContent(text, html)) {
-        return { html, text, ogMetadata, source: 'original', paywalled: false }
-      }
-
-      if (isPaywalledContent(text, html)) {
-        paywalled = true
-      }
-    }
-  } catch (error) {
-    if (terminalPolicyFailure(error)) {
-      return {
-        html: '', text: '', ogMetadata, source: 'failed', paywalled,
-        error: 'Outbound URL policy denied the destination', policyDenied: true,
-      }
-    }
-    // Fallthrough to next source — intentional silent failure
+  const mergeMetadata = (base: OgMetadata, next: OgMetadata): OgMetadata => {
+    const defined = Object.fromEntries(
+      Object.entries(next).filter(([, value]) => typeof value === 'string' && value.length > 0),
+    ) as OgMetadata
+    return { ...base, ...defined }
   }
-
-  // 2. Try Google AMP cache (works for many news sites)
-  try {
-    const ampUrl = `https://cdn.ampproject.org/v/s/${url.replace(/^https?:\/\//, '')}?amp_js_v=0.1`
-    const amp = await safeFetchText(ampUrl, {
-      timeoutMs: 15_000,
-      maxRedirects: 2,
-      maxResponseBytes: FALLBACK_MAX_RESPONSE_BYTES,
-      allowedHostnames: ['cdn.ampproject.org'],
-      requestInit: { signal: totalController.signal, headers: { 'User-Agent': 'Mozilla/5.0' } },
+  const buildArticleCandidate = (
+    html: string,
+    finalUrl: string,
+    source: 'original' | 'archive.ph' | 'wayback',
+  ): ClaimsCandidate => {
+    const article = extractArticle(html, finalUrl)
+    const metadata = mergeMetadata(ogMetadata, {
+      ...extractOgMetadata(html),
+      title: article.title,
+      author: article.author,
+      publishDate: article.publishedTime,
+      siteName: article.siteName,
+      description: article.excerpt,
     })
-    const ampResp = amp.response
-    if (ampResp.ok) {
-      const html = amp.text
-      const text = cleanHtmlText(html)
-      if (text.length > 500 && !isPaywalledContent(text, html)) {
-        const meta = extractOgMetadata(html)
-        return {
-          html, text,
-          ogMetadata: { ...ogMetadata, ...meta },
-          source: 'google-amp',
-          paywalled: false
-        }
-      }
-    }
-  } catch {
-    // Fallthrough to next source — intentional silent failure
-  }
-
-  // 3. Try Google webcache
-  try {
-    const cacheUrl = `https://webcache.googleusercontent.com/search?q=cache:${encodeURIComponent(url)}`
-    const cached = await safeFetchText(cacheUrl, {
-      timeoutMs: 15_000,
-      maxRedirects: 2,
-      maxResponseBytes: FALLBACK_MAX_RESPONSE_BYTES,
-      allowedHostnames: ['webcache.googleusercontent.com'],
-      requestInit: {
-        signal: totalController.signal,
-        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
-      },
-    })
-    const cacheResp = cached.response
-    if (cacheResp.ok) {
-      const html = cached.text
-      const text = cleanHtmlText(html)
-      if (text.length > 500 && !isPaywalledContent(text, html)) {
-        const meta = extractOgMetadata(html)
-        return {
-          html, text,
-          ogMetadata: { ...ogMetadata, ...meta },
-          source: 'google-cache',
-          paywalled: false
-        }
-      }
-    }
-  } catch {
-    // Fallthrough to next source — intentional silent failure
-  }
-
-  // 4. Try archive.ph
-  try {
-    const archived = await safeFetchText(`https://archive.ph/newest/${url}`, {
-      timeoutMs: 15_000,
-      maxRedirects: 5,
-      maxResponseBytes: FALLBACK_MAX_RESPONSE_BYTES,
-      allowedHostnames: ['archive.ph'],
-      requestInit: { signal: totalController.signal, headers: { 'User-Agent': 'Mozilla/5.0' } },
-    })
-    const archiveResp = archived.response
-    if (archiveResp.ok) {
-      const html = archived.text
-      const text = cleanHtmlText(html)
-      if (text.length > 500 && !isPaywalledContent(text, html)) {
-        const meta = extractOgMetadata(html)
-        return {
-          html, text,
-          ogMetadata: { ...ogMetadata, ...meta },
-          source: 'archive.ph',
-          paywalled: false
-        }
-      }
-    }
-  } catch {
-    // Fallthrough to next source — intentional silent failure
-  }
-
-  // 5. Try Wayback Machine
-  try {
-    const availabilityUrl = new URL('https://archive.org/wayback/available')
-    availabilityUrl.searchParams.set('url', url)
-    const availability = await safeFetchText(availabilityUrl, {
-      timeoutMs: 15_000,
-      maxRedirects: 2,
-      maxResponseBytes: ARCHIVE_METADATA_MAX_RESPONSE_BYTES,
-      allowedHostnames: ['archive.org'],
-      allowedContentTypes: ['application/json'],
-      requestInit: { signal: totalController.signal },
-    })
-    const wbResp = availability.response
-    if (wbResp.ok) {
-      const wbData = JSON.parse(availability.text) as WaybackAvailability
-      const snapshot = wbData?.archived_snapshots?.closest
-      const snapshotUrl = validatedWaybackSnapshotUrl(snapshot?.url)
-      if (snapshotUrl) {
-        const archived = await safeFetchText(snapshotUrl, {
-          timeoutMs: 15_000,
-          maxRedirects: 2,
-          maxResponseBytes: FALLBACK_MAX_RESPONSE_BYTES,
-          allowedHostnames: ['web.archive.org'],
-          requestInit: { signal: totalController.signal, headers: { 'User-Agent': 'Mozilla/5.0' } },
-        })
-        const archiveResp = archived.response
-        if (archiveResp.ok) {
-          const html = archived.text
-          const text = cleanHtmlText(html)
-          if (text.length > 500) {
-            const meta = extractOgMetadata(html)
-            return {
-              html, text,
-              ogMetadata: { ...ogMetadata, ...meta },
-              source: 'wayback',
-              paywalled: false
-            }
-          }
-        }
-      }
-    }
-  } catch {
-    // Fallthrough to next source — intentional silent failure
-  }
-
-  // 6. All real sources failed — return OG metadata if we have it
-  if (ogMetadata.title && ogMetadata.title.length > 10) {
-    const syntheticText = [ogMetadata.title, ogMetadata.description].filter(Boolean).join('. ')
+    const blocked = isPaywalledContent(article.text, html)
+      || article.qualitySignals.reasons.includes('login_or_paywall')
     return {
-      html: '',
-      text: syntheticText,
-      ogMetadata,
-      source: 'og-metadata-only',
-      paywalled
+      html,
+      text: article.text,
+      ogMetadata: metadata,
+      source,
+      paywalled: blocked,
+      success: true,
+      contentKind: 'article',
+      qualitySignals: article.qualitySignals,
     }
   }
+  const finish = (
+    assessed: ReturnType<typeof candidates.consider>,
+    error?: string,
+  ): FetchWithFallbackResult => ({
+    ...assessed.candidate,
+    fallback_attempts: [...attempts],
+    quality: assessed.assessment,
+    ...(error ? { error } : {}),
+  })
 
-  return { html: '', text: '', ogMetadata, source: 'failed', paywalled, error: 'All fetch methods failed' }
+  try {
+    // Destination policy failures are terminal: never disclose denied targets
+    // to a cache or archive provider.
+    attempts.push('original')
+    try {
+      const fetched = await safeFetchText(url, {
+        timeoutMs: 15_000,
+        maxRedirects: 5,
+        maxResponseBytes: PRIMARY_MAX_RESPONSE_BYTES,
+        allowedContentTypes: ['text/', 'application/xhtml+xml', 'application/xml'],
+        requestInit: {
+          signal: totalController.signal,
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (compatible; ResearchToolsBot/1.0)',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,text/plain;q=0.8',
+          },
+        },
+      })
+      if (fetched.response.ok) {
+        const candidate = buildArticleCandidate(fetched.text, fetched.finalUrl, 'original')
+        ogMetadata = candidate.ogMetadata
+        paywalled = candidate.paywalled
+        const assessed = candidates.consider(candidate)
+        if (assessed.assessment.accepted) return finish(assessed)
+      } else {
+        const assessed = candidates.consider({
+          html: '', text: '', ogMetadata, source: 'original', paywalled,
+          success: false,
+          errorCode: fetched.response.status === 429
+            ? 'rate_limited'
+            : fetched.response.status >= 500 ? 'upstream_5xx' : 'upstream_4xx',
+        })
+        if (fetched.response.status === 401) {
+          return finish(assessed, 'The source requires authentication')
+        }
+      }
+    } catch (error) {
+      if (terminalPolicyFailure(error)) {
+        const assessed = candidates.consider({
+          html: '', text: '', ogMetadata, source: 'failed', paywalled,
+          success: false, errorCode: 'policy_denied', policyDenied: true,
+        })
+        return finish(assessed, 'Outbound URL policy denied the destination')
+      }
+      candidates.consider({
+        html: '', text: '', ogMetadata, source: 'original', paywalled,
+        success: false,
+        errorCode: error instanceof SafeFetchError && error.code === 'timeout'
+          ? 'timeout'
+          : 'extract_failed',
+      })
+    }
+
+    attempts.push('archive.ph')
+    try {
+      const archived = await fetchArchivePhSource(url, totalController.signal)
+      if (archived) {
+        const assessed = candidates.consider(
+          buildArticleCandidate(archived.html, archived.finalUrl, archived.source),
+        )
+        if (assessed.assessment.accepted) return finish(assessed)
+      }
+    } catch {
+      // Continue to the next exact-host source.
+    }
+
+    if (!totalController.signal.aborted) {
+      attempts.push('wayback')
+      try {
+        const archived = await fetchWaybackSource(url, totalController.signal)
+        if (archived) {
+          const assessed = candidates.consider(
+            buildArticleCandidate(archived.html, archived.finalUrl, archived.source),
+          )
+          if (assessed.assessment.accepted) return finish(assessed)
+        }
+      } catch {
+        // No more network providers remain.
+      }
+    }
+
+    // Metadata remains useful diagnostic context, but it is never enough to
+    // invoke the claim model by itself.
+    if (ogMetadata.title) {
+      candidates.consider({
+        html: '',
+        text: [ogMetadata.title, ogMetadata.description].filter(Boolean).join('. '),
+        ogMetadata,
+        source: 'og-metadata-only',
+        paywalled,
+        success: true,
+      })
+    }
+
+    const strongest = candidates.best()
+    if (strongest) {
+      return finish(strongest, 'No analysis-grade content source passed quality checks')
+    }
+    const assessed = candidates.consider({
+      html: '', text: '', ogMetadata, source: 'failed', paywalled, success: false,
+      errorCode: 'extract_failed',
+    })
+    return finish(assessed, 'All fetch methods failed')
   } finally {
     clearTimeout(totalTimeout)
     if (!totalController.signal.aborted) totalController.abort(new Error('extract-claims fetch chain completed'))
@@ -434,10 +388,10 @@ async function analyzeContent(
 ): Promise<ClaimsAnalysis> {
   const truncated = text.substring(0, 14000)
 
-  // Adjust prompt based on how much content we have
-  const isPartial = options.source === 'og-metadata-only' || text.length < 500
+  // Short structured documents are valid, but the model must never fill gaps.
+  const isPartial = text.split(/\s+/).filter(Boolean).length < 150
   const contentQualifier = isPartial
-    ? `NOTE: Only partial content is available (likely paywalled). Extract what you can from the title and description. For claims you cannot verify from the available text, set confidence to 0.3 and note "inferred from headline" in the source field. Still generate suggested_market questions based on the topic.\n\n`
+    ? 'NOTE: The source is short. Return only claims explicitly supported by the supplied text; return fewer claims when evidence is limited. Do not infer claims from the headline or topic.\n\n'
     : ''
 
   const entityBlock = options.include_entities ? `
@@ -478,7 +432,7 @@ Write a 2-3 sentence summary of the article.` : ''
 Article Title: ${title}
 ${contentQualifier}
 PART 1 — CLAIMS EXTRACTION
-Extract 5-15 objective, verifiable claims that could map to prediction market outcomes.
+Extract up to 15 objective, verifiable claims that could map to prediction market outcomes. Return fewer than 5 when the source supports fewer.
 
 Categories:
 1. EVENT — Specific things that happened: who did what, when, where
@@ -595,7 +549,15 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     let fetched: Awaited<ReturnType<typeof fetchWithFallback>>
     if (context.env.APIFY_API_KEY && socialPlatform) {
       const socialResult = await fetchSocialViaApify(normalizedUrl, context.env.APIFY_API_KEY)
-      if (socialResult?.success && socialResult.text.length > 50) {
+      const socialQuality = socialResult?.success
+        ? assessArticleCandidate({
+            success: true,
+            text: socialResult.text,
+            title: socialResult.title,
+            contentKind: 'social',
+          }, ARTICLE_CANDIDATE_POLICIES.claims)
+        : null
+      if (socialResult?.success && socialQuality?.accepted) {
         fetched = {
           text: socialResult.text,
           html: '',
@@ -606,18 +568,25 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           },
           source: 'apify',
           paywalled: false,
+          fallback_attempts: ['apify'],
+          quality: socialQuality,
         }
       } else {
         fetched = await fetchWithFallback(normalizedUrl)
+        fetched.fallback_attempts.unshift('apify')
       }
     } else {
       fetched = await fetchWithFallback(normalizedUrl)
     }
 
-    if (fetched.error && !fetched.text) {
+    if (fetched.error || !fetched.quality.accepted) {
       console.error('[ExtractClaims] Fetch failed:', fetched.error)
       return new Response(JSON.stringify({
         error: 'Failed to fetch content from URL',
+        details: fetched.error,
+        content_source: fetched.source,
+        fallback_attempts: fetched.fallback_attempts,
+        extraction_quality: fetched.quality,
         og_metadata: fetched.ogMetadata,
         paywalled: fetched.paywalled
       }), {
@@ -626,21 +595,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    // 2. Check content quality
-    const wordCount = fetched.text.split(/\s+/).length
-
-    if (fetched.text.length < 30) {
-      return new Response(JSON.stringify({
-        error: 'Insufficient content',
-        details: `Only ${fetched.text.length} characters extracted. Page may be JavaScript-rendered or paywalled.`,
-        source: fetched.source,
-        og_metadata: fetched.ogMetadata,
-        paywalled: fetched.paywalled
-      }), {
-        status: 422,
-        headers: JSON_HEADERS
-      })
-    }
+    // 2. The shared gate above guarantees analysis-grade evidence.
+    const wordCount = fetched.text.split(/\s+/).filter(Boolean).length
 
     const title = fetched.ogMetadata.title || fetched.text.substring(0, 100)
 
@@ -660,6 +616,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       publish_date: fetched.ogMetadata.publishDate,
       site_name: fetched.ogMetadata.siteName,
       content_source: fetched.source,
+      fallback_attempts: fetched.fallback_attempts,
+      extraction_quality: fetched.quality,
       word_count: wordCount,
       paywalled: fetched.paywalled,
       claims: analysis.claims || [],

@@ -134,14 +134,41 @@ test.describe('extract-claims bounded fetch chain @smoke', () => {
 
     try {
       const result = await fetchWithFallback('https://public.example/large')
-      expect(result).toMatchObject({ source: 'failed', error: 'All fetch methods failed' })
+      expect(result).toMatchObject({
+        error: 'No analysis-grade content source passed quality checks',
+        fallback_attempts: ['original', 'archive.ph', 'wayback'],
+        quality: { accepted: false },
+      })
       expect(targets).toEqual([
         'public.example',
-        'cdn.ampproject.org',
-        'webcache.googleusercontent.com',
         'archive.ph',
         'archive.org',
       ])
+    } finally {
+      restore()
+    }
+  })
+
+  test('@smoke a 401 challenge is terminal before archive disclosure', async () => {
+    const targets: string[] = []
+    const restore = installNetworkMock({
+      target: url => {
+        targets.push(url.hostname)
+        return new Response('authentication required', {
+          status: 401,
+          headers: { 'Content-Type': 'text/html' },
+        })
+      },
+    })
+    try {
+      const result = await fetchWithFallback('https://public.example/account')
+      expect(result).toMatchObject({
+        source: 'original',
+        fallback_attempts: ['original'],
+        error: 'The source requires authentication',
+        quality: { accepted: false },
+      })
+      expect(targets).toEqual(['public.example'])
     } finally {
       restore()
     }
@@ -165,9 +192,80 @@ test.describe('extract-claims bounded fetch chain @smoke', () => {
 
     try {
       const result = await fetchWithFallback('https://public.example/article')
-      expect(result.source).toBe('failed')
+      expect(result).toMatchObject({
+        source: 'original',
+        quality: { accepted: false },
+      })
       expect(targets).not.toContain('evil.example')
       expect(targets.at(-1)).toBe('archive.org')
+    } finally {
+      restore()
+    }
+  })
+
+  test('@smoke thin direct content continues to an analysis-grade archive', async () => {
+    const targets: string[] = []
+    const restore = installNetworkMock({
+      target: url => {
+        targets.push(url.hostname)
+        if (url.hostname === 'archive.ph') {
+          return new Response(`<html><head><title>Archived claims source</title></head><body><article><p>${'verifiable claim evidence '.repeat(90)}</p></article></body></html>`, {
+            headers: { 'Content-Type': 'text/html' },
+          })
+        }
+        return new Response('<html><head><title>Thin source</title></head><body><main>Loading article</main></body></html>', {
+          headers: { 'Content-Type': 'text/html' },
+        })
+      },
+    })
+    try {
+      const result = await fetchWithFallback('https://public.example/thin')
+      expect(result).toMatchObject({
+        source: 'archive.ph',
+        fallback_attempts: ['original', 'archive.ph'],
+        quality: { accepted: true },
+      })
+      expect(targets).toEqual(['public.example', 'archive.ph'])
+    } finally {
+      restore()
+    }
+  })
+
+  test('@smoke metadata-only evidence is rejected before claim generation', async () => {
+    const restore = installNetworkMock({
+      target: url => {
+        if (url.hostname === 'archive.org') return Response.json({ archived_snapshots: {} })
+        if (url.hostname === 'archive.ph') {
+          return new Response('not available', {
+            status: 404,
+            headers: { 'Content-Type': 'text/html' },
+          })
+        }
+        return new Response('<html><head><meta property="og:title" content="Headline only"><meta property="og:description" content="A short description"></head><body></body></html>', {
+          headers: { 'Content-Type': 'text/html' },
+        })
+      },
+    })
+    try {
+      const response = await onRequestPost({
+        request: new Request('https://researchtools.example/api/tools/extract-claims', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: 'Bearer route-token' },
+          body: JSON.stringify({ url: 'https://public.example/headline' }),
+        }),
+        env: {
+          SESSIONS: { get: async () => JSON.stringify({ user_id: 7 }) },
+          CACHE: { get: async () => null, put: async () => undefined },
+        },
+        params: {},
+      } as never)
+      expect(response.status).toBe(422)
+      expect(await response.json()).toMatchObject({
+        error: 'Failed to fetch content from URL',
+        content_source: 'og-metadata-only',
+        fallback_attempts: ['original', 'archive.ph', 'wayback'],
+        extraction_quality: { accepted: false, reason: 'too_short' },
+      })
     } finally {
       restore()
     }

@@ -192,10 +192,19 @@ Request, response, safety, dataset, score, and migration details are documented 
 
 | Endpoint | Description |
 |----------|-------------|
-| `POST /api/tools/rage-check` | Detect manipulative framing / outrage-bait in a URL |
+| `POST /api/tools/extract-claims` | Extract claims/entities from analysis-grade URL content |
+| `POST /api/tools/extract-timeline` | Extract dated timeline events from analysis-grade URL content |
+| `POST /api/tools/rage-check` | Detect manipulative framing / outrage-bait in analysis-grade URL content |
 | `POST /api/tools/batch-process` | Batch run `analyze-url` across multiple URLs |
 | `POST /api/tools/claim-match` | Match extracted claims to evidence |
-| `POST /api/tools/timeline-extract` | Extract a timeline from text / URL |
+
+The three URL-analysis tools above require authentication. They use the shared
+`analysis-candidate.v1` quality policy and may recover eligible thin or blocked
+public pages through bounded exact-host Archive.ph and Wayback adapters. Success
+responses include `content_source`, ordered `fallback_attempts`, and
+`extraction_quality`. If no source passes the purpose-specific evidence floor,
+the route returns `422` with the same provenance and does not invoke its AI model.
+Open Graph headline/description metadata alone is never accepted for claims.
 
 ### Settings & data
 

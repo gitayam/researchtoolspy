@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { fetchTimelineSource, onRequestPost } from '../../../functions/api/tools/extract-timeline'
+import { onRequestPost, scrapeTimelineSource } from '../../../functions/api/tools/extract-timeline'
 
 const sessions = {
   get: async (token: string) => token === 'route-token' ? JSON.stringify({ user_id: 7 }) : null,
@@ -79,7 +79,10 @@ test.describe('extract-timeline bounded static fetch @smoke', () => {
     try {
       const response = await onRequestPost(routeContext('https://mixed.example/article') as never)
       expect(response.status).toBe(422)
-      expect(await response.json()).toEqual({ error: 'Failed to fetch URL' })
+      expect(await response.json()).toMatchObject({
+        error: 'Failed to fetch URL',
+        fallback_attempts: ['original'],
+      })
       expect(targetCalls).toBe(0)
     } finally {
       restore()
@@ -113,7 +116,9 @@ test.describe('extract-timeline bounded static fetch @smoke', () => {
     ]) {
       const restore = installNetworkMock({ target: createResponse })
       try {
-        await expect(fetchTimelineSource('https://public.example/article')).rejects.toThrow()
+        const result = await scrapeTimelineSource('https://public.example/article')
+        expect(result.error).toBeTruthy()
+        expect(result.fallbackAttempts).toEqual(['original', 'archive.ph', 'wayback'])
       } finally {
         restore()
       }
@@ -128,21 +133,49 @@ test.describe('extract-timeline bounded static fetch @smoke', () => {
         if (url.pathname === '/start') {
           return new Response(null, { status: 302, headers: { Location: '/article' } })
         }
-        return new Response('<html><body>bounded timeline source</body></html>', {
+        return new Response(`<html><head><title>Timeline source</title></head><body><article><p>${'bounded timeline source '.repeat(90)}</p></article></body></html>`, {
           headers: { 'Content-Type': 'text/html' },
         })
       },
     })
 
     try {
-      const result = await fetchTimelineSource('https://public.example/start')
+      const result = await scrapeTimelineSource('https://public.example/start')
       expect(result.finalUrl).toBe('https://public.example/article')
-      expect(result.html).toContain('bounded timeline source')
+      expect(result.content).toContain('bounded timeline source')
       expect(headers).toHaveLength(2)
       for (const outbound of headers) {
         expect(outbound.has('authorization')).toBe(false)
         expect(outbound.has('cookie')).toBe(false)
       }
+    } finally {
+      restore()
+    }
+  })
+
+  test('@smoke thin direct content continues to an analysis-grade archive', async () => {
+    const targets: string[] = []
+    const restore = installNetworkMock({
+      target: url => {
+        targets.push(url.hostname)
+        if (url.hostname === 'archive.ph') {
+          return new Response(`<html><head><title>Archived timeline</title></head><body><article><p>${'dated event evidence '.repeat(90)}</p></article></body></html>`, {
+            headers: { 'Content-Type': 'text/html' },
+          })
+        }
+        return new Response('<html><head><title>Thin shell</title></head><body><main>Loading article</main></body></html>', {
+          headers: { 'Content-Type': 'text/html' },
+        })
+      },
+    })
+    try {
+      const result = await scrapeTimelineSource('https://public.example/thin')
+      expect(result).toMatchObject({
+        source: 'archive.ph',
+        fallbackAttempts: ['original', 'archive.ph'],
+        quality: { accepted: true },
+      })
+      expect(targets).toEqual(['public.example', 'archive.ph'])
     } finally {
       restore()
     }

@@ -17,6 +17,14 @@
 - **Safety boundary:** the change reuses the existing bounded, exact-host adapters. It does not import IrregularChat's bare-fetch/Googlebot chain, add credential impersonation, or weaken the no-paywall-bypass policy.
 - **Falsifiable hypothesis:** on at least 100 recent or representative thin-success failures, stage-level quality acceptance recovers at least 20 absolute percentage points while wrong/login/boilerplate acceptance remains at or below 2% and p95 latency stays within 2x of the direct-only cohort. The hypothesis is falsified if any bound fails; in that case retain the telemetry/provenance fix, disable the underperforming fallback, and prioritize the semantic-extractor/renderer benchmark.
 
+### Cross-tool analysis-quality checkpoint — 2026-09-07
+
+- **Shared decision layer:** `analysis-candidate.v1` now applies versioned, purpose-specific evidence floors to Content Intelligence, claims, timeline, RageCheck, and lightweight URL enrichment. It preserves valid structured short documents and social posts while rejecting thin bodies, login/paywall shells, link-heavy boilerplate, and known provider placeholders.
+- **Migrated consumers:** claims, timeline, and RageCheck continue from a thin direct `2xx` or eligible fetch failure to bounded exact-host Archive.ph and Wayback adapters. Each exposes the selected `content_source`, ordered `fallback_attempts`, and `extraction_quality`; none invokes its AI model when every candidate is rejected.
+- **Retired debt:** claims no longer calls the obsolete Google AMP cache or Google Web Cache, and no longer asks the model to invent low-confidence claims from Open Graph headline/description metadata. Metadata-only evidence is returned with an explainable `422` instead.
+- **Deliberate boundary:** public survey/COP URL enrichment reuses the selector but remains direct-only with no paid provider, renderer, or archive disclosure. A `401` authentication challenge is terminal; a `403` automated-client block may use archives only for callers that explicitly opted into the analysis chain.
+- **Falsifiable hypothesis H11:** across a labeled set of at least 50 formerly thin-success inputs per migrated tool, archive recovery yields at least 15 percentage points more analysis-grade inputs, AI calls on wrong/login/placeholder content remain at zero in the regression corpus and at or below 2% in sampled production, and p95 latency remains within 2x of direct success. H11 is falsified per tool if any bound fails; disable archives for that purpose without removing the shared quality/provenance gate.
+
 ## Mission
 
 Build one safe, observable, provenance-preserving scraping platform for every ResearchTools workflow. It must extract permitted public content reliably, distinguish access-policy failures from technical failures, use browser/provider resources only when they add measured value, and remain reversible as sites and dependencies change.
@@ -475,7 +483,7 @@ The winning path clears its benchmark gates, eligible hard failures improve by a
 
 ## Milestone 4 — Shared gateway and product integrations
 
-**Priority:** P1 · **Status:** ⬜ planned · **Issue:** `SCRAPE-08`
+**Priority:** P1 · **Status:** 🔄 in progress · **Issue:** `SCRAPE-08`
 
 ### Gateway contract
 
@@ -496,9 +504,9 @@ ScrapeResult
 | Web Scraper page | metadata/full/summary | Dataset creation and presentation | Real timeout works; shared quality/error taxonomy. |
 | Citation generator | metadata | Citation formatting | Title/author/date extraction uses gateway; no duplicate scraper. |
 | AI URL Scraper / Starbursting | article text | Framework-specific AI | Shared cache/fetch/extraction; existing framework output preserved. |
-| Claims extraction | article text | Claim/entity AI | No archive/provider mismatch hidden from user. |
-| Timeline extraction | article text | Timeline AI | Same safety, timeout, and quality behavior as Content Intelligence. |
-| RageCheck | article text | Manipulation analysis | No direct `scrapeUrl()` path remains. |
+| Claims extraction | article text | Claim/entity AI | ✅ Shared quality selector; exact-host archives and provenance exposed; full gateway envelope pending. |
+| Timeline extraction | article text | Timeline AI | ✅ Shared quality selector, bounded archive recovery, and provenance; shared telemetry pending. |
+| RageCheck | article text | Manipulation analysis | ✅ Shared quality selector, bounded archive recovery, and provenance; gateway adapter/telemetry pending. |
 | Survey/COP public intake | safe quick metadata/article | Background enrichment and storage | Public SSRF tests pass; failure is non-blocking and observable. |
 | Social extraction | social adapter | Platform presentation/download options | Approved provider provenance and provider health recorded. |
 | COP scraper | owned async provider job | Evidence transformation | Polling/retry is idempotent and session-bound. |

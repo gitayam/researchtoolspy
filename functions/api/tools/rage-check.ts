@@ -31,25 +31,25 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
 
     
-    // Use shared scraper
-    const scraped = await scrapeUrl(url, context.env.APIFY_API_KEY)
+    // Use the shared analysis-grade selector and bounded archive chain.
+    const scraped = await scrapeUrl(url, context.env.APIFY_API_KEY, {
+      purpose: 'rage-check',
+      allowArchives: true,
+    })
 
-    if (scraped.error) {
+    if (scraped.error || !scraped.quality?.accepted) {
        console.error('[RageCheck] Scrape failed:', scraped.error)
        return new Response(JSON.stringify({
          error: 'Failed to scrape URL content',
-       }), { status: 422, headers: { 'Content-Type': 'application/json' } })
+         details: scraped.error,
+         content_source: scraped.source,
+         fallback_attempts: scraped.fallbackAttempts || [],
+         extraction_quality: scraped.quality,
+       }), { status: 422, headers: JSON_HEADERS })
     }
 
     const content = scraped.content
     const title = scraped.title
-
-    if (!content || content.length < 50) {
-       return new Response(JSON.stringify({ 
-         error: 'No Content Found', 
-         details: 'Could not extract enough text to analyze. The page might be empty, JavaScript-heavy, or blocked.'
-       }), { status: 422 })
-    }
 
     // 2. Perform RageCheck Analysis via AI
     // We strictly follow the scoring categories and weights from the reference repo
@@ -107,6 +107,9 @@ Return ONLY valid JSON in this structure:
       return new Response(JSON.stringify({
         declined: true,
         reason: 'The model declined to analyze this content (content-policy refusal).',
+        content_source: scraped.source,
+        fallback_attempts: scraped.fallbackAttempts || [],
+        extraction_quality: scraped.quality,
       }), { status: 200, headers: JSON_HEADERS })
     }
 
@@ -128,9 +131,15 @@ Return ONLY valid JSON in this structure:
     // Return analysis + extracted content preview
     return new Response(JSON.stringify({
       ...analysis,
+      content_source: scraped.source,
+      fallback_attempts: scraped.fallbackAttempts || [],
+      extraction_quality: scraped.quality,
       meta: {
         title,
-        contentPreview: content.substring(0, 500) + (content.length > 500 ? '...' : '')
+        contentPreview: content.substring(0, 500) + (content.length > 500 ? '...' : ''),
+        contentSource: scraped.source,
+        fallbackAttempts: scraped.fallbackAttempts || [],
+        extractionQuality: scraped.quality,
       }
     }), {
       headers: JSON_HEADERS
