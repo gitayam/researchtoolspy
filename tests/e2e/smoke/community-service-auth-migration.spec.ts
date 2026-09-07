@@ -78,6 +78,13 @@ function insertClient(db: DatabaseSync): void {
 }
 
 test.describe('community service auth migration @smoke', () => {
+  test('@smoke keeps trigger CASE expressions compatible with the D1 remote splitter', () => {
+    // D1's remote splitter can mistake an unparenthesized CASE ... END for the
+    // end of CREATE TRIGGER and submit an incomplete statement.
+    expect(migration).not.toMatch(/\bSELECT\s+CASE\b/i)
+    expect(migration.match(/\bSELECT\s+\(CASE\b/gi)).toHaveLength(2)
+  })
+
   test('@smoke creates a constrained client, two-slot token, and exact-scope model', () => {
     const db = createDatabase()
     try {

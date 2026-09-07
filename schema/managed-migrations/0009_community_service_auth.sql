@@ -109,7 +109,9 @@ CREATE TABLE IF NOT EXISTS integration_client_token_scopes (
 CREATE TRIGGER IF NOT EXISTS integration_clients_validate_insert
 BEFORE INSERT ON integration_clients
 BEGIN
-  SELECT CASE WHEN NOT EXISTS (
+  -- Parenthesize CASE because D1's remote statement splitter otherwise treats
+  -- its END token as the end of the trigger body and submits incomplete SQL.
+  SELECT (CASE WHEN NOT EXISTS (
     SELECT 1
     FROM users u
     JOIN workspaces w ON w.id = NEW.workspace_id
@@ -130,14 +132,15 @@ BEGIN
       AND i.created_by = u.id
       AND i.status = 'active'
       AND NOT EXISTS (SELECT 1 FROM workspace_members wm WHERE wm.user_id = u.id)
-  ) THEN RAISE(ABORT, 'invalid integration service binding') END;
+  ) THEN RAISE(ABORT, 'invalid integration service binding') END);
 END;
 
 CREATE TRIGGER IF NOT EXISTS integration_clients_validate_update
 BEFORE UPDATE OF workspace_id, intake_investigation_id, principal_user_id, environment, audience,
   maximum_visibility, status ON integration_clients
 BEGIN
-  SELECT CASE WHEN NOT EXISTS (
+  -- Keep CASE parenthesized for D1 remote migration compatibility.
+  SELECT (CASE WHEN NOT EXISTS (
     SELECT 1
     FROM users u
     JOIN workspaces w ON w.id = NEW.workspace_id
@@ -158,7 +161,7 @@ BEGIN
       AND i.created_by = u.id
       AND i.status = 'active'
       AND NOT EXISTS (SELECT 1 FROM workspace_members wm WHERE wm.user_id = u.id)
-  ) THEN RAISE(ABORT, 'invalid integration service binding') END;
+  ) THEN RAISE(ABORT, 'invalid integration service binding') END);
 END;
 
 CREATE TRIGGER IF NOT EXISTS integration_service_no_membership_insert
