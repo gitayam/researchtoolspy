@@ -61,6 +61,12 @@ npm run test:e2e:smoke
 
 ## Deploy
 
+This repository deploys independently from the IrregularChat monorepo. Running
+the monorepo's `./deploy.sh workers` does not deploy ResearchTools, and running
+the commands below does not deploy Signal/RSS workers. Cross-repository releases
+must run and verify both deployments explicitly; see the
+[scraping deployment runbook](docs/operations/SCRAPING_DEPLOYMENT.md).
+
 ```bash
 ./deploy.sh                  # migrate + build + deploy (recommended)
 ./deploy.sh --dry-run        # list pending migrations + build; no production writes

@@ -16,25 +16,57 @@ application is Cloudflare Pages project `researchtoolspy`, served at
 Deploy only changed units. A Pages scraping release does not require an
 unrelated browser, cron, or container rollout.
 
+### Repository boundary
+
+ResearchTools is a separate Git repository and Cloudflare project from the
+IrregularChat monorepo. The monorepo root `./deploy.sh workers` command contains
+no ResearchTools deployment step, and this repository's `./deploy.sh` does not
+deploy Signal, RSS, or other IrregularChat workers.
+
+A release that changes both sides of the integration is therefore two explicit
+deployments, each from its own clean, pushed commit:
+
+```bash
+cd <irregularchat-monorepo>
+./deploy.sh workers
+
+cd <researchtoolspy>
+./deploy.sh
+```
+
+Record and verify the two commit SHAs and two deployment receipts separately.
+A successful deployment in one repository is not evidence that the other side
+was deployed.
+
 ## Account and release gates
 
 Wrangler authentication currently exposes more than one Cloudflare account.
-Because Cloudflare Pages rejects `account_id` in `wrangler.toml`, the canonical
-account is selected by `deploy.sh` and `scripts/pre-deployment-check.sh` through
-`CLOUDFLARE_ACCOUNT_ID`. Verify that the authenticated identity can access it
-with `pnpm exec wrangler whoami`. The variable may still be exported explicitly
-in CI or an emergency shell:
+The canonical account is selected in `scripts/cloudflare-account.sh`, which is
+sourced by `deploy.sh`, `scripts/pre-deployment-check.sh`,
+`scripts/list-managed-migrations.sh`, and `scripts/audit-d1-indexes.sh`. This
+keeps their standalone npm entry points non-interactive while retaining one
+repository-owned account source. Verify that the authenticated identity can
+access it with `pnpm exec wrangler whoami` after sourcing the helper. CI or an
+emergency shell may still override the variable explicitly:
 
 ```bash
 export CLOUDFLARE_ACCOUNT_ID="<researchtoolspy-account-id>"
 ```
 
-From a clean `main` that matches `origin/main`:
+These advertised commands must work without first running `deploy.sh`:
+
+```bash
+npm run migrate:list:prod
+npm run audit:indexes:prod
+```
+
+From a clean `main` that matches both production remotes:
 
 ```bash
 git status --short
 git rev-parse HEAD
 git rev-parse origin/main
+git rev-parse gitlab/main
 ./scripts/list-managed-migrations.sh --remote
 ./scripts/pre-deployment-check.sh
 ```

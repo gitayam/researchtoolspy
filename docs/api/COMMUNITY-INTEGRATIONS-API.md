@@ -130,6 +130,27 @@ No wildcard scope exists. `persistentWorkspace` is binding readiness rather than
 an independent permission and remains false until an executable persistent
 service route ships.
 
+## Content-analysis bridge
+
+`anonymousAnalysis: true` means the public, non-persistent URL-analysis route is
+runtime-ready. It does not mean the service bearer is accepted by the legacy user
+authorization path. Today:
+
+- an `rt_svc_` credential may call capability discovery and use public URL-only
+  analysis, but it cannot authorize supplied content or persistence;
+- a provisioned first-party `X-Service-Key` selects a separate bounded analysis
+  rate bucket but grants no identity, scope, or workspace authority;
+- the Signal/RSS supplied-content bridge therefore uses a separate legacy user
+  credential for identity and the first-party key only for rate classification;
+- no integration should send a caller-selected workspace with an `rt_svc_`
+  credential or infer durable service support from `anonymousAnalysis`.
+
+The full transitional contract is documented in
+[`CONTENT-INTELLIGENCE-API.md`](CONTENT-INTELLIGENCE-API.md). This bridge is not a
+replacement for the planned scoped service compute/ingestion adapters. Clients
+must keep capability-gated service operations distinct from public analysis and
+legacy user-authenticated calls.
+
 ## Errors
 
 Failures use `integration-error.v1`:

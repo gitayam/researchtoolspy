@@ -6,6 +6,9 @@
 
 set -euo pipefail
 
+# shellcheck source=scripts/cloudflare-account.sh
+source ./scripts/cloudflare-account.sh
+
 DATABASE_NAME="researchtoolspy-prod"
 MIGRATION_DIR="schema/managed-migrations"
 REMOTE=false

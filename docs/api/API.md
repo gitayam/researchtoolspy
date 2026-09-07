@@ -94,8 +94,14 @@ Standard HTTP status codes: `400` bad input · `401` auth required · `403` acce
 | Auth endpoints | 5 req / min per IP |
 | Registration | 10 req / min per IP |
 | AI endpoints | 40 req / min per user |
+| Public Content Intelligence analysis | 12 req / hr per source IP |
+| Recognized first-party Content Intelligence analysis | 600 req / hr per service by default; bounded and configurable |
 | Apify scrapers | 10 req / min per user |
 | Gateway global | 100 req / min per user · 3 000 req / hr total |
+
+First-party rate classification is not authentication. In particular,
+`X-Service-Key` does not grant supplied-content access, persistence, workspace
+access, or a scoped service capability.
 
 ---
 
@@ -165,6 +171,10 @@ Prefix: `/api/intelligence/*` — synthesis, predictions, network analysis, enti
 |----------|-------------|
 | `POST /api/content-intelligence/analyze-url` | Full URL extraction (entities, claims, text, archive) |
 | `POST /api/content-intelligence/summarize-entity` | AI summary for an entity |
+
+The URL/supplied-content request and response contract, Signal/RSS bridge,
+access matrix, retry rules, rate limits, and persistence semantics are documented
+in [`CONTENT-INTELLIGENCE-API.md`](CONTENT-INTELLIGENCE-API.md).
 
 `analyze-url` supports public ephemeral analysis; saving, loading saved work, or
 writing into a workspace requires authenticated write authority. HTML candidates
