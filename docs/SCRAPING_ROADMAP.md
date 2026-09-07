@@ -4,6 +4,8 @@
 
 **Evidence and experiment design:** [`plans/2026-08-30-scraping-modernization.md`](plans/2026-08-30-scraping-modernization.md)
 
+**Community platform integration:** [`plans/2026-09-06-community-scraping-platform-integration.md`](plans/2026-09-06-community-scraping-platform-integration.md)
+
 **Status legend:** ✅ complete · 🔄 in progress · ⬜ planned · ⛔ blocked · 🧪 experiment · 🗑️ retire
 
 ## Mission
