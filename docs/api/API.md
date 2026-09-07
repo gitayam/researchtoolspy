@@ -68,6 +68,13 @@ the raw hash is the credential and must be passed as `X-User-Hash`.
 | `getUserIdOrDefault(req, env)` | Compatibility alias; returns a user ID or `null` and never falls back to another user |
 | `requireAuth(req, env)` | Returns a resolved user ID, throws `401` for no identity, or retryable `503` for auth-datastore failure |
 
+### Community service integrations
+
+Non-interactive community services use a separate scoped identity and never use
+user hashes, guest sessions, or browser sessions. Capability discovery and the
+current rollout boundary are documented in
+[`COMMUNITY-INTEGRATIONS-API.md`](COMMUNITY-INTEGRATIONS-API.md).
+
 ---
 
 ## Error responses
@@ -93,6 +100,12 @@ Standard HTTP status codes: `400` bad input · `401` auth required · `403` acce
 ---
 
 ## API surface (by area)
+
+### Community integrations
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /api/integrations/capabilities` | Anonymous/public and scoped-service capability discovery |
 
 ### Core entity endpoints
 

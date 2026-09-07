@@ -55,11 +55,21 @@ export function isPublicContentAnalysisPath(pathname: string): boolean {
     || pathname === '/api/content-intelligence/dime-analyze'
 }
 
+interface MiddlewareEnv {
+  CACHE?: KVNamespace
+}
+
+interface MiddlewareContext {
+  request: Request
+  next: () => Promise<Response>
+  env: MiddlewareEnv
+}
+
 /**
  * Fixed-window KV rate limiter. Returns true if the caller is OVER the limit.
  * key: caller-scoped string (e.g. "ai:<hash>"). limit: max events per window.
  */
-async function kvRateLimit(env: any, key: string, limit: number, windowSec: number): Promise<boolean> {
+async function kvRateLimit(env: MiddlewareEnv | undefined, key: string, limit: number, windowSec: number): Promise<boolean> {
   const store = env?.CACHE
   if (!store) return false // fail-open: limiter store not available
   try {
@@ -74,7 +84,7 @@ async function kvRateLimit(env: any, key: string, limit: number, windowSec: numb
   }
 }
 
-export async function onRequest(context: any) {
+export async function onRequest(context: MiddlewareContext) {
   const { request, next, env } = context
   const url = new URL(request.url)
 
@@ -91,7 +101,8 @@ export async function onRequest(context: any) {
   const corsHeaders = {
     'Access-Control-Allow-Origin': allowOrigin,
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Guest-Session, X-Workspace-ID',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Guest-Session, X-Workspace-ID, X-Correlation-ID',
+    'Vary': 'Origin',
   }
 
   const json429 = (msg: string) =>
@@ -180,6 +191,14 @@ export async function onRequest(context: any) {
 
   // Add CORS headers to response
   Object.entries(corsHeaders).forEach(([key, value]) => {
+    if (key === 'Vary') {
+      const vary = new Set([
+        ...(response.headers.get('Vary') ?? '').split(',').map(item => item.trim()).filter(Boolean),
+        value,
+      ])
+      response.headers.set(key, [...vary].join(', '))
+      return
+    }
     response.headers.set(key, value as string)
   })
 

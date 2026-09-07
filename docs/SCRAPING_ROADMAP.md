@@ -6,6 +6,8 @@
 
 **Community platform integration:** [`plans/2026-09-06-community-scraping-platform-integration.md`](plans/2026-09-06-community-scraping-platform-integration.md)
 
+**Community integration checkpoint:** Tranche A service identity and truthful capability discovery are locally implemented and independently reviewed. The feature is disabled by default, all service-consuming capabilities remain false, and no production credential, migration, deployment, or push has occurred. Tranche B (IrregularChat transport truthfulness) is next.
+
 **Status legend:** ✅ complete · 🔄 in progress · ⬜ planned · ⛔ blocked · 🧪 experiment · 🗑️ retire
 
 ## Mission

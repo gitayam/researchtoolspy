@@ -6,6 +6,7 @@
  */
 
 import { verifyToken } from '../../utils/jwt'
+import { isReservedIntegrationAuthorization } from './service-auth'
 
 /** Thrown when a D1 error prevents resolving an otherwise-valid auth hash.
  *  Callers must map this to a retryable 503 — NOT a 401 — so clients retry
@@ -203,6 +204,11 @@ export async function getUserFromRequest(
   request: Request,
   env: Env
 ): Promise<number | null> {
+  // Service credentials have a dedicated identity and authorization path. Reserve
+  // the entire rt_svc_ namespace before JWT, KV, and raw-hash processing so even
+  // a malformed or revoked service token can never auto-provision a guest user.
+  if (isReservedIntegrationAuthorization(request)) return null
+
   // 1. Try Bearer token first (JWT/session — SSO users take priority over hash-auth)
   const authHeader = request.headers.get('Authorization')
   if (authHeader?.startsWith('Bearer ')) {
@@ -212,6 +218,7 @@ export async function getUserFromRequest(
     if (token.includes('.') && env.JWT_SECRET) {
       const payload = await verifyToken(token, env.JWT_SECRET)
       if (payload?.sub) {
+        if (String(payload.role ?? '').toLowerCase() === 'service') return null
         return Number(payload.sub)
       }
     }

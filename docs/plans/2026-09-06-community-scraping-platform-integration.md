@@ -377,11 +377,13 @@ These decisions are authoritative for the first three tranches. Changing one req
 ### Service authentication
 
 - Add a dedicated `getIntegrationPrincipalFromRequest()` path. Do not pass service credentials to `getUserFromRequest()` because its legacy raw-bearer fallback can auto-provision a hash-auth guest.
-- Service bearer tokens use a recognizable `rt_svc_<client-id>.<secret>` format. An invalid `rt_svc_` credential returns `401` and never falls through to user, session, guest, or raw-hash authentication.
+- Service bearer tokens use the exact, case-sensitive `rt_svc_<client-id>.<secret>` grammar `^rt_svc_([a-z0-9][a-z0-9_-]{15,63})\.([A-Za-z0-9_-]{43})$`. The secret is 32 random bytes encoded as unpadded base64url; whitespace, padding, Unicode, extra dots, and oversized authorization values are rejected without normalization. An invalid credential with the reserved `rt_svc_` prefix returns `401` and never falls through to user, session, guest, or raw-hash authentication.
 - Store only token identifier, keyed hash, creation/expiry/revocation times, and last-used metadata. Show plaintext once at creation. Support overlapping current/next tokens for rotation.
+- Each client has at most two token slots, `current` and `next`. Authentication loads and compares both slots without an early return. Hashes are `HMAC-SHA-256(INTEGRATION_TOKEN_HASH_KEY, "rt-service-token.v1\0" + clientId + "\0" + secret)` with a versioned marker and fixed-length comparison; the dedicated key is never reused for JWTs, telemetry, webhooks, or user hashes.
 - One v1 client is bound to exactly one community, workspace, system intake investigation, environment, maximum visibility, and service principal. Multi-workspace access uses another client rather than a caller-selected workspace header.
 - Persistent integration routes derive workspace and investigation from the service principal. They reject `X-Workspace-ID` when it conflicts; they never default to `1`.
 - The service principal may satisfy existing `created_by` foreign keys but cannot create a browser session, sign in, own a personal workspace, or appear as a human collaborator.
+- A service principal is a newly inserted dedicated user row; an existing human/guest row cannot be promoted to `service`. It has no email, user/account hash, or OIDC identity, uses the non-login `SERVICE_AUTH_DISABLED` password sentinel, owns only its private `TEAM` service workspace, and is rejected by legacy JWT user routes.
 
 Initial scopes are exact strings:
 
@@ -508,6 +510,8 @@ The bounded v1 codes are:
 | 500 | `internal_error` | Bounded retry with jitter |
 | 503 | `dependency_unavailable`, `auth_datastore_unavailable`, `queue_unavailable` | Bounded retry with jitter |
 
+Unsupported HTTP methods use `405 method_not_allowed` with an `Allow` header. A disabled integration feature authenticates a valid service identity but reports every service capability false; it does not silently treat that service as an anonymous caller.
+
 Errors never contain stack traces, SQL/provider bodies, secrets, raw private URLs, or cross-tenant identifiers. Existing `NormalizedScrapeError` remains nested in authorized job detail where applicable rather than being replaced by this API-level taxonomy.
 
 ### Webhook envelope and verification
@@ -543,33 +547,37 @@ Returns capabilities for the presented identity, not merely deployed routes:
 ```json
 {
   "schemaVersion": "integration-capabilities.v1",
+  "requestId": "req-...",
+  "correlationId": "opaque-client-value",
   "identityType": "service",
   "communityId": "community-...",
   "workspaceId": "workspace-...",
   "contractVersions": {
-    "sourceEvent": "community-source-event.v1",
-    "artifact": "source-artifact.v1",
-    "projection": "community-enrichment.v1"
+    "capabilities": "integration-capabilities.v1"
   },
   "scopes": ["community.events.write", "community.projections.read"],
   "capabilities": {
     "anonymousAnalysis": true,
-    "communityIngest": true,
-    "persistentWorkspace": true,
-    "researchQuestions": true,
-    "cop": true,
+    "publicBcw": true,
+    "communityIngest": false,
+    "jobStatus": false,
+    "artifactRead": false,
+    "projectionRead": false,
+    "persistentWorkspace": false,
+    "researchQuestions": false,
+    "cop": false,
     "behaviorIntake": false,
-    "claimMatch": true,
-    "feedJobs": false
+    "claimMatch": false,
+    "feedJobs": false,
+    "webhookManagement": false
   },
-  "limits": {
-    "claimMatchCandidates": 25,
-    "maxBatchUrls": 100
-  }
+  "limits": {}
 }
 ```
 
-Anonymous calls return only public capabilities. Authenticated capability responses use `Cache-Control: no-store`; IrregularChat may retain them in process for at most 60 seconds. After expiry, a failed refresh makes authenticated commands unavailable until a refresh succeeds. Anonymous analysis and public BCW are gated independently and do not inherit a stale authenticated capability result.
+Anonymous calls return only public capabilities. Any supplied but unsupported or invalid authorization fails closed instead of becoming anonymous. All capability responses use `Cache-Control: no-store`; IrregularChat may retain a successful authenticated result in process for at most 60 seconds. After expiry, a failed refresh makes authenticated commands unavailable until a refresh succeeds. Anonymous analysis and public BCW are gated independently and do not inherit a stale authenticated capability result.
+
+Capability names map one-to-one to the exact scopes listed above: `communityIngest`, `jobStatus`, `artifactRead`, `projectionRead`, `researchQuestions`, `cop`, `behaviorIntake`, `claimMatch`, `feedJobs`, and `webhookManagement` require the corresponding scope in table order. `persistentWorkspace` has no scope of its own and reports only whether an executable persistent integration surface is enabled for the valid binding. Every service capability is false in Tranche A because no service-consuming operation ships in that tranche; the endpoint establishes identity and reports that truth. A capability becomes true only when compiled server support, the exact integration feature flag, required bindings, valid client/workspace/investigation state, its exact scope, and any authoritative budget all agree. Associated contract versions and nonzero limits are omitted while the capability is false.
 
 ### 2. Community ingestion
 
@@ -1395,6 +1403,17 @@ Required proof:
 - token hash/rotation/revocation/expiry and auth-datastore `503` behavior;
 - focused integration-capability specs, schema validation, functions and scraping-surface TypeScript, changed-file lint, build, and independent review;
 - feature disabled by default and no production credential created.
+
+**2026-09-06 implementation checkpoint — locally complete, not deployed:**
+
+- Added the dedicated service principal resolver, reserved `rt_svc_` before all legacy JWT/session/hash fallbacks, and rejected service-role JWTs on user routes.
+- Added managed migration `0009_community_service_auth.sql` with fresh-only service principals, exact normalized scopes, two bounded rotation slots, composite workspace/investigation/principal binding, and forward/reverse drift guards.
+- Added `integration-capabilities.v1` with anonymous/public readiness, exact scope-to-capability mapping, no-store/error contracts, optional opaque correlation IDs, and every unshipped service operation truthfully false.
+- Added the operator/developer API guide at `docs/api/COMMUNITY-INTEGRATIONS-API.md`; no client, principal, plaintext secret, production flag, or production migration was created.
+- Verification: 19 focused community contract/auth/migration/route tests plus 8 existing auth-resilience tests pass; full TypeScript, changed-file lint, production build, fresh migration fixture, reconstructed OIDC-capable local-prefix migration, SQLite integrity/foreign-key checks, and independent security review pass.
+- Known baseline tooling debt: `npm run validate:schema` still references an absent `ts-node` runner and the script is instructional rather than an executable D1 validator. Tranche A relies on the executable migration specs and disposable SQLite proofs above; repairing the generic validator is a separate schema-tooling chore.
+
+The release boundary remains unchanged: this checkpoint may be joined as disabled foundation code, but it must not be remotely migrated, enabled, provisioned, or deployed until an operator authorizes the rollout sequence. Tranche B remains the next user-visible gate.
 
 ### Tranche B — IrregularChat transport truthfulness
 
