@@ -55,8 +55,101 @@ export function isPublicContentAnalysisPath(pathname: string): boolean {
     || pathname === '/api/content-intelligence/dime-analyze'
 }
 
-interface MiddlewareEnv {
+/**
+ * Per-hour analysis budget for a recognized first-party service caller.
+ *
+ * NOT unlimited. The reason the public cap exists — each request can fan out to
+ * paid model calls — applies to our own automation too, and a bot stuck in a
+ * retry loop is the most likely source of a runaway bill. This is a blast
+ * radius, not a throttle: 600/hour is ~50x the community's link volume, so it
+ * only trips on a malfunction.
+ *
+ * Override with SERVICE_ANALYSIS_HOURLY_LIMIT.
+ */
+const DEFAULT_SERVICE_ANALYSIS_LIMIT = 600
+
+export function serviceAnalysisLimit(env: MiddlewareEnv): number {
+  const parsed = Number.parseInt(env.SERVICE_ANALYSIS_HOURLY_LIMIT ?? '', 10)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_SERVICE_ANALYSIS_LIMIT
+}
+
+/**
+ * Identify a first-party caller, returning a stable key to meter it by.
+ *
+ * Two tiers, deliberately ordered:
+ *
+ * 1. An `rt_svc_…` integration token (see `_shared/service-auth.ts`) — the real
+ *    mechanism: HMAC-hashed secrets, scopes, rotation slots, expiry, revocation.
+ *    Metered per client id, so one misbehaving integration cannot spend another's
+ *    budget.
+ *
+ * 2. INTERIM: a key listed in `TRUSTED_ANALYSIS_KEYS` (comma-separated),
+ *    presented as `X-Service-Key` (preferred) or as the bearer. Tier 1 is inert
+ *    until an operator provisions a client, and the first-party bots need the
+ *    exemption now. Same class of secret as the existing `BOT_INTAKE_API_KEY`
+ *    used by the frameworks intake routes — but with no rotation, scoping or
+ *    expiry, so **remove tier 2 once service tokens are provisioned.**
+ *    Entries shorter than 32 chars are ignored, so a placeholder or a truncated
+ *    paste cannot become a valid key.
+ *
+ * A malformed or unknown token is NOT exempt: it falls through to the public
+ * per-IP cap, so a leaked-and-revoked key degrades to public limits rather than
+ * failing open.
+ */
+export function trustedServiceKey(request: Request, env: MiddlewareEnv): string | null {
+  const trusted = (env.TRUSTED_ANALYSIS_KEYS || '')
+    .split(',')
+    .map((k) => k.trim())
+    .filter((k) => k.length >= 32)
+
+  const matchTrusted = (candidate: string | null | undefined): string | null => {
+    if (!candidate || trusted.length === 0) return null
+    // Check every entry with no early exit, so a match does not leak its
+    // position through timing.
+    let matched: string | null = null
+    for (let i = 0; i < trusted.length; i += 1) {
+      if (timingSafeEqualStrings(trusted[i], candidate)) matched = `key:${i}`
+    }
+    return matched
+  }
+
+  // Preferred: a dedicated header. Keeping the exemption key out of the
+  // Authorization header means a caller's IDENTITY and its rate-limit standing
+  // are separate secrets — the Signal bot keeps sending its own bearer (which
+  // it needs for the authenticated supplied-content path) without that token
+  // also having to be strong enough to gate a 600/hour budget.
+  const headerKey = matchTrusted(request.headers.get('X-Service-Key')?.trim())
+  if (headerKey) return headerKey
+
+  const authorization = request.headers.get('Authorization') || ''
+  const bearer = /^\s*Bearer\s+(.+)$/i.exec(authorization)?.[1]?.trim()
+  if (!bearer) return null
+
+  // An `rt_svc_` integration token (see `_shared/service-auth.ts`) — the real
+  // mechanism. Only the client id becomes the meter key; the secret half is
+  // never logged or used in a KV key.
+  const serviceToken = /^rt_svc_([a-z0-9][a-z0-9_-]{15,63})\.([A-Za-z0-9_-]{43})$/.exec(bearer)
+  if (serviceToken) return `svc:${serviceToken[1]}`
+
+  // Last resort: the trusted key presented as the bearer, for callers that
+  // cannot set a custom header.
+  return matchTrusted(bearer)
+}
+
+/** Length-independent constant-time string comparison. */
+function timingSafeEqualStrings(a: string, b: string): boolean {
+  if (a.length !== b.length) return false
+  let diff = 0
+  for (let i = 0; i < a.length; i += 1) diff |= a.charCodeAt(i) ^ b.charCodeAt(i)
+  return diff === 0
+}
+
+export interface MiddlewareEnv {
   CACHE?: KVNamespace
+  /** Comma-separated interim first-party analysis keys. See `trustedServiceKey`. */
+  TRUSTED_ANALYSIS_KEYS?: string
+  /** Override for the first-party hourly analysis budget. */
+  SERVICE_ANALYSIS_HOURLY_LIMIT?: string
 }
 
 interface MiddlewareContext {
@@ -101,7 +194,7 @@ export async function onRequest(context: MiddlewareContext) {
   const corsHeaders = {
     'Access-Control-Allow-Origin': allowOrigin,
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Guest-Session, X-Workspace-ID, X-Correlation-ID',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Guest-Session, X-Workspace-ID, X-Correlation-ID, X-Service-Key',
     'Vary': 'Origin',
   }
 
@@ -123,7 +216,18 @@ export async function onRequest(context: MiddlewareContext) {
   // authenticated and anonymous callers alike; general AI/gateway caps remain
   // backstops.
   if (request.method === 'POST' && isPublicContentAnalysisPath(url.pathname)) {
-    if (await kvRateLimit(env, `content-analysis:${clientIp}`, 12, 60 * 60)) {
+    // First-party automation (the Signal bot and the irregulars.io workers) is
+    // metered by service identity instead of by IP. The public cap is keyed on
+    // CF-Connecting-IP, which meant every first-party caller behind one egress
+    // shared 12 requests/hour with each other AND with any human on that
+    // address — 12/hour is a sane public budget and a nonsensical one for a
+    // bot that analyzes every link posted to a community.
+    const serviceKey = trustedServiceKey(request, env)
+    if (serviceKey) {
+      if (await kvRateLimit(env, `content-analysis-svc:${serviceKey}`, serviceAnalysisLimit(env), 60 * 60)) {
+        return json429('Service analysis limit reached. Please try again later.')
+      }
+    } else if (await kvRateLimit(env, `content-analysis:${clientIp}`, 12, 60 * 60)) {
       return json429('Public analysis limit reached. Please try again later.')
     }
   }
