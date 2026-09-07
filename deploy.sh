@@ -17,6 +17,7 @@
 #   ./deploy.sh --skip-build # Skip build, just copy functions + deploy
 #   ./deploy.sh --skip-migrate # Skip database migrations
 #   ./deploy.sh --dry-run    # List pending migrations + build; never mutate production
+#   ./deploy.sh --skip-secret-check # Skip post-deploy secret + metering assertions
 #   ./deploy.sh --help       # Show help
 # =============================================================================
 
@@ -364,12 +365,16 @@ else
     echo "${YELLOW}Step 6: Runtime dependency assertions...${NC}"
 
     # --- 6a. Required secrets are bound -------------------------------------
-    SECRET_LIST=$(pnpm exec wrangler pages secret list --project-name=$PROJECT_NAME 2>/dev/null || echo "")
-    if [ -z "$SECRET_LIST" ]; then
-        echo "  ${YELLOW}Warning: could not list Pages secrets (auth or API issue) — skipping 6a${NC}"
+    if ! SECRET_LIST=$(pnpm exec wrangler pages secret list --project-name="$PROJECT_NAME" 2>/dev/null); then
+        echo "  ${RED}Could not list Pages secrets (auth or API issue)${NC}"
+        echo "    Re-authenticate, or use --skip-secret-check for a documented recovery deployment."
+        VERIFY_FAILED=true
+    elif [ -z "$SECRET_LIST" ]; then
+        echo "  ${RED}Pages secret list was unexpectedly empty${NC}"
+        VERIFY_FAILED=true
     else
         for secret in $REQUIRED_SECRETS; do
-            if echo "$SECRET_LIST" | grep -q "$secret"; then
+            if echo "$SECRET_LIST" | grep -Eq "^[[:space:]]*-[[:space:]]+$secret:"; then
                 echo "  ${GREEN}$secret bound${NC}"
             else
                 echo "  ${RED}MISSING: $secret is not set on $PROJECT_NAME${NC}"
@@ -412,7 +417,7 @@ else
         VERIFY_FAILED=true
     fi
 
-    if [ -n "$ANALYSIS_PROBE_KEY" ]; then
+    if [ -n "${ANALYSIS_PROBE_KEY:-}" ]; then
         SVC_METER=$(meter_of "$ANALYSIS_PROBE_KEY")
         if [ "$SVC_METER" = "service" ]; then
             echo "  ${GREEN}first-party caller metered as: service${NC}"

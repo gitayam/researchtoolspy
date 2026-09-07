@@ -45,4 +45,15 @@ test.describe('Cloudflare account selection @smoke', () => {
     expect(runbook).toContain('two explicit')
     expect(runbook).toContain('two deployment receipts separately')
   })
+
+  test('@smoke deployment verifies required secrets and analysis metering', () => {
+    const deploy = read('deploy.sh')
+    const runbook = read('docs/operations/SCRAPING_DEPLOYMENT.md')
+    expect(deploy).toContain('REQUIRED_SECRETS="TRUSTED_ANALYSIS_KEYS OPENAI_API_KEY JWT_SECRET"')
+    expect(deploy).toContain('X-Analysis-Meter')
+    expect(deploy).toContain('ANALYSIS_PROBE_KEY')
+    expect(deploy).toContain('VERIFY_FAILED=true')
+    expect(runbook).toContain('ANALYSIS_PROBE_KEY=')
+    expect(runbook).toContain('`--skip-secret-check`')
+  })
 })

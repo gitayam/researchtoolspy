@@ -59,6 +59,12 @@ Unknown `X-Service-Key` values receive the public IP budget. Clients must stop o
 `429`; retrying archive or bypass URLs spends more analysis budget and cannot
 repair quota exhaustion.
 
+Every accepted analysis request returns `X-Analysis-Meter: public` or
+`X-Analysis-Meter: service`, including a request rejected with `429`. This is an
+operational classification receipt, not proof of authentication or permission.
+Browsers may read it because the header is included in
+`Access-Control-Expose-Headers`.
+
 ## Request headers
 
 | Header | Required | Meaning |
@@ -72,6 +78,17 @@ repair quota exhaustion.
 
 Credentials and ResearchTools headers are never forwarded to the destination
 being scraped.
+
+## Response headers
+
+| Header | Values | Meaning |
+|---|---|---|
+| `X-Analysis-Meter` | `public` \| `service` | Rate bucket selected for this request. Present on this endpoint after middleware classification, including quota responses. It grants no authority and must not be used as an authentication result. |
+
+First-party callers should record this header with the HTTP status. A missing
+header indicates an older or misrouted deployment; `public` with a supplied
+service key indicates that the key is absent from `TRUSTED_ANALYSIS_KEYS`, is
+malformed, or was not delivered in `X-Service-Key`.
 
 ## Request body
 
@@ -236,6 +253,7 @@ permitted local extractor may instead submit its article body once through
 Signal, RSS, Discourse, and other automated callers should record or persist:
 
 - HTTP status and a caller-generated opaque correlation ID;
+- `X-Analysis-Meter` (`public` or `service`);
 - `content_source`, ordered `fallback_attempts`, and `extraction_quality`;
 - `processing_duration_ms`, `word_count`, and `is_persisted`;
 - the terminal class: success, insufficient content, authentication, quota,

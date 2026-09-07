@@ -38,6 +38,10 @@ test.describe('content intelligence API documentation contract @smoke', () => {
     expect(analyzeRoute).toContain("wordCount >= 150")
     expect(middleware).toContain('const DEFAULT_SERVICE_ANALYSIS_LIMIT = 600')
     expect(middleware).toContain('content-analysis:${clientIp}`, 12, 60 * 60')
+    expect(analysisApi).toContain('`X-Analysis-Meter`')
+    expect(analysisApi).toContain('operational classification receipt')
+    expect(middleware).toContain("'Access-Control-Expose-Headers': 'X-Analysis-Meter'")
+    expect(middleware).toContain("response.headers.set('X-Analysis-Meter', analysisMeter)")
   })
 
   test('@smoke documents provenance-aware 422 handling for Signal and RSS', () => {

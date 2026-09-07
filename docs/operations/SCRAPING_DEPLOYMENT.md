@@ -99,6 +99,22 @@ table and column as missing, and deployment remains fail-closed.
 modules into `dist/`, validates the production schema, and deploys `dist/`.
 Never deploy the repository root; doing so serves the development entry point.
 
+After upload, the script verifies required Pages secret names and confirms that
+an anonymous analysis request is metered as `public`. For a cross-repository
+Signal/RSS release, provide a currently trusted probe key so the same deployment
+also verifies the first-party path end to end:
+
+```bash
+ANALYSIS_PROBE_KEY="<entry-from-TRUSTED_ANALYSIS_KEYS>" ./deploy.sh
+```
+
+The probe key is read only from the process environment and must not be written
+to the repository or deployment logs. A supplied key that is not classified as
+`service` fails the deployment command after upload so the degraded production
+state cannot be mistaken for success. If no key is supplied, the script warns
+that the positive first-party leg was not verified. Use
+`--skip-secret-check` only for an explicitly documented recovery deployment.
+
 Use `./deploy.sh --skip-migrate` only when schema rollout is deliberately
 separated and the deployed Functions are compatible with the current schema.
 
@@ -118,6 +134,11 @@ pnpm exec wrangler pages deployment list --project-name=researchtoolspy
 The unauthenticated analyzer probe must return `401`. Authenticated live scrape
 tests are not a routine smoke check because they disclose a target to upstream
 providers and may consume paid capacity.
+
+For content-intelligence releases, also confirm that URL analysis without a key
+and with a deliberately wrong key returns `X-Analysis-Meter: public`. The keyed
+`service` assertion is already performed by `deploy.sh` when
+`ANALYSIS_PROBE_KEY` is present.
 
 When a migration creates scraping tables, verify those exact objects with a
 read-only remote D1 query. Do not use a write probe merely to prove deployment.
