@@ -73,6 +73,7 @@ must run and verify both deployments explicitly; see the
 ./deploy.sh --skip-migrate   # build + deploy, no D1 migrations
 
 # Watch logs
+source ./scripts/cloudflare-account.sh
 npx wrangler pages deployment tail --project-name=researchtoolspy
 ```
 
@@ -127,6 +128,7 @@ pnpm run migrate:list:prod
 pnpm run migrate:prod
 
 # Ad-hoc query (remote)
+source ./scripts/cloudflare-account.sh
 pnpm exec wrangler d1 execute researchtoolspy-prod --remote --command "SELECT name FROM sqlite_master WHERE type='table'"
 ```
 

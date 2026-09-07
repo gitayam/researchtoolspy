@@ -105,6 +105,7 @@ separated and the deployed Functions are compatible with the current schema.
 ## Post-deployment verification
 
 ```bash
+source ./scripts/cloudflare-account.sh
 curl -fsS -o /dev/null https://researchtools.net/
 curl -fsS https://researchtools.net/api/health
 curl -sS -o /dev/null -w '%{http_code}\n' \
@@ -126,6 +127,7 @@ read-only remote D1 query. Do not use a write probe merely to prove deployment.
 Tail a bounded slice of the active Functions deployment during verification:
 
 ```bash
+source ./scripts/cloudflare-account.sh
 pnpm exec wrangler pages deployment tail \
   --project-name=researchtoolspy \
   --environment=production \

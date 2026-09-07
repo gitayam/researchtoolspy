@@ -28,8 +28,11 @@ test.describe('Cloudflare account selection @smoke', () => {
 
   test('@smoke standalone production scripts load account selection', () => {
     const indexAudit = read('scripts/audit-d1-indexes.sh')
-    expect(read('package.json')).toContain('"migrate:list:prod": "./scripts/list-managed-migrations.sh --remote"')
-    expect(read('package.json')).toContain('"audit:indexes:prod": "./scripts/audit-d1-indexes.sh --remote"')
+    const packageJson = read('package.json')
+    expect(packageJson).toContain('"migrate:list:prod": "./scripts/list-managed-migrations.sh --remote"')
+    expect(packageJson).toContain('"audit:indexes:prod": "./scripts/audit-d1-indexes.sh --remote"')
+    expect(packageJson).toContain('"wrangler:deploy": "./deploy.sh"')
+    expect(packageJson).toContain("\"migrate:prod\": \"bash -c 'source ./scripts/cloudflare-account.sh")
     expect(read('scripts/list-managed-migrations.sh')).toContain('source ./scripts/cloudflare-account.sh')
     expect(indexAudit).toContain('source ./scripts/cloudflare-account.sh')
     expect(indexAudit).toContain('grep -Ein')
