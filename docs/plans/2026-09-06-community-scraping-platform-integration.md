@@ -976,9 +976,19 @@ The following checks were non-mutating health probes. They did not create a bran
 | Proxmox Claude | SSH connectivity passed; `/datadrive/claude-isolated/Downtown-Guide` is owned by `claude:claude`; nested shell canary resolved `/datadrive/home/claude|/datadrive/claude-isolated/Downtown-Guide`; Claude Code `2.1.241` is authenticated through the `claude` account; Git metadata ownership audit found zero foreign-owner paths; a read-only inference returned the checkout's exact cwd and HEAD | Runtime is healthy, but **not repository-ready for ResearchTools**. The established isolated checkout is Downtown Guide. A separate ResearchTools checkout or verified Git-bundle import and unique branch is required before implementation |
 | Local Mistral Vibe | `vibe 2.24.3` is available at the configured local executable; active model is `mistral-medium-3.5`; API-key presence was verified without revealing it; `--workdir`, streaming output, tool allowlists, auto-approval, turn limits, and a wall-clock timeout are available; a `read_file`-only probe read this roadmap and returned `HEALTH=ok` | Ready now for bounded read-only inventory and mechanical work in an explicitly created worktree; not final authority for auth, privacy, schema, idempotency, or lifecycle decisions |
 
-The working tree intentionally contains this untracked plan and the link added to `docs/SCRAPING_ROADMAP.md`. Those files are user-requested work, not a clean implementation baseline. Before an editing tranche, the integration owner must commit the accepted planning documents or create a uniquely named clean worktree from the freshly verified canonical SHA and apply only the approved plan there.
+That initial planning-tree limitation is resolved. The accepted ResearchTools
+plan and Tranche A foundation are preserved at
+`a9ad2234bb89d4473154aa3028552ddd79a608b7` on the isolated
+`work/community-tranche-a-20260906` worktree.
 
-The IrregularChat directory at `/Users/sac/Git/IrregularChat/irregularchat-monorepo` was readable during discovery but did not expose Git metadata. No cross-repository implementation tranche may claim an IrregularChat baseline, isolated branch, or joinable commit until its authoritative repository/ref and exact SHA are established.
+The authoritative IrregularChat repository was subsequently established in a
+clean dedicated worktree at
+`/Users/sac/Git/irregularchat-monorepo-community-tranche-b`, based on
+`gitlab/main` commit `d904854c96431ef62a2e9bc42775f029218ba817`.
+The capability-aware consumer tranche is preserved at
+`f722aea2973f410476974c7b0a09183f99c028c2`. This supersedes the earlier
+non-Git directory observation; future cross-repository work must still refresh
+and record both repositories' exact baselines before editing.
 
 ### Evidence-based worker routing
 
@@ -995,10 +1005,10 @@ Do not assign Mistral sole ownership of service authorization, privacy, retentio
 
 ### Orchestration prerequisites
 
-Before the first implementation provider is launched:
+Before the next multi-worker provider tranche is launched:
 
-- [ ] Commit or otherwise preserve the approved roadmap as durable baseline evidence.
-- [ ] Establish the authoritative IrregularChat remote/ref, fresh full SHA, merge base, divergence, repository instructions, and clean-worktree strategy.
+- [x] Commit or otherwise preserve the approved roadmap as durable baseline evidence.
+- [x] Establish the authoritative IrregularChat remote/ref, fresh full SHA, merge base, divergence, repository instructions, and clean-worktree strategy.
 - [ ] Create a ResearchTools-specific isolated Proxmox checkout or import the exact milestone through a checksum-verified Git bundle as Unix user `claude`.
 - [ ] Freeze `integration-capabilities.v1`, `community-source-event.v1`, existing `source-artifact.v1` reuse, `community-enrichment.v1`, normalized error, service-scope, and webhook-envelope contracts.
 - [ ] Freeze transaction/event order, idempotency fingerprint and mismatch response, replay behavior, visibility propagation, deletion semantics, and workspace authorization.
@@ -1035,7 +1045,11 @@ These commands are currently available in the ResearchTools checkout. A tranche 
 | Browser/e2e | same | `npm run test:e2e` or focused Playwright paths/projects | Integration owner unless the worker environment is proven capable |
 | D1 migrations | unique disposable local Wrangler store | Managed migration list plus `wrangler d1 migrations apply ... --local --persist-to <unique-dir>` | Integration owner; never remote for an orchestration proof |
 
-The IrregularChat command matrix remains blocked until its authoritative Git checkout and current toolchain are established. Browser, production credentials, deployment, and remote database gates always remain with the integration owner unless separately authorized; worker health does not grant those permissions.
+The IrregularChat checkout and command matrix are now established and Tranche B
+has passed its documented local gates. Browser, production credentials,
+deployment, and remote database gates always remain with the integration owner
+unless separately authorized; worker health or a local commit does not grant
+those permissions.
 
 ### Orchestration success measures
 
@@ -1413,7 +1427,11 @@ Required proof:
 - Verification: 19 focused community contract/auth/migration/route tests plus 8 existing auth-resilience tests pass; full TypeScript, changed-file lint, production build, fresh migration fixture, reconstructed OIDC-capable local-prefix migration, SQLite integrity/foreign-key checks, and independent security review pass.
 - Known baseline tooling debt: `npm run validate:schema` still references an absent `ts-node` runner and the script is instructional rather than an executable D1 validator. Tranche A relies on the executable migration specs and disposable SQLite proofs above; repairing the generic validator is a separate schema-tooling chore.
 
-The release boundary remains unchanged: this checkpoint may be joined as disabled foundation code, but it must not be remotely migrated, enabled, provisioned, or deployed until an operator authorizes the rollout sequence. Tranche B remains the next user-visible gate.
+The release boundary remains unchanged: this checkpoint may be joined as
+disabled foundation code, but it must not be remotely migrated, enabled,
+provisioned, or deployed until an operator authorizes the rollout sequence.
+Tranche B is now complete locally; the next code gate is one provider-side
+service operation adapter, still disabled by default.
 
 ### Tranche B — IrregularChat transport truthfulness
 
@@ -1425,11 +1443,72 @@ The release boundary remains unchanged: this checkpoint may be joined as disable
 
 **Visible marker:** unavailable commands state the missing capability; anonymous content analysis and public BCW remain usable; no empty bearer token or workspace `1` is sent.
 
-**Blocked until:** authoritative IrregularChat Git metadata/ref/SHA and executable test matrix are established.
+**Implementation:** complete locally at IrregularChat commit
+`f722aea2973f410476974c7b0a09183f99c028c2`, based on
+`d904854c96431ef62a2e9bc42775f029218ba817`. No push, deployment, token,
+migration, or production capability change was performed.
 
 **Non-goals:** asynchronous community ingestion, RSS schema change, feed management, local scraper removal, or COP redesign.
 
 Required proof includes anonymous/public/authenticated capability fixtures, no secret logging, Polymarket candidate-boundary coverage if that fix is included, and exact Signal/SimpleX command tests from the verified monorepo runner.
+
+**2026-09-07 implementation checkpoint — locally complete, not deployed:**
+
+- Added strict public/service capability discovery, immutable 60-second-bounded
+  authority caches, exact scope and route binding, bounded JSON transport,
+  correlation checks, redirect refusal, deadline/cancellation handling, and
+  immediate service-cache invalidation after `401`/`403`.
+- Separated public non-persistent analysis, legacy user-authenticated analysis,
+  and service operations. URL-only or service-token-only configuration cannot
+  call legacy user routes, and no new service call sends caller-selected
+  workspace authority.
+- Gated Signal, SimpleX, Polymarket ranking, BCW, research-question generation,
+  behavior persistence/editing, and breakout COP persistence while retaining
+  local/AI/keyword fallbacks where they are a distinct product path.
+- Verification: shared-utils 252/252 tests, typecheck, and Biome pass; Signal's
+  focused capability/COP suites pass 10/10; SimpleX passes 15/15; targeted
+  linters report zero errors; shell/diff/credential hygiene gates pass; three
+  independent reviewers report zero unresolved P0/P1 findings. The documented
+  Signal bare-checkout module-resolution and SimpleX Puppeteer namespace
+  baselines remain outside this tranche.
+
+### Tranche B1 — first executable service compute adapter
+
+**Default choice:** adapt claim matching before any persistent COP, behavior,
+feed, or community-ingestion write. It is bounded, candidate-supplied compute,
+already has an authoritative `claimMatchCandidates` limit, and lets the service
+identity/authorization path be proven without introducing tenant-owned stored
+artifacts.
+
+**Falsifiable hypothesis:** the existing claim-match implementation can accept
+the server-bound service principal with no user/workspace fallback and no data
+write while preserving legacy authenticated behavior. Falsify this choice if
+code/runtime evidence shows hidden persistence, a dependence on a user session
+or user quota that cannot be separated, cross-tenant data access, or cost and
+latency outside the declared service budget; in that case evaluate
+`researchQuestions` under the same gates instead.
+
+Required work and proof:
+
+- Branch service authentication explicitly at `/api/tools/claim-match`; never
+  pass an `rt_svc_` principal into legacy user resolution.
+- Require `community.claims.execute`, valid server-side binding, the exact
+  feature flag/runtime dependencies, and a positive authoritative candidate
+  limit before advertising `claimMatch:true`.
+- Preserve the existing user route and error semantics for non-service
+  credentials; return `integration-error.v1` with request/correlation IDs for
+  service failures and set no cookie.
+- Add invalid, expired, revoked, wrong-environment, missing-scope, disabled-flag,
+  over-limit, malformed-body, timeout, and successful service fixtures. Prove
+  no workspace header can change the bound tenant and no result is persisted.
+- Deploy the provider adapter before provisioning a staging consumer token.
+  Canary the already-committed IrregularChat consumer, measure denial/success,
+  latency, retries, candidate truncation, AI/keyword fallback rate, and cost,
+  then decide whether the capability may remain enabled.
+
+**Exit gate:** a disabled-by-default provider commit and consumer compatibility
+fixture pass locally and in staging; a separate operator authorization records
+any credential provisioning, remote migration, flag change, or deployment.
 
 ### Tranche C — one shadow Signal event end to end
 
