@@ -1,6 +1,6 @@
 # ResearchTools scraping system roadmap
 
-**Last updated:** 2026-09-04 · **Status:** 🔄 in progress · **Owner:** platform/backend
+**Last updated:** 2026-09-07 · **Status:** 🔄 in progress · **Owner:** platform/backend
 
 **Evidence and experiment design:** [`plans/2026-08-30-scraping-modernization.md`](plans/2026-08-30-scraping-modernization.md)
 
@@ -9,6 +9,13 @@
 **Community integration checkpoint:** Tranche A service identity and truthful capability discovery are locally implemented and independently reviewed. The feature is disabled by default, all service-consuming capabilities remain false, and no production credential, migration, deployment, or push has occurred. Tranche B (IrregularChat transport truthfulness) is next.
 
 **Status legend:** ✅ complete · 🔄 in progress · ⬜ planned · ⛔ blocked · 🧪 experiment · 🗑️ retire
+
+### Content Intelligence quality-aware fallback checkpoint — 2026-09-07
+
+- **Closed gap:** `content-intelligence/analyze-url` no longer treats transport-level success as extraction success. Direct, Archive.ph, Wayback, and SMRY candidates must each pass the endpoint's article-quality gate before they can terminate the bounded chain.
+- **Failure contract:** if no candidate qualifies, the route returns an explainable `422` with the strongest partial candidate's `content_source`, the content-source `fallback_attempts`, and `extraction_quality`. Final quality rejection now also reaches the privacy-safe durable failure log.
+- **Safety boundary:** the change reuses the existing bounded, exact-host adapters. It does not import IrregularChat's bare-fetch/Googlebot chain, add credential impersonation, or weaken the no-paywall-bypass policy.
+- **Falsifiable hypothesis:** on at least 100 recent or representative thin-success failures, stage-level quality acceptance recovers at least 20 absolute percentage points while wrong/login/boilerplate acceptance remains at or below 2% and p95 latency stays within 2x of the direct-only cohort. The hypothesis is falsified if any bound fails; in that case retain the telemetry/provenance fix, disable the underperforming fallback, and prioritize the semantic-extractor/renderer benchmark.
 
 ## Mission
 

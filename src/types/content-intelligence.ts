@@ -118,6 +118,8 @@ export interface ContentAnalysis {
   extracted_text: string
   summary?: string
   word_count: number
+  content_source?: 'original' | 'archive.ph' | 'wayback' | 'smry.ai' | 'apify' | 'bot-scrape'
+  fallback_attempts?: string[]
 
   // Word Analysis
   word_frequency: Record<string, number> // { "phrase": count }

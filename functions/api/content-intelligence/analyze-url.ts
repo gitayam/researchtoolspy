@@ -311,6 +311,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         error: userMessage,
         technical_error: contentData.error,
         suggestion: 'Try using one of the bypass or archive URLs to access the content',
+        content_source: contentData.source || 'original',
+        fallback_attempts: contentData.fallback_attempts || [],
         bypass_urls: bypassUrls,
         archive_urls: archiveUrls
       }), {
@@ -329,10 +331,20 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       contentData.publishDate,
     )
     if (initialQuality.thin) {
+      await logEvent(env, await extractionFailureLog({
+        url: normalizedUrl,
+        errorCode: 'quality_rejected',
+        tenantScope: workspaceId ?? 'public',
+        telemetryKey: env.SCRAPE_TELEMETRY_KEY,
+        correlationId: requestCorrelationId,
+      }))
+
       return new Response(JSON.stringify({
         error: 'Insufficient article content for reliable analysis',
         code: 'INSUFFICIENT_CONTENT',
         extraction_quality: initialQuality,
+        content_source: contentData.source || 'original',
+        fallback_attempts: contentData.fallback_attempts || [],
         bypass_urls: bypassUrls,
         archive_urls: archiveUrls,
       }), { status: 422, headers: JSON_HEADERS })
@@ -973,6 +985,41 @@ function isContentBlocked(result: {
   return false
 }
 
+interface ExtractionCandidateAssessment {
+  usable: boolean
+  errorCode?: NormalizedScrapeError
+}
+
+/** Apply the endpoint's final quality contract before a fallback stage wins. */
+function assessExtractionCandidate(result: ContentExtractionResult): ExtractionCandidateAssessment {
+  if (!result.success) {
+    return {
+      usable: false,
+      errorCode: result.errorCode ?? 'extract_failed',
+    }
+  }
+
+  const quality = assessExtractionQuality(
+    result.text,
+    result.title,
+    result.author,
+    result.publishDate,
+  )
+  if (isContentBlocked(result) || quality.thin) {
+    return { usable: false, errorCode: 'quality_rejected' }
+  }
+
+  return { usable: true }
+}
+
+function isBetterExtractionCandidate(
+  candidate: ContentExtractionResult,
+  current: ContentExtractionResult,
+): boolean {
+  if (candidate.success !== current.success) return candidate.success
+  return countWords(candidate.text) > countWords(current.text)
+}
+
 /**
  * Extract URL content with automatic fallback to archives if blocked
  */
@@ -988,13 +1035,12 @@ export async function extractUrlContentWithFallback(
     startedAt: number,
     result: ContentExtractionResult | null,
     options: Pick<ExtractionAttemptObservation, 'stage' | 'strategy' | 'provider'>,
-  ): void => {
-    const usable = result !== null && result.success && !isContentBlocked(result)
+  ): boolean => {
+    const assessment = result === null ? null : assessExtractionCandidate(result)
+    const usable = assessment?.usable ?? false
     const errorCode = result === null
       ? undefined
-      : usable
-        ? undefined
-        : result.success ? 'quality_rejected' : (result.errorCode ?? 'extract_failed')
+      : assessment?.errorCode
     recordAttempt({
       ...options,
       outcome: result === null ? 'skipped' : usable ? 'succeeded' : 'failed',
@@ -1007,20 +1053,31 @@ export async function extractUrlContentWithFallback(
       responseBytes: result ? new TextEncoder().encode(result.text).byteLength : 0,
       extractedWords: result ? countWords(result.text) : 0,
     })
+    return usable
   }
 
   // Try original URL first
   fallbackAttempts.push('original')
   const originalStartedAt = Date.now()
   const originalResult = await extractUrlContent(url, apiKey, pdfCoApiKey)
-  observeAttempt(originalStartedAt, originalResult, {
+  let bestResult: ContentExtractionResult = { ...originalResult, source: 'original' }
+  const rememberCandidate = (
+    result: ContentExtractionResult,
+    source: NonNullable<ContentExtractionResult['source']>,
+  ): void => {
+    const candidate = { ...result, source }
+    if (isBetterExtractionCandidate(candidate, bestResult)) bestResult = candidate
+  }
+
+  const originalUsable = observeAttempt(originalStartedAt, originalResult, {
     stage: originalResult.isPDF ? 'pdf' : 'fetch',
     strategy: 'direct',
     provider: 'none',
   })
 
-  // If successful and not blocked, return immediately
-  if (originalResult.success && !isContentBlocked(originalResult)) {
+  // A transport-level success can still be a login shell or a thin JavaScript
+  // placeholder. Only stop once the same quality gate used by analysis passes.
+  if (originalUsable) {
     return {
       ...originalResult,
       source: 'original',
@@ -1041,13 +1098,14 @@ export async function extractUrlContentWithFallback(
         pdfCoApiKey,
         ['archive.ph'],
       )
-      observeAttempt(archiveStartedAt, archivePhResult, {
+      rememberCandidate(archivePhResult, 'archive.ph')
+      const archiveUsable = observeAttempt(archiveStartedAt, archivePhResult, {
         stage: 'archive',
         strategy: 'archive',
         provider: 'archive',
       })
 
-      if (archivePhResult.success && !isContentBlocked(archivePhResult)) {
+      if (archiveUsable) {
         return {
           ...archivePhResult,
           source: 'archive.ph',
@@ -1077,13 +1135,14 @@ export async function extractUrlContentWithFallback(
         pdfCoApiKey,
         ['web.archive.org'],
       )
-      observeAttempt(waybackStartedAt, waybackResult, {
+      rememberCandidate(waybackResult, 'wayback')
+      const waybackUsable = observeAttempt(waybackStartedAt, waybackResult, {
         stage: 'archive',
         strategy: 'archive',
         provider: 'archive',
       })
 
-      if (waybackResult.success && !isContentBlocked(waybackResult)) {
+      if (waybackUsable) {
         return {
           ...waybackResult,
           source: 'wayback',
@@ -1112,13 +1171,14 @@ export async function extractUrlContentWithFallback(
       pdfCoApiKey,
       ['smry.ai'],
     )
-    observeAttempt(smryStartedAt, smryResult, {
+    rememberCandidate(smryResult, 'smry.ai')
+    const smryUsable = observeAttempt(smryStartedAt, smryResult, {
       stage: 'provider',
       strategy: 'provider',
       provider: 'internal',
     })
 
-    if (smryResult.success && !isContentBlocked(smryResult)) {
+    if (smryUsable) {
       return {
         ...smryResult,
         source: 'smry.ai',
@@ -1129,10 +1189,10 @@ export async function extractUrlContentWithFallback(
     console.error('[Fallback] SMRY.ai attempt failed:', error)
   }
 
-  // All fallbacks failed, return original result with fallback info
+  // All fallbacks failed. Preserve the best partial candidate so the 422
+  // response can explain the strongest evidence we actually observed.
   return {
-    ...originalResult,
-    source: 'original',
+    ...bestResult,
     fallback_attempts: fallbackAttempts
   }
 }

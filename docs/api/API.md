@@ -166,6 +166,20 @@ Prefix: `/api/intelligence/*` — synthesis, predictions, network analysis, enti
 | `POST /api/content-intelligence/analyze-url` | Full URL extraction (entities, claims, text, archive) |
 | `POST /api/content-intelligence/summarize-entity` | AI summary for an entity |
 
+`analyze-url` supports public ephemeral analysis; saving, loading saved work, or
+writing into a workspace requires authenticated write authority. HTML candidates
+are accepted only after the same article-quality gate at every bounded stage.
+A thin direct response therefore continues through the configured archive and
+alternate-source chain instead of becoming an immediate `422`.
+
+Successful responses expose `content_source`, `fallback_attempts`, and
+`extraction_quality`. If every candidate fails the quality gate, the endpoint
+returns `422` with code `INSUFFICIENT_CONTENT`, those same provenance fields,
+and the strongest partial candidate's quality assessment. Transport failures also
+return `422` with `content_source` and `fallback_attempts`; callers should present
+the returned archive/open-source options rather than silently treating a login or
+loader page as article content.
+
 ### Web scraping
 
 | Endpoint | Description |

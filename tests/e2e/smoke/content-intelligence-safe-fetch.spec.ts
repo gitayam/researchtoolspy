@@ -5,6 +5,7 @@ import {
   checkArchivePh,
   checkWaybackMachine,
   extractUrlContent,
+  extractUrlContentWithFallback,
   onRequestPost,
 } from '../../../functions/api/content-intelligence/analyze-url'
 import {
@@ -532,6 +533,141 @@ test.describe('content-intelligence URL safe-fetch migration @smoke', () => {
         url: 'https://files.pdf.co/validated-upload.pdf',
         inline: true,
       })
+    } finally {
+      restore()
+    }
+  })
+
+  test('@smoke retries a thin direct response and accepts a quality-approved archive', async () => {
+    const thinArticle = `<!doctype html><html><head><title>Thin loader</title></head>
+      <body><main><p>${'thin but meaningful public text '.repeat(20)}</p></main></body></html>`
+    const attempts: Array<{
+      stage: string
+      outcome: string
+      errorCode?: string
+      extractedWords?: number
+    }> = []
+    const targets: Array<{ url: string; method: string }> = []
+    const restore = installNetworkMock({
+      target: (url, init) => {
+        const method = String(init?.method || 'GET')
+        targets.push({ url: url.href, method })
+        if (url.hostname === 'public.example') {
+          return new Response(thinArticle, { headers: { 'Content-Type': 'text/html' } })
+        }
+        if (url.hostname === 'archive.ph' && url.pathname.startsWith('/newest/')) {
+          return new Response(null, {
+            status: 302,
+            headers: { Location: 'https://archive.ph/archive123' },
+          })
+        }
+        if (url.href === 'https://archive.ph/archive123' && method === 'HEAD') {
+          return new Response(null, { headers: { 'Content-Type': 'text/html' } })
+        }
+        if (url.href === 'https://archive.ph/archive123') {
+          return new Response(longArticle, { headers: { 'Content-Type': 'text/html' } })
+        }
+        throw new Error(`Unexpected transport: ${method} ${url.href}`)
+      },
+    })
+
+    try {
+      const result = await extractUrlContentWithFallback(
+        'https://public.example/thin',
+        undefined,
+        undefined,
+        attempt => attempts.push(attempt),
+      )
+
+      expect(result).toMatchObject({
+        success: true,
+        source: 'archive.ph',
+        fallback_attempts: ['original', 'archive.ph'],
+        title: 'Validated Final Article',
+      })
+      expect(attempts).toEqual([
+        expect.objectContaining({
+          stage: 'fetch',
+          outcome: 'failed',
+          errorCode: 'quality_rejected',
+        }),
+        expect.objectContaining({
+          stage: 'archive',
+          outcome: 'succeeded',
+        }),
+      ])
+      expect(targets).toEqual([
+        { url: 'https://public.example/thin', method: 'GET' },
+        { url: 'https://archive.ph/newest/https://public.example/thin', method: 'HEAD' },
+        { url: 'https://archive.ph/archive123', method: 'HEAD' },
+        { url: 'https://archive.ph/archive123', method: 'GET' },
+      ])
+    } finally {
+      restore()
+    }
+  })
+
+  test('@smoke reports and logs quality rejection after bounded fallbacks stay thin', async () => {
+    const directThin = `<html><head><title>Thin public page</title></head><body><main>
+      ${'direct public loader text '.repeat(24)}
+    </main></body></html>`
+    const providerThin = `<html><head><title>Thin alternate page</title></head><body><main>
+      ${'alternate loader text '.repeat(18)}
+    </main></body></html>`
+    const restore = installNetworkMock({
+      target: url => {
+        if (url.hostname === 'public.example') {
+          return new Response(directThin, { headers: { 'Content-Type': 'text/html' } })
+        }
+        if (url.hostname === 'archive.ph') return new Response(null, { status: 404 })
+        if (url.hostname === 'web.archive.org') {
+          return new Response('not found', {
+            status: 404,
+            headers: { 'Content-Type': 'text/plain' },
+          })
+        }
+        if (url.hostname === 'smry.ai') {
+          return new Response(providerThin, { headers: { 'Content-Type': 'text/html' } })
+        }
+        throw new Error(`Unexpected transport: ${url.href}`)
+      },
+    })
+
+    try {
+      const scrapePoints: Array<{ blobs?: string[] }> = []
+      const fixture = authorizedRouteContext(
+        { url: 'https://public.example/thin' },
+        { telemetryKey: 'dedicated-test-telemetry-key' },
+      )
+      const fixtureEnv = fixture.context.env as Record<string, unknown>
+      fixtureEnv.SCRAPE_ANALYTICS = {
+        writeDataPoint: (point: { blobs?: string[] }) => { scrapePoints.push(point) },
+      }
+      const response = await onRequestPost(fixture.context as never)
+      expect(response.status).toBe(422)
+      expect(await response.json()).toMatchObject({
+        error: 'Insufficient article content for reliable analysis',
+        code: 'INSUFFICIENT_CONTENT',
+        content_source: 'original',
+        fallback_attempts: ['original', 'smry.ai'],
+        extraction_quality: {
+          thin: true,
+          reason: 'too_short',
+        },
+      })
+      expect(fixture.eventLogs).toHaveLength(1)
+      expect(eventLogContext(fixture.eventLogs[0])).toMatchObject({
+        error_code: 'quality_rejected',
+      })
+      expect(scrapePoints).toHaveLength(5)
+      expect(scrapePoints[0].blobs?.slice(1, 9)).toEqual([
+        'attempt', 'content-intelligence', 'article-analysis', 'fetch',
+        'direct', 'none', 'failed', 'quality_rejected',
+      ])
+      expect(scrapePoints.at(-1)?.blobs?.slice(1, 8)).toEqual([
+        'terminal', 'content-intelligence', 'article-analysis', 'failed',
+        'quality_rejected', 'provider', 'provider',
+      ])
     } finally {
       restore()
     }
