@@ -195,13 +195,14 @@ export async function onRequest(context: MiddlewareContext) {
     'Access-Control-Allow-Origin': allowOrigin,
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Guest-Session, X-Workspace-ID, X-Correlation-ID, X-Service-Key',
+    'Access-Control-Expose-Headers': 'X-Analysis-Meter',
     'Vary': 'Origin',
   }
 
-  const json429 = (msg: string) =>
+  const json429 = (msg: string, extraHeaders: Record<string, string> = {}) =>
     new Response(JSON.stringify({ error: msg }), {
       status: 429,
-      headers: { 'Content-Type': 'application/json', ...corsHeaders },
+      headers: { 'Content-Type': 'application/json', ...corsHeaders, ...extraHeaders },
     })
 
   // Handle OPTIONS preflight requests
@@ -215,6 +216,17 @@ export async function onRequest(context: MiddlewareContext) {
   // can fan out to paid model calls. Apply one shared, tighter IP budget to
   // authenticated and anonymous callers alike; general AI/gateway caps remain
   // backstops.
+  // Which bucket metered this request, echoed back as X-Analysis-Meter.
+  //
+  // Without it there is no way to assert the first-party exemption actually
+  // works: a 200 could equally mean "metered as a service" or "public budget
+  // happened to have room left". A deploy-time check that cannot tell those
+  // apart would pass while the exemption is silently broken — and a broken
+  // exemption looks like nothing at all until the bot starts dropping links.
+  // The value only describes how the caller itself was treated, which it can
+  // already infer, so this discloses nothing.
+  let analysisMeter: 'service' | 'public' | null = null
+
   if (request.method === 'POST' && isPublicContentAnalysisPath(url.pathname)) {
     // First-party automation (the Signal bot and the irregulars.io workers) is
     // metered by service identity instead of by IP. The public cap is keyed on
@@ -223,12 +235,15 @@ export async function onRequest(context: MiddlewareContext) {
     // address — 12/hour is a sane public budget and a nonsensical one for a
     // bot that analyzes every link posted to a community.
     const serviceKey = trustedServiceKey(request, env)
+    analysisMeter = serviceKey ? 'service' : 'public'
+    const meterHeader = { 'X-Analysis-Meter': analysisMeter }
+
     if (serviceKey) {
       if (await kvRateLimit(env, `content-analysis-svc:${serviceKey}`, serviceAnalysisLimit(env), 60 * 60)) {
-        return json429('Service analysis limit reached. Please try again later.')
+        return json429('Service analysis limit reached. Please try again later.', meterHeader)
       }
     } else if (await kvRateLimit(env, `content-analysis:${clientIp}`, 12, 60 * 60)) {
-      return json429('Public analysis limit reached. Please try again later.')
+      return json429('Public analysis limit reached. Please try again later.', meterHeader)
     }
   }
 
@@ -305,6 +320,8 @@ export async function onRequest(context: MiddlewareContext) {
     }
     response.headers.set(key, value as string)
   })
+
+  if (analysisMeter) response.headers.set('X-Analysis-Meter', analysisMeter)
 
   return response
 }

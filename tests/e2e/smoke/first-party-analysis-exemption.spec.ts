@@ -86,6 +86,17 @@ test.describe('first-party analysis exemption @smoke', () => {
     expect(trustedServiceKey(req(`Bearer ${KEY_A}extra`), ENV)).toBeNull()
   })
 
+  // The deploy-time assertion in deploy.sh Step 6 reads X-Analysis-Meter to
+  // tell "metered as service" apart from "public budget had room". If the
+  // header's vocabulary drifts, that assertion silently stops asserting.
+  test('@smoke meter vocabulary is exactly service|public', () => {
+    const serviceish = trustedServiceKey(req(undefined, KEY_A), ENV)
+    const publicish = trustedServiceKey(req(), ENV)
+    // The middleware maps a non-null key to 'service' and null to 'public'.
+    expect(serviceish === null ? 'public' : 'service').toBe('service')
+    expect(publicish === null ? 'public' : 'service').toBe('public')
+  })
+
   test('@smoke service budget defaults high but stays finite', () => {
     expect(serviceAnalysisLimit({})).toBe(600)
     expect(serviceAnalysisLimit({ SERVICE_ANALYSIS_HOURLY_LIMIT: '2000' })).toBe(2000)

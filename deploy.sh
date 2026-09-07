@@ -39,6 +39,7 @@ source ./scripts/cloudflare-account.sh
 SKIP_BUILD=false
 SKIP_MIGRATE=false
 DRY_RUN=false
+SKIP_SECRET_CHECK=false
 
 for arg in "$@"; do
     case $arg in
@@ -51,6 +52,9 @@ for arg in "$@"; do
         --dry-run)
             DRY_RUN=true
             ;;
+        --skip-secret-check)
+            SKIP_SECRET_CHECK=true
+            ;;
         --help|-h)
             echo "ResearchToolsPy - Deployment Script"
             echo ""
@@ -59,6 +63,7 @@ for arg in "$@"; do
             echo "  ./deploy.sh --skip-build   Skip build, just copy functions + deploy"
             echo "  ./deploy.sh --skip-migrate Skip database migrations"
             echo "  ./deploy.sh --dry-run      List pending migrations + build; never mutate production"
+            echo "  ./deploy.sh --skip-secret-check  Skip the post-deploy secret + metering assertions"
             echo "  ./deploy.sh --help         Show this help message"
             echo ""
             exit 0
@@ -331,6 +336,113 @@ elif echo "$PROD_CONTENT" | grep -q '/src/main.tsx'; then
 fi
 
 echo ""
+
+# =============================================================================
+# Step 6: Runtime Dependency Assertions
+# =============================================================================
+# Functions fail SILENTLY when a Pages secret goes missing: the code still
+# deploys, the site still returns 200, and the only symptom is a capability
+# quietly degrading. The first-party analysis exemption is the sharpest example
+# — lose TRUSTED_ANALYSIS_KEYS and every bot call drops to the public 12/hour
+# cap, which looks like nothing until links stop being analyzed hours later.
+# Same failure shape as the BOT_API_KEY silent-skip incident.
+#
+# Two assertions, cheapest first:
+#   1. every required secret is BOUND (by name — values are never readable)
+#   2. the exemption actually METERS a first-party caller as first-party
+#
+# (2) needs a probe key, so it runs only when ANALYSIS_PROBE_KEY is exported.
+# Absent, it warns; present-but-wrong is a hard failure.
+REQUIRED_SECRETS="TRUSTED_ANALYSIS_KEYS OPENAI_API_KEY JWT_SECRET"
+API_BASE="${API_BASE:-https://researchtools.net}"
+ANALYZE_URL="$API_BASE/api/content-intelligence/analyze-url"
+VERIFY_FAILED=false
+
+if [ "$SKIP_SECRET_CHECK" = true ]; then
+    echo "${YELLOW}Step 6: Skipping runtime assertions (--skip-secret-check)${NC}"
+else
+    echo "${YELLOW}Step 6: Runtime dependency assertions...${NC}"
+
+    # --- 6a. Required secrets are bound -------------------------------------
+    SECRET_LIST=$(pnpm exec wrangler pages secret list --project-name=$PROJECT_NAME 2>/dev/null || echo "")
+    if [ -z "$SECRET_LIST" ]; then
+        echo "  ${YELLOW}Warning: could not list Pages secrets (auth or API issue) — skipping 6a${NC}"
+    else
+        for secret in $REQUIRED_SECRETS; do
+            if echo "$SECRET_LIST" | grep -q "$secret"; then
+                echo "  ${GREEN}$secret bound${NC}"
+            else
+                echo "  ${RED}MISSING: $secret is not set on $PROJECT_NAME${NC}"
+                echo "    Fix: ${GREEN}pnpm exec wrangler pages secret put $secret --project-name=$PROJECT_NAME${NC}"
+                VERIFY_FAILED=true
+            fi
+        done
+    fi
+
+    # --- 6b. The exemption meters a first-party caller correctly ------------
+    # Probe with a URL that fails extraction on purpose: X-Analysis-Meter is set
+    # by the middleware regardless of the route's outcome, so this costs one
+    # rate-limit slot and zero model tokens.
+    PROBE_BODY='{"url":"https://example.com/researchtoolspy-deploy-probe"}'
+    meter_of() {
+        # $1: optional X-Service-Key value
+        if [ -n "$1" ]; then
+            curl -s -o /dev/null -D - -m 30 -X POST "$ANALYZE_URL" \
+                -H 'Content-Type: application/json' -H "X-Service-Key: $1" \
+                -d "$PROBE_BODY" 2>/dev/null \
+                | tr -d '\r' | awk -F': ' 'tolower($1)=="x-analysis-meter"{print $2}'
+        else
+            curl -s -o /dev/null -D - -m 30 -X POST "$ANALYZE_URL" \
+                -H 'Content-Type: application/json' -d "$PROBE_BODY" 2>/dev/null \
+                | tr -d '\r' | awk -F': ' 'tolower($1)=="x-analysis-meter"{print $2}'
+        fi
+    }
+
+    ANON_METER=$(meter_of "")
+    if [ "$ANON_METER" = "public" ]; then
+        echo "  ${GREEN}anonymous caller metered as: public${NC}"
+    elif [ -z "$ANON_METER" ]; then
+        echo "  ${RED}X-Analysis-Meter absent — deployed middleware is older than this script${NC}"
+        echo "    The exemption cannot be verified. Re-deploy, or use --skip-secret-check."
+        VERIFY_FAILED=true
+    else
+        echo "  ${RED}anonymous caller metered as '$ANON_METER' — expected 'public'${NC}"
+        echo "    An unauthenticated caller is being treated as first-party. This is a"
+        echo "    security regression: check trustedServiceKey() in functions/api/_middleware.ts."
+        VERIFY_FAILED=true
+    fi
+
+    if [ -n "$ANALYSIS_PROBE_KEY" ]; then
+        SVC_METER=$(meter_of "$ANALYSIS_PROBE_KEY")
+        if [ "$SVC_METER" = "service" ]; then
+            echo "  ${GREEN}first-party caller metered as: service${NC}"
+        else
+            echo "  ${RED}first-party caller metered as '${SVC_METER:-none}' — expected 'service'${NC}"
+            echo "    The bot will silently fall back to the public 12/hour cap."
+            echo "    Check that ANALYSIS_PROBE_KEY matches an entry in TRUSTED_ANALYSIS_KEYS"
+            echo "    (entries under 32 chars are ignored by design)."
+            VERIFY_FAILED=true
+        fi
+    else
+        echo "  ${YELLOW}ANALYSIS_PROBE_KEY not set — cannot confirm the exemption end to end${NC}"
+        echo "    Export a key from TRUSTED_ANALYSIS_KEYS to enable this assertion:"
+        echo "    ${GREEN}ANALYSIS_PROBE_KEY=<key> ./deploy.sh${NC}"
+    fi
+fi
+
+echo ""
+
+if [ "$VERIFY_FAILED" = true ]; then
+    echo "${RED}=============================================="
+    echo "Deployed, but runtime assertions FAILED"
+    echo "==============================================${NC}"
+    echo ""
+    echo "The code is live. A dependency it needs is not correct, so some"
+    echo "capability is degraded RIGHT NOW. Fix the items marked MISSING or"
+    echo "'expected' above, then re-run: ${GREEN}./deploy.sh --skip-build${NC}"
+    echo ""
+    exit 1
+fi
 
 # =============================================================================
 # Summary
