@@ -28,7 +28,7 @@ interface ErrorBody {
   error: { code: string; message: string; retryable: boolean }
 }
 
-async function serviceDb(): Promise<D1Database> {
+async function serviceDb(includeTimelineScope = false): Promise<D1Database> {
   const secretHash = await deriveIntegrationTokenHash(HASH_KEY, CLIENT_ID, SECRET)
   const base = {
     client_id: CLIENT_ID,
@@ -69,6 +69,7 @@ async function serviceDb(): Promise<D1Database> {
   const results = [
     { ...base, token_scope: 'community.events.write' },
     { ...base, token_scope: 'community.projections.read' },
+    ...(includeTimelineScope ? [{ ...base, token_scope: 'community.research.execute' }] : []),
   ]
   return {
     prepare: (sql: string) => ({
@@ -102,6 +103,7 @@ test.describe('community integration capabilities endpoint @smoke', () => {
     expect(body.capabilities.anonymousAnalysis).toBe(true)
     expect(body.capabilities.publicBcw).toBe(true)
     expect(body.capabilities.communityIngest).toBe(false)
+    expect(body.capabilities).not.toHaveProperty('timelineAnalysis')
     expect(body).not.toHaveProperty('workspaceId')
   })
 
@@ -140,6 +142,28 @@ test.describe('community integration capabilities endpoint @smoke', () => {
     expect(body.requestId).toMatch(/^req-/)
     expect(body.capabilities.communityIngest).toBe(false)
     expect(body.capabilities.projectionRead).toBe(false)
+    expect(body.capabilities).not.toHaveProperty('timelineAnalysis')
+  })
+
+  test('@smoke advertises timeline analysis only to a ready scoped service', async () => {
+    const response = await onRequest(context(
+      new Request('https://researchtools.net/api/integrations/capabilities', {
+        headers: { Authorization: `Bearer rt_svc_${CLIENT_ID}.${SECRET}` },
+      }),
+      {
+        DB: await serviceDb(true),
+        ENVIRONMENT: 'production',
+        INTEGRATION_TOKEN_HASH_KEY: HASH_KEY,
+        COMMUNITY_INTEGRATIONS_ENABLED: 'true',
+        OPENAI_API_KEY: 'configured-for-readiness-only',
+      },
+    ))
+    const body = await response.json() as CapabilityBody
+
+    expect(response.status).toBe(200)
+    expect(body.scopes).toContain('community.research.execute')
+    expect(body.capabilities.timelineAnalysis).toBe(true)
+    expect(body.contractVersions.timelineAnalysis).toBe('timeline-analysis.v1')
   })
 
   test('@smoke invalid supplied credentials return the bounded error contract without secrets', async () => {

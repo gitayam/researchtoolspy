@@ -51,6 +51,7 @@ dataset = "researchtoolspy_scrape_metrics_v1"
 ENVIRONMENT = "production"
 ENABLE_AI_FEATURES = "true"
 DEFAULT_AI_MODEL = "gpt-4o-mini"
+COMMUNITY_INTEGRATIONS_ENABLED = "true"
 # AI_GATEWAY_ACCOUNT_ID is set as a Pages secret (`wrangler pages secret put`).
 # Do NOT also declare it here — a plaintext [vars] copy collides with the secret
 # at deploy time: "Binding name 'AI_GATEWAY_ACCOUNT_ID' already in use".
@@ -67,6 +68,7 @@ OIDC_END_SESSION_URL = "https://sso.irregularchat.com/application/o/researchtool
 ENVIRONMENT = "production"
 ENABLE_AI_FEATURES = "true"
 DEFAULT_AI_MODEL = "gpt-4o-mini"
+COMMUNITY_INTEGRATIONS_ENABLED = "true"
 # AI_GATEWAY_ACCOUNT_ID is set as a Pages secret (`wrangler pages secret put`).
 # Do NOT also declare it here — a plaintext [vars] copy collides with the secret
 # at deploy time: "Binding name 'AI_GATEWAY_ACCOUNT_ID' already in use".

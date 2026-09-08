@@ -4,7 +4,7 @@
 
 **Current contract:** `integration-capabilities.v1`
 
-**Rollout state:** Tranche A foundation; service-consuming operations are not enabled
+**Rollout state:** Tranche A foundation plus scoped timeline analysis
 
 ## Identity boundary
 
@@ -81,12 +81,14 @@ Successful responses use `Cache-Control: no-store`, never set cookies, and retur
   "environment": "production",
   "maximumVisibility": "community",
   "contractVersions": {
-    "capabilities": "integration-capabilities.v1"
+    "capabilities": "integration-capabilities.v1",
+    "timelineAnalysis": "timeline-analysis.v1"
   },
-  "scopes": ["community.events.write"],
+  "scopes": ["community.research.execute"],
   "capabilities": {
     "anonymousAnalysis": true,
     "publicBcw": true,
+    "timelineAnalysis": true,
     "communityIngest": false,
     "jobStatus": false,
     "artifactRead": false,
@@ -103,13 +105,15 @@ Successful responses use `Cache-Control: no-store`, never set cookies, and retur
 }
 ```
 
-Tranche A reports every service-consuming capability as false because no existing
-product route accepts this service principal yet. This is intentional: a route
-file, base URL, configured token, or scope alone is not proof of executable
-support. A later tranche can enable a capability only when compiled server
-support, the exact feature flag, required runtime bindings, valid tenant state,
-the exact scope, and any authoritative budget all agree. Contract versions and
-nonzero limits are omitted while their operation is disabled.
+`timelineAnalysis` is the first service-consuming capability. It is true only
+when compiled server support, `COMMUNITY_INTEGRATIONS_ENABLED=true`, D1 and
+OpenAI runtime readiness, valid tenant state, and the exact
+`community.research.execute` scope all agree. Its contract version is emitted
+only while the operation is enabled. The additive `timelineAnalysis` capability
+key is omitted while false so pre-extension strict v1 clients remain compatible;
+new clients normalize an omitted key to false. All other service-consuming
+capabilities remain false. A route file, URL, configured token, or scope alone
+is never proof of executable support.
 
 ## Exact scopes
 
@@ -120,7 +124,7 @@ nonzero limits are omitted while their operation is disabled.
 | `community.artifacts.read` | `artifactRead` |
 | `community.projections.read` | `projectionRead` |
 | `community.claims.execute` | `claimMatch` |
-| `community.research.execute` | `researchQuestions` |
+| `community.research.execute` | `timelineAnalysis`, `researchQuestions` |
 | `community.cop.write` | `cop` |
 | `community.behavior.write` | `behaviorIntake` |
 | `community.feeds.manage` | `feedJobs` |
@@ -137,11 +141,15 @@ runtime-ready. It does not mean the service bearer is accepted by the legacy use
 authorization path. Today:
 
 - an `rt_svc_` credential may call capability discovery and use public URL-only
-  analysis, but it cannot authorize supplied content or persistence;
+  Content Intelligence analysis; it does not authorize Content Intelligence
+  supplied content or persistence;
+- a scoped `rt_svc_` credential may call versioned timeline analysis with URL or
+  supplied content when `timelineAnalysis` is advertised;
 - a provisioned first-party `X-Service-Key` selects a separate bounded analysis
   rate bucket but grants no identity, scope, or workspace authority;
-- the Signal/RSS supplied-content bridge therefore uses a separate legacy user
-  credential for identity and the first-party key only for rate classification;
+- the Signal/RSS Content Intelligence supplied-content bridge still uses a
+  separate legacy user credential; timeline supplied content uses the scoped
+  service bearer, while the first-party key remains rate classification only;
 - no integration should send a caller-selected workspace with an `rt_svc_`
   credential or infer durable service support from `anonymousAnalysis`.
 
@@ -150,6 +158,50 @@ The full transitional contract is documented in
 replacement for the planned scoped service compute/ingestion adapters. Clients
 must keep capability-gated service operations distinct from public analysis and
 legacy user-authenticated calls.
+
+## Timeline analysis
+
+```http
+POST /api/tools/extract-timeline
+Authorization: Bearer rt_svc_<client-id>.<secret>
+Content-Type: application/json
+```
+
+The service principal must hold `community.research.execute`, and discovery must
+advertise both `timelineAnalysis: true` and contract version
+`timeline-analysis.v1`. Service callers must send `schemaVersion`; the legacy
+body is intentionally rejected for service identity.
+
+```json
+{
+  "schemaVersion": "timeline-analysis.v1",
+  "url": "https://publisher.example/2026/09/story",
+  "content": {
+    "text": "Optional analysis-grade recovered article text",
+    "title": "Recovered title",
+    "publishedAt": "2026-09-08",
+    "source": "publisher-feed"
+  }
+}
+```
+
+The optional supplied text is limited to 100 KiB, the complete JSON request is
+limited to 112 KiB, and both are evaluated before the model is called. Accepted source labels are
+`bot-scrape`, `content-intelligence`, `publisher-feed`, and `browser-render`.
+The response returns provenance (`contentSource`, `sourceMode`, method, quality,
+word count, and fallback attempts) and preserves event date precision. The
+server never fills a missing or invalid event date with its current date.
+
+Clients may try local recovery only after `422 content_unavailable`: reuse an
+already-completed content analysis first, then a bounded publisher feed, then an
+approved browser renderer, and submit the resulting text once. Do not perform
+recovery on `401`, `403`, `429`, network errors, or `502`; those states are not
+evidence that the publisher content was unavailable.
+
+`Authorization` and `X-Service-Key` have independent meanings. The `rt_svc_`
+bearer grants scoped service identity. `X-Service-Key` only selects a recognized
+first-party rate tier where a route supports it and never grants identity or
+scope. Do not place either secret in the other's header.
 
 ## Errors
 
@@ -173,8 +225,12 @@ Failures use `integration-error.v1`:
 | 401 | `authentication_required` | A supplied credential is not a service credential |
 | 401 | `invalid_service_token` | Unknown, malformed, revoked, disabled, or wrong-environment credential |
 | 401 | `expired_service_token` | A matching credential is expired |
+| 403 | `scope_denied` | The service identity lacks the operation's exact scope or feature enablement |
 | 403 | `workspace_denied` | `X-Workspace-ID` conflicts with the server binding |
-| 405 | `method_not_allowed` | Method is not `GET` or `OPTIONS` |
+| 413 | `invalid_request` | Timeline request body exceeds 112 KiB |
+| 422 | `content_unavailable` | No analysis-grade timeline source was available; bounded recovery may be attempted |
+| 502 | `upstream_invalid_response` | The timeline model response failed strict validation; retryable, but not a scrape-recovery signal |
+| 405 | `method_not_allowed` | Method is unsupported (`GET` for capability discovery; `POST` for timeline analysis) |
 | 503 | `auth_datastore_unavailable` | D1, key configuration, or bound identity state cannot be trusted |
 
 `503` includes `Retry-After: 2`. Error responses never include credentials,

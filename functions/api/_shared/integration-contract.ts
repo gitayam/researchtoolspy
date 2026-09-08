@@ -50,6 +50,7 @@ export interface ServiceIntegrationPrincipal {
 export const INTEGRATION_CAPABILITY_NAMES = [
   'anonymousAnalysis',
   'publicBcw',
+  'timelineAnalysis',
   'communityIngest',
   'jobStatus',
   'artifactRead',
@@ -65,8 +66,12 @@ export const INTEGRATION_CAPABILITY_NAMES = [
 
 export type IntegrationCapabilityName = typeof INTEGRATION_CAPABILITY_NAMES[number]
 export type IntegrationCapabilities = Record<IntegrationCapabilityName, boolean>
+export type AdvertisedIntegrationCapabilities =
+  Omit<IntegrationCapabilities, 'timelineAnalysis'>
+  & Partial<Pick<IntegrationCapabilities, 'timelineAnalysis'>>
 
 const REQUIRED_SCOPE: Partial<Record<IntegrationCapabilityName, IntegrationScope>> = {
+  timelineAnalysis: 'community.research.execute',
   communityIngest: 'community.events.write',
   jobStatus: 'community.jobs.read',
   artifactRead: 'community.artifacts.read',
@@ -79,10 +84,11 @@ const REQUIRED_SCOPE: Partial<Record<IntegrationCapabilityName, IntegrationScope
   webhookManagement: 'community.webhooks.manage',
 }
 
-/** Tranche A intentionally exposes no service-consuming operation. */
+/** Timeline analysis is the first scoped service-compute operation. */
 export const TRANCHE_A_SERVER_SUPPORT: Readonly<IntegrationCapabilities> = Object.freeze({
   anonymousAnalysis: true,
   publicBcw: true,
+  timelineAnalysis: true,
   communityIngest: false,
   jobStatus: false,
   artifactRead: false,
@@ -114,12 +120,14 @@ export interface IntegrationCapabilitiesDocument {
   maximumVisibility?: IntegrationVisibility
   contractVersions: {
     capabilities: typeof INTEGRATION_CAPABILITIES_SCHEMA_VERSION
+    timelineAnalysis?: 'timeline-analysis.v1'
     sourceEvent?: 'community-source-event.v1'
     artifact?: 'source-artifact.v1'
     projection?: 'community-enrichment.v1'
   }
   scopes: IntegrationScope[]
-  capabilities: IntegrationCapabilities
+  /** Additive v1 extensions are omitted while unavailable for old strict clients. */
+  capabilities: AdvertisedIntegrationCapabilities
   limits: IntegrationCapabilityLimits
 }
 
@@ -156,6 +164,7 @@ export function buildIntegrationCapabilitiesDocument(
   const capabilities: IntegrationCapabilities = {
     anonymousAnalysis: available('anonymousAnalysis'),
     publicBcw: available('publicBcw'),
+    timelineAnalysis: scoped('timelineAnalysis'),
     communityIngest: scoped('communityIngest') && batchLimit !== null,
     jobStatus: scoped('jobStatus'),
     artifactRead: scoped('artifactRead'),
@@ -184,12 +193,17 @@ export function buildIntegrationCapabilitiesDocument(
     } : {}),
     contractVersions: {
       capabilities: INTEGRATION_CAPABILITIES_SCHEMA_VERSION,
+      ...(capabilities.timelineAnalysis ? { timelineAnalysis: 'timeline-analysis.v1' as const } : {}),
       ...(capabilities.communityIngest ? { sourceEvent: 'community-source-event.v1' as const } : {}),
       ...(capabilities.artifactRead ? { artifact: 'source-artifact.v1' as const } : {}),
       ...(capabilities.projectionRead ? { projection: 'community-enrichment.v1' as const } : {}),
     },
     scopes: principal ? [...principal.scopes] : [],
-    capabilities,
+    capabilities: capabilities.timelineAnalysis
+      ? capabilities
+      : Object.fromEntries(
+          Object.entries(capabilities).filter(([name]) => name !== 'timelineAnalysis'),
+        ) as AdvertisedIntegrationCapabilities,
     limits: {
       ...(capabilities.claimMatch && claimLimit !== null ? { claimMatchCandidates: claimLimit } : {}),
       ...(capabilities.communityIngest && batchLimit !== null ? { maxBatchUrls: batchLimit } : {}),
@@ -205,6 +219,8 @@ export type IntegrationErrorCode =
   | 'expired_service_token'
   | 'scope_denied'
   | 'workspace_denied'
+  | 'content_unavailable'
+  | 'upstream_invalid_response'
   | 'method_not_allowed'
   | 'internal_error'
   | 'auth_datastore_unavailable'

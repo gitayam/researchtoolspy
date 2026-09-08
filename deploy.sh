@@ -31,6 +31,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 PROJECT_NAME="researchtoolspy"
+REQUIRED_SECRETS="TRUSTED_ANALYSIS_KEYS OPENAI_API_KEY JWT_SECRET SCRAPE_TELEMETRY_KEY INTEGRATION_TOKEN_HASH_KEY"
 # shellcheck source=scripts/cloudflare-account.sh
 source ./scripts/cloudflare-account.sh
 
@@ -282,6 +283,37 @@ fi
 echo ""
 
 # =============================================================================
+# Step 3.5: Preflight Runtime Secrets
+# =============================================================================
+if [ "$SKIP_SECRET_CHECK" = false ]; then
+    echo "${YELLOW}Step 3.5: Verifying required production secrets before deploy...${NC}"
+    if ! PREFLIGHT_SECRET_LIST=$(pnpm exec wrangler pages secret list --project-name="$PROJECT_NAME" 2>/dev/null); then
+        echo "${RED}ERROR: Could not list Pages secrets; refusing to deploy${NC}"
+        echo "Re-authenticate, or use --skip-secret-check only for a documented recovery deployment."
+        exit 1
+    fi
+    if [ -z "$PREFLIGHT_SECRET_LIST" ]; then
+        echo "${RED}ERROR: Pages secret list was unexpectedly empty; refusing to deploy${NC}"
+        exit 1
+    fi
+    for secret in $REQUIRED_SECRETS; do
+        if echo "$PREFLIGHT_SECRET_LIST" | grep -Eq "^[[:space:]]*-[[:space:]]+$secret:"; then
+            echo "  ${GREEN}$secret bound${NC}"
+        else
+            echo "  ${RED}MISSING: $secret is not set on $PROJECT_NAME${NC}"
+            echo "    Fix: ${GREEN}pnpm exec wrangler pages secret put $secret --project-name=$PROJECT_NAME${NC}"
+            echo "${RED}ERROR: Runtime dependency preflight failed; nothing was deployed${NC}"
+            exit 1
+        fi
+    done
+    echo "${GREEN}Required production secrets verified${NC}"
+    echo ""
+elif [ "$SKIP_SECRET_CHECK" = true ]; then
+    echo "${YELLOW}Step 3.5: Skipping runtime secret preflight (--skip-secret-check)${NC}"
+    echo ""
+fi
+
+# =============================================================================
 # Step 4: Deploy
 # =============================================================================
 if [ "$DRY_RUN" = true ]; then
@@ -354,7 +386,6 @@ echo ""
 #
 # (2) needs a probe key, so it runs only when ANALYSIS_PROBE_KEY is exported.
 # Absent, it warns; present-but-wrong is a hard failure.
-REQUIRED_SECRETS="TRUSTED_ANALYSIS_KEYS OPENAI_API_KEY JWT_SECRET"
 API_BASE="${API_BASE:-https://researchtools.net}"
 ANALYZE_URL="$API_BASE/api/content-intelligence/analyze-url"
 VERIFY_FAILED=false

@@ -13,6 +13,7 @@ export type ScrapeRoute =
 
 export type ScrapePurpose =
   | 'article-analysis'
+  | 'timeline-analysis'
   | 'metadata'
   | 'structured-extraction'
   | 'social-collection'
@@ -54,6 +55,7 @@ export type NormalizedScrapeError =
   | 'render_failed'
   | 'extract_failed'
   | 'quality_rejected'
+  | 'model_output_invalid'
   | 'provider_failed'
   | 'internal_error'
 

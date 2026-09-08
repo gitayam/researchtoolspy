@@ -30,6 +30,7 @@ export interface ScrapeUrlOptions {
 export interface ScrapedContent {
   title: string
   content: string
+  publishedAt?: string
   error?: string
   source?: ScrapedContentSource
   finalUrl?: string
@@ -117,6 +118,7 @@ function articleCandidate(
     value: {
       title: article.title || finalUrl,
       content: article.text.substring(0, 30_000),
+      ...(article.publishedTime ? { publishedAt: article.publishedTime } : {}),
       source,
       finalUrl,
       extraction: {

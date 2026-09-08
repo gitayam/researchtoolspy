@@ -35,7 +35,7 @@ test.describe('community integration contract @smoke', () => {
     expect(parseIntegrationScopes(['COMMUNITY.EVENTS.WRITE'])).toBeNull()
   })
 
-  test('@smoke Tranche A reports public readiness without advertising future service routes', () => {
+  test('@smoke advertises the shipped scoped timeline operation', () => {
     const runtimeReady = allCapabilities(true)
     const result = buildIntegrationCapabilitiesDocument({
       requestId: 'req-contract-0001',
@@ -50,11 +50,15 @@ test.describe('community integration contract @smoke', () => {
     expect(result.capabilities.anonymousAnalysis).toBe(true)
     expect(result.capabilities.publicBcw).toBe(true)
     for (const name of INTEGRATION_CAPABILITY_NAMES) {
-      if (name !== 'anonymousAnalysis' && name !== 'publicBcw') {
+      if (name !== 'anonymousAnalysis' && name !== 'publicBcw' && name !== 'timelineAnalysis') {
         expect(result.capabilities[name], name).toBe(false)
       }
     }
-    expect(result.contractVersions).toEqual({ capabilities: 'integration-capabilities.v1' })
+    expect(result.capabilities.timelineAnalysis).toBe(true)
+    expect(result.contractVersions).toEqual({
+      capabilities: 'integration-capabilities.v1',
+      timelineAnalysis: 'timeline-analysis.v1',
+    })
     expect(result.limits).toEqual({})
   })
 
@@ -73,6 +77,7 @@ test.describe('community integration contract @smoke', () => {
     expect(enabled.limits).toEqual({ claimMatchCandidates: 25, maxBatchUrls: 100 })
     expect(enabled.contractVersions).toEqual({
       capabilities: 'integration-capabilities.v1',
+      timelineAnalysis: 'timeline-analysis.v1',
       sourceEvent: 'community-source-event.v1',
       artifact: 'source-artifact.v1',
       projection: 'community-enrichment.v1',

@@ -216,6 +216,46 @@ responses include `content_source`, ordered `fallback_attempts`, and
 the route returns `422` with the same provenance and does not invoke its AI model.
 Open Graph headline/description metadata alone is never accepted for claims.
 
+#### Timeline analysis v1
+
+`POST /api/tools/extract-timeline` accepts both the legacy `{ "url": "..." }`
+body and the versioned `timeline-analysis.v1` contract. New integrations must
+discover `timelineAnalysis: true`, hold `community.research.execute`, and send
+the versioned form with an `rt_svc_` bearer:
+
+```json
+{
+  "schemaVersion": "timeline-analysis.v1",
+  "url": "https://publisher.example/2026/09/story",
+  "content": {
+    "text": "optional caller-recovered article text",
+    "title": "Optional title",
+    "publishedAt": "2026-09-08",
+    "source": "publisher-feed"
+  }
+}
+```
+
+`content` is optional and bounded to 100 KiB; the complete JSON request is
+bounded to 112 KiB and an oversized request returns `413`. Its `source` is one of
+`bot-scrape`, `content-intelligence`, `publisher-feed`, or `browser-render`.
+Supplied text still passes the timeline quality floor; it does not bypass
+evidence checks. `publishedAt` accepts a calendar-valid `YYYY`, `YYYY-MM`, or
+`YYYY-MM-DD` value (strict ISO timestamps are normalized to the day). For live
+scrapes, publication metadata is used only when the article extractor supplies
+a valid value; dates are never inferred from URL paths.
+
+Versioned success responses include `requestId`, `outcome`, article metadata,
+events, extraction provenance, and model status. Every event carries an
+`eventDate` plus `datePrecision` (`year`, `month`, or `day`). Invalid or missing
+model dates are rejected rather than replaced with the current date. An empty,
+valid model result is `200` with `outcome: "no_events"`; malformed model output
+is `502`. Unavailable or quality-rejected content is `422`, which is the only
+response callers should use to trigger a bounded supplied-content recovery.
+Authentication, scope, network, and model failures must not trigger more
+scraping. Service errors use `integration-error.v1`; legacy errors retain the
+older response shape during migration.
+
 ### Settings & data
 
 | Endpoint | Description |

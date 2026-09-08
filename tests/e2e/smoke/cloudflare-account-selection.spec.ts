@@ -49,7 +49,8 @@ test.describe('Cloudflare account selection @smoke', () => {
   test('@smoke deployment verifies required secrets and analysis metering', () => {
     const deploy = read('deploy.sh')
     const runbook = read('docs/operations/SCRAPING_DEPLOYMENT.md')
-    expect(deploy).toContain('REQUIRED_SECRETS="TRUSTED_ANALYSIS_KEYS OPENAI_API_KEY JWT_SECRET"')
+    expect(deploy).toContain('REQUIRED_SECRETS="TRUSTED_ANALYSIS_KEYS OPENAI_API_KEY JWT_SECRET SCRAPE_TELEMETRY_KEY INTEGRATION_TOKEN_HASH_KEY"')
+    expect(deploy).toContain('Runtime dependency preflight failed; nothing was deployed')
     expect(deploy).toContain('X-Analysis-Meter')
     expect(deploy).toContain('ANALYSIS_PROBE_KEY')
     expect(deploy).toContain('VERIFY_FAILED=true')

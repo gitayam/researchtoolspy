@@ -96,11 +96,17 @@ table and column as missing, and deployment remains fail-closed.
 ```
 
 `deploy.sh` builds the client, copies `functions/` and the shared function
-modules into `dist/`, validates the production schema, and deploys `dist/`.
+modules into `dist/`, validates the production schema and required Pages
+secrets, and deploys `dist/`.
 Never deploy the repository root; doing so serves the development entry point.
 
-After upload, the script verifies required Pages secret names and confirms that
-an anonymous analysis request is metered as `public`. For a cross-repository
+Before upload, the script requires `TRUSTED_ANALYSIS_KEYS`, `OPENAI_API_KEY`,
+`JWT_SECRET`, `SCRAPE_TELEMETRY_KEY`, and `INTEGRATION_TOKEN_HASH_KEY`; a missing
+secret stops the release before production changes. It checks them again after
+upload and confirms that an anonymous analysis request is metered as `public`.
+`COMMUNITY_INTEGRATIONS_ENABLED=true` is an explicit production Wrangler
+variable; capability discovery still requires a valid scoped service principal
+and ready runtime bindings. For a cross-repository
 Signal/RSS release, provide a currently trusted probe key so the same deployment
 also verifies the first-party path end to end:
 
@@ -158,8 +164,9 @@ pnpm exec wrangler pages deployment tail \
 
 The protected `/api/cron/event-logs` endpoint is the durable application-error
 sink. Pages tail output is transient and must not be treated as retained
-analytics. The initial `SCRAPE_ANALYTICS` dataset covers accepted
-`content-intelligence/analyze-url` extraction requests. Use the schema, baseline
+analytics. The `SCRAPE_ANALYTICS` dataset covers accepted
+`content-intelligence/analyze-url`, COP, Web Scraper, and timeline extraction
+requests. Use the schema, baseline
 queries, privacy rules, and rollout gates in
 [`SCRAPING_OBSERVABILITY.md`](SCRAPING_OBSERVABILITY.md). Other scraping routes,
 automated dashboards/alerts, and 14-day SLO evidence remain `SCRAPE-04` work; do

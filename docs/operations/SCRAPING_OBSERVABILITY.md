@@ -3,7 +3,8 @@
 **Dataset:** `researchtoolspy_scrape_metrics_v1`  
 **Schema:** `scrape.metric.v1`  
 **Instrumented routes:** `POST /api/content-intelligence/analyze-url`,
-`POST/GET /api/cop/:id/scrape`, `POST /api/web-scraper`
+`POST/GET /api/cop/:id/scrape`, `POST /api/web-scraper`,
+`POST /api/tools/extract-timeline`
 
 The `SCRAPE-04` production baseline measures whether the main analysis extractor,
 authenticated web scraper, and authenticated COP provider jobs can emit one
@@ -31,8 +32,8 @@ openssl rand -hex 32 | pnpm exec wrangler pages secret put \
   SCRAPE_TELEMETRY_KEY --project-name=researchtoolspy
 ```
 
-The deployment gate verifies that both the binding declaration and production
-secret name exist.
+The deployment preflight verifies that both the binding declaration and
+production secret name exist before uploading a new Pages release.
 
 ## Column map
 
@@ -150,6 +151,34 @@ by 100; it measures extraction coverage, not source reliability. Dataset creatio
 is intentionally outside scraping-stage telemetry and never emits a dataset ID.
 Metadata-only requests use purpose `metadata`; `summary` and `full` requests use
 `structured-extraction`.
+
+Timeline telemetry begins after authentication, strict request validation, and
+safe URL parsing. It uses route `tools-scrape` and purpose `timeline-analysis`.
+URL retrieval or supplied-content quality emits one fetch/extract attempt; the
+model emits one `ai` attempt whose `double7` is the number of accepted events.
+Every accepted invocation emits exactly one terminal point. A valid no-events
+result is a successful terminal with zero AI items; invalid model output is a
+failed terminal with `model_output_invalid`. Raw titles, event text, dates, URLs,
+tenant names, and model output never enter the dataset.
+
+Timeline yield and recovery-mode mix for the last 24 hours:
+
+```sql
+SELECT
+  blob6 AS strategy,
+  sumIf(_sample_interval, double7 = 0) AS zero_event_runs,
+  sum(_sample_interval * double7) AS events_extracted,
+  sum(_sample_interval) AS model_runs
+FROM researchtoolspy_scrape_metrics_v1
+WHERE blob1 = 'scrape.metric.v1'
+  AND blob2 = 'attempt'
+  AND blob3 = 'tools-scrape'
+  AND blob4 = 'timeline-analysis'
+  AND blob5 = 'ai'
+  AND timestamp > NOW() - INTERVAL '1' DAY
+GROUP BY strategy
+ORDER BY model_runs DESC
+```
 
 ## Falsifiable rollout gate
 
