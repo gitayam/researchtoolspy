@@ -13,7 +13,7 @@
 
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest } from '../_shared/auth-helpers'
-import { callOpenAIViaGateway, getOptimalCacheTTL } from '../_shared/ai-gateway'
+import { callOpenAIViaGateway, getOptimalCacheTTL, UNTRUSTED_CONTENT_INSTRUCTION, wrapUntrustedContent } from '../_shared/ai-gateway'
 import { JSON_HEADERS, isPrivateUrl } from '../_shared/api-utils'
 import { normalizeClaims } from './normalize-claims'
 import { generateArchiveUrls } from './_archive-urls'
@@ -2012,7 +2012,8 @@ Rules:
 - Normalize similar references (e.g., "U.S.", "United States", "USA" → "United States")
 - Include context-relevant entities only (skip generic terms)
 
-Text: ${truncated}
+Text:
+${wrapUntrustedContent(truncated)}
 
 Return ONLY valid JSON in this exact format:
 {
@@ -2031,7 +2032,7 @@ Return ONLY valid JSON in this exact format:
     const data = await callOpenAIViaGateway(env, {
       model: 'gpt-5.4-mini',
       messages: [
-        { role: 'system', content: 'You are a named entity recognition expert. Extract entities by type: people, organizations, locations, dates, money, events, products, and percentages. Exclude article authors from people. Normalize similar entities. Return ONLY valid JSON.' },
+        { role: 'system', content: UNTRUSTED_CONTENT_INSTRUCTION + 'You are a named entity recognition expert. Extract entities by type: people, organizations, locations, dates, money, events, products, and percentages. Exclude article authors from people. Normalize similar entities. Return ONLY valid JSON.' },
         { role: 'user', content: prompt }
       ],
       max_completion_tokens: 1200,
@@ -2085,13 +2086,13 @@ async function generateSummary(text: string, env: Env): Promise<string> {
 
   const prompt = `Summarize this content in 200-250 words. Focus on key facts and main points.
 
-${truncated}`
+${wrapUntrustedContent(truncated)}`
 
   try {
     const data = await callOpenAIViaGateway(env, {
       model: 'gpt-5.4-mini',
       messages: [
-        { role: 'system', content: 'You are a professional summarizer.' },
+        { role: 'system', content: UNTRUSTED_CONTENT_INSTRUCTION + 'You are a professional summarizer.' },
         { role: 'user', content: prompt }
       ],
       max_completion_tokens: 500,
@@ -2144,7 +2145,7 @@ Guidelines:
 - Aim for 3-5 topics (don't force more if content is focused)
 
 Text to analyze:
-${truncated}
+${wrapUntrustedContent(truncated)}
 
 Return ONLY valid JSON in this exact format:
 [
@@ -2168,7 +2169,7 @@ Return ONLY valid JSON in this exact format:
     const data = await callOpenAIViaGateway(env, {
       model: 'gpt-5.4-mini',
       messages: [
-        { role: 'system', content: 'You are a topic modeling expert using LDA principles. Identify distinct, coherent topics with accurate coverage distributions. Return ONLY valid JSON.' },
+        { role: 'system', content: UNTRUSTED_CONTENT_INSTRUCTION + 'You are a topic modeling expert using LDA principles. Identify distinct, coherent topics with accurate coverage distributions. Return ONLY valid JSON.' },
         { role: 'user', content: prompt }
       ],
       max_completion_tokens: 1000,
@@ -2231,7 +2232,7 @@ Categorize each keyphrase:
 Score each keyphrase 0.0 to 1.0 based on importance to the document.
 
 Text to analyze:
-${truncated}
+${wrapUntrustedContent(truncated)}
 
 Return ONLY valid JSON in this exact format:
 [
@@ -2253,7 +2254,7 @@ Return ONLY valid JSON in this exact format:
     const data = await callOpenAIViaGateway(env, {
       model: 'gpt-5.4-mini',
       messages: [
-        { role: 'system', content: 'You are a keyphrase extraction expert. Identify important concepts, terminology, and themes using graph-based importance ranking. Return ONLY valid JSON.' },
+        { role: 'system', content: UNTRUSTED_CONTENT_INSTRUCTION + 'You are a keyphrase extraction expert. Identify important concepts, terminology, and themes using graph-based importance ranking. Return ONLY valid JSON.' },
         { role: 'user', content: prompt }
       ],
       max_completion_tokens: 800,
@@ -2349,7 +2350,7 @@ Extract up to 10 key factual claims made in the content. For each:
 - Risk level: low (easily verified mundane fact), medium (notable claim needing source), high (extraordinary claim requiring strong evidence)
 
 Text to analyze:
-${truncated}
+${wrapUntrustedContent(truncated)}
 
 Return ONLY valid JSON in this exact format:
 {
@@ -2391,7 +2392,7 @@ Return ONLY valid JSON in this exact format:
     const data = await callOpenAIViaGateway(env, {
       model: 'gpt-5.4-mini',
       messages: [
-        { role: 'system', content: 'You are an expert media analyst specializing in sentiment analysis, manipulation detection, and factual claim extraction. Analyze content objectively and return only valid JSON.' },
+        { role: 'system', content: UNTRUSTED_CONTENT_INSTRUCTION + 'You are an expert media analyst specializing in sentiment analysis, manipulation detection, and factual claim extraction. Analyze content objectively and return only valid JSON.' },
         { role: 'user', content: prompt }
       ],
       max_completion_tokens: 1800,
@@ -2729,7 +2730,7 @@ For each claim provide:
 - supporting_text: Short snippet from article that contains this claim (max 150 chars)
 
 Text to analyze:
-${truncated}
+${wrapUntrustedContent(truncated)}
 
 Return ONLY valid JSON array:
 [
@@ -2748,7 +2749,7 @@ Return ONLY valid JSON array:
       messages: [
         {
           role: 'system',
-          content: 'You are a fact-extraction expert. Extract only objective, verifiable claims from content. Ignore opinions, predictions, and speculation. Each claim must be specific with names, dates, numbers. Return ONLY valid JSON.'
+          content: UNTRUSTED_CONTENT_INSTRUCTION + 'You are a fact-extraction expert. Extract only objective, verifiable claims from content. Ignore opinions, predictions, and speculation. Each claim must be specific with names, dates, numbers. Return ONLY valid JSON.'
         },
         { role: 'user', content: prompt }
       ],
