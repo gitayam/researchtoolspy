@@ -65,10 +65,13 @@ interface IntegrationAuthRow {
   principal_row_id: number | null
   principal_role: string | null
   principal_active: number | null
+  principal_username: string | null
   principal_user_hash: string | null
   principal_account_hash: string | null
   principal_email: string | null
   principal_oidc_sub: string | null
+  principal_oidc_provider: string | null
+  principal_oidc_email: string | null
   principal_password: string | null
   bound_workspace_id: string | null
   workspace_owner_id: number | null
@@ -251,9 +254,11 @@ function validateBinding(row: IntegrationAuthRow): IntegrationVisibility {
   if (
     !validOpaqueIds || row.workspace_id === '1' || !visibility ||
     row.principal_row_id !== row.principal_user_id || row.principal_role !== 'service' ||
-    Number(row.principal_active) !== 1 || row.principal_user_hash !== null ||
-    row.principal_account_hash !== null || row.principal_email !== null ||
-    row.principal_oidc_sub !== null || row.principal_password !== 'SERVICE_AUTH_DISABLED' ||
+    Number(row.principal_active) !== 1 || row.principal_username !== `service_${row.client_id}` ||
+    row.principal_user_hash !== null || row.principal_account_hash !== null ||
+    row.principal_email !== `service+${row.client_id}@service.invalid` ||
+    row.principal_oidc_sub !== null || row.principal_oidc_provider !== null ||
+    row.principal_oidc_email !== null || row.principal_password !== 'SERVICE_AUTH_DISABLED' ||
     row.bound_workspace_id !== row.workspace_id || row.workspace_owner_id !== row.principal_user_id ||
     row.workspace_type !== 'TEAM' || Number(row.workspace_is_public) !== 0 ||
     row.bound_investigation_id !== row.intake_investigation_id ||
@@ -301,10 +306,13 @@ export async function getIntegrationPrincipalFromRequest(
         u.id AS principal_row_id,
         u.role AS principal_role,
         u.is_active AS principal_active,
+        u.username AS principal_username,
         u.user_hash AS principal_user_hash,
         u.account_hash AS principal_account_hash,
         u.email AS principal_email,
         u.oidc_sub AS principal_oidc_sub,
+        u.oidc_provider AS principal_oidc_provider,
+        u.oidc_email AS principal_oidc_email,
         u.hashed_password AS principal_password,
         w.id AS bound_workspace_id,
         w.owner_id AS workspace_owner_id,

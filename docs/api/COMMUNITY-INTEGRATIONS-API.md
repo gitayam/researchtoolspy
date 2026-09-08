@@ -16,7 +16,8 @@ principal. Caller headers cannot select another binding and the default workspac
 `1` is forbidden.
 
 The principal must be inserted as a new dedicated `users` row with role `service`,
-null email/user-hash/account-hash/OIDC identity, and the non-login password sentinel
+the deterministic non-routable username `service_<client-id>` and email
+`service+<client-id>@service.invalid`, null user-hash/account-hash/OIDC identity, and the non-login password sentinel
 `SERVICE_AUTH_DISABLED`. A formerly interactive user cannot be promoted to this
 role. Schema guards prevent later OIDC/login linkage, workspace membership, public
 or personal workspace conversion, ownership changes, and intake-investigation
@@ -39,8 +40,9 @@ service credential. Invalid, malformed, expired, or revoked credentials never
 fall through to user-hash or guest auto-provisioning.
 
 There is deliberately no public credential-creation API in Tranche A. No client,
-principal, production token, or plaintext feature flag is seeded by migration
-`0009_community_service_auth.sql`. Service features remain disabled unless
+principal, production token, or plaintext feature flag is seeded by managed
+migrations `0009_community_service_auth.sql` and
+`0010_service_principal_identity_compat.sql`. Service features remain disabled unless
 `COMMUNITY_INTEGRATIONS_ENABLED` is exactly `true`; absence is false.
 
 ## Capability discovery

@@ -14,6 +14,10 @@ const migration = readFileSync(
   new URL('../../../schema/managed-migrations/0009_community_service_auth.sql', import.meta.url),
   'utf8',
 )
+const identityCompatibilityMigration = readFileSync(
+  new URL('../../../schema/managed-migrations/0010_service_principal_identity_compat.sql', import.meta.url),
+  'utf8',
+)
 const CLIENT_ID = 'community_client_01'
 const CURRENT_SECRET = 'A'.repeat(43)
 const NEXT_SECRET = 'B'.repeat(43)
@@ -24,12 +28,15 @@ const BASE_SCHEMA = `
   PRAGMA foreign_keys = ON;
   CREATE TABLE users (
     id INTEGER PRIMARY KEY,
-    username TEXT,
-    email TEXT,
-    hashed_password TEXT,
+    username TEXT NOT NULL UNIQUE,
+    email TEXT NOT NULL UNIQUE,
+    full_name TEXT NOT NULL,
+    hashed_password TEXT NOT NULL,
     user_hash TEXT,
     account_hash TEXT,
     oidc_sub TEXT,
+    oidc_provider TEXT,
+    oidc_email TEXT,
     is_active INTEGER NOT NULL,
     role TEXT NOT NULL
   );
@@ -72,12 +79,15 @@ async function createDatabase(): Promise<{ sqlite: DatabaseSync; db: D1Database 
   const sqlite = new DatabaseSync(':memory:')
   sqlite.exec(BASE_SCHEMA)
   sqlite.exec(migration)
+  sqlite.exec(identityCompatibilityMigration)
   const db = asD1Database(sqlite)
   await db.prepare(`
     INSERT INTO users
-      (id, username, email, hashed_password, user_hash, account_hash, oidc_sub, is_active, role)
-    VALUES (73, NULL, NULL, 'SERVICE_AUTH_DISABLED', NULL, NULL, NULL, 1, 'service')
-  `).run()
+      (id, username, email, full_name, hashed_password, user_hash, account_hash,
+       oidc_sub, oidc_provider, oidc_email, is_active, role)
+    VALUES (73, ?, ?, 'Integration Service', 'SERVICE_AUTH_DISABLED', NULL, NULL,
+      NULL, NULL, NULL, 1, 'service')
+  `).bind(`service_${CLIENT_ID}`, `service+${CLIENT_ID}@service.invalid`).run()
   await db.prepare(`
     INSERT INTO workspaces (id, owner_id, type, is_public)
     VALUES ('workspace-test', 73, 'TEAM', 0)

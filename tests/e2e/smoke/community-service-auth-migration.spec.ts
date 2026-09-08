@@ -6,17 +6,24 @@ const migration = readFileSync(
   new URL('../../../schema/managed-migrations/0009_community_service_auth.sql', import.meta.url),
   'utf8',
 )
+const identityCompatibilityMigration = readFileSync(
+  new URL('../../../schema/managed-migrations/0010_service_principal_identity_compat.sql', import.meta.url),
+  'utf8',
+)
 
 const BASE_SCHEMA = `
   PRAGMA foreign_keys = ON;
   CREATE TABLE users (
     id INTEGER PRIMARY KEY,
-    username TEXT,
-    email TEXT,
-    hashed_password TEXT,
+    username TEXT NOT NULL UNIQUE,
+    email TEXT NOT NULL UNIQUE,
+    full_name TEXT NOT NULL,
+    hashed_password TEXT NOT NULL,
     user_hash TEXT,
     account_hash TEXT,
     oidc_sub TEXT,
+    oidc_provider TEXT,
+    oidc_email TEXT,
     is_active INTEGER NOT NULL,
     role TEXT NOT NULL
   );
@@ -47,14 +54,28 @@ function createDatabase(): DatabaseSync {
   const db = new DatabaseSync(':memory:')
   db.exec(BASE_SCHEMA)
   db.exec(migration)
+  db.exec(identityCompatibilityMigration)
+  return db
+}
+
+function createNullablePredecessorDatabase(): DatabaseSync {
+  const db = new DatabaseSync(':memory:')
+  const predecessorSchema = BASE_SCHEMA
+    .replace('username TEXT NOT NULL UNIQUE', 'username TEXT')
+    .replace('email TEXT NOT NULL UNIQUE', 'email TEXT')
+  db.exec(predecessorSchema)
+  db.exec(migration)
   return db
 }
 
 function seedValidBinding(db: DatabaseSync): void {
   db.prepare(`
     INSERT INTO users
-      (id, username, email, hashed_password, user_hash, account_hash, oidc_sub, is_active, role)
-    VALUES (73, NULL, NULL, 'SERVICE_AUTH_DISABLED', NULL, NULL, NULL, 1, 'service')
+      (id, username, email, full_name, hashed_password, user_hash, account_hash,
+       oidc_sub, oidc_provider, oidc_email, is_active, role)
+    VALUES (73, 'service_community_client_01',
+      'service+community_client_01@service.invalid', 'Integration Service',
+      'SERVICE_AUTH_DISABLED', NULL, NULL, NULL, NULL, NULL, 1, 'service')
   `).run()
   db.prepare(`
     INSERT INTO workspaces (id, owner_id, type, is_public)
@@ -83,6 +104,43 @@ test.describe('community service auth migration @smoke', () => {
     // end of CREATE TRIGGER and submit an incomplete statement.
     expect(migration).not.toMatch(/\bSELECT\s+CASE\b/i)
     expect(migration.match(/\bSELECT\s+\(CASE\b/gi)).toHaveLength(2)
+    expect(identityCompatibilityMigration).not.toMatch(/\bSELECT\s+CASE\b/i)
+    expect(identityCompatibilityMigration.match(/\bSELECT\s+\(CASE\b/gi)).toHaveLength(2)
+  })
+
+  test('@smoke upgrades an existing nullable-identity client to exact sentinels', () => {
+    const db = createNullablePredecessorDatabase()
+    try {
+      db.prepare(`
+        INSERT INTO users
+          (id, username, email, full_name, hashed_password, user_hash, account_hash,
+           oidc_sub, oidc_provider, oidc_email, is_active, role)
+        VALUES (73, NULL, NULL, 'Integration Service', 'SERVICE_AUTH_DISABLED', NULL, NULL,
+          NULL, 'legacy-provider', 'legacy-service@example.test', 1, 'service')
+      `).run()
+      db.prepare(`
+        INSERT INTO workspaces (id, owner_id, type, is_public)
+        VALUES ('workspace-test', 73, 'TEAM', 0)
+      `).run()
+      db.prepare(`
+        INSERT INTO investigations (id, workspace_id, created_by, status)
+        VALUES ('investigation-test', 'workspace-test', 73, 'active')
+      `).run()
+      insertClient(db)
+
+      db.exec(identityCompatibilityMigration)
+
+      expect(db.prepare('SELECT username, email, oidc_provider, oidc_email FROM users WHERE id = 73').get()).toEqual({
+        username: 'service_community_client_01',
+        email: 'service+community_client_01@service.invalid',
+        oidc_provider: null,
+        oidc_email: null,
+      })
+      expect(() => db.prepare("UPDATE users SET email = 'other@service.invalid' WHERE id = 73").run())
+        .toThrow(/invalid integration service principal update/)
+    } finally {
+      db.close()
+    }
   })
 
   test('@smoke creates a constrained client, two-slot token, and exact-scope model', () => {
@@ -141,6 +199,8 @@ test.describe('community service auth migration @smoke', () => {
       "UPDATE users SET role = 'researcher' WHERE id = 73",
       "UPDATE users SET email = 'service@example.test' WHERE id = 73",
       "UPDATE users SET oidc_sub = 'oidc-linked-service' WHERE id = 73",
+      "UPDATE users SET oidc_provider = 'oidc' WHERE id = 73",
+      "UPDATE users SET oidc_email = 'service@example.test' WHERE id = 73",
       "UPDATE workspaces SET is_public = 1 WHERE id = 'workspace-test'",
       "UPDATE investigations SET status = 'archived' WHERE id = 'investigation-test'",
     ]
@@ -163,8 +223,10 @@ test.describe('community service auth migration @smoke', () => {
       insertClient(db)
       db.prepare(`
         INSERT INTO users
-          (id, username, email, hashed_password, user_hash, account_hash, oidc_sub, is_active, role)
-        VALUES (74, 'human', 'human@example.test', 'hash', NULL, NULL, NULL, 1, 'researcher')
+          (id, username, email, full_name, hashed_password, user_hash, account_hash,
+           oidc_sub, oidc_provider, oidc_email, is_active, role)
+        VALUES (74, 'human', 'human@example.test', 'Human', 'hash', NULL, NULL,
+          NULL, NULL, NULL, 1, 'researcher')
       `).run()
 
       expect(() => db.prepare("UPDATE users SET role = 'researcher' WHERE id = 73").run())
@@ -174,6 +236,8 @@ test.describe('community service auth migration @smoke', () => {
       expect(() => db.prepare("UPDATE users SET hashed_password = NULL WHERE id = 73").run())
         .toThrow(/invalid integration service principal update/)
       expect(() => db.prepare("UPDATE users SET oidc_sub = 'oidc-linked-service' WHERE id = 73").run())
+        .toThrow(/invalid integration service principal update/)
+      expect(() => db.prepare("UPDATE users SET oidc_provider = 'oidc' WHERE id = 73").run())
         .toThrow(/invalid integration service principal update/)
       expect(() => db.prepare("UPDATE users SET role = 'service' WHERE id = 74").run())
         .toThrow(/service principals must be provisioned as new users/)

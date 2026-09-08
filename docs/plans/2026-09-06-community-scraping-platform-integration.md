@@ -383,7 +383,7 @@ These decisions are authoritative for the first three tranches. Changing one req
 - One v1 client is bound to exactly one community, workspace, system intake investigation, environment, maximum visibility, and service principal. Multi-workspace access uses another client rather than a caller-selected workspace header.
 - Persistent integration routes derive workspace and investigation from the service principal. They reject `X-Workspace-ID` when it conflicts; they never default to `1`.
 - The service principal may satisfy existing `created_by` foreign keys but cannot create a browser session, sign in, own a personal workspace, or appear as a human collaborator.
-- A service principal is a newly inserted dedicated user row; an existing human/guest row cannot be promoted to `service`. It has no email, user/account hash, or OIDC identity, uses the non-login `SERVICE_AUTH_DISABLED` password sentinel, owns only its private `TEAM` service workspace, and is rejected by legacy JWT user routes.
+- A service principal is a newly inserted dedicated user row; an existing human/guest row cannot be promoted to `service`. It uses deterministic `service_<client-id>` / `service+<client-id>@service.invalid` identity sentinels required by the historical production schema, has no routable mailbox, user/account hash, or OIDC identity, uses the non-login `SERVICE_AUTH_DISABLED` password sentinel, owns only its private `TEAM` service workspace, and is rejected by legacy JWT user routes.
 
 Initial scopes are exact strings:
 
