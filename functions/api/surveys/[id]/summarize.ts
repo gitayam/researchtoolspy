@@ -7,7 +7,7 @@
  * Returns: { summary, key_themes, geographic_patterns, contradictions, recommended_actions }
  */
 import { getUserFromRequest } from '../../_shared/auth-helpers'
-import { callOpenAIViaGateway } from '../../_shared/ai-gateway'
+import { callOpenAIViaGateway, wrapUntrustedContent } from '../../_shared/ai-gateway'
 import { JSON_HEADERS } from '../../_shared/api-utils'
 
 interface Env {
@@ -83,7 +83,7 @@ Survey context: ${survey.description || 'No description provided.'}
 
 Analyze the submissions below and provide a structured analysis. Be concise and actionable. Focus on patterns, contradictions, and gaps in the data.`
 
-    const userPrompt = `Here are the ${responses.results.length} most recent submissions:\n\n${truncatedResponses}\n\nProvide your analysis as JSON with these fields:
+    const userPrompt = `Here are the ${responses.results.length} most recent submissions:\n\n${wrapUntrustedContent(truncatedResponses)}\n\nProvide your analysis as JSON with these fields:
 {
   "summary": "2-3 sentence overview of what the submissions collectively tell us",
   "key_themes": ["theme 1", "theme 2", ...],

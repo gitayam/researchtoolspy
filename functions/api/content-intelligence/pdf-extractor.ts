@@ -5,7 +5,7 @@
  * Optional fallback: pdf.co — only attempted when PDF_CO_API_KEY is set and unpdf failed.
  */
 import { extractText, getDocumentProxy, getMeta } from 'unpdf'
-import { callOpenAIViaGateway } from '../_shared/ai-gateway'
+import { callOpenAIViaGateway, wrapUntrustedContent } from '../_shared/ai-gateway'
 import { safeFetchPdf, type SafeContentFetchOptions } from '../_shared/safe-content'
 
 /** Cloudflare env subset needed to route OpenAI calls through the AI gateway. */
@@ -437,7 +437,7 @@ async function generateStandardSummary(text: string, env: GatewayEnv): Promise<s
     max_completion_tokens: 400,
     messages: [
       { role: 'system', content: 'You are an expert at creating concise, informative summaries.' },
-      { role: 'user', content: `Summarize this text in 250 words:\n\n${text.slice(0, 8000)}` }
+      { role: 'user', content: `Summarize this text in 250 words:\n\n${wrapUntrustedContent(text.slice(0, 8000))}` }
     ]
   }, { metadata: { endpoint: 'pdf-extractor' }, cacheTTL: 3600, timeout: 30000 }) as any
   return data.choices[0].message.content.trim()

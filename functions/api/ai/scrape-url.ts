@@ -4,7 +4,7 @@
  * Scrapes URLs, extracts content, and uses GPT-5-nano to extract structured data
  */
 
-import { callOpenAIViaGateway, getOptimalCacheTTL } from '../_shared/ai-gateway'
+import { callOpenAIViaGateway, getOptimalCacheTTL, wrapUntrustedContent } from '../_shared/ai-gateway'
 import { JSON_HEADERS } from '../_shared/api-utils'
 import { getUserFromRequest } from '../_shared/auth-helpers'
 import { fetchSocialViaApify, isApifySupportedUrl } from '../_shared/apify-social'
@@ -604,7 +604,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         },
         {
           role: 'user',
-          content: `Summarize this article:\n\n${content.substring(0, 10000)}${languageInstruction}`
+          content: `Summarize this article:\n\n${wrapUntrustedContent(content.substring(0, 10000))}${languageInstruction}`
         }
       ],
       max_completion_tokens: 500
@@ -749,7 +749,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
 Article Title: ${title}
 Article URL: ${normalizedUrl}
-Article Content: ${content.substring(0, 10000)}
+Article Content:
+${wrapUntrustedContent(content.substring(0, 10000))}
 
 CRITICAL REQUIREMENTS:
 - Include the specific article title in each question (NEVER use "this article", "the article", "this", or "it")
@@ -767,7 +768,8 @@ Return ONLY JSON:
 
 Article Title: ${title}
 Article URL: ${normalizedUrl}
-Article Content: ${content.substring(0, 10000)}
+Article Content:
+${wrapUntrustedContent(content.substring(0, 10000))}
 
 CRITICAL REQUIREMENTS:
 - Include the specific article title in each question (NEVER use "this article", "the article", "this", or "it")

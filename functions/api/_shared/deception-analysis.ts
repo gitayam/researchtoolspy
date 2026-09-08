@@ -15,7 +15,7 @@
  * claims/retry-analysis/[id].ts.
  */
 
-import { callOpenAIViaGateway, getOptimalCacheTTL } from './ai-gateway'
+import { callOpenAIViaGateway, getOptimalCacheTTL, wrapUntrustedContent } from './ai-gateway'
 import { logEvent } from './event-log'
 
 export interface DeceptionClaimInput {
@@ -83,7 +83,7 @@ function buildPrompt(batch: DeceptionClaimInput[], contextText: string): string 
   return `Analyze these claims for potential deception using multiple detection methods.
 
 Full Article Context (for reference):
-${contextText}...
+${wrapUntrustedContent(contextText)}
 
 Claims to Analyze:
 ${JSON.stringify(batch, null, 2)}

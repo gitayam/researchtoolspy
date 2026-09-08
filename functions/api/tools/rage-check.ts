@@ -1,4 +1,4 @@
-import { callOpenAIViaGateway, getOptimalCacheTTL } from '../_shared/ai-gateway'
+import { callOpenAIViaGateway, getOptimalCacheTTL, wrapUntrustedContent } from '../_shared/ai-gateway'
 import { scrapeUrl } from '../_shared/scraper-utils'
 import { getUserFromRequest } from '../_shared/auth-helpers'
 import { JSON_HEADERS } from '../_shared/api-utils'
@@ -92,7 +92,7 @@ Return ONLY valid JSON in this structure:
       model: 'gpt-5.4-mini',
       messages: [
         { role: 'system', content: systemPrompt },
-        { role: 'user', content: `Analyze this content:\n\n${content}` }
+        { role: 'user', content: `Analyze this content:\n\n${wrapUntrustedContent(content)}` }
       ],
       reasoning_effort: 'none',
       temperature: 0.0, // Deterministic for scoring
