@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import html2canvas from 'html2canvas'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -31,6 +31,9 @@ import { getCopHeaders } from '@/lib/cop-auth'
 import { getAuthIdentifier } from '@/lib/auth-utils'
 import { StarburstingEntityLinker } from '@/components/content-intelligence/StarburstingEntityLinker'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
+import { TimelineResults } from '@/components/timeline/TimelineResults'
+import { analyzeTimeline, TimelineAnalysisError } from '@/lib/timeline-analysis'
+import type { TimelineAnalysisResult } from '@/types/timeline-analysis'
 // New extracted components from refactor
 import {
   SharePanel,
@@ -44,10 +47,11 @@ export default function ContentIntelligencePage() {
   const { t } = useTranslation()
   const { toast } = useToast()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { currentWorkspaceId, isLoading: workspaceLoading } = useWorkspace()
 
   // State
-  const [url, setUrl] = useState('')
+  const [url, setUrl] = useState(() => searchParams.get('url') || '')
   const [mode, setMode] = useState<'quick' | 'normal' | 'full'>('normal')
   const [processing, setProcessing] = useState(false)
   const [status, setStatus] = useState<ProcessingStatus>('idle')
@@ -117,6 +121,14 @@ export default function ContentIntelligencePage() {
   const [claimsLoading, setClaimsLoading] = useState(false)
   const [claimsAnalysis, setClaimsAnalysis] = useState<any>(null)
 
+  // Timeline Analysis State
+  const [timelineLoading, setTimelineLoading] = useState(false)
+  const [timelineAnalysis, setTimelineAnalysis] = useState<TimelineAnalysisResult | null>(null)
+  const [timelineError, setTimelineError] = useState<string | null>(null)
+  const timelineAbortRef = useRef<AbortController | null>(null)
+
+  useEffect(() => () => timelineAbortRef.current?.abort(), [])
+
   // Save/Share State
   const [saveLoading, setSaveLoading] = useState(false)
   const [shareUrl, setShareUrl] = useState<string | null>(null)
@@ -176,6 +188,21 @@ export default function ContentIntelligencePage() {
       },
       // Framework Sections
       {
+        id: 'timeline' as AnalysisTab,
+        label: t('pages.contentIntelligence.sections.timeline.label'),
+        icon: Calendar,
+        description: t('pages.contentIntelligence.sections.timeline.description'),
+        isAutomatic: false,
+        group: 'analysis' as const,
+        status: timelineLoading
+          ? ('processing' as const)
+          : timelineAnalysis
+          ? ('complete' as const)
+          : timelineError
+          ? ('error' as const)
+          : ('idle' as const),
+      },
+      {
         id: 'claims' as AnalysisTab,
         label: t('pages.contentIntelligence.sections.claims.label'),
         icon: Shield,
@@ -216,7 +243,7 @@ export default function ContentIntelligencePage() {
         status: 'ready' as const,
       },
     ]
-  }, [analysis, t, claimsLoading, claimsAnalysis, dimeLoading, dimeAnalysis, starburstingStatus])
+  }, [analysis, t, claimsLoading, claimsAnalysis, dimeLoading, dimeAnalysis, starburstingStatus, timelineLoading, timelineAnalysis, timelineError])
 
   // Format full text for better readability
   const formatFullText = (text: string): string => {
@@ -1165,6 +1192,64 @@ ${shortSummary}`
     }
   }, [analysis, toast])
 
+  // Build a timeline from the text Content Intelligence already extracted. This
+  // deliberately uses the shared timeline contract without fetching the URL a
+  // second time, which keeps provenance explicit and improves blocked-page recovery.
+  const runTimelineAnalysis = useCallback(async () => {
+    if (!analysis) {
+      toast({ title: 'Error', description: 'Analyze content before building a timeline.', variant: 'destructive' })
+      return
+    }
+    timelineAbortRef.current?.abort()
+    timelineAbortRef.current = null
+    if (typeof analysis.extracted_text !== 'string' || !analysis.extracted_text.trim()) {
+      const message = 'This analysis has no extracted article text. Use the dedicated tool to try a fresh retrieval.'
+      setTimelineLoading(false)
+      setTimelineAnalysis(null)
+      setTimelineError(message)
+      toast({ title: 'Timeline Unavailable', description: message, variant: 'destructive' })
+      return
+    }
+
+    const controller = new AbortController()
+    timelineAbortRef.current = controller
+    setTimelineLoading(true)
+    setTimelineError(null)
+    try {
+      const result = await analyzeTimeline({
+        url: analysis.url,
+        content: {
+          text: analysis.extracted_text,
+          ...(analysis.title ? { title: analysis.title } : {}),
+          ...(analysis.publish_date ? { publishedAt: analysis.publish_date } : {}),
+          source: 'content-intelligence',
+        },
+      }, { signal: controller.signal })
+      if (controller.signal.aborted) return
+      setTimelineAnalysis(result)
+      toast({
+        title: 'Timeline Complete',
+        description: result.events.length > 0
+          ? `${result.events.length} dated events extracted from the analyzed content.`
+          : 'No reliably dated events were found. No dates were invented.',
+      })
+    } catch (caught) {
+      if (controller.signal.aborted) return
+      const message = caught instanceof TimelineAnalysisError && caught.status === 422
+        ? 'The extracted text is too limited to support a reliable timeline.'
+        : caught instanceof Error
+        ? caught.message
+        : 'Timeline analysis failed. Please try again.'
+      setTimelineError(message)
+      toast({ title: 'Timeline Failed', description: message, variant: 'destructive' })
+    } finally {
+      if (timelineAbortRef.current === controller) {
+        timelineAbortRef.current = null
+        setTimelineLoading(false)
+      }
+    }
+  }, [analysis, toast])
+
   // Framework Runner Handler - triggers framework analyses from sidebar (memoized with useCallback)
   const handleRunFramework = useCallback(async (framework: AnalysisTab) => {
     if (!analysis) return
@@ -1173,6 +1258,10 @@ ${shortSummary}`
       case 'claims':
         await runClaimsAnalysis()
         setActiveTab('claims')
+        break
+      case 'timeline':
+        setActiveTab('timeline')
+        await runTimelineAnalysis()
         break
       case 'dime':
         await runDIMEAnalysis()
@@ -1202,7 +1291,7 @@ ${shortSummary}`
   // Note: startStarburstingInBackground is excluded from deps as it's defined later
   // and is a stable async function that won't cause stale closures
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [analysis, runClaimsAnalysis, runDIMEAnalysis, toast])
+  }, [analysis, runClaimsAnalysis, runDIMEAnalysis, runTimelineAnalysis, toast])
 
   // Save analysis permanently and generate share link (memoized with useCallback)
   const saveAnalysisPermanently = useCallback(async () => {
@@ -1348,8 +1437,13 @@ ${shortSummary}`
       setUrl(urlToAnalyze)
     }
 
-    // Clear previous analysis and bypass URLs
+    // Clear previous analysis and cancel enhancement work tied to its content.
+    timelineAbortRef.current?.abort()
+    timelineAbortRef.current = null
+    setTimelineLoading(false)
     setAnalysis(null)
+    setTimelineAnalysis(null)
+    setTimelineError(null)
     setQaHistory([])
     setProcessing(true)
     setStatus('extracting')
@@ -3571,6 +3665,57 @@ ${shortSummary}`
             </Card>
           )}
 
+          {/* Timeline Analysis */}
+          {activeTab === 'timeline' && (
+            timelineLoading ? (
+              <Card className="p-10 text-center">
+                <Loader2 className="mx-auto mb-4 h-10 w-10 animate-spin text-blue-600" />
+                <h3 className="text-lg font-semibold">Building timeline from extracted content…</h3>
+                <p className="mt-2 text-sm text-muted-foreground">Reliable dates are preserved; unsupported dates are omitted.</p>
+              </Card>
+            ) : timelineAnalysis ? (
+              <div className="space-y-4">
+                {timelineError && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{timelineError}</AlertDescription>
+                  </Alert>
+                )}
+                <TimelineResults
+                  result={timelineAnalysis}
+                  onRegenerate={() => void runTimelineAnalysis()}
+                  regenerating={timelineLoading}
+                />
+              </div>
+            ) : (
+              <Card className="p-8 text-center">
+                <Calendar className="mx-auto mb-4 h-12 w-12 text-blue-600" />
+                <h3 className="text-xl font-semibold">Create a source-backed timeline</h3>
+                <p className="mx-auto mt-2 max-w-2xl text-sm text-muted-foreground">
+                  Reuse the article text already extracted by Content Research to identify dated events without scraping the page again.
+                </p>
+                {timelineError && (
+                  <Alert variant="destructive" className="mx-auto mt-5 max-w-2xl text-left">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{timelineError}</AlertDescription>
+                  </Alert>
+                )}
+                <div className="mt-6 flex flex-wrap justify-center gap-2">
+                  <Button onClick={() => void runTimelineAnalysis()}>
+                    <Calendar className="mr-2 h-4 w-4" />
+                    Generate Timeline
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => navigate(`/dashboard/tools/timeline?url=${encodeURIComponent(analysis.url)}`)}
+                  >
+                    Open Dedicated Tool
+                  </Button>
+                </div>
+              </Card>
+            )
+          )}
+
           {/* Word Analysis */}
           {activeTab === 'word-analysis' && (
             <div className="space-y-6">
@@ -5328,6 +5473,11 @@ ${shortSummary}`
                           if (link.is_processed && link.analysis_id) {
                             try {
                               setProcessing(true)
+                              timelineAbortRef.current?.abort()
+                              timelineAbortRef.current = null
+                              setTimelineLoading(false)
+                              setTimelineAnalysis(null)
+                              setTimelineError(null)
                               const response = await fetch(`/api/content-intelligence/analyze-url`, {
                                 method: 'POST',
                                 headers: getCopHeaders(),

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Search, Globe, FileText, Link as LinkIcon, Code, Database, Share2, FileStack, ArrowLeft, Grid3x3, Sparkles, TableProperties, Brain, Mail, BarChart, Users, Zap } from 'lucide-react'
+import { Search, Globe, FileText, Link as LinkIcon, Code, Database, Share2, FileStack, ArrowLeft, Grid3x3, Sparkles, TableProperties, Brain, Mail, BarChart, Users, Zap, Calendar } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -126,6 +126,20 @@ export function ToolsPage() {
         'Archive and deception detection',
       ],
       path: '/dashboard/tools/content-intelligence',
+      available: true
+    },
+    {
+      id: 'timeline',
+      name: 'Timeline Analysis',
+      description: 'Extract source-backed dated events from an article and organize them into a chronological research timeline.',
+      icon: Calendar,
+      features: [
+        'Day, month, and year date precision',
+        'Source and extraction provenance',
+        'Chronological event categorization',
+        'Guest analysis without saving',
+      ],
+      path: '/dashboard/tools/timeline',
       available: true
     },
     {

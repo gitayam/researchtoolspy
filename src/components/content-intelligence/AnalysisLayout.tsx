@@ -1,9 +1,8 @@
 import React, { useState } from 'react'
-import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Menu, X } from 'lucide-react'
-import { AnalysisSidebar, type AnalysisTab } from './AnalysisSidebar'
+import { Menu } from 'lucide-react'
+import { AnalysisSidebar, type AnalysisSectionGroup, type AnalysisTab } from './AnalysisSidebar'
 
 interface Section {
   id: AnalysisTab
@@ -12,6 +11,7 @@ interface Section {
   status?: 'idle' | 'processing' | 'complete' | 'error' | 'ready'
   description?: string
   isAutomatic?: boolean
+  group?: AnalysisSectionGroup
 }
 
 interface AnalysisLayoutProps {
@@ -38,6 +38,11 @@ export const AnalysisLayout: React.FC<AnalysisLayoutProps> = ({
     setMobileNavOpen(false) // Close mobile nav when tab changes
   }
 
+  const handleRunFramework = (tab: AnalysisTab) => {
+    setMobileNavOpen(false)
+    onRunFramework?.(tab)
+  }
+
   return (
     <div className="flex flex-col lg:flex-row h-full gap-4 lg:gap-0">
       {/* Mobile Header with Drawer Toggle */}
@@ -54,6 +59,7 @@ export const AnalysisLayout: React.FC<AnalysisLayoutProps> = ({
             size="icon"
             className="shrink-0"
             onClick={() => setMobileNavOpen(true)}
+            aria-label="Open analysis sections"
           >
             <Menu className="h-5 w-5" />
           </Button>
@@ -71,7 +77,7 @@ export const AnalysisLayout: React.FC<AnalysisLayoutProps> = ({
               activeTab={activeTab}
               onTabChange={handleTabChange}
               sections={sections}
-              onRunFramework={onRunFramework}
+              onRunFramework={handleRunFramework}
               className="border-none"
             />
           </div>
@@ -84,7 +90,7 @@ export const AnalysisLayout: React.FC<AnalysisLayoutProps> = ({
           activeTab={activeTab}
           onTabChange={onTabChange}
           sections={sections}
-          onRunFramework={onRunFramework}
+          onRunFramework={handleRunFramework}
         />
       </div>
 

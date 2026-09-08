@@ -1230,6 +1230,10 @@
           "label": "Word Analysis",
           "description": "Word frequency and phrase analysis"
         },
+        "timeline": {
+          "label": "Timeline",
+          "description": "Source-backed chronological event extraction"
+        },
         "claims": {
           "label": "Claims Analysis",
           "description": "6-method deception detection framework"

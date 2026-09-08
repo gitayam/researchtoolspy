@@ -121,6 +121,7 @@ export function normalizeTimelineModelPayload(value: unknown): NormalizedTimelin
   }
 
   const events: TimelineEventV1[] = []
+  const seenEvents = new Set<string>()
   const candidates = value.events.slice(0, 100)
   let rejectedEventCount = value.events.length - candidates.length
   for (const candidate of candidates) {
@@ -129,7 +130,9 @@ export function normalizeTimelineModelPayload(value: unknown): NormalizedTimelin
       continue
     }
     const precision = timelineDatePrecision(candidate.event_date)
-    const title = typeof candidate.title === 'string' ? candidate.title.trim() : ''
+    const title = typeof candidate.title === 'string'
+      ? candidate.title.trim().replace(/\s+/g, ' ')
+      : ''
     if (!precision || !title) {
       rejectedEventCount += 1
       continue
@@ -142,10 +145,17 @@ export function normalizeTimelineModelPayload(value: unknown): NormalizedTimelin
       && (TIMELINE_EVENT_IMPORTANCE as readonly string[]).includes(candidate.importance)
       ? candidate.importance as TimelineEventImportance
       : 'normal'
+    const normalizedTitle = title.slice(0, 200)
+    const eventKey = `${candidate.event_date}\0${normalizedTitle.toLocaleLowerCase('en-US')}`
+    if (seenEvents.has(eventKey)) {
+      rejectedEventCount += 1
+      continue
+    }
+    seenEvents.add(eventKey)
     events.push({
       eventDate: candidate.event_date as string,
       datePrecision: precision,
-      title: title.slice(0, 200),
+      title: normalizedTitle,
       description: typeof candidate.description === 'string'
         ? candidate.description.trim().slice(0, 500) || null
         : null,
@@ -153,6 +163,11 @@ export function normalizeTimelineModelPayload(value: unknown): NormalizedTimelin
       importance,
     })
   }
+
+  events.sort((left, right) => (
+    left.eventDate.localeCompare(right.eventDate)
+    || left.title.localeCompare(right.title)
+  ))
 
   if (events.length > 0) return { status: 'ok', events, rejectedEventCount }
   if (value.events.length === 0) return { status: 'no_events', events, rejectedEventCount }

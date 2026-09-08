@@ -1229,6 +1229,10 @@
           "label": "Análisis de Palabras",
           "description": "Frecuencia de palabras y análisis de frases"
         },
+        "timeline": {
+          "label": "Cronología",
+          "description": "Extracción cronológica de eventos respaldados por la fuente"
+        },
         "claims": {
           "label": "Análisis de Afirmaciones",
           "description": "Marco de detección de engaño de 6 métodos"

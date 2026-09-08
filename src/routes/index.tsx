@@ -94,6 +94,7 @@ const RageCheckPage = lazy(() => import('@/pages/tools/RageCheckPage').then(m =>
 const URLProcessingPage = lazy(() => import('@/pages/tools/URLProcessingPage').then(m => ({ default: m.URLProcessingPage })))
 const BatchProcessingPage = lazy(() => import('@/pages/tools/BatchProcessingPage').then(m => ({ default: m.BatchProcessingPage })))
 const ContentIntelligencePage = lazy(() => import('@/pages/tools/ContentIntelligencePage'))
+const TimelineAnalysisPage = lazy(() => import('@/pages/tools/TimelineAnalysisPage').then(m => ({ default: m.TimelineAnalysisPage })))
 const ResearchQuestionGeneratorPage = lazy(() => import('@/pages/ResearchQuestionGeneratorPage'))
 const BehaviorAnalysisToolPage = lazy(() => import('@/pages/BehaviorAnalysisToolPage'))
 const ResearchWorkspacePage = lazy(() => import('@/pages/ResearchWorkspacePage'))
@@ -525,6 +526,11 @@ export const router = createBrowserRouter([
       {
         path: 'tools/content-intelligence',
         element: <LazyPage Component={ContentIntelligencePage} />,
+        errorElement: <RouteErrorBoundary />,
+      },
+      {
+        path: 'tools/timeline',
+        element: <LazyPage Component={TimelineAnalysisPage} />,
         errorElement: <RouteErrorBoundary />,
       },
       {

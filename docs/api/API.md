@@ -256,6 +256,19 @@ Authentication, scope, network, and model failures must not trigger more
 scraping. Service errors use `integration-error.v1`; legacy errors retain the
 older response shape during migration.
 
+The model receives complete extracted text up to 64,000 characters. For longer
+sources, the route selects date-bearing passages with neighboring context from
+across the document instead of silently keeping only the beginning. Returned
+events are deduplicated and sorted by their precision-preserving ISO date.
+
+Browser users can access this contract without signing in through the dedicated
+`/dashboard/tools/timeline` research tool. The browser sends an isolated,
+seven-day guest session and does not persist results. Content Intelligence also
+exposes Timeline as an on-demand analysis section; that integration submits the
+already-extracted article text with `source: "content-intelligence"`, avoiding a
+second network retrieval. Saving, sharing, and workspace collaboration continue
+to require sign-in and an authorized writable workspace.
+
 ### Settings & data
 
 | Endpoint | Description |

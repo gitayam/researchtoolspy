@@ -1,5 +1,17 @@
 import { getOrCreateGuestSessionId, getOrCreateGuestWorkspaceId } from './guest-session'
 
+/** Build an explicitly guest-only header set for public, ephemeral tools. */
+export function getGuestHeaders(): Record<string, string> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (typeof window === 'undefined') return headers
+
+  const guestSessionId = getOrCreateGuestSessionId()
+  if (guestSessionId) headers['X-Guest-Session'] = guestSessionId
+  const guestWorkspaceId = getOrCreateGuestWorkspaceId()
+  if (guestWorkspaceId) headers['X-Workspace-ID'] = guestWorkspaceId
+  return headers
+}
+
 export function getCopHeaders(): Record<string, string> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
   if (typeof window === 'undefined') return headers
@@ -26,10 +38,7 @@ export function getCopHeaders(): Record<string, string> {
   // cannot race the GuestModeProvider effect and fail with a misleading 401.
   const isGuestRequest = !headers['X-User-Hash'] && !headers.Authorization
   if (isGuestRequest) {
-    const guestSessionId = getOrCreateGuestSessionId()
-    if (guestSessionId) headers['X-Guest-Session'] = guestSessionId
-    const guestWorkspaceId = getOrCreateGuestWorkspaceId()
-    if (guestWorkspaceId) headers['X-Workspace-ID'] = guestWorkspaceId
+    Object.assign(headers, getGuestHeaders())
   }
 
   if (!isGuestRequest) {

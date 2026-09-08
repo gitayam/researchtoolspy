@@ -8,13 +8,14 @@ import {
   Home, Search, Folder, Brain, Archive, Network, Database,
   FileText, Settings, BarChart, Zap, Globe, Code, Share2,
   FileStack, Mail, Sparkles, TableProperties, Users, Lightbulb,
-  Map, Activity, BookOpen, Shield
+  Map, Activity, BookOpen, Shield, Calendar
 } from 'lucide-react'
 
 const COMMANDS = [
   // --- Tools ---
   { group: 'Tools', label: 'Research Question Generator', href: '/dashboard/tools/research-question-generator', icon: Sparkles },
   { group: 'Tools', label: 'Content Research', href: '/dashboard/tools/content-intelligence', icon: Search },
+  { group: 'Tools', label: 'Timeline Analysis', href: '/dashboard/tools/timeline', icon: Calendar },
   { group: 'Tools', label: 'Email Header Analyzer', href: '/dashboard/tools/email-header-analyzer', icon: Mail },
   { group: 'Tools', label: 'Behavior Analysis', href: '/dashboard/tools/behavior-analysis', icon: Brain },
   { group: 'Tools', label: 'Cross Table', href: '/dashboard/tools/cross-table', icon: TableProperties },

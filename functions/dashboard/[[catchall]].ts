@@ -104,6 +104,10 @@ const TOOLS: Record<string, PageMeta> = {
     title: 'Content Intelligence',
     description: 'Analyze URLs with AI-powered entity extraction, sentiment analysis, claim detection, and source verification.',
   },
+  'timeline': {
+    title: 'Timeline Analysis',
+    description: 'Extract source-backed dated events from articles and organize them into a chronological research timeline.',
+  },
   'scraping': {
     title: 'Web Scraper',
     description: 'Extract and archive web content from social media platforms and websites for open source research.',

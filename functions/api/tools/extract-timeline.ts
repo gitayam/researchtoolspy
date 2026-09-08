@@ -74,6 +74,7 @@ interface TimelineSource {
 const MODEL = 'gpt-5.4-mini'
 const MAX_SUPPLIED_CONTENT_BYTES = 100 * 1024
 const MAX_TIMELINE_REQUEST_BYTES = 112 * 1024
+const MAX_MODEL_CONTENT_CHARS = 64_000
 const SUPPLIED_CONTENT_SOURCES = new Set<TimelineSuppliedContentSource>([
   'bot-scrape', 'content-intelligence', 'publisher-feed', 'browser-render',
 ])
@@ -302,6 +303,76 @@ function suppliedTimelineSource(
   }
 }
 
+const TIMELINE_SIGNAL = /\b(?:19|20)\d{2}\b|\b(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?|monday|tuesday|wednesday|thursday|friday|saturday|sunday|today|yesterday|tomorrow|earlier|later|before|after|during|since|until)\b|\b\d{1,2}[/-]\d{1,2}(?:[/-]\d{2,4})?\b/i
+
+function splitTimelineUnits(text: string): string[] {
+  const sentences = text
+    .split(/(?<=[.!?])\s+|\n+/)
+    .map(value => value.trim())
+    .filter(Boolean)
+  const units: string[] = []
+  for (const sentence of sentences) {
+    if (sentence.length <= 1_500) {
+      units.push(sentence)
+      continue
+    }
+    for (let offset = 0; offset < sentence.length; offset += 1_500) {
+      units.push(sentence.slice(offset, offset + 1_500).trim())
+    }
+  }
+  return units.filter(Boolean)
+}
+
+/**
+ * Keep complete articles when practical. For unusually long sources, retain
+ * temporal sentences plus neighboring context across the entire document so a
+ * late or middle chronology is not silently lost to a head-only truncation.
+ */
+export function selectTimelineEvidence(text: string): string {
+  const normalized = text.replace(/\0/g, '').trim()
+  if (normalized.length <= MAX_MODEL_CONTENT_CHARS) return normalized
+
+  const units = splitTimelineUnits(normalized)
+  if (units.length === 0) return normalized.slice(0, MAX_MODEL_CONTENT_CHARS)
+
+  const selectedIndexes = new Set<number>()
+  for (let index = 0; index < Math.min(5, units.length); index += 1) selectedIndexes.add(index)
+  for (let index = Math.max(0, units.length - 3); index < units.length; index += 1) selectedIndexes.add(index)
+  units.forEach((unit, index) => {
+    if (!TIMELINE_SIGNAL.test(unit)) return
+    selectedIndexes.add(index)
+    if (index > 0) selectedIndexes.add(index - 1)
+    if (index + 1 < units.length) selectedIndexes.add(index + 1)
+  })
+
+  const candidates = [...selectedIndexes].sort((left, right) => left - right)
+  const maxExcerptUnits = 48
+  const balancedCandidates = candidates.length <= maxExcerptUnits
+    ? candidates
+    : Array.from({ length: maxExcerptUnits }, (_, index) => (
+        candidates[Math.round(index * (candidates.length - 1) / (maxExcerptUnits - 1))]
+      ))
+  const marker = '\n\n[... non-temporal source text omitted ...]\n\n'
+  const perUnitLimit = Math.max(
+    200,
+    Math.floor(
+      (MAX_MODEL_CONTENT_CHARS - marker.length * Math.max(0, balancedCandidates.length - 1))
+      / Math.max(1, balancedCandidates.length),
+    ),
+  )
+  const excerpts: string[] = []
+  let previousIndex = -2
+  for (const index of balancedCandidates) {
+    const separator = previousIndex === index - 1 ? ' ' : marker
+    const excerpt = units[index].slice(0, perUnitLimit)
+    if (!excerpt) continue
+    excerpts.push(`${excerpts.length === 0 ? '' : separator}${excerpt}`)
+    previousIndex = index
+  }
+
+  return excerpts.join('').slice(0, MAX_MODEL_CONTENT_CHARS)
+}
+
 function fetchedTimelineSource(source: ScrapedContent): TimelineSource | null {
   if (source.error || !source.quality?.accepted) return null
   return {
@@ -321,6 +392,7 @@ async function extractTimelineFromText(
   title: string,
   publishedAt?: string,
 ): Promise<NormalizedTimelineModelOutput> {
+  const timelineEvidence = selectTimelineEvidence(text)
   const publicationContext = publishedAt
     ? `Article publication date: ${publishedAt}\n`
     : 'Article publication date: not reliably available; do not resolve relative dates unless the article itself provides an anchor.\n'
@@ -339,7 +411,7 @@ If no datable events can be found, return { "events": [] }.
 Article title: ${title}
 ${publicationContext}
 Article text:
-${text.slice(0, 12000)}`
+${timelineEvidence}`
 
   const aiData = await callOpenAIViaGateway(env, {
     model: MODEL,
@@ -553,7 +625,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
       }
 
       const extractionStarted = Date.now()
-      let source: TimelineSource | null = null
+      let source: TimelineSource | null
       let failedSource: ScrapedContent | null = null
       if (hasSuppliedContent) {
         source = suppliedTimelineSource(suppliedContent, url)

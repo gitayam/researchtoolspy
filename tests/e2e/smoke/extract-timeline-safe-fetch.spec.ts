@@ -3,7 +3,9 @@ import {
   onRequestGet,
   onRequestPost,
   scrapeTimelineSource,
+  selectTimelineEvidence,
 } from '../../../functions/api/tools/extract-timeline'
+import { normalizeTimelineModelPayload } from '../../../functions/api/_shared/timeline-contract'
 
 const sessions = {
   get: async (token: string) => token === 'route-token' ? JSON.stringify({ user_id: 7 }) : null,
@@ -493,5 +495,37 @@ test.describe('extract-timeline bounded static fetch @smoke', () => {
     } finally {
       globalThis.fetch = originalFetch
     }
+  })
+
+  test('@smoke long sources retain temporal evidence from the middle and tail', () => {
+    const filler = 'Background context without a specific calendar reference. '.repeat(1_800)
+    const text = [
+      'Opening source context.',
+      filler,
+      'On September 30, 2026, the agency completed the first review.',
+      filler,
+      'In November 2026, officials published the final decision.',
+    ].join(' ')
+
+    const selected = selectTimelineEvidence(text)
+    expect(selected.length).toBeLessThanOrEqual(64_000)
+    expect(selected).toContain('Opening source context.')
+    expect(selected).toContain('September 30, 2026')
+    expect(selected).toContain('November 2026')
+  })
+
+  test('@smoke model normalization sorts events and removes exact duplicates', () => {
+    const normalized = normalizeTimelineModelPayload({
+      events: [
+        { event_date: '2026-09', title: 'Later event', description: null },
+        { event_date: '2025', title: 'Earlier event', description: null },
+        { event_date: '2026-09', title: '  LATER   EVENT  ', description: null },
+      ],
+    })
+
+    expect(normalized.status).toBe('ok')
+    expect(normalized.rejectedEventCount).toBe(1)
+    expect(normalized.events.map(event => event.eventDate)).toEqual(['2025', '2026-09'])
+    expect(normalized.events[1].title).toBe('Later event')
   })
 })

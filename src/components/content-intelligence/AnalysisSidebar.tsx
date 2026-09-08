@@ -5,15 +5,8 @@ import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import {
-  FileText,
-  BarChart3,
-  SmileIcon,
-  Users,
-  Link2,
-  Shield,
-  MessageSquare,
   Grid3x3,
-  Star,
+  Calendar,
   Loader2,
   Check,
   Play,
@@ -30,6 +23,9 @@ export type AnalysisTab =
   | 'qa'
   | 'dime'
   | 'starbursting'
+  | 'timeline'
+
+export type AnalysisSectionGroup = 'automatic' | 'analysis' | 'framework'
 
 export type SectionStatus = 'idle' | 'processing' | 'complete' | 'error' | 'ready'
 
@@ -40,6 +36,7 @@ interface Section {
   status?: SectionStatus
   description?: string
   isAutomatic?: boolean
+  group?: AnalysisSectionGroup
 }
 
 interface AnalysisSidebarProps {
@@ -90,8 +87,9 @@ export const AnalysisSidebar: React.FC<AnalysisSidebarProps> = ({
   onRunFramework,
   className,
 }) => {
-  const automaticSections = sections.filter((s) => s.isAutomatic)
-  const frameworkSections = sections.filter((s) => !s.isAutomatic)
+  const automaticSections = sections.filter((s) => s.isAutomatic || s.group === 'automatic')
+  const analysisSections = sections.filter((s) => !s.isAutomatic && s.group === 'analysis')
+  const frameworkSections = sections.filter((s) => !s.isAutomatic && s.group !== 'analysis')
 
   const renderSection = (section: Section) => {
     const Icon = section.icon
@@ -99,7 +97,7 @@ export const AnalysisSidebar: React.FC<AnalysisSidebarProps> = ({
     const canRun = section.status === 'idle' && onRunFramework && !section.isAutomatic
 
     return (
-      <div key={section.id} className="relative">
+      <div key={section.id} className="group relative">
         <Button
           variant={isActive ? 'secondary' : 'ghost'}
           className={cn(
@@ -126,7 +124,7 @@ export const AnalysisSidebar: React.FC<AnalysisSidebarProps> = ({
           <Button
             variant="ghost"
             size="sm"
-            className="absolute right-2 top-2 h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+            className="absolute right-2 top-2 h-7 w-7 p-0 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
             onClick={(e) => {
               e.stopPropagation()
               onRunFramework(section.id)
@@ -156,6 +154,21 @@ export const AnalysisSidebar: React.FC<AnalysisSidebarProps> = ({
             </div>
             <div className="space-y-0.5">{automaticSections.map(renderSection)}</div>
           </div>
+
+          {analysisSections.length > 0 && (
+            <>
+              <Separator className="my-2" />
+              <div className="mb-4">
+                <div className="px-3 py-2 flex items-center gap-2">
+                  <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Additional analysis
+                  </span>
+                </div>
+                <div className="space-y-0.5">{analysisSections.map(renderSection)}</div>
+              </div>
+            </>
+          )}
 
           {/* Framework Sections */}
           {frameworkSections.length > 0 && (

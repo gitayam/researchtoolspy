@@ -44,6 +44,13 @@ test.describe('nav-search-cmdK source guards', () => {
     expect(src).toContain('/dashboard/tools/content-intelligence')
   })
 
+  test('timeline is registered across tools navigation surfaces', () => {
+    expect(read('src/pages/ToolsPage.tsx')).toContain('/dashboard/tools/timeline')
+    expect(read('src/components/layout/dashboard-sidebar.tsx')).toContain('/dashboard/tools/timeline')
+    expect(read('src/components/CommandPalette.tsx')).toContain('/dashboard/tools/timeline')
+    expect(read('src/routes/index.tsx')).toContain("path: 'tools/timeline'")
+  })
+
   test('ToolsPage.tsx contains equilibrium-analysis route', () => {
     const src = read('src/pages/ToolsPage.tsx')
     expect(src).toContain('/dashboard/tools/equilibrium-analysis')

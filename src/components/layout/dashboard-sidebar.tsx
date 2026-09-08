@@ -46,6 +46,7 @@ const getNavigation = (t: (key: string) => string) => [
     children: [
       { name: 'Research Question Generator', href: '/dashboard/tools/research-question-generator', icon: Sparkles },
       { name: 'Content Research', href: '/dashboard/tools/content-intelligence', icon: Sparkles },
+      { name: 'Timeline Analysis', href: '/dashboard/tools/timeline', icon: Calendar },
       { name: 'Equilibrium Analysis', href: '/dashboard/tools/equilibrium-analysis', icon: Sparkles },
       { name: 'Hamilton Rule', href: '/dashboard/tools/hamilton-rule', icon: Sparkles },
       { name: 'Agentic Research', href: '/dashboard/tools/collection', icon: Zap },
