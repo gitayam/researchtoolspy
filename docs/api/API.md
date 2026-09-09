@@ -204,6 +204,7 @@ Request, response, safety, dataset, score, and migration details are documented 
 |----------|-------------|
 | `POST /api/tools/extract-claims` | Extract claims/entities from analysis-grade URL content |
 | `POST /api/tools/extract-timeline` | Extract dated timeline events from analysis-grade URL content |
+| `POST /api/tools/timeline-assist` | Generate reviewable timeline gaps, collection questions, or working hypotheses |
 | `POST /api/tools/rage-check` | Detect manipulative framing / outrage-bait in analysis-grade URL content |
 | `POST /api/tools/batch-process` | Batch run `analyze-url` across multiple URLs |
 | `POST /api/tools/claim-match` | Match extracted claims to evidence |
@@ -268,6 +269,75 @@ exposes Timeline as an on-demand analysis section; that integration submits the
 already-extracted article text with `source: "content-intelligence"`, avoiding a
 second network retrieval. Saving, sharing, and workspace collaboration continue
 to require sign-in and an authorized writable workspace.
+
+Both browser surfaces wrap the immutable API response in a temporary analyst
+workspace. **Basic** mode supports adding events before or after a selected
+event, editing working copies, removal from the working chronology, and Markdown
+copy. **Robust analyst** mode additionally exposes provenance, review status
+(`unreviewed`, `corroborated`, `disputed`, or `hypothesis`), analyst notes, and
+dated information-gap questions such as “What happened here?” Questions remain
+distinct from events and become answered only when the analyst records an
+answer. JSON export uses `timeline-workspace.v1` and includes the untouched
+`timeline-analysis.v1` source result plus the analyst event/question overlay;
+`timeline-workspace.v1` also retains explicitly accepted AI working hypotheses,
+and edits to extracted events preserve their original values in that export.
+
+The workspace overlay is client-side and resets on regeneration. It is not an
+API mutation and must not be treated by integrations as model output. Durable
+promotion into an investigation/COP, passage-linked evidence on analyst-added
+events, multi-source merge/corroboration, and answer-packet conversion remain
+authenticated follow-on work.
+
+#### Timeline AI assistance v1
+
+`POST /api/tools/timeline-assist` is an opt-in browser/analyst endpoint. It
+requires an authenticated or isolated guest principal and accepts one selected
+task: `identify_gaps`, `suggest_questions`, or `generate_hypotheses`. It is not
+advertised as a community service capability. The request is bounded to 128 KiB
+and 100 events:
+
+```json
+{
+  "schemaVersion": "timeline-assist.v1",
+  "action": "identify_gaps",
+  "article": {
+    "url": "https://publisher.example/story",
+    "title": "Source article"
+  },
+  "events": [{
+    "id": "source-req-123-0",
+    "eventDate": "2026-09-01",
+    "title": "Documented event",
+    "description": "Bounded event summary",
+    "origin": "source",
+    "assessment": "corroborated",
+    "analystNote": "Optional bounded note"
+  }],
+  "focus": {
+    "afterEventId": "source-req-123-0",
+    "beforeEventId": "source-req-123-1",
+    "question": "Optional existing analyst question"
+  }
+}
+```
+
+The endpoint performs structural review only. It receives current event
+summaries, not the underlying documents, and does not browse or scrape. It is
+prompted not to answer factual gaps or assert missing events. Returned anchors
+must name event IDs supplied by the caller; unknown anchors, wrong suggestion
+kinds, duplicates, malformed output, and more than 12 model suggestions are
+rejected or omitted by the contract normalizer.
+
+Success uses `timeline-assist.v1` with `outcome` equal to `suggestions`,
+`no_suggestions`, or `declined`. Gap/question tasks return only `question`
+suggestions; hypothesis tasks return only `hypothesis` suggestions. The UI keeps
+all results in a review queue. Nothing enters the analyst workspace until the
+user selects **Add question** or **Keep hypothesis**, and an AI hypothesis never
+becomes a source event. Responses are `Cache-Control: no-store`; model calls use
+the shared AI Gateway rate limiter, prompt-injection guard, timeout, and fallback
+telemetry. Errors include `400 INVALID_REQUEST`, `401
+AUTHENTICATION_REQUIRED`, `413 PAYLOAD_TOO_LARGE`, `429 RATE_LIMITED`, `502
+MODEL_OUTPUT_INVALID`, and `503 AI_UNAVAILABLE`.
 
 ### Settings & data
 

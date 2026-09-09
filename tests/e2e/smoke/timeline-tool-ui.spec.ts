@@ -87,6 +87,107 @@ test.describe('Timeline research tool @smoke', () => {
     expect(timelineRequest!.body).toEqual({ schemaVersion: 'timeline-analysis.v1', url: articleUrl })
   })
 
+  test('@smoke timeline supports basic edits and robust analyst questions without changing source provenance', async ({ page }) => {
+    const assistActions: string[] = []
+    await page.route('**/api/workspaces', route => route.fulfill({ status: 200, json: { owned: [], member: [] } }))
+    await page.route('**/api/tools/extract-timeline', route => route.fulfill({ status: 200, json: timelineResponse }))
+    await page.route('**/api/tools/timeline-assist', async route => {
+      const body = route.request().postDataJSON() as {
+        action: string
+        events: Array<{ id: string }>
+      }
+      assistActions.push(body.action)
+      const hypothesis = body.action === 'generate_hypotheses'
+      await route.fulfill({
+        status: 200,
+        json: {
+          schemaVersion: 'timeline-assist.v1',
+          requestId: `assist-${assistActions.length}`,
+          action: body.action,
+          outcome: 'suggestions',
+          suggestions: [{
+            id: `ai-suggestion-${assistActions.length}`,
+            kind: hypothesis ? 'hypothesis' : 'question',
+            content: hypothesis
+              ? 'A coordination meeting may explain the reporting gap.'
+              : 'Which documented actions occurred during the reporting gap?',
+            rationale: hypothesis
+              ? 'Seek meeting records that could falsify this explanation.'
+              : 'The chronology moves between events without an observed transition.',
+            afterEventId: body.events[0].id,
+            beforeEventId: body.events[1].id,
+          }],
+          model: { name: 'test-model', status: 'ok', rejectedSuggestionCount: 0 },
+        },
+      })
+    })
+
+    await page.goto('/dashboard/tools/timeline')
+    await page.getByLabel('Article URL').fill(articleUrl)
+    await page.getByRole('button', { name: 'Build Timeline' }).click()
+
+    await expect(page.getByRole('button', { name: 'Basic', exact: true })).toHaveAttribute('aria-pressed', 'true')
+    await page.getByRole('button', { name: 'Actions for A source-backed event occurred' }).click()
+    await page.getByRole('menuitem', { name: 'Add event before' }).click()
+    await expect(page.getByRole('dialog')).toContainText('before 2026-09-03')
+    await page.getByLabel('Date').fill('2026-02-31')
+    await page.getByLabel('Title').fill('Analyst supplied precursor')
+    await page.getByRole('button', { name: 'Save event' }).click()
+    await expect(page.getByRole('alert')).toContainText('Use a real date')
+    await page.getByLabel('Date').fill('2026-09-01')
+    await page.getByLabel('Description').fill('Added manually to test the suspected lead-up.')
+    await page.getByRole('button', { name: 'Save event' }).click()
+
+    await expect(page.getByText('Analyst supplied precursor')).toBeVisible()
+    await expect(page.getByText('Analyst added')).toBeVisible()
+    await expect(page.getByText('Source', { exact: true })).toBeVisible()
+    await page.getByRole('button', { name: 'Actions for Analyst supplied precursor' }).click()
+    await expect(page.getByRole('menuitem', { name: 'Add event after' })).toBeVisible()
+    await page.keyboard.press('Escape')
+
+    await page.getByRole('button', { name: 'Robust analyst' }).click()
+    await expect(page.getByRole('button', { name: 'Robust analyst' })).toHaveAttribute('aria-pressed', 'true')
+    await expect(page.getByRole('button', { name: 'Export JSON' })).toBeVisible()
+
+    await page.getByRole('button', { name: 'Actions for A source-backed event occurred' }).click()
+    await page.getByRole('menuitem', { name: 'Edit event' }).click()
+    await page.getByLabel('Assessment').selectOption('corroborated')
+    await page.getByLabel('Analyst note').fill('Confirmed against a second source.')
+    await page.getByRole('button', { name: 'Save event' }).click()
+    await expect(page.getByText('Confirmed against a second source.')).toBeVisible()
+    await expect(page.getByText('corroborated', { exact: true })).toBeVisible()
+    await expect(page.getByText('Source · edited')).toHaveCount(0)
+
+    await expect(page.getByLabel('AI task')).toHaveValue('identify_gaps')
+    await page.getByRole('button', { name: 'Run AI review' }).click()
+    await expect(page.getByText('Which documented actions occurred during the reporting gap?')).toBeVisible()
+    await page.getByLabel('AI suggestions').getByRole('button', { name: 'Add question' }).click()
+    await expect(page.getByText('Which documented actions occurred during the reporting gap?')).toBeVisible()
+
+    await page.getByLabel('AI task').selectOption('generate_hypotheses')
+    await page.getByRole('button', { name: 'Run AI review' }).click()
+    await page.getByLabel('AI suggestions').getByRole('button', { name: 'Keep hypothesis' }).click()
+    await expect(page.getByText('A coordination meeting may explain the reporting gap.')).toBeVisible()
+    await expect(page.getByText('AI working hypothesis')).toBeVisible()
+    expect(assistActions).toEqual(['identify_gaps', 'generate_hypotheses'])
+
+    const betweenGap = page.getByText('between 2026-09-01 and 2026-09-03').locator('..')
+    await betweenGap.getByRole('button', { name: 'What happened here?' }).click()
+    await expect(page.getByRole('dialog')).toContainText('Record an information gap without inventing an event.')
+    await page.getByRole('textbox', { name: 'Question', exact: true }).fill('What happened during the two-day reporting gap?')
+    await page.getByRole('button', { name: 'Save question' }).click()
+
+    const manualQuestion = page.getByText('What happened during the two-day reporting gap?')
+    await expect(manualQuestion).toBeVisible()
+    await expect(page.getByText('Information gap', { exact: true }).first()).toBeVisible()
+
+    await manualQuestion.locator('..').locator('..').getByRole('button', { name: 'Edit question' }).click()
+    await page.getByLabel('Evidence-backed answer (optional)').fill('A follow-up source documented an intervening meeting.')
+    await page.getByRole('button', { name: 'Save question' }).click()
+    await expect(page.getByText('Answered')).toBeVisible()
+    await expect(page.getByText('A follow-up source documented an intervening meeting.')).toBeVisible()
+  })
+
   test('@smoke Content Intelligence reuses extracted text for timeline analysis', async ({ page }) => {
     let timelineBody: {
       schemaVersion?: unknown
@@ -113,6 +214,7 @@ test.describe('Timeline research tool @smoke', () => {
     await page.getByRole('button', { name: 'Generate Timeline' }).click()
 
     await expect(page.getByText('A source-backed event occurred')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Robust analyst' })).toBeVisible()
     expect(timelineBody).not.toBeNull()
     expect(timelineBody!.schemaVersion).toBe('timeline-analysis.v1')
     expect(timelineBody!.url).toBe(articleUrl)

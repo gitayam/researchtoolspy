@@ -1,6 +1,6 @@
 # ResearchTools.net — Roadmap
 
-**Last updated:** 2026-06-30 · **Current release:** `v0.22.0` (+ hardening patches through `v0.22.71`) · **Prod:** [researchtools.net](https://researchtools.net) (Cloudflare Pages + D1)
+**Last updated:** 2026-09-08 · **Current release:** `v0.22.0` (+ hardening patches through `v0.22.71`) · **Prod:** [researchtools.net](https://researchtools.net) (Cloudflare Pages + D1)
 
 > **2026-06-26 — fresh COP fix batch injected (`COP-1`…`COP-12`).** A `/team-investigate` pass on a user report (COT export "not working" + "many aspects not working") surfaced a verified backlog of loop-eligible bugs/stubs. Full evidence + AUTO/DECISION split: [`plans/2026-06-26-cop-investigation-findings.md`](plans/2026-06-26-cop-investigation-findings.md). Listed at the top of **Now** below. The prior `/roadmap-step` STOP (drained backlog) is now lifted.
 
@@ -53,6 +53,43 @@ Falsifiable gates:
 ---
 
 ## Recently shipped
+
+### Interactive timeline analyst workspace (2026-09-08)
+
+- ✅ The dedicated Timeline tool and Content Intelligence now share one
+  interactive overlay on top of the immutable `timeline-analysis.v1` response.
+- ✅ **Basic mode** supports adding an event before/after another event, strict
+  calendar-valid partial dates, working-copy edits/removal, automatic
+  chronological sorting, and provenance-aware Markdown copy.
+- ✅ **Robust analyst mode** adds source/analyst provenance, explicit
+  `unreviewed|corroborated|disputed|hypothesis` assessments, analyst notes,
+  interval-level “What happened here?” information gaps, answer
+  recording, and `timeline-workspace.v1` JSON export.
+- ✅ Added opt-in `timeline-assist.v1` AI review with three analyst-selected
+  tasks: chronology-gap detection, collection-question generation, and working
+  hypotheses. Whole-timeline and focused-interval reviews share the same strict,
+  bounded contract.
+- ✅ AI suggestions enter a review queue rather than mutating events. Accepted
+  questions remain information gaps; retained AI hypotheses remain visibly
+  tentative and cannot inherit source provenance. The endpoint has no browsing
+  path and is explicit that event summaries are not underlying evidence.
+- ✅ AI assistance reuses guest/account identity, shared rate limits, AI Gateway
+  caching/fallback telemetry, refusal handling, prompt-injection protection,
+  strict response validation, and privacy-safe terminal error logging.
+- ✅ Source events stay distinguishable from analyst additions. Editing a source
+  event marks it `Source · edited` and preserves the original event in JSON;
+  questions remain separate from events so an information gap cannot silently
+  become an asserted fact.
+- ✅ Guest use remains available and temporary. Regeneration resets the overlay;
+  the interface tells users to copy/export first. Saving and collaboration still
+  require an authenticated writable workspace.
+- ⬜ Next: add authenticated promotion into an Investigation/COP using canonical
+  evidence passages, per-event source links, and question-to-RFI/Answer Packet
+  conversion. Gate persistence on 100% workspace authorization coverage and
+  reject unsupported event claims rather than auto-promoting them.
+- ⬜ Then benchmark multi-source merge/corroboration: target >=30% duplicate-event
+  reduction with <2% incorrect merges on a labeled timeline corpus. Do not add
+  automatic merge until that hypothesis survives the corpus.
 
 ### Guest sessions and workspace-wide 401 remediation (2026-09-05)
 

@@ -112,6 +112,10 @@ function timelineDatePrecision(value: unknown): 'day' | 'month' | 'year' | null 
   return validCalendarDate(value) ? 'day' : null
 }
 
+export function inferTimelineDatePrecision(value: string): 'day' | 'month' | 'year' | null {
+  return timelineDatePrecision(value.trim())
+}
+
 function truncateUtf8(value: string): string {
   const bytes = new TextEncoder().encode(value)
   if (bytes.byteLength <= MAX_SUPPLIED_TEXT_BYTES) return value
