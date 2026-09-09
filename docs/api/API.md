@@ -264,7 +264,9 @@ events are deduplicated and sorted by their precision-preserving ISO date.
 
 Browser users can access this contract without signing in through the dedicated
 `/dashboard/tools/timeline` research tool. The browser sends an isolated,
-seven-day guest session and does not persist results. Content Intelligence also
+seven-day guest session. A user can also start a manual timeline without calling
+the extraction API; one manual draft is retained locally in that browser for
+seven days. This browser draft is not server-side saved data. Content Intelligence also
 exposes Timeline as an on-demand analysis section; that integration submits the
 already-extracted article text with `source: "content-intelligence"`, avoiding a
 second network retrieval. Saving, sharing, and workspace collaboration continue
@@ -277,13 +279,18 @@ copy. **Robust analyst** mode additionally exposes provenance, review status
 (`unreviewed`, `corroborated`, `disputed`, or `hypothesis`), analyst notes, and
 dated information-gap questions such as “What happened here?” Questions remain
 distinct from events and become answered only when the analyst records an
-answer. JSON export uses `timeline-workspace.v1` and includes the untouched
-`timeline-analysis.v1` source result plus the analyst event/question overlay;
+answer. JSON export uses `timeline-workspace.v1` and includes either the untouched
+`timeline-analysis.v1` extraction result or a `timeline-manual.v1` descriptor,
+plus the analyst event/question overlay;
 `timeline-workspace.v1` also retains explicitly accepted AI working hypotheses,
-and edits to extracted events preserve their original values in that export.
+per-answer source URLs/titles, and edits to extracted events preserve their
+original values in that export. Open questions can prefill an Agentic Research
+collection query; answers are deliberately recorded back on the timeline by the
+analyst so a search result cannot silently become a finding or event.
 
-The workspace overlay is client-side and resets on regeneration. It is not an
-API mutation and must not be treated by integrations as model output. Durable
+The workspace overlay is client-side. Extracted overlays reset on regeneration;
+the single manual browser draft expires after seven days. Neither is an API
+mutation or model output. Durable
 promotion into an investigation/COP, passage-linked evidence on analyst-added
 events, multi-source merge/corroboration, and answer-packet conversion remain
 authenticated follow-on work.
@@ -320,6 +327,9 @@ and 100 events:
   }
 }
 ```
+
+For an analyst-created timeline, `article.title` carries the timeline title and
+`article.url` is the empty string. Non-empty URLs must be complete HTTP(S) URLs.
 
 The endpoint performs structural review only. It receives current event
 summaries, not the underlying documents, and does not browse or scrape. It is

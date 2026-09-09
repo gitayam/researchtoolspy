@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import {
+  Brain,
   Calendar,
   Check,
   CircleHelp,
@@ -12,6 +13,7 @@ import {
   MoreHorizontal,
   Pencil,
   Plus,
+  Search,
   ShieldCheck,
   Sparkles,
   Trash2,
@@ -52,6 +54,8 @@ import type {
   TimelineWorkspaceHypothesis,
   TimelineWorkspaceMode,
   TimelineWorkspaceQuestion,
+  TimelineWorkspaceState,
+  TimelineSourceReference,
   TimelineQuestionStatus,
 } from '@/types/timeline-workspace'
 
@@ -59,6 +63,9 @@ interface TimelineResultsProps {
   result: TimelineAnalysisResult
   onRegenerate?: () => void
   regenerating?: boolean
+  workspaceOrigin?: 'extracted' | 'manual'
+  initialWorkspace?: TimelineWorkspaceState
+  onWorkspaceChange?: (workspace: TimelineWorkspaceState) => void
 }
 
 interface EventEditorState {
@@ -81,6 +88,9 @@ interface QuestionEditorState {
   question: string
   status: TimelineQuestionStatus
   answer: string
+  sources: TimelineSourceReference[]
+  newSourceUrl: string
+  newSourceTitle: string
 }
 
 const importanceClasses: Record<TimelineEventImportance, string> = {
@@ -135,11 +145,12 @@ function timelineMarkdown(
   events: TimelineWorkspaceEvent[],
   questions: TimelineWorkspaceQuestion[],
   hypotheses: TimelineWorkspaceHypothesis[],
+  workspaceOrigin: 'extracted' | 'manual',
 ): string {
   const lines = [
     `# ${result.article.title}`,
     '',
-    `Source: ${result.article.url}`,
+    workspaceOrigin === 'manual' ? 'Origin: Analyst-created timeline' : `Source: ${result.article.url}`,
     '',
   ]
   for (const event of events) {
@@ -156,6 +167,9 @@ function timelineMarkdown(
     for (const question of questions) {
       lines.push(`- [${question.status === 'answered' ? 'x' : ' '}] ${question.question}`)
       if (question.answer) lines.push(`  Answer: ${question.answer}`)
+      for (const source of question.sources || []) {
+        lines.push(`  Source: ${source.title ? `${source.title} — ` : ''}${source.url}`)
+      }
     }
   }
   if (hypotheses.length > 0) {
@@ -183,12 +197,19 @@ export function TimelineResults(props: TimelineResultsProps) {
   return <TimelineWorkspace key={props.result.requestId} {...props} />
 }
 
-function TimelineWorkspace({ result, onRegenerate, regenerating = false }: TimelineResultsProps) {
+function TimelineWorkspace({
+  result,
+  onRegenerate,
+  regenerating = false,
+  workspaceOrigin = 'extracted',
+  initialWorkspace,
+  onWorkspaceChange,
+}: TimelineResultsProps) {
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'error'>('idle')
-  const [mode, setMode] = useState<TimelineWorkspaceMode>('basic')
-  const [events, setEvents] = useState<TimelineWorkspaceEvent[]>(() => workspaceEvents(result))
-  const [questions, setQuestions] = useState<TimelineWorkspaceQuestion[]>([])
-  const [hypotheses, setHypotheses] = useState<TimelineWorkspaceHypothesis[]>([])
+  const [mode, setMode] = useState<TimelineWorkspaceMode>(() => initialWorkspace?.mode || (workspaceOrigin === 'manual' ? 'robust' : 'basic'))
+  const [events, setEvents] = useState<TimelineWorkspaceEvent[]>(() => initialWorkspace?.events || workspaceEvents(result))
+  const [questions, setQuestions] = useState<TimelineWorkspaceQuestion[]>(() => initialWorkspace?.questions || [])
+  const [hypotheses, setHypotheses] = useState<TimelineWorkspaceHypothesis[]>(() => initialWorkspace?.hypotheses || [])
   const [eventEditor, setEventEditor] = useState<EventEditorState | null>(null)
   const [questionEditor, setQuestionEditor] = useState<QuestionEditorState | null>(null)
   const [editorError, setEditorError] = useState<string | null>(null)
@@ -202,17 +223,22 @@ function TimelineWorkspace({ result, onRegenerate, regenerating = false }: Timel
     () => [...events].sort((left, right) => left.eventDate.localeCompare(right.eventDate) || left.title.localeCompare(right.title)),
     [events],
   )
+  const firstOpenQuestion = questions.find(question => question.status === 'open')
 
   useEffect(() => () => {
     if (copyResetRef.current !== null) window.clearTimeout(copyResetRef.current)
     assistRequestRef.current?.abort()
   }, [])
 
+  useEffect(() => {
+    onWorkspaceChange?.({ mode, events, questions, hypotheses })
+  }, [events, hypotheses, mode, onWorkspaceChange, questions])
+
   const copyTimeline = async () => {
     if (copyResetRef.current !== null) window.clearTimeout(copyResetRef.current)
     try {
       if (!navigator.clipboard?.writeText) throw new Error('Clipboard API unavailable')
-      await navigator.clipboard.writeText(timelineMarkdown(result, sortedEvents, questions, hypotheses))
+      await navigator.clipboard.writeText(timelineMarkdown(result, sortedEvents, questions, hypotheses, workspaceOrigin))
       setCopyStatus('copied')
     } catch {
       setCopyStatus('error')
@@ -224,13 +250,15 @@ function TimelineWorkspace({ result, onRegenerate, regenerating = false }: Timel
     const payload: TimelineWorkspaceExport = {
       schemaVersion: 'timeline-workspace.v1',
       exportedAt: new Date().toISOString(),
-      source: result,
+      source: workspaceOrigin === 'manual'
+        ? { schemaVersion: 'timeline-manual.v1', title: result.article.title }
+        : result,
       analystWorkspace: { mode, events: sortedEvents, questions, hypotheses },
     }
     const blobUrl = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }))
     const anchor = document.createElement('a')
     anchor.href = blobUrl
-    const safeDomain = result.article.domain.replace(/[^a-z0-9.-]+/gi, '-')
+    const safeDomain = (result.article.domain || 'analyst-workspace').replace(/[^a-z0-9.-]+/gi, '-')
     const safeRequestId = result.requestId.replace(/[^a-z0-9_-]+/gi, '-')
     anchor.download = `timeline-${safeDomain}-${safeRequestId}.json`
     anchor.click()
@@ -438,25 +466,53 @@ function TimelineWorkspace({ result, onRegenerate, regenerating = false }: Timel
       question: `What happened ${gapLabel(previous, next)}?`,
       status: 'open',
       answer: '',
+      sources: [],
+      newSourceUrl: '',
+      newSourceTitle: '',
     })
   }
 
   const openEditQuestion = (question: TimelineWorkspaceQuestion) => {
     setEditorError(null)
-    setQuestionEditor({ ...question, questionId: question.id })
+    setQuestionEditor({
+      ...question,
+      questionId: question.id,
+      sources: question.sources || [],
+      newSourceUrl: '',
+      newSourceTitle: '',
+    })
   }
 
   const saveQuestion = () => {
     if (!questionEditor) return
     const question = questionEditor.question.trim()
     const answer = questionEditor.answer.trim()
+    const pendingSourceUrl = questionEditor.newSourceUrl.trim()
+    const pendingSourceTitle = questionEditor.newSourceTitle.trim()
     if (!question) {
       setEditorError('Enter a research question.')
       return
     }
-    if (question.length > 300 || answer.length > 2000) {
-      setEditorError('Keep the question under 300 characters and the answer under 2,000.')
+    if (question.length > 300 || answer.length > 2000 || pendingSourceUrl.length > 2048 || pendingSourceTitle.length > 300) {
+      setEditorError('Keep the question under 300 characters, answer under 2,000, source URL under 2,048, and source title under 300.')
       return
+    }
+    let sources = questionEditor.sources
+    if (pendingSourceUrl) {
+      try {
+        const parsedSource = new URL(pendingSourceUrl)
+        if (parsedSource.protocol !== 'http:' && parsedSource.protocol !== 'https:') throw new Error('unsupported protocol')
+      } catch {
+        setEditorError('Use a complete http:// or https:// URL for the answer source.')
+        return
+      }
+      if (!sources.some(source => source.url === pendingSourceUrl)) {
+        sources = [...sources, {
+          id: createId('source'),
+          url: pendingSourceUrl,
+          ...(pendingSourceTitle ? { title: pendingSourceTitle } : {}),
+        }]
+      }
     }
     const nextQuestion: TimelineWorkspaceQuestion = {
       id: questionEditor.questionId || createId('question'),
@@ -465,6 +521,7 @@ function TimelineWorkspace({ result, onRegenerate, regenerating = false }: Timel
       question,
       answer,
       status: answer ? 'answered' : 'open',
+      ...(sources.length > 0 ? { sources } : {}),
     }
     setQuestions(current => questionEditor.questionId
       ? current.map(item => item.id === questionEditor.questionId ? nextQuestion : item)
@@ -485,6 +542,36 @@ function TimelineWorkspace({ result, onRegenerate, regenerating = false }: Timel
           </div>
           <p className="mt-2 text-sm font-medium">{question.question}</p>
           {question.answer && <p className="mt-2 text-sm text-muted-foreground">{question.answer}</p>}
+          {(question.sources || []).length > 0 && (
+            <div className="mt-2 space-y-1">
+              {(question.sources || []).map(source => (
+                <a
+                  key={source.id}
+                  href={source.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex max-w-full items-center gap-1 text-xs text-blue-600 hover:underline dark:text-blue-400"
+                >
+                  <ExternalLink className="h-3 w-3 shrink-0" />
+                  <span className="truncate">{source.title || source.url}</span>
+                </a>
+              ))}
+            </div>
+          )}
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" asChild>
+              <a
+                href={`/dashboard/tools/collection?query=${encodeURIComponent(question.question)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Search className="mr-1 h-3.5 w-3.5" />Research this question
+              </a>
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => openEditQuestion(question)} aria-label="Edit question">
+              <Pencil className="mr-1 h-3.5 w-3.5" />{question.answer ? 'Update finding' : 'Record finding'}
+            </Button>
+          </div>
         </div>
         <div className="flex shrink-0 gap-1">
           <Button
@@ -500,9 +587,6 @@ function TimelineWorkspace({ result, onRegenerate, regenerating = false }: Timel
             aria-label="AI review question"
           >
             <Sparkles className="h-3.5 w-3.5" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditQuestion(question)} aria-label="Edit question">
-            <Pencil className="h-3.5 w-3.5" />
           </Button>
           <Button
             variant="ghost"
@@ -582,19 +666,27 @@ function TimelineWorkspace({ result, onRegenerate, regenerating = false }: Timel
               <Badge variant="secondary">{sortedEvents.length} {sortedEvents.length === 1 ? 'event' : 'events'}</Badge>
               {questions.length > 0 && <Badge variant="outline">{questions.length} {questions.length === 1 ? 'question' : 'questions'}</Badge>}
               {hypotheses.length > 0 && <Badge variant="outline">{hypotheses.length} {hypotheses.length === 1 ? 'hypothesis' : 'hypotheses'}</Badge>}
-              <Badge variant="outline">{result.article.domain}</Badge>
-              <Badge variant="outline">{result.extraction.sourceMode}</Badge>
+              {workspaceOrigin === 'manual' ? (
+                <Badge variant="outline">Analyst-created</Badge>
+              ) : (
+                <>
+                  <Badge variant="outline">{result.article.domain}</Badge>
+                  <Badge variant="outline">{result.extraction.sourceMode}</Badge>
+                </>
+              )}
             </div>
             <CardTitle className="text-xl leading-tight">{result.article.title}</CardTitle>
-            <a
-              href={result.article.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex max-w-full items-center gap-1 text-sm text-blue-600 hover:underline dark:text-blue-400"
-            >
-              <span className="truncate">{result.article.url}</span>
-              <ExternalLink className="h-3.5 w-3.5 shrink-0" />
-            </a>
+            {result.article.url && (
+              <a
+                href={result.article.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex max-w-full items-center gap-1 text-sm text-blue-600 hover:underline dark:text-blue-400"
+              >
+                <span className="truncate">{result.article.url}</span>
+                <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+              </a>
+            )}
           </div>
           <div className="flex shrink-0 flex-wrap gap-2">
             <Button variant="outline" size="sm" onClick={() => openAddEvent()}>
@@ -640,27 +732,46 @@ function TimelineWorkspace({ result, onRegenerate, regenerating = false }: Timel
               </Button>
             </div>
           </div>
-          <div className="grid gap-3 text-sm sm:grid-cols-3">
-            <div className="rounded-lg border bg-muted/30 p-3">
-              <div className="flex items-center gap-2 font-medium"><FileSearch className="h-4 w-4" />Content source</div>
-              <p className="mt-1 text-muted-foreground">{result.extraction.contentSource}</p>
-              {result.extraction.method && <p className="mt-1 text-xs text-muted-foreground">Method: {result.extraction.method}</p>}
-              {result.extraction.fallbackAttempts.length > 1 && (
-                <p className="mt-1 text-xs text-muted-foreground">Tried: {result.extraction.fallbackAttempts.join(' → ')}</p>
-              )}
+          {workspaceOrigin === 'manual' ? (
+            <div className="grid gap-3 text-sm sm:grid-cols-3">
+              <div className="rounded-lg border bg-muted/30 p-3">
+                <div className="font-medium">Known events</div>
+                <p className="mt-1 text-muted-foreground">Add only what you currently know; mark uncertainty in the assessment and note.</p>
+              </div>
+              <div className="rounded-lg border bg-muted/30 p-3">
+                <div className="font-medium">Information gaps</div>
+                <p className="mt-1 text-muted-foreground">Place questions before, between, or after events instead of inventing transitions.</p>
+              </div>
+              <div className="rounded-lg border bg-muted/30 p-3">
+                <div className="font-medium">Research findings</div>
+                <p className="mt-1 text-muted-foreground">Record answers here with source URLs, then add supported events separately.</p>
+              </div>
             </div>
-            <div className="rounded-lg border bg-muted/30 p-3">
-              <div className="flex items-center gap-2 font-medium"><ShieldCheck className="h-4 w-4" />Extraction quality</div>
-              <p className="mt-1 text-muted-foreground">{Math.round(result.extraction.quality.score)}% · {result.extraction.wordCount.toLocaleString()} words</p>
-            </div>
-            <div className="rounded-lg border bg-muted/30 p-3">
-              <div className="flex items-center gap-2 font-medium"><Calendar className="h-4 w-4" />Published</div>
-              <p className="mt-1 text-muted-foreground">{result.article.publishedAt || 'Not reliably available'}</p>
-            </div>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Analyst edits are kept separate from the extraction result and reset when you regenerate. Copy or export the working timeline first.
-          </p>
+          ) : (
+            <>
+              <div className="grid gap-3 text-sm sm:grid-cols-3">
+                <div className="rounded-lg border bg-muted/30 p-3">
+                  <div className="flex items-center gap-2 font-medium"><FileSearch className="h-4 w-4" />Content source</div>
+                  <p className="mt-1 text-muted-foreground">{result.extraction.contentSource}</p>
+                  {result.extraction.method && <p className="mt-1 text-xs text-muted-foreground">Method: {result.extraction.method}</p>}
+                  {result.extraction.fallbackAttempts.length > 1 && (
+                    <p className="mt-1 text-xs text-muted-foreground">Tried: {result.extraction.fallbackAttempts.join(' → ')}</p>
+                  )}
+                </div>
+                <div className="rounded-lg border bg-muted/30 p-3">
+                  <div className="flex items-center gap-2 font-medium"><ShieldCheck className="h-4 w-4" />Extraction quality</div>
+                  <p className="mt-1 text-muted-foreground">{Math.round(result.extraction.quality.score)}% · {result.extraction.wordCount.toLocaleString()} words</p>
+                </div>
+                <div className="rounded-lg border bg-muted/30 p-3">
+                  <div className="flex items-center gap-2 font-medium"><Calendar className="h-4 w-4" />Published</div>
+                  <p className="mt-1 text-muted-foreground">{result.article.publishedAt || 'Not reliably available'}</p>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Analyst edits are kept separate from the extraction result and reset when you regenerate. Copy or export the working timeline first.
+              </p>
+            </>
+          )}
         </CardContent>
       </Card>
 
@@ -737,9 +848,11 @@ function TimelineWorkspace({ result, onRegenerate, regenerating = false }: Timel
         <Card className="border-dashed">
           <CardContent className="py-12 text-center">
             <Calendar className="mx-auto mb-3 h-10 w-10 text-muted-foreground" />
-            <h3 className="font-semibold">No supported dated events found</h3>
+            <h3 className="font-semibold">{workspaceOrigin === 'manual' ? 'Start with what you know' : 'No supported dated events found'}</h3>
             <p className="mx-auto mt-2 max-w-xl text-sm text-muted-foreground">
-              The source may not contain reliable dates, or all events may have been removed from this working view. Add an analyst event without changing the source extraction.
+              {workspaceOrigin === 'manual'
+                ? 'Add a known dated event, or begin with an open question when the chronology itself is uncertain.'
+                : 'The source may not contain reliable dates, or all events may have been removed from this working view. Add an analyst event without changing the source extraction.'}
             </p>
             {mode === 'robust' && (questions.length > 0 || hypotheses.length > 0) && (
               <div className="mx-auto mt-4 max-w-2xl space-y-2 text-left">
@@ -816,10 +929,49 @@ function TimelineWorkspace({ result, onRegenerate, regenerating = false }: Timel
         </Card>
       )}
 
-      <p className="text-xs text-muted-foreground">
-        Request {result.requestId} · {result.model.name}
-        {result.model.rejectedEventCount > 0 ? ` · ${result.model.rejectedEventCount} events omitted during validation` : ''}
-      </p>
+      {mode === 'robust' && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Continue the investigation</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-3 sm:grid-cols-3">
+            <div className="rounded-lg border p-3">
+              <div className="flex items-center gap-2 font-medium"><Search className="h-4 w-4" />Collect evidence</div>
+              <p className="mt-1 text-xs text-muted-foreground">Search across news, government, archives, and other sources for an open question.</p>
+              <Button className="mt-3" variant="outline" size="sm" asChild>
+                <a
+                  href={`/dashboard/tools/collection${firstOpenQuestion ? `?query=${encodeURIComponent(firstOpenQuestion.question)}` : ''}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Open Agentic Research
+                </a>
+              </Button>
+            </div>
+            <div className="rounded-lg border p-3">
+              <div className="flex items-center gap-2 font-medium"><CircleHelp className="h-4 w-4" />Test explanations</div>
+              <p className="mt-1 text-xs text-muted-foreground">Move competing timeline hypotheses into ACH when they need structured evidence testing.</p>
+              <Button className="mt-3" variant="outline" size="sm" asChild>
+                <a href="/dashboard/tools/ach" target="_blank" rel="noopener noreferrer">Open ACH</a>
+              </Button>
+            </div>
+            <div className="rounded-lg border p-3">
+              <div className="flex items-center gap-2 font-medium"><Brain className="h-4 w-4" />Analyze behavior</div>
+              <p className="mt-1 text-xs text-muted-foreground">Use Behavior Analysis only when events reveal a repeatable actor action and location; COM-B follows from there.</p>
+              <Button className="mt-3" variant="outline" size="sm" asChild>
+                <a href="/dashboard/analysis-frameworks/behavior/create" target="_blank" rel="noopener noreferrer">Open Behavior Analysis</a>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {workspaceOrigin === 'extracted' && (
+        <p className="text-xs text-muted-foreground">
+          Request {result.requestId} · {result.model.name}
+          {result.model.rejectedEventCount > 0 ? ` · ${result.model.rejectedEventCount} events omitted during validation` : ''}
+        </p>
+      )}
 
       <Dialog open={eventEditor !== null} onOpenChange={open => { if (!open) setEventEditor(null) }}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
@@ -827,7 +979,9 @@ function TimelineWorkspace({ result, onRegenerate, regenerating = false }: Timel
             <DialogTitle>{eventEditor?.eventId ? 'Edit timeline event' : 'Add timeline event'}</DialogTitle>
             <DialogDescription>
               {eventEditor?.eventId
-                ? 'Changes are marked as analyst edits and preserve the original extracted event in JSON exports.'
+                ? workspaceOrigin === 'manual'
+                  ? 'Update what you know while preserving its assessment and analyst notes.'
+                  : 'Changes are marked as analyst edits and preserve the original extracted event in JSON exports.'
                 : `This event will be labeled analyst added and placed chronologically by its date${eventEditor && (eventEditor.afterEventId || eventEditor.beforeEventId) ? ` (${gapLabel(sortedEvents.find(event => event.id === eventEditor.afterEventId), sortedEvents.find(event => event.id === eventEditor.beforeEventId))})` : ''}.`}
             </DialogDescription>
           </DialogHeader>
@@ -884,7 +1038,7 @@ function TimelineWorkspace({ result, onRegenerate, regenerating = false }: Timel
       </Dialog>
 
       <Dialog open={questionEditor !== null} onOpenChange={open => { if (!open) setQuestionEditor(null) }}>
-        <DialogContent className="sm:max-w-xl">
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
           <DialogHeader>
             <DialogTitle>{questionEditor?.questionId ? 'Review timeline question' : 'Add timeline question'}</DialogTitle>
             <DialogDescription>Record an information gap without inventing an event. Add an answer later when evidence supports one.</DialogDescription>
@@ -898,6 +1052,53 @@ function TimelineWorkspace({ result, onRegenerate, regenerating = false }: Timel
               <div className="space-y-2">
                 <Label htmlFor="timeline-question-answer">Evidence-backed answer (optional)</Label>
                 <Textarea id="timeline-question-answer" value={questionEditor.answer} onChange={event => setQuestionEditor({ ...questionEditor, answer: event.target.value })} maxLength={2000} rows={4} placeholder="Leave blank while this remains an information gap" />
+              </div>
+              {(questionEditor.sources || []).length > 0 && (
+                <div className="space-y-2">
+                  <Label>Attached answer sources</Label>
+                  {questionEditor.sources.map(source => (
+                    <div key={source.id} className="flex items-center justify-between gap-2 rounded-md border p-2 text-sm">
+                      <span className="min-w-0 truncate">{source.title || source.url}</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setQuestionEditor({
+                          ...questionEditor,
+                          sources: questionEditor.sources.filter(item => item.id !== source.id),
+                        })}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="space-y-3 rounded-md border bg-muted/20 p-3">
+                <div>
+                  <p className="text-sm font-medium">Cite the finding</p>
+                  <p className="text-xs text-muted-foreground">Attach the source you used. It will be preserved in copy, JSON export, and the browser draft.</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="timeline-question-source-url">Source URL (optional)</Label>
+                  <Input
+                    id="timeline-question-source-url"
+                    type="url"
+                    value={questionEditor.newSourceUrl}
+                    onChange={event => setQuestionEditor({ ...questionEditor, newSourceUrl: event.target.value })}
+                    placeholder="https://example.com/source"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="timeline-question-source-title">Source title (optional)</Label>
+                  <Input
+                    id="timeline-question-source-title"
+                    value={questionEditor.newSourceTitle}
+                    onChange={event => setQuestionEditor({ ...questionEditor, newSourceTitle: event.target.value })}
+                    maxLength={300}
+                    placeholder="Document or article title"
+                  />
+                </div>
               </div>
               {editorError && <p role="alert" className="text-sm text-red-600">{editorError}</p>}
             </div>

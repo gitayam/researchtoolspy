@@ -36,6 +36,11 @@ function validRequest(): TimelineAssistRequestV1 {
 test.describe('timeline AI assistance contract @smoke', () => {
   test('@smoke accepts a bounded, provenance-bearing request', () => {
     expect(parseTimelineAssistRequest(validRequest())).toEqual(validRequest())
+
+    const analystCreated = validRequest()
+    analystCreated.article.url = ''
+    analystCreated.article.title = 'Analyst-created timeline'
+    expect(parseTimelineAssistRequest(analystCreated)).toEqual(analystCreated)
   })
 
   test('@smoke rejects invalid dates, duplicate IDs, unknown anchors, and extra fields', () => {

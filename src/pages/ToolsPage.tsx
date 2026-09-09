@@ -131,13 +131,14 @@ export function ToolsPage() {
     {
       id: 'timeline',
       name: 'Timeline Analysis',
-      description: 'Extract source-backed dated events from an article and organize them into a chronological research timeline.',
+      description: 'Build a chronology from what you know or extract dated events from an article, then turn gaps into research questions and evidence-backed findings.',
       icon: Calendar,
       features: [
+        'Manual or article-based starting point',
         'Day, month, and year date precision',
         'Source and extraction provenance',
-        'Chronological event categorization',
-        'Guest analysis without saving',
+        'Gap-driven research and cited answers',
+        'Seven-day local guest draft',
       ],
       path: '/dashboard/tools/timeline',
       available: true
@@ -301,7 +302,7 @@ export function ToolsPage() {
             <Card
               key={tool.id}
               className="hover:shadow-lg active:shadow-md transition-shadow cursor-pointer"
-              onClick={() => navigate((tool as any).path || `/dashboard/tools/${tool.id}`)}
+              onClick={() => navigate('path' in tool && tool.path ? tool.path : `/dashboard/tools/${tool.id}`)}
             >
               <CardHeader className="pb-3 sm:pb-4">
                 <div className="flex items-start justify-between">

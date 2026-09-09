@@ -12,8 +12,8 @@
  * - Integration with batch analysis pipeline
  */
 
-import { useState, useEffect, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useMemo } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Search,
@@ -32,7 +32,6 @@ import {
   ChevronUp,
   Save,
   Play,
-  Trash2,
   CheckSquare,
   Square,
   Sparkles,
@@ -51,7 +50,6 @@ import type {
   CollectionJob,
   CollectionJobRequest,
   CollectionJobResponse,
-  CollectionResult,
   CollectionResultsResponse,
   CollectionCategory,
   TimeRange,
@@ -209,10 +207,11 @@ function formatElapsedTime(startDate: string, endDate?: string): string {
 
 export default function CollectionPage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const queryClient = useQueryClient()
 
   // Search Form State
-  const [query, setQuery] = useState('')
+  const [query, setQuery] = useState(() => (searchParams.get('query') || '').slice(0, 500))
   const [selectedCategories, setSelectedCategories] = useState<CollectionCategory[]>([
     'news',
     'academic',
@@ -238,8 +237,6 @@ export default function CollectionPage() {
   // Poll job status when active
   const {
     data: jobStatus,
-    isLoading: statusLoading,
-    error: statusError,
   } = useQuery({
     queryKey: collectionKeys.status(activeJobId || ''),
     queryFn: () => getJobStatus(activeJobId!),

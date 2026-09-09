@@ -4,6 +4,12 @@ export type TimelineWorkspaceMode = 'basic' | 'robust'
 export type TimelineEventAssessment = 'unreviewed' | 'corroborated' | 'disputed' | 'hypothesis'
 export type TimelineQuestionStatus = 'open' | 'answered'
 
+export interface TimelineSourceReference {
+  id: string
+  url: string
+  title?: string
+}
+
 export interface TimelineWorkspaceEvent extends TimelineEvent {
   id: string
   origin: 'source' | 'analyst'
@@ -20,6 +26,7 @@ export interface TimelineWorkspaceQuestion {
   question: string
   status: TimelineQuestionStatus
   answer: string
+  sources?: TimelineSourceReference[]
 }
 
 export interface TimelineWorkspaceHypothesis {
@@ -31,14 +38,21 @@ export interface TimelineWorkspaceHypothesis {
   origin: 'ai'
 }
 
+export interface TimelineWorkspaceState {
+  mode: TimelineWorkspaceMode
+  events: TimelineWorkspaceEvent[]
+  questions: TimelineWorkspaceQuestion[]
+  hypotheses: TimelineWorkspaceHypothesis[]
+}
+
+export interface TimelineManualSource {
+  schemaVersion: 'timeline-manual.v1'
+  title: string
+}
+
 export interface TimelineWorkspaceExport {
   schemaVersion: 'timeline-workspace.v1'
   exportedAt: string
-  source: TimelineAnalysisResult
-  analystWorkspace: {
-    mode: TimelineWorkspaceMode
-    events: TimelineWorkspaceEvent[]
-    questions: TimelineWorkspaceQuestion[]
-    hypotheses: TimelineWorkspaceHypothesis[]
-  }
+  source: TimelineAnalysisResult | TimelineManualSource
+  analystWorkspace: TimelineWorkspaceState
 }

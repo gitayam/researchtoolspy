@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import type { Page } from '@playwright/test'
 
 const articleUrl = 'https://publisher.example/2026/09/story'
 const extractedText = Array.from(
@@ -63,6 +64,11 @@ function contentAnalysisResponse() {
   }
 }
 
+async function openArticleTimeline(page: Page): Promise<void> {
+  await page.goto('/dashboard/tools/timeline')
+  await page.getByRole('button', { name: 'Extract an article' }).click()
+}
+
 test.describe('Timeline research tool @smoke', () => {
   test('@smoke dedicated tool works as a guest with the versioned contract', async ({ page }) => {
     let timelineRequest: { headers: Record<string, string>, body: Record<string, unknown> } | null = null
@@ -75,7 +81,7 @@ test.describe('Timeline research tool @smoke', () => {
       await route.fulfill({ status: 200, json: timelineResponse })
     })
 
-    await page.goto('/dashboard/tools/timeline')
+    await openArticleTimeline(page)
     await expect(page.getByRole('heading', { name: 'Timeline Analysis' })).toBeVisible()
     await expect(page.getByText('No login is required.')).toBeVisible()
     await page.getByLabel('Article URL').fill(articleUrl)
@@ -122,7 +128,7 @@ test.describe('Timeline research tool @smoke', () => {
       })
     })
 
-    await page.goto('/dashboard/tools/timeline')
+    await openArticleTimeline(page)
     await page.getByLabel('Article URL').fill(articleUrl)
     await page.getByRole('button', { name: 'Build Timeline' }).click()
 
@@ -183,9 +189,69 @@ test.describe('Timeline research tool @smoke', () => {
 
     await manualQuestion.locator('..').locator('..').getByRole('button', { name: 'Edit question' }).click()
     await page.getByLabel('Evidence-backed answer (optional)').fill('A follow-up source documented an intervening meeting.')
+    await page.getByLabel('Source URL (optional)').fill('https://records.example/intervening-meeting')
+    await page.getByLabel('Source title (optional)').fill('Meeting record')
     await page.getByRole('button', { name: 'Save question' }).click()
     await expect(page.getByText('Answered')).toBeVisible()
     await expect(page.getByText('A follow-up source documented an intervening meeting.')).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Meeting record' })).toHaveAttribute('href', 'https://records.example/intervening-meeting')
+    const researchLink = manualQuestion.locator('..').locator('..').getByRole('link', { name: 'Research this question' })
+    await expect(researchLink).toHaveAttribute('href', /\/dashboard\/tools\/collection\?query=What%20happened/)
+    const researchPagePromise = page.waitForEvent('popup')
+    await researchLink.click()
+    const researchPage = await researchPagePromise
+    await expect(researchPage.getByLabel('Research Query')).toHaveValue('What happened during the two-day reporting gap?')
+    await researchPage.close()
+  })
+
+  test('@smoke analyst can start from known events and resume the browser draft', async ({ page }) => {
+    await page.route('**/api/workspaces', route => route.fulfill({ status: 200, json: { owned: [], member: [] } }))
+    await page.goto('/dashboard/tools/timeline')
+    await expect(page.getByRole('button', { name: 'Start with what you know' })).toHaveAttribute('aria-pressed', 'true')
+    await page.getByLabel('Investigation or timeline title').fill('September reporting gap')
+    await page.getByRole('button', { name: 'Create timeline' }).click()
+
+    await expect(page.getByRole('button', { name: 'Robust analyst' })).toHaveAttribute('aria-pressed', 'true')
+    await expect(page.getByText('Analyst-created', { exact: true })).toBeVisible()
+    await page.getByRole('button', { name: 'Add first event' }).click()
+    const eventDialog = page.getByRole('dialog')
+    await eventDialog.getByLabel('Date').fill('2026-09-01')
+    await eventDialog.getByLabel('Title').fill('Last confirmed public report')
+    await page.getByRole('button', { name: 'Save event' }).click()
+
+    await page.getByRole('button', { name: 'Add question', exact: true }).click()
+    await page.getByRole('textbox', { name: 'Question', exact: true }).fill('What happened during September?')
+    await page.getByRole('button', { name: 'Save question' }).click()
+
+    await expect.poll(async () => page.evaluate(() => {
+      const raw = localStorage.getItem('researchtools.timeline.manual-draft.v1')
+      if (!raw) return null
+      const draft = JSON.parse(raw)
+      return {
+        version: draft.schemaVersion,
+        events: draft.workspace.events.length,
+        questions: draft.workspace.questions.length,
+      }
+    })).toEqual({ version: 'timeline-browser-draft.v1', events: 1, questions: 1 })
+
+    await page.reload()
+    await page.getByRole('button', { name: 'Resume draft' }).click()
+    await expect(page.getByText('Last confirmed public report')).toBeVisible()
+    await expect(page.getByText('What happened during September?')).toBeVisible()
+  })
+
+  test('@smoke expired manual browser drafts are discarded', async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('researchtools.timeline.manual-draft.v1', JSON.stringify({
+        schemaVersion: 'timeline-browser-draft.v1',
+        expiresAt: '2020-01-01T00:00:00.000Z',
+      }))
+    })
+    await page.route('**/api/workspaces', route => route.fulfill({ status: 200, json: { owned: [], member: [] } }))
+    await page.goto('/dashboard/tools/timeline')
+
+    await expect(page.getByRole('button', { name: 'Resume draft' })).toHaveCount(0)
+    await expect.poll(() => page.evaluate(() => localStorage.getItem('researchtools.timeline.manual-draft.v1'))).toBeNull()
   })
 
   test('@smoke Content Intelligence reuses extracted text for timeline analysis', async ({ page }) => {
@@ -235,7 +301,7 @@ test.describe('Timeline research tool @smoke', () => {
       await route.fulfill({ status: 200, json: timelineResponse })
     })
 
-    await page.goto('/dashboard/tools/timeline')
+    await openArticleTimeline(page)
     await page.evaluate(() => {
       localStorage.setItem('omnicore_tokens', JSON.stringify({ access_token: 'expired-token' }))
     })
@@ -259,7 +325,7 @@ test.describe('Timeline research tool @smoke', () => {
     await page.route('**/api/workspaces', route => route.fulfill({ status: 200, json: { owned: [], member: [] } }))
     await page.route('**/api/tools/extract-timeline', route => route.fulfill({ status: 200, json: responseBody }))
 
-    await page.goto('/dashboard/tools/timeline')
+    await openArticleTimeline(page)
     await page.getByLabel('Article URL').fill(articleUrl)
     await page.getByRole('button', { name: 'Build Timeline' }).click()
     await expect(page.getByText('No supported dated events found')).toBeVisible()

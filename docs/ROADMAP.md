@@ -56,6 +56,12 @@ Falsifiable gates:
 
 ### Interactive timeline analyst workspace (2026-09-08)
 
+- ✅ Timeline is now an investigation workspace, not only an extraction result.
+  Analysts can start with a named blank timeline, enter what they know, and add
+  unanswered questions before any source has been collected.
+- ✅ Manual guest timelines auto-save in that browser for seven days and can be
+  resumed after visiting other tools. Server-side saving, sharing, and teamwork
+  still require an authenticated writable workspace.
 - ✅ The dedicated Timeline tool and Content Intelligence now share one
   interactive overlay on top of the immutable `timeline-analysis.v1` response.
 - ✅ **Basic mode** supports adding an event before/after another event, strict
@@ -63,8 +69,8 @@ Falsifiable gates:
   chronological sorting, and provenance-aware Markdown copy.
 - ✅ **Robust analyst mode** adds source/analyst provenance, explicit
   `unreviewed|corroborated|disputed|hypothesis` assessments, analyst notes,
-  interval-level “What happened here?” information gaps, answer
-  recording, and `timeline-workspace.v1` JSON export.
+  interval-level “What happened here?” information gaps, answer recording,
+  per-answer source URLs/titles, and `timeline-workspace.v1` JSON export.
 - ✅ Added opt-in `timeline-assist.v1` AI review with three analyst-selected
   tasks: chronology-gap detection, collection-question generation, and working
   hypotheses. Whole-timeline and focused-interval reviews share the same strict,
@@ -80,9 +86,14 @@ Falsifiable gates:
   event marks it `Source · edited` and preserves the original event in JSON;
   questions remain separate from events so an information gap cannot silently
   become an asserted fact.
-- ✅ Guest use remains available and temporary. Regeneration resets the overlay;
-  the interface tells users to copy/export first. Saving and collaboration still
-  require an authenticated writable workspace.
+- ✅ Open questions can launch a prefilled Agentic Research collection in a new
+  tab, preserving the working timeline. The timeline also provides explicit
+  handoffs to ACH for competing explanations and Behavior Analysis for a
+  repeatable actor action + location; it does not send event chronology directly
+  into COM-B/BCW.
+- ✅ Guest use remains available and temporary. Manual drafts are browser-local
+  for seven days; extracted overlays reset on regeneration. Saving and
+  collaboration still require an authenticated writable workspace.
 - ⬜ Next: add authenticated promotion into an Investigation/COP using canonical
   evidence passages, per-event source links, and question-to-RFI/Answer Packet
   conversion. Gate persistence on 100% workspace authorization coverage and

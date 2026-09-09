@@ -107,7 +107,9 @@ export function parseTimelineAssistRequest(value: unknown): TimelineAssistReques
   if (value.schemaVersion !== TIMELINE_ASSIST_SCHEMA_VERSION) return null
   if (!(TIMELINE_ASSIST_ACTIONS as readonly unknown[]).includes(value.action)) return null
   if (!isRecord(value.article) || !hasOnlyKeys(value.article, ['url', 'title'])) return null
-  if (typeof value.article.url !== 'string' || value.article.url.length > 2_048 || !isSafeHttpUrl(value.article.url)) return null
+  if (typeof value.article.url !== 'string'
+    || value.article.url.length > 2_048
+    || (value.article.url.length > 0 && !isSafeHttpUrl(value.article.url))) return null
   if (typeof value.article.title !== 'string' || !value.article.title.trim() || value.article.title.length > 500) return null
   if (!Array.isArray(value.events) || value.events.length === 0 || value.events.length > 100) return null
   if (!value.events.every(validEvent)) return null
