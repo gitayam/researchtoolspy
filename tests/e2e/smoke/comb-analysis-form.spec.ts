@@ -31,10 +31,11 @@ test.describe('COM-B Analysis create form @smoke', () => {
   })
 
   test('renders the Behaviour & Theory glossary as a collapsible <details>', async ({ page }) => {
-    const summary = page.getByText('Definitions: behaviour and theory').first()
+    const summary = page.locator('summary').filter({ hasText: 'Definitions: behaviour and theory' }).first()
     await expect(summary).toBeVisible()
-    // Ensure it's a <summary> inside <details> and starts collapsed.
-    await expect(summary.locator('xpath=parent::summary')).toBeAttached()
+    // Ensure it is a <summary> inside a closed <details> element.
+    await expect(summary.locator('xpath=parent::details')).toBeAttached()
+    await expect(summary.locator('xpath=parent::details')).not.toHaveAttribute('open', '')
   })
 
   test('renders the APEASE evaluation section after COM-B components', async ({ page }) => {

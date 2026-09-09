@@ -107,7 +107,7 @@ export function AITimelineGenerator({
               AI Timeline Generator
             </DialogTitle>
             <DialogDescription>
-              Generate a detailed, step-by-step timeline with sub-steps and decision forks
+              Generate an analyst-reviewable decision sequence with optional state hypotheses, coping plans, and alternatives
             </DialogDescription>
           </DialogHeader>
 
@@ -138,7 +138,9 @@ export function AITimelineGenerator({
                   <li>Chronological sequence of steps</li>
                   <li>Time estimates for each step</li>
                   <li>Sub-steps for complex actions</li>
-                  <li>Decision points and alternative paths (forks)</li>
+                  <li>Goal-oriented decision roles and alternative paths</li>
+                  <li>Optional psychological-state and COM-B target hypotheses</li>
+                  <li>Coping plans and competing behaviors</li>
                   <li>Location changes during the behavior</li>
                 </ul>
 
@@ -183,8 +185,10 @@ export function AITimelineGenerator({
                               {event.time && (
                                 <Badge variant="outline" className="text-xs">{event.time}</Badge>
                               )}
-                              {event.is_decision_point && (
-                                <Badge variant="secondary" className="text-xs">Decision Point</Badge>
+                              {(event.decision_type || event.is_decision_point) && (
+                                <Badge variant="secondary" className="text-xs">
+                                  {(event.decision_type || 'decision_point').replace(/_/g, ' ')}
+                                </Badge>
                               )}
                             </div>
                             {event.description && (
@@ -192,6 +196,28 @@ export function AITimelineGenerator({
                             )}
                             {event.location && (
                               <p className="text-xs text-gray-500 mt-1">📍 {event.location}</p>
+                            )}
+                            {event.psychological_state && (
+                              <p className="mt-1 text-xs text-gray-500">
+                                State hypothesis: {event.psychological_state.stage.replace(/_/g, ' ')} · {event.psychological_state.phase} · {event.psychological_state.motivation_mode.replace(/_/g, ' ')}
+                              </p>
+                            )}
+                            {event.com_b_target && (
+                              <p className="mt-1 text-xs text-gray-500">
+                                COM-B target hypothesis: {event.com_b_target.replace(/_/g, ' ')}
+                              </p>
+                            )}
+                            {!!event.competing_behaviours?.length && (
+                              <p className="mt-1 text-xs text-gray-500">
+                                Competing: {event.competing_behaviours.join(', ')}
+                              </p>
+                            )}
+                            {!!event.coping_branches?.length && (
+                              <ul className="mt-1 text-xs text-gray-500">
+                                {event.coping_branches.map((branch, branchIndex) => (
+                                  <li key={branchIndex}>If {branch.obstacle}, then {branch.response}</li>
+                                ))}
+                              </ul>
                             )}
                             {event.sub_steps && event.sub_steps.length > 0 && (
                               <ul className="text-sm text-gray-600 dark:text-gray-400 mt-2 ml-4 space-y-1">

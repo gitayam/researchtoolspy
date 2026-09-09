@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Plus, Trash2, ChevronDown, ChevronRight, GitFork, GripVertical, Link as LinkIcon, ExternalLink, Layers } from 'lucide-react'
+import { useId, useRef, useState } from 'react'
+import { Plus, Trash2, ChevronDown, ChevronRight, GitFork, GripVertical, Link as LinkIcon, Layers } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import type { TimelineEvent as BehaviorTimelineEvent, BehaviorMetadata } from '@/types/behavior'
 import { BehaviorSearchDialog } from './BehaviorSearchDialog'
+import { BehaviorTimelineEventDetails, BehaviorTimelineEventSummary } from './BehaviorTimelineEventDetails'
 
 // Re-export the type from behavior for external use
 export type { TimelineEvent } from '@/types/behavior'
@@ -24,6 +25,8 @@ interface BehaviorTimelineProps {
 }
 
 export function BehaviorTimeline({ events, onChange, readOnly = false }: BehaviorTimelineProps) {
+  const timelineInstanceId = useId().replace(/[^a-zA-Z0-9_-]/g, '')
+  const nextEventSequence = useRef(events.length)
   const [expandedEvents, setExpandedEvents] = useState<Set<string>>(new Set())
   const [editingEvent, setEditingEvent] = useState<string | null>(null)
   const [draggedEvent, setDraggedEvent] = useState<string | null>(null)
@@ -34,7 +37,11 @@ export function BehaviorTimeline({ events, onChange, readOnly = false }: Behavio
   const uiEvents: TimelineEventUI[] = events.map((e, i) => ({ ...e, order: i }))
 
   const toExternal = (uiEvents: TimelineEventUI[]): BehaviorTimelineEvent[] => {
-    return uiEvents.map(({ order, ...e }) => e)
+    return uiEvents.map((event) => {
+      const external = { ...event } as Partial<TimelineEventUI>
+      delete external.order
+      return external as BehaviorTimelineEvent
+    })
   }
 
   const toggleExpanded = (eventId: string) => {
@@ -49,57 +56,13 @@ export function BehaviorTimeline({ events, onChange, readOnly = false }: Behavio
 
   const addEvent = () => {
     const newEvent: TimelineEventUI = {
-      id: `event-${Date.now()}-${Math.random()}`,
+      id: `event-${timelineInstanceId}-${nextEventSequence.current++}`,
       label: '',
       order: uiEvents.length
     }
 
     onChange(toExternal([...uiEvents, newEvent]))
     setEditingEvent(newEvent.id)
-  }
-
-  const addSubStep = (eventId: string) => {
-    const updatedEvents = uiEvents.map(event => {
-      if (event.id === eventId) {
-        return {
-          ...event,
-          sub_steps: [
-            ...(event.sub_steps || []),
-            {
-              label: '',
-              description: '',
-              duration: ''
-            }
-          ]
-        }
-      }
-      return event
-    })
-
-    onChange(toExternal(updatedEvents))
-    setExpandedEvents(new Set([...expandedEvents, eventId]))
-  }
-
-  const addFork = (eventId: string) => {
-    const updatedEvents = uiEvents.map(event => {
-      if (event.id === eventId) {
-        return {
-          ...event,
-          forks: [
-            ...(event.forks || []),
-            {
-              condition: '',
-              label: '',
-              path: []
-            }
-          ]
-        }
-      }
-      return event
-    })
-
-    onChange(toExternal(updatedEvents))
-    setExpandedEvents(new Set([...expandedEvents, eventId]))
   }
 
   const updateEvent = (eventId: string, updates: Partial<TimelineEventUI>) => {
@@ -193,6 +156,17 @@ export function BehaviorTimeline({ events, onChange, readOnly = false }: Behavio
 
   const renderEvent = (event: TimelineEventUI) => {
     const isEditing = editingEvent === event.id
+    const isExpanded = expandedEvents.has(event.id)
+    const hasDetails = Boolean(
+      event.decision_type
+      || event.is_decision_point !== undefined
+      || event.psychological_state
+      || event.com_b_target
+      || event.coping_branches?.length
+      || event.competing_behaviours?.length
+      || event.sub_steps?.length
+      || event.forks?.length
+    )
 
     return (
       <div key={event.id} className="relative">
@@ -258,7 +232,7 @@ export function BehaviorTimeline({ events, onChange, readOnly = false }: Behavio
                           variant="outline"
                           onClick={() => setEditingEvent(null)}
                         >
-                          Cancel
+                          Close
                         </Button>
                       </div>
                     </div>
@@ -282,6 +256,7 @@ export function BehaviorTimeline({ events, onChange, readOnly = false }: Behavio
                               <span>📍 {event.location}</span>
                             )}
                           </div>
+                          <BehaviorTimelineEventSummary event={event} />
                           {/* Show sub-steps if any */}
                           {event.sub_steps && event.sub_steps.length > 0 && (
                             <div className="mt-2 pl-4 border-l-2 border-gray-300 space-y-1">
@@ -378,22 +353,27 @@ export function BehaviorTimeline({ events, onChange, readOnly = false }: Behavio
                 </div>
               </div>
 
-              {/* Add sub-step, link behavior, and fork buttons */}
-              {!readOnly && !isEditing && (
-                <div className="flex gap-2 mt-3 ml-8 flex-wrap">
+              <div className="mt-3 ml-8 flex flex-wrap gap-2">
+                {(!readOnly || hasDetails) && (
                   <Button
+                    type="button"
                     size="sm"
                     variant="outline"
                     onClick={(e) => {
                       e.stopPropagation()
-                      addSubStep(event.id)
+                      toggleExpanded(event.id)
                     }}
+                    aria-expanded={isExpanded}
+                    aria-controls={`event-details-panel-${event.id}`}
                     className="text-xs"
                   >
-                    <Plus className="h-3 w-3 mr-1" />
-                    Add Sub-step
+                    {isExpanded ? <ChevronDown className="mr-1 h-3 w-3" /> : <ChevronRight className="mr-1 h-3 w-3" />}
+                    {isExpanded ? 'Hide decision details' : 'Show decision details'}
                   </Button>
+                )}
+                {!readOnly && !isEditing && (
                   <Button
+                    type="button"
                     size="sm"
                     variant="outline"
                     onClick={(e) => {
@@ -406,18 +386,20 @@ export function BehaviorTimeline({ events, onChange, readOnly = false }: Behavio
                     <LinkIcon className="h-3 w-3 mr-1" />
                     Link Behavior
                   </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      addFork(event.id)
-                    }}
-                    className="text-xs text-purple-600 border-purple-300 hover:bg-purple-50 dark:hover:bg-purple-900/20"
-                  >
-                    <GitFork className="h-3 w-3 mr-1" />
-                    Add Fork (Alternative)
-                  </Button>
+                )}
+              </div>
+
+              {isExpanded && (
+                <div
+                  id={`event-details-panel-${event.id}`}
+                  className="mt-4 border-t pt-4"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <BehaviorTimelineEventDetails
+                    event={event}
+                    readOnly={readOnly}
+                    onUpdate={(updates) => updateEvent(event.id, updates)}
+                  />
                 </div>
               )}
             </CardContent>
@@ -433,7 +415,7 @@ export function BehaviorTimeline({ events, onChange, readOnly = false }: Behavio
         <div>
           <h3 className="text-lg font-semibold">Behavior Timeline</h3>
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            Document when, where, and how long the behavior occurs. Add sub-steps and alternative paths (forks).
+            Map the actor's observable steps, goal-oriented decisions, coping plans, and alternative paths.
           </p>
         </div>
         {!readOnly && (
@@ -465,6 +447,7 @@ export function BehaviorTimeline({ events, onChange, readOnly = false }: Behavio
           <ul className="list-disc list-inside space-y-1 text-blue-800 dark:text-blue-200">
             <li>Drag events to reorder or use ← → buttons to move chronologically</li>
             <li><strong>Sub-steps</strong>: Break down complex events into detailed steps</li>
+            <li><strong>Decision details</strong>: Classify choices, state hypotheses, coping plans, and competing behaviors</li>
             <li><strong>Link Behavior</strong>: Connect timeline events to existing behavior analyses for composable workflows</li>
             <li><strong>Forks</strong>: Show alternative paths or parallel possibilities (marked with purple border)</li>
             <li>Click any event to edit time, location, and duration details</li>

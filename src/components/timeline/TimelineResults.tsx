@@ -41,6 +41,13 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { inferTimelineDatePrecision } from '@/lib/timeline-analysis'
 import { assistTimeline, TimelineAssistError } from '@/lib/timeline-assist'
+import {
+  normalizeTimelineEventOrder,
+  orderTimelineEvents,
+  placeTimelineEvent,
+  removeTimelineEvent,
+  timelineEventTemporalLabel,
+} from '@/lib/timeline-workspace'
 import type {
   TimelineAnalysisResult,
   TimelineEventCategory,
@@ -49,6 +56,7 @@ import type {
 import type { TimelineAssistAction, TimelineAssistInput, TimelineAssistSuggestion } from '@/types/timeline-assist'
 import type {
   TimelineEventAssessment,
+  TimelineEventPlacement,
   TimelineWorkspaceEvent,
   TimelineWorkspaceExport,
   TimelineWorkspaceHypothesis,
@@ -70,9 +78,13 @@ interface TimelineResultsProps {
 
 interface EventEditorState {
   eventId?: string
-  afterEventId?: string
-  beforeEventId?: string
   eventDate: string
+  eventTime: string
+  placementMode: TimelineEventPlacement['mode']
+  relativeRelation: 'before' | 'after'
+  anchorEventId: string
+  positionChoice: 'first' | 'second' | 'third' | 'second_to_last' | 'last' | 'custom'
+  positionNumber: string
   title: string
   description: string
   category: TimelineEventCategory
@@ -137,6 +149,8 @@ function workspaceEvents(result: TimelineAnalysisResult): TimelineWorkspaceEvent
     assessment: 'unreviewed',
     analystNote: '',
     modified: false,
+    sequenceOrder: index,
+    placement: { mode: 'absolute' },
   }))
 }
 
@@ -157,7 +171,7 @@ function timelineMarkdown(
     const provenance = event.origin === 'source'
       ? event.modified ? 'source extraction, analyst edited' : 'source extraction'
       : 'analyst added'
-    lines.push(`- **${event.eventDate}** — ${event.title} _[${provenance}; ${event.assessment}]_`)
+    lines.push(`- **${timelineEventTemporalLabel(event)}** — ${event.title} _[${provenance}; ${event.assessment}]_`)
     if (event.description) lines.push(`  ${event.description}`)
     if (event.analystNote) lines.push(`  Analyst note: ${event.analystNote}`)
   }
@@ -187,10 +201,30 @@ function selectClasses(): string {
 }
 
 function gapLabel(previous?: TimelineWorkspaceEvent, next?: TimelineWorkspaceEvent): string {
-  if (!previous && next) return `before ${next.eventDate}`
-  if (previous && !next) return `after ${previous.eventDate}`
-  if (previous && next) return `between ${previous.eventDate} and ${next.eventDate}`
+  if (!previous && next) return `before ${timelineEventTemporalLabel(next)}`
+  if (previous && !next) return `after ${timelineEventTemporalLabel(previous)}`
+  if (previous && next) return `between ${timelineEventTemporalLabel(previous)} and ${timelineEventTemporalLabel(next)}`
   return 'in this timeline'
+}
+
+function positionChoiceFor(position: number, eventCount: number): EventEditorState['positionChoice'] {
+  if (position === 1) return 'first'
+  if (position === 2) return 'second'
+  if (position === 3) return 'third'
+  if (position === eventCount) return 'last'
+  if (position === Math.max(1, eventCount - 1)) return 'second_to_last'
+  return 'custom'
+}
+
+function resolvePosition(editor: EventEditorState, availableEventCount: number): number | null {
+  const maximum = availableEventCount + 1
+  if (editor.positionChoice === 'first') return 1
+  if (editor.positionChoice === 'second') return Math.min(2, maximum)
+  if (editor.positionChoice === 'third') return Math.min(3, maximum)
+  if (editor.positionChoice === 'second_to_last') return Math.max(1, maximum - 1)
+  if (editor.positionChoice === 'last') return maximum
+  const position = Number(editor.positionNumber)
+  return Number.isInteger(position) && position >= 1 && position <= maximum ? position : null
 }
 
 export function TimelineResults(props: TimelineResultsProps) {
@@ -207,7 +241,9 @@ function TimelineWorkspace({
 }: TimelineResultsProps) {
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'error'>('idle')
   const [mode, setMode] = useState<TimelineWorkspaceMode>(() => initialWorkspace?.mode || (workspaceOrigin === 'manual' ? 'robust' : 'basic'))
-  const [events, setEvents] = useState<TimelineWorkspaceEvent[]>(() => initialWorkspace?.events || workspaceEvents(result))
+  const [events, setEvents] = useState<TimelineWorkspaceEvent[]>(() => (
+    normalizeTimelineEventOrder(initialWorkspace?.events || workspaceEvents(result))
+  ))
   const [questions, setQuestions] = useState<TimelineWorkspaceQuestion[]>(() => initialWorkspace?.questions || [])
   const [hypotheses, setHypotheses] = useState<TimelineWorkspaceHypothesis[]>(() => initialWorkspace?.hypotheses || [])
   const [eventEditor, setEventEditor] = useState<EventEditorState | null>(null)
@@ -219,10 +255,7 @@ function TimelineWorkspace({
   const [assistError, setAssistError] = useState<string | null>(null)
   const copyResetRef = useRef<number | null>(null)
   const assistRequestRef = useRef<AbortController | null>(null)
-  const sortedEvents = useMemo(
-    () => [...events].sort((left, right) => left.eventDate.localeCompare(right.eventDate) || left.title.localeCompare(right.title)),
-    [events],
-  )
+  const sortedEvents = useMemo(() => orderTimelineEvents(events), [events])
   const firstOpenQuestion = questions.find(question => question.status === 'open')
 
   useEffect(() => () => {
@@ -265,12 +298,16 @@ function TimelineWorkspace({
     window.setTimeout(() => URL.revokeObjectURL(blobUrl), 0)
   }
 
-  const openAddEvent = (afterEventId?: string, beforeEventId?: string) => {
+  const openAddEvent = (placement?: { anchorEventId: string, relation: 'before' | 'after' }) => {
     setEditorError(null)
     setEventEditor({
-      afterEventId,
-      beforeEventId,
       eventDate: '',
+      eventTime: '',
+      placementMode: placement ? 'relative' : 'absolute',
+      relativeRelation: placement?.relation || 'after',
+      anchorEventId: placement?.anchorEventId || sortedEvents[0]?.id || '',
+      positionChoice: sortedEvents.length === 0 ? 'first' : 'last',
+      positionNumber: String(sortedEvents.length + 1),
       title: '',
       description: '',
       category: 'event',
@@ -281,10 +318,23 @@ function TimelineWorkspace({
   }
 
   const openEditEvent = (event: TimelineWorkspaceEvent) => {
+    const placement = event.placement || { mode: 'absolute' as const }
+    const currentPosition = sortedEvents.findIndex(candidate => candidate.id === event.id) + 1
     setEditorError(null)
     setEventEditor({
       eventId: event.id,
-      eventDate: event.eventDate,
+      eventDate: event.eventDate || '',
+      eventTime: event.eventTime || '',
+      placementMode: placement.mode,
+      relativeRelation: placement.mode === 'relative' ? placement.relation : 'after',
+      anchorEventId: placement.mode === 'relative'
+        ? placement.anchorEventId
+        : sortedEvents.find(candidate => candidate.id !== event.id)?.id || '',
+      positionChoice: positionChoiceFor(
+        placement.mode === 'position' ? placement.position : currentPosition,
+        sortedEvents.length,
+      ),
+      positionNumber: String(placement.mode === 'position' ? placement.position : currentPosition),
       title: event.title,
       description: event.description || '',
       category: event.category,
@@ -297,12 +347,21 @@ function TimelineWorkspace({
   const saveEvent = () => {
     if (!eventEditor) return
     const eventDate = eventEditor.eventDate.trim()
+    const eventTime = eventEditor.eventTime.trim()
     const title = eventEditor.title.trim()
     const description = eventEditor.description.trim()
     const analystNote = eventEditor.analystNote.trim()
-    const datePrecision = inferTimelineDatePrecision(eventDate)
-    if (!datePrecision) {
+    const datePrecision = eventDate ? inferTimelineDatePrecision(eventDate) : undefined
+    if (eventDate && !datePrecision) {
       setEditorError('Use a real date in YYYY, YYYY-MM, or YYYY-MM-DD format.')
+      return
+    }
+    if (eventTime && !/^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/.test(eventTime)) {
+      setEditorError('Use a real time in 24-hour HH:MM or HH:MM:SS format.')
+      return
+    }
+    if (eventEditor.placementMode === 'absolute' && !eventDate && !eventTime) {
+      setEditorError('Add a date or time, or choose a relative or sequence placement.')
       return
     }
     if (!title) {
@@ -314,26 +373,53 @@ function TimelineWorkspace({
       return
     }
 
+    const availableEvents = sortedEvents.filter(event => event.id !== eventEditor.eventId)
+    let placement: TimelineEventPlacement
+    if (eventEditor.placementMode === 'relative') {
+      if (!eventEditor.anchorEventId || !availableEvents.some(event => event.id === eventEditor.anchorEventId)) {
+        setEditorError('Choose an existing event to place this event before or after.')
+        return
+      }
+      placement = {
+        mode: 'relative',
+        relation: eventEditor.relativeRelation,
+        anchorEventId: eventEditor.anchorEventId,
+      }
+    } else if (eventEditor.placementMode === 'position') {
+      const position = resolvePosition(eventEditor, availableEvents.length)
+      if (!position) {
+        setEditorError(`Use a sequence position from 1 to ${availableEvents.length + 1}.`)
+        return
+      }
+      placement = { mode: 'position', position }
+    } else {
+      placement = { mode: 'absolute' }
+    }
+
     if (eventEditor.eventId) {
-      setEvents(current => current.map(event => {
-        if (event.id !== eventEditor.eventId) return event
-        const contentChanged = event.eventDate !== eventDate
+      setEvents(current => {
+        const event = current.find(candidate => candidate.id === eventEditor.eventId)
+        if (!event) return current
+        const contentChanged = (event.eventDate || '') !== eventDate
+          || (event.eventTime || '') !== eventTime
           || event.title !== title
           || (event.description || '') !== description
           || event.category !== eventEditor.category
           || event.importance !== eventEditor.importance
-        return {
-            ...event,
-            eventDate,
-            datePrecision,
-            title,
-            description: description || null,
-            category: eventEditor.category,
-            importance: eventEditor.importance,
-            assessment: eventEditor.assessment,
-            analystNote,
-            modified: event.modified || contentChanged,
-            original: event.original || (event.origin === 'source' && contentChanged
+        const placementChanged = JSON.stringify(event.placement || { mode: 'absolute' }) !== JSON.stringify(placement)
+        const nextEvent: TimelineWorkspaceEvent = {
+          ...event,
+          eventDate: eventDate || undefined,
+          eventTime: eventTime || undefined,
+          datePrecision,
+          title,
+          description: description || null,
+          category: eventEditor.category,
+          importance: eventEditor.importance,
+          assessment: eventEditor.assessment,
+          analystNote,
+          modified: event.modified || contentChanged || placementChanged,
+          original: event.original || (event.origin === 'source' && contentChanged && event.eventDate && event.datePrecision
               ? {
                   eventDate: event.eventDate,
                   datePrecision: event.datePrecision,
@@ -342,23 +428,25 @@ function TimelineWorkspace({
                   category: event.category,
                   importance: event.importance,
                 }
-              : undefined),
-          }
-      }))
+            : undefined),
+        }
+        return placeTimelineEvent(current, nextEvent, placement)
+      })
     } else {
-      setEvents(current => [...current, {
+      setEvents(current => placeTimelineEvent(current, {
         id: createId('analyst'),
         origin: 'analyst',
         assessment: eventEditor.assessment,
         analystNote,
         modified: false,
-        eventDate,
+        eventDate: eventDate || undefined,
+        eventTime: eventTime || undefined,
         datePrecision,
         title,
         description: description || null,
         category: eventEditor.category,
         importance: eventEditor.importance,
-      }])
+      }, placement))
     }
     setEventEditor(null)
     setEditorError(null)
@@ -368,7 +456,7 @@ function TimelineWorkspace({
     const index = sortedEvents.findIndex(event => event.id === eventId)
     const previousId = index > 0 ? sortedEvents[index - 1].id : undefined
     const nextId = index >= 0 && index < sortedEvents.length - 1 ? sortedEvents[index + 1].id : undefined
-    setEvents(current => current.filter(event => event.id !== eventId))
+    setEvents(current => removeTimelineEvent(current, eventId))
     setQuestions(current => current.map(question => ({
       ...question,
       afterEventId: question.afterEventId === eventId ? previousId : question.afterEventId,
@@ -637,7 +725,15 @@ function TimelineWorkspace({
           {gapHypotheses.map(renderHypothesis)}
           <div className="flex flex-wrap items-center justify-center gap-1">
             <span className="mr-1 text-xs text-muted-foreground">{gapLabel(previous, next)}</span>
-            <Button variant="ghost" size="sm" onClick={() => openAddEvent(previous?.id, next?.id)}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => openAddEvent(previous
+                ? { anchorEventId: previous.id, relation: 'after' }
+                : next
+                  ? { anchorEventId: next.id, relation: 'before' }
+                  : undefined)}
+            >
               <Plus className="mr-1 h-3.5 w-3.5" />Add event here
             </Button>
             <Button variant="ghost" size="sm" onClick={() => openAddQuestion(previous?.id, next?.id)}>
@@ -871,7 +967,7 @@ function TimelineWorkspace({
       ) : (
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2"><Calendar className="h-5 w-5" />Chronological events</CardTitle>
+            <CardTitle className="flex items-center gap-2"><Calendar className="h-5 w-5" />Working event sequence</CardTitle>
           </CardHeader>
           <CardContent>
             <ol className="ml-3 border-l-2 border-blue-200 pl-6 dark:border-blue-900">
@@ -883,7 +979,18 @@ function TimelineWorkspace({
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
-                          <time dateTime={event.eventDate} className="font-mono text-sm font-semibold text-blue-700 dark:text-blue-300">{event.eventDate}</time>
+                          {event.eventDate ? (
+                            <time
+                              dateTime={`${event.eventDate}${event.eventTime && event.datePrecision === 'day' ? `T${event.eventTime}` : ''}`}
+                              className="font-mono text-sm font-semibold text-blue-700 dark:text-blue-300"
+                            >
+                              {timelineEventTemporalLabel(event)}
+                            </time>
+                          ) : (
+                            <span className="font-mono text-sm font-semibold text-blue-700 dark:text-blue-300">
+                              {timelineEventTemporalLabel(event)}
+                            </span>
+                          )}
                           <Badge variant="outline" className="capitalize">{event.category}</Badge>
                           {event.importance !== 'normal' && (
                             <Badge variant="outline" className={`capitalize ${importanceClasses[event.importance]}`}>{event.importance}</Badge>
@@ -893,6 +1000,12 @@ function TimelineWorkspace({
                           </Badge>
                           {mode === 'robust' && (
                             <Badge variant="outline" className={`capitalize ${assessmentClasses[event.assessment]}`}>{event.assessment}</Badge>
+                          )}
+                          {event.placement?.mode === 'relative' && (
+                            <Badge variant="outline">{event.placement.relation === 'before' ? 'Before event' : 'After event'}</Badge>
+                          )}
+                          {event.placement?.mode === 'position' && (
+                            <Badge variant="outline">Position {(event.sequenceOrder ?? index) + 1}</Badge>
                           )}
                         </div>
                         <h3 className="mt-2 font-semibold leading-snug">{event.title}</h3>
@@ -911,8 +1024,8 @@ function TimelineWorkspace({
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem onSelect={() => openEditEvent(event)}><Pencil className="mr-2 h-4 w-4" />Edit event</DropdownMenuItem>
-                          <DropdownMenuItem onSelect={() => openAddEvent(sortedEvents[index - 1]?.id, event.id)}><Plus className="mr-2 h-4 w-4" />Add event before</DropdownMenuItem>
-                          <DropdownMenuItem onSelect={() => openAddEvent(event.id, sortedEvents[index + 1]?.id)}><Plus className="mr-2 h-4 w-4" />Add event after</DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => openAddEvent({ anchorEventId: event.id, relation: 'before' })}><Plus className="mr-2 h-4 w-4" />Add event before</DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => openAddEvent({ anchorEventId: event.id, relation: 'after' })}><Plus className="mr-2 h-4 w-4" />Add event after</DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem className="text-red-600 focus:text-red-700" onSelect={() => removeEvent(event.id)}>
                             <Trash2 className="mr-2 h-4 w-4" />Remove from timeline
@@ -980,16 +1093,114 @@ function TimelineWorkspace({
             <DialogDescription>
               {eventEditor?.eventId
                 ? workspaceOrigin === 'manual'
-                  ? 'Update what you know while preserving its assessment and analyst notes.'
-                  : 'Changes are marked as analyst edits and preserve the original extracted event in JSON exports.'
-                : `This event will be labeled analyst added and placed chronologically by its date${eventEditor && (eventEditor.afterEventId || eventEditor.beforeEventId) ? ` (${gapLabel(sortedEvents.find(event => event.id === eventEditor.afterEventId), sortedEvents.find(event => event.id === eventEditor.beforeEventId))})` : ''}.`}
+                  ? 'Update what you know, including where it belongs in the working sequence.'
+                  : 'Changes are marked as analyst edits; the original extracted event remains in JSON exports.'
+                : 'This event will be labeled analyst added. Place it by date/time, relative to another event, or at a sequence position.'}
             </DialogDescription>
           </DialogHeader>
           {eventEditor && (
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="timeline-event-date">Date</Label>
-                <Input id="timeline-event-date" value={eventEditor.eventDate} onChange={event => setEventEditor({ ...eventEditor, eventDate: event.target.value })} placeholder="YYYY, YYYY-MM, or YYYY-MM-DD" />
+                <Label htmlFor="timeline-event-placement">Placement</Label>
+                <select
+                  id="timeline-event-placement"
+                  className={selectClasses()}
+                  value={eventEditor.placementMode}
+                  onChange={event => setEventEditor({
+                    ...eventEditor,
+                    placementMode: event.target.value as EventEditorState['placementMode'],
+                  })}
+                >
+                  <option value="absolute">At a date and/or time</option>
+                  <option value="relative" disabled={sortedEvents.filter(item => item.id !== eventEditor.eventId).length === 0}>Before or after an event</option>
+                  <option value="position">At a sequence position</option>
+                </select>
+                <p className="text-xs text-muted-foreground">
+                  {eventEditor.placementMode === 'absolute'
+                    ? 'The event is inserted chronologically. A time can be recorded even when the date is unknown.'
+                    : eventEditor.placementMode === 'relative'
+                      ? 'The event is inserted directly before or after the selected event.'
+                      : 'Choose a common position or enter an exact 1-based position.'}
+                </p>
+              </div>
+              {eventEditor.placementMode === 'relative' && (
+                <div className="grid gap-4 sm:grid-cols-[140px_minmax(0,1fr)]">
+                  <div className="space-y-2">
+                    <Label htmlFor="timeline-event-relation">Relation</Label>
+                    <select
+                      id="timeline-event-relation"
+                      className={selectClasses()}
+                      value={eventEditor.relativeRelation}
+                      onChange={event => setEventEditor({
+                        ...eventEditor,
+                        relativeRelation: event.target.value as EventEditorState['relativeRelation'],
+                      })}
+                    >
+                      <option value="before">Before</option>
+                      <option value="after">After</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="timeline-event-anchor">Reference event</Label>
+                    <select
+                      id="timeline-event-anchor"
+                      className={selectClasses()}
+                      value={eventEditor.anchorEventId}
+                      onChange={event => setEventEditor({ ...eventEditor, anchorEventId: event.target.value })}
+                    >
+                      {sortedEvents.filter(item => item.id !== eventEditor.eventId).map(item => (
+                        <option key={item.id} value={item.id}>{timelineEventTemporalLabel(item)} — {item.title}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
+              {eventEditor.placementMode === 'position' && (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="timeline-event-position-choice">Sequence position</Label>
+                    <select
+                      id="timeline-event-position-choice"
+                      className={selectClasses()}
+                      value={eventEditor.positionChoice}
+                      onChange={event => setEventEditor({
+                        ...eventEditor,
+                        positionChoice: event.target.value as EventEditorState['positionChoice'],
+                      })}
+                    >
+                      <option value="first">First</option>
+                      <option value="second">Second</option>
+                      <option value="third">Third</option>
+                      <option value="second_to_last">Second to last</option>
+                      <option value="last">Last</option>
+                      <option value="custom">Exact position…</option>
+                    </select>
+                  </div>
+                  {eventEditor.positionChoice === 'custom' && (
+                    <div className="space-y-2">
+                      <Label htmlFor="timeline-event-position-number">Position number</Label>
+                      <Input
+                        id="timeline-event-position-number"
+                        type="number"
+                        min={1}
+                        max={sortedEvents.filter(item => item.id !== eventEditor.eventId).length + 1}
+                        step={1}
+                        value={eventEditor.positionNumber}
+                        onChange={event => setEventEditor({ ...eventEditor, positionNumber: event.target.value })}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="timeline-event-date">Date{eventEditor.placementMode === 'absolute' ? '' : ' (optional)'}</Label>
+                  <Input id="timeline-event-date" value={eventEditor.eventDate} onChange={event => setEventEditor({ ...eventEditor, eventDate: event.target.value })} placeholder="YYYY, YYYY-MM, or YYYY-MM-DD" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="timeline-event-time">Time{eventEditor.placementMode === 'absolute' ? '' : ' (optional)'}</Label>
+                  <Input id="timeline-event-time" type="time" step={1} value={eventEditor.eventTime} onChange={event => setEventEditor({ ...eventEditor, eventTime: event.target.value })} />
+                </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="timeline-event-title">Title</Label>

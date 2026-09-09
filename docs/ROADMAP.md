@@ -64,9 +64,13 @@ Falsifiable gates:
   still require an authenticated writable workspace.
 - ✅ The dedicated Timeline tool and Content Intelligence now share one
   interactive overlay on top of the immutable `timeline-analysis.v1` response.
-- ✅ **Basic mode** supports adding an event before/after another event, strict
-  calendar-valid partial dates, working-copy edits/removal, automatic
-  chronological sorting, and provenance-aware Markdown copy.
+- ✅ **Basic mode** supports absolute date and/or time placement, true
+  before/after placement against an existing event, and direct sequence
+  placement (first, second, third, second-to-last, last, or an exact position).
+  The persisted working order supports time-only and intentionally undated
+  events without fabricating a date; dated absolute events remain chronological.
+  Working-copy edits/removal and provenance-aware Markdown copy preserve the
+  same placement semantics.
 - ✅ **Robust analyst mode** adds source/analyst provenance, explicit
   `unreviewed|corroborated|disputed|hypothesis` assessments, analyst notes,
   interval-level “What happened here?” information gaps, answer recording,
@@ -74,7 +78,9 @@ Falsifiable gates:
 - ✅ Added opt-in `timeline-assist.v1` AI review with three analyst-selected
   tasks: chronology-gap detection, collection-question generation, and working
   hypotheses. Whole-timeline and focused-interval reviews share the same strict,
-  bounded contract.
+  bounded contract. AI receives the authoritative working position plus only
+  the date/time the analyst actually supplied, so undated events remain usable
+  without being converted into false timestamps.
 - ✅ AI suggestions enter a review queue rather than mutating events. Accepted
   questions remain information gaps; retained AI hypotheses remain visibly
   tentative and cannot inherit source provenance. The endpoint has no browsing
@@ -91,6 +97,11 @@ Falsifiable gates:
   handoffs to ACH for competing explanations and Behavior Analysis for a
   repeatable actor action + location; it does not send event chronology directly
   into COM-B/BCW.
+- ✅ Behavior Analysis decision sequences now expose goal-oriented decision type,
+  TTM/HAPA/motivation-state hypotheses, coping branches, competing behaviors,
+  event-level COM-B target hypotheses, editable sub-steps, and editable fork
+  outcomes. The AI generator consumes the full behavior context and existing
+  sequence, then validates its rich output before analyst review.
 - ✅ Guest use remains available and temporary. Manual drafts are browser-local
   for seven days; extracted overlays reset on regeneration. Saving and
   collaboration still require an authenticated writable workspace.

@@ -135,7 +135,9 @@ test.describe('Timeline research tool @smoke', () => {
     await expect(page.getByRole('button', { name: 'Basic', exact: true })).toHaveAttribute('aria-pressed', 'true')
     await page.getByRole('button', { name: 'Actions for A source-backed event occurred' }).click()
     await page.getByRole('menuitem', { name: 'Add event before' }).click()
-    await expect(page.getByRole('dialog')).toContainText('before 2026-09-03')
+    await expect(page.getByLabel('Placement')).toHaveValue('relative')
+    await expect(page.getByLabel('Relation')).toHaveValue('before')
+    await expect(page.getByLabel('Reference event')).toHaveValue('source-req-ui-smoke-0')
     await page.getByLabel('Date').fill('2026-02-31')
     await page.getByLabel('Title').fill('Analyst supplied precursor')
     await page.getByRole('button', { name: 'Save event' }).click()
@@ -238,6 +240,87 @@ test.describe('Timeline research tool @smoke', () => {
     await page.getByRole('button', { name: 'Resume draft' }).click()
     await expect(page.getByText('Last confirmed public report')).toBeVisible()
     await expect(page.getByText('What happened during September?')).toBeVisible()
+  })
+
+  test('@smoke analyst can place events by date/time, relation, and sequence position', async ({ page }) => {
+    await page.route('**/api/workspaces', route => route.fulfill({ status: 200, json: { owned: [], member: [] } }))
+    await page.goto('/dashboard/tools/timeline')
+    await page.getByLabel('Investigation or timeline title').fill('Mixed precision sequence')
+    await page.getByRole('button', { name: 'Create timeline' }).click()
+
+    await page.getByRole('button', { name: 'Add first event' }).click()
+    await page.getByLabel('Date').fill('2026-09-01')
+    await page.getByLabel('Title').fill('Known first event')
+    await page.getByRole('button', { name: 'Save event' }).click()
+
+    await page.getByRole('button', { name: 'Add event', exact: true }).click()
+    await page.getByLabel('Date').fill('2026-09-10')
+    await page.getByRole('dialog').getByLabel('Time', { exact: true }).fill('18:15')
+    await page.getByLabel('Title').fill('Known later event')
+    await page.getByRole('button', { name: 'Save event' }).click()
+
+    await page.getByRole('button', { name: 'Add event', exact: true }).click()
+    await page.getByLabel('Placement').selectOption('position')
+    await page.getByLabel('Sequence position').selectOption('first')
+    await page.getByLabel('Title').fill('Sequence-only opening event')
+    await page.getByRole('button', { name: 'Save event' }).click()
+
+    await page.getByRole('button', { name: 'Actions for Known first event' }).click()
+    await page.getByRole('menuitem', { name: 'Add event after' }).click()
+    await expect(page.getByLabel('Placement')).toHaveValue('relative')
+    await page.getByRole('dialog').getByLabel('Time (optional)', { exact: true }).fill('14:30')
+    await page.getByLabel('Title').fill('Time-only relative event')
+    await page.getByRole('button', { name: 'Save event' }).click()
+
+    await page.getByRole('button', { name: 'Add event', exact: true }).click()
+    await page.getByLabel('Placement').selectOption('position')
+    await page.getByLabel('Sequence position').selectOption('custom')
+    await page.getByLabel('Position number').fill('2')
+    await page.getByLabel('Title').fill('Exact second event')
+    await page.getByRole('button', { name: 'Save event' }).click()
+
+    await page.getByRole('button', { name: 'Add event', exact: true }).click()
+    await page.getByLabel('Placement').selectOption('position')
+    await expect(page.getByLabel('Sequence position').locator('option')).toHaveText([
+      'First',
+      'Second',
+      'Third',
+      'Second to last',
+      'Last',
+      'Exact position…',
+    ])
+    await page.getByLabel('Sequence position').selectOption('second_to_last')
+    await page.getByLabel('Title').fill('Second-to-last event')
+    await page.getByRole('button', { name: 'Save event' }).click()
+
+    await expect(page.locator('ol h3')).toHaveText([
+      'Sequence-only opening event',
+      'Exact second event',
+      'Known first event',
+      'Time-only relative event',
+      'Second-to-last event',
+      'Known later event',
+    ])
+    await expect(page.getByText('14:30 (date unknown)', { exact: true })).toBeVisible()
+    await expect(page.getByText('Position 1', { exact: true })).toBeVisible()
+    await expect(page.getByText('After event', { exact: true })).toBeVisible()
+
+    const draftEvents = await page.evaluate(() => {
+      const draft = JSON.parse(localStorage.getItem('researchtools.timeline.manual-draft.v1') || '{}')
+      return draft.workspace.events.map((item: { title: string, sequenceOrder: number, placement?: { mode: string } }) => ({
+        title: item.title,
+        sequenceOrder: item.sequenceOrder,
+        placement: item.placement?.mode,
+      }))
+    })
+    expect(draftEvents).toEqual([
+      { title: 'Sequence-only opening event', sequenceOrder: 0, placement: 'position' },
+      { title: 'Exact second event', sequenceOrder: 1, placement: 'position' },
+      { title: 'Known first event', sequenceOrder: 2, placement: 'absolute' },
+      { title: 'Time-only relative event', sequenceOrder: 3, placement: 'relative' },
+      { title: 'Second-to-last event', sequenceOrder: 4, placement: 'position' },
+      { title: 'Known later event', sequenceOrder: 5, placement: 'absolute' },
+    ])
   })
 
   test('@smoke expired manual browser drafts are discarded', async ({ page }) => {

@@ -6,6 +6,7 @@ import type {
   TimelineAssistResult,
   TimelineAssistSuggestion,
 } from '@/types/timeline-assist'
+import { timelineEventTemporalLabel } from '@/lib/timeline-workspace'
 
 const SCHEMA_VERSION = 'timeline-assist.v1' as const
 const ACTIONS = new Set<TimelineAssistAction>(['identify_gaps', 'suggest_questions', 'generate_hypotheses'])
@@ -85,7 +86,9 @@ export async function assistTimeline(
   if (input.events.length > 100) throw new TimelineAssistError('AI review supports at most 100 events at a time.')
   const events: TimelineAssistRequestEvent[] = input.events.map(event => ({
     id: event.id,
-    eventDate: event.eventDate,
+    ...(event.eventDate ? { eventDate: event.eventDate } : {}),
+    ...(event.eventTime ? { eventTime: event.eventTime } : {}),
+    positionLabel: `Position ${(event.sequenceOrder ?? 0) + 1}: ${timelineEventTemporalLabel(event)}`,
     title: event.title,
     description: event.description?.slice(0, 300) || null,
     origin: event.origin,

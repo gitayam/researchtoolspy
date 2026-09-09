@@ -15,6 +15,7 @@ function validRequest(): TimelineAssistRequestV1 {
       {
         id: 'event-one',
         eventDate: '2026-09-01',
+        positionLabel: 'Position 1: 2026-09-01',
         title: 'First event',
         description: null,
         origin: 'source',
@@ -23,6 +24,7 @@ function validRequest(): TimelineAssistRequestV1 {
       {
         id: 'event-two',
         eventDate: '2026-09',
+        positionLabel: 'Position 2: 2026-09',
         title: 'Second event',
         origin: 'analyst',
         assessment: 'hypothesis',
@@ -41,12 +43,31 @@ test.describe('timeline AI assistance contract @smoke', () => {
     analystCreated.article.url = ''
     analystCreated.article.title = 'Analyst-created timeline'
     expect(parseTimelineAssistRequest(analystCreated)).toEqual(analystCreated)
+
+    const legacyDated = validRequest()
+    delete legacyDated.events[0].positionLabel
+    expect(parseTimelineAssistRequest(legacyDated)).toEqual(legacyDated)
+
+    const timeOnly = validRequest()
+    delete timeOnly.events[1].eventDate
+    timeOnly.events[1].eventTime = '14:30:00'
+    timeOnly.events[1].positionLabel = 'Position 2: 14:30:00 (date unknown)'
+    expect(parseTimelineAssistRequest(timeOnly)).toEqual(timeOnly)
   })
 
   test('@smoke rejects invalid dates, duplicate IDs, unknown anchors, and extra fields', () => {
     const badDate = validRequest()
     badDate.events[0].eventDate = '2026-02-31'
     expect(parseTimelineAssistRequest(badDate)).toBeNull()
+
+    const badTime = validRequest()
+    badTime.events[0].eventTime = '25:00'
+    expect(parseTimelineAssistRequest(badTime)).toBeNull()
+
+    const noTemporalContext = validRequest()
+    delete noTemporalContext.events[0].eventDate
+    delete noTemporalContext.events[0].positionLabel
+    expect(parseTimelineAssistRequest(noTemporalContext)).toBeNull()
 
     const duplicate = validRequest()
     duplicate.events[1].id = 'event-one'

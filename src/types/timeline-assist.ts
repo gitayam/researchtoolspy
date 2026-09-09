@@ -39,7 +39,9 @@ export interface TimelineAssistResult {
 
 export interface TimelineAssistRequestEvent {
   id: string
-  eventDate: string
+  eventDate?: string
+  eventTime?: string
+  positionLabel: string
   title: string
   description?: string | null
   origin: TimelineWorkspaceEvent['origin']

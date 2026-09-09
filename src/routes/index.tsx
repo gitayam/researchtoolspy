@@ -383,7 +383,12 @@ export const router = createBrowserRouter([
         errorElement: <RouteErrorBoundary />,
       },
       {
-        path: 'analysis-frameworks/behavior/:action',
+        path: 'analysis-frameworks/behavior/create',
+        element: <LazyPage Component={BehaviorPage} />,
+        errorElement: <RouteErrorBoundary />,
+      },
+      {
+        path: 'analysis-frameworks/behavior/:id',
         element: <LazyPage Component={BehaviorPage} />,
         errorElement: <RouteErrorBoundary />,
       },

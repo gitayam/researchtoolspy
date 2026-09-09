@@ -1,6 +1,6 @@
 # Behavior Framework Improvement Plan
 
-> **Status:** ✅ Shipped. All 12 prioritized findings (P0-1, P1-1 through P1-4, P2-1 through P2-5, P3-1, P3-2) implemented across commits `c0f8250bb`, `1cb573a18`, `a434edcd7`, and follow-up review-fix commits. See the **Implementation Status** table below.
+> **Status:** ✅ The 12 original prioritized findings are shipped. The R1 decision-sequence follow-up is implemented and release-ready. See the **Implementation Status** table below.
 >
 > **Original status:** Research output. Severity-prioritized findings on the gap between the live tool and the canonical sources.
 
@@ -20,6 +20,7 @@
 | P2-5 | P2 | `evidence_sources` typed enum on COM-B assessments | ✅ Shipped | `c0f8250bb` |
 | P3-1 | P3 | Behaviour & Theory glossary + form integration | ✅ Shipped + wired | `c0f8250bb`, `a434edcd7` |
 | P3-2 | P3 | COM-B central tenet quote + form integration | ✅ Shipped + wired | `c0f8250bb`, `a434edcd7` |
+| R1 | P1 | Advanced Behavior decision-sequence authoring + AI context/output hardening | ✅ Implemented | 2026-09-09 follow-up |
 
 ## Post-Ship Review Fixes (this iteration)
 
@@ -31,6 +32,34 @@ After integration, /team-review surfaced these gaps that have been addressed:
 - **S2**: BCWStepper current step missing `aria-current="step"` → added.
 - **S3**: APEASE + BCWStepper not mobile-responsive → APEASE label/question now stacks at <640px, ratings wrap; Stepper steps wrap on small screens.
 - **S4**: No tests for new components → added `tests/e2e/smoke/comb-analysis-form.spec.ts` covering BCWStepper, COMBCentralTenet, BehaviourTheoryGlossary, APEASEEvaluation, ModeOfDeliveryForm, BCTSelector, plus aria-pressed and aria-current="step" verification.
+
+## Follow-on Improvement: Behavior decision-sequence editor (R1)
+
+The Behavior timeline schema already supported a richer actor trajectory, but the
+web editor previously exposed only the event label, description, relative time,
+and location. Its sub-step and fork buttons created empty records without any
+way to complete or remove them. R1 closes that authoring gap:
+
+- Progressive **Decision details** expose the canonical goal-oriented decision
+  types while preserving the legacy `is_decision_point` field for older clients.
+- Analysts can add a complete psychological-state hypothesis using TTM stage,
+  HAPA phase, and reflective/automatic/contested motivation mode.
+- Event-level COM-B targets are explicitly labelled as working hypotheses for a
+  downstream linked COM-B Analysis, not population-level diagnoses.
+- Coping obstacle/response pairs and competing behaviors have complete add,
+  edit, and remove paths.
+- Sub-steps and fork conditions/outcomes now have complete add, edit, and remove
+  paths; imported nested fork paths remain preserved and visible.
+- Read-only Behavior views summarize the richer fields and allow details to be
+  expanded without entering edit mode.
+- Behavior framework routes now distinguish the static `/create` action from
+  one-segment saved-analysis IDs, repairing its read-only deep links.
+- AI timeline generation now consumes description, location, setting, temporal,
+  complexity, and existing-timeline context. Its output is allowlist-normalized,
+  length-bounded, and stripped of invalid/incomplete rich fields before it can
+  enter form state.
+- Focused browser and contract tests verify canonical payload round-tripping,
+  full-context prompting, and defensive output normalization.
 
 ## Follow-on Improvement: BCT taxonomy now wired (P1-2 v2)
 

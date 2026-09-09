@@ -9,6 +9,7 @@ const validBody = {
   events: [{
     id: 'event-one',
     eventDate: '2026-09-01',
+    positionLabel: 'Position 1: 2026-09-01',
     title: 'Documented event',
     description: null,
     origin: 'source',

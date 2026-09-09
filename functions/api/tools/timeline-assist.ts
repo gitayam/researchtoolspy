@@ -91,6 +91,7 @@ Important limits:
 - You only have event summaries, not the underlying source documents or live web access.
 - Do not answer missing-data questions and do not assert that a missing event occurred.
 - Treat source and analyst-added events as distinct. A disputed or hypothetical event is not established fact.
+- Events are supplied in the analyst's working order. positionLabel is authoritative when a date is unknown or the analyst intentionally placed an event.
 - Return 3-6 high-value suggestions, not generic filler.
 - after_event_id and before_event_id must be exact IDs from the supplied events or null.
 ${focus}

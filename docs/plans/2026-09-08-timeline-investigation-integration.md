@@ -35,15 +35,15 @@ a linked Behavior Analysis; it must not be launched directly from an event.
    forks, linked behaviors, decision type, psychological state, coping branches,
    competing behaviors, and optional COM-B target. This is appropriate for an
    actor trajectory, not for source chronology.
-4. The current `BehaviorTimeline` editor exposes label, description, relative
-   time, location, sub-step creation, behavior links, and fork creation. It does
-   not yet expose most of the richer decision/psychological fields already in
-   `src/types/behavior.ts`. Sub-step and fork authoring also need a complete edit
-   path before they can be treated as mature analytic data.
-5. The legacy behavior timeline AI route builds detailed behavior context but
-   does not include that context in its final prompt, emits the older
-   `is_decision_point` shape, has a minimal output validator, and requires login.
-   It should be hardened separately rather than reused by Event Timeline.
+4. The `BehaviorTimeline` editor now exposes the richer decision/psychological
+   fields in `src/types/behavior.ts` through progressive disclosure. Coping
+   plans, competing behaviors, sub-steps, and fork outcomes have complete add,
+   edit, remove, summary, and read-only paths. Imported nested fork paths are
+   preserved, but recursive nested-path authoring remains a later enhancement.
+5. The behavior timeline AI route now uses the full behavior context and existing
+   sequence, emits the canonical rich schema, and allowlist-normalizes model
+   output before it enters the form. It remains an authenticated Behavior
+   Analysis helper and is intentionally separate from Event Timeline AI review.
 6. The Behaviour Change Wheel correctly treats COM-B assessment as the center,
    maps deficits to intervention functions, and maps selected interventions to
    policy categories. Its concepts are downstream recommendations, not event
@@ -78,6 +78,10 @@ Rules:
 - Manual, named Timeline starting point with zero required source documents.
 - Robust mode by default for analyst-created timelines.
 - Seven-day browser-local manual draft with resume after tool navigation.
+- Absolute date/time, before/after-event, and direct sequence placement. Direct
+  placement includes first, second, third, second-to-last, last, and exact
+  1-based positions. Time-only and sequence-only events remain explicitly
+  date-unknown and retain a deterministic order in drafts and exports.
 - Questions before, between, or after known events.
 - Visible `Record finding` action with answer source URL and title.
 - Answer sources preserved in Markdown copy and `timeline-workspace.v1` JSON.
@@ -86,6 +90,8 @@ Rules:
   for repeatable behavior + location.
 - Manual timelines can use opt-in AI question/hypothesis assistance without a
   fabricated article URL; the model still receives only the working event data.
+  Each AI event includes its authoritative working-position label and optional
+  analyst-supplied date/time rather than an inferred date.
 
 ## Falsifiable hypotheses and gates
 

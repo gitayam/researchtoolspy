@@ -12,7 +12,9 @@ export type TimelineAssistSuggestionKind = 'question' | 'hypothesis'
 
 export interface TimelineAssistEventV1 {
   id: string
-  eventDate: string
+  eventDate?: string
+  eventTime?: string
+  positionLabel?: string
   title: string
   description?: string | null
   origin: 'source' | 'analyst'
@@ -87,10 +89,17 @@ function validId(value: unknown): value is string {
 
 function validEvent(value: unknown): value is TimelineAssistEventV1 {
   if (!isRecord(value) || !hasOnlyKeys(value, [
-    'id', 'eventDate', 'title', 'description', 'origin', 'assessment', 'analystNote',
+    'id', 'eventDate', 'eventTime', 'positionLabel', 'title', 'description', 'origin', 'assessment', 'analystNote',
   ])) return false
   return validId(value.id)
-    && timelineDatePrecision(value.eventDate) !== null
+    && (value.eventDate === undefined || timelineDatePrecision(value.eventDate) !== null)
+    && (value.eventTime === undefined
+      || (typeof value.eventTime === 'string' && /^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/.test(value.eventTime)))
+    && (value.positionLabel === undefined
+      || (typeof value.positionLabel === 'string'
+        && value.positionLabel.trim().length > 0
+        && value.positionLabel.length <= 100))
+    && (value.eventDate !== undefined || value.positionLabel !== undefined)
     && typeof value.title === 'string'
     && value.title.trim().length > 0
     && value.title.length <= 200

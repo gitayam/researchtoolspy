@@ -136,6 +136,16 @@ access, or a scoped service capability.
 | `/api/deception/*` | Deception / SATS analysis |
 | `/api/ai/*` | AI-powered helpers (COG analysis, SWOT populate, question generation, summaries, report enhancement) |
 
+`POST /api/ai/generate-timeline` is the authenticated Behavior Analysis helper.
+It accepts the behavior title and description plus optional location, setting,
+temporal, complexity, and existing-timeline context. It returns a bounded
+decision sequence whose optional fields use the canonical Behavior schema:
+`decision_type`, `psychological_state`, `com_b_target`, `coping_branches`,
+`competing_behaviours`, `sub_steps`, and `forks`. Model output is allowlist- and
+length-normalized before being returned. Event-level psychological and COM-B
+fields are analyst-reviewable hypotheses; audience diagnosis remains in a linked
+COM-B Analysis.
+
 ### COM-B / Behaviour Change Wheel
 
 Documented separately: [`COM_B_API.md`](COM_B_API.md)
@@ -273,9 +283,15 @@ second network retrieval. Saving, sharing, and workspace collaboration continue
 to require sign-in and an authorized writable workspace.
 
 Both browser surfaces wrap the immutable API response in a temporary analyst
-workspace. **Basic** mode supports adding events before or after a selected
-event, editing working copies, removal from the working chronology, and Markdown
-copy. **Robust analyst** mode additionally exposes provenance, review status
+workspace. **Basic** mode supports three event placement modes: absolute
+date/time; before or after a selected event; and sequence position (first,
+second, third, second-to-last, last, or an exact 1-based position). Date and time
+are optional for relative and positional events. Absolute placement requires at
+least one, and a time-only event is explicitly shown as date unknown. The
+workspace persists `sequenceOrder`, optional `eventDate`/`eventTime`, and
+placement intent in drafts and exports; it never fabricates a date. Basic mode
+also supports editing working copies, removal, and Markdown copy. **Robust
+analyst** mode additionally exposes provenance, review status
 (`unreviewed`, `corroborated`, `disputed`, or `hypothesis`), analyst notes, and
 dated information-gap questions such as “What happened here?” Questions remain
 distinct from events and become answered only when the analyst records an
@@ -314,6 +330,8 @@ and 100 events:
   "events": [{
     "id": "source-req-123-0",
     "eventDate": "2026-09-01",
+    "eventTime": "14:30",
+    "positionLabel": "Position 1: 2026-09-01 14:30",
     "title": "Documented event",
     "description": "Bounded event summary",
     "origin": "source",
@@ -330,6 +348,13 @@ and 100 events:
 
 For an analyst-created timeline, `article.title` carries the timeline title and
 `article.url` is the empty string. Non-empty URLs must be complete HTTP(S) URLs.
+The current browser always sends `positionLabel` to record the authoritative
+working order. It remains optional for backward compatibility with earlier
+dated `timeline-assist.v1` callers. `eventDate` and `eventTime` are independently
+optional; when supplied they must be a valid precision-preserving ISO date and
+24-hour time respectively. An event must carry either `eventDate` or
+`positionLabel`. This allows the assistant to reason about a time-only or
+sequence-only analyst event without inventing temporal precision.
 
 The endpoint performs structural review only. It receives current event
 summaries, not the underlying documents, and does not browse or scrape. It is
