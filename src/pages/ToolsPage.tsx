@@ -5,6 +5,7 @@ import { Search, Globe, FileText, Link as LinkIcon, Code, Database, Share2, File
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { discoveryTextForHref } from '@/config/discovery-catalog'
 
 export function ToolsPage() {
   const { toolId } = useParams()
@@ -135,7 +136,7 @@ export function ToolsPage() {
       icon: Calendar,
       features: [
         'Manual or article-based starting point',
-        'Day, month, and year date precision',
+        'Absolute, relative, or positional event placement',
         'Source and extraction provenance',
         'Gap-driven research and cited answers',
         'Seven-day local guest draft',
@@ -202,10 +203,18 @@ export function ToolsPage() {
     }
   ]
 
-  const filteredTools = tools.filter(tool =>
-    tool.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    tool.description.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const normalizedSearch = searchTerm.trim().toLocaleLowerCase('en-US')
+  const filteredTools = tools.filter(tool => {
+    if (!normalizedSearch) return true
+    const path = 'path' in tool && tool.path ? tool.path : `/dashboard/tools/${tool.id}`
+    const searchableText = [
+      tool.name,
+      tool.description,
+      ...tool.features,
+      discoveryTextForHref(path),
+    ].join(' ').toLocaleLowerCase('en-US')
+    return searchableText.includes(normalizedSearch)
+  })
 
   // If toolId is provided, show the specific tool detail
   if (toolId) {
@@ -325,6 +334,15 @@ export function ToolsPage() {
           )
         })}
       </div>
+      {filteredTools.length === 0 && (
+        <Card className="border-dashed">
+          <CardContent className="py-10 text-center">
+            <Search className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
+            <p className="font-medium">No research tools match “{searchTerm.trim()}”</p>
+            <p className="mt-1 text-sm text-muted-foreground">Use the header search to find analysis frameworks and other pages.</p>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

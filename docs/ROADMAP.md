@@ -1,6 +1,6 @@
 # ResearchTools.net — Roadmap
 
-**Last updated:** 2026-09-08 · **Current release:** `v0.22.0` (+ hardening patches through `v0.22.71`) · **Prod:** [researchtools.net](https://researchtools.net) (Cloudflare Pages + D1)
+**Last updated:** 2026-09-10 · **Current release:** `v0.22.0` (+ hardening patches through `v0.22.71`) · **Prod:** [researchtools.net](https://researchtools.net) (Cloudflare Pages + D1)
 
 > **2026-06-26 — fresh COP fix batch injected (`COP-1`…`COP-12`).** A `/team-investigate` pass on a user report (COT export "not working" + "many aspects not working") surfaced a verified backlog of loop-eligible bugs/stubs. Full evidence + AUTO/DECISION split: [`plans/2026-06-26-cop-investigation-findings.md`](plans/2026-06-26-cop-investigation-findings.md). Listed at the top of **Now** below. The prior `/roadmap-step` STOP (drained backlog) is now lifted.
 
@@ -53,6 +53,23 @@ Falsifiable gates:
 ---
 
 ## Recently shipped
+
+### Unified feature discovery (2026-09-10)
+
+- ✅ Replaced the header command palette's narrow duplicated command list with
+  one 53-destination discovery catalog covering research tools, analysis
+  frameworks, and main work areas.
+- ✅ Search now indexes descriptions, aliases, acronyms, and shipped
+  capabilities—not just display labels. Queries such as `relative event`,
+  `coping branch`, `behavior wheel`, and `safe fetch` resolve to their owning
+  Timeline, Behavior, COM-B/BCW, and Web Scraping surfaces.
+- ✅ Added missing destinations including Behavior Decision Analysis, RAGE
+  Check, Research Form Builder, New Investigation/Workspace, Collaboration, and
+  AI Configuration. Results show a concise capability description before
+  navigation.
+- ✅ The Tools-page filter now searches each tool's features and catalog aliases,
+  explains when a query belongs in the global header search, and has browser
+  tests for feature matching and route navigation.
 
 ### Interactive timeline analyst workspace (2026-09-08)
 
