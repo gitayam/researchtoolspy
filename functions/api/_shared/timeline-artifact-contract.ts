@@ -14,6 +14,16 @@ export interface ArtifactDocument {
   schemaVersion: 'timeline-artifact.v1'; artifactId: string; workspaceId: string; title: string; branch: 'main';
   revisionId: string; sequence: number; objectCount: number; contentHash: string; createdBy: number; createdAt: string
 }
+export function validArtifactDocument(v: unknown): v is ArtifactDocument {
+  if (!isRecord(v) || Object.keys(v).sort().join(',') !== 'artifactId,branch,contentHash,createdAt,createdBy,objectCount,revisionId,schemaVersion,sequence,title,workspaceId') return false
+  return v.schemaVersion === 'timeline-artifact.v1' && isObjectId(v.artifactId) && isObjectId(v.revisionId) && isWorkspaceId(v.workspaceId)
+    && title(v.title) && v.branch === 'main' && Number.isSafeInteger(v.sequence) && Number(v.sequence)>=0
+    && Number.isSafeInteger(v.objectCount) && Number(v.objectCount)>=0 && Number(v.objectCount)<=ARTIFACT_LIMITS.objects
+    && typeof v.contentHash==='string' && /^[a-f0-9]{64}$/.test(v.contentHash)
+    && Number.isSafeInteger(v.createdBy) && Number(v.createdBy)>0
+    && typeof v.createdAt==='string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(v.createdAt)
+    && Number.isFinite(Date.parse(v.createdAt)) && new Date(v.createdAt).toISOString()===v.createdAt
+}
 export const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v)
 export const isObjectId = (v: unknown): v is string => typeof v === 'string' && /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(v)
 export const isStableObjectId = (v: unknown): v is string => typeof v === 'string' && /^[A-Za-z0-9][A-Za-z0-9_.:-]{0,199}$/.test(v)
@@ -57,7 +67,7 @@ export async function boundedBody(request: Request): Promise<unknown> {
   if (length && /^\d+$/.test(length) && Number(length) > ARTIFACT_LIMITS.requestBytes) { void request.body?.cancel().catch(() => {}); throw new ArtifactError('limit_exceeded', 413) }
   if (!request.body) throw new ArtifactError('invalid_request', 400)
   const reader = request.body.getReader()
-  const decoder = new TextDecoder('utf-8', { fatal: true })
+  const decoder = new TextDecoder('utf-8', { fatal: true, ignoreBOM: false })
   let bytes = 0, text = ''
   try {
     for (;;) {

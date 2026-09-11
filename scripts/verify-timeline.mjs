@@ -4,6 +4,8 @@ const contractTests = [
   'timeline-contract', 'extract-timeline-safe-fetch', 'timeline-observability',
   'community-integration-contract', 'community-integration-capabilities',
   'community-service-auth', 'timeline-reference-client', 'timeline-fixtures',
+  'timeline-artifact-contract', 'timeline-artifact-auth', 'timeline-artifact-d1',
+  'timeline-artifact-cors', 'timeline-artifact-migrations',
 ]
 const uiTests = ['timeline-tool-ui', 'timeline-workspace-ordering', 'timeline-narrative-ui']
 const checks = [

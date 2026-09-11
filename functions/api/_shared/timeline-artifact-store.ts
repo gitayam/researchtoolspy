@@ -1,10 +1,10 @@
 import { requireTimelineHuman, requireTimelineWorkspace, type HumanPrincipal, type TimelineArtifactEnv } from './timeline-artifact-auth'
-import { ARTIFACT_LIMITS, ArtifactError, artifactResponse, boundedBody, canonicalJson, decodeCursor, encodeCursor, expectedHead, hashContent, idempotencyKey, isObjectId, isStableObjectId, pageQuery, parseCommit, parseCreate, validCandidate, type ArtifactDocument, type ManifestEntry } from './timeline-artifact-contract'
+import { ARTIFACT_LIMITS, ArtifactError, artifactResponse, boundedBody, canonicalJson, decodeCursor, encodeCursor, expectedHead, hashContent, idempotencyKey, isObjectId, isStableObjectId, pageQuery, parseCommit, parseCreate, validCandidate, validArtifactDocument, type ArtifactDocument, type ManifestEntry } from './timeline-artifact-contract'
 
 interface ArtifactRow { workspace_id: string; id: string; title: string; created_by: number; created_at: string; head_revision_id: string }
 interface RevisionRow { id: string; sequence: number; expected_head: string | null; object_count: number; change_count: number; content_hash: string; created_by: number; created_at: string }
 interface VersionRow { object_id: string; version_id: string; schema_version: 'event-candidate.v1'; tombstone: number; content_hash: string; payload_json: string | null }
-interface ReplayRow { request_hash: string; response_json: string; response_status: number; revision_id: string }
+interface ReplayRow { request_hash: string; response_json: string; response_status: number; artifact_id: string; revision_id: string }
 const uid = (prefix: string) => `${prefix}_${crypto.randomUUID()}`
 const manifestEntry = (row: VersionRow): ManifestEntry => ({ objectId: row.object_id, versionId: row.version_id, kind: row.schema_version, tombstone: row.tombstone === 1, contentHash: row.content_hash })
 const versionSelect = `SELECT m.object_id,m.version_id,v.schema_version,v.tombstone,v.content_hash,v.payload_json
@@ -36,14 +36,21 @@ async function rows(env: TimelineArtifactEnv, artifact: ArtifactRow, revisionId:
   return result.results
 }
 function document(artifact: ArtifactRow, rev: RevisionRow): ArtifactDocument {
-  return { schemaVersion: 'timeline-artifact.v1', artifactId: artifact.id, workspaceId: artifact.workspace_id, title: artifact.title, branch: 'main', revisionId: rev.id, sequence: rev.sequence, objectCount: rev.object_count, contentHash: rev.content_hash, createdBy: artifact.created_by, createdAt: artifact.created_at }
+  const result: ArtifactDocument = { schemaVersion: 'timeline-artifact.v1', artifactId: artifact.id, workspaceId: artifact.workspace_id, title: artifact.title, branch: 'main', revisionId: rev.id, sequence: rev.sequence, objectCount: rev.object_count, contentHash: rev.content_hash, createdBy: artifact.created_by, createdAt: artifact.created_at }
+  if (!validArtifactDocument(result)) throw new ArtifactError('datastore_unavailable',503)
+  return result
 }
 async function replay(env: TimelineArtifactEnv, user: HumanPrincipal, workspace: string, resource: string, key: string, fingerprint: string): Promise<Response | null> {
   // POST/PATCH replays require current write permission, even when they no longer write.
   await requireTimelineWorkspace(env,user,workspace,true)
-  const saved = await env.DB.prepare('SELECT request_hash,response_json,response_status,revision_id FROM timeline_idempotency WHERE workspace_id=? AND principal_id=? AND resource=? AND request_key=?').bind(workspace,user.userId,resource,key).first<ReplayRow>()
+  const saved = await env.DB.prepare('SELECT request_hash,response_json,response_status,artifact_id,revision_id FROM timeline_idempotency WHERE workspace_id=? AND principal_id=? AND resource=? AND request_key=?').bind(workspace,user.userId,resource,key).first<ReplayRow>()
   if (!saved) return null
   if (saved.request_hash !== fingerprint) throw new ArtifactError('idempotency_conflict', 409)
+  let body: unknown
+  try { if (saved.response_json.length>16384) throw new Error(); body=JSON.parse(saved.response_json) } catch { throw new ArtifactError('datastore_unavailable',503) }
+  if (!validArtifactDocument(body) || body.artifactId!==saved.artifact_id || body.workspaceId!==workspace || body.revisionId!==saved.revision_id || (resource!=='create' && body.artifactId!==resource) || saved.response_status!==(resource==='create'?201:200)) throw new ArtifactError('datastore_unavailable',503)
+  const artifact = await env.DB.prepare('SELECT * FROM timeline_artifacts WHERE workspace_id=? AND id=?').bind(workspace,saved.artifact_id).first<ArtifactRow>()
+  if (!artifact || canonicalJson(document(artifact,await revision(env,artifact,saved.revision_id)))!==canonicalJson(body)) throw new ArtifactError('datastore_unavailable',503)
   return artifactResponse(saved.response_json,saved.response_status,saved.revision_id)
 }
 function recordReplay(env: TimelineArtifactEnv, user: HumanPrincipal, workspace: string, resource: string, key: string, fingerprint: string, result: ArtifactDocument, status: number) {

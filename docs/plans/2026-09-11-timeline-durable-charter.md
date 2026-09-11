@@ -17,7 +17,8 @@ workspaceId,title}; requires Idempotency-Key. GET /api/timelines/{id} returns ar
 metadata and quoted head-revision ETag. PATCH same path accepts
 {schemaVersion:"timeline-artifact-commit.v1",changes:[...]} with Idempotency-Key and
 If-Match of the quoted expected head. Changes are typed put/delete operations on
-stable caller-supplied object IDs; supported kind is event-candidate.v1 with explicit
+stable caller-supplied object IDs (up to 200 ASCII identifier characters, including
+local workspace dots/colons); server artifact/revision IDs remain bounded to 64. Supported kind is event-candidate.v1 with explicit
 bounded title, description and optional partial date/precision fields. Delete is a
 versioned tombstone; IDs cannot change kind or be recycled. Up to 10 changes, 1000
 objects per artifact, 64 KiB request, bounded title/payload fields. Reject unknown
@@ -56,6 +57,11 @@ functions/api/timelines/[id]/revisions/[revisionId].ts,
 tests/e2e/smoke/timeline-artifact-{contract,auth,d1}.spec.ts and
 docs/api/TIMELINE-ARTIFACTS.md. Owner owns documentation/verification seams and commits.
 Independent reviewer is read-only; no worker runs candidate scripts on the host.
+Owner-authorized additions: dependency_review owns only the independent
+`tests/e2e/smoke/timeline-artifact-migrations.spec.ts` full managed-chain rehearsal.
+Owner handles API documentation links, verification script/config, CORS PATCH and
+conditional-write headers, and mobile navigation test corrections. The immutable
+initial provider prompt remains recorded; these are additive seam clarifications.
 
 Verification: matching Playwright1.60 container, credential-free dependency preparation
 with ignore-scripts; candidate runtime has no external network, host credentials or
@@ -64,6 +70,9 @@ concurrent CAS, rollback, immutable-table constraints, cross-artifact references
 historical reconstruction and pagination. Five existing types/build and foundation
 contract/UI regression remain gates. Migration parser must preserve trigger bodies;
 prove fresh prerequisite schema plus migration and upgrade from prior schema in real D1.
+Independent tests run actual managed migrations 0001–0011 and a seeded 0010→0011
+upgrade against explicit synthetic prerequisites; no production-equivalent schema
+catalog is present, so production-equivalent rehearsal remains a separate gate.
 No production migration application. Runtime/source acceptance binds committed SHA.
 Stop on incompatible shared contract, unavailable real-runtime verification or need
 for credentials. Preserve work and record incomplete gates without widening scope.
