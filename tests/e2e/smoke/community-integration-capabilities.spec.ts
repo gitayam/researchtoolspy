@@ -28,7 +28,7 @@ interface ErrorBody {
   error: { code: string; message: string; retryable: boolean }
 }
 
-async function serviceDb(includeTimelineScope = false): Promise<D1Database> {
+async function serviceDb(includeTimelineScope = false, durableScopes: string[] = []): Promise<D1Database> {
   const secretHash = await deriveIntegrationTokenHash(HASH_KEY, CLIENT_ID, SECRET)
   const base = {
     client_id: CLIENT_ID,
@@ -73,6 +73,7 @@ async function serviceDb(includeTimelineScope = false): Promise<D1Database> {
     { ...base, token_scope: 'community.events.write' },
     { ...base, token_scope: 'community.projections.read' },
     ...(includeTimelineScope ? [{ ...base, token_scope: 'community.research.execute' }] : []),
+    ...durableScopes.map(token_scope=>({...base,token_scope})),
   ]
   return {
     prepare: (sql: string) => ({
@@ -107,6 +108,10 @@ test.describe('community integration capabilities endpoint @smoke', () => {
     expect(body.capabilities.publicBcw).toBe(true)
     expect(body.capabilities.communityIngest).toBe(false)
     expect(body.capabilities).not.toHaveProperty('timelineAnalysis')
+    expect(body.capabilities).not.toHaveProperty('timelineRead')
+    expect(body.capabilities).not.toHaveProperty('timelineWrite')
+    expect(body.contractVersions).not.toHaveProperty('timelineArtifact')
+    expect(body.limits).toEqual({})
     expect(body).not.toHaveProperty('workspaceId')
   })
 
@@ -167,6 +172,40 @@ test.describe('community integration capabilities endpoint @smoke', () => {
     expect(body.scopes).toContain('community.research.execute')
     expect(body.capabilities.timelineAnalysis).toBe(true)
     expect(body.contractVersions.timelineAnalysis).toBe('timeline-analysis.v1')
+  })
+
+  test('@smoke durable discovery separates read/write and requires no model key', async () => {
+    for(const scopes of [[],['timeline.read'],['timeline.write'],['timeline.read','timeline.write']]) {
+      for(const enabled of [true,false]) {
+        const response=await onRequest(context(new Request('https://researchtools.net/api/integrations/capabilities',{headers:{Authorization:`Bearer rt_svc_${CLIENT_ID}.${SECRET}`}}),{
+          DB:await serviceDb(true,scopes),ENVIRONMENT:'production',INTEGRATION_TOKEN_HASH_KEY:HASH_KEY,
+          COMMUNITY_INTEGRATIONS_ENABLED:String(enabled),
+        }))
+        expect(response.status).toBe(200)
+        const body=await response.json() as CapabilityBody
+        for(const [scope,capability] of [['timeline.read','timelineRead'],['timeline.write','timelineWrite']]) {
+          if(enabled&&scopes.includes(scope)) expect(body.capabilities[capability]).toBe(true)
+          else expect(body.capabilities).not.toHaveProperty(capability)
+        }
+        // Even a research scope cannot advertise extraction without its model runtime.
+        expect(body.capabilities).not.toHaveProperty('timelineAnalysis')
+        expect(body.contractVersions).not.toHaveProperty('timelineAnalysis')
+        expect(body.capabilities.persistentWorkspace).toBe(false)
+        expect(body.capabilities.artifactRead).toBe(false)
+        if(enabled&&scopes.length) {
+          expect(body.contractVersions.timelineArtifact).toBe('timeline-artifact.v1')
+          expect(body.limits).toEqual({timelineRequestBytes:65536,timelineSnapshotBytes:61440,timelineChanges:10,timelineObjects:1000,timelinePageSize:100})
+        } else {
+          expect(body.contractVersions).not.toHaveProperty('timelineArtifact')
+          expect(body.limits).toEqual({})
+        }
+      }
+    }
+    const anonymous=await onRequest(context(new Request('https://researchtools.net/api/integrations/capabilities'),{COMMUNITY_INTEGRATIONS_ENABLED:'true'}))
+    const anonymousBody=await anonymous.json() as CapabilityBody
+    expect(anonymousBody.capabilities).not.toHaveProperty('timelineRead')
+    expect(anonymousBody.capabilities).not.toHaveProperty('timelineWrite')
+    expect(anonymousBody.limits).toEqual({})
   })
 
   test('@smoke invalid supplied credentials return the bounded error contract without secrets', async () => {

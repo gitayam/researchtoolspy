@@ -90,6 +90,8 @@ export const onRequest: PagesFunction<Env> = async ({ request, env }) => {
     runtimeReady.publicBcw = true
     runtimeReady.anonymousAnalysis = Boolean(env.DB && env.OPENAI_API_KEY)
     runtimeReady.timelineAnalysis = Boolean(env.DB && env.OPENAI_API_KEY)
+    runtimeReady.timelineRead = Boolean(env.DB)
+    runtimeReady.timelineWrite = Boolean(env.DB)
     runtimeReady.persistentWorkspace = Boolean(principal)
 
     const body = buildIntegrationCapabilitiesDocument({

@@ -26,6 +26,7 @@ const migrationNames = [
   '0010_service_principal_identity_compat.sql',
   '0011_timeline_foundation.sql',
   '0012_timeline_workspace_snapshots.sql',
+  '0013_timeline_service_scopes.sql',
 ] as const
 const migrations = migrationNames.map(name => {
   const bytes = readFileSync(new URL(`../../../schema/managed-migrations/${name}`, import.meta.url))
@@ -148,7 +149,7 @@ async function execute(db: D1Database, sql: string) {
 async function apply(db: D1Database, start: number, end: number) {
   for (const migration of migrations.slice(start, end)) {
     try {
-      if (migration.name === '0012_timeline_workspace_snapshots.sql') await db.batch(statements(migration.sql).map(sql => db.prepare(sql)))
+      if (['0012_timeline_workspace_snapshots.sql', '0013_timeline_service_scopes.sql'].includes(migration.name)) await db.batch(statements(migration.sql).map(sql => db.prepare(sql)))
       else await execute(db, migration.sql)
     }
     catch (error) { throw new Error(`Managed migration ${migration.name} failed: ${error instanceof Error ? error.message : String(error)}`) }
@@ -220,7 +221,7 @@ test.describe('timeline full managed-chain migration rehearsal @smoke', () => {
       expect(indexes).toEqual(expect.arrayContaining(['idx_content_analysis_hash_workspace','idx_content_analysis_user_workspace','idx_cop_collaborators_session_user','idx_workspace_members_user_workspace','idx_guest_conversions_identity']))
       expect((await db.prepare("SELECT name FROM sqlite_schema WHERE type='table' AND name LIKE 'timeline_%'").all()).results.length).toBeGreaterThanOrEqual(8)
       expect((await db.prepare('PRAGMA foreign_key_check').all()).results).toEqual([])
-      await attachReceipt(testInfo, 'fresh-synthetic-prerequisites-through-0012')
+      await attachReceipt(testInfo, 'fresh-synthetic-prerequisites-through-0013')
     } finally { await mf.dispose() }
   })
 
@@ -240,7 +241,7 @@ test.describe('timeline full managed-chain migration rehearsal @smoke', () => {
       expect((await db.prepare('PRAGMA foreign_key_check').all()).results).toEqual([])
       await expect(db.prepare("UPDATE users SET email='changed@example.test' WHERE id=73").run()).rejects.toThrow(/invalid integration service principal update/)
       await expect(db.prepare("INSERT INTO workspace_members VALUES ('invalid-service-member','human-workspace',73,'VIEWER')").run()).rejects.toThrow(/cannot be a workspace member/)
-      await attachReceipt(testInfo, 'seeded-synthetic-0010-prefix-to-0011')
+      await attachReceipt(testInfo, 'seeded-synthetic-0010-prefix-to-0013')
     } finally { await mf.dispose() }
   })
 })

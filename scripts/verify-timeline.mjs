@@ -5,7 +5,7 @@ const contractTests = [
   'community-integration-contract', 'community-integration-capabilities',
   'community-service-auth', 'timeline-reference-client', 'timeline-fixtures',
   'timeline-artifact-contract', 'timeline-artifact-auth', 'timeline-artifact-d1',
-  'timeline-artifact-cors', 'timeline-artifact-migrations', 'timeline-workspace-snapshot-d1',
+  'timeline-artifact-cors', 'timeline-service-d1', 'timeline-artifact-migrations', 'timeline-workspace-snapshot-d1',
 ]
 const uiTests = ['timeline-tool-ui', 'timeline-workspace-ordering', 'timeline-narrative-ui', 'timeline-durable-browser']
 const checks = [

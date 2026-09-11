@@ -1,4 +1,4 @@
-import { requireTimelineHuman, requireTimelineWorkspace, type HumanPrincipal, type TimelineArtifactEnv } from './timeline-artifact-auth'
+import { requireTimelinePrincipal, timelineWriteAssertions, requireTimelineWorkspace, type HumanPrincipal, type TimelineArtifactEnv } from './timeline-artifact-auth'
 import { ARTIFACT_LIMITS, ArtifactError, artifactResponse, boundedBody, canonicalJson, decodeCursor, encodeCursor, expectedHead, hashContent, idempotencyKey, isObjectId, isStableObjectId, pageQuery, parseCommit, parseCreate, validArtifactPayload, validArtifactDocument, type ArtifactDocument, type ManifestEntry, type ArtifactKind } from './timeline-artifact-contract'
 
 interface ArtifactRow { workspace_id: string; id: string; title: string; created_by: number; created_at: string; head_revision_id: string }
@@ -69,7 +69,7 @@ function mapWriteError(error: unknown): never {
 }
 
 export async function createTimelineArtifact(request: Request, env: TimelineArtifactEnv): Promise<Response> {
-  const user = await requireTimelineHuman(request,env)
+  const user = await requireTimelinePrincipal(request,env,true)
   pageQuery(request,[])
   const input = parseCreate(await boundedBody(request))
   const key = idempotencyKey(request)
@@ -84,6 +84,7 @@ export async function createTimelineArtifact(request: Request, env: TimelineArti
   const result = document(artifact,rev)
   try {
     await env.DB.batch([
+      ...timelineWriteAssertions(env,user),
       env.DB.prepare('INSERT INTO timeline_artifacts VALUES (?,?,?,?,?)').bind(artifact.workspace_id,artifact.id,artifact.title,user.userId,now),
       env.DB.prepare('INSERT INTO timeline_revisions VALUES (?,?,?,0,NULL,0,0,?,?,?)').bind(artifact.workspace_id,artifact.id,rev.id,rev.content_hash,user.userId,now),
       env.DB.prepare("INSERT INTO timeline_lineage_branches VALUES (?,?,'main',?)").bind(artifact.workspace_id,artifact.id,rev.id),
@@ -98,7 +99,7 @@ export async function createTimelineArtifact(request: Request, env: TimelineArti
 }
 
 export async function commitTimelineArtifact(request: Request, env: TimelineArtifactEnv, artifactId: string): Promise<Response> {
-  const user = await requireTimelineHuman(request,env)
+  const user = await requireTimelinePrincipal(request,env,true)
   pageQuery(request,[])
   const artifact = await access(request,env,user,artifactId,true)
   const input = parseCommit(await boundedBody(request))
@@ -132,6 +133,7 @@ export async function commitTimelineArtifact(request: Request, env: TimelineArti
   const result = document(artifact,rev)
   try {
     await env.DB.batch([
+      ...timelineWriteAssertions(env,user),
       // The trigger validates auth and expected head before any version/object writes.
       env.DB.prepare('INSERT INTO timeline_revisions VALUES (?,?,?,?,?,?,?,?,?,?)').bind(artifact.workspace_id,artifactId,revisionId,rev.sequence,expected,rev.object_count,rev.change_count,rev.content_hash,user.userId,now),
       env.DB.prepare('INSERT INTO timeline_revision_parents VALUES (?,?,?,?,0)').bind(artifact.workspace_id,artifactId,revisionId,expected),
@@ -154,7 +156,7 @@ export async function commitTimelineArtifact(request: Request, env: TimelineArti
 }
 
 export async function readTimelineArtifact(request: Request, env: TimelineArtifactEnv, artifactId: string): Promise<Response> {
-  const user = await requireTimelineHuman(request,env)
+  const user = await requireTimelinePrincipal(request,env,false)
   pageQuery(request,[])
   const artifact = await access(request,env,user,artifactId,false)
   const rev = await revision(env,artifact,artifact.head_revision_id)
@@ -171,7 +173,7 @@ async function objectDocument(row: VersionRow) {
   return { ...manifestEntry(row), payload }
 }
 export async function readTimelineObjects(request: Request, env: TimelineArtifactEnv, artifactId: string): Promise<Response> {
-  const user = await requireTimelineHuman(request,env)
+  const user = await requireTimelinePrincipal(request,env,false)
   const artifact = await access(request,env,user,artifactId,false)
   const { query,limit } = pageQuery(request,['limit','cursor','revisionId'])
   let revisionId = query.get('revisionId') ?? artifact.head_revision_id, after = ''
@@ -187,7 +189,7 @@ export async function readTimelineObjects(request: Request, env: TimelineArtifac
   return artifactResponse({ schemaVersion: 'timeline-object-page.v1', artifactId, revisionId, objects: await Promise.all(page.map(objectDocument)), nextCursor },200,revisionId)
 }
 export async function readTimelineRevisions(request: Request, env: TimelineArtifactEnv, artifactId: string): Promise<Response> {
-  const user = await requireTimelineHuman(request,env)
+  const user = await requireTimelinePrincipal(request,env,false)
   const artifact = await access(request,env,user,artifactId,false)
   const {query,limit} = pageQuery(request,['limit','cursor'])
   let pinnedHead = artifact.head_revision_id, before: number | undefined
@@ -203,7 +205,7 @@ export async function readTimelineRevisions(request: Request, env: TimelineArtif
   return artifactResponse({ schemaVersion: 'timeline-revision-page.v1', artifactId, headRevisionId: pinnedHead, revisions: page.map(row => ({ revisionId: row.id, sequence: row.sequence, parentRevisionIds: row.expected_head ? [row.expected_head] : [], objectCount: row.object_count, changeCount: row.change_count, contentHash: row.content_hash, createdBy: row.created_by, createdAt: row.created_at })), nextCursor: result.results.length>limit ? encodeCursor({ v: 1, sort: 'sequence-desc', artifactId, headRevisionId: pinnedHead, before: page[page.length-1].sequence }) : null },200,pinnedHead)
 }
 export async function readTimelineRevision(request: Request, env: TimelineArtifactEnv, artifactId: string, revisionId: string): Promise<Response> {
-  const user = await requireTimelineHuman(request,env)
+  const user = await requireTimelinePrincipal(request,env,false)
   pageQuery(request,[])
   const artifact = await access(request,env,user,artifactId,false)
   const rev = await revision(env,artifact,revisionId)

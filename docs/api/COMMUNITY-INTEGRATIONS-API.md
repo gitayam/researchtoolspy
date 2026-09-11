@@ -245,3 +245,42 @@ Failures use `integration-error.v1`:
 
 `503` includes `Retry-After: 2`. Error responses never include credentials,
 digests, SQL, raw private URLs, or tenant identifiers.
+
+## Durable timeline service scopes (release candidate)
+
+After migration 0013 and compatible deployment, `timeline.read` grants the existing
+`GET /api/timelines/{id}` metadata, object pages, revision pages and revision detail.
+`timeline.write` grants `POST /api/timelines` and `PATCH /api/timelines/{id}`.
+The scopes are independent: write does not grant GET, and read does not grant
+mutations. `community.artifacts.read` and `community.research.execute` grant neither.
+The latter retains its separate stateless extraction behavior.
+
+Discovery exposes `timelineRead` and `timelineWrite` only when the respective
+scope, enabled integration flag and D1 runtime are available. It then includes
+`contractVersions.timelineArtifact = timeline-artifact.v1` and positive integer
+limits `timelineRequestBytes` (65536), `timelineSnapshotBytes` (61440),
+`timelineChanges` (10), `timelineObjects` (1000) and `timelinePageSize` (100).
+These operations do not depend on a model API key. Omission means unavailable;
+existing `artifactRead` and `persistentWorkspace` capabilities retain their meanings.
+
+Use the workspace returned by discovery. Create needs the artifact-create body
+and an idempotency key; commit needs the artifact-commit body, an idempotency key
+and the strong ETag from create or a read. Responses and errors use the existing
+[timeline artifact contract](./TIMELINE-ARTIFACTS.md). Service tokens cannot select
+another workspace or become human members. A saved link conveys no access.
+
+Every read and replay checks current credential authority. Every mutation starts
+its atomic D1 batch with an exact presented-token assertion, including digest,
+current scope, database-time expiry, client status and private-workspace identity
+bindings. A different live token cannot supply missing authority. A valid rotated
+token for the same service principal can retry an original operation, with the
+original key/body/ETag. No token or digest enters timeline history.
+
+Operator rollout order is migration, compatible application deployment and
+verification, then a separately authorized credential scope assignment. This
+release does not create credentials or add scopes to existing tokens. Current and
+next slots have independent scopes. Do not put timeline scopes on tokens before
+compatible code is deployed: older code rejects unknown scopes, even on existing
+extraction/discovery routes. For rollback, retain compatible code or obtain
+separate authorization for credential remediation; never silently strip scopes,
+restore the entire database or destroy timeline history.

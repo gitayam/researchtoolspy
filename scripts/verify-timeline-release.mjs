@@ -1,6 +1,6 @@
 /** Run only in the qualified credential-free, network-disabled release validator. */
 import assert from 'node:assert/strict'
-import { createHash } from 'node:crypto'
+import { createHash, createHmac } from 'node:crypto'
 import { readFile, readdir, stat, mkdir, writeFile, realpath } from 'node:fs/promises'
 import { dirname, resolve, sep, extname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -12,7 +12,7 @@ const workerPath = resolve(dist, '_worker.js/index.js')
 const migrationDirectory = resolve(root, 'schema/managed-migrations')
 const outputDirectory = '/results'
 const manifestPath = resolve(outputDirectory, 'release-schema-manifest.json')
-const pendingName = '0012_timeline_workspace_snapshots.sql'
+const pendingName = '0013_timeline_service_scopes.sql'
 const sha256 = bytes => createHash('sha256').update(bytes).digest('hex')
 const quote = value => `"${String(value).replaceAll('"', '""')}"`
 const canonical = value => {
@@ -132,12 +132,13 @@ try {
   const localNames = (await readdir(migrationDirectory)).filter(name => /^\d+.*\.sql$/.test(name)).sort()
   assert(applied.every(name => localNames.includes(name)), 'Production inventory has unknown migration names')
   const pending = localNames.filter(name => !applied.includes(name))
-  assert.deepEqual(pending, [pendingName], 'Release must rehearse exactly the reviewed pending 0012 migration')
+  assert.deepEqual(pending, [pendingName], 'Release must rehearse exactly the reviewed pending 0013 migration')
   const migrationBytes = await readFile(resolve(migrationDirectory, pendingName))
   const workerBytes = await readFile(workerPath)
   const indexBytes = await readFile(resolve(dist, 'index.html'))
   const expectedTables = [...(await readFile(resolve(migrationDirectory, '0011_timeline_foundation.sql'), 'utf8')).matchAll(/CREATE TABLE (timeline_[a-z_]+)/g)].map(match => match[1]).sort()
-  assert.equal(expectedTables.length, 9, 'Unexpected affected table inventory in pending migration')
+  expectedTables.push('integration_clients', 'integration_client_tokens', 'integration_client_token_scopes'); expectedTables.sort()
+  assert.equal(expectedTables.length, 12, 'Unexpected affected table inventory')
   receipt = {
     schemaVersion: 'timeline-release-schema-manifest.v1',
     schemaOnly: true,
@@ -170,7 +171,7 @@ try {
     d1Databases: { DB: 'timeline-production-schema-rehearsal' },
     serviceBindings: { ASSETS: staticService },
     outboundService: async () => { outboundAttempts++; return new MFResponse('External network disabled in release rehearsal', { status: 502 }) },
-    bindings: { ENVIRONMENT: 'production', COMMUNITY_INTEGRATIONS_ENABLED: 'false', ENABLE_AI_FEATURES: 'false' },
+    bindings: { ENVIRONMENT: 'production', COMMUNITY_INTEGRATIONS_ENABLED: 'true', INTEGRATION_TOKEN_HASH_KEY: 'synthetic-release-hmac-key-not-production-0001', ENABLE_AI_FEATURES: 'false' },
   })
   const db = await mf.getD1Database('DB')
   stage = 'import-production-schema'
@@ -189,7 +190,8 @@ try {
   assert.equal((await db.prepare("SELECT count(*) AS n FROM sqlite_schema WHERE type='table' AND name LIKE 'timeline_%'").first()).n, 9, 'Production export must contain the deployed0011 prefix')
   const priorTables = await collectManifest(db, expectedTables)
   receipt.priorCatalogSha256 = sha256(canonical(priorTables))
-  stage = 'apply-pending-0012'
+  receipt.priorTables = priorTables
+  stage = 'apply-pending-0013'
   // Managed apply sends the entire migration plus tracker write in one transaction.
   await db.batch([...statements(migrationBytes.toString('utf8')).map(statement => db.prepare(statement.sql)), db.prepare('INSERT INTO d1_migrations(name) VALUES (?)').bind(pendingName)])
   assert.equal((await db.prepare('SELECT count(*) AS n FROM d1_migrations WHERE name=?').bind(pendingName).first()).n, 1)
@@ -200,13 +202,19 @@ try {
     assert.deepEqual(after.columns, before.columns, `Columns changed in ${before.name}`)
     assert.deepEqual(after.foreignKeys, before.foreignKeys, `Foreign keys changed in ${before.name}`)
     assert.deepEqual(after.indexes, before.indexes, `Existing indexes changed in ${before.name}`)
-    const retained = after.triggers.filter(trigger => trigger.name !== 'timeline_version_kind')
-    assert.deepEqual(retained, before.triggers, `Existing triggers changed in ${before.name}`)
-    if (!['timeline_objects', 'timeline_object_versions'].includes(before.name)) assert.equal(after.sql, before.sql)
+    const unchanged = triggers => triggers.filter(trigger => trigger.name !== 'timeline_revision_authorize')
+    assert.deepEqual(unchanged(after.triggers), unchanged(before.triggers), `Existing triggers changed in ${before.name}`)
+    if (before.name !== 'integration_client_token_scopes') assert.equal(after.sql, before.sql)
+    if (before.name === 'timeline_revisions') {
+      const expected = statements(migrationBytes.toString('utf8')).find(statement => /CREATE TRIGGER timeline_revision_authorize/.test(statement.sql))
+      assert(expected, 'Reviewed replacement authorization trigger missing')
+      const normalize = sql => sql.replace(/^.*?(?=CREATE TRIGGER)/s, '').replace(/;\s*$/, '').replace(/\s+/g, ' ').trim()
+      assert.equal(normalize(after.triggers.find(t => t.name === 'timeline_revision_authorize').sql), normalize(expected.sql))
+    }
   }
-  assert.equal((await db.prepare("SELECT count(*) AS n FROM sqlite_schema WHERE name LIKE 'timeline_%0012_backup'").first()).n, 0)
+  assert.equal((await db.prepare("SELECT count(*) AS n FROM sqlite_schema WHERE name LIKE '%0013_backup'").first()).n, 0)
   receipt.catalogPreservation = 'passed'
-  assert(receipt.tables.every(table => table.columns.length && table.foreignKeys.length && table.triggers.length), 'Incomplete affected-schema manifest')
+  assert(receipt.tables.every(table => table.columns.length && table.foreignKeys.length), 'Incomplete affected-schema manifest')
   receipt.schemaRehearsal = 'passed'
   receipt.checks.push('schema-only export imported', 'actual pending migration applied', 'foreign_key_check clean', 'affected columns/foreign keys/indexes/triggers recorded')
   await save(receipt)
@@ -228,7 +236,7 @@ try {
   const payload = { schemaVersion: 'timeline-artifact-commit.v1', changes: [{ op: 'put', objectId: 'event:release.001', kind: 'event-candidate.v1', payload: { title: 'Synthetic candidate', description: null, eventDate: '2026-09', datePrecision: 'month' } }] }
   stage = 'compiled-http-create-auth'
   error(await request('/api/timelines', { method: 'POST', body: createBody, key: 'release-create-0001', user: null }), 401, 'authentication_required')
-  error(await request('/api/timelines', { method: 'POST', body: createBody, key: 'release-create-0001', extraHeaders: { Authorization: 'Bearer rt_svc_synthetic_rejected' } }), 403, 'human_identity_required')
+  error(await request('/api/timelines', { method: 'POST', body: createBody, key: 'release-create-0001', extraHeaders: { Authorization: 'Bearer rt_svc_synthetic_rejected' } }), 401, 'authentication_required')
   const create = await request('/api/timelines', { method: 'POST', body: createBody, key: 'release-create-0001' })
   assert.equal(create.status, 201); assertArtifact(create.json)
   assert.equal(create.json.sequence, 0); assert.equal(create.json.objectCount, 0)
@@ -296,6 +304,36 @@ try {
   const snapshotRevision = await request(`${snapshotPath}/revisions/${snapshotSave.json.revisionId}`)
   assert.equal(snapshotRevision.status, 200); assert.equal(sha256(canonical(snapshotRevision.json.manifest)), snapshotSave.json.contentHash)
   receipt.checks.push('compiled complete workspace snapshot save/reopen/replay and manifest binding')
+  stage = 'compiled-service-scopes'
+  const serviceClient = 'release_service_client_01', serviceSecret = 'S'.repeat(43)
+  const serviceHash = createHmac('sha256', 'synthetic-release-hmac-key-not-production-0001').update(`rt-service-token.v1\0${serviceClient}\0${serviceSecret}`).digest('hex')
+  const serviceTokenId = 'release_service_token_000001'
+  await seedRow(db, 'users', { id: 880010, username: `service_${serviceClient}`, email: `service+${serviceClient}@service.invalid`, full_name: 'Synthetic service', hashed_password: 'SERVICE_AUTH_DISABLED', user_hash: null, account_hash: null, oidc_sub: null, oidc_provider: null, oidc_email: null, is_active: 1, is_verified: 0, role: 'service' })
+  await seedRow(db, 'workspaces', { id: 'release-service-workspace', name: 'Synthetic service', owner_id: 880010, type: 'TEAM', is_public: 0 })
+  await seedRow(db, 'investigations', { id: 'release-service-investigation', workspace_id: 'release-service-workspace', created_by: 880010, title: 'Synthetic intake', status: 'active', type: 'general' })
+  await seedRow(db, 'integration_clients', { id: serviceClient, community_id: 'release-community', workspace_id: 'release-service-workspace', intake_investigation_id: 'release-service-investigation', principal_user_id: 880010, environment: 'production', maximum_visibility: 'private', status: 'active' })
+  await seedRow(db, 'integration_client_tokens', { id: serviceTokenId, client_id: serviceClient, slot: 'current', secret_hash: serviceHash, created_at: 1, not_before: 1, expires_at: 4000000000 })
+  for (const scope of ['timeline.read', 'timeline.write']) await seedRow(db, 'integration_client_token_scopes', { token_id: serviceTokenId, scope })
+  const serviceRequest = (path, options = {}) => request(path, { ...options, user: null, extraHeaders: { Authorization: `Bearer rt_svc_${serviceClient}.${serviceSecret}` } })
+  const discovery = await serviceRequest('/api/integrations/capabilities')
+  assert.equal(discovery.status, 200); assert.equal(discovery.json.capabilities.timelineRead, true); assert.equal(discovery.json.capabilities.timelineWrite, true); assert.equal(discovery.json.contractVersions.timelineArtifact, 'timeline-artifact.v1')
+  const serviceCreateBody = { ...createBody, workspaceId: 'release-service-workspace' }
+  const serviceCreate = await serviceRequest('/api/timelines', { method: 'POST', body: serviceCreateBody, key: 'release-service-create01' })
+  assert.equal(serviceCreate.status, 201); assert.equal(serviceCreate.json.createdBy, 880010)
+  const servicePath = `/api/timelines/${serviceCreate.json.artifactId}`
+  const serviceCommitOptions = { method: 'PATCH', body: snapshotBody, key: 'release-service-commit01', etag: serviceCreate.headers.get('etag') }
+  const serviceSave = await serviceRequest(servicePath, serviceCommitOptions)
+  assert.equal(serviceSave.status, 200)
+  assert.equal((await serviceRequest(servicePath, serviceCommitOptions)).text, serviceSave.text)
+  for (const suffix of ['', `/objects?revisionId=${serviceSave.json.revisionId}`, '/revisions', `/revisions/${serviceSave.json.revisionId}`]) assert.equal((await serviceRequest(servicePath + suffix)).status, 200)
+  assert.equal((await serviceRequest(artifactPath)).status, 404)
+  assert.equal((await request(servicePath)).status, 404)
+  await db.prepare('DELETE FROM integration_client_token_scopes WHERE token_id=? AND scope=?').bind(serviceTokenId, 'timeline.write').run()
+  assert.equal((await serviceRequest(servicePath, serviceCommitOptions)).status, 403)
+  assert.equal((await serviceRequest(servicePath)).status, 200)
+  await db.prepare('UPDATE integration_client_tokens SET revoked_at=unixepoch() WHERE id=?').bind(serviceTokenId).run()
+  assert.equal((await serviceRequest(servicePath)).status, 401)
+  receipt.checks.push('compiled scoped service create/snapshot/replay/pinned reads/discovery', 'independent write scope and fresh replay revocation', 'human/service workspace isolation')
   receipt.compiledHttpGate = 'passed'
   receipt.checks.push('compiled Pages create/commit routes', 'human/service/viewer/cross-workspace authorization', 'exact replay after later revision', 'idempotency conflict and stale head', 'pinned object/history reads and manifest hash', 'real D1 partial-batch rollback', 'immutable replacement rejected', 'privacy change reauthorizes read/replay')
   await save(receipt)
