@@ -261,4 +261,26 @@ test.describe('Timeline narrative and import @smoke', () => {
     await page.getByRole('button', { name: 'Resume saved timeline' }).click()
     await expect(page.getByLabel('Narrative title')).toHaveValue('Replacement draft')
   })
+
+  test('native outline fragments target imported event and chapter IDs containing colons', async ({ page }) => {
+    await page.route('**/api/workspaces', route => route.fulfill({ status: 200, json: { owned: [], member: [] } }))
+    const value = fixture()
+    value.analystWorkspace.events[0].id = 'source:imported:one'
+    value.analystWorkspace.questions[0].afterEventId = 'source:imported:one'
+    value.analystWorkspace.narrative!.chapters[0].id = 'chapter:imported:one'
+    value.analystWorkspace.events.forEach(event => {
+      if (event.chapterId === 'chapter-one') event.chapterId = 'chapter:imported:one'
+    })
+    await page.goto('/dashboard/tools/timeline')
+    await importFile(page, value)
+    await page.getByRole('button', { name: 'Narrative view', exact: true }).click()
+    const outline = page.getByRole('navigation', { name: 'Narrative outline' })
+    await outline.getByRole('link', { name: 'The change', exact: true }).click()
+    await expect(page.locator(':target')).toHaveAttribute('id', 'timeline-chapter-chapter%3Aimported%3Aone')
+    await outline.getByRole('link', { name: 'First event', exact: true }).click()
+    await expect(page.locator(':target')).toHaveAttribute('id', 'narrative-timeline-event-source%3Aimported%3Aone')
+    await page.getByRole('button', { name: 'Analyst view', exact: true }).click()
+    await page.getByLabel('Timeline events').getByRole('link', { name: /First event/ }).click()
+    await expect(page.locator(':target')).toHaveAttribute('id', 'timeline-event-source%3Aimported%3Aone')
+  })
 })
