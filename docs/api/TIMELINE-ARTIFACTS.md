@@ -103,7 +103,7 @@ Errors have `{schemaVersion:"timeline-artifact-error.v1", requestId, error:{code
 | 428 | `precondition_required` |
 | 503 | `datastore_unavailable` |
 
-Managed migration `0011_timeline_foundation.sql` creates normalized identities, immutable typed object versions, revision parents, semantic changes, pinned manifests, one default branch and replay records. Composite keys bind every object/version/revision reference to its workspace and artifact. Workspace deletion is restricted by these references; this slice does not implement retention/deletion workflows.
+Managed migration `0011_timeline_foundation.sql` creates normalized identities, immutable typed object versions, revision parents, semantic changes, pinned manifests, one default branch and replay records. Composite keys bind every object/version/revision reference to its workspace and artifact. User and workspace deletion is restricted by these references; this slice does not implement retention/deletion workflows.
 
 Each commit is one real D1 `batch()`: revision insert (with transaction-time authorization and expected-head trigger), parent edge, new identities/versions, one bound-JSON manifest insert, semantic changes, guarded head advancement, and replay record. At most 35 statements are needed for ten new objects; copying unchanged manifest references uses one `json_each` statement rather than one statement per object. The final head trigger verifies parent count, manifest/change counts, before/after version alignment, changed-object records and retained tombstones. Any constraint failure rolls back the entire batch. A zero-row conditional update is not used as the concurrency guarantee.
 

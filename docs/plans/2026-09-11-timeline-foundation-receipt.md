@@ -1,5 +1,8 @@
 # Timeline foundation delivery receipt
 
+Historical receipt: the [continuation](./2026-09-11-timeline-continuation-receipt.md)
+resolves the browser limitations recorded below and adds the first durable API slice.
+
 Date: 2026-09-11. Local implementation only; no canonical landing, mirror update,
 or deployment. The dirty primary checkout remains untouched.
 

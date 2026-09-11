@@ -4,8 +4,9 @@
 
 **Date:** 2026-09-11
 
-**Execution status:** Foundation tranche implemented locally: TL-00 is locally
-verified and TL-02 awaits browser acceptance. No release or deployment has occurred.
+**Execution status:** TL-00 and TL-02 are verified locally. The first human-only
+durable API slice of TL-03 is implemented and verified; full TL-03 remains in
+progress. No release, deployment or production migration has occurred.
 The remaining proposed capabilities below are not shipped merely because their
 contracts are described here.
 Delivery checkpoints and dependency corrections are maintained in the

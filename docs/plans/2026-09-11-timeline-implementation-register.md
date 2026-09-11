@@ -2,7 +2,7 @@
 
 Date: 2026-09-11
 
-Status: foundation tranche implemented locally; TL-00 verified locally, TL-02 awaiting browser acceptance. No release or deployment.
+Status: TL-00 and TL-02 verified locally; the human API slice of TL-03 is verified locally and the full TL-03 checkpoint remains in progress. No release or deployment.
 
 This register translates the [platform roadmap](./2026-09-11-timeline-evidence-narrative-roadmap.md)
 into independently verifiable releases. Each checkpoint includes API behavior,
@@ -16,9 +16,9 @@ composition, comparisons, planning, and reviewed publication. Signal owns its
 command orchestration and current community graph. RSS owns article/story
 presentation and requests the existing shared article workflow.
 
-The audit found `timeline-analysis.v1`, a browser-local timeline workspace,
+The initial audit found `timeline-analysis.v1`, a browser-local timeline workspace,
 Behavior Timeline nested paths, and separate ACH/Cross Table components.
-It did not find the proposed durable timeline route family or composition,
+That initial audit did not find the proposed durable timeline route family or composition,
 comparison, planning, and publication services. Existing COP timeline/task
 tables are integration inputs; their existence does not complete these services.
 
@@ -35,17 +35,21 @@ Current delivery state (2026-09-11):
   contract tests and five TypeScript checks pass; production build passes.
   Fixtures exercise the real route with mocked model output; this is not a
   live-provider or historical corpus quality evaluation.
-- **TL-02: implemented; acceptance incomplete.** Narrative metadata, chapters,
-  selected-event presentation, stable links, strict local import and draft recovery
-  are implemented and independently source-reviewed. Chromium interaction checks
-  pass except six download-dependent cases. The same download failure reproduces
-  in a minimal browser-only probe; WebKit hangs before creating a page in the
-  validator. Export round trips and mobile Safari remain mandatory release gates.
-- **TL-01 and TL-03–TL-18: pending.** These are separate dependent releases;
-  this tranche does not claim durable investigation, publication, or cross-app delivery.
+- **TL-02: verified_local.** Narrative metadata, chapters, selection, stable links,
+  strict local import and draft recovery pass Chromium and mobile Safari acceptance,
+  including real downloaded-byte round trips. All 42 browser-project checks pass.
+- **TL-03: in_progress; human API slice verified_local.** Private workspace auth,
+  artifact/default branch, stable event-candidate identities, immutable versions,
+  transactional revisions, exact retry replay and pinned history are implemented.
+  The combined 86 API/contract checks and all five TypeScript checks/build pass.
+  Actual managed-chain and seeded-prefix upgrade tests pass in Miniflare D1 with
+  synthetic prerequisites. Scoped service access, durable consumer integration and
+  production-equivalent migration rehearsal remain separate gates.
+- **TL-01 and TL-04–TL-18: pending.** No publication or cross-app delivery is claimed.
 
-See the [foundation delivery receipt](./2026-09-11-timeline-foundation-receipt.md)
-for exact candidate, commands, results, runtime limits, and publication state.
+See the [continuation receipt](./2026-09-11-timeline-continuation-receipt.md) for current
+acceptance and the [foundation receipt](./2026-09-11-timeline-foundation-receipt.md)
+for historical attempts. The continuation resolves the earlier browser limitations.
 The table retains the complete acceptance requirements for each checkpoint.
 
 | ID | Scope and concrete deliverable | Prerequisites | Completion evidence |
