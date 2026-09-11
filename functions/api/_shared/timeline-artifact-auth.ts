@@ -65,6 +65,9 @@ const serviceBinding = `FROM integration_clients c
  AND c.status='active' AND c.audience='researchtools-community-api.v1'
  AND c.maximum_visibility IN ('private','community','public')
  AND t.slot IN ('current','next') AND t.hash_version='hmac-sha256.v1'
+ AND typeof(t.created_at)='integer' AND t.created_at BETWEEN 0 AND 9007199254740991
+ AND typeof(t.not_before)='integer' AND t.not_before BETWEEN 0 AND 9007199254740991
+ AND typeof(t.expires_at)='integer' AND t.expires_at BETWEEN 0 AND 9007199254740991
  AND t.created_at<=unixepoch() AND t.not_before<=unixepoch() AND t.expires_at>unixepoch() AND t.revoked_at IS NULL
  AND EXISTS (SELECT 1 FROM integration_client_token_scopes s WHERE s.token_id=t.id AND s.scope=?)
  AND u.role='service' AND u.is_active=1 AND u.username='service_'||c.id

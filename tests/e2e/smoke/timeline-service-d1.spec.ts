@@ -172,6 +172,7 @@ test.describe('timeline exact scoped service actual D1 @smoke',()=>{
    "DELETE FROM integration_client_token_scopes WHERE scope='timeline.write' AND token_id='"+tokenId+"'",
    "UPDATE integration_client_tokens SET secret_hash='"+'e'.repeat(64)+"' WHERE slot='current'",
    "UPDATE integration_client_tokens SET expires_at=unixepoch()-1 WHERE slot='current'",
+   "UPDATE integration_client_tokens SET expires_at=unixepoch()+3599.5 WHERE slot='current'",
    "UPDATE integration_clients SET status='disabled'",
    "UPDATE integration_clients SET environment='staging'",
    "UPDATE integration_clients SET community_id='changed-community'",
