@@ -60,6 +60,31 @@ test.describe('timeline evidence bounded contract @smoke',()=>{
     expect(()=>validateTimelineEvidence(cycle,[event.id])).toThrow()
     expect(timelineCorroboration(cycle,event).eligible).toBe(false)
   })
+  test('shared intermediate source URLs cannot be overridden by a fresh independence review',()=>{
+    const evidence=fixture()
+    for(const [suffix,url] of [
+      ['middle-a','https://shared.example/report#first'],
+      ['middle-b','https://SHARED.example:443/report#second'],
+      ['root-a','https://root-a.example/'],['root-b','https://root-b.example/'],
+    ]) {
+      evidence.sources.push({id:`source:${suffix}`,url,title:suffix,publisher:suffix})
+      evidence.assertions.push({...evidence.assertions[0],id:`assertion:${suffix}`,sourceId:`source:${suffix}`,passage:{id:`passage:${suffix}`,quote:suffix,locator:'Paragraph 1'},derivesFrom:[]})
+    }
+    evidence.assertions[0].derivesFrom=['assertion:middle-a']
+    evidence.assertions[1].derivesFrom=['assertion:middle-b']
+    evidence.assertions[2].derivesFrom=['assertion:root-a']
+    evidence.assertions[3].derivesFrom=['assertion:root-b']
+    reviewed(evidence)
+    expect(()=>validateTimelineEvidence(evidence,[event.id])).not.toThrow()
+    expect(timelineCorroboration(evidence,event).eligible).toBe(false)
+    expect(timelineAssessmentLabel(evidence,event)).toBe('Corroboration needs review')
+    // Also reject an observed source that appears only as the other support's intermediary.
+    evidence.assertions[1].sourceId='source:middle-a'
+    evidence.assertions[1].derivesFrom=['assertion:root-b']
+    reviewed(evidence)
+    expect(timelineCorroboration(evidence,event).eligible).toBe(false)
+  })
+
   test('canonical review basis binds claim, links, passages, clocks and ancestors but not display',()=>{
     const original=reviewed(),basis=original.reviews[0].basis
     const shuffled=structuredClone(original);shuffled.sources.reverse();shuffled.assertions.reverse();shuffled.links.reverse()

@@ -2,10 +2,10 @@ import { test, expect } from '@playwright/test'
 import type { Page } from '@playwright/test'
 import { readFile } from 'node:fs/promises'
 
-function fixture(assessment = 'unreviewed') {
+function fixture(assessment = 'unreviewed', omitPlacement = false) {
   return { schemaVersion: 'timeline-workspace.v1', exportedAt: '2026-09-11T00:00:00.000Z', source: { schemaVersion: 'timeline-manual.v1', title: 'Evidence investigation' }, analystWorkspace: {
     mode: 'robust', presentation: 'analyst', sortDirection: 'oldest', questions: [], hypotheses: [],
-    events: [{ id: 'event-evidence', eventDate: '2026-09-01', datePrecision: 'day', title: 'Bridge opened', description: 'Opening reported.', category: 'event', importance: 'normal', origin: 'analyst', assessment, analystNote: '', modified: false, sequenceOrder: 0, placement: { mode: 'absolute' }, narrativeIncluded: true, narrativeOrder: 0, narrativeRole: 'context', whyItMatters: 'Establishes access.', transition: '' }],
+    events: [{ id: 'event-evidence', eventDate: '2026-09-01', datePrecision: 'day', title: 'Bridge opened', description: 'Opening reported.', category: 'event', importance: 'normal', origin: 'analyst', assessment, analystNote: '', modified: false, sequenceOrder: 0, ...(omitPlacement ? {} : { placement: { mode: 'absolute' } }), narrativeIncluded: true, narrativeOrder: 0, narrativeRole: 'context', whyItMatters: 'Establishes access.', transition: '' }],
     narrative: { title: 'Access changed', framing: 'Recorded claims.', question: '', intendedUse: '', scope: '', timezone: 'UTC', dataThrough: '', chapters: [] },
   } }
 }
@@ -43,7 +43,7 @@ async function addEvidence(page: Page) {
 
 test.describe('timeline inspectable evidence @smoke', () => {
   test('add independent assertions, review, export/import, stale review and known common origin', async ({ page }, testInfo) => {
-    await start(page)
+    await start(page, fixture('unreviewed', true))
     const panel = await addEvidence(page)
     await panel.getByLabel('Independence', { exact: true }).selectOption('independent')
     await panel.getByLabel('Compatibility', { exact: true }).selectOption('compatible')
@@ -62,6 +62,8 @@ test.describe('timeline inspectable evidence @smoke', () => {
     expect(saved.analystWorkspace.evidence.assertions[0].passage.quote).toBe('Original quotation: City records opening')
     expect(saved.analystWorkspace.evidence.reviews[0].basis).toContain('Bridge opened')
     expect(saved.analystWorkspace.events[0].assessment).toBe('corroborated')
+    expect(saved.analystWorkspace.events[0].placement).toBeUndefined()
+    await expect(page.getByText('Corroboration needs review', { exact: true })).toHaveCount(0)
     await upload(page, saved)
     expect((await exported(page)).analystWorkspace.evidence).toEqual(saved.analystWorkspace.evidence)
     await page.getByTestId('evidence-event-evidence').locator('summary').first().click()

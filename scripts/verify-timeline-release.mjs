@@ -334,6 +334,8 @@ try {
   assert.equal(outboundAttempts, 0, 'Compiled worker attempted an external fetch instead of local routing/bindings')
   receipt.staticGate = 'passed'; receipt.externalOutboundAttempts = outboundAttempts
   receipt.checks.push('compiled Pages ASSETS fallback matches built index and referenced static asset')
+  assert.deepEqual(await collectManifest(db, receipt.tables.map(table => table.name)), receipt.tables, 'Compiled route rehearsal changed the database catalog')
+  receipt.checks.push('all 12 table catalogs remain unchanged after compiled human/service and static routes')
   await save(receipt)
   console.log(JSON.stringify({ result: 'passed', schemaRehearsal: receipt.schemaRehearsal, compiledHttpGate: receipt.compiledHttpGate, staticGate: receipt.staticGate, affectedTables: receipt.tables.length, manifest: manifestPath }))
 } catch (error) {

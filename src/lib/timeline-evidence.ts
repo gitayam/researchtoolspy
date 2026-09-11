@@ -102,14 +102,16 @@ export function timelineCorroboration(evidence:TimelineEvidence|undefined,event:
     activeCache.set(assertion.id,active);return active
   }
   const supports=links.filter(link=>link.relation==='supports'&&activeLineage(byId.get(link.assertionId)!)).map(link=>byId.get(link.assertionId)!)
-  const rootCache=new Map<string,Set<string>>()
-  const roots=(assertion:TimelineSourceAssertion):Set<string>=>{
-    const cached=rootCache.get(assertion.id);if(cached) return cached
-    const result=assertion.derivesFrom.length ? new Set(assertion.derivesFrom.flatMap(parent=>[...roots(byId.get(parent)!)])) : new Set([normalizedUrl(sources.get(assertion.sourceId)!.url)])
-    rootCache.set(assertion.id,result);return result
+  const lineageCache=new Map<string,Set<string>>()
+  const lineageUrls=(assertion:TimelineSourceAssertion):Set<string>=>{
+    const cached=lineageCache.get(assertion.id);if(cached) return cached
+    // A shared intermediary is recorded dependence even when separately declared
+    // roots differ. Include the complete lineage, not just its terminal sources.
+    const result=new Set([normalizedUrl(sources.get(assertion.sourceId)!.url),...assertion.derivesFrom.flatMap(parent=>[...lineageUrls(byId.get(parent)!)])])
+    lineageCache.set(assertion.id,result);return result
   }
-  const origins=supports.map(assertion=>({own:normalizedUrl(sources.get(assertion.sourceId)!.url),roots:roots(assertion)}))
-  const separate=origins.some((a,index)=>origins.slice(index+1).some(b=>a.own!==b.own&&![...a.roots].some(root=>b.roots.has(root))))
+  const origins=supports.map(lineageUrls)
+  const separate=origins.some((a,index)=>origins.slice(index+1).some(b=>![...a].some(url=>b.has(url))))
   if(!separate) return no('At least two active supports with separate source origins are required.')
   const review=evidence.reviews.find(review=>review.eventId===event.id)
   if(!review||review.independence!=='independent'||review.compatibility!=='compatible') return no('Review source independence and claim compatibility.')

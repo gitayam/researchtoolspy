@@ -478,9 +478,10 @@ function TimelineWorkspace({
       placement = { mode: 'absolute' }
     }
 
+    const prior = events.find(event => event.id === eventEditor.eventId)
+    const preserveAbsentPlacement = !!prior && prior.placement === undefined && placement.mode === 'absolute'
     if (eventEditor.assessment === 'corroborated') {
-      const prior = events.find(event => event.id === eventEditor.eventId)
-      const candidate = prior ? { ...prior, title, description: description || null, eventDate: eventDate || undefined, eventTime: eventTime || undefined, datePrecision, placement } : undefined
+      const candidate = prior ? { ...prior, title, description: description || null, eventDate: eventDate || undefined, eventTime: eventTime || undefined, datePrecision, placement: preserveAbsentPlacement ? undefined : placement } : undefined
       if (!candidate || !timelineCorroboration(evidence, candidate).eligible) {
         setEditorError('Corroboration needs a current independence and compatibility review of this event and its supporting assertions.'); return
       }
@@ -520,7 +521,14 @@ function TimelineWorkspace({
                 }
             : undefined),
         }
-        return placeTimelineEvent(current, nextEvent, placement)
+        const placed = placeTimelineEvent(current, nextEvent, placement)
+        // Legacy absolute placement can be implicit. Preserve its wire shape so
+        // an assessment-only edit does not invalidate the recorded review basis.
+        return preserveAbsentPlacement ? placed.map(item => {
+          if (item.id !== nextEvent.id) return item
+          const { placement: _placement, ...rest } = item
+          return rest
+        }) : placed
       })
     } else {
       setEvents(current => placeTimelineEvent(current, {
