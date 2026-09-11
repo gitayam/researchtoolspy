@@ -1,5 +1,7 @@
 # Timeline continuation delivery receipt
 
+Later publication and deployment are recorded in the [release receipt](./2026-09-11-timeline-release-receipt.md). This receipt preserves its original local-validation state.
+
 2026-09-11. Local branch `work/timeline-foundation-20260911`; primary checkout
 preserved. No push, deployment, production migration, service provisioning or flag
 change occurred.

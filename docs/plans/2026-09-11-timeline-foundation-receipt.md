@@ -1,5 +1,7 @@
 # Timeline foundation delivery receipt
 
+Later publication and deployment are recorded in the [release receipt](./2026-09-11-timeline-release-receipt.md). This receipt preserves its original local-validation state.
+
 Historical receipt: the [continuation](./2026-09-11-timeline-continuation-receipt.md)
 resolves the browser limitations recorded below and adds the first durable API slice.
 

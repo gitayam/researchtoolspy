@@ -1,7 +1,7 @@
 # Private timeline artifact foundation
 
-Availability: local implementation and validation only. No production deployment
-or migration application has occurred.
+Availability: human API slice deployed to researchtools.net on 2026-09-11 with
+managed migration 0011. See the [release receipt](../plans/2026-09-11-timeline-release-receipt.md).
 
 This is the human-only first slice of TL-03. It persists private investigation artifacts, stable event-candidate identities and immutable revisions. It does not complete external-service access or connect the browser-local workspace to durable storage. Extraction remains the independent, nonpersistent `timeline-analysis.v1` API. Capability discovery is unchanged and does not advertise this slice to service clients.
 
@@ -120,4 +120,4 @@ node node_modules/playwright/cli.js test --config=playwright.timeline.config.ts 
 node node_modules/typescript/bin/tsc -p tsconfig.functions.json --noEmit
 ```
 
-Route tests use actual Miniflare D1, without publishers, model calls or real credentials. They cover concurrent retries, CAS losers, rollback around publication, transaction-time auth changes, current permission checks on replay, pinned pagination, history/hash reconstruction, sealed INSERT/REPLACE attacks, tombstone preservation and corrupt replay rejection. Separate migration tests apply the actual complete managed migration chain to a documented synthetic prerequisite schema and rehearse seeded-prefix upgrade. This is not a production-equivalent bootstrap or production migration application: the repository does not provide one complete authoritative historical bootstrap. The broader TL-03 checkpoint still requires scoped external-service access and consumer integration acceptance.
+Route tests use actual Miniflare D1, without publishers, model calls or real credentials. They cover concurrent retries, CAS losers, rollback around publication, transaction-time auth changes, current permission checks on replay, pinned pagination, history/hash reconstruction, sealed INSERT/REPLACE attacks, tombstone preservation and corrupt replay rejection. Separate migration tests apply the actual complete managed migration chain to a documented synthetic prerequisite schema and rehearse seeded-prefix upgrade. These historical-chain tests do not establish an authoritative bootstrap. Release verification separately imported a schema-only production export, applied the pending migration in disposable D1, and exercised the compiled Pages worker with synthetic users. Production migration 0011 is applied and all nine tables, columns, foreign keys, indexes and triggers match the rehearsal manifest. Production smoke checks are anonymous reads/preflights; authenticated writes were tested in the isolated rehearsal. The broader TL-03 checkpoint still requires scoped external-service access and consumer integration acceptance.

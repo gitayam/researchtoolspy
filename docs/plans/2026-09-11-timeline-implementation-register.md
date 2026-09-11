@@ -2,7 +2,7 @@
 
 Date: 2026-09-11
 
-Status: TL-00 and TL-02 verified locally; the human API slice of TL-03 is verified locally and the full TL-03 checkpoint remains in progress. No release or deployment.
+Status: TL-00 and TL-02 released. The human API slice of TL-03 is deployed; the full TL-03 checkpoint remains in progress. GitHub and GitLab main contain the accepted release, and production migration 0011 is applied.
 
 This register translates the [platform roadmap](./2026-09-11-timeline-evidence-narrative-roadmap.md)
 into independently verifiable releases. Each checkpoint includes API behavior,
@@ -30,24 +30,27 @@ their release.
 
 Current delivery state (2026-09-11):
 
-- **TL-00: verified_local.** Frozen JSON schemas/OpenAPI, generic service client,
+- **TL-00: released.** Frozen JSON schemas/OpenAPI, generic service client,
   synthetic fixture manifest and scoring rubric are implemented. All 67 focused
   contract tests and five TypeScript checks pass; production build passes.
   Fixtures exercise the real route with mocked model output; this is not a
   live-provider or historical corpus quality evaluation.
-- **TL-02: verified_local.** Narrative metadata, chapters, selection, stable links,
+- **TL-02: released.** Narrative metadata, chapters, selection, stable links,
   strict local import and draft recovery pass Chromium and mobile Safari acceptance,
   including real downloaded-byte round trips. All 42 browser-project checks pass.
-- **TL-03: in_progress; human API slice verified_local.** Private workspace auth,
+- **TL-03: in_progress; human API slice deployed.** Private workspace auth,
   artifact/default branch, stable event-candidate identities, immutable versions,
   transactional revisions, exact retry replay and pinned history are implemented.
   The combined 86 API/contract checks and all five TypeScript checks/build pass.
   Actual managed-chain and seeded-prefix upgrade tests pass in Miniflare D1 with
-  synthetic prerequisites. Scoped service access, durable consumer integration and
-  production-equivalent migration rehearsal remain separate gates.
-- **TL-01 and TL-04–TL-18: pending.** No publication or cross-app delivery is claimed.
+  synthetic prerequisites. Release rehearsal additionally imported the actual
+  production schema and exercised the compiled Pages worker with synthetic users.
+  Migration 0011 is applied; all nine affected tables and 218 schema details match
+  rehearsal. Scoped service access and durable consumer integration remain pending.
+- **TL-01 and TL-04–TL-18: pending.** No delivery of these checkpoints or cross-app changes is claimed.
 
-See the [continuation receipt](./2026-09-11-timeline-continuation-receipt.md) for current
+See the [release receipt](./2026-09-11-timeline-release-receipt.md) for main pushes,
+production deployment and verification. See the [continuation receipt](./2026-09-11-timeline-continuation-receipt.md) for prior local
 acceptance and the [foundation receipt](./2026-09-11-timeline-foundation-receipt.md)
 for historical attempts. The continuation resolves the earlier browser limitations.
 The table retains the complete acceptance requirements for each checkpoint.

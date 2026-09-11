@@ -4,9 +4,10 @@
 
 **Date:** 2026-09-11
 
-**Execution status:** TL-00 and TL-02 are verified locally. The first human-only
-durable API slice of TL-03 is implemented and verified; full TL-03 remains in
-progress. No release, deployment or production migration has occurred.
+**Execution status:** TL-00 and TL-02 are released. The first human-only durable
+API slice of TL-03 is deployed; full TL-03 remains in progress. The accepted release
+is on both main refs and production migration 0011 is applied. See the
+[release receipt](./2026-09-11-timeline-release-receipt.md).
 The remaining proposed capabilities below are not shipped merely because their
 contracts are described here.
 Delivery checkpoints and dependency corrections are maintained in the
