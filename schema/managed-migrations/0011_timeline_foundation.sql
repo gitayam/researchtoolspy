@@ -1,4 +1,9 @@
 -- Human-only private timeline foundation. Forward-only; no applied migration is changed.
+-- Rollback: redeploy the previously verified application and leave these additive
+-- tables/triggers intact. Do not drop immutable history. For a database recovery,
+-- stop timeline writes and use the pre-apply D1 backup/Time Travel bookmark under
+-- an explicit recovery plan; Time Travel restores the entire database, not just
+-- timeline tables. No automatic destructive down migration is provided.
 -- Statements are separated by the explicit marker for trigger-safe local tests.
 -- statement
 CREATE TABLE timeline_artifacts (
