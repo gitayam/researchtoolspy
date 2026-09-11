@@ -4,6 +4,7 @@ import { InfoIcon, BookmarkIcon } from 'lucide-react'
 import { useGuestMode } from '@/contexts/GuestModeContext'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { trackProductIntent } from '@/lib/product-analytics'
 
 export function GuestModeBanner() {
   const { t } = useTranslation('common')
@@ -23,7 +24,10 @@ export function GuestModeBanner() {
         <Button
           variant="link"
           className="ml-2 h-auto p-0 text-blue-600 hover:text-blue-800"
-          onClick={() => navigate('/login')}
+          onClick={() => {
+            trackProductIntent('authentication', 'save_gate')
+            navigate('/login')
+          }}
         >
           <BookmarkIcon className="mr-1 h-3 w-3" />
           {t('auth.signInToSave')}

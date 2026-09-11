@@ -14,6 +14,11 @@
 // binding or a Durable Object (strongly consistent) — tracked as a follow-up.
 // Fail-open throughout: if CACHE is unbound or KV errors, the request proceeds.
 
+import {
+  recordProductApiRequest,
+  type ProductAnalyticsEnv,
+} from './_shared/product-metrics'
+
 /**
  * AI endpoints subject to the per-user (hash) rate limiter. Matched as a
  * substring against url.pathname for POST requests. Exported so a regression
@@ -144,7 +149,7 @@ function timingSafeEqualStrings(a: string, b: string): boolean {
   return diff === 0
 }
 
-export interface MiddlewareEnv {
+export interface MiddlewareEnv extends ProductAnalyticsEnv {
   CACHE?: KVNamespace
   /** Comma-separated interim first-party analysis keys. See `trustedServiceKey`. */
   TRUSTED_ANALYSIS_KEYS?: string
@@ -156,6 +161,7 @@ interface MiddlewareContext {
   request: Request
   next: () => Promise<Response>
   env: MiddlewareEnv
+  waitUntil?: (promise: Promise<unknown>) => void
 }
 
 /**
@@ -180,6 +186,25 @@ async function kvRateLimit(env: MiddlewareEnv | undefined, key: string, limit: n
 export async function onRequest(context: MiddlewareContext) {
   const { request, next, env } = context
   const url = new URL(request.url)
+  const requestStartedAt = Date.now()
+  const serviceIdentity = trustedServiceKey(request, env)
+
+  const recordResponseStatus = async (status: number): Promise<void> => {
+    const pending = recordProductApiRequest({
+      request,
+      responseStatus: status,
+      durationMs: Date.now() - requestStartedAt,
+      env,
+      serviceIdentity,
+    }).then(() => undefined).catch(() => undefined)
+    if (context.waitUntil) context.waitUntil(pending)
+    else await pending
+  }
+
+  const observeResponse = async (response: Response): Promise<Response> => {
+    await recordResponseStatus(response.status)
+    return response
+  }
 
   // CORS headers for all API requests — dynamic origin check
   const origin = request.headers.get('Origin') || ''
@@ -234,23 +259,23 @@ export async function onRequest(context: MiddlewareContext) {
     // shared 12 requests/hour with each other AND with any human on that
     // address — 12/hour is a sane public budget and a nonsensical one for a
     // bot that analyzes every link posted to a community.
-    const serviceKey = trustedServiceKey(request, env)
+    const serviceKey = serviceIdentity
     analysisMeter = serviceKey ? 'service' : 'public'
     const meterHeader = { 'X-Analysis-Meter': analysisMeter }
 
     if (serviceKey) {
       if (await kvRateLimit(env, `content-analysis-svc:${serviceKey}`, serviceAnalysisLimit(env), 60 * 60)) {
-        return json429('Service analysis limit reached. Please try again later.', meterHeader)
+        return observeResponse(json429('Service analysis limit reached. Please try again later.', meterHeader))
       }
     } else if (await kvRateLimit(env, `content-analysis:${clientIp}`, 12, 60 * 60)) {
-      return json429('Public analysis limit reached. Please try again later.', meterHeader)
+      return observeResponse(json429('Public analysis limit reached. Please try again later.', meterHeader))
     }
   }
 
   // Auth: brute-force protection on login
   if (url.pathname.includes('/hash-auth/authenticate') && request.method === 'POST') {
     if (await kvRateLimit(env, `auth:${clientIp}`, 5, 60)) {
-      return json429('Too many login attempts. Please try again later.')
+      return observeResponse(json429('Too many login attempts. Please try again later.'))
     }
   }
 
@@ -259,7 +284,7 @@ export async function onRequest(context: MiddlewareContext) {
   if (request.method === 'POST' && AI_RATE_LIMITED_PATHS.some(p => url.pathname.includes(p))) {
     const id = request.headers.get('X-User-Hash') || request.headers.get('X-Guest-Session') || clientIp
     if (await kvRateLimit(env, `ai:${id}`, 40, 60)) {
-      return json429('AI rate limit exceeded. Please wait before making more requests.')
+      return observeResponse(json429('AI rate limit exceeded. Please wait before making more requests.'))
     }
   }
 
@@ -267,21 +292,29 @@ export async function onRequest(context: MiddlewareContext) {
   if (request.method === 'POST' && isApifyScraperPath(url.pathname)) {
     const id = request.headers.get('X-User-Hash') || request.headers.get('X-Guest-Session') || clientIp
     if (await kvRateLimit(env, `scrape:${id}`, 10, 60)) {
-      return json429('Scraper rate limit exceeded. Please wait before starting more scrapes.')
+      return observeResponse(json429('Scraper rate limit exceeded. Please wait before starting more scrapes.'))
     }
   }
 
   // Guest registration: prevent DB flooding via /hash-auth/register
   if (url.pathname.includes('/hash-auth/register') && request.method === 'POST') {
     if (await kvRateLimit(env, `register:${clientIp}`, 10, 60)) {
-      return json429('Too many registration attempts. Please try again later.')
+      return observeResponse(json429('Too many registration attempts. Please try again later.'))
     }
   }
 
   // Public password verification endpoints
   if (url.pathname.includes('/intake/') && url.pathname.includes('/verify-password') && request.method === 'POST') {
     if (await kvRateLimit(env, `pwd:${clientIp}`, 10, 60)) {
-      return json429('Too many attempts. Please try again later.')
+      return observeResponse(json429('Too many attempts. Please try again later.'))
+    }
+  }
+
+  // Browser telemetry accepts only a closed taxonomy, but is still public.
+  // Bound request volume before parsing so it cannot become a write-amplifier.
+  if (url.pathname === '/api/analytics/events' && request.method === 'POST') {
+    if (await kvRateLimit(env, `product-analytics:${clientIp}`, 120, 60)) {
+      return json429('Analytics rate limit exceeded. Please try again later.')
     }
   }
 
@@ -297,14 +330,15 @@ export async function onRequest(context: MiddlewareContext) {
   } catch (err: unknown) {
     const authErr = err as { isAuthDbError?: boolean; name?: string } | null | undefined
     if (authErr?.isAuthDbError === true || authErr?.name === 'AuthDbError') {
-      return new Response(
+      return observeResponse(new Response(
         JSON.stringify({ error: 'Service temporarily unavailable, please retry.', retryable: true }),
         {
           status: 503,
           headers: { 'Content-Type': 'application/json', 'Retry-After': '2', ...corsHeaders },
         }
-      )
+      ))
     }
+    await recordResponseStatus(err instanceof Response ? err.status : 500)
     throw err
   }
 
@@ -323,5 +357,5 @@ export async function onRequest(context: MiddlewareContext) {
 
   if (analysisMeter) response.headers.set('X-Analysis-Meter', analysisMeter)
 
-  return response
+  return observeResponse(response)
 }

@@ -73,12 +73,24 @@ Falsifiable gates:
 
 ### Interactive timeline analyst workspace (2026-09-08)
 
+> Detailed next-stage plan: [Evidence-First Timeline Platform Roadmap](./plans/2026-09-11-timeline-evidence-narrative-roadmap.md), including story curation,
+> source assertions, structured analytic tradecraft, world/knowledge
+> chronologies, multi-scale temporal composition, falsifiable comparison,
+> semantic fork/merge, living updates and warning, event and operational
+> planning, a published case-study corpus, and TimelineJS presentation
+> interoperability.
+
+Execution tracking: [Timeline implementation register](./plans/2026-09-11-timeline-implementation-register.md)
+records all delivery checkpoints, dependencies, verification evidence, and
+release status.
+
 - ✅ Timeline is now an investigation workspace, not only an extraction result.
   Analysts can start with a named blank timeline, enter what they know, and add
   unanswered questions before any source has been collected.
 - ✅ Manual guest timelines auto-save in that browser for seven days and can be
-  resumed after visiting other tools. Server-side saving, sharing, and teamwork
-  still require an authenticated writable workspace.
+  resumed after visiting other tools. Active authenticated users can save and
+  reopen complete private timeline workspace snapshots as immutable revisions;
+  public sharing and team editing remain planned.
 - ✅ The dedicated Timeline tool and Content Intelligence now share one
   interactive overlay on top of the immutable `timeline-analysis.v1` response.
 - ✅ **Basic mode** supports absolute date and/or time placement, true
@@ -120,8 +132,9 @@ Falsifiable gates:
   outcomes. The AI generator consumes the full behavior context and existing
   sequence, then validates its rich output before analyst review.
 - ✅ Guest use remains available and temporary. Manual drafts are browser-local
-  for seven days; extracted overlays reset on regeneration. Saving and
-  collaboration still require an authenticated writable workspace.
+  for seven days; extracted overlays reset on regeneration. Authenticated users
+  can explicitly save/reopen private snapshots with conflict protection, while
+  collaboration remains planned.
 - ⬜ Next: add authenticated promotion into an Investigation/COP using canonical
   evidence passages, per-event source links, and question-to-RFI/Answer Packet
   conversion. Gate persistence on 100% workspace authorization coverage and

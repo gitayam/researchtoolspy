@@ -42,6 +42,10 @@ service = "researchtools-browser-renderer"
 binding = "SCRAPE_ANALYTICS"
 dataset = "researchtoolspy_scrape_metrics_v1"
 
+[[analytics_engine_datasets]]
+binding = "PRODUCT_ANALYTICS"
+dataset = "researchtoolspy_product_metrics_v1"
+
 # Environment Variables
 # Note: Secrets (OPENAI_API_KEY, VIRUSTOTAL_API_KEY) should be added via:
 # wrangler secret put OPENAI_API_KEY
@@ -110,6 +114,10 @@ service = "researchtools-browser-renderer"
 [[env.production.analytics_engine_datasets]]
 binding = "SCRAPE_ANALYTICS"
 dataset = "researchtoolspy_scrape_metrics_v1"
+
+[[env.production.analytics_engine_datasets]]
+binding = "PRODUCT_ANALYTICS"
+dataset = "researchtoolspy_product_metrics_v1"
 
 # ==========================================
 # Cloudflare Containers

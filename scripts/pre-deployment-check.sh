@@ -330,11 +330,23 @@ if [ -f "wrangler.toml" ]; then
     print_status 1 "SCRAPE_ANALYTICS binding must be configured for default and production"
   fi
 
+  if [ "$(grep -c 'binding = \"PRODUCT_ANALYTICS\"' wrangler.toml)" -eq 2 ]; then
+    print_status 0 "Product Analytics Engine binding configured for default and production"
+  else
+    print_status 1 "PRODUCT_ANALYTICS binding must be configured for default and production"
+  fi
+
   if secret_list=$(pnpm exec wrangler pages secret list --project-name=researchtoolspy 2>&1) \
     && printf '%s\n' "$secret_list" | grep -q 'SCRAPE_TELEMETRY_KEY'; then
     print_status 0 "Privacy-safe scraping telemetry key configured"
   else
     print_status 1 "SCRAPE_TELEMETRY_KEY missing from production Pages secrets"
+  fi
+
+  if printf '%s\n' "${secret_list:-}" | grep -q 'PRODUCT_TELEMETRY_KEY'; then
+    print_status 0 "Privacy-safe product telemetry key configured"
+  else
+    print_status 1 "PRODUCT_TELEMETRY_KEY missing from production Pages secrets"
   fi
 else
   print_status 1 "wrangler.toml not found"

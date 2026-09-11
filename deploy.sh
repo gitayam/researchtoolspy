@@ -31,7 +31,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 PROJECT_NAME="researchtoolspy"
-REQUIRED_SECRETS="TRUSTED_ANALYSIS_KEYS OPENAI_API_KEY JWT_SECRET SCRAPE_TELEMETRY_KEY INTEGRATION_TOKEN_HASH_KEY"
+REQUIRED_SECRETS="TRUSTED_ANALYSIS_KEYS OPENAI_API_KEY JWT_SECRET SCRAPE_TELEMETRY_KEY PRODUCT_TELEMETRY_KEY INTEGRATION_TOKEN_HASH_KEY"
 # shellcheck source=scripts/cloudflare-account.sh
 source ./scripts/cloudflare-account.sh
 
@@ -204,11 +204,12 @@ fi
 FUNC_COUNT=$(find dist/functions -name "*.ts" | wc -l | tr -d ' ')
 echo "${GREEN}Functions copied ($FUNC_COUNT TypeScript files)${NC}"
 
-# Copy shared src/ modules referenced by functions (export serializers, types, BCW canon)
-echo "${YELLOW}  Copying src/lib/export/, src/lib/bcw-canon.ts, and src/types/ for function bundling...${NC}"
+# Copy shared src/ modules referenced by functions (export serializers, types, analytics, BCW canon)
+echo "${YELLOW}  Copying shared src modules required by functions...${NC}"
 mkdir -p dist/src/lib/export dist/src/types
 rsync -av src/lib/export/ dist/src/lib/export/
 rsync -av src/lib/bcw-canon.ts dist/src/lib/bcw-canon.ts
+rsync -av src/lib/product-analytics-contract.ts dist/src/lib/product-analytics-contract.ts
 rsync -av src/types/cop.ts dist/src/types/cop.ts
 echo "${GREEN}  Shared modules copied${NC}"
 echo ""
@@ -349,7 +350,7 @@ sleep 3
 
 # Check the production site responds
 PROD_URL="https://${PROJECT_NAME}.pages.dev"
-HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$PROD_URL" 2>/dev/null || echo "000")
+HTTP_STATUS=$(curl -s -A 'ResearchTools-Deploy-Probe/1.0' -o /dev/null -w "%{http_code}" "$PROD_URL" 2>/dev/null || echo "000")
 
 if [ "$HTTP_STATUS" = "200" ]; then
     echo "${GREEN}Production site responding (HTTP $HTTP_STATUS)${NC}"
@@ -360,7 +361,7 @@ else
 fi
 
 # Check that index.html has bundled assets (not dev mode)
-PROD_CONTENT=$(curl -s "$PROD_URL" 2>/dev/null)
+PROD_CONTENT=$(curl -s -A 'ResearchTools-Deploy-Probe/1.0' "$PROD_URL" 2>/dev/null)
 if echo "$PROD_CONTENT" | grep -q '/assets/index-'; then
     echo "${GREEN}Production serving bundled assets${NC}"
 elif echo "$PROD_CONTENT" | grep -q '/src/main.tsx'; then
@@ -423,12 +424,12 @@ else
     meter_of() {
         # $1: optional X-Service-Key value
         if [ -n "$1" ]; then
-            curl -s -o /dev/null -D - -m 30 -X POST "$ANALYZE_URL" \
+            curl -s -A 'ResearchTools-Deploy-Probe/1.0' -o /dev/null -D - -m 30 -X POST "$ANALYZE_URL" \
                 -H 'Content-Type: application/json' -H "X-Service-Key: $1" \
                 -d "$PROBE_BODY" 2>/dev/null \
                 | tr -d '\r' | awk -F': ' 'tolower($1)=="x-analysis-meter"{print $2}'
         else
-            curl -s -o /dev/null -D - -m 30 -X POST "$ANALYZE_URL" \
+            curl -s -A 'ResearchTools-Deploy-Probe/1.0' -o /dev/null -D - -m 30 -X POST "$ANALYZE_URL" \
                 -H 'Content-Type: application/json' -d "$PROBE_BODY" 2>/dev/null \
                 | tr -d '\r' | awk -F': ' 'tolower($1)=="x-analysis-meter"{print $2}'
         fi

@@ -10,6 +10,7 @@ import { useAuthStore } from '@/stores/auth'
 import { router } from '@/routes'
 import i18n from '@/lib/i18n'
 import { getAuthIdentifier } from '@/lib/auth-utils'
+import { startProductAnalytics } from '@/lib/product-analytics'
 
 function App() {
   const checkAuth = useAuthStore((state) => state.checkAuth)
@@ -18,6 +19,8 @@ function App() {
   useEffect(() => {
     checkAuth()
   }, [checkAuth])
+
+  useEffect(() => startProductAnalytics(router), [])
 
   // Sync language from user settings on app load
   useEffect(() => {

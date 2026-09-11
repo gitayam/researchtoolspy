@@ -1,7 +1,6 @@
 import { useNavigate, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
-  Bell,
   ChevronDown,
   LogOut,
   Settings,
@@ -24,6 +23,7 @@ import { FeedbackDialog } from '@/components/feedback/FeedbackDialog'
 import { WorkspaceSelector } from '@/components/workspace/WorkspaceSelector'
 import { NotificationBell } from '@/components/notifications/NotificationBell'
 import { useAuthStore } from '@/stores/auth'
+import { trackProductIntent } from '@/lib/product-analytics'
 
 export function DashboardHeader() {
   const navigate = useNavigate()
@@ -128,7 +128,10 @@ export function DashboardHeader() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => navigate('/login')}
+                onClick={() => {
+                  trackProductIntent('authentication', 'save_gate')
+                  navigate('/login')
+                }}
                 className="flex items-center gap-1.5 sm:gap-2 h-10 px-3 sm:px-4"
                 aria-label="Save your work with a bookmark hash"
               >

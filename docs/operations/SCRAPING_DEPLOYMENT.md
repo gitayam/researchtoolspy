@@ -101,9 +101,12 @@ secrets, and deploys `dist/`.
 Never deploy the repository root; doing so serves the development entry point.
 
 Before upload, the script requires `TRUSTED_ANALYSIS_KEYS`, `OPENAI_API_KEY`,
-`JWT_SECRET`, `SCRAPE_TELEMETRY_KEY`, and `INTEGRATION_TOKEN_HASH_KEY`; a missing
-secret stops the release before production changes. It checks them again after
-upload and confirms that an anonymous analysis request is metered as `public`.
+`JWT_SECRET`, `SCRAPE_TELEMETRY_KEY`, `PRODUCT_TELEMETRY_KEY`, and
+`INTEGRATION_TOKEN_HASH_KEY`; a missing secret stops the release before
+production changes. It checks them again after upload and confirms that an
+anonymous analysis request is metered as `public`. Product analytics operations,
+privacy boundaries, and queries are documented in
+[`PRODUCT_ANALYTICS.md`](./PRODUCT_ANALYTICS.md).
 `COMMUNITY_INTEGRATIONS_ENABLED=true` is an explicit production Wrangler
 variable; capability discovery still requires a valid scoped service principal
 and ready runtime bindings. For a cross-repository
