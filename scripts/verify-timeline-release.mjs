@@ -12,7 +12,7 @@ const workerPath = resolve(dist, '_worker.js/index.js')
 const migrationDirectory = resolve(root, 'schema/managed-migrations')
 const outputDirectory = '/results'
 const manifestPath = resolve(outputDirectory, 'release-schema-manifest.json')
-const pendingName = '0011_timeline_foundation.sql'
+const pendingName = '0012_timeline_workspace_snapshots.sql'
 const sha256 = bytes => createHash('sha256').update(bytes).digest('hex')
 const quote = value => `"${String(value).replaceAll('"', '""')}"`
 const canonical = value => {
@@ -130,12 +130,13 @@ try {
   assert.equal(new Set(applied).size, applied.length, 'Duplicate applied migration names')
   assert(applied.every(name => /^[A-Za-z0-9_.-]+\.sql$/.test(name)), 'Invalid applied migration name')
   const localNames = (await readdir(migrationDirectory)).filter(name => /^\d+.*\.sql$/.test(name)).sort()
+  assert(applied.every(name => localNames.includes(name)), 'Production inventory has unknown migration names')
   const pending = localNames.filter(name => !applied.includes(name))
-  assert.deepEqual(pending, [pendingName], 'Release must rehearse exactly the reviewed pending 0011 migration')
+  assert.deepEqual(pending, [pendingName], 'Release must rehearse exactly the reviewed pending 0012 migration')
   const migrationBytes = await readFile(resolve(migrationDirectory, pendingName))
   const workerBytes = await readFile(workerPath)
   const indexBytes = await readFile(resolve(dist, 'index.html'))
-  const expectedTables = [...migrationBytes.toString('utf8').matchAll(/CREATE TABLE (timeline_[a-z_]+)/g)].map(match => match[1]).sort()
+  const expectedTables = [...(await readFile(resolve(migrationDirectory, '0011_timeline_foundation.sql'), 'utf8')).matchAll(/CREATE TABLE (timeline_[a-z_]+)/g)].map(match => match[1]).sort()
   assert.equal(expectedTables.length, 9, 'Unexpected affected table inventory in pending migration')
   receipt = {
     schemaVersion: 'timeline-release-schema-manifest.v1',
@@ -185,9 +186,11 @@ try {
     await db.prepare(statement.sql).run()
     receipt.importedStatements++
   }
-  assert.equal((await db.prepare("SELECT count(*) AS n FROM sqlite_schema WHERE name LIKE 'timeline_%'").first()).n, 0, 'Production export already contains timeline schema despite pending tracker state')
-  stage = 'apply-pending-0011'
-  for (const statement of statements(migrationBytes.toString('utf8'))) await db.prepare(statement.sql).run()
+  assert.equal((await db.prepare("SELECT count(*) AS n FROM sqlite_schema WHERE type='table' AND name LIKE 'timeline_%'").first()).n, 9, 'Production export must contain the deployed0011 prefix')
+  stage = 'apply-pending-0012'
+  // Managed apply sends the entire migration plus tracker write in one transaction.
+  await db.batch([...statements(migrationBytes.toString('utf8')).map(statement => db.prepare(statement.sql)), db.prepare('INSERT INTO d1_migrations(name) VALUES (?)').bind(pendingName)])
+  assert.equal((await db.prepare('SELECT count(*) AS n FROM d1_migrations WHERE name=?').bind(pendingName).first()).n, 1)
   assert.deepEqual((await db.prepare('PRAGMA foreign_key_check').all()).results, [], 'Imported schema has foreign-key violations')
   receipt.tables = await collectManifest(db, expectedTables)
   assert(receipt.tables.every(table => table.columns.length && table.foreignKeys.length && table.triggers.length), 'Incomplete affected-schema manifest')
@@ -264,6 +267,22 @@ try {
   error(await request('/api/timelines', { method: 'POST', body: createBody, key: 'release-create-0001' }), 403, 'access_denied')
   await db.prepare("UPDATE workspaces SET is_public=0 WHERE id='release-workspace-a'").run()
   assert.deepEqual((await db.prepare('PRAGMA foreign_key_check').all()).results, [])
+  stage = 'compiled-workspace-snapshot'
+  const snapshot = { schemaVersion: 'timeline-workspace.v1', exportedAt: '2026-09-11T00:00:00.000Z', source: { schemaVersion: 'timeline-manual.v1', title: 'Complete workspace' }, analystWorkspace: { mode: 'robust', events: [{ id: 'event:unknown.1', title: 'Uncertain date', description: null, category: 'event', importance: 'normal', origin: 'analyst', assessment: 'disputed', analystNote: 'Keep uncertainty', modified: false, eventTime: '14:30:59' }], questions: [], hypotheses: [], narrative: { title: 'Complete account', framing: 'Preserve the whole workspace', question: '', intendedUse: '', scope: '', timezone: 'UTC', dataThrough: '', chapters: [] } } }
+  const snapshotCreate = await request('/api/timelines', { method: 'POST', body: { ...createBody, title: 'Browser workspace' }, key: 'release-snapshot-create01' })
+  assert.equal(snapshotCreate.status, 201)
+  const snapshotPath = `/api/timelines/${snapshotCreate.json.artifactId}`
+  const snapshotBody = { schemaVersion: 'timeline-artifact-commit.v1', changes: [{ op: 'put', objectId: 'browser-workspace', kind: 'timeline-workspace.v1', payload: snapshot }] }
+  const snapshotSave = await request(snapshotPath, { method: 'PATCH', body: snapshotBody, key: 'release-snapshot-commit01', etag: snapshotCreate.headers.get('etag') })
+  assert.equal(snapshotSave.status, 200); assertArtifact(snapshotSave.json)
+  const snapshotObjects = await request(`${snapshotPath}/objects?revisionId=${snapshotSave.json.revisionId}&limit=1`)
+  assert.equal(snapshotObjects.status, 200); assert.deepEqual(snapshotObjects.json.objects[0].payload, snapshot)
+  assert.equal(snapshotObjects.json.objects[0].contentHash, sha256(canonical({ schemaVersion: 'timeline-workspace.v1', tombstone: false, payload: snapshot })))
+  const snapshotRetry = await request(snapshotPath, { method: 'PATCH', body: snapshotBody, key: 'release-snapshot-commit01', etag: snapshotCreate.headers.get('etag') })
+  assert.equal(snapshotRetry.text, snapshotSave.text)
+  const snapshotRevision = await request(`${snapshotPath}/revisions/${snapshotSave.json.revisionId}`)
+  assert.equal(snapshotRevision.status, 200); assert.equal(sha256(canonical(snapshotRevision.json.manifest)), snapshotSave.json.contentHash)
+  receipt.checks.push('compiled complete workspace snapshot save/reopen/replay and manifest binding')
   receipt.compiledHttpGate = 'passed'
   receipt.checks.push('compiled Pages create/commit routes', 'human/service/viewer/cross-workspace authorization', 'exact replay after later revision', 'idempotency conflict and stale head', 'pinned object/history reads and manifest hash', 'real D1 partial-batch rollback', 'immutable replacement rejected', 'privacy change reauthorizes read/replay')
   await save(receipt)
