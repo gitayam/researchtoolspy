@@ -30,9 +30,11 @@ export function TimelineDurablePanel(props: Props) {
   const linkedWorkspace = new URLSearchParams(window.location.search).get('workspace')
   const [choice, setChoice] = useState(linkedWorkspace || currentWorkspaceId)
   const selected = available.find(w => w.id === choice)
-  const scope = `${signedIn ? user?.id : 'guest'}:${selected?.id || ''}`
+  const role = (user?.role || '').trim().toLowerCase()
+  const eligible = signedIn && Boolean(user) && user?.is_active !== false && Boolean(role) && !['guest', 'service'].includes(role)
+  const scope = `${eligible ? user?.id : 'guest'}:${selected?.id || ''}`
   useEffect(() => () => props.onForgetRemote(), [scope, props.onForgetRemote])
-  if (!signedIn || !user || user.is_active === false || ['guest', 'service'].includes((user.role || '').toLowerCase())) return <section aria-label="Workspace saving" className="rounded-lg border p-4 text-sm">Sign in to save complete timelines to a private workspace. Local drafts and JSON export remain available.</section>
+  if (!eligible || !user) return <section aria-label="Workspace saving" className="rounded-lg border p-4 text-sm">Sign in to save complete timelines to a private workspace. Local drafts and JSON export remain available.</section>
   return <section aria-label="Workspace saving" className="space-y-3 rounded-lg border p-4">
     <h2 className="font-semibold">Save to a private workspace</h2>
     <Label htmlFor="timeline-save-workspace">Saving workspace</Label>
@@ -41,10 +43,10 @@ export function TimelineDurablePanel(props: Props) {
       {available.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
     </select>
     {!available.length && <p className="text-sm text-muted-foreground">Create or join a private workspace before saving. You can keep working locally.</p>}
-    {selected && <WorkspaceSaving key={scope} {...props} workspaceId={selected.id} canWrite={selected.owner_id === user.id || ['EDITOR', 'ADMIN'].includes(selected.role || '')} />}
+    {selected && <WorkspaceSaving key={scope} {...props} workspaceId={selected.id} principalId={user.id} canWrite={selected.owner_id === user.id || ['EDITOR', 'ADMIN'].includes(selected.role || '')} />}
   </section>
 }
-function WorkspaceSaving({ snapshot, onOpen, workspaceId, canWrite }: Props & { workspaceId: string; canWrite: boolean }) {
+function WorkspaceSaving({ snapshot, onOpen, workspaceId, principalId, canWrite }: Props & { workspaceId: string; principalId: number; canWrite: boolean }) {
   const [artifact, setArtifact] = useState<DurableDocument | undefined>()
   const [savedIdentity, setSavedIdentity] = useState('')
   const [pending, setPending] = useState<SaveAttempt | null>(null)
@@ -69,7 +71,7 @@ function WorkspaceSaving({ snapshot, onOpen, workspaceId, canWrite }: Props & { 
     setPending(attempt); setBusy(true); setMessage('Saving the complete timeline…')
     const abort = new AbortController(); controller.current = abort
     try {
-      const saved = await saveTimelineAttempt(attempt, { workspaceId, headers: humanHeaders() }, abort.signal)
+      const saved = await saveTimelineAttempt(attempt, { principalId, workspaceId, headers: humanHeaders() }, abort.signal)
       if (abort.signal.aborted) return
       setArtifact(saved); setSavedIdentity(snapshotIdentity(attempt.snapshot)); setPending(null); setConflict(false)
       const link = savedTimelineLink(saved)
@@ -91,7 +93,7 @@ function WorkspaceSaving({ snapshot, onOpen, workspaceId, canWrite }: Props & { 
       const abort = new AbortController(); controller.current = abort
       setBusy(true); setMessage('Opening the saved timeline…')
       try {
-        const loaded = await openSavedTimeline(target.artifactId, { workspaceId, headers: humanHeaders() }, abort.signal)
+        const loaded = await openSavedTimeline(target.artifactId, { principalId, workspaceId, headers: humanHeaders() }, abort.signal)
         if (abort.signal.aborted) return
         onOpen(loaded.snapshot)
         setArtifact(loaded.artifact); setSavedIdentity(snapshotIdentity(loaded.snapshot)); setPending(null); setConflict(false)

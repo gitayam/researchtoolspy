@@ -7,7 +7,7 @@ const contractTests = [
   'timeline-artifact-contract', 'timeline-artifact-auth', 'timeline-artifact-d1',
   'timeline-artifact-cors', 'timeline-artifact-migrations', 'timeline-workspace-snapshot-d1',
 ]
-const uiTests = ['timeline-tool-ui', 'timeline-workspace-ordering', 'timeline-narrative-ui']
+const uiTests = ['timeline-tool-ui', 'timeline-workspace-ordering', 'timeline-narrative-ui', 'timeline-durable-browser']
 const checks = [
   ['node_modules/typescript/bin/tsc', '-b', '--noEmit'],
   ['node_modules/typescript/bin/tsc', '-p', 'tsconfig.functions.json', '--noEmit'],

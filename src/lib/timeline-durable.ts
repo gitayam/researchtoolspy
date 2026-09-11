@@ -5,7 +5,7 @@ import { canonicalJson, hashContent, isObjectId, validArtifactDocument, type Art
 export const SNAPSHOT_BYTES = 60 * 1024
 const OBJECT_ID = 'browser-workspace'
 export type DurableDocument = ArtifactDocument
-export interface DurableIdentity { workspaceId: string; headers: Record<string, string> }
+export interface DurableIdentity { principalId: number; workspaceId: string; headers: Record<string, string> }
 export interface SaveAttempt {
   snapshot: TimelineWorkspaceExport
   createKey: string
@@ -54,7 +54,8 @@ function metadata(value: unknown, etag: string | null, workspaceId: string, arti
   return value
 }
 export async function saveTimelineAttempt(attempt: SaveAttempt, identity: DurableIdentity, signal: AbortSignal): Promise<DurableDocument> {
-  const binding = await hashContent({ workspaceId: identity.workspaceId, headers: identity.headers })
+  if (!Number.isSafeInteger(identity.principalId) || identity.principalId <= 0) throw new DurableTimelineError('Sign in before saving.', 401)
+  const binding = canonicalJson({ workspaceId: identity.workspaceId, principalId: identity.principalId })
   if (attempt.identityBinding && attempt.identityBinding !== binding) throw new DurableTimelineError('Your sign-in or workspace changed. Reopen the saved timeline before saving again.', 401)
   attempt.identityBinding = binding
   if (!attempt.artifact) {
