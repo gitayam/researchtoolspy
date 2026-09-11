@@ -31,7 +31,7 @@ export function TimelineDurablePanel(props: Props) {
   const [choice, setChoice] = useState(linkedWorkspace || currentWorkspaceId)
   const selected = available.find(w => w.id === choice)
   const role = (user?.role || '').trim().toLowerCase()
-  const eligible = signedIn && Boolean(user) && user?.is_active !== false && Boolean(role) && !['guest', 'service'].includes(role)
+  const eligible = signedIn && Boolean(user) && (user?.is_active === undefined || user?.is_active === true || Number(user?.is_active) === 1) && Boolean(role) && !['guest', 'service'].includes(role)
   const scope = `${eligible ? user?.id : 'guest'}:${selected?.id || ''}`
   useEffect(() => () => props.onForgetRemote(), [scope, props.onForgetRemote])
   if (!eligible || !user) return <section aria-label="Workspace saving" className="rounded-lg border p-4 text-sm">Sign in to save complete timelines to a private workspace. Local drafts and JSON export remain available.</section>

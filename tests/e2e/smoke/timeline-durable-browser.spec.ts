@@ -164,9 +164,15 @@ test.describe('durable browser with actual D1 routes @smoke', () => {
       await page.getByRole('button', { name: 'Save timeline', exact: true }).click(); await saved(page)
       await page.reload(); await page.getByRole('button', { name: 'Open saved timeline', exact: true }).click(); await saved(page)
       const raw = await page.evaluate(key => localStorage.getItem(key), draftKey)
-      await page.evaluate(async () => { const { useAuthStore } = await import('/src/stores/auth.ts'); useAuthStore.setState({ user: { ...useAuthStore.getState().user!, is_active: false } }) })
-      await expect(page.getByRole('button', { name: 'Export JSON', exact: true })).toHaveCount(0)
-      expect(await page.evaluate(key => localStorage.getItem(key), draftKey)).toBe(raw)
+      for (const inactive of [false, 0]) {
+        await page.evaluate(async inactive => { const { useAuthStore } = await import('/src/stores/auth.ts'); useAuthStore.setState({ user: { ...useAuthStore.getState().user!, is_active: inactive } as never }) }, inactive)
+        await expect(page.getByRole('button', { name: 'Export JSON', exact: true })).toHaveCount(0)
+        expect(await page.evaluate(key => localStorage.getItem(key), draftKey)).toBe(raw)
+        if (inactive === false) {
+          await page.evaluate(async () => { const { useAuthStore } = await import('/src/stores/auth.ts'); useAuthStore.setState({ user: { ...useAuthStore.getState().user!, is_active: true } }) })
+          await page.getByRole('button', { name: 'Open saved timeline', exact: true }).click(); await saved(page)
+        }
+      }
     } finally { await b.mf.dispose() }
   })
 })
