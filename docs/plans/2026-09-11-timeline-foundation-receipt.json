@@ -1,0 +1,166 @@
+{
+  "baseline": "559425f24802911715676173db4e7bae81a99efb",
+  "candidate": "98495ac3e3b33e238aa2be43751a10a4843e4bff",
+  "branch": "work/timeline-foundation-20260911",
+  "join": "local integration branch; native shared-worktree edits, no remote transfer",
+  "sourceReview": {
+    "reviewer": "validator_review",
+    "acceptedSha": "98495ac3e3b33e238aa2be43751a10a4843e4bff",
+    "scope": "source only; no blockers"
+  },
+  "publication": {
+    "canonicalLanded": false,
+    "mirrorConfirmed": false,
+    "deployed": false
+  },
+  "instructionHashes": {
+    "CLAUDE.md": "3852de6d95104c64f3a35b670f350e1d7a2c6c9ed93d03d53895e7bc8c44ff1b",
+    "docs/plans/2026-09-11-timeline-evidence-narrative-roadmap.md": "51c4ea6e76f1cfc63b2922010b43da2e06bdfb431598db132284adf3f9cf8360",
+    "docs/plans/2026-09-11-timeline-implementation-register.md": "ef39924228fc98ec7f707e3ef1e05d568b8a54b743c0818cfa6fd000aadc693b"
+  },
+  "promptHashes": {
+    "tl00-provider": "0bda034edb8ff86bc23fa050663b869e9f1e379e9fc6c24bee192272a5e65a11",
+    "tl02-provider": "4e73aa693c87c4cb62698f88f64a269277da4211ffe4c57bbfd490e90216bf57"
+  },
+  "runtime": {
+    "node": "26.8.1",
+    "playwright": "1.60.0",
+    "supervisor": "private run.py + macOS sandbox-exec; cooperative credential-free validator",
+    "supervisorSha256": "36f619ffe3718b81f30e7080d1eee9986b8fac430b006e6d87cb257875b2a997",
+    "profileSha256": "f90038c4474b7f59aa4b288bee7e0983f3f3fb5b6a2af791be29badff903fdfb",
+    "canarySha256": "fa5f26f096bf047ce7971d29a42515edbc60690858c1d1910b8cdf644127d5a1",
+    "lockSha256": "789399506fb89e5df8035d548c795c94124891be3fd9a2f7ec39b66e8a2a19d7",
+    "externalModelDispatch": "blocked; not bypassed"
+  },
+  "checks": {
+    "final-contracts": {
+      "name": "final-contracts",
+      "argv": [
+        "/opt/homebrew/bin/node",
+        "node_modules/playwright/cli.js",
+        "test",
+        "--config=playwright.timeline.config.ts",
+        "--project=chromium",
+        "timeline-contract.spec.ts",
+        "extract-timeline-safe-fetch.spec.ts",
+        "timeline-observability.spec.ts",
+        "community-integration-contract.spec.ts",
+        "community-integration-capabilities.spec.ts",
+        "community-service-auth.spec.ts",
+        "timeline-reference-client.spec.ts",
+        "timeline-fixtures.spec.ts"
+      ],
+      "cwd": "/Users/sac/AgentWorkspaces/researchtoolspy-timeline-foundation-20260911",
+      "seconds": 4.57,
+      "exitCode": 0,
+      "profileSha256": "f90038c4474b7f59aa4b288bee7e0983f3f3fb5b6a2af791be29badff903fdfb",
+      "log": "/Users/sac/AgentWorkspaces/researchtoolspy-timeline-validation-20260911/output/final-contracts.log",
+      "environmentKeys": [
+        "HOME",
+        "TMPDIR",
+        "OPENSSL_CONF",
+        "PATH",
+        "CI",
+        "PLAYWRIGHT_BROWSERS_PATH",
+        "NO_COLOR",
+        "LANG",
+        "CFFIXED_USER_HOME"
+      ],
+      "logSha256": "4f54cc5e0c7e4878bb40f706cd03951ee0902389bd5ec55d8d9fce033c5e57d6"
+    },
+    "compile-build": {
+      "name": "compile-build",
+      "argv": [
+        "/opt/homebrew/bin/node",
+        "/Users/sac/AgentWorkspaces/researchtoolspy-timeline-validation-20260911/tmp/verify-build.mjs"
+      ],
+      "cwd": "/Users/sac/AgentWorkspaces/researchtoolspy-timeline-foundation-20260911",
+      "seconds": 37.88,
+      "exitCode": 0,
+      "profileSha256": "f90038c4474b7f59aa4b288bee7e0983f3f3fb5b6a2af791be29badff903fdfb",
+      "log": "/Users/sac/AgentWorkspaces/researchtoolspy-timeline-validation-20260911/output/compile-build.log",
+      "environmentKeys": [
+        "HOME",
+        "TMPDIR",
+        "OPENSSL_CONF",
+        "PATH",
+        "CI",
+        "PLAYWRIGHT_BROWSERS_PATH",
+        "NO_COLOR",
+        "LANG",
+        "CFFIXED_USER_HOME"
+      ],
+      "logSha256": "502164cdcf088f47028e3a58c8dbd5e5e873d11f64a089c145b463b1003bb35d"
+    },
+    "final-ui": {
+      "name": "final-ui",
+      "argv": [
+        "/opt/homebrew/bin/node",
+        "node_modules/playwright/cli.js",
+        "test",
+        "--config=playwright.timeline.config.ts",
+        "--project=chromium",
+        "timeline-tool-ui.spec.ts",
+        "timeline-workspace-ordering.spec.ts",
+        "timeline-narrative-ui.spec.ts"
+      ],
+      "cwd": "/Users/sac/AgentWorkspaces/researchtoolspy-timeline-foundation-20260911",
+      "seconds": 34.38,
+      "exitCode": 1,
+      "profileSha256": "f90038c4474b7f59aa4b288bee7e0983f3f3fb5b6a2af791be29badff903fdfb",
+      "log": "/Users/sac/AgentWorkspaces/researchtoolspy-timeline-validation-20260911/output/final-ui.log",
+      "environmentKeys": [
+        "HOME",
+        "TMPDIR",
+        "OPENSSL_CONF",
+        "PATH",
+        "CI",
+        "PLAYWRIGHT_BROWSERS_PATH",
+        "NO_COLOR",
+        "LANG",
+        "CFFIXED_USER_HOME"
+      ],
+      "logSha256": "80e51d1638483a69e6da7c80eb0a08e5f41352433267b8d21eed8894b12f2e9b"
+    },
+    "final-canary": {
+      "name": "final-canary",
+      "argv": [
+        "/opt/homebrew/bin/node",
+        "/Users/sac/AgentWorkspaces/researchtoolspy-timeline-validation-20260911/canary.mjs"
+      ],
+      "cwd": "/Users/sac/AgentWorkspaces/researchtoolspy-timeline-foundation-20260911",
+      "seconds": 0.47,
+      "exitCode": 0,
+      "profileSha256": "f90038c4474b7f59aa4b288bee7e0983f3f3fb5b6a2af791be29badff903fdfb",
+      "log": "/Users/sac/AgentWorkspaces/researchtoolspy-timeline-validation-20260911/output/final-canary.log",
+      "environmentKeys": [
+        "HOME",
+        "TMPDIR",
+        "OPENSSL_CONF",
+        "PATH",
+        "CI",
+        "PLAYWRIGHT_BROWSERS_PATH",
+        "NO_COLOR",
+        "LANG",
+        "CFFIXED_USER_HOME"
+      ],
+      "logSha256": "d659257c0827803025740bbb3ca0254b37807de31fc5da41808c17a5b2c5060a"
+    }
+  },
+  "counts": {
+    "contractsPassed": 67,
+    "chromiumUiPassed": 15,
+    "chromiumUiFailed": 6
+  },
+  "remainingGates": [
+    "Actual downloaded-byte export/recovery round trips: download.path canceled, reproduced in minimal browser-only probe",
+    "Mobile Safari: matching WebKit stalls in browserContext.newPage before app content",
+    "Full npm run test:timeline success required before TL-02 acceptance"
+  ],
+  "recovery": [
+    "Fixed strict example type error",
+    "Fixed seconds-bearing workspace imports and producer/decoder limit agreement",
+    "Preserved unreadable nonexpired local drafts in recovery backups",
+    "Container fallback attempted; Docker backend stalled before socket availability; no container verification claimed"
+  ]
+}

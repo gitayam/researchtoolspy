@@ -2,7 +2,7 @@
 
 Date: 2026-09-11
 
-Status: audited delivery specification; runtime implementation remains pending.
+Status: foundation tranche implemented locally; TL-00 verified locally, TL-02 awaiting browser acceptance. No release or deployment.
 
 This register translates the [platform roadmap](./2026-09-11-timeline-evidence-narrative-roadmap.md)
 into independently verifiable releases. Each checkpoint includes API behavior,
@@ -28,7 +28,25 @@ their release.
 
 ## Delivery checkpoints
 
-All checkpoints below are pending implementation and verification.
+Current delivery state (2026-09-11):
+
+- **TL-00: verified_local.** Frozen JSON schemas/OpenAPI, generic service client,
+  synthetic fixture manifest and scoring rubric are implemented. All 67 focused
+  contract tests and five TypeScript checks pass; production build passes.
+  Fixtures exercise the real route with mocked model output; this is not a
+  live-provider or historical corpus quality evaluation.
+- **TL-02: implemented; acceptance incomplete.** Narrative metadata, chapters,
+  selected-event presentation, stable links, strict local import and draft recovery
+  are implemented and independently source-reviewed. Chromium interaction checks
+  pass except six download-dependent cases. The same download failure reproduces
+  in a minimal browser-only probe; WebKit hangs before creating a page in the
+  validator. Export round trips and mobile Safari remain mandatory release gates.
+- **TL-01 and TL-03–TL-18: pending.** These are separate dependent releases;
+  this tranche does not claim durable investigation, publication, or cross-app delivery.
+
+See the [foundation delivery receipt](./2026-09-11-timeline-foundation-receipt.md)
+for exact candidate, commands, results, runtime limits, and publication state.
+The table retains the complete acceptance requirements for each checkpoint.
 
 | ID | Scope and concrete deliverable | Prerequisites | Completion evidence |
 | --- | --- | --- | --- |

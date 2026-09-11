@@ -4,8 +4,10 @@
 
 **Date:** 2026-09-11
 
-**Execution status:** Implementation audit started. The proposed capabilities
-below are not shipped merely because their contracts are described here.
+**Execution status:** Foundation tranche implemented locally: TL-00 is locally
+verified and TL-02 awaits browser acceptance. No release or deployment has occurred.
+The remaining proposed capabilities below are not shipped merely because their
+contracts are described here.
 Delivery checkpoints and dependency corrections are maintained in the
 [implementation register](./2026-09-11-timeline-implementation-register.md).
 
