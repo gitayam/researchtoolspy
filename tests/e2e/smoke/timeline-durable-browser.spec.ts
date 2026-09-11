@@ -41,6 +41,7 @@ async function bridge(page: Page, signedIn = true) {
   }, { hash, signedIn })
   await page.route('**/api/**', async route => {
     const incoming = route.request(), url = new URL(incoming.url())
+    if (!url.pathname.startsWith('/api/')) return route.continue()
     if (url.pathname === '/api/workspaces') return route.fulfill({ json: { owned: ['browser-private', 'browser-other'].map(id => ({ id, name: id === 'browser-private' ? 'Private investigation' : 'Other workspace', owner_id: 1, is_public: false, type: 'PERSONAL' })), member: [] } })
     if (!url.pathname.startsWith('/api/timelines')) return route.fulfill({ json: {} })
     const request = new Request(url, { method: incoming.method(), headers: incoming.headers(), ...(incoming.postData() ? { body: incoming.postData()! } : {}) })
@@ -100,6 +101,9 @@ test.describe('durable browser with actual D1 routes @smoke', () => {
       b.faults.dropCommit = true
       await page.getByRole('button', { name: 'Retry previous save', exact: true }).click()
       await expect(page.getByRole('button', { name: 'Retry previous save', exact: true })).toBeEnabled()
+      const refreshed = 'browser-refreshed-human-0001'
+      await b.db.prepare('UPDATE users SET user_hash=? WHERE id=1').bind(refreshed).run()
+      await page.evaluate(token => { localStorage.setItem('omnicore_user_hash', token); localStorage.setItem('omnicore_tokens', JSON.stringify({ access_token: token, issued_at: Date.now(), expires_in: 3600 })) }, refreshed)
       await page.getByLabel('Narrative title', { exact: true }).fill('Edits made after lost response')
       await page.getByRole('button', { name: 'Retry previous save', exact: true }).click()
       await expect(page.getByTestId('timeline-save-state')).toHaveText('Unsaved changes')

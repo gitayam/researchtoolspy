@@ -3,13 +3,15 @@ import { ARTIFACT_LIMITS, ArtifactError, artifactResponse, boundedBody, canonica
 
 interface ArtifactRow { workspace_id: string; id: string; title: string; created_by: number; created_at: string; head_revision_id: string }
 interface RevisionRow { id: string; sequence: number; expected_head: string | null; object_count: number; change_count: number; content_hash: string; created_by: number; created_at: string }
-interface VersionRow { object_id: string; version_id: string; schema_version: ArtifactKind; tombstone: number; content_hash: string; payload_json: string | null }
+interface ManifestRow { object_id: string; version_id: string; schema_version: ArtifactKind; tombstone: number; content_hash: string }
+interface VersionRow extends ManifestRow { payload_json: string | null }
 interface ReplayRow { request_hash: string; response_json: string; response_status: number; artifact_id: string; revision_id: string }
 const uid = (prefix: string) => `${prefix}_${crypto.randomUUID()}`
-const manifestEntry = (row: VersionRow): ManifestEntry => ({ objectId: row.object_id, versionId: row.version_id, kind: row.schema_version, tombstone: row.tombstone === 1, contentHash: row.content_hash })
-const versionSelect = `SELECT m.object_id,m.version_id,v.schema_version,v.tombstone,v.content_hash,v.payload_json
- FROM timeline_revision_objects m JOIN timeline_object_versions v
+const manifestEntry = (row: ManifestRow): ManifestEntry => ({ objectId: row.object_id, versionId: row.version_id, kind: row.schema_version, tombstone: row.tombstone === 1, contentHash: row.content_hash })
+const versionJoin = `FROM timeline_revision_objects m JOIN timeline_object_versions v
  ON v.workspace_id=m.workspace_id AND v.artifact_id=m.artifact_id AND v.object_id=m.object_id AND v.id=m.version_id`
+const manifestSelect = `SELECT m.object_id,m.version_id,v.schema_version,v.tombstone,v.content_hash ${versionJoin}`
+const versionSelect = `SELECT m.object_id,m.version_id,v.schema_version,v.tombstone,v.content_hash,v.payload_json ${versionJoin}`
 
 async function access(request: Request, env: TimelineArtifactEnv, principal: HumanPrincipal, artifactId: string, write: boolean): Promise<ArtifactRow> {
   if (!isObjectId(artifactId)) throw new ArtifactError('invalid_request', 400)
@@ -30,8 +32,10 @@ async function revision(env: TimelineArtifactEnv, artifact: ArtifactRow, revisio
   if (!row) throw new ArtifactError('not_found', 404)
   return row
 }
-async function rows(env: TimelineArtifactEnv, artifact: ArtifactRow, revisionId: string): Promise<VersionRow[]> {
-  const result = await env.DB.prepare(`${versionSelect} WHERE m.workspace_id=? AND m.artifact_id=? AND m.revision_id=? ORDER BY m.object_id LIMIT 1001`).bind(artifact.workspace_id,artifact.id,revisionId).all<VersionRow>()
+async function rows(env: TimelineArtifactEnv, artifact: ArtifactRow, revisionId: string): Promise<ManifestRow[]> {
+  // Commits and revision manifests need identities and hashes, not up to 1000
+  // unchanged 60 KiB workspace payloads. Payloads are fetched only by paged reads.
+  const result = await env.DB.prepare(`${manifestSelect} WHERE m.workspace_id=? AND m.artifact_id=? AND m.revision_id=? ORDER BY m.object_id LIMIT 1001`).bind(artifact.workspace_id,artifact.id,revisionId).all<ManifestRow>()
   if (result.results.length > ARTIFACT_LIMITS.objects) throw new ArtifactError('datastore_unavailable', 503)
   return result.results
 }
