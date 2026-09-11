@@ -220,6 +220,12 @@ test.describe('durable timeline actual D1 @smoke', () => {
       expect((await counts(db)).timeline_revisions).toBe(3)
       // INSERT after publication must not append data to either current or old revisions.
       for(const target of [body.revisionId,live.revisionId,dead.revisionId]){
+        await expect(db.batch([
+          db.prepare('INSERT INTO timeline_objects VALUES (?,?,?,?,?,?)').bind('workspace-a',body.artifactId,'event:injected','event-candidate.v1',1,'2026-09-11T00:00:00.000Z'),
+          db.prepare('INSERT INTO timeline_object_versions VALUES (?,?,?,?,?,?,?,?,?,?)').bind('workspace-a',body.artifactId,'event:injected','version_injected','event-candidate.v1',0,JSON.stringify({title:'Injected',description:null}),'0'.repeat(64),1,'2026-09-11T00:00:00.000Z'),
+          db.prepare('INSERT INTO timeline_revision_objects VALUES (?,?,?,?,?)').bind('workspace-a',body.artifactId,target,'event:injected','version_injected'),
+        ])).rejects.toThrow(/timeline_revision_sealed/)
+        expect((await db.prepare("SELECT count(*) AS n FROM timeline_objects WHERE id='event:injected'").first<{n:number}>())?.n).toBe(0)
         await expect(db.prepare('INSERT INTO timeline_revision_objects VALUES (?,?,?,?,?)').bind('workspace-a',body.artifactId,target,'event:a',oldVersion).run()).rejects.toThrow()
         await expect(db.prepare('INSERT INTO timeline_revision_changes VALUES (?,?,?,?,?,?,?)').bind('workspace-a',body.artifactId,target,'event:a','create',null,oldVersion).run()).rejects.toThrow()
         await expect(db.prepare('INSERT INTO timeline_revision_parents VALUES (?,?,?,?,0)').bind('workspace-a',body.artifactId,target,body.revisionId).run()).rejects.toThrow()
