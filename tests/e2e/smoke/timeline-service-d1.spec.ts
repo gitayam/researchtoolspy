@@ -136,7 +136,7 @@ test.describe('timeline exact scoped service actual D1 @smoke',()=>{
    await scopes(db,['timeline.write']);expect((await call(db,'POST','',createBody('workspace-3'))).status).toBe(403)
    const human=await call(db,'POST','',createBody('human-private'),{human:true,key:'timeline-human-create01'});expect(human.status).toBe(201)
    const h=await human.json() as any;await scopes(db,['timeline.read']);expect((await call(db,'GET',h.artifactId)).status).toBe(404)
-   expect((await call(db,'GET',c.body.artifactId,{},{human:true})).status).toBe(404)
+   expect((await call(db,'GET',c.body.artifactId,undefined,{human:true})).status).toBe(404)
   }finally{await mf.dispose()}
  })
  test('disabled, malformed, expired, revoked and replaced credentials never use the human fallback',async()=>{
@@ -194,6 +194,7 @@ test.describe('timeline exact scoped service actual D1 @smoke',()=>{
    const catalog=(await db.prepare("SELECT type,name,tbl_name,sql FROM sqlite_schema WHERE name NOT LIKE 'sqlite_%' ORDER BY type,name").all()).results
    await expect(db.batch([...upgrade.slice(0,4),'INSERT INTO missing_migration_target VALUES(1)',...upgrade.slice(4)].map(s=>db.prepare(s)))).rejects.toThrow()
    expect(await state(db)).toEqual(before);expect((await db.prepare("SELECT type,name,tbl_name,sql FROM sqlite_schema WHERE name NOT LIKE 'sqlite_%' ORDER BY type,name").all()).results).toEqual(catalog)
+   expect((await db.prepare('SELECT * FROM integration_client_token_scopes ORDER BY token_id,scope').all()).results).toEqual(scopeRows)
    await db.batch(upgrade.map(s=>db.prepare(s)))
    expect(await state(db)).toEqual(before);expect((await db.prepare('SELECT * FROM integration_client_token_scopes ORDER BY token_id,scope').all()).results).toEqual(scopeRows)
    expect((await db.prepare('PRAGMA foreign_key_check').all()).results).toEqual([])
