@@ -1,0 +1,134 @@
+{
+  "schemaVersion": "timeline-evidence-release.v1",
+  "recordedAt": "2026-09-11T22:54:50.183658+00:00",
+  "baselineSha": "f63494ed97c562881e23ca947b959203a078a188",
+  "acceptedReleaseSha": "d9baedaec8ddff3a673199a2f4041c240c0ebf2b",
+  "checkpoint": "TL-04 partial: source assertions and corroboration review deployed",
+  "states": {
+    "canonicalLanded": true,
+    "mirrorConfirmed": true,
+    "productionDeployed": true,
+    "migrationRequired": false,
+    "integrationCheckoutCleanAtRelease": true,
+    "primaryCheckoutSynced": false
+  },
+  "publication": {
+    "canonical": "origin/main",
+    "mirror": "gitlab/main",
+    "releaseRefSha": "d9baedaec8ddff3a673199a2f4041c240c0ebf2b",
+    "forcePush": false,
+    "documentationFollowup": "This receipt is a documentation-only commit; runtime remains acceptedReleaseSha."
+  },
+  "validation": {
+    "sourceSha": "d9baedaec8ddff3a673199a2f4041c240c0ebf2b",
+    "typeChecksPassed": 5,
+    "apiContractTestsPassed": 104,
+    "browserProjectChecksPassed": 60,
+    "browserProjects": [
+      "chromium",
+      "mobile-safari"
+    ],
+    "build": "passed",
+    "pagesFunctionsBuild": "passed",
+    "schemaRehearsal": "passed",
+    "compiledHttpGate": "passed",
+    "staticGate": "passed",
+    "externalOutboundAttempts": 0,
+    "seconds": 543.32,
+    "archiveSha256": "3bfa058a73ecda58e49cc8792c1f43384bc1e29b82b1f566f36927cd61ff7156",
+    "supervisorSha256": "869d61c1e2691530d787992a34caf2e8b1648112e8ce6b02812b7ff1401c048d",
+    "receiptSha256": "1fa0349ba7fd348afa2fc3fee566d5c401f8bb5ddba5e5f0b0f91f655ad0737b",
+    "runLogSha256": "b5afb16f470e6fa2243ae5188ed71899b2c016803969bce2ad40b6d081889569",
+    "schemaManifestSha256": "db82eda929e68f25a208f69ae790f9d52fe01eaba61980be8a44ecb4960e8ebb",
+    "runtimeImage": "mcr.microsoft.com/playwright@sha256:9bd26ad900bb5e0f4dee75839e957a89ae89c2b7ab1e76050e559790e946b948",
+    "commands": [
+      "node scripts/verify-timeline.mjs",
+      "node node_modules/wrangler/bin/wrangler.js pages functions build functions --outdir dist/_worker.js --build-output-directory dist --compatibility-date 2025-09-30 --compatibility-flags nodejs_compat",
+      "node scripts/verify-timeline-release.mjs"
+    ],
+    "executionBoundary": "Pinned network-none Docker; readonly source/dependencies/root; no host credentials/socket; only schema SQL and migration names enter rehearsal."
+  },
+  "review": {
+    "modelProvider": "tl00_recon",
+    "uiProvider": "validator_review",
+    "independentReviewer": "dependency_review",
+    "sourceAndRuntimeAcceptedSha": "d9baedaec8ddff3a673199a2f4041c240c0ebf2b",
+    "artifactFilesIndependentlyCompared": 145,
+    "distManifestSha256": "5a9caa7d789a60f67dc32998256fe8b2e6726a27f7f9ada514a5851ed5d848f0",
+    "packageManifestFileSha256": "1232158a60fd9d700c89bf0dec8a3dd72bbb9fd60633a00451d080b8932d44ac",
+    "wranglerConfigSha256": "973e4f752a15272470b80d6937188998997e157a7b81b243932f2a31663f5f21"
+  },
+  "database": {
+    "name": "researchtoolspy-prod",
+    "mutationsPerformed": false,
+    "appliedMigrationCount": 13,
+    "pendingMigrations": [],
+    "productionSchemaSha256": "22cb033df9400412f4d83b5f3668b8752ec4126a9c8402b6d502187727bf60bd",
+    "beforeCatalog": {
+      "result": "passed",
+      "tables": 12,
+      "schemaRows": 282,
+      "normalizedSchemaSha256": "beed665d1b3c8004c61d4e54f9b39dfe564e1d68c901ec0f6ddb91ba03b86797"
+    },
+    "afterCatalog": {
+      "result": "passed",
+      "tables": 12,
+      "schemaRows": 282,
+      "normalizedSchemaSha256": "beed665d1b3c8004c61d4e54f9b39dfe564e1d68c901ec0f6ddb91ba03b86797"
+    },
+    "rehearsal": "All 12 table catalogs unchanged before and after compiled human/service routes; exact evidence snapshots survive private immutable revisions."
+  },
+  "deployment": {
+    "project": "researchtoolspy",
+    "id": "8acc362b-fc26-4a8d-90bc-440263ac63d0",
+    "url": "https://8acc362b.researchtoolspy.pages.dev",
+    "productionUrl": "https://researchtools.net",
+    "sourceSha": "d9baedaec8ddff3a673199a2f4041c240c0ebf2b",
+    "wranglerVersion": "4.100.0",
+    "prebuilt": true,
+    "noBundle": true,
+    "stagingHasFunctionsSource": false,
+    "requiredSecretNamesPresent": true,
+    "unrelatedWorkersDeployed": false,
+    "smoke": [
+      {
+        "result": "passed",
+        "baseUrl": "https://8acc362b.researchtoolspy.pages.dev",
+        "readonlyChecksPassed": 17,
+        "mutatingRequests": 0,
+        "receiptSha256": "33cdae8825b8f88e547927533044d3afd6b1c13a33971fc54121646acbe1c2ad"
+      },
+      {
+        "result": "passed",
+        "baseUrl": "https://researchtools.net",
+        "readonlyChecksPassed": 17,
+        "mutatingRequests": 0,
+        "receiptSha256": "81e4949bfe6acbd0e95aad823c35080aef9f3cdc3144a0b37ab4891db4d4951a"
+      }
+    ]
+  },
+  "rollback": {
+    "previousDeploymentId": "3b8fd9ff-a400-4858-976b-b33f9315c315",
+    "limits": "Previous strict workspace codec rejects new evidence fields. Prefer compatible application recovery; preserve evidence snapshots, schema and history. No automatic restore or evidence stripping."
+  },
+  "recovery": [
+    "Initial model/D1 focused15 checks passed at93b81466.",
+    "Initial browser run:12 durable checks passed;4 new evidence tests exposed wrapped-select accessible-label issues.",
+    "Review corrected absent implicit placement, shared intermediary lineage, and AI request assessment qualification.",
+    "Corrected focused run retained Narrative locator failure; stopped superseded run with exit137. Later desktop deadline under overlapping validators and mobile deadline were diagnosed from trace progress; final full run uses one validator and a bounded120-second complete authoring scenario."
+  ],
+  "instructionSha256": {
+    "CLAUDE.md": "3852de6d95104c64f3a35b670f350e1d7a2c6c9ed93d03d53895e7bc8c44ff1b",
+    ".team/project.json": "c87cd27090a1a8ff779dd0d850668ebf0ecb6581cefb2d0b0a66ed63aabbcf78",
+    "docs/plans/2026-09-11-timeline-evidence-charter.md": "f384c4d1cad0890e9a854f78911a6f2af3b3ebe843504d0b61de8b66116ac0fd"
+  },
+  "limitations": [
+    "Evidence and independence reviews are analyst-entered; no verified external provenance or source fetch is claimed.",
+    "Separate judgments/dissent and verified source-store import remain pending TL-04 work. TL-01 and TL-05 through TL-18 remain pending.",
+    "Production smoke is anonymous GET/OPTIONS; authenticated save/reopen is tested with synthetic users in isolated actual D1 and compiled routes.",
+    "Primary checkout was never modified by this team. Its previously dirty analytics work was committed by another process during validation.",
+    "External authenticated worker lanes remain unqualified; no bypass used.",
+    "Existing Vite large-chunk warning remains."
+  ],
+  "retrospective": "Bounded native model/UI ownership plus independent review found real legacy and lineage gaps. Run browser validators sequentially to avoid contention; keep exact-source review and production-schema rehearsal as release gates."
+}

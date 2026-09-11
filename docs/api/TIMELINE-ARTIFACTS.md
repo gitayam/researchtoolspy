@@ -85,6 +85,61 @@ Saving and reopening require an existing authenticated human in the selected pri
 
 Updates send the saved revision's strong ETag in `If-Match`. A retry retains the same payload, idempotency key and original ETag to recover an acknowledged or uncertain save. A newer head produces an explicit conflict; it never silently overwrites another revision. Permission loss, network failure or invalid responses preserve the open local workspace. Changing the authenticated identity, selected saving workspace or human eligibility clears opened private content and invalidates reuse of that save attempt; the prior local draft remains intact. Same-principal credential refresh can retry the original operation. Explicit reopen or saving a separate copy lets the analyst resolve a conflict.
 
+## Source assertions and corroboration review (partial TL-04)
+
+A workspace snapshot may include `analystWorkspace.evidence` with discriminator
+`timeline-evidence.v1` and required arrays `sources`, `assertions`, `links`, and
+`reviews`. Evidence is optional: older workspaces retain its absence. Adding this contract
+does not rewrite stored legacy payloads, raw assessments or hashes. Existing
+local-import presentation defaults remain independent. The event-candidate kind is unchanged.
+Evidence uses the same private workspace authorization, immutable revisions,
+60 KiB canonical snapshot limit and 64 KiB request limit as the complete workspace.
+The existing 4 MiB local import/export limit remains separate.
+
+| Record | Fields and bounds |
+| --- | --- |
+| Source (100 maximum) | `id`, credential-free HTTP(S) `url` (4096 characters), nonblank `title` (1000), `publisher` (1000), optional ISO `publishedAt`/`retrievedAt` |
+| Assertion (200 maximum) | `id`, `sourceId`, nonblank `claimText` (4000), `temporalClaim` (1000), `passage: {id, quote, locator}` (quote 4000; nonblank locator 1000), `status: active/retracted`, `derivesFrom` (20 assertion IDs), optional ISO `observedAt`/`reportedAt` |
+| Event link (400 maximum) | `id`, `eventId`, `assertionId`, `relation: supports/contradicts/context`; one link per event/assertion pair |
+| Review (100 maximum, one per event) | `eventId`, `independence: independent/dependent/unresolved`, `compatibility: compatible/incompatible/unresolved`, nonblank `rationale` (4000), ISO `reviewedAt`, canonical JSON text `basis` (262144 characters) |
+
+Text field lengths use UTF-16 code units; KiB limits count UTF-8 bytes.
+Stable IDs use the existing 200-character local ID grammar. Duplicate IDs,
+unknown fields, invalid clocks/URLs, dangling references and circular derivation
+are rejected. Passage IDs are unique. Field bounds do not override the complete
+snapshot byte limit; review bases contribute to that limit.
+
+The UI records analyst-entered source claims and quote/locator snapshots, distinct
+from event wording. Source URLs do not trigger a fetch. Caller-supplied source
+IDs are local snapshot identities, not proof of an immutable external source.
+Users can edit sources/assertions, link existing assertions, record derivation,
+retract/restore assertions and unlink them without deleting their records.
+Deleting an event removes its links/review while retaining source assertions.
+Prior saved revisions preserve their exact evidence content.
+
+Corroboration eligibility requires two active supporting assertions whose entire
+recorded source URL lineages are disjoint, no active contradictory assertion,
+and an explicit independent/compatible review with rationale matching the current
+basis. URL normalization removes fragments; declared shared intermediaries count
+as dependence even if terminal roots differ. Retracted ancestors exclude a support.
+The canonical basis includes event claim/date/placement fields, all event links,
+linked assertions and their ancestors, passages, clocks and source metadata.
+Relevant edits invalidate the review; presentation or assessment changes do not.
+An unchanged editor save preserves an absent implicit absolute placement.
+
+Raw imported `corroborated` values remain readable for compatibility. Consumers
+must not treat that field alone as proof: the browser and Markdown show
+**Corroboration needs review** when eligibility fails, and browser AI requests send
+`unreviewed` in that case without rewriting saved data. New corroboration selections
+are disabled and submit-guarded until review is eligible. Even eligible labels
+represent an analyst's review of recorded lineage, not independently verified
+provenance, peer certification or proof of causation.
+
+This slice does not implement separate judgments/dissent or verified source-store
+import. No migration, new grant or credential is required. Earlier application
+versions reject the optional evidence field; recovery must use compatible code
+and preserve snapshots rather than strip evidence to satisfy an older codec.
+
 ## Scoped service access
 
 `timeline.read` grants all four GET routes: metadata, object pages, revision pages
