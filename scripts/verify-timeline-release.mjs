@@ -187,12 +187,25 @@ try {
     receipt.importedStatements++
   }
   assert.equal((await db.prepare("SELECT count(*) AS n FROM sqlite_schema WHERE type='table' AND name LIKE 'timeline_%'").first()).n, 9, 'Production export must contain the deployed0011 prefix')
+  const priorTables = await collectManifest(db, expectedTables)
+  receipt.priorCatalogSha256 = sha256(canonical(priorTables))
   stage = 'apply-pending-0012'
   // Managed apply sends the entire migration plus tracker write in one transaction.
   await db.batch([...statements(migrationBytes.toString('utf8')).map(statement => db.prepare(statement.sql)), db.prepare('INSERT INTO d1_migrations(name) VALUES (?)').bind(pendingName)])
   assert.equal((await db.prepare('SELECT count(*) AS n FROM d1_migrations WHERE name=?').bind(pendingName).first()).n, 1)
   assert.deepEqual((await db.prepare('PRAGMA foreign_key_check').all()).results, [], 'Imported schema has foreign-key violations')
   receipt.tables = await collectManifest(db, expectedTables)
+  for (const before of priorTables) {
+    const after = receipt.tables.find(table => table.name === before.name)
+    assert.deepEqual(after.columns, before.columns, `Columns changed in ${before.name}`)
+    assert.deepEqual(after.foreignKeys, before.foreignKeys, `Foreign keys changed in ${before.name}`)
+    assert.deepEqual(after.indexes, before.indexes, `Existing indexes changed in ${before.name}`)
+    const retained = after.triggers.filter(trigger => trigger.name !== 'timeline_version_kind')
+    assert.deepEqual(retained, before.triggers, `Existing triggers changed in ${before.name}`)
+    if (!['timeline_objects', 'timeline_object_versions'].includes(before.name)) assert.equal(after.sql, before.sql)
+  }
+  assert.equal((await db.prepare("SELECT count(*) AS n FROM sqlite_schema WHERE name LIKE 'timeline_%0012_backup'").first()).n, 0)
+  receipt.catalogPreservation = 'passed'
   assert(receipt.tables.every(table => table.columns.length && table.foreignKeys.length && table.triggers.length), 'Incomplete affected-schema manifest')
   receipt.schemaRehearsal = 'passed'
   receipt.checks.push('schema-only export imported', 'actual pending migration applied', 'foreign_key_check clean', 'affected columns/foreign keys/indexes/triggers recorded')
