@@ -73,7 +73,7 @@ export function DashboardHeader() {
     <header className="sticky top-0 z-40 bg-white shadow-sm dark:bg-gray-900 dark:border-b dark:border-gray-700" role="banner">
       <div className="flex h-14 sm:h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Breadcrumbs / Page title - Better mobile spacing */}
-        <Link to="/" className="flex items-center gap-2 sm:gap-3 pl-14 lg:pl-0 hover:opacity-80 transition-opacity">
+        <Link to="/" className="flex min-w-0 flex-1 items-center gap-2 pl-14 transition-opacity hover:opacity-80 sm:gap-3 lg:pl-0">
           <img
             src="/logo.png"
             alt="Research Tools"
@@ -85,9 +85,9 @@ export function DashboardHeader() {
         </Link>
 
         {/* Right side - Improved mobile layout */}
-        <div className="flex items-center gap-x-2 sm:gap-x-3 lg:gap-x-4">
+        <div className="flex shrink-0 items-center gap-x-2 sm:gap-x-3 lg:gap-x-4">
           {/* Workspace Selector - hidden on small screens */}
-          <div className="hidden md:block">
+          <div className="hidden 2xl:block">
             <WorkspaceSelector />
           </div>
 
@@ -98,8 +98,8 @@ export function DashboardHeader() {
             aria-label="Open command palette (⌘K)"
           >
             <Search className="h-4 w-4" />
-            <span className="hidden md:inline">Search...</span>
-            <kbd className="hidden md:inline-flex items-center gap-0.5 rounded border border-gray-200 dark:border-gray-600 px-1.5 py-0.5 text-xs font-mono text-gray-400">
+            <span className="hidden 2xl:inline">Search...</span>
+            <kbd className="hidden 2xl:inline-flex items-center gap-0.5 rounded border border-gray-200 dark:border-gray-600 px-1.5 py-0.5 text-xs font-mono text-gray-400">
               <span>⌘</span><span>K</span>
             </kbd>
           </button>
@@ -108,12 +108,12 @@ export function DashboardHeader() {
           <ThemeToggle />
 
           {/* Language Switcher - hidden on smallest screens */}
-          <div className="hidden sm:block">
+          <div className="hidden md:block">
             <LanguageSwitcher />
           </div>
 
           {/* Feedback Button - hidden on smallest screens */}
-          <div className="hidden sm:block">
+          <div className="hidden md:block">
             <FeedbackDialog />
           </div>
 
@@ -121,7 +121,7 @@ export function DashboardHeader() {
           {!isAuthenticated ? (
             // Not authenticated - show bookmark/save button
             <div className="flex items-center gap-2 sm:gap-3">
-              <div className="hidden md:flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+              <div className="hidden 2xl:flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
                 <Save className="h-4 w-4" />
                 <span>{t('auth.bookmark_to_save')}</span>
               </div>
@@ -151,7 +151,7 @@ export function DashboardHeader() {
                   <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-full bg-blue-600 flex items-center justify-center">
                     <User className="h-5 w-5 text-white" />
                   </div>
-                  <div className="hidden lg:flex lg:flex-col lg:items-start">
+                  <div className="hidden 2xl:flex 2xl:flex-col 2xl:items-start">
                     <div className="text-sm font-medium text-gray-900 dark:text-white">
                       {displayUser?.username}
                     </div>
