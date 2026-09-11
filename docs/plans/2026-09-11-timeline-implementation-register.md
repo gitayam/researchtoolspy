@@ -2,7 +2,7 @@
 
 Date: 2026-09-11
 
-Status: TL-00, TL-02 and TL-03 released. Human APIs, complete browser snapshots and scoped service read/write are deployed. Both main refs contain the accepted release; production migrations 0011–0013 are applied. Existing service credentials and grants are unchanged.
+Status: TL-00, TL-02 and TL-03 released. Human APIs, complete browser snapshots and scoped service read/write are deployed. Both main refs contain the accepted release; production migrations 0011–0013 are applied. Existing service credentials and grants are unchanged. The first TL-04 source-assertion and corroboration-review slice is also deployed; TL-04 remains in progress.
 
 This register translates the [platform roadmap](./2026-09-11-timeline-evidence-narrative-roadmap.md)
 into independently verifiable releases. Each checkpoint includes API behavior,
@@ -54,9 +54,19 @@ Current delivery state (2026-09-11):
   and compiled routes. Transaction-time revocation, rotation and malformed-timestamp
   cases additionally pass the actual-D1 race tests.
   No production credential was created or widened.
-- **TL-01 and TL-04–TL-18: pending.** No delivery of these checkpoints or cross-app changes is claimed.
+- **TL-04: in progress; source assertions and corroboration review deployed.**
+  Analyst-entered source claims, quote/locator snapshots, supporting/contrary/context
+  links, recorded derivation and retractions survive local and durable snapshots.
+  Corroboration requires a current independence/compatibility review and disjoint
+  complete source lineages. Legacy unsupported labels are qualified in the UI,
+  Markdown and AI requests without rewriting saved data. All 104 API/contract
+  checks, 60 browser checks, five type checks and compiled release gates pass.
+  No database migration was required. Separate judgments/dissent and verified
+  source-store import remain pending; manual snapshots are not verified provenance.
+- **TL-01 and TL-05–TL-18: pending.** No delivery of these checkpoints or cross-app changes is claimed.
 
-See the [service release receipt](./2026-09-11-timeline-service-release-receipt.md)
+See the [evidence release receipt](./2026-09-11-timeline-evidence-release-receipt.md)
+for the current partial TL-04 deployment. See the [service release receipt](./2026-09-11-timeline-service-release-receipt.md)
 for current scoped-service deployment. See the [browser release receipt](./2026-09-11-timeline-browser-release-receipt.md)
 for the earlier snapshot release and its limits. See the [release receipt](./2026-09-11-timeline-release-receipt.md) for main pushes,
 production deployment and verification. See the [continuation receipt](./2026-09-11-timeline-continuation-receipt.md) for prior local

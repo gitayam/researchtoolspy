@@ -8,6 +8,10 @@
 browser snapshots and independently scoped service read/write are deployed on both
 main refs with migrations 0011–0013. Existing service grants are unchanged. See the
 [service release receipt](./2026-09-11-timeline-service-release-receipt.md).
+The first TL-04 slice is also deployed: analyst-entered source assertions, passage
+snapshots, declared derivation and explicit corroboration review. TL-04 remains
+in progress; separate judgments/dissent and verified source-store import are pending.
+See the [evidence release receipt](./2026-09-11-timeline-evidence-release-receipt.md).
 The remaining proposed capabilities below are not shipped merely because their
 contracts are described here.
 Delivery checkpoints and dependency corrections are maintained in the

@@ -1,5 +1,7 @@
 # Scoped timeline service release
 
+Subsequent deployment: the [partial TL-04 evidence release](./2026-09-11-timeline-evidence-release-receipt.md) adds source assertions and review without a database migration. This receipt preserves the earlier TL-03 release record.
+
 TL-03 is released at [ResearchTools](https://researchtools.net/dashboard/tools/timeline): human APIs, browser save/reopen and scoped service access. `timeline.read` grants the four durable GET routes; `timeline.write` grants create and commit. Neither scope implies the other. Existing credentials and grants were preserved; operators can assign scopes using the [service contract](../api/COMMUNITY-INTEGRATIONS-API.md#durable-timeline-service-scopes-deployed).
 
 Accepted/deployed source: `839a657ca44b0a3fe83ed8e809444a31e8cf53a2`. Both main refs were confirmed at that SHA before deployment. This receipt is a documentation-only follow-up, not another runtime build. The dirty primary checkout remains untouched.
