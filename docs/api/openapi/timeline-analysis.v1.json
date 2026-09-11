@@ -1,0 +1,59 @@
+{
+  "openapi": "3.1.0",
+  "info": { "title": "ResearchTools timeline extraction", "version": "timeline-analysis.v1", "description": "Synchronous nonpersistent event-candidate extraction. Operator-provisioned service credentials; no stable event IDs, verification, publication or durable artifacts. Discover support before submitting. JSON Schema byte/calendar/URL annotations require runtime enforcement." },
+  "servers": [{ "url": "https://researchtools.net" }],
+  "security": [{ "serviceBearer": [] }],
+  "paths": {
+    "/api/integrations/capabilities": {
+      "get": {
+        "operationId": "discoverTimelineCapabilities",
+        "description": "Require identityType=service, capabilities.timelineAnalysis=true, contractVersions.timelineAnalysis=timeline-analysis.v1 and community.research.execute scope. Omission means unavailable. Discovery limits do not advertise timeline quotas.",
+        "parameters": [{ "$ref": "#/components/parameters/CorrelationId" }],
+        "responses": {
+          "200": { "description": "Integration discovery; additive capabilities and versions may be present.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Capabilities" } } } },
+          "400": { "$ref": "#/components/responses/ServiceError" }, "401": { "$ref": "#/components/responses/ServiceError" }, "403": { "$ref": "#/components/responses/ServiceError" }, "405": { "$ref": "#/components/responses/ServiceError" }, "500": { "$ref": "#/components/responses/ServiceError" }, "503": { "$ref": "#/components/responses/Unavailable" }
+        }
+      }
+    },
+    "/api/tools/extract-timeline": {
+      "post": {
+        "operationId": "extractTimeline",
+        "description": "Requires enabled community integrations and community.research.execute. Full request <=112 KiB UTF-8; supplied text <=100 KiB. At most 64000 selected model-input characters and 100 normalized events. URLs remain required for supplied text. Only 422 content_unavailable permits caller-controlled bounded source recovery. No automatic guest fallback or recovery after auth, network, rate or model failures. Service errors differ from legacy browser errors.",
+        "parameters": [{ "$ref": "#/components/parameters/CorrelationId" }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "../schemas/timeline-analysis.v1.schema.json#/definitions/request" } } } },
+        "responses": {
+          "200": { "description": "Events or valid no_events, including extraction/model provenance.", "content": { "application/json": { "schema": { "$ref": "../schemas/timeline-analysis.v1.schema.json" } } } },
+          "400": { "$ref": "#/components/responses/ServiceError" }, "401": { "$ref": "#/components/responses/ServiceError" }, "403": { "$ref": "#/components/responses/ServiceError" },
+          "405": { "$ref": "#/components/responses/ServiceError" }, "413": { "$ref": "#/components/responses/ServiceError" }, "422": { "$ref": "#/components/responses/ServiceError" },
+          "429": { "description": "Middleware rate limit; flat error, not integration-error.v1. Do not scrape again.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MiddlewareError" } } } },
+          "500": { "$ref": "#/components/responses/ServiceError" }, "502": { "$ref": "#/components/responses/ServiceError" }, "503": { "$ref": "#/components/responses/Unavailable" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": { "serviceBearer": { "type": "http", "scheme": "bearer", "bearerFormat": "rt_svc_<client-id>.<secret>", "description": "Keep server-side. X-Service-Key is a separate rate-tier secret and never grants identity or scope." } },
+    "parameters": { "CorrelationId": { "name": "X-Correlation-ID", "in": "header", "required": false, "schema": { "type": "string", "pattern": "^[A-Za-z0-9._:-]{16,128}$" }, "description": "Optional caller correlation; echoed in discovery and nested errors, not extraction success." } },
+    "schemas": {
+      "MiddlewareError": { "type": "object", "required": ["error"], "properties": { "error": { "type": "string" }, "retryable": { "type": "boolean" } } },
+      "Capabilities": {
+        "type": "object", "required": ["schemaVersion", "requestId", "identityType", "contractVersions", "scopes", "capabilities", "limits"],
+        "properties": {
+          "schemaVersion": { "const": "integration-capabilities.v1" }, "requestId": { "type": "string", "minLength": 1 }, "correlationId": { "type": "string", "pattern": "^[A-Za-z0-9._:-]{16,128}$" },
+          "identityType": { "enum": ["anonymous", "service"] },
+          "clientId": { "type": "string" }, "communityId": { "type": "string" }, "workspaceId": { "type": "string" }, "investigationId": { "type": "string" },
+          "environment": { "enum": ["development", "staging", "production"] }, "maximumVisibility": { "enum": ["private", "community", "public"] },
+          "contractVersions": { "type": "object", "required": ["capabilities"], "properties": { "capabilities": { "const": "integration-capabilities.v1" }, "timelineAnalysis": { "const": "timeline-analysis.v1" } }, "additionalProperties": { "type": "string" } },
+          "scopes": { "type": "array", "uniqueItems": true, "items": { "type": "string" } },
+          "capabilities": { "type": "object", "required": ["anonymousAnalysis", "publicBcw", "communityIngest", "jobStatus", "artifactRead", "projectionRead", "persistentWorkspace", "researchQuestions", "cop", "behaviorIntake", "claimMatch", "feedJobs", "webhookManagement"], "additionalProperties": { "type": "boolean" } },
+          "limits": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 1 } }
+        },
+        "allOf": [{ "if": { "properties": { "identityType": { "const": "service" } } }, "then": { "required": ["clientId", "communityId", "workspaceId", "investigationId", "environment", "maximumVisibility"] } }]
+      }
+    },
+    "responses": {
+      "ServiceError": { "description": "Nested integration-error.v1; use code/retryable/requestId, never infer scrape recovery from generic failure. Codes: 400/413 invalid_request; 401 authentication_required/invalid_service_token/expired_service_token; 403 scope_denied/workspace_denied; 405 method_not_allowed; 422 content_unavailable; 500 internal_error; 502 upstream_invalid_response.", "content": { "application/json": { "schema": { "$ref": "../schemas/integration-error.v1.schema.json" } } } },
+      "Unavailable": { "description": "503 auth_datastore_unavailable, or flat middleware error with retryable=true.", "headers": { "Retry-After": { "schema": { "type": "string", "const": "2" } } }, "content": { "application/json": { "schema": { "oneOf": [{ "$ref": "../schemas/integration-error.v1.schema.json" }, { "allOf": [{ "$ref": "#/components/schemas/MiddlewareError" }, { "required": ["retryable"], "properties": { "retryable": { "const": true } } }] }] } } } }
+    }
+  }
+}

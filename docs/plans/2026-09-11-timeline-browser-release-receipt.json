@@ -1,0 +1,382 @@
+{
+  "schemaVersion": "timeline-browser-release.v1",
+  "recordedAt": "2026-09-11T21:19:01.997235+00:00",
+  "baselineSha": "0bd8ea70bdc542dade2603e4fd446deb632c26a0",
+  "acceptedReleaseSha": "2960d0da8594c6498c008bdb9450c0d1561257f5",
+  "scope": "TL-03 human browser snapshot saving/reopening; full TL-03 still requires scoped service access",
+  "audience": {
+    "url": "https://researchtools.net/dashboard/tools/timeline",
+    "identity": "Existing active authenticated human",
+    "workspace": "Explicit private workspace; owner/editor/admin writes, viewer reads",
+    "capability": "Save complete timeline, reopen saved link, stale-edit protection and exact retry",
+    "maxSnapshotBytes": 61440,
+    "maxRequestBytes": 65536,
+    "localImportLimitUnchangedBytes": 4194304
+  },
+  "states": {
+    "canonicalLanded": true,
+    "mirrorConfirmed": true,
+    "productionMigrationApplied": true,
+    "productionDeployed": true,
+    "primaryCheckoutSynced": false
+  },
+  "publication": {
+    "canonical": "origin/main",
+    "mirror": "gitlab/main",
+    "releaseRefSha": "2960d0da8594c6498c008bdb9450c0d1561257f5",
+    "forcePush": false,
+    "documentationFollowup": "The commit containing this receipt changes documentation only; deployed source remains acceptedReleaseSha."
+  },
+  "review": {
+    "nativeBackendReviewer": "dependency_review",
+    "nativeClientReviewer": "validator_review",
+    "sourceAcceptedSha": "2960d0da8594c6498c008bdb9450c0d1561257f5",
+    "backendProvider": "tl00_recon",
+    "owner": "Codex integration owner",
+    "resolvedFindings": [
+      "Retain all production-only schema objects or fail rehearsal",
+      "Bound manifest reads without unchanged payload bodies",
+      "Disallow redirect credential forwarding",
+      "Bind retries to stable principal and workspace, allowing credential refresh",
+      "Clear opened private content on same-user eligibility loss",
+      "Normalize optional editor fields for dirty-state identity",
+      "Treat both boolean false and D1 numeric 0 as inactive; clear opened private content for both"
+    ],
+    "artifactChecks": "Reviewer independently hashed all 145 original/rehearsed files for the initial release. Owner verified all 145 fresh final-build files against publisher staging; client reviewer accepted final source and isolated runtime evidence.",
+    "backendAcceptedSha": "6339605e4eb249c01ba5c102a64c402ee4f30d36"
+  },
+  "validation": {
+    "fullChecksSha": "dcd406e40442e57b016b219c08f63e53ba48ebb6",
+    "typeChecksPassed": 5,
+    "apiContractTestsPassed": 90,
+    "browserProjectChecksPassed": 54,
+    "browserProjects": [
+      "chromium",
+      "mobile-safari"
+    ],
+    "browserRealD1Seam": "Save/reopen and downloaded-byte round trip, lost create/commit response with token rotation, stale conflict, malformed reopen, explicit copy, oversize/no-request rejection, guest restriction, same-user deactivation, local draft preservation",
+    "viteBuild": "passed",
+    "pagesFunctionsBuild": "passed",
+    "guardedRehearsalSha": "2960d0da8594c6498c008bdb9450c0d1561257f5",
+    "inheritance": "Full five type checks, 90 API checks and 54 browser checks passed at fullChecksSha. The catalog-verifier-only change passed at 6339605e4eb249c01ba5c102a64c402ee4f30d36. Final 2960d0d changes only browser eligibility and its regression: application TypeScript and all 12 durable-browser project checks reran, followed by fresh Vite/Functions builds and schema/compiled/static/catalog gates. Unchanged 90 API checks, other 42 browser checks and other four type checks inherit the full run. Final schema rehearsal uses the frozen pre-0012 schema export; production migration was not repeated.",
+    "schemaRehearsal": "passed",
+    "compiledHttpGate": "passed",
+    "staticGate": "passed",
+    "catalogPreservation": "passed",
+    "outboundAttempts": 0,
+    "runtimeImage": "mcr.microsoft.com/playwright@sha256:9bd26ad900bb5e0f4dee75839e957a89ae89c2b7ab1e76050e559790e946b948",
+    "fullRunReceiptSha256": "dfa2f5cb190bac6ae634cf31c519992644e03a6f23f8727522a91c34fb9634ad",
+    "guardedRunReceiptSha256": "3f4759baa3cf37c5cc3ec9ead4e444022787fcff9b96f8b4402299c43952babe",
+    "schemaManifestSha256": "87deed06a39a1c260c7c74f79f221de0bfd65a913947fad54eba926566e2885c",
+    "distManifestSha256": "035b034fc639b977fa60ece8f00b81547d8ff15bbf2cae62a030b0c25ca12d64",
+    "fileCount": 145,
+    "recovery": [
+      "Initial browser test interception matched source-module URLs; bridge corrected to forward only actual /api routes, all browser checks subsequently passed.",
+      "Initial full type check rejected parameter properties in browser-shared code; replaced with erasable field declarations and all5 checks passed."
+    ],
+    "existingWarning": "Vite large chunks warning",
+    "finalFollowup": {
+      "sourceSha": "2960d0da8594c6498c008bdb9450c0d1561257f5",
+      "applicationTypeCheck": "passed",
+      "browserProjectChecksPassed": 12,
+      "inactiveValuesTested": [
+        false,
+        0
+      ],
+      "freshBuildAndBundle": "passed",
+      "receiptSha256": "3f4759baa3cf37c5cc3ec9ead4e444022787fcff9b96f8b4402299c43952babe"
+    },
+    "initialGuardedRunReceiptSha256": "be5a6d204ccb62a4c014239de485d0856f95284257c525a1c5eac08651e26722"
+  },
+  "database": {
+    "name": "researchtoolspy-prod",
+    "migration": "0012_timeline_workspace_snapshots.sql",
+    "migrationSha256": "b9499aefe8ed892a5015d3e3c202dbb9cd6908f6acf20f6e38a9da87439e17d2",
+    "applied0011Unchanged": true,
+    "method": "wrangler d1 migrations apply researchtoolspy-prod --remote; full migration+tracker atomic apply",
+    "pendingBefore": [
+      "0012_timeline_workspace_snapshots.sql"
+    ],
+    "pendingAfter": [],
+    "schemaOnlyInputSha256": "16ef28502e315c7255d95e57ef9940c7748b42ecc0c6b39287c9a9f291adabc9",
+    "rehearsalPriorCatalogSha256": "94813edfafdc0a0b8b63eb004e0ef68ca498195b4d49f81751f2961d02aff514",
+    "freshPreApplyCatalog": {
+      "result": "passed",
+      "tables": 9,
+      "schemaRows": 218,
+      "normalizedSchemaSha256": "1f286661fe590182495b7bb97885753acdd94b3974a71c0e2e5deb57579da368"
+    },
+    "postApplyCatalog": {
+      "result": "passed",
+      "tables": 9,
+      "schemaRows": 219,
+      "normalizedSchemaSha256": "f6d6b3dc885589e288e0db5a51b51fb6caac4306cee189053d30ba698fff3cdd"
+    },
+    "baselineSchemaChecksPassed": 23,
+    "rowCountsBeforeAfterEqual": true,
+    "migrationTimeCounts": [
+      {
+        "entity": "objects",
+        "count": 0
+      },
+      {
+        "entity": "versions",
+        "count": 0
+      },
+      {
+        "entity": "revisions",
+        "count": 0
+      }
+    ],
+    "backupTablesRemaining": 0,
+    "populatedUpgradeEvidence": "RealD1 tests preserve all stored rows, old historical response bytes, FK/index/trigger definitions; injected mid-rebuild failure rolls back whole migration.",
+    "backup": {
+      "private": true,
+      "bytes": 9916615,
+      "sha256": "65a42792c58c50f9dc37db549585b063c65f0c7f1139ccd9346090a5d33e0d3f",
+      "timeTravelBookmarkRecorded": true,
+      "timeTravelRecordSha256": "0a318a293c8c4a1c6f444a8d926ca70802ba3aacaf4801dfc6ed2940d94bd040"
+    },
+    "appliedWithSourceSha": "6339605e4eb249c01ba5c102a64c402ee4f30d36",
+    "finalFollowupMigrationRepeated": false
+  },
+  "deployment": {
+    "project": "researchtoolspy",
+    "id": "5b0ac276-e52e-4436-9cf9-a4ba5a421a5c",
+    "url": "https://5b0ac276.researchtoolspy.pages.dev",
+    "productionUrl": "https://researchtools.net",
+    "sourceSha": "2960d0da8594c6498c008bdb9450c0d1561257f5",
+    "wranglerVersion": "4.100.0",
+    "prebuilt": true,
+    "flags": [
+      "--branch=main",
+      "--commit-hash=2960d0da8594c6498c008bdb9450c0d1561257f5",
+      "--commit-dirty=false",
+      "--no-bundle"
+    ],
+    "stagingHasFunctionsSource": false,
+    "wranglerConfigSha256": "973e4f752a15272470b80d6937188998997e157a7b81b243932f2a31663f5f21",
+    "requiredSecretNamesPresent": true,
+    "unrelatedWorkersDeployed": false,
+    "smoke": [
+      {
+        "result": "passed",
+        "baseUrl": "https://5b0ac276.researchtoolspy.pages.dev",
+        "checks": [
+          {
+            "path": "/",
+            "method": "GET",
+            "status": 200,
+            "bodySha256": "ab113275ae5026e3e8a463c6fc0fc93a6b060c6923b026d733fe42b3ad09e10a"
+          },
+          {
+            "path": "/dashboard/tools/timeline",
+            "method": "GET",
+            "status": 200,
+            "bodySha256": "ab113275ae5026e3e8a463c6fc0fc93a6b060c6923b026d733fe42b3ad09e10a"
+          },
+          {
+            "path": "/assets/index-DCBdAx9V.js",
+            "method": "GET",
+            "status": 200,
+            "bodySha256": "6fc22d104562f9febf8a256abba0b598832c263701fd51c62e276601f845bff7"
+          },
+          {
+            "path": "/assets/react-vendor-WKsI28Pk.js",
+            "method": "GET",
+            "status": 200,
+            "bodySha256": "8cbc7e2da057556259d80a3eb55afb2f7d1ac4ffebac1989acb7921b3747b531"
+          },
+          {
+            "path": "/assets/state-vendor-CpgMo49P.js",
+            "method": "GET",
+            "status": 200,
+            "bodySha256": "d6e2233fc849cc851b55e14e101717664046c4d524383cb39fcf2b6ddf3b0ab0"
+          },
+          {
+            "path": "/assets/icons-t1FrF7j5.js",
+            "method": "GET",
+            "status": 200,
+            "bodySha256": "635337ad344d8196f6f9cbc68db9820a9334dd38603033197d849d41586dbeec"
+          },
+          {
+            "path": "/assets/ui-vendor-D2SxediK.js",
+            "method": "GET",
+            "status": 200,
+            "bodySha256": "2bdbb6ae2b37f57591060c33b1f38f889bb8074abe2665371c5385e4c6a102b4"
+          },
+          {
+            "path": "/assets/index-5nKzOwqg.css",
+            "method": "GET",
+            "status": 200,
+            "bodySha256": "ddbbcdd4e69112adf5d4feb4052a415f928c0d3b1955006db9b05c87567bcbe8"
+          },
+          {
+            "path": "/assets/TimelineAnalysisPage-DGSjrMxs.js",
+            "method": "GET",
+            "status": 200,
+            "bodySha256": "3842ef7296ef748d272320bec80ecfdbfdfb244592515932afd4e348d89f4b06"
+          },
+          {
+            "path": "/assets/TimelineResults-BCVBjPa8.js",
+            "method": "GET",
+            "status": 200,
+            "bodySha256": "ac940356731b51a39fd813e0f3e3fd7f478e952ecd37edf70c95f15289ccd9be"
+          },
+          {
+            "path": "/api/timelines/timeline_release_probe",
+            "method": "GET",
+            "status": 401,
+            "bodySha256": "dd1cc3d6537587887ff1d8e2100563414a6535de6fdc31b909fd30b449271f78"
+          },
+          {
+            "path": "/api/timelines/timeline_release_probe/objects",
+            "method": "GET",
+            "status": 401,
+            "bodySha256": "2b44f8baa0e15e216fe60e81dce0371b3005c07e37f9cbceb08f465c268706bd"
+          },
+          {
+            "path": "/api/timelines/timeline_release_probe/revisions",
+            "method": "GET",
+            "status": 401,
+            "bodySha256": "87958ed8f884a41c798155038df21375d325ad4bd2e492d7308546bc96542754"
+          },
+          {
+            "path": "/api/timelines/timeline_release_probe/revisions/rev_release_probe",
+            "method": "GET",
+            "status": 401,
+            "bodySha256": "50aa1c0d68560f9903639c4c173f519f3408525c5b08b33fad4bbeb4ec6a4727"
+          },
+          {
+            "path": "/api/timelines/timeline_release_probe",
+            "method": "OPTIONS",
+            "status": 204,
+            "bodySha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        ],
+        "mutatingRequests": 0,
+        "note": "Anonymous GET and CORS OPTIONS only; no production content writes, credentials or model calls."
+      },
+      {
+        "result": "passed",
+        "baseUrl": "https://researchtools.net",
+        "checks": [
+          {
+            "path": "/",
+            "method": "GET",
+            "status": 200,
+            "bodySha256": "5626113ffcf13c727c43654f315b0d6daf3766309f6559ecc9b5700bd3e2d8e5"
+          },
+          {
+            "path": "/dashboard/tools/timeline",
+            "method": "GET",
+            "status": 200,
+            "bodySha256": "6e9bd0de1a3ed3191ef03afaf08529cd7e7c355975bc2215a45747fd473d2473"
+          },
+          {
+            "path": "/assets/index-DCBdAx9V.js",
+            "method": "GET",
+            "status": 200,
+            "bodySha256": "6fc22d104562f9febf8a256abba0b598832c263701fd51c62e276601f845bff7"
+          },
+          {
+            "path": "/assets/react-vendor-WKsI28Pk.js",
+            "method": "GET",
+            "status": 200,
+            "bodySha256": "8cbc7e2da057556259d80a3eb55afb2f7d1ac4ffebac1989acb7921b3747b531"
+          },
+          {
+            "path": "/assets/state-vendor-CpgMo49P.js",
+            "method": "GET",
+            "status": 200,
+            "bodySha256": "d6e2233fc849cc851b55e14e101717664046c4d524383cb39fcf2b6ddf3b0ab0"
+          },
+          {
+            "path": "/assets/icons-t1FrF7j5.js",
+            "method": "GET",
+            "status": 200,
+            "bodySha256": "635337ad344d8196f6f9cbc68db9820a9334dd38603033197d849d41586dbeec"
+          },
+          {
+            "path": "/assets/ui-vendor-D2SxediK.js",
+            "method": "GET",
+            "status": 200,
+            "bodySha256": "2bdbb6ae2b37f57591060c33b1f38f889bb8074abe2665371c5385e4c6a102b4"
+          },
+          {
+            "path": "/assets/index-5nKzOwqg.css",
+            "method": "GET",
+            "status": 200,
+            "bodySha256": "ddbbcdd4e69112adf5d4feb4052a415f928c0d3b1955006db9b05c87567bcbe8"
+          },
+          {
+            "path": "/assets/TimelineAnalysisPage-DGSjrMxs.js",
+            "method": "GET",
+            "status": 200,
+            "bodySha256": "3842ef7296ef748d272320bec80ecfdbfdfb244592515932afd4e348d89f4b06"
+          },
+          {
+            "path": "/assets/TimelineResults-BCVBjPa8.js",
+            "method": "GET",
+            "status": 200,
+            "bodySha256": "ac940356731b51a39fd813e0f3e3fd7f478e952ecd37edf70c95f15289ccd9be"
+          },
+          {
+            "path": "/api/timelines/timeline_release_probe",
+            "method": "GET",
+            "status": 401,
+            "bodySha256": "9b8ec3585d8a206c8d2e56eeb01e2de8be30fae3472cbf8cc4866e00ae7326d9"
+          },
+          {
+            "path": "/api/timelines/timeline_release_probe/objects",
+            "method": "GET",
+            "status": 401,
+            "bodySha256": "c4aa488b94184de2d34bdb687a8027632ade820b53ec970164456e08a9b19a33"
+          },
+          {
+            "path": "/api/timelines/timeline_release_probe/revisions",
+            "method": "GET",
+            "status": 401,
+            "bodySha256": "ddc406f89121d0c33a03bce56b45df822430e3582d9680792ea362446db1af33"
+          },
+          {
+            "path": "/api/timelines/timeline_release_probe/revisions/rev_release_probe",
+            "method": "GET",
+            "status": 401,
+            "bodySha256": "f28f50cbbcd172af9e4e173779326b346c0587632cdb35b5c353639cc3b34593"
+          },
+          {
+            "path": "/api/timelines/timeline_release_probe",
+            "method": "OPTIONS",
+            "status": 204,
+            "bodySha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        ],
+        "mutatingRequests": 0,
+        "note": "Anonymous GET and CORS OPTIONS only; no production content writes, credentials or model calls."
+      }
+    ],
+    "initialRelease": {
+      "sourceSha": "6339605e4eb249c01ba5c102a64c402ee4f30d36",
+      "id": "459ebfb8-6231-46b3-b452-8e73b4d3a5af",
+      "url": "https://459ebfb8.researchtoolspy.pages.dev",
+      "initialCheck": "New deployment URL initially returned404; subsequent checks returned200 and the entire15-check suite passed on both URLs before release acceptance."
+    }
+  },
+  "rollback": {
+    "previousDeploymentId": "459ebfb8-6231-46b3-b452-8e73b4d3a5af",
+    "limits": "Previous application supports the snapshot kind but lacks the numeric-inactive cleanup correction. Preserve schema and history; no destructive downgrade or automatic whole-database restore."
+  },
+  "instructionSha256": {
+    "CLAUDE.md": "3852de6d95104c64f3a35b670f350e1d7a2c6c9ed93d03d53895e7bc8c44ff1b",
+    ".team/project.json": "c87cd27090a1a8ff779dd0d850668ebf0ecb6581cefb2d0b0a66ed63aabbcf78",
+    "docs/plans/2026-09-11-timeline-browser-charter.md": "af96ccc046999b2a995cdfcb78bfee907b8fa12b0021d6b5d10f1a27449e666e"
+  },
+  "limitations": [
+    "Scoped external-service access, snapshot chunking above60KiB and later roadmap checkpoints remain pending.",
+    "No production authenticated content writes or model calls in smoke tests; authenticated browser writes are tested against isolated realD1 routes.",
+    "Opened private content stays in memory; earlier local draft is preserved, not overwritten.",
+    "Unrelated dirty primary changes and Signal/RSS work were preserved.",
+    "External authenticated model lanes remain unqualified; native editors/reviewers and isolated validator used."
+  ]
+}

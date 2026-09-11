@@ -18,6 +18,11 @@ A hash auto-creates an account on first use (no registration step required). Has
 
 **Minimum length:** 16 characters. Shorter hashes are rejected with `400 Bad Request`.
 
+The durable timeline foundation is an exception: `/api/timelines` requires
+an existing active human account and explicit private-workspace membership. It
+never provisions an identity from an unknown hash. See
+[Timeline artifacts](./TIMELINE-ARTIFACTS.md) for its staged availability.
+
 ### Obtaining a hash
 
 - **New user:** use **Save Bookmark** in the dashboard to create a permanent hash.
@@ -229,6 +234,14 @@ Open Graph headline/description metadata alone is never accepted for claims.
 
 #### Timeline analysis v1
 
+Reusable v1 materials: [JSON Schema](./schemas/timeline-analysis.v1.schema.json),
+[service error schema](./schemas/integration-error.v1.schema.json),
+[OpenAPI operation and discovery](./openapi/timeline-analysis.v1.json), and
+[generic server client](../../examples/timeline-client/README.md).
+The [frozen synthetic corpus](../../benchmarks/timeline/corpus-v1/manifest.json)
+reproduces contract behavior; it does not establish historical extraction quality.
+
+
 `POST /api/tools/extract-timeline` accepts both the legacy `{ "url": "..." }`
 body and the versioned `timeline-analysis.v1` contract. New integrations must
 discover `timelineAnalysis: true`, hold `community.research.execute`, and send
@@ -279,9 +292,10 @@ the extraction API; one manual draft is retained locally in that browser for
 seven days. This browser draft is not server-side saved data. Content Intelligence also
 exposes Timeline as an on-demand analysis section; that integration submits the
 already-extracted article text with `source: "content-intelligence"`, avoiding a
-second network retrieval. Workspace saving and collaboration are not available
-yet; users should export JSON to retain or share work until the authenticated
-durable-artifact phase ships.
+second network retrieval. Signed-in users of the dedicated tool can explicitly
+save complete workspace snapshots up to 60 KiB to a private workspace and reopen
+them through saved links. Content Research overlays remain local unless exported
+and imported into that tool. JSON export also retains larger local timelines.
 
 Both browser surfaces wrap the immutable API response in a temporary analyst
 workspace. **Basic** mode supports three event placement modes: absolute
@@ -314,6 +328,23 @@ mutation or model output. Durable
 promotion into an investigation/COP, passage-linked evidence on analyst-added
 events, multi-source merge/corroboration, and answer-packet conversion remain
 authenticated follow-on work.
+
+#### Durable timeline artifact foundation
+
+Production provides human-authenticated create/read/revision routes at
+`/api/timelines`. Writes require idempotency keys; revision commits also require a
+strong `If-Match` head-revision ETag. History and event-candidate object versions are
+immutable and workspace-scoped. Complete browser workspaces can be saved as `timeline-workspace.v1` objects
+(up to 60 KiB) and reopened from a private saved link. Migration 0012 adds this
+snapshot kind without changing candidate history. Browser saving, lost-response
+retries and stale-edit protection are deployed. Migration 0013 adds independent
+`timeline.read` and `timeline.write` service scopes, bound to the credential’s private
+workspace and advertised through capability discovery. Existing credentials are
+unchanged; scope assignment is a separate operator action. Guest persistence and
+publication endpoints remain unavailable.
+
+See [Timeline artifacts](./TIMELINE-ARTIFACTS.md) for payloads, bounds, errors and
+runtime verification limits. Existing extraction discovery remains unchanged.
 
 #### Timeline AI assistance v1
 

@@ -218,9 +218,9 @@ export async function onRequest(context: MiddlewareContext) {
 
   const corsHeaders = {
     'Access-Control-Allow-Origin': allowOrigin,
-    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Guest-Session, X-Workspace-ID, X-Correlation-ID, X-Service-Key',
-    'Access-Control-Expose-Headers': 'X-Analysis-Meter',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-User-Hash, X-Guest-Session, X-Workspace-ID, X-Correlation-ID, X-Service-Key, If-Match, Idempotency-Key',
+    'Access-Control-Expose-Headers': 'X-Analysis-Meter, ETag',
     'Vary': 'Origin',
   }
 

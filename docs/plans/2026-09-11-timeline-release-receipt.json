@@ -1,0 +1,321 @@
+{
+  "schemaVersion": "timeline-stage-release.v1",
+  "recordedAt": "2026-09-11T20:31:30.643334+00:00",
+  "acceptedReleaseSha": "6e832e734b0e28d7fe189c5b76d6e68112fe894d",
+  "baselineCanonicalSha": "559425f24802911715676173db4e7bae81a99efb",
+  "baselineMirrorSha": "d7b5c43a1c36ebf2bdc500e2583fa4870a1d989a",
+  "scope": {
+    "TL-00": "released",
+    "TL-02": "released",
+    "TL-03": "human API slice deployed; scoped service access and durable browser integration pending",
+    "otherCheckpoints": "pending"
+  },
+  "states": {
+    "canonicalLanded": true,
+    "mirrorConfirmed": true,
+    "productionMigrationApplied": true,
+    "productionDeployed": true,
+    "primaryCheckoutSynced": false
+  },
+  "publication": {
+    "canonical": "origin/main",
+    "mirror": "gitlab/main",
+    "releaseRefSha": "6e832e734b0e28d7fe189c5b76d6e68112fe894d",
+    "forcePush": false,
+    "auditFollowup": "The commit containing this receipt changes documentation only. The deployed source remains acceptedReleaseSha; a later documentation tip is not a different runtime deployment."
+  },
+  "review": {
+    "reviewer": "native validator_review",
+    "acceptedSourceSha": "6e832e734b0e28d7fe189c5b76d6e68112fe894d",
+    "coverage": [
+      "release scripts",
+      "production schema rehearsal",
+      "compiled API assertions",
+      "artifact transfer and publisher separation",
+      "all 145 original/reused artifact file hashes"
+    ],
+    "executionLane": "credential-free network-disabled pinned Linux Playwright container; trusted Git/Wrangler publisher outside"
+  },
+  "validation": {
+    "fullChecksSourceSha": "9e886806975ca2d029ff2b012ec101588708e282",
+    "typeChecks": 5,
+    "apiContractTestsPassed": 86,
+    "browserChecksPassed": 42,
+    "browserProjects": [
+      "chromium",
+      "mobile-safari"
+    ],
+    "viteBuild": "passed",
+    "pagesFunctionsBuild": "passed",
+    "targetedRehearsalSourceSha": "6e832e734b0e28d7fe189c5b76d6e68112fe894d",
+    "inheritance": "Only scripts/verify-timeline-release.mjs changed after full checks; application, build inputs and all 145 built files are identical. Changed verifier passed targeted sandbox validation.",
+    "recoveredFailure": "Cloudflare schema-only export contains exact DELETE FROM sqlite_sequence; verifier now records/skips that metadata directive while rejecting arbitrary DML.",
+    "schemaRehearsal": "passed",
+    "compiledHttpGate": "passed",
+    "staticGate": "passed",
+    "outboundAttempts": 0,
+    "artifactManifestSha256": "7a3db65c3ee8a15a4e2af5d7962a54396c29a5e856ecf18a3c8aa1b9981b01fe",
+    "fileCount": 145,
+    "schemaManifestSha256": "12c70b529c1fdba90cda15ab82602bbea7a9b5c2d44c0e2ee40459a74eee1917",
+    "fullRunReceiptSha256": "9deaca3d02cf5228270d6a86ce6bca7016d5049c2bd4c4f801141923749af77d",
+    "targetedRunReceiptSha256": "cb8b6ae54f25a251038da8689cff6c3b26b82cdd327c0d866018c34deea2f47c",
+    "runtimeImage": "mcr.microsoft.com/playwright@sha256:9bd26ad900bb5e0f4dee75839e957a89ae89c2b7ab1e76050e559790e946b948",
+    "existingWarning": "Vite large chunks warning"
+  },
+  "database": {
+    "name": "researchtoolspy-prod",
+    "migration": "0011_timeline_foundation.sql",
+    "migrationSha256": "1d3cd9eec74cc8f6a170c8537eae6aa0aa48bbd591d75b1c45462879c8d28a32",
+    "mechanism": "wrangler d1 migrations apply researchtoolspy-prod --remote",
+    "pendingBefore": [
+      "0011_timeline_foundation.sql"
+    ],
+    "pendingAfter": [],
+    "schemaOnlyInputSha256": "e2402a67bef39d4e7ddfe8d2dadd8da49779eec10c3fced29697e721a332ddd4",
+    "productionComparison": {
+      "result": "passed",
+      "tables": 9,
+      "schemaRows": 218,
+      "normalizedSchemaSha256": "1f286661fe590182495b7bb97885753acdd94b3974a71c0e2e5deb57579da368"
+    },
+    "baselineSchemaChecksPassed": 23,
+    "backup": {
+      "private": true,
+      "bytes": 9893675,
+      "sha256": "46a0293ae679993a08e5eb20260ed25808578bd0ca03ab5a2be6795aa48725a8",
+      "timeTravelBookmarkRecorded": true,
+      "timeTravelRecordSha256": "265bdecef75259e34aaf73bd7c24ba678b28c590527347e661bd0233b423d5f1"
+    }
+  },
+  "deployment": {
+    "project": "researchtoolspy",
+    "id": "559225c0-4529-49ae-b02b-71cb21058c34",
+    "url": "https://559225c0.researchtoolspy.pages.dev",
+    "productionUrl": "https://researchtools.net",
+    "sourceSha": "6e832e734b0e28d7fe189c5b76d6e68112fe894d",
+    "wranglerVersion": "4.100.0",
+    "prebundled": true,
+    "flags": [
+      "--branch=main",
+      "--commit-hash=6e832e734b0e28d7fe189c5b76d6e68112fe894d",
+      "--commit-dirty=false",
+      "--no-bundle"
+    ],
+    "wranglerConfigSha256": "973e4f752a15272470b80d6937188998997e157a7b81b243932f2a31663f5f21",
+    "unrelatedWorkersDeployed": false,
+    "requiredSecretNamesPresent": true,
+    "smoke": [
+      {
+        "result": "passed",
+        "baseUrl": "https://559225c0.researchtoolspy.pages.dev",
+        "checks": [
+          {
+            "path": "/",
+            "method": "GET",
+            "status": 200,
+            "bodySha256": "42e57b143d7df0aaf221806b7582234b8c90ba96c27c4082e879e6f7c71c72dc"
+          },
+          {
+            "path": "/dashboard/tools/timeline",
+            "method": "GET",
+            "status": 200,
+            "bodySha256": "42e57b143d7df0aaf221806b7582234b8c90ba96c27c4082e879e6f7c71c72dc"
+          },
+          {
+            "path": "/assets/index-COKW-QB6.js",
+            "method": "GET",
+            "status": 200,
+            "bodySha256": "8fe8cb32032825d25fd874af8382476995d6a4996e98c7db86a9485443187e5a"
+          },
+          {
+            "path": "/assets/react-vendor-WKsI28Pk.js",
+            "method": "GET",
+            "status": 200,
+            "bodySha256": "8cbc7e2da057556259d80a3eb55afb2f7d1ac4ffebac1989acb7921b3747b531"
+          },
+          {
+            "path": "/assets/state-vendor-CpgMo49P.js",
+            "method": "GET",
+            "status": 200,
+            "bodySha256": "d6e2233fc849cc851b55e14e101717664046c4d524383cb39fcf2b6ddf3b0ab0"
+          },
+          {
+            "path": "/assets/icons-t1FrF7j5.js",
+            "method": "GET",
+            "status": 200,
+            "bodySha256": "635337ad344d8196f6f9cbc68db9820a9334dd38603033197d849d41586dbeec"
+          },
+          {
+            "path": "/assets/ui-vendor-D2SxediK.js",
+            "method": "GET",
+            "status": 200,
+            "bodySha256": "2bdbb6ae2b37f57591060c33b1f38f889bb8074abe2665371c5385e4c6a102b4"
+          },
+          {
+            "path": "/assets/index-BCOgcIhb.css",
+            "method": "GET",
+            "status": 200,
+            "bodySha256": "648fb05b42c4fdc0fa4f93ce8a180cab54fe968c40637c125fe00767e01ffeb7"
+          },
+          {
+            "path": "/assets/TimelineAnalysisPage-DzkC4tA3.js",
+            "method": "GET",
+            "status": 200,
+            "bodySha256": "3691c6643cbc91aadfb68a4c46b5f98e2193196a9b4c3b6b61fb2a0a8633ab33"
+          },
+          {
+            "path": "/assets/TimelineResults-D3DVkeZR.js",
+            "method": "GET",
+            "status": 200,
+            "bodySha256": "d57cea45eccd4ef7e093fdea382385e65c0aac22f67db803c49d139681da0fb3"
+          },
+          {
+            "path": "/api/timelines/timeline_release_probe",
+            "method": "GET",
+            "status": 401,
+            "bodySha256": "ebd1c573a8c0a4df1046cd47002799586f3c6e05fe0b790b236ba05bfffbf565"
+          },
+          {
+            "path": "/api/timelines/timeline_release_probe/objects",
+            "method": "GET",
+            "status": 401,
+            "bodySha256": "2ac0ea0d837e31fbc8f303c424062ea62849c62e1a763646da2d9e145a9788f6"
+          },
+          {
+            "path": "/api/timelines/timeline_release_probe/revisions",
+            "method": "GET",
+            "status": 401,
+            "bodySha256": "ad5cc5fc068693e343dc89a553dc463feb2f8e0650cc85ce10378e1047a8f2e8"
+          },
+          {
+            "path": "/api/timelines/timeline_release_probe/revisions/rev_release_probe",
+            "method": "GET",
+            "status": 401,
+            "bodySha256": "49577f30a8a847f65cea19a7fb8e8c657e24cc60c0bff3157c3b6bc8dc0280a8"
+          },
+          {
+            "path": "/api/timelines/timeline_release_probe",
+            "method": "OPTIONS",
+            "status": 204,
+            "bodySha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        ],
+        "mutatingRequests": 0,
+        "note": "Anonymous GET and CORS OPTIONS only; no production content writes, credentials or model calls."
+      },
+      {
+        "result": "passed",
+        "baseUrl": "https://researchtools.net",
+        "checks": [
+          {
+            "path": "/",
+            "method": "GET",
+            "status": 200,
+            "bodySha256": "3d332ccc3d7542e9ab1e9827a52d630e666534b44a7cd479ebb4a1094579cc8f"
+          },
+          {
+            "path": "/dashboard/tools/timeline",
+            "method": "GET",
+            "status": 200,
+            "bodySha256": "09cdab51f59c2db3358e7244fda6fae8e7adfd8aa0e8d8a5dc23942af794fe62"
+          },
+          {
+            "path": "/assets/index-COKW-QB6.js",
+            "method": "GET",
+            "status": 200,
+            "bodySha256": "8fe8cb32032825d25fd874af8382476995d6a4996e98c7db86a9485443187e5a"
+          },
+          {
+            "path": "/assets/react-vendor-WKsI28Pk.js",
+            "method": "GET",
+            "status": 200,
+            "bodySha256": "8cbc7e2da057556259d80a3eb55afb2f7d1ac4ffebac1989acb7921b3747b531"
+          },
+          {
+            "path": "/assets/state-vendor-CpgMo49P.js",
+            "method": "GET",
+            "status": 200,
+            "bodySha256": "d6e2233fc849cc851b55e14e101717664046c4d524383cb39fcf2b6ddf3b0ab0"
+          },
+          {
+            "path": "/assets/icons-t1FrF7j5.js",
+            "method": "GET",
+            "status": 200,
+            "bodySha256": "635337ad344d8196f6f9cbc68db9820a9334dd38603033197d849d41586dbeec"
+          },
+          {
+            "path": "/assets/ui-vendor-D2SxediK.js",
+            "method": "GET",
+            "status": 200,
+            "bodySha256": "2bdbb6ae2b37f57591060c33b1f38f889bb8074abe2665371c5385e4c6a102b4"
+          },
+          {
+            "path": "/assets/index-BCOgcIhb.css",
+            "method": "GET",
+            "status": 200,
+            "bodySha256": "648fb05b42c4fdc0fa4f93ce8a180cab54fe968c40637c125fe00767e01ffeb7"
+          },
+          {
+            "path": "/assets/TimelineAnalysisPage-DzkC4tA3.js",
+            "method": "GET",
+            "status": 200,
+            "bodySha256": "3691c6643cbc91aadfb68a4c46b5f98e2193196a9b4c3b6b61fb2a0a8633ab33"
+          },
+          {
+            "path": "/assets/TimelineResults-D3DVkeZR.js",
+            "method": "GET",
+            "status": 200,
+            "bodySha256": "d57cea45eccd4ef7e093fdea382385e65c0aac22f67db803c49d139681da0fb3"
+          },
+          {
+            "path": "/api/timelines/timeline_release_probe",
+            "method": "GET",
+            "status": 401,
+            "bodySha256": "810d07203d65eccfbcc901797dafc98dbba4e0b4a9c02c3bfd498e91301994e6"
+          },
+          {
+            "path": "/api/timelines/timeline_release_probe/objects",
+            "method": "GET",
+            "status": 401,
+            "bodySha256": "9645a02342b1b54245a8da33f406315490663e5ce7e4413bae943d9d1c868b9a"
+          },
+          {
+            "path": "/api/timelines/timeline_release_probe/revisions",
+            "method": "GET",
+            "status": 401,
+            "bodySha256": "df5a14d8c7186c340deef7777eadd1e261b071c7639f591fe485a4af843c1e91"
+          },
+          {
+            "path": "/api/timelines/timeline_release_probe/revisions/rev_release_probe",
+            "method": "GET",
+            "status": 401,
+            "bodySha256": "8c779e72da297654b52773516fd241374a51d86590c44cc6f03a48009293465b"
+          },
+          {
+            "path": "/api/timelines/timeline_release_probe",
+            "method": "OPTIONS",
+            "status": 204,
+            "bodySha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        ],
+        "mutatingRequests": 0,
+        "note": "Anonymous GET and CORS OPTIONS only; no production content writes, credentials or model calls."
+      }
+    ]
+  },
+  "rollback": {
+    "previousDeploymentId": "50bfb755-827f-4879-901e-473035118f9e",
+    "procedure": "Redeploy prior application while retaining additive timeline tables and immutable history; no automatic whole-database restore."
+  },
+  "instructionSha256": {
+    "CLAUDE.md": "3852de6d95104c64f3a35b670f350e1d7a2c6c9ed93d03d53895e7bc8c44ff1b",
+    ".team/project.json": "c87cd27090a1a8ff779dd0d850668ebf0ecb6581cefb2d0b0a66ed63aabbcf78",
+    "docs/plans/2026-09-11-timeline-release-charter.md": "18aa5f9a6c59eff7a7ca04d9248f6be8b130b2b1f22a41684e683681b748a68a"
+  },
+  "limitations": [
+    "Production smoke uses anonymous GET/OPTIONS only; authenticated writes/replay/rollback are verified in disposable D1 with production schema and synthetic principals.",
+    "No Signal/RSS changes or releases in this stage.",
+    "External Claude/Vibe execution remains unqualified; native editors and independent reviewer used.",
+    "Primary dirty checkout and unrelated analytics/deployment changes preserved."
+  ]
+}

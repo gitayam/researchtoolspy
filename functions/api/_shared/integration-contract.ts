@@ -1,3 +1,5 @@
+import { ARTIFACT_LIMITS, WORKSPACE_SNAPSHOT_MAX_BYTES } from './timeline-artifact-contract'
+
 export const INTEGRATION_CAPABILITIES_SCHEMA_VERSION = 'integration-capabilities.v1' as const
 export const INTEGRATION_ERROR_SCHEMA_VERSION = 'integration-error.v1' as const
 
@@ -12,6 +14,8 @@ export const INTEGRATION_SCOPES = [
   'community.behavior.write',
   'community.feeds.manage',
   'community.webhooks.manage',
+  'timeline.read',
+  'timeline.write',
 ] as const
 
 export type IntegrationScope = typeof INTEGRATION_SCOPES[number]
@@ -51,6 +55,8 @@ export const INTEGRATION_CAPABILITY_NAMES = [
   'anonymousAnalysis',
   'publicBcw',
   'timelineAnalysis',
+  'timelineRead',
+  'timelineWrite',
   'communityIngest',
   'jobStatus',
   'artifactRead',
@@ -67,11 +73,13 @@ export const INTEGRATION_CAPABILITY_NAMES = [
 export type IntegrationCapabilityName = typeof INTEGRATION_CAPABILITY_NAMES[number]
 export type IntegrationCapabilities = Record<IntegrationCapabilityName, boolean>
 export type AdvertisedIntegrationCapabilities =
-  Omit<IntegrationCapabilities, 'timelineAnalysis'>
-  & Partial<Pick<IntegrationCapabilities, 'timelineAnalysis'>>
+  Omit<IntegrationCapabilities, 'timelineAnalysis' | 'timelineRead' | 'timelineWrite'>
+  & Partial<Pick<IntegrationCapabilities, 'timelineAnalysis' | 'timelineRead' | 'timelineWrite'>>
 
 const REQUIRED_SCOPE: Partial<Record<IntegrationCapabilityName, IntegrationScope>> = {
   timelineAnalysis: 'community.research.execute',
+  timelineRead: 'timeline.read',
+  timelineWrite: 'timeline.write',
   communityIngest: 'community.events.write',
   jobStatus: 'community.jobs.read',
   artifactRead: 'community.artifacts.read',
@@ -89,6 +97,8 @@ export const TRANCHE_A_SERVER_SUPPORT: Readonly<IntegrationCapabilities> = Objec
   anonymousAnalysis: true,
   publicBcw: true,
   timelineAnalysis: true,
+  timelineRead: true,
+  timelineWrite: true,
   communityIngest: false,
   jobStatus: false,
   artifactRead: false,
@@ -105,6 +115,11 @@ export const TRANCHE_A_SERVER_SUPPORT: Readonly<IntegrationCapabilities> = Objec
 export interface IntegrationCapabilityLimits {
   claimMatchCandidates?: number
   maxBatchUrls?: number
+  timelineRequestBytes?: number
+  timelineSnapshotBytes?: number
+  timelineChanges?: number
+  timelineObjects?: number
+  timelinePageSize?: number
 }
 
 export interface IntegrationCapabilitiesDocument {
@@ -121,6 +136,7 @@ export interface IntegrationCapabilitiesDocument {
   contractVersions: {
     capabilities: typeof INTEGRATION_CAPABILITIES_SCHEMA_VERSION
     timelineAnalysis?: 'timeline-analysis.v1'
+    timelineArtifact?: 'timeline-artifact.v1'
     sourceEvent?: 'community-source-event.v1'
     artifact?: 'source-artifact.v1'
     projection?: 'community-enrichment.v1'
@@ -165,6 +181,8 @@ export function buildIntegrationCapabilitiesDocument(
     anonymousAnalysis: available('anonymousAnalysis'),
     publicBcw: available('publicBcw'),
     timelineAnalysis: scoped('timelineAnalysis'),
+    timelineRead: scoped('timelineRead'),
+    timelineWrite: scoped('timelineWrite'),
     communityIngest: scoped('communityIngest') && batchLimit !== null,
     jobStatus: scoped('jobStatus'),
     artifactRead: scoped('artifactRead'),
@@ -194,19 +212,25 @@ export function buildIntegrationCapabilitiesDocument(
     contractVersions: {
       capabilities: INTEGRATION_CAPABILITIES_SCHEMA_VERSION,
       ...(capabilities.timelineAnalysis ? { timelineAnalysis: 'timeline-analysis.v1' as const } : {}),
+      ...(capabilities.timelineRead || capabilities.timelineWrite ? { timelineArtifact: 'timeline-artifact.v1' as const } : {}),
       ...(capabilities.communityIngest ? { sourceEvent: 'community-source-event.v1' as const } : {}),
       ...(capabilities.artifactRead ? { artifact: 'source-artifact.v1' as const } : {}),
       ...(capabilities.projectionRead ? { projection: 'community-enrichment.v1' as const } : {}),
     },
     scopes: principal ? [...principal.scopes] : [],
-    capabilities: capabilities.timelineAnalysis
-      ? capabilities
-      : Object.fromEntries(
-          Object.entries(capabilities).filter(([name]) => name !== 'timelineAnalysis'),
-        ) as AdvertisedIntegrationCapabilities,
+    capabilities: Object.fromEntries(
+      Object.entries(capabilities).filter(([name, enabled]) => enabled || !['timelineAnalysis','timelineRead','timelineWrite'].includes(name)),
+    ) as AdvertisedIntegrationCapabilities,
     limits: {
       ...(capabilities.claimMatch && claimLimit !== null ? { claimMatchCandidates: claimLimit } : {}),
       ...(capabilities.communityIngest && batchLimit !== null ? { maxBatchUrls: batchLimit } : {}),
+      ...(capabilities.timelineRead || capabilities.timelineWrite ? {
+        timelineRequestBytes: ARTIFACT_LIMITS.requestBytes,
+        timelineSnapshotBytes: WORKSPACE_SNAPSHOT_MAX_BYTES,
+        timelineChanges: ARTIFACT_LIMITS.changes,
+        timelineObjects: ARTIFACT_LIMITS.objects,
+        timelinePageSize: ARTIFACT_LIMITS.pageSize,
+      } : {}),
     },
   }
   return document

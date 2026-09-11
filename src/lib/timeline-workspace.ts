@@ -1,4 +1,33 @@
-import type { TimelineWorkspaceEvent, TimelineEventPlacement } from '@/types/timeline-workspace'
+import type { TimelineWorkspaceEvent, TimelineEventPlacement, TimelineWorkspaceState } from '../types/timeline-workspace'
+
+export const timelineEventAnchor = (id: string) => `timeline-event-${encodeURIComponent(id)}`
+export const timelineChapterAnchor = (id: string) => `timeline-chapter-${encodeURIComponent(id)}`
+
+/** Defaults only missing presentation metadata; original extraction and identity are untouched. */
+export function withTimelineNarrativeDefaults(workspace: TimelineWorkspaceState, title: string): TimelineWorkspaceState {
+  const ordered = orderTimelineEvents(workspace.events)
+  const positions = new Map(ordered.map((event, index) => [event.id, index]))
+  return {
+    ...workspace,
+    presentation: workspace.presentation ?? 'analyst',
+    sortDirection: workspace.sortDirection ?? 'oldest',
+    narrative: workspace.narrative ?? {
+      title, framing: '', question: '', intendedUse: '', scope: '', timezone: '', dataThrough: '', chapters: [],
+    },
+    events: workspace.events.map(event => ({
+      ...event,
+      narrativeIncluded: event.narrativeIncluded ?? (positions.get(event.id)! < 20),
+      narrativeOrder: event.narrativeOrder ?? positions.get(event.id)!,
+      whyItMatters: event.whyItMatters ?? '',
+      transition: event.transition ?? '',
+    })),
+  }
+}
+
+export function narrativeTimelineEvents(events: TimelineWorkspaceEvent[]): TimelineWorkspaceEvent[] {
+  return events.filter(event => event.narrativeIncluded).sort((a, b) =>
+    (a.narrativeOrder ?? 0) - (b.narrativeOrder ?? 0) || a.id.localeCompare(b.id))
+}
 
 function validSequence(value: number | undefined): value is number {
   return Number.isInteger(value) && Number(value) >= 0

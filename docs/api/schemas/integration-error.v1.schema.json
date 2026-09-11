@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://researchtools.net/contracts/integration-error.v1.schema.json",
+  "title": "Integration error v1",
+  "description": "Scoped service route errors. Middleware may instead emit a flat 429 or retryable 503; see OpenAPI. Additive fields are permitted.",
+  "type": "object",
+  "required": ["schemaVersion", "requestId", "error"],
+  "properties": {
+    "schemaVersion": { "const": "integration-error.v1" },
+    "requestId": { "type": "string", "minLength": 1 },
+    "correlationId": { "type": "string", "pattern": "^[A-Za-z0-9._:-]{16,128}$" },
+    "error": {
+      "type": "object", "required": ["code", "message", "retryable"],
+      "properties": {
+        "code": { "enum": ["invalid_request", "authentication_required", "invalid_service_token", "expired_service_token", "scope_denied", "workspace_denied", "content_unavailable", "upstream_invalid_response", "method_not_allowed", "internal_error", "auth_datastore_unavailable"] },
+        "message": { "type": "string" },
+        "retryable": { "type": "boolean" }
+      }
+    }
+  }
+}

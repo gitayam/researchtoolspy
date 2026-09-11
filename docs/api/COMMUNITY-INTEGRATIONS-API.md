@@ -4,7 +4,7 @@
 
 **Current contract:** `integration-capabilities.v1`
 
-**Rollout state:** Tranche A foundation plus scoped timeline analysis
+**Rollout state:** Scoped timeline analysis and durable timeline read/write deployed
 
 ## Identity boundary
 
@@ -113,8 +113,9 @@ OpenAI runtime readiness, valid tenant state, and the exact
 `community.research.execute` scope all agree. Its contract version is emitted
 only while the operation is enabled. The additive `timelineAnalysis` capability
 key is omitted while false so pre-extension strict v1 clients remain compatible;
-new clients normalize an omitted key to false. All other service-consuming
-capabilities remain false. A route file, URL, configured token, or scope alone
+new clients normalize an omitted key to false. Durable timeline operations use
+the separate optional `timelineRead` and `timelineWrite` capabilities described below.
+Other unimplemented service-consuming capabilities remain false. A route file, URL, configured token, or scope alone
 is never proof of executable support.
 
 ## Exact scopes
@@ -131,10 +132,13 @@ is never proof of executable support.
 | `community.behavior.write` | `behaviorIntake` |
 | `community.feeds.manage` | `feedJobs` |
 | `community.webhooks.manage` | `webhookManagement` |
+| `timeline.read` | `timelineRead` |
+| `timeline.write` | `timelineWrite` |
 
 No wildcard scope exists. `persistentWorkspace` is binding readiness rather than
-an independent permission and remains false until an executable persistent
-service route ships.
+an independent permission. Its broader capability remains false in this release;
+durable timeline support is advertised specifically through `timelineRead` and
+`timelineWrite`, without expanding unrelated workspace operations.
 
 ## Content-analysis bridge
 
@@ -147,6 +151,8 @@ authorization path. Today:
   supplied content or persistence;
 - a scoped `rt_svc_` credential may call versioned timeline analysis with URL or
   supplied content when `timelineAnalysis` is advertised;
+- separate `timeline.read`/`timeline.write` scopes authorize the durable timeline
+  routes described below, not Content Intelligence persistence;
 - a provisioned first-party `X-Service-Key` selects a separate bounded analysis
   rate bucket but grants no identity, scope, or workspace authority;
 - the Signal/RSS Content Intelligence supplied-content bridge still uses a
@@ -162,6 +168,14 @@ must keep capability-gated service operations distinct from public analysis and
 legacy user-authenticated calls.
 
 ## Timeline analysis
+
+Reusable v1 materials: [JSON Schema](./schemas/timeline-analysis.v1.schema.json),
+[service error schema](./schemas/integration-error.v1.schema.json),
+[OpenAPI operation and discovery](./openapi/timeline-analysis.v1.json), and
+[generic server client](../../examples/timeline-client/README.md).
+The [frozen synthetic corpus](../../benchmarks/timeline/corpus-v1/manifest.json)
+reproduces contract behavior; it does not establish historical extraction quality.
+
 
 ```http
 POST /api/tools/extract-timeline
@@ -237,3 +251,42 @@ Failures use `integration-error.v1`:
 
 `503` includes `Retry-After: 2`. Error responses never include credentials,
 digests, SQL, raw private URLs, or tenant identifiers.
+
+## Durable timeline service scopes (deployed)
+
+Migration 0013 and the compatible application are deployed. `timeline.read` grants the existing
+`GET /api/timelines/{id}` metadata, object pages, revision pages and revision detail.
+`timeline.write` grants `POST /api/timelines` and `PATCH /api/timelines/{id}`.
+The scopes are independent: write does not grant GET, and read does not grant
+mutations. `community.artifacts.read` and `community.research.execute` grant neither.
+The latter retains its separate stateless extraction behavior.
+
+Discovery exposes `timelineRead` and `timelineWrite` only when the respective
+scope, enabled integration flag and D1 runtime are available. It then includes
+`contractVersions.timelineArtifact = timeline-artifact.v1` and positive integer
+limits `timelineRequestBytes` (65536), `timelineSnapshotBytes` (61440),
+`timelineChanges` (10), `timelineObjects` (1000) and `timelinePageSize` (100).
+These operations do not depend on a model API key. Omission means unavailable;
+existing `artifactRead` and `persistentWorkspace` capabilities retain their meanings.
+
+Use the workspace returned by discovery. Create needs the artifact-create body
+and an idempotency key; commit needs the artifact-commit body, an idempotency key
+and the strong ETag from create or a read. Responses and errors use the existing
+[timeline artifact contract](./TIMELINE-ARTIFACTS.md). Service tokens cannot select
+another workspace or become human members. A saved link conveys no access.
+
+Every read and replay checks current credential authority. Every mutation starts
+its atomic D1 batch with an exact presented-token assertion, including digest,
+current scope, database-time expiry, client status and private-workspace identity
+bindings. A different live token cannot supply missing authority. A valid rotated
+token for the same service principal can retry an original operation, with the
+original key/body/ETag. No token or digest enters timeline history.
+
+Operator rollout order is migration, compatible application deployment and
+verification, then a separately authorized credential scope assignment. This
+release does not create credentials or add scopes to existing tokens. Current and
+next slots have independent scopes. Do not put timeline scopes on tokens before
+compatible code is deployed: older code rejects unknown scopes, even on existing
+extraction/discovery routes. For rollback, retain compatible code or obtain
+separate authorization for credential remediation; never silently strip scopes,
+restore the entire database or destroy timeline history.

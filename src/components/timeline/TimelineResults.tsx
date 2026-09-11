@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import type { Dispatch, SetStateAction } from 'react'
 import {
   Brain,
   Calendar,
@@ -6,7 +7,6 @@ import {
   CircleHelp,
   Clock3,
   Copy,
-  Download,
   ExternalLink,
   FileSearch,
   Loader2,
@@ -39,6 +39,8 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { TimelineNarrative } from './TimelineNarrative'
+import { TIMELINE_IMPORT_MAX_BYTES } from '@/lib/timeline-workspace-codec'
 import { inferTimelineDatePrecision } from '@/lib/timeline-analysis'
 import { assistTimeline, TimelineAssistError } from '@/lib/timeline-assist'
 import {
@@ -47,6 +49,8 @@ import {
   placeTimelineEvent,
   removeTimelineEvent,
   timelineEventTemporalLabel,
+  timelineEventAnchor,
+  withTimelineNarrativeDefaults,
 } from '@/lib/timeline-workspace'
 import type {
   TimelineAnalysisResult,
@@ -247,11 +251,17 @@ function TimelineWorkspace({
 }: TimelineResultsProps) {
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'error'>('idle')
   const [mode, setMode] = useState<TimelineWorkspaceMode>(() => initialWorkspace?.mode || (workspaceOrigin === 'manual' ? 'robust' : 'basic'))
-  const [events, setEvents] = useState<TimelineWorkspaceEvent[]>(() => (
-    normalizeTimelineEventOrder(initialWorkspace?.events || workspaceEvents(result))
+  const [initialState] = useState(() => withTimelineNarrativeDefaults(initialWorkspace ?? {
+    mode: workspaceOrigin === 'manual' ? 'robust' : 'basic', events: workspaceEvents(result), questions: [], hypotheses: [],
+  }, result.article.title))
+  const [narrative, writeNarrative] = useState(initialState.narrative!)
+  const [presentation, setPresentation] = useState(initialState.presentation!)
+  const [events, writeEvents] = useState<TimelineWorkspaceEvent[]>(() => (
+    initialWorkspace ? initialState.events : normalizeTimelineEventOrder(initialState.events)
   ))
-  const [questions, setQuestions] = useState<TimelineWorkspaceQuestion[]>(() => initialWorkspace?.questions || [])
-  const [hypotheses, setHypotheses] = useState<TimelineWorkspaceHypothesis[]>(() => initialWorkspace?.hypotheses || [])
+  const [questions, writeQuestions] = useState<TimelineWorkspaceQuestion[]>(() => initialWorkspace?.questions || [])
+  const [hypotheses, writeHypotheses] = useState<TimelineWorkspaceHypothesis[]>(() => initialWorkspace?.hypotheses || [])
+  const [workspaceError, setWorkspaceError] = useState<string | null>(null)
   const [eventEditor, setEventEditor] = useState<EventEditorState | null>(null)
   const [questionEditor, setQuestionEditor] = useState<QuestionEditorState | null>(null)
   const [editorError, setEditorError] = useState<string | null>(null)
@@ -259,7 +269,27 @@ function TimelineWorkspace({
   const [assistSuggestions, setAssistSuggestions] = useState<TimelineAssistSuggestion[]>([])
   const [assistLoading, setAssistLoading] = useState(false)
   const [assistError, setAssistError] = useState<string | null>(null)
-  const [sortDirection, setSortDirection] = useState<TimelineSortDirection>('oldest')
+  const [sortDirection, setSortDirection] = useState<TimelineSortDirection>(initialState.sortDirection!)
+  function boundedSetter<T>(key: string, current: T, write: Dispatch<SetStateAction<T>>): Dispatch<SetStateAction<T>> {
+    return update => {
+      const next = typeof update === 'function' ? (update as (value: T) => T)(current) : update
+      const payload = {
+        schemaVersion: 'timeline-workspace.v1', exportedAt: new Date().toISOString(),
+        source: workspaceOrigin === 'manual' ? { schemaVersion: 'timeline-manual.v1', title: result.article.title } : result,
+        analystWorkspace: { mode, events, questions, hypotheses, narrative, presentation, sortDirection, [key]: next },
+      }
+      if (new TextEncoder().encode(JSON.stringify(payload, null, 2)).byteLength > TIMELINE_IMPORT_MAX_BYTES) {
+        setWorkspaceError('This change exceeds the 4 MiB local timeline limit and was not saved. Shorten the content or remove an item before retrying.')
+        return
+      }
+      setWorkspaceError(null)
+      write(next)
+    }
+  }
+  const setEvents = boundedSetter('events', events, writeEvents)
+  const setQuestions = boundedSetter('questions', questions, writeQuestions)
+  const setHypotheses = boundedSetter('hypotheses', hypotheses, writeHypotheses)
+  const setNarrative = boundedSetter('narrative', narrative, writeNarrative)
   const copyResetRef = useRef<number | null>(null)
   const assistRequestRef = useRef<AbortController | null>(null)
   const sortedEvents = useMemo(() => orderTimelineEvents(events), [events])
@@ -268,7 +298,7 @@ function TimelineWorkspace({
     [sortDirection, sortedEvents],
   )
   const eventAnchorIds = useMemo(
-    () => new Map(sortedEvents.map((event, index) => [event.id, `timeline-event-${index + 1}`])),
+    () => new Map(sortedEvents.map(event => [event.id, timelineEventAnchor(event.id)])),
     [sortedEvents],
   )
   const displayedSequence = useMemo(() => {
@@ -287,8 +317,8 @@ function TimelineWorkspace({
   }, [])
 
   useEffect(() => {
-    onWorkspaceChange?.({ mode, events, questions, hypotheses })
-  }, [events, hypotheses, mode, onWorkspaceChange, questions])
+    onWorkspaceChange?.({ mode, events, questions, hypotheses, narrative, presentation, sortDirection })
+  }, [events, hypotheses, mode, onWorkspaceChange, questions, narrative, presentation, sortDirection])
 
   const copyTimeline = async () => {
     if (copyResetRef.current !== null) window.clearTimeout(copyResetRef.current)
@@ -309,7 +339,7 @@ function TimelineWorkspace({
       source: workspaceOrigin === 'manual'
         ? { schemaVersion: 'timeline-manual.v1', title: result.article.title }
         : result,
-      analystWorkspace: { mode, events: sortedEvents, questions, hypotheses },
+      analystWorkspace: { mode, events: sortedEvents, questions, hypotheses, narrative, presentation, sortDirection },
     }
     const blobUrl = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }))
     const anchor = document.createElement('a')
@@ -369,6 +399,10 @@ function TimelineWorkspace({
 
   const saveEvent = () => {
     if (!eventEditor) return
+    if (!eventEditor.eventId && events.length >= 1000) {
+      setEditorError('This local timeline supports up to 1,000 events. Export or remove an event before adding another.')
+      return
+    }
     const eventDate = eventEditor.eventDate.trim()
     const eventTime = eventEditor.eventTime.trim()
     const title = eventEditor.title.trim()
@@ -458,6 +492,10 @@ function TimelineWorkspace({
     } else {
       setEvents(current => placeTimelineEvent(current, {
         id: createId('analyst'),
+        narrativeIncluded: current.filter(event => event.narrativeIncluded).length < 20,
+        narrativeOrder: Math.max(-1, ...current.map(event => event.narrativeOrder ?? 0)) + 1,
+        whyItMatters: '',
+        transition: '',
         origin: 'analyst',
         assessment: eventEditor.assessment,
         analystNote,
@@ -534,6 +572,11 @@ function TimelineWorkspace({
   }
 
   const keepSuggestion = (suggestion: TimelineAssistSuggestion) => {
+    if ((suggestion.kind === 'question' && questions.length >= 1000)
+      || (suggestion.kind === 'hypothesis' && hypotheses.length >= 1000)) {
+      setAssistError('This local timeline supports up to 1,000 questions and 1,000 hypotheses. Remove an item before keeping another suggestion.')
+      return
+    }
     const currentEventIds = new Set(events.map(event => event.id))
     const afterEventId = suggestion.afterEventId && currentEventIds.has(suggestion.afterEventId)
       ? suggestion.afterEventId
@@ -596,6 +639,10 @@ function TimelineWorkspace({
 
   const saveQuestion = () => {
     if (!questionEditor) return
+    if (!questionEditor.questionId && questions.length >= 1000) {
+      setEditorError('This local timeline supports up to 1,000 questions. Remove a question before adding another.')
+      return
+    }
     const question = questionEditor.question.trim()
     const answer = questionEditor.answer.trim()
     const pendingSourceUrl = questionEditor.newSourceUrl.trim()
@@ -612,12 +659,16 @@ function TimelineWorkspace({
     if (pendingSourceUrl) {
       try {
         const parsedSource = new URL(pendingSourceUrl)
-        if (parsedSource.protocol !== 'http:' && parsedSource.protocol !== 'https:') throw new Error('unsupported protocol')
+        if ((parsedSource.protocol !== 'http:' && parsedSource.protocol !== 'https:') || parsedSource.username || parsedSource.password) throw new Error('unsupported URL')
       } catch {
-        setEditorError('Use a complete http:// or https:// URL for the answer source.')
+        setEditorError('Use a complete http:// or https:// URL without a username or password for the answer source.')
         return
       }
       if (!sources.some(source => source.url === pendingSourceUrl)) {
+        if (sources.length >= 100) {
+          setEditorError('A question supports up to 100 source references. Remove a reference before adding another.')
+          return
+        }
         sources = [...sources, {
           id: createId('source'),
           url: pendingSourceUrl,
@@ -778,6 +829,24 @@ function TimelineWorkspace({
 
   return (
     <div className="space-y-4" data-testid="timeline-results">
+      {workspaceError && <p role="alert" className="rounded border border-red-300 p-3 text-sm text-red-700">{workspaceError}</p>}
+      <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Timeline presentation">
+        <Button aria-pressed={presentation === 'analyst'} variant={presentation === 'analyst' ? 'default' : 'outline'} onClick={() => setPresentation('analyst')}>Analyst view</Button>
+        <Button aria-pressed={presentation === 'narrative'} variant={presentation === 'narrative' ? 'default' : 'outline'} onClick={() => setPresentation('narrative')}>Narrative view</Button>
+        <Button variant="outline" onClick={exportWorkspace}>Export JSON</Button>
+      </div>
+      <p className="text-xs text-muted-foreground">Event and chapter links refer to this open timeline or an imported copy; they are not published evidence URLs. Export JSON to keep an offline copy.</p>
+      <TimelineNarrative narrative={narrative} events={events} editing={presentation === 'analyst'} sourceUrl={result.article.url} openGapCount={questions.filter(question => question.status === 'open').length} onNarrative={setNarrative} onEvents={setEvents} onInspect={id => {
+        setPresentation('analyst')
+        window.setTimeout(() => {
+          const anchor = timelineEventAnchor(id)
+          window.location.hash = anchor
+          const element = document.getElementById(anchor)
+          element?.focus({ preventScroll: true })
+          element?.scrollIntoView({ behavior: 'instant', block: 'start' })
+        }, 0)
+      }} />
+      <div hidden={presentation !== 'analyst'} className="space-y-4">
       <Card id="timeline-overview" className="scroll-mt-4">
         <CardHeader className="gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0 space-y-2">
@@ -819,9 +888,6 @@ function TimelineWorkspace({
               <>
                 <Button variant="outline" size="sm" onClick={() => openAddQuestion()}>
                   <CircleHelp className="mr-2 h-4 w-4" />Add question
-                </Button>
-                <Button variant="outline" size="sm" onClick={exportWorkspace}>
-                  <Download className="mr-2 h-4 w-4" />Export JSON
                 </Button>
               </>
             )}
@@ -1049,9 +1115,11 @@ function TimelineWorkspace({
               {displayedSequence.map(item => {
                 if (item.kind === 'gap') return renderGap(item.previous, item.next)
                 const { event, sequenceIndex } = item
+                const originalEvent = event.original || result.events.find((_, index) => event.id === `source-${result.requestId}-${index}`)
                 return (
                   <li
                     id={eventAnchorIds.get(event.id)}
+                    tabIndex={-1}
                     key={event.id}
                     className="relative scroll-mt-4 pb-1"
                   >
@@ -1090,6 +1158,7 @@ function TimelineWorkspace({
                         </div>
                         <h3 className="mt-2 font-semibold leading-snug">{event.title}</h3>
                         {event.description && <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{event.description}</p>}
+                        {event.origin === 'source' && <details className="mt-2 text-sm"><summary className="cursor-pointer">Original extraction and source</summary>{originalEvent ? <div className="my-2"><p>{originalEvent.eventDate} ({originalEvent.datePrecision} precision) · {originalEvent.title}</p>{originalEvent.description && <p>{originalEvent.description}</p>}<p>{originalEvent.category} · {originalEvent.importance} importance</p></div> : <p>Original event unavailable; consult the preserved source export.</p>}{result.article.url && <a className="text-blue-600 underline" href={result.article.url} target="_blank" rel="noopener noreferrer">Open extraction source</a>}<p className="text-xs text-muted-foreground">Source extraction is a candidate claim; source presence does not establish corroboration.</p></details>}
                         {mode === 'robust' && event.analystNote && (
                           <p className="mt-2 rounded border-l-2 border-purple-400 bg-purple-50/60 px-3 py-2 text-sm dark:bg-purple-950/20">
                             <span className="font-medium">Analyst note:</span> {event.analystNote}
@@ -1399,6 +1468,7 @@ function TimelineWorkspace({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      </div>
     </div>
   )
 }
