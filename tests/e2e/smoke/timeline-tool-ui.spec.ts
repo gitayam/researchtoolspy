@@ -147,6 +147,9 @@ test.describe('Timeline research tool @smoke', () => {
   })
 
   test('@smoke timeline supports basic edits and robust analyst questions without changing source provenance', async ({ page }) => {
+    // Complete multi-dialog authoring and research handoff; mobile WebKit needs
+    // time for every interaction. Individual assertion timeouts remain unchanged.
+    test.slow()
     const assistActions: string[] = []
     await page.route('**/api/workspaces', route => route.fulfill({ status: 200, json: { owned: [], member: [] } }))
     await page.route('**/api/tools/extract-timeline', route => route.fulfill({ status: 200, json: timelineResponse }))
