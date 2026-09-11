@@ -8,6 +8,7 @@ export default defineConfig({
   retries: 0,
   forbidOnly: true,
   reporter: 'list',
+  outputDir: process.env.TIMELINE_TEST_OUTPUT_DIR || './test-results',
   timeout: 30_000,
   expect: { timeout: 10_000 },
   use: {
