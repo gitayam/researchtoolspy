@@ -39,6 +39,8 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { TimelineEvidence } from './TimelineEvidence'
+import { timelineAssessmentLabel, timelineCorroboration, validateTimelineEvidence } from '@/lib/timeline-evidence'
 import { TimelineNarrative } from './TimelineNarrative'
 import { TIMELINE_IMPORT_MAX_BYTES } from '@/lib/timeline-workspace-codec'
 import { inferTimelineDatePrecision } from '@/lib/timeline-analysis'
@@ -59,6 +61,7 @@ import type {
 } from '@/types/timeline-analysis'
 import type { TimelineAssistAction, TimelineAssistInput, TimelineAssistSuggestion } from '@/types/timeline-assist'
 import type {
+  TimelineEvidence as Evidence,
   TimelineEventAssessment,
   TimelineEventPlacement,
   TimelineWorkspaceEvent,
@@ -170,6 +173,7 @@ function timelineMarkdown(
   questions: TimelineWorkspaceQuestion[],
   hypotheses: TimelineWorkspaceHypothesis[],
   workspaceOrigin: 'extracted' | 'manual',
+  evidence?: Evidence,
 ): string {
   const lines = [
     `# ${result.article.title}`,
@@ -181,9 +185,14 @@ function timelineMarkdown(
     const provenance = event.origin === 'source'
       ? event.modified ? 'source extraction, analyst edited' : 'source extraction'
       : 'analyst added'
-    lines.push(`- **${timelineEventTemporalLabel(event)}** — ${event.title} _[${provenance}; ${event.assessment}]_`)
+    lines.push(`- **${timelineEventTemporalLabel(event)}** — ${event.title} _[${provenance}; ${timelineAssessmentLabel(evidence, event)}]_`)
     if (event.description) lines.push(`  ${event.description}`)
     if (event.analystNote) lines.push(`  Analyst note: ${event.analystNote}`)
+    for (const link of evidence?.links.filter(item => item.eventId === event.id) ?? []) {
+      const assertion = evidence!.assertions.find(item => item.id === link.assertionId)!
+      const source = evidence!.sources.find(item => item.id === assertion.sourceId)!
+      lines.push(`  Evidence (${link.relation}; ${assertion.status}; analyst recorded): ${assertion.claimText}`, `  Source: ${source.title} — ${source.url}`, `  Quote: ${assertion.passage.quote}`, `  Locator: ${assertion.passage.locator}`, `  Temporal claim: ${assertion.temporalClaim}`, `  Derives from: ${assertion.derivesFrom.join(', ') || 'None recorded; independence not implied'}`)
+    }
   }
   if (events.length === 0) lines.push('No timeline events are currently included.')
   if (questions.length > 0) {
@@ -261,6 +270,7 @@ function TimelineWorkspace({
   ))
   const [questions, writeQuestions] = useState<TimelineWorkspaceQuestion[]>(() => initialWorkspace?.questions || [])
   const [hypotheses, writeHypotheses] = useState<TimelineWorkspaceHypothesis[]>(() => initialWorkspace?.hypotheses || [])
+  const [evidence, writeEvidence] = useState<Evidence | undefined>(initialState.evidence)
   const [workspaceError, setWorkspaceError] = useState<string | null>(null)
   const [eventEditor, setEventEditor] = useState<EventEditorState | null>(null)
   const [questionEditor, setQuestionEditor] = useState<QuestionEditorState | null>(null)
@@ -276,7 +286,7 @@ function TimelineWorkspace({
       const payload = {
         schemaVersion: 'timeline-workspace.v1', exportedAt: new Date().toISOString(),
         source: workspaceOrigin === 'manual' ? { schemaVersion: 'timeline-manual.v1', title: result.article.title } : result,
-        analystWorkspace: { mode, events, questions, hypotheses, narrative, presentation, sortDirection, [key]: next },
+        analystWorkspace: { mode, events, questions, hypotheses, narrative, presentation, sortDirection, ...(evidence ? { evidence } : {}), [key]: next },
       }
       if (new TextEncoder().encode(JSON.stringify(payload, null, 2)).byteLength > TIMELINE_IMPORT_MAX_BYTES) {
         setWorkspaceError('This change exceeds the 4 MiB local timeline limit and was not saved. Shorten the content or remove an item before retrying.')
@@ -286,7 +296,22 @@ function TimelineWorkspace({
       write(next)
     }
   }
-  const setEvents = boundedSetter('events', events, writeEvents)
+  function saveEvidence(next: Evidence): boolean {
+    try { validateTimelineEvidence(next, events.map(event => event.id)) } catch { return false }
+    const payload = { schemaVersion: 'timeline-workspace.v1', exportedAt: new Date().toISOString(), source: workspaceOrigin === 'manual' ? { schemaVersion: 'timeline-manual.v1', title: result.article.title } : result, analystWorkspace: { mode, events, questions, hypotheses, narrative, presentation, sortDirection, evidence: next } }
+    if (new TextEncoder().encode(JSON.stringify(payload, null, 2)).byteLength > TIMELINE_IMPORT_MAX_BYTES) {
+      setWorkspaceError('This evidence exceeds the 4 MiB local timeline limit and was not saved.'); return false
+    }
+    setWorkspaceError(null); writeEvidence(next); return true
+  }
+  const setEvents: Dispatch<SetStateAction<TimelineWorkspaceEvent[]>> = update => {
+    const next = typeof update === 'function' ? update(events) : update
+    const ids = new Set(next.map(event => event.id))
+    const nextEvidence = evidence ? { ...evidence, links: evidence.links.filter(link => ids.has(link.eventId)), reviews: evidence.reviews.filter(review => ids.has(review.eventId)) } : undefined
+    const payload = { schemaVersion: 'timeline-workspace.v1', exportedAt: new Date().toISOString(), source: workspaceOrigin === 'manual' ? { schemaVersion: 'timeline-manual.v1', title: result.article.title } : result, analystWorkspace: { mode, events: next, questions, hypotheses, narrative, presentation, sortDirection, ...(nextEvidence ? { evidence: nextEvidence } : {}) } }
+    if (new TextEncoder().encode(JSON.stringify(payload, null, 2)).byteLength > TIMELINE_IMPORT_MAX_BYTES) { setWorkspaceError('This change exceeds the 4 MiB local timeline limit and was not saved.'); return }
+    setWorkspaceError(null); writeEvents(next); writeEvidence(nextEvidence)
+  }
   const setQuestions = boundedSetter('questions', questions, writeQuestions)
   const setHypotheses = boundedSetter('hypotheses', hypotheses, writeHypotheses)
   const setNarrative = boundedSetter('narrative', narrative, writeNarrative)
@@ -317,14 +342,14 @@ function TimelineWorkspace({
   }, [])
 
   useEffect(() => {
-    onWorkspaceChange?.({ mode, events, questions, hypotheses, narrative, presentation, sortDirection })
-  }, [events, hypotheses, mode, onWorkspaceChange, questions, narrative, presentation, sortDirection])
+    onWorkspaceChange?.({ mode, events, questions, hypotheses, narrative, presentation, sortDirection, ...(evidence ? { evidence } : {}) })
+  }, [events, hypotheses, mode, onWorkspaceChange, questions, narrative, presentation, sortDirection, evidence])
 
   const copyTimeline = async () => {
     if (copyResetRef.current !== null) window.clearTimeout(copyResetRef.current)
     try {
       if (!navigator.clipboard?.writeText) throw new Error('Clipboard API unavailable')
-      await navigator.clipboard.writeText(timelineMarkdown(result, displayedEvents, questions, hypotheses, workspaceOrigin))
+      await navigator.clipboard.writeText(timelineMarkdown(result, displayedEvents, questions, hypotheses, workspaceOrigin, evidence))
       setCopyStatus('copied')
     } catch {
       setCopyStatus('error')
@@ -339,7 +364,7 @@ function TimelineWorkspace({
       source: workspaceOrigin === 'manual'
         ? { schemaVersion: 'timeline-manual.v1', title: result.article.title }
         : result,
-      analystWorkspace: { mode, events: sortedEvents, questions, hypotheses, narrative, presentation, sortDirection },
+      analystWorkspace: { mode, events: sortedEvents, questions, hypotheses, narrative, presentation, sortDirection, ...(evidence ? { evidence } : {}) },
     }
     const blobUrl = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }))
     const anchor = document.createElement('a')
@@ -453,6 +478,15 @@ function TimelineWorkspace({
       placement = { mode: 'absolute' }
     }
 
+    const prior = events.find(event => event.id === eventEditor.eventId)
+    const preserveAbsentPlacement = !!prior && prior.placement === undefined && placement.mode === 'absolute'
+    if (eventEditor.assessment === 'corroborated') {
+      const candidate = prior ? { ...prior, title, description: description || null, eventDate: eventDate || undefined, eventTime: eventTime || undefined, datePrecision, placement: preserveAbsentPlacement ? undefined : placement } : undefined
+      if (!candidate || !timelineCorroboration(evidence, candidate).eligible) {
+        setEditorError('Corroboration needs a current independence and compatibility review of this event and its supporting assertions.'); return
+      }
+    }
+
     if (eventEditor.eventId) {
       setEvents(current => {
         const event = current.find(candidate => candidate.id === eventEditor.eventId)
@@ -487,7 +521,14 @@ function TimelineWorkspace({
                 }
             : undefined),
         }
-        return placeTimelineEvent(current, nextEvent, placement)
+        const placed = placeTimelineEvent(current, nextEvent, placement)
+        // Legacy absolute placement can be implicit. Preserve its wire shape so
+        // an assessment-only edit does not invalidate the recorded review basis.
+        return preserveAbsentPlacement ? placed.map(item => {
+          if (item.id !== nextEvent.id) return item
+          const { placement: _placement, ...rest } = item
+          return rest
+        }) : placed
       })
     } else {
       setEvents(current => placeTimelineEvent(current, {
@@ -545,7 +586,7 @@ function TimelineWorkspace({
       const response = await assistTimeline({
         action: assistAction,
         article: result.article,
-        events: sortedEvents,
+        events: sortedEvents.map(event => event.assessment === 'corroborated' && !timelineCorroboration(evidence, event).eligible ? { ...event, assessment: 'unreviewed' as const } : event),
         ...(focus ? { focus } : {}),
       }, { signal: controller.signal })
       if (controller.signal.aborted) return
@@ -836,7 +877,7 @@ function TimelineWorkspace({
         <Button variant="outline" onClick={exportWorkspace}>Export JSON</Button>
       </div>
       <p className="text-xs text-muted-foreground">Event and chapter links refer to this open timeline or an imported copy; they are not published evidence URLs. Export JSON to keep an offline copy.</p>
-      <TimelineNarrative narrative={narrative} events={events} editing={presentation === 'analyst'} sourceUrl={result.article.url} openGapCount={questions.filter(question => question.status === 'open').length} onNarrative={setNarrative} onEvents={setEvents} onInspect={id => {
+      <TimelineNarrative evidence={evidence} onEvidence={saveEvidence} narrative={narrative} events={events} editing={presentation === 'analyst'} sourceUrl={result.article.url} openGapCount={questions.filter(question => question.status === 'open').length} onNarrative={setNarrative} onEvents={setEvents} onInspect={id => {
         setPresentation('analyst')
         window.setTimeout(() => {
           const anchor = timelineEventAnchor(id)
@@ -1147,7 +1188,7 @@ function TimelineWorkspace({
                             {event.origin === 'source' ? event.modified ? 'Source · edited' : 'Source' : 'Analyst added'}
                           </Badge>
                           {mode === 'robust' && (
-                            <Badge variant="outline" className={`capitalize ${assessmentClasses[event.assessment]}`}>{event.assessment}</Badge>
+                            <Badge variant="outline" className={`capitalize ${assessmentClasses[event.assessment === 'corroborated' && !timelineCorroboration(evidence,event).eligible ? 'unreviewed' : event.assessment]}`}>{timelineAssessmentLabel(evidence,event)}</Badge>
                           )}
                           {event.placement?.mode === 'relative' && (
                             <Badge variant="outline">{event.placement.relation === 'before' ? 'Before event' : 'After event'}</Badge>
@@ -1159,6 +1200,7 @@ function TimelineWorkspace({
                         <h3 className="mt-2 font-semibold leading-snug">{event.title}</h3>
                         {event.description && <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{event.description}</p>}
                         {event.origin === 'source' && <details className="mt-2 text-sm"><summary className="cursor-pointer">Original extraction and source</summary>{originalEvent ? <div className="my-2"><p>{originalEvent.eventDate} ({originalEvent.datePrecision} precision) · {originalEvent.title}</p>{originalEvent.description && <p>{originalEvent.description}</p>}<p>{originalEvent.category} · {originalEvent.importance} importance</p></div> : <p>Original event unavailable; consult the preserved source export.</p>}{result.article.url && <a className="text-blue-600 underline" href={result.article.url} target="_blank" rel="noopener noreferrer">Open extraction source</a>}<p className="text-xs text-muted-foreground">Source extraction is a candidate claim; source presence does not establish corroboration.</p></details>}
+                        <TimelineEvidence event={event} eventIds={events.map(item => item.id)} evidence={evidence} onChange={saveEvidence} />
                         {mode === 'robust' && event.analystNote && (
                           <p className="mt-2 rounded border-l-2 border-purple-400 bg-purple-50/60 px-3 py-2 text-sm dark:bg-purple-950/20">
                             <span className="font-medium">Analyst note:</span> {event.analystNote}
@@ -1377,7 +1419,7 @@ function TimelineWorkspace({
                   <div className="space-y-2">
                     <Label htmlFor="timeline-event-assessment">Assessment</Label>
                     <select id="timeline-event-assessment" className={selectClasses()} value={eventEditor.assessment} onChange={event => setEventEditor({ ...eventEditor, assessment: event.target.value as TimelineEventAssessment })}>
-                      {assessmentLevels.map(level => <option key={level} value={level}>{level}</option>)}
+                      {assessmentLevels.map(level => <option key={level} value={level} disabled={level === 'corroborated' && !events.some(event => event.id === eventEditor.eventId && timelineCorroboration(evidence,event).eligible)}>{level}</option>)}
                     </select>
                   </div>
                   <div className="space-y-2">

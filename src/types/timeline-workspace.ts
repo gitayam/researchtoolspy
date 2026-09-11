@@ -80,6 +80,7 @@ export interface TimelineWorkspaceHypothesis {
 }
 
 export interface TimelineWorkspaceState {
+  evidence?: TimelineEvidence
   mode: TimelineWorkspaceMode
   events: TimelineWorkspaceEvent[]
   questions: TimelineWorkspaceQuestion[]
@@ -87,6 +88,47 @@ export interface TimelineWorkspaceState {
   narrative?: TimelineNarrative
   presentation?: 'analyst' | 'narrative'
   sortDirection?: 'oldest' | 'latest'
+}
+
+export interface TimelineEvidenceSource {
+  id: string
+  url: string
+  title: string
+  publisher: string
+  publishedAt?: string
+  retrievedAt?: string
+}
+export interface TimelineSourceAssertion {
+  id: string
+  sourceId: string
+  claimText: string
+  temporalClaim: string
+  passage: { id: string; quote: string; locator: string }
+  status: 'active' | 'retracted'
+  derivesFrom: string[]
+  observedAt?: string
+  reportedAt?: string
+}
+export interface TimelineEvidenceLink {
+  id: string
+  eventId: string
+  assertionId: string
+  relation: 'supports' | 'contradicts' | 'context'
+}
+export interface TimelineEvidenceReview {
+  eventId: string
+  independence: 'independent' | 'dependent' | 'unresolved'
+  compatibility: 'compatible' | 'incompatible' | 'unresolved'
+  rationale: string
+  reviewedAt: string
+  basis: string
+}
+export interface TimelineEvidence {
+  schemaVersion: 'timeline-evidence.v1'
+  sources: TimelineEvidenceSource[]
+  assertions: TimelineSourceAssertion[]
+  links: TimelineEvidenceLink[]
+  reviews: TimelineEvidenceReview[]
 }
 
 export interface TimelineManualSource {

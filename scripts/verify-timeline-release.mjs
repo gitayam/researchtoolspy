@@ -12,7 +12,6 @@ const workerPath = resolve(dist, '_worker.js/index.js')
 const migrationDirectory = resolve(root, 'schema/managed-migrations')
 const outputDirectory = '/results'
 const manifestPath = resolve(outputDirectory, 'release-schema-manifest.json')
-const pendingName = '0013_timeline_service_scopes.sql'
 const sha256 = bytes => createHash('sha256').update(bytes).digest('hex')
 const quote = value => `"${String(value).replaceAll('"', '""')}"`
 const canonical = value => {
@@ -132,8 +131,8 @@ try {
   const localNames = (await readdir(migrationDirectory)).filter(name => /^\d+.*\.sql$/.test(name)).sort()
   assert(applied.every(name => localNames.includes(name)), 'Production inventory has unknown migration names')
   const pending = localNames.filter(name => !applied.includes(name))
-  assert.deepEqual(pending, [pendingName], 'Release must rehearse exactly the reviewed pending 0013 migration')
-  const migrationBytes = await readFile(resolve(migrationDirectory, pendingName))
+  assert.deepEqual(pending, [], 'Evidence snapshot release must have no pending migrations')
+  assert(applied.includes('0013_timeline_service_scopes.sql'), 'Production must contain the accepted service prefix')
   const workerBytes = await readFile(workerPath)
   const indexBytes = await readFile(resolve(dist, 'index.html'))
   const expectedTables = [...(await readFile(resolve(migrationDirectory, '0011_timeline_foundation.sql'), 'utf8')).matchAll(/CREATE TABLE (timeline_[a-z_]+)/g)].map(match => match[1]).sort()
@@ -143,7 +142,7 @@ try {
     schemaVersion: 'timeline-release-schema-manifest.v1',
     schemaOnly: true,
     schemaSha256: sha256(schemaBytes), appliedInventorySha256: sha256(inventoryBytes),
-    appliedMigrationNames: applied.slice().sort(), pendingMigrations: [{ name: pendingName, sha256: sha256(migrationBytes) }],
+    appliedMigrationNames: applied.slice().sort(), pendingMigrations: [],
     compiledWorker: { entrypoint: 'dist/_worker.js/index.js', sha256: sha256(workerBytes) },
     staticIndexSha256: sha256(indexBytes), compatibilityDate: '2025-09-30', compatibilityFlags: ['nodejs_compat'],
     importedStatements: 0, skippedSchemaDirectives: [], tables: [],
@@ -191,32 +190,14 @@ try {
   const priorTables = await collectManifest(db, expectedTables)
   receipt.priorCatalogSha256 = sha256(canonical(priorTables))
   receipt.priorTables = priorTables
-  stage = 'apply-pending-0013'
-  // Managed apply sends the entire migration plus tracker write in one transaction.
-  await db.batch([...statements(migrationBytes.toString('utf8')).map(statement => db.prepare(statement.sql)), db.prepare('INSERT INTO d1_migrations(name) VALUES (?)').bind(pendingName)])
-  assert.equal((await db.prepare('SELECT count(*) AS n FROM d1_migrations WHERE name=?').bind(pendingName).first()).n, 1)
+  stage = 'verify-unchanged-schema'
   assert.deepEqual((await db.prepare('PRAGMA foreign_key_check').all()).results, [], 'Imported schema has foreign-key violations')
   receipt.tables = await collectManifest(db, expectedTables)
-  for (const before of priorTables) {
-    const after = receipt.tables.find(table => table.name === before.name)
-    assert.deepEqual(after.columns, before.columns, `Columns changed in ${before.name}`)
-    assert.deepEqual(after.foreignKeys, before.foreignKeys, `Foreign keys changed in ${before.name}`)
-    assert.deepEqual(after.indexes, before.indexes, `Existing indexes changed in ${before.name}`)
-    const unchanged = triggers => triggers.filter(trigger => trigger.name !== 'timeline_revision_authorize')
-    assert.deepEqual(unchanged(after.triggers), unchanged(before.triggers), `Existing triggers changed in ${before.name}`)
-    if (before.name !== 'integration_client_token_scopes') assert.equal(after.sql, before.sql)
-    if (before.name === 'timeline_revisions') {
-      const expected = statements(migrationBytes.toString('utf8')).find(statement => /CREATE TRIGGER timeline_revision_authorize/.test(statement.sql))
-      assert(expected, 'Reviewed replacement authorization trigger missing')
-      const normalize = sql => sql.replace(/^.*?(?=CREATE TRIGGER)/s, '').replace(/;\s*$/, '').replace(/\s+/g, ' ').trim()
-      assert.equal(normalize(after.triggers.find(t => t.name === 'timeline_revision_authorize').sql), normalize(expected.sql))
-    }
-  }
-  assert.equal((await db.prepare("SELECT count(*) AS n FROM sqlite_schema WHERE name LIKE '%0013_backup'").first()).n, 0)
+  assert.deepEqual(receipt.tables, priorTables, 'Application-only release must preserve every catalog object')
   receipt.catalogPreservation = 'passed'
   assert(receipt.tables.every(table => table.columns.length && table.foreignKeys.length), 'Incomplete affected-schema manifest')
   receipt.schemaRehearsal = 'passed'
-  receipt.checks.push('schema-only export imported', 'actual pending migration applied', 'foreign_key_check clean', 'affected columns/foreign keys/indexes/triggers recorded')
+  receipt.checks.push('schema-only export imported', 'no pending migration; schema unchanged', 'foreign_key_check clean', 'affected columns/foreign keys/indexes/triggers recorded')
   await save(receipt)
 
   stage = 'seed-synthetic-humans'
@@ -290,6 +271,7 @@ try {
   assert.deepEqual((await db.prepare('PRAGMA foreign_key_check').all()).results, [])
   stage = 'compiled-workspace-snapshot'
   const snapshot = { schemaVersion: 'timeline-workspace.v1', exportedAt: '2026-09-11T00:00:00.000Z', source: { schemaVersion: 'timeline-manual.v1', title: 'Complete workspace' }, analystWorkspace: { mode: 'robust', events: [{ id: 'event:unknown.1', title: 'Uncertain date', description: null, category: 'event', importance: 'normal', origin: 'analyst', assessment: 'disputed', analystNote: 'Keep uncertainty', modified: false, eventTime: '14:30:59' }], questions: [], hypotheses: [], narrative: { title: 'Complete account', framing: 'Preserve the whole workspace', question: '', intendedUse: '', scope: '', timezone: 'UTC', dataThrough: '', chapters: [] } } }
+  snapshot.analystWorkspace.evidence = {"schemaVersion":"timeline-evidence.v1","sources":[{"id":"source:first","url":"https://example.test/first","title":"First report","publisher":"Fixture desk","publishedAt":"2026-09-01T10:00:00Z","retrievedAt":"2026-09-11T00:00:00Z"},{"id":"source:second","url":"https://other.example.test/second","title":"Conflicting report","publisher":"Other fixture desk"}],"assertions":[{"id":"assertion:first","sourceId":"source:first","claimText":"The source reported the meeting occurred in September.","temporalClaim":"September 2026","passage":{"id":"passage:first","quote":"The meeting took place in September.","locator":"paragraph 2"},"status":"active","derivesFrom":[],"reportedAt":"2026-09-01T10:00:00Z"},{"id":"assertion:contrary","sourceId":"source:second","claimText":"The second source reported October instead.","temporalClaim":"October 2026","passage":{"id":"passage:contrary","quote":"The meeting occurred in October.","locator":"paragraph 4"},"status":"active","derivesFrom":[]}],"links":[{"id":"link:support","eventId":"event:unknown.1","assertionId":"assertion:first","relation":"supports"},{"id":"link:contrary","eventId":"event:unknown.1","assertionId":"assertion:contrary","relation":"contradicts"}],"reviews":[]}
   const snapshotCreate = await request('/api/timelines', { method: 'POST', body: { ...createBody, title: 'Browser workspace' }, key: 'release-snapshot-create01' })
   assert.equal(snapshotCreate.status, 201)
   const snapshotPath = `/api/timelines/${snapshotCreate.json.artifactId}`
@@ -303,7 +285,7 @@ try {
   assert.equal(snapshotRetry.text, snapshotSave.text)
   const snapshotRevision = await request(`${snapshotPath}/revisions/${snapshotSave.json.revisionId}`)
   assert.equal(snapshotRevision.status, 200); assert.equal(sha256(canonical(snapshotRevision.json.manifest)), snapshotSave.json.contentHash)
-  receipt.checks.push('compiled complete workspace snapshot save/reopen/replay and manifest binding')
+  receipt.checks.push('compiled human source assertion/contrary passage snapshot save/reopen/replay and manifest binding')
   stage = 'compiled-service-scopes'
   const serviceClient = 'release_service_client_01', serviceSecret = 'S'.repeat(43)
   const serviceHash = createHmac('sha256', 'synthetic-release-hmac-key-not-production-0001').update(`rt-service-token.v1\0${serviceClient}\0${serviceSecret}`).digest('hex')
@@ -324,6 +306,8 @@ try {
   const serviceCommitOptions = { method: 'PATCH', body: snapshotBody, key: 'release-service-commit01', etag: serviceCreate.headers.get('etag') }
   const serviceSave = await serviceRequest(servicePath, serviceCommitOptions)
   assert.equal(serviceSave.status, 200)
+  const serviceEvidence = await serviceRequest(`${servicePath}/objects?revisionId=${serviceSave.json.revisionId}`)
+  assert.equal(serviceEvidence.status, 200); assert.deepEqual(serviceEvidence.json.objects[0].payload, snapshot)
   assert.equal((await serviceRequest(servicePath, serviceCommitOptions)).text, serviceSave.text)
   for (const suffix of ['', `/objects?revisionId=${serviceSave.json.revisionId}`, '/revisions', `/revisions/${serviceSave.json.revisionId}`]) assert.equal((await serviceRequest(servicePath + suffix)).status, 200)
   assert.equal((await serviceRequest(artifactPath)).status, 404)
@@ -333,7 +317,7 @@ try {
   assert.equal((await serviceRequest(servicePath)).status, 200)
   await db.prepare('UPDATE integration_client_tokens SET revoked_at=unixepoch() WHERE id=?').bind(serviceTokenId).run()
   assert.equal((await serviceRequest(servicePath)).status, 401)
-  receipt.checks.push('compiled scoped service create/snapshot/replay/pinned reads/discovery', 'independent write scope and fresh replay revocation', 'human/service workspace isolation')
+  receipt.checks.push('compiled scoped service source assertion snapshot create/read/replay and discovery', 'independent write scope and fresh replay revocation', 'human/service workspace isolation')
   receipt.compiledHttpGate = 'passed'
   receipt.checks.push('compiled Pages create/commit routes', 'human/service/viewer/cross-workspace authorization', 'exact replay after later revision', 'idempotency conflict and stale head', 'pinned object/history reads and manifest hash', 'real D1 partial-batch rollback', 'immutable replacement rejected', 'privacy change reauthorizes read/replay')
   await save(receipt)
@@ -350,6 +334,8 @@ try {
   assert.equal(outboundAttempts, 0, 'Compiled worker attempted an external fetch instead of local routing/bindings')
   receipt.staticGate = 'passed'; receipt.externalOutboundAttempts = outboundAttempts
   receipt.checks.push('compiled Pages ASSETS fallback matches built index and referenced static asset')
+  assert.deepEqual(await collectManifest(db, receipt.tables.map(table => table.name)), receipt.tables, 'Compiled route rehearsal changed the database catalog')
+  receipt.checks.push('all 12 table catalogs remain unchanged after compiled human/service and static routes')
   await save(receipt)
   console.log(JSON.stringify({ result: 'passed', schemaRehearsal: receipt.schemaRehearsal, compiledHttpGate: receipt.compiledHttpGate, staticGate: receipt.staticGate, affectedTables: receipt.tables.length, manifest: manifestPath }))
 } catch (error) {
