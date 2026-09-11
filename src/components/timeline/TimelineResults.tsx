@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   Brain,
   Calendar,
@@ -104,6 +104,12 @@ interface QuestionEditorState {
   newSourceUrl: string
   newSourceTitle: string
 }
+
+type TimelineSortDirection = 'oldest' | 'latest'
+
+type TimelineSequenceItem =
+  | { kind: 'event', event: TimelineWorkspaceEvent, sequenceIndex: number }
+  | { kind: 'gap', previous?: TimelineWorkspaceEvent, next?: TimelineWorkspaceEvent }
 
 const importanceClasses: Record<TimelineEventImportance, string> = {
   low: 'border-slate-300 text-slate-600 dark:border-slate-700 dark:text-slate-300',
@@ -253,9 +259,26 @@ function TimelineWorkspace({
   const [assistSuggestions, setAssistSuggestions] = useState<TimelineAssistSuggestion[]>([])
   const [assistLoading, setAssistLoading] = useState(false)
   const [assistError, setAssistError] = useState<string | null>(null)
+  const [sortDirection, setSortDirection] = useState<TimelineSortDirection>('oldest')
   const copyResetRef = useRef<number | null>(null)
   const assistRequestRef = useRef<AbortController | null>(null)
   const sortedEvents = useMemo(() => orderTimelineEvents(events), [events])
+  const displayedEvents = useMemo(
+    () => sortDirection === 'latest' ? [...sortedEvents].reverse() : sortedEvents,
+    [sortDirection, sortedEvents],
+  )
+  const eventAnchorIds = useMemo(
+    () => new Map(sortedEvents.map((event, index) => [event.id, `timeline-event-${index + 1}`])),
+    [sortedEvents],
+  )
+  const displayedSequence = useMemo(() => {
+    const sequence: TimelineSequenceItem[] = [{ kind: 'gap', next: sortedEvents[0] }]
+    sortedEvents.forEach((event, sequenceIndex) => {
+      sequence.push({ kind: 'event', event, sequenceIndex })
+      sequence.push({ kind: 'gap', previous: event, next: sortedEvents[sequenceIndex + 1] })
+    })
+    return sortDirection === 'latest' ? sequence.reverse() : sequence
+  }, [sortDirection, sortedEvents])
   const firstOpenQuestion = questions.find(question => question.status === 'open')
 
   useEffect(() => () => {
@@ -271,7 +294,7 @@ function TimelineWorkspace({
     if (copyResetRef.current !== null) window.clearTimeout(copyResetRef.current)
     try {
       if (!navigator.clipboard?.writeText) throw new Error('Clipboard API unavailable')
-      await navigator.clipboard.writeText(timelineMarkdown(result, sortedEvents, questions, hypotheses, workspaceOrigin))
+      await navigator.clipboard.writeText(timelineMarkdown(result, displayedEvents, questions, hypotheses, workspaceOrigin))
       setCopyStatus('copied')
     } catch {
       setCopyStatus('error')
@@ -755,7 +778,7 @@ function TimelineWorkspace({
 
   return (
     <div className="space-y-4" data-testid="timeline-results">
-      <Card>
+      <Card id="timeline-overview" className="scroll-mt-4">
         <CardHeader className="gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0 space-y-2">
             <div className="flex flex-wrap items-center gap-2">
@@ -871,8 +894,60 @@ function TimelineWorkspace({
         </CardContent>
       </Card>
 
+      <Card aria-label="Timeline contents">
+        <CardHeader className="gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <CardTitle className="text-base">Timeline contents</CardTitle>
+            <p className="mt-1 text-xs text-muted-foreground">Choose the reading order, scan the events, or jump directly to a section.</p>
+          </div>
+          <div className="w-full space-y-1 sm:w-40">
+            <Label htmlFor="timeline-sort-direction" className="text-xs">Sort events</Label>
+            <select
+              id="timeline-sort-direction"
+              className={selectClasses()}
+              value={sortDirection}
+              onChange={event => setSortDirection(event.target.value as TimelineSortDirection)}
+            >
+              <option value="oldest">Oldest first</option>
+              <option value="latest">Latest first</option>
+            </select>
+          </div>
+        </CardHeader>
+        <CardContent className="grid gap-4 lg:grid-cols-[minmax(0,220px)_minmax(0,1fr)]">
+          <nav aria-label="Timeline sections">
+            <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">Jump to section</p>
+            <ul className="space-y-1 text-sm">
+              <li><a className="text-blue-600 hover:underline dark:text-blue-400" href="#timeline-overview">Overview</a></li>
+              {mode === 'robust' && <li><a className="text-blue-600 hover:underline dark:text-blue-400" href="#timeline-ai-review">AI review</a></li>}
+              <li><a className="text-blue-600 hover:underline dark:text-blue-400" href="#timeline-sequence">Event sequence</a></li>
+              {mode === 'robust' && <li><a className="text-blue-600 hover:underline dark:text-blue-400" href="#timeline-next-steps">Continue investigation</a></li>}
+            </ul>
+          </nav>
+          <nav aria-label="Timeline events">
+            <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">Events in displayed order</p>
+            {displayedEvents.length > 0 ? (
+              <ol className="grid max-h-48 gap-x-5 gap-y-1 overflow-y-auto pr-2 text-sm sm:grid-cols-2">
+                {displayedEvents.map(event => (
+                  <li key={event.id} className="min-w-0">
+                    <a
+                      className="flex min-w-0 gap-2 text-blue-600 hover:underline dark:text-blue-400"
+                      href={`#${eventAnchorIds.get(event.id)}`}
+                    >
+                      <span className="shrink-0 font-mono text-xs text-muted-foreground">{timelineEventTemporalLabel(event)}</span>
+                      <span className="truncate">{event.title}</span>
+                    </a>
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <p className="text-sm text-muted-foreground">No events yet. Add an event or start with a research question.</p>
+            )}
+          </nav>
+        </CardContent>
+      </Card>
+
       {mode === 'robust' && (
-        <Card className="border-purple-200 dark:border-purple-900">
+        <Card id="timeline-ai-review" className="scroll-mt-4 border-purple-200 dark:border-purple-900">
           <CardHeader>
             <CardTitle className="flex items-center gap-2"><Sparkles className="h-5 w-5 text-purple-600 dark:text-purple-400" />AI timeline assistant</CardTitle>
           </CardHeader>
@@ -941,7 +1016,7 @@ function TimelineWorkspace({
       )}
 
       {sortedEvents.length === 0 ? (
-        <Card className="border-dashed">
+        <Card id="timeline-sequence" className="scroll-mt-4 border-dashed">
           <CardContent className="py-12 text-center">
             <Calendar className="mx-auto mb-3 h-10 w-10 text-muted-foreground" />
             <h3 className="font-semibold">{workspaceOrigin === 'manual' ? 'Start with what you know' : 'No supported dated events found'}</h3>
@@ -965,16 +1040,21 @@ function TimelineWorkspace({
           </CardContent>
         </Card>
       ) : (
-        <Card>
+        <Card id="timeline-sequence" className="scroll-mt-4">
           <CardHeader>
             <CardTitle className="flex items-center gap-2"><Calendar className="h-5 w-5" />Working event sequence</CardTitle>
           </CardHeader>
           <CardContent>
             <ol className="ml-3 border-l-2 border-blue-200 pl-6 dark:border-blue-900">
-              {renderGap(undefined, sortedEvents[0])}
-              {sortedEvents.map((event, index) => (
-                <Fragment key={event.id}>
-                  <li className="relative pb-1">
+              {displayedSequence.map(item => {
+                if (item.kind === 'gap') return renderGap(item.previous, item.next)
+                const { event, sequenceIndex } = item
+                return (
+                  <li
+                    id={eventAnchorIds.get(event.id)}
+                    key={event.id}
+                    className="relative scroll-mt-4 pb-1"
+                  >
                     <span className="absolute -left-[31px] top-1.5 h-3 w-3 rounded-full border-2 border-blue-600 bg-background" />
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
@@ -1005,7 +1085,7 @@ function TimelineWorkspace({
                             <Badge variant="outline">{event.placement.relation === 'before' ? 'Before event' : 'After event'}</Badge>
                           )}
                           {event.placement?.mode === 'position' && (
-                            <Badge variant="outline">Position {(event.sequenceOrder ?? index) + 1}</Badge>
+                            <Badge variant="outline">Position {(event.sequenceOrder ?? sequenceIndex) + 1}</Badge>
                           )}
                         </div>
                         <h3 className="mt-2 font-semibold leading-snug">{event.title}</h3>
@@ -1034,16 +1114,15 @@ function TimelineWorkspace({
                       </DropdownMenu>
                     </div>
                   </li>
-                  {renderGap(event, sortedEvents[index + 1])}
-                </Fragment>
-              ))}
+                )
+              })}
             </ol>
           </CardContent>
         </Card>
       )}
 
       {mode === 'robust' && (
-        <Card>
+        <Card id="timeline-next-steps" className="scroll-mt-4">
           <CardHeader>
             <CardTitle className="text-base">Continue the investigation</CardTitle>
           </CardHeader>

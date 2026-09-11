@@ -209,7 +209,7 @@ export function TimelineAnalysisPage() {
 
       <Alert className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/40">
         <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-        <AlertDescription>No login is required. A manual guest draft stays in this browser for 7 days; saving it to a workspace or collaborating requires sign-in.</AlertDescription>
+        <AlertDescription>No login is required. One manual draft stays in this browser for 7 days. Workspace saving and collaboration are not available yet; export JSON to keep or share your work.</AlertDescription>
       </Alert>
 
       <div className="flex w-fit rounded-md border bg-background p-1" role="group" aria-label="Timeline starting point">

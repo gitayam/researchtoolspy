@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { ensureUniqueTimelineEventIds } from '@/lib/behavior-timeline-ids'
 import type { TimelineEvent, BehaviorAnalysis } from '@/types/behavior'
 
 interface AITimelineGeneratorProps {
@@ -58,7 +59,7 @@ export function AITimelineGenerator({
       const data = await response.json()
       const timeline: TimelineEvent[] = data.events || []
 
-      setGeneratedTimeline(timeline)
+      setGeneratedTimeline(ensureUniqueTimelineEventIds(timeline))
 
     } catch (err) {
       console.error('Timeline generation error:', err)
@@ -70,7 +71,7 @@ export function AITimelineGenerator({
 
   const acceptTimeline = () => {
     if (generatedTimeline) {
-      onTimelineGenerated(generatedTimeline)
+      onTimelineGenerated(ensureUniqueTimelineEventIds(generatedTimeline))
       setOpen(false)
       setGeneratedTimeline(null)
     }
@@ -78,8 +79,10 @@ export function AITimelineGenerator({
 
   const mergeWithExisting = () => {
     if (generatedTimeline) {
-      // Merge: keep existing events, append new ones
-      const merged = [...existingTimeline, ...generatedTimeline]
+      const merged = [
+        ...existingTimeline,
+        ...ensureUniqueTimelineEventIds(generatedTimeline, existingTimeline),
+      ]
       onTimelineGenerated(merged)
       setOpen(false)
       setGeneratedTimeline(null)

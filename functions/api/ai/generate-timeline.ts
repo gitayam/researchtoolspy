@@ -120,6 +120,18 @@ interface TimelineGenerationResponse {
   events: TimelineEvent[]
 }
 
+export const TIMELINE_GENERATION_REQUEST_MAX_BYTES = 128 * 1024
+
+class TimelineGenerationRequestError extends Error {
+  constructor(
+    message: string,
+    readonly status: 400 | 413,
+  ) {
+    super(message)
+    this.name = 'TimelineGenerationRequestError'
+  }
+}
+
 const DECISION_TYPES = new Set<DecisionType>([
   'goal_formation', 'intention', 'action_plan', 'coping_plan', 'initiation',
   'persistence', 'identity', 'maintenance', 'disengagement', 'administrative_gate',
@@ -146,11 +158,80 @@ function recordOf(value: unknown): Record<string, unknown> | undefined {
   return value as Record<string, unknown>
 }
 
+function optionalStringArray(value: unknown, maxItems: number, maxItemLength: number): string[] | undefined {
+  if (!Array.isArray(value)) return undefined
+  const items = [...new Set(
+    value
+      .slice(0, maxItems)
+      .map(item => optionalString(item, maxItemLength))
+      .filter((item): item is string => Boolean(item)),
+  )]
+  return items.length ? items : undefined
+}
+
+function allocateUniqueEventId(
+  candidate: unknown,
+  fallback: string,
+  usedIds: Set<string>,
+): string {
+  const base = optionalString(candidate, 160) || fallback
+  let id = base
+  let suffix = 2
+  while (usedIds.has(id)) {
+    const suffixText = `-${suffix}`
+    id = `${base.slice(0, 160 - suffixText.length)}${suffixText}`
+    suffix += 1
+  }
+  usedIds.add(id)
+  return id
+}
+
+export async function readBoundedTimelineGenerationJson(request: Request): Promise<unknown> {
+  const contentLength = Number(request.headers.get('content-length'))
+  if (Number.isFinite(contentLength) && contentLength > TIMELINE_GENERATION_REQUEST_MAX_BYTES) {
+    throw new TimelineGenerationRequestError('Request body is too large', 413)
+  }
+
+  if (!request.body) throw new TimelineGenerationRequestError('Request body must be valid JSON', 400)
+  const reader = request.body.getReader()
+  const chunks: Uint8Array[] = []
+  let totalBytes = 0
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    if (!value) continue
+    totalBytes += value.byteLength
+    if (totalBytes > TIMELINE_GENERATION_REQUEST_MAX_BYTES) {
+      await reader.cancel()
+      throw new TimelineGenerationRequestError('Request body is too large', 413)
+    }
+    chunks.push(value)
+  }
+
+  const body = new Uint8Array(totalBytes)
+  let offset = 0
+  for (const chunk of chunks) {
+    body.set(chunk, offset)
+    offset += chunk.byteLength
+  }
+
+  try {
+    return JSON.parse(new TextDecoder().decode(body)) as unknown
+  } catch {
+    throw new TimelineGenerationRequestError('Request body must be valid JSON', 400)
+  }
+}
+
 /**
  * Normalize untrusted model output into the Behavior Analysis timeline schema.
  * Invalid enums and empty collection rows are omitted rather than persisted.
  */
-export function sanitizeGeneratedTimeline(input: unknown, depth = 0): TimelineEvent[] {
+function sanitizeGeneratedTimelineLevel(
+  input: unknown,
+  depth: number,
+  usedIds: Set<string>,
+): TimelineEvent[] {
   if (!Array.isArray(input)) return []
 
   return input.slice(0, depth === 0 ? 12 : 6).flatMap((rawEvent, index) => {
@@ -160,7 +241,7 @@ export function sanitizeGeneratedTimeline(input: unknown, depth = 0): TimelineEv
     if (!label) return []
 
     const event: TimelineEvent = {
-      id: optionalString(source.id, 160) || `event-${depth}-${index + 1}`,
+      id: allocateUniqueEventId(source.id, `event-${depth}-${index + 1}`, usedIds),
       label,
     }
     const time = optionalString(source.time, 120)
@@ -244,7 +325,7 @@ export function sanitizeGeneratedTimeline(input: unknown, depth = 0): TimelineEv
         return [{
           condition,
           label: forkLabel,
-          path: depth < 2 ? sanitizeGeneratedTimeline(fork?.path, depth + 1) : [],
+          path: depth < 2 ? sanitizeGeneratedTimelineLevel(fork?.path, depth + 1, usedIds) : [],
         }]
       })
       if (forks.length) event.forks = forks
@@ -252,6 +333,75 @@ export function sanitizeGeneratedTimeline(input: unknown, depth = 0): TimelineEv
 
     return [event]
   })
+}
+
+export function sanitizeGeneratedTimeline(input: unknown, depth = 0): TimelineEvent[] {
+  return sanitizeGeneratedTimelineLevel(input, depth, new Set<string>())
+}
+
+/**
+ * Bound and normalize analyst-provided form data before it is interpolated into
+ * a model prompt. Unknown fields and invalid optional values are discarded.
+ */
+export function parseTimelineGenerationRequest(input: unknown): TimelineGenerationRequest | null {
+  const source = recordOf(input)
+  const behaviorTitle = optionalString(source?.behavior_title, 240)
+  if (!source || !behaviorTitle) return null
+
+  const request: TimelineGenerationRequest = {
+    behavior_title: behaviorTitle,
+    behavior_description: optionalString(source.behavior_description, 4_000) || '',
+  }
+
+  const rawLocation = recordOf(source.location_context)
+  if (rawLocation) {
+    const geographicScope = optionalString(rawLocation.geographic_scope, 300)
+    const specificLocations = optionalStringArray(rawLocation.specific_locations, 20, 300)
+    const locationNotes = optionalString(rawLocation.location_notes, 2_000)
+    if (geographicScope || specificLocations || locationNotes) {
+      request.location_context = {
+        ...(geographicScope ? { geographic_scope: geographicScope } : {}),
+        ...(specificLocations ? { specific_locations: specificLocations } : {}),
+        ...(locationNotes ? { location_notes: locationNotes } : {}),
+      }
+    }
+  }
+
+  const rawSettings = recordOf(source.behavior_settings)
+  if (rawSettings) {
+    const settings = optionalStringArray(rawSettings.settings, 20, 200)
+    const settingDetails = optionalString(rawSettings.setting_details, 2_000)
+    if (settings || settingDetails) {
+      request.behavior_settings = {
+        ...(settings ? { settings } : {}),
+        ...(settingDetails ? { setting_details: settingDetails } : {}),
+      }
+    }
+  }
+
+  const rawTemporal = recordOf(source.temporal_context)
+  if (rawTemporal) {
+    const frequencyPattern = optionalString(rawTemporal.frequency_pattern, 200)
+    const timeOfDay = optionalStringArray(rawTemporal.time_of_day, 20, 120)
+    const durationTypical = optionalString(rawTemporal.duration_typical, 200)
+    const timingNotes = optionalString(rawTemporal.timing_notes, 2_000)
+    if (frequencyPattern || timeOfDay || durationTypical || timingNotes) {
+      request.temporal_context = {
+        ...(frequencyPattern ? { frequency_pattern: frequencyPattern } : {}),
+        ...(timeOfDay ? { time_of_day: timeOfDay } : {}),
+        ...(durationTypical ? { duration_typical: durationTypical } : {}),
+        ...(timingNotes ? { timing_notes: timingNotes } : {}),
+      }
+    }
+  }
+
+  const complexity = optionalString(source.complexity, 200)
+  if (complexity) request.complexity = complexity
+
+  const existingTimeline = sanitizeGeneratedTimeline(source.existing_timeline)
+  if (existingTimeline.length) request.existing_timeline = existingTimeline
+
+  return request
 }
 
 export function getBehaviorFormContext(formData: Partial<TimelineGenerationRequest>): string {
@@ -352,10 +502,19 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       return Response.json({ error: 'OpenAI API key not configured' }, { status: 500 })
     }
 
-    const request = await context.request.json() as TimelineGenerationRequest
+    let requestBody: unknown
+    try {
+      requestBody = await readBoundedTimelineGenerationJson(context.request)
+    } catch (error) {
+      if (error instanceof TimelineGenerationRequestError) {
+        return Response.json({ error: error.message }, { status: error.status })
+      }
+      throw error
+    }
 
-    if (!request.behavior_title) {
-      return Response.json({ error: 'Missing behavior_title' }, { status: 400 })
+    const request = parseTimelineGenerationRequest(requestBody)
+    if (!request) {
+      return Response.json({ error: 'Missing or invalid behavior_title' }, { status: 400 })
     }
 
     // Use gpt-5.4-mini for timeline generation (balance of speed and quality)
@@ -402,7 +561,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     try {
       parsed = JSON.parse(content) as TimelineGenerationResponse
     } catch (parseError) {
-      console.error('Failed to parse AI response:', content)
+      console.error('Failed to parse AI timeline response', { responseLength: content.length })
       throw new Error('Invalid JSON response from AI', { cause: parseError })
     }
 

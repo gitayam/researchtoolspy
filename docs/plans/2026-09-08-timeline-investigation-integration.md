@@ -143,6 +143,9 @@ creates >2% broken links. Keep adapters instead of forcing a universal entity.
 
 ### Phase 2 — Durable investigation artifact
 
+- Until this phase ships, product copy must describe workspace saving and
+  collaboration as unavailable and direct users to JSON export for retention or
+  sharing; signing in alone does not make the browser overlay durable.
 - Add authenticated Timeline create/read/update endpoints scoped to writable
   workspaces, with optimistic versioning and an append-only audit trail.
 - Promote the browser draft only through an explicit sign-in/save action.

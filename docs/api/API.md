@@ -279,8 +279,9 @@ the extraction API; one manual draft is retained locally in that browser for
 seven days. This browser draft is not server-side saved data. Content Intelligence also
 exposes Timeline as an on-demand analysis section; that integration submits the
 already-extracted article text with `source: "content-intelligence"`, avoiding a
-second network retrieval. Saving, sharing, and workspace collaboration continue
-to require sign-in and an authorized writable workspace.
+second network retrieval. Workspace saving and collaboration are not available
+yet; users should export JSON to retain or share work until the authenticated
+durable-artifact phase ships.
 
 Both browser surfaces wrap the immutable API response in a temporary analyst
 workspace. **Basic** mode supports three event placement modes: absolute
@@ -290,7 +291,10 @@ are optional for relative and positional events. Absolute placement requires at
 least one, and a time-only event is explicitly shown as date unknown. The
 workspace persists `sequenceOrder`, optional `eventDate`/`eventTime`, and
 placement intent in drafts and exports; it never fabricates a date. Basic mode
-also supports editing working copies, removal, and Markdown copy. **Robust
+also supports editing working copies, removal, and Markdown copy. The results
+view can be sorted oldest-first or latest-first and includes section and event
+jump navigation; display sorting does not change the saved working sequence.
+**Robust
 analyst** mode additionally exposes provenance, review status
 (`unreviewed`, `corroborated`, `disputed`, or `hypothesis`), analyst notes, and
 dated information-gap questions such as “What happened here?” Questions remain

@@ -1,8 +1,12 @@
 import { test, expect } from '@playwright/test'
 import {
   buildTimelinePrompt,
+  parseTimelineGenerationRequest,
+  readBoundedTimelineGenerationJson,
   sanitizeGeneratedTimeline,
+  TIMELINE_GENERATION_REQUEST_MAX_BYTES,
 } from '../../../functions/api/ai/generate-timeline'
+import { ensureUniqueTimelineEventIds } from '../../../src/lib/behavior-timeline-ids'
 
 test.describe('Behavior timeline generation contract @smoke', () => {
   test('uses the full analyst context and existing timeline in the AI prompt', () => {
@@ -98,5 +102,71 @@ test.describe('Behavior timeline generation contract @smoke', () => {
     expect(second.decision_type).toBeUndefined()
     expect(second.psychological_state).toBeUndefined()
     expect(second.com_b_target).toBeUndefined()
+  })
+
+  test('makes model event IDs unique across top-level and forked events', () => {
+    const timeline = sanitizeGeneratedTimeline([
+      {
+        id: 'duplicate-id',
+        label: 'First event',
+        forks: [{
+          condition: 'Alternative occurs',
+          label: 'Alternative path',
+          path: [{ id: 'duplicate-id', label: 'Fork event' }],
+        }],
+      },
+      { id: 'duplicate-id', label: 'Second event' },
+    ])
+
+    expect(timeline[0].id).toBe('duplicate-id')
+    expect(timeline[0].forks?.[0].path[0].id).toBe('duplicate-id-2')
+    expect(timeline[1].id).toBe('duplicate-id-3')
+  })
+
+  test('rekeys generated IDs that collide with an existing Behavior timeline', () => {
+    const existing = [{ id: 'event-1', label: 'Existing event' }]
+    const generated = ensureUniqueTimelineEventIds([
+      { id: 'event-1', label: 'Generated event' },
+      { id: 'event-1', label: 'Another generated event' },
+    ], existing)
+
+    expect(generated.map(event => event.id)).toEqual(['event-1-2', 'event-1-3'])
+    expect(existing).toEqual([{ id: 'event-1', label: 'Existing event' }])
+  })
+
+  test('bounds and normalizes analyst context before prompt construction', () => {
+    const request = parseTimelineGenerationRequest({
+      behavior_title: `  ${'T'.repeat(300)}  `,
+      behavior_description: 'D'.repeat(5_000),
+      location_context: {
+        specific_locations: Array.from({ length: 30 }, (_, index) => ` Location ${index} `),
+        ignored: 'not accepted',
+      },
+      existing_timeline: [
+        { id: 'same-id', label: 'Known event' },
+        { id: 'same-id', label: 'Known event two' },
+      ],
+      ignored: 'not accepted',
+    })
+
+    expect(request?.behavior_title).toHaveLength(240)
+    expect(request?.behavior_description).toHaveLength(4_000)
+    expect(request?.location_context?.specific_locations).toHaveLength(20)
+    expect(request?.location_context?.specific_locations?.[0]).toBe('Location 0')
+    expect(request?.existing_timeline?.map(event => event.id)).toEqual(['same-id', 'same-id-2'])
+    expect(request).not.toHaveProperty('ignored')
+    expect(request?.location_context).not.toHaveProperty('ignored')
+  })
+
+  test('rejects malformed and oversized request bodies before parsing', async () => {
+    await expect(readBoundedTimelineGenerationJson(new Request('https://researchtools.test/api/ai/generate-timeline', {
+      method: 'POST',
+      body: '{invalid',
+    }))).rejects.toMatchObject({ status: 400 })
+
+    await expect(readBoundedTimelineGenerationJson(new Request('https://researchtools.test/api/ai/generate-timeline', {
+      method: 'POST',
+      body: JSON.stringify({ value: 'x'.repeat(TIMELINE_GENERATION_REQUEST_MAX_BYTES) }),
+    }))).rejects.toMatchObject({ status: 413 })
   })
 })

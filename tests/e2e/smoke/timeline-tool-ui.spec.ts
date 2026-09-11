@@ -87,10 +87,53 @@ test.describe('Timeline research tool @smoke', () => {
     await page.getByLabel('Article URL').fill(articleUrl)
     await page.getByRole('button', { name: 'Build Timeline' }).click()
 
-    await expect(page.getByText('A source-backed event occurred')).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'A source-backed event occurred' })).toBeVisible()
     expect(timelineRequest).not.toBeNull()
     expect(timelineRequest!.headers['x-guest-session']).toMatch(/^guest_[0-9a-f-]{36}$/)
     expect(timelineRequest!.body).toEqual({ schemaVersion: 'timeline-analysis.v1', url: articleUrl })
+  })
+
+  test('@smoke results can be sorted latest or oldest and include jump navigation', async ({ page }) => {
+    const sortableResponse = {
+      ...timelineResponse,
+      requestId: 'req-ui-sort',
+      events: [
+        { ...timelineResponse.events[0], eventDate: '2026-09-01', title: 'Oldest event' },
+        { ...timelineResponse.events[0], eventDate: '2026-09-03', title: 'Middle event' },
+        { ...timelineResponse.events[0], eventDate: '2026-09-08', title: 'Latest event' },
+      ],
+    }
+    await page.route('**/api/workspaces', route => route.fulfill({ status: 200, json: { owned: [], member: [] } }))
+    await page.route('**/api/tools/extract-timeline', route => route.fulfill({ status: 200, json: sortableResponse }))
+
+    await openArticleTimeline(page)
+    await page.getByLabel('Article URL').fill(articleUrl)
+    await page.getByRole('button', { name: 'Build Timeline' }).click()
+
+    await expect(page.getByLabel('Timeline sections').getByRole('link')).toHaveText(['Overview', 'Event sequence'])
+    await expect(page.getByLabel('Timeline events').getByRole('link')).toHaveText([
+      /2026-09-01.*Oldest event/,
+      /2026-09-03.*Middle event/,
+      /2026-09-08.*Latest event/,
+    ])
+    await expect(page.locator('#timeline-sequence ol h3')).toHaveText(['Oldest event', 'Middle event', 'Latest event'])
+
+    await page.getByLabel('Sort events').selectOption('latest')
+    await expect(page.getByLabel('Timeline events').getByRole('link')).toHaveText([
+      /2026-09-08.*Latest event/,
+      /2026-09-03.*Middle event/,
+      /2026-09-01.*Oldest event/,
+    ])
+    await expect(page.locator('#timeline-sequence ol h3')).toHaveText(['Latest event', 'Middle event', 'Oldest event'])
+    await expect(page.getByLabel('Timeline events').getByRole('link').first()).toHaveAttribute('href', '#timeline-event-3')
+
+    await page.getByRole('button', { name: 'Robust analyst' }).click()
+    await expect(page.getByLabel('Timeline sections').getByRole('link')).toHaveText([
+      'Overview',
+      'AI review',
+      'Event sequence',
+      'Continue investigation',
+    ])
   })
 
   test('@smoke timeline supports basic edits and robust analyst questions without changing source provenance', async ({ page }) => {
@@ -146,7 +189,7 @@ test.describe('Timeline research tool @smoke', () => {
     await page.getByLabel('Description').fill('Added manually to test the suspected lead-up.')
     await page.getByRole('button', { name: 'Save event' }).click()
 
-    await expect(page.getByText('Analyst supplied precursor')).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Analyst supplied precursor' })).toBeVisible()
     await expect(page.getByText('Analyst added')).toBeVisible()
     await expect(page.getByText('Source', { exact: true })).toBeVisible()
     await page.getByRole('button', { name: 'Actions for Analyst supplied precursor' }).click()
@@ -238,7 +281,7 @@ test.describe('Timeline research tool @smoke', () => {
 
     await page.reload()
     await page.getByRole('button', { name: 'Resume draft' }).click()
-    await expect(page.getByText('Last confirmed public report')).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Last confirmed public report' })).toBeVisible()
     await expect(page.getByText('What happened during September?')).toBeVisible()
   })
 
@@ -301,7 +344,7 @@ test.describe('Timeline research tool @smoke', () => {
       'Second-to-last event',
       'Known later event',
     ])
-    await expect(page.getByText('14:30 (date unknown)', { exact: true })).toBeVisible()
+    await expect(page.locator('#timeline-sequence').getByText('14:30 (date unknown)', { exact: true })).toBeVisible()
     await expect(page.getByText('Position 1', { exact: true })).toBeVisible()
     await expect(page.getByText('After event', { exact: true })).toBeVisible()
 
@@ -362,7 +405,7 @@ test.describe('Timeline research tool @smoke', () => {
     await page.getByText('Timeline', { exact: true }).click()
     await page.getByRole('button', { name: 'Generate Timeline' }).click()
 
-    await expect(page.getByText('A source-backed event occurred')).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'A source-backed event occurred' })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Robust analyst' })).toBeVisible()
     expect(timelineBody).not.toBeNull()
     expect(timelineBody!.schemaVersion).toBe('timeline-analysis.v1')
@@ -391,7 +434,7 @@ test.describe('Timeline research tool @smoke', () => {
     await page.getByLabel('Article URL').fill(articleUrl)
     await page.getByRole('button', { name: 'Build Timeline' }).click()
 
-    await expect(page.getByText('A source-backed event occurred')).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'A source-backed event occurred' })).toBeVisible()
     expect(requests).toHaveLength(2)
     expect(requests[0].authorization).toBe('Bearer expired-token')
     expect(requests[1].authorization).toBeUndefined()
