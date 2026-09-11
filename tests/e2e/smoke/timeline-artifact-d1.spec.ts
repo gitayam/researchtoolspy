@@ -10,6 +10,7 @@ import { onRequestGet as revisionRoute } from '../../../functions/api/timelines/
 import { hashContent,validArtifactDocument } from '../../../functions/api/_shared/timeline-artifact-contract'
 
 const migration = readFileSync(new URL('../../../schema/managed-migrations/0011_timeline_foundation.sql', import.meta.url), 'utf8')
+const snapshotMigration = readFileSync(new URL('../../../schema/managed-migrations/0012_timeline_workspace_snapshots.sql', import.meta.url), 'utf8')
 // Deliberately bounded schema-compatible prerequisites, not a full production migration rehearsal.
 const prerequisites = [
   'CREATE TABLE users(id INTEGER PRIMARY KEY,user_hash TEXT UNIQUE,role TEXT NOT NULL,is_active INTEGER NOT NULL)',
@@ -25,6 +26,7 @@ async function database() {
     await db.prepare("INSERT INTO workspaces VALUES ('workspace-a',1,0),('workspace-b',4,0),('1',1,0),('workspace-public',1,1)").run()
     await db.prepare("INSERT INTO workspace_members VALUES ('editor','workspace-a',2,'EDITOR'),('viewer','workspace-a',3,'VIEWER')").run()
     for (const statement of migration.split('-- statement\n').slice(1)) await db.prepare(statement.trim()).run()
+    await db.batch(snapshotMigration.split('-- statement\n').slice(1).map(statement=>db.prepare(statement.trim())))
     return { mf, db }
   } catch (error) { await mf.dispose(); throw error }
 }

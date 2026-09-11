@@ -1,4 +1,4 @@
-import type { TimelineWorkspaceExport } from '@/types/timeline-workspace'
+import type { TimelineWorkspaceExport } from '../types/timeline-workspace'
 import { withTimelineNarrativeDefaults } from './timeline-workspace'
 
 export const TIMELINE_IMPORT_MAX_BYTES = 4 * 1024 * 1024

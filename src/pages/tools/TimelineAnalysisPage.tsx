@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { AlertCircle, ArrowLeft, Calendar, FileSearch, Info, Loader2, PencilLine } from 'lucide-react'
@@ -7,11 +7,12 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { TimelineDurablePanel } from '@/components/timeline/TimelineDurablePanel'
 import { TimelineResults } from '@/components/timeline/TimelineResults'
 import { analyzeTimeline, TimelineAnalysisError } from '@/lib/timeline-analysis'
 import { decodeTimelineWorkspace, TIMELINE_IMPORT_MAX_BYTES } from '@/lib/timeline-workspace-codec'
 import type { TimelineAnalysisResult } from '@/types/timeline-analysis'
-import type { TimelineWorkspaceState } from '@/types/timeline-workspace'
+import type { TimelineWorkspaceExport, TimelineWorkspaceState } from '@/types/timeline-workspace'
 
 const MANUAL_DRAFT_KEY = 'researchtools.timeline.manual-draft.v1'
 const MANUAL_DRAFT_TTL_MS = 7 * 24 * 60 * 60 * 1000
@@ -139,6 +140,34 @@ export function TimelineAnalysisPage() {
       : saved
   })
   const requestRef = useRef<AbortController | null>(null)
+  const [liveWorkspace, setLiveWorkspace] = useState<TimelineWorkspaceState | undefined>()
+  const [durableGeneration, setDurableGeneration] = useState(0)
+  const remoteOpened = useRef(false)
+  const forgetRemote = useCallback(() => {
+    if (!remoteOpened.current) return
+    remoteOpened.current = false
+    setResult(null); setResultOrigin(null); setLiveWorkspace(undefined); setInitialWorkspace(undefined)
+  }, [])
+  const detachDurable = () => {
+    remoteOpened.current = false
+    setLiveWorkspace(undefined)
+    setDurableGeneration(value => value + 1)
+  }
+  const durableSnapshot = useMemo<TimelineWorkspaceExport | null>(() => result && resultOrigin && liveWorkspace ? {
+    schemaVersion: 'timeline-workspace.v1', exportedAt: new Date().toISOString(),
+    source: resultOrigin === 'manual' ? { schemaVersion: 'timeline-manual.v1', title: result.article.title } : result,
+    analystWorkspace: liveWorkspace,
+  } : null, [result, resultOrigin, liveWorkspace])
+  const openDurable = (snapshot: TimelineWorkspaceExport) => {
+    requestRef.current?.abort(); requestRef.current = null; setLoading(false)
+    remoteOpened.current = true
+    const origin = snapshot.source.schemaVersion === 'timeline-manual.v1' ? 'manual' : 'extracted'
+    const loadedResult = snapshot.source.schemaVersion === 'timeline-manual.v1' ? manualTimelineResult(snapshot.source.title) : snapshot.source
+    setResult(loadedResult); setResultOrigin(origin); setInitialWorkspace(snapshot.analystWorkspace)
+    setLiveWorkspace(snapshot.analystWorkspace); setWorkspaceGeneration(value => value + 1)
+    setEntryMode(origin === 'manual' ? 'manual' : 'article'); setUrl(loadedResult.article.url); setError(null)
+  }
+
 
   useEffect(() => {
     requestRef.current?.abort()
@@ -165,6 +194,7 @@ export function TimelineAnalysisPage() {
     }
 
     requestRef.current?.abort()
+    detachDurable()
     const controller = new AbortController()
     requestRef.current = controller
     setLoading(true)
@@ -205,6 +235,7 @@ export function TimelineAnalysisPage() {
     }
     if (manualDraft && !window.confirm('Replace the existing browser timeline draft? Export it first if you need to keep both.')) return
 
+    detachDurable()
     const nextResult = manualTimelineResult(title)
     const nextDraft: ManualTimelineDraft = {
       schemaVersion: 'timeline-browser-draft.v1',
@@ -222,6 +253,7 @@ export function TimelineAnalysisPage() {
 
   const resumeManualTimeline = () => {
     if (!manualDraft) return
+    detachDurable()
     setResult(manualDraft.result)
     setResultOrigin(manualDraft.origin ?? 'manual')
     setInitialWorkspace(manualDraft.workspace)
@@ -232,6 +264,8 @@ export function TimelineAnalysisPage() {
 
   const handleManualWorkspaceChange = useCallback((workspace: TimelineWorkspaceState) => {
     if (!result || !resultOrigin) return
+    setLiveWorkspace(workspace)
+    if (remoteOpened.current) return
     const next: ManualTimelineDraft = {
       schemaVersion: 'timeline-browser-draft.v1', result, origin: resultOrigin,
       expiresAt: new Date(Date.now() + MANUAL_DRAFT_TTL_MS).toISOString(), workspace,
@@ -244,6 +278,7 @@ export function TimelineAnalysisPage() {
     try {
       if (file.size > TIMELINE_IMPORT_MAX_BYTES) throw new Error('Timeline JSON must be 4 MiB or smaller.')
       const imported = decodeTimelineWorkspace(await file.text())
+      detachDurable()
       requestRef.current?.abort()
       requestRef.current = null
       setLoading(false)
@@ -281,8 +316,10 @@ export function TimelineAnalysisPage() {
 
       <Alert className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/40">
         <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-        <AlertDescription>No login is required. One local draft stays in this browser for 7 days. Creating, extracting or importing another timeline replaces that draft. Durable workspace saving and collaboration are not available yet; export JSON to keep or share your work.</AlertDescription>
+        <AlertDescription>No login is required. One local draft stays in this browser for 7 days. Creating, extracting or importing another timeline replaces that draft. Signed-in users can save complete timelines up to 60 KiB in a private workspace. Export JSON to keep an offline copy or larger timelines.</AlertDescription>
       </Alert>
+
+      <TimelineDurablePanel key={durableGeneration} snapshot={durableSnapshot} onOpen={openDurable} onForgetRemote={forgetRemote} />
 
       {recovery.length > 0 && <Alert variant="destructive">
         <AlertDescription className="space-y-2">

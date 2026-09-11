@@ -1,4 +1,6 @@
 import { timelineDatePrecision } from './timeline-contract'
+import { decodeTimelineWorkspace } from '../../../src/lib/timeline-workspace-codec'
+import type { TimelineWorkspaceExport } from '../../../src/types/timeline-workspace'
 
 export const ARTIFACT_LIMITS = { requestBytes: 65536, changes: 10, objects: 1000, pageSize: 100 } as const
 export type ArtifactErrorCode = 'invalid_request' | 'authentication_required' | 'human_identity_required' | 'not_found' | 'access_denied' | 'precondition_required' | 'stale_revision' | 'idempotency_conflict' | 'object_conflict' | 'limit_exceeded' | 'datastore_unavailable'
@@ -6,10 +8,12 @@ export class ArtifactError extends Error {
   constructor(public readonly code: ArtifactErrorCode, public readonly status: number) { super(code); this.name = 'ArtifactError' }
 }
 export interface CandidatePayload { title: string; description: string | null; eventDate?: string; datePrecision?: 'year' | 'month' | 'day' }
-export type ArtifactChange = { op: 'put'; objectId: string; kind: 'event-candidate.v1'; payload: CandidatePayload } | { op: 'delete'; objectId: string }
+export type ArtifactKind = 'event-candidate.v1' | 'timeline-workspace.v1'
+export const WORKSPACE_SNAPSHOT_MAX_BYTES = 60 * 1024
+export type ArtifactChange = { op: 'put'; objectId: string; kind: 'event-candidate.v1'; payload: CandidatePayload } | { op: 'put'; objectId: string; kind: 'timeline-workspace.v1'; payload: TimelineWorkspaceExport } | { op: 'delete'; objectId: string }
 export interface CreateArtifact { schemaVersion: 'timeline-artifact-create.v1'; workspaceId: string; title: string }
 export interface CommitArtifact { schemaVersion: 'timeline-artifact-commit.v1'; changes: ArtifactChange[] }
-export interface ManifestEntry { objectId: string; versionId: string; kind: 'event-candidate.v1'; tombstone: boolean; contentHash: string }
+export interface ManifestEntry { objectId: string; versionId: string; kind: ArtifactKind; tombstone: boolean; contentHash: string }
 export interface ArtifactDocument {
   schemaVersion: 'timeline-artifact.v1'; artifactId: string; workspaceId: string; title: string; branch: 'main';
   revisionId: string; sequence: number; objectCount: number; contentHash: string; createdBy: number; createdAt: string
@@ -35,6 +39,17 @@ export function validCandidate(v: unknown): v is CandidatePayload {
     && (v.description === null || (typeof v.description === 'string' && v.description.length <= 2000))
     && (v.eventDate === undefined && v.datePrecision === undefined || (timelineDatePrecision(v.eventDate) !== null && timelineDatePrecision(v.eventDate) === v.datePrecision))
 }
+/** Validate with the same codec as local import; retain the submitted shape and hash. */
+export function validArtifactPayload(kind: unknown, payload: unknown): boolean {
+  if (kind === 'event-candidate.v1') return validCandidate(payload)
+  if (kind !== 'timeline-workspace.v1') return false
+  try {
+    const serialized = canonicalJson(payload)
+    if (new TextEncoder().encode(serialized).byteLength > WORKSPACE_SNAPSHOT_MAX_BYTES) return false
+    decodeTimelineWorkspace(serialized)
+    return true
+  } catch { return false }
+}
 export function parseCreate(v: unknown): CreateArtifact {
   if (!isRecord(v) || !keys(v, ['schemaVersion', 'workspaceId', 'title']) || v.schemaVersion !== 'timeline-artifact-create.v1' || !isWorkspaceId(v.workspaceId) || !title(v.title)) throw new ArtifactError('invalid_request', 400)
   return v as unknown as CreateArtifact
@@ -46,7 +61,7 @@ export function parseCommit(v: unknown): CommitArtifact {
     if (!isRecord(c) || !isStableObjectId(c.objectId) || seen.has(c.objectId)) throw new ArtifactError('invalid_request', 400)
     seen.add(c.objectId)
     if (c.op === 'delete' && keys(c, ['op', 'objectId'])) continue
-    if (c.op !== 'put' || !keys(c, ['op', 'objectId', 'kind', 'payload']) || c.kind !== 'event-candidate.v1' || !validCandidate(c.payload)) throw new ArtifactError('invalid_request', 400)
+    if (c.op !== 'put' || !keys(c, ['op', 'objectId', 'kind', 'payload']) || !validArtifactPayload(c.kind,c.payload)) throw new ArtifactError('invalid_request', 400)
   }
   return v as unknown as CommitArtifact
 }

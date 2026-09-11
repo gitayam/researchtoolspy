@@ -1,4 +1,4 @@
-import type { TimelineWorkspaceEvent, TimelineEventPlacement, TimelineWorkspaceState } from '@/types/timeline-workspace'
+import type { TimelineWorkspaceEvent, TimelineEventPlacement, TimelineWorkspaceState } from '../types/timeline-workspace'
 
 export const timelineEventAnchor = (id: string) => `timeline-event-${encodeURIComponent(id)}`
 export const timelineChapterAnchor = (id: string) => `timeline-chapter-${encodeURIComponent(id)}`

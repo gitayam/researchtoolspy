@@ -1,9 +1,9 @@
 import { requireTimelineHuman, requireTimelineWorkspace, type HumanPrincipal, type TimelineArtifactEnv } from './timeline-artifact-auth'
-import { ARTIFACT_LIMITS, ArtifactError, artifactResponse, boundedBody, canonicalJson, decodeCursor, encodeCursor, expectedHead, hashContent, idempotencyKey, isObjectId, isStableObjectId, pageQuery, parseCommit, parseCreate, validCandidate, validArtifactDocument, type ArtifactDocument, type ManifestEntry } from './timeline-artifact-contract'
+import { ARTIFACT_LIMITS, ArtifactError, artifactResponse, boundedBody, canonicalJson, decodeCursor, encodeCursor, expectedHead, hashContent, idempotencyKey, isObjectId, isStableObjectId, pageQuery, parseCommit, parseCreate, validArtifactPayload, validArtifactDocument, type ArtifactDocument, type ManifestEntry, type ArtifactKind } from './timeline-artifact-contract'
 
 interface ArtifactRow { workspace_id: string; id: string; title: string; created_by: number; created_at: string; head_revision_id: string }
 interface RevisionRow { id: string; sequence: number; expected_head: string | null; object_count: number; change_count: number; content_hash: string; created_by: number; created_at: string }
-interface VersionRow { object_id: string; version_id: string; schema_version: 'event-candidate.v1'; tombstone: number; content_hash: string; payload_json: string | null }
+interface VersionRow { object_id: string; version_id: string; schema_version: ArtifactKind; tombstone: number; content_hash: string; payload_json: string | null }
 interface ReplayRow { request_hash: string; response_json: string; response_status: number; artifact_id: string; revision_id: string }
 const uid = (prefix: string) => `${prefix}_${crypto.randomUUID()}`
 const manifestEntry = (row: VersionRow): ManifestEntry => ({ objectId: row.object_id, versionId: row.version_id, kind: row.schema_version, tombstone: row.tombstone === 1, contentHash: row.content_hash })
@@ -111,13 +111,15 @@ export async function commitTimelineArtifact(request: Request, env: TimelineArti
   for (const change of input.changes) {
     const before = manifest.get(change.objectId)
     if (before?.tombstone || (change.op === 'delete' && !before)) throw new ArtifactError('object_conflict',409)
-    if (!before) versionStatements.push(env.DB.prepare('INSERT INTO timeline_objects VALUES (?,?,?,?,?,?)').bind(artifact.workspace_id,artifactId,change.objectId,'event-candidate.v1',user.userId,now))
+    if (before && change.op === 'put' && before.kind !== change.kind) throw new ArtifactError('object_conflict',409)
+    const kind = change.op === 'put' ? change.kind : before!.kind
+    if (!before) versionStatements.push(env.DB.prepare('INSERT INTO timeline_objects VALUES (?,?,?,?,?,?)').bind(artifact.workspace_id,artifactId,change.objectId,kind,user.userId,now))
     const tombstone = change.op === 'delete'
     const payload = change.op === 'put' ? change.payload : null
     const versionId = uid('version')
-    const contentHash = await hashContent({ schemaVersion: 'event-candidate.v1', tombstone, payload })
-    manifest.set(change.objectId,{ objectId: change.objectId, versionId, kind: 'event-candidate.v1', tombstone, contentHash })
-    versionStatements.push(env.DB.prepare('INSERT INTO timeline_object_versions VALUES (?,?,?,?,?,?,?,?,?,?)').bind(artifact.workspace_id,artifactId,change.objectId,versionId,'event-candidate.v1',Number(tombstone),payload === null ? null : canonicalJson(payload),contentHash,user.userId,now))
+    const contentHash = await hashContent({ schemaVersion: kind, tombstone, payload })
+    manifest.set(change.objectId,{ objectId: change.objectId, versionId, kind, tombstone, contentHash })
+    versionStatements.push(env.DB.prepare('INSERT INTO timeline_object_versions VALUES (?,?,?,?,?,?,?,?,?,?)').bind(artifact.workspace_id,artifactId,change.objectId,versionId,kind,Number(tombstone),payload === null ? null : canonicalJson(payload),contentHash,user.userId,now))
     changeStatements.push(env.DB.prepare('INSERT INTO timeline_revision_changes VALUES (?,?,?,?,?,?,?)').bind(artifact.workspace_id,artifactId,revisionId,change.objectId,tombstone ? 'tombstone' : before ? 'revise' : 'create',before?.versionId ?? null,versionId))
   }
   if (manifest.size > ARTIFACT_LIMITS.objects) throw new ArtifactError('limit_exceeded',409)
@@ -154,12 +156,14 @@ export async function readTimelineArtifact(request: Request, env: TimelineArtifa
   const rev = await revision(env,artifact,artifact.head_revision_id)
   return artifactResponse(document(artifact,rev),200,rev.id)
 }
-function objectDocument(row: VersionRow) {
+async function objectDocument(row: VersionRow) {
+  if (!['event-candidate.v1','timeline-workspace.v1'].includes(row.schema_version) || ![0,1].includes(row.tombstone) || (row.tombstone === 1 && row.payload_json !== null)) throw new ArtifactError('datastore_unavailable',503)
   let payload: unknown = null
   if (row.tombstone !== 1) {
     try { payload = JSON.parse(row.payload_json ?? '') } catch { throw new ArtifactError('datastore_unavailable',503) }
-    if (!validCandidate(payload)) throw new ArtifactError('datastore_unavailable',503)
+    if (!validArtifactPayload(row.schema_version,payload)) throw new ArtifactError('datastore_unavailable',503)
   }
+  if (await hashContent({schemaVersion:row.schema_version,tombstone:row.tombstone===1,payload}) !== row.content_hash) throw new ArtifactError('datastore_unavailable',503)
   return { ...manifestEntry(row), payload }
 }
 export async function readTimelineObjects(request: Request, env: TimelineArtifactEnv, artifactId: string): Promise<Response> {
@@ -176,7 +180,7 @@ export async function readTimelineObjects(request: Request, env: TimelineArtifac
   const result = await env.DB.prepare(`${versionSelect} WHERE m.workspace_id=? AND m.artifact_id=? AND m.revision_id=? AND m.object_id>? ORDER BY m.object_id LIMIT ?`).bind(artifact.workspace_id,artifactId,revisionId,after,limit+1).all<VersionRow>()
   const page = result.results.slice(0,limit)
   const nextCursor = result.results.length > limit ? encodeCursor({ v: 1, sort: 'object-id-asc', artifactId, revisionId, after: page[page.length-1].object_id }) : null
-  return artifactResponse({ schemaVersion: 'timeline-object-page.v1', artifactId, revisionId, objects: page.map(objectDocument), nextCursor },200,revisionId)
+  return artifactResponse({ schemaVersion: 'timeline-object-page.v1', artifactId, revisionId, objects: await Promise.all(page.map(objectDocument)), nextCursor },200,revisionId)
 }
 export async function readTimelineRevisions(request: Request, env: TimelineArtifactEnv, artifactId: string): Promise<Response> {
   const user = await requireTimelineHuman(request,env)
