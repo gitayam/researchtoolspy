@@ -163,6 +163,14 @@ legacy user-authenticated calls.
 
 ## Timeline analysis
 
+Reusable v1 materials: [JSON Schema](./schemas/timeline-analysis.v1.schema.json),
+[service error schema](./schemas/integration-error.v1.schema.json),
+[OpenAPI operation and discovery](./openapi/timeline-analysis.v1.json), and
+[generic server client](../../examples/timeline-client/README.md).
+The [frozen synthetic corpus](../../benchmarks/timeline/corpus-v1/manifest.json)
+reproduces contract behavior; it does not establish historical extraction quality.
+
+
 ```http
 POST /api/tools/extract-timeline
 Authorization: Bearer rt_svc_<client-id>.<secret>

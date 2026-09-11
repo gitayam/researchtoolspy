@@ -26,6 +26,6 @@
   "verifyCommand": [
     "/usr/bin/env",
     "node",
-    "--version"
+    "scripts/verify-timeline.mjs"
   ]
 }

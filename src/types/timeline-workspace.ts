@@ -7,6 +7,22 @@ import type {
 } from './timeline-analysis'
 
 export type TimelineWorkspaceMode = 'basic' | 'robust'
+export type TimelineNarrativeRole = 'context' | 'buildup' | 'turning_point' | 'response' | 'consequence' | 'resolution'
+export interface TimelineNarrativeChapter {
+  id: string
+  title: string
+  claim: string
+}
+export interface TimelineNarrative {
+  title: string
+  framing: string
+  question: string
+  intendedUse: string
+  scope: string
+  timezone: string
+  dataThrough: string
+  chapters: TimelineNarrativeChapter[]
+}
 export type TimelineEventAssessment = 'unreviewed' | 'corroborated' | 'disputed' | 'hypothesis'
 export type TimelineQuestionStatus = 'open' | 'answered'
 export type TimelineEventPlacement =
@@ -36,6 +52,12 @@ export interface TimelineWorkspaceEvent {
   sequenceOrder?: number
   placement?: TimelineEventPlacement
   original?: TimelineEvent
+  narrativeIncluded?: boolean
+  narrativeRole?: TimelineNarrativeRole
+  whyItMatters?: string
+  transition?: string
+  chapterId?: string
+  narrativeOrder?: number
 }
 
 export interface TimelineWorkspaceQuestion {
@@ -62,6 +84,9 @@ export interface TimelineWorkspaceState {
   events: TimelineWorkspaceEvent[]
   questions: TimelineWorkspaceQuestion[]
   hypotheses: TimelineWorkspaceHypothesis[]
+  narrative?: TimelineNarrative
+  presentation?: 'analyst' | 'narrative'
+  sortDirection?: 'oldest' | 'latest'
 }
 
 export interface TimelineManualSource {

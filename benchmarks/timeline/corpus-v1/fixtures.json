@@ -1,0 +1,65 @@
+{
+  "schemaVersion": "timeline-regression-fixtures.v1",
+  "fixtures": [
+    {
+      "id": "precision-and-dedup",
+      "request": { "schemaVersion": "timeline-analysis.v1", "url": "https://publisher.example/synthetic-chronology", "content": { "source": "publisher-feed", "title": "Synthetic archive chronology", "publishedAt": "2026-09-11", "text": "In 2024 the fictional Harbor Archive opened a reading room. Its custodians describe that year as the beginning of public access, without identifying a particular month or day. In September 2026 the archive announced a catalog review. On September 10, 2026 the archive published the first catalog. The publication describes storage practices, lists collection categories, explains how readers can request materials, and offers general guidance for visitors. This invented account is a software fixture, not a report about an actual institution. Repeated references to the catalog publication describe the same event and should not create separate events." } },
+      "modelPayload": { "events": [
+        { "event_date": "2026-09-10", "title": "Catalog published", "description": "The fictional archive published its first catalog.", "category": "publication", "importance": "high" },
+        { "event_date": "2024", "title": "Reading room opened", "description": "Only the year is known.", "category": "event", "importance": "normal" },
+        { "event_date": "2026-09", "title": "Catalog review announced", "description": null, "category": "event", "importance": "normal" },
+        { "event_date": "2026-09-10", "title": " catalog   published ", "category": "publication", "importance": "high" },
+        { "event_date": "2026-02-30", "title": "Impossible date" }
+      ] },
+      "expected": { "status": "ok", "rejectedEventCount": 2, "events": [
+        { "eventDate": "2024", "datePrecision": "year", "title": "Reading room opened", "description": "Only the year is known.", "category": "event", "importance": "normal" },
+        { "eventDate": "2026-09", "datePrecision": "month", "title": "Catalog review announced", "description": null, "category": "event", "importance": "normal" },
+        { "eventDate": "2026-09-10", "datePrecision": "day", "title": "Catalog published", "description": "The fictional archive published its first catalog.", "category": "publication", "importance": "high" }
+      ] },
+      "requiredAssertions": [
+        { "eventDate": "2024", "title": "Reading room opened", "precision": "year", "evidenceQuote": "In 2024 the fictional Harbor Archive opened a reading room." },
+        { "eventDate": "2026-09", "title": "Catalog review announced", "precision": "month", "evidenceQuote": "In September 2026 the archive announced a catalog review." },
+        { "eventDate": "2026-09-10", "title": "Catalog published", "precision": "day", "evidenceQuote": "On September 10, 2026 the archive published the first catalog." }
+      ]
+    },
+    {
+      "id": "no-datable-events",
+      "request": { "schemaVersion": "timeline-analysis.v1", "url": "https://publisher.example/synthetic-undated", "content": { "source": "publisher-feed", "title": "Undated archive guide", "text": "The fictional Harbor Archive provides a general guide to its reading room. Visitors can consult printed catalogs, request boxes from the desk, and ask custodians about preservation practices. The guide describes quiet study areas and explains how to handle fragile pages. It discusses collection categories without describing a dated occurrence. The material offers background instructions rather than a chronology. Readers are encouraged to record catalog references and preserve the order of loose sheets. None of these instructions establishes when an event happened. This invented text is intended only to exercise the empty event response in a software test." } },
+      "modelPayload": { "events": [] },
+      "expected": { "status": "no_events", "rejectedEventCount": 0, "events": [] },
+      "requiredAssertions": []
+    },
+    {
+      "id": "invalid-model-date",
+      "request": { "schemaVersion": "timeline-analysis.v1", "url": "https://publisher.example/synthetic-invalid", "content": { "source": "publisher-feed", "title": "Malformed model output fixture", "text": "The fictional Harbor Archive provides a general guide to its reading room. Visitors can consult printed catalogs, request boxes from the desk, and ask custodians about preservation practices. The guide describes quiet study areas and explains how to handle fragile pages. It discusses collection categories without describing a dated occurrence. The material offers background instructions rather than a chronology. Readers are encouraged to record catalog references and preserve the order of loose sheets. None of these instructions establishes when an event happened. This invented text is intended only to exercise rejection of an impossible model supplied calendar date." } },
+      "modelPayload": { "events": [{ "event_date": "2026-02-29", "title": "Invented impossible event" }] },
+      "expected": { "status": "invalid_output", "rejectedEventCount": 1, "events": [] },
+      "requiredAssertions": []
+    }
+  ],
+  "successResponse": {
+    "schemaVersion": "timeline-analysis.v1", "requestId": "req-synthetic-fixture", "outcome": "events",
+    "article": { "url": "https://publisher.example/synthetic-chronology", "title": "Synthetic archive chronology", "domain": "publisher.example", "publishedAt": "2026-09-11" },
+    "events": [
+      { "eventDate": "2024", "datePrecision": "year", "title": "Reading room opened", "description": "Only the year is known.", "category": "event", "importance": "normal" },
+      { "eventDate": "2026-09", "datePrecision": "month", "title": "Catalog review announced", "description": null, "category": "event", "importance": "normal" },
+      { "eventDate": "2026-09-10", "datePrecision": "day", "title": "Catalog published", "description": "The fictional archive published its first catalog.", "category": "publication", "importance": "high" }
+    ],
+    "extraction": { "contentSource": "publisher-feed", "sourceMode": "supplied", "method": "caller-supplied", "wordCount": 97, "quality": { "version": "analysis-candidate.v1", "score": 100, "accepted": true }, "fallbackAttempts": ["publisher-feed"] },
+    "model": { "name": "gpt-5.4-mini", "status": "ok", "rejectedEventCount": 2 }
+  },
+  "serviceErrors": [
+    { "status": 400, "code": "invalid_request", "retryable": false },
+    { "status": 401, "code": "authentication_required", "retryable": false },
+    { "status": 401, "code": "invalid_service_token", "retryable": false },
+    { "status": 401, "code": "expired_service_token", "retryable": false },
+    { "status": 403, "code": "scope_denied", "retryable": false },
+    { "status": 403, "code": "workspace_denied", "retryable": false },
+    { "status": 405, "code": "method_not_allowed", "retryable": false },
+    { "status": 413, "code": "invalid_request", "retryable": false },
+    { "status": 422, "code": "content_unavailable", "retryable": false },
+    { "status": 500, "code": "internal_error", "retryable": true },
+    { "status": 502, "code": "upstream_invalid_response", "retryable": true },
+    { "status": 503, "code": "auth_datastore_unavailable", "retryable": true }
+  ]
+}

@@ -1,0 +1,81 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://researchtools.net/contracts/timeline-analysis.v1.schema.json",
+  "title": "Timeline analysis v1 success response",
+  "description": "The root validates success responses. Request schema is definitions/request. Calendar semantics, UTF-8 byte budgets and outbound URL/DNS policy require application checks; maxLength counts Unicode code points while the endpoint's title/description limits use JavaScript UTF-16 code units. Additive response fields are allowed.",
+  "$ref": "#/definitions/response",
+  "definitions": {
+    "date": { "type": "string", "pattern": "^[1-9][0-9]{3}(-(0[1-9]|1[0-2])(-(0[1-9]|[12][0-9]|3[01]))?)?$", "description": "Calendar-valid year, month or day, year >= 1000. Impossible calendar days must additionally be rejected at runtime." },
+    "url": { "type": "string", "format": "uri", "pattern": "^https?://", "description": "A safe public HTTP(S) URL on its default port with no credentials. Server enforces literal, DNS and redirect safety." },
+    "request": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schemaVersion", "url"],
+      "x-maxUtf8Bytes": 114688,
+      "properties": {
+        "schemaVersion": { "const": "timeline-analysis.v1" },
+        "url": { "$ref": "#/definitions/url" },
+        "content": {
+          "type": "object", "additionalProperties": false, "required": ["text", "source"],
+          "properties": {
+            "text": { "type": "string", "x-maxUtf8Bytes": 102400, "description": "100 KiB UTF-8, not a character limit. Still subject to analysis-grade quality assessment." },
+            "title": { "type": "string", "maxLength": 500, "x-maxUtf16CodeUnits": 500 },
+            "publishedAt": { "type": "string", "description": "Trimmed calendar-valid YYYY, YYYY-MM or YYYY-MM-DD; strict ISO timestamps normalize to the literal date portion, not UTC conversion.", "anyOf": [{ "pattern": "^\\s*[1-9][0-9]{3}(-(0[1-9]|1[0-2])(-(0[1-9]|[12][0-9]|3[01]))?)?\\s*$" }, { "pattern": "^\\s*[1-9][0-9]{3}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])[Tt]([01][0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9](\\.[0-9]{1,9})?)?([Zz]|[+-]([01][0-9]|2[0-3]):[0-5][0-9])\\s*$" }] },
+            "source": { "enum": ["bot-scrape", "content-intelligence", "publisher-feed", "browser-render"] }
+          }
+        }
+      }
+    },
+    "event": {
+      "type": "object", "required": ["eventDate", "datePrecision", "title", "description", "category", "importance"],
+      "properties": {
+        "eventDate": { "$ref": "#/definitions/date" },
+        "datePrecision": { "enum": ["year", "month", "day"] },
+        "title": { "type": "string", "minLength": 1, "maxLength": 200, "pattern": "\\S", "x-maxUtf16CodeUnits": 200 },
+        "description": { "type": ["string", "null"], "maxLength": 500, "x-maxUtf16CodeUnits": 500 },
+        "category": { "enum": ["event", "meeting", "communication", "financial", "legal", "travel", "publication", "military", "political"] },
+        "importance": { "enum": ["low", "normal", "high", "critical"] }
+      },
+      "allOf": [
+        { "if": { "properties": { "datePrecision": { "const": "year" } } }, "then": { "properties": { "eventDate": { "pattern": "^[0-9]{4}$" } } } },
+        { "if": { "properties": { "datePrecision": { "const": "month" } } }, "then": { "properties": { "eventDate": { "pattern": "^[0-9]{4}-[0-9]{2}$" } } } },
+        { "if": { "properties": { "datePrecision": { "const": "day" } } }, "then": { "properties": { "eventDate": { "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" } } } }
+      ]
+    },
+    "response": {
+      "type": "object", "required": ["schemaVersion", "requestId", "outcome", "article", "events", "extraction", "model"],
+      "properties": {
+        "schemaVersion": { "const": "timeline-analysis.v1" },
+        "requestId": { "type": "string", "minLength": 1 },
+        "outcome": { "enum": ["events", "no_events"] },
+        "article": {
+          "type": "object", "required": ["url", "title", "domain"],
+          "properties": {
+            "url": { "$ref": "#/definitions/url" }, "title": { "type": "string", "pattern": "\\S" }, "domain": { "type": "string", "pattern": "\\S" }, "publishedAt": { "$ref": "#/definitions/date" }
+          }
+        },
+        "events": { "type": "array", "maxItems": 100, "items": { "$ref": "#/definitions/event" } },
+        "extraction": {
+          "type": "object", "required": ["contentSource", "sourceMode", "wordCount", "quality", "fallbackAttempts"],
+          "properties": {
+            "contentSource": { "type": "string", "minLength": 1 },
+            "sourceMode": { "enum": ["live", "supplied", "archive", "provider"] },
+            "method": { "type": "string" }, "wordCount": { "type": "integer", "minimum": 0 },
+            "quality": {
+              "type": "object", "required": ["version", "score", "accepted"],
+              "properties": { "version": { "type": "string", "minLength": 1 }, "score": { "type": "number", "minimum": 0, "maximum": 100 }, "accepted": { "const": true }, "reason": { "type": "string" } }
+            },
+            "fallbackAttempts": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "model": {
+          "type": "object", "required": ["name", "status", "rejectedEventCount"],
+          "properties": { "name": { "type": "string", "minLength": 1 }, "status": { "enum": ["ok", "no_events"] }, "rejectedEventCount": { "type": "integer", "minimum": 0 } }
+        }
+      },
+      "allOf": [
+        { "if": { "properties": { "outcome": { "const": "events" } } }, "then": { "properties": { "events": { "minItems": 1 }, "model": { "properties": { "status": { "const": "ok" } } } } } },
+        { "if": { "properties": { "outcome": { "const": "no_events" } } }, "then": { "properties": { "events": { "maxItems": 0 }, "model": { "properties": { "status": { "const": "no_events" } } } } } }
+      ]
+    }
+  }
+}

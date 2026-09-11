@@ -125,7 +125,7 @@ test.describe('Timeline research tool @smoke', () => {
       /2026-09-01.*Oldest event/,
     ])
     await expect(page.locator('#timeline-sequence ol h3')).toHaveText(['Latest event', 'Middle event', 'Oldest event'])
-    await expect(page.getByLabel('Timeline events').getByRole('link').first()).toHaveAttribute('href', '#timeline-event-3')
+    await expect(page.getByLabel('Timeline events').getByRole('link').first()).toHaveAttribute('href', '#timeline-event-source-req-ui-sort-2')
 
     await page.getByRole('button', { name: 'Robust analyst' }).click()
     await expect(page.getByLabel('Timeline sections').getByRole('link')).toHaveText([
@@ -182,7 +182,7 @@ test.describe('Timeline research tool @smoke', () => {
     await expect(page.getByLabel('Relation')).toHaveValue('before')
     await expect(page.getByLabel('Reference event')).toHaveValue('source-req-ui-smoke-0')
     await page.getByLabel('Date').fill('2026-02-31')
-    await page.getByLabel('Title').fill('Analyst supplied precursor')
+    await page.getByRole('dialog').getByLabel('Title', { exact: true }).fill('Analyst supplied precursor')
     await page.getByRole('button', { name: 'Save event' }).click()
     await expect(page.getByRole('alert')).toContainText('Use a real date')
     await page.getByLabel('Date').fill('2026-09-01')
@@ -261,7 +261,7 @@ test.describe('Timeline research tool @smoke', () => {
     await page.getByRole('button', { name: 'Add first event' }).click()
     const eventDialog = page.getByRole('dialog')
     await eventDialog.getByLabel('Date').fill('2026-09-01')
-    await eventDialog.getByLabel('Title').fill('Last confirmed public report')
+    await eventDialog.getByLabel('Title', { exact: true }).fill('Last confirmed public report')
     await page.getByRole('button', { name: 'Save event' }).click()
 
     await page.getByRole('button', { name: 'Add question', exact: true }).click()
@@ -293,33 +293,33 @@ test.describe('Timeline research tool @smoke', () => {
 
     await page.getByRole('button', { name: 'Add first event' }).click()
     await page.getByLabel('Date').fill('2026-09-01')
-    await page.getByLabel('Title').fill('Known first event')
+    await page.getByRole('dialog').getByLabel('Title', { exact: true }).fill('Known first event')
     await page.getByRole('button', { name: 'Save event' }).click()
 
     await page.getByRole('button', { name: 'Add event', exact: true }).click()
     await page.getByLabel('Date').fill('2026-09-10')
     await page.getByRole('dialog').getByLabel('Time', { exact: true }).fill('18:15')
-    await page.getByLabel('Title').fill('Known later event')
+    await page.getByRole('dialog').getByLabel('Title', { exact: true }).fill('Known later event')
     await page.getByRole('button', { name: 'Save event' }).click()
 
     await page.getByRole('button', { name: 'Add event', exact: true }).click()
     await page.getByLabel('Placement').selectOption('position')
     await page.getByLabel('Sequence position').selectOption('first')
-    await page.getByLabel('Title').fill('Sequence-only opening event')
+    await page.getByRole('dialog').getByLabel('Title', { exact: true }).fill('Sequence-only opening event')
     await page.getByRole('button', { name: 'Save event' }).click()
 
     await page.getByRole('button', { name: 'Actions for Known first event' }).click()
     await page.getByRole('menuitem', { name: 'Add event after' }).click()
     await expect(page.getByLabel('Placement')).toHaveValue('relative')
     await page.getByRole('dialog').getByLabel('Time (optional)', { exact: true }).fill('14:30')
-    await page.getByLabel('Title').fill('Time-only relative event')
+    await page.getByRole('dialog').getByLabel('Title', { exact: true }).fill('Time-only relative event')
     await page.getByRole('button', { name: 'Save event' }).click()
 
     await page.getByRole('button', { name: 'Add event', exact: true }).click()
     await page.getByLabel('Placement').selectOption('position')
     await page.getByLabel('Sequence position').selectOption('custom')
     await page.getByLabel('Position number').fill('2')
-    await page.getByLabel('Title').fill('Exact second event')
+    await page.getByRole('dialog').getByLabel('Title', { exact: true }).fill('Exact second event')
     await page.getByRole('button', { name: 'Save event' }).click()
 
     await page.getByRole('button', { name: 'Add event', exact: true }).click()
@@ -333,7 +333,7 @@ test.describe('Timeline research tool @smoke', () => {
       'Exact position…',
     ])
     await page.getByLabel('Sequence position').selectOption('second_to_last')
-    await page.getByLabel('Title').fill('Second-to-last event')
+    await page.getByRole('dialog').getByLabel('Title', { exact: true }).fill('Second-to-last event')
     await page.getByRole('button', { name: 'Save event' }).click()
 
     await expect(page.locator('ol h3')).toHaveText([

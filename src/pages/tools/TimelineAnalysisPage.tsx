@@ -9,17 +9,40 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { TimelineResults } from '@/components/timeline/TimelineResults'
 import { analyzeTimeline, TimelineAnalysisError } from '@/lib/timeline-analysis'
+import { decodeTimelineWorkspace, TIMELINE_IMPORT_MAX_BYTES } from '@/lib/timeline-workspace-codec'
 import type { TimelineAnalysisResult } from '@/types/timeline-analysis'
 import type { TimelineWorkspaceState } from '@/types/timeline-workspace'
 
 const MANUAL_DRAFT_KEY = 'researchtools.timeline.manual-draft.v1'
 const MANUAL_DRAFT_TTL_MS = 7 * 24 * 60 * 60 * 1000
+const RECOVERY_PREFIX = 'researchtools.timeline.recovery.v1.'
+let protectedDraftRaw: string | null = null
+
+function recoveryDrafts(): Array<{ key: string, raw: string }> {
+  try {
+    return Object.keys(window.localStorage).filter(key => key.startsWith(RECOVERY_PREFIX))
+      .map(key => ({ key, raw: window.localStorage.getItem(key)! }))
+  } catch { return [] }
+}
+
+function preserveUnreadableDraft(raw: string): boolean {
+  protectedDraftRaw = raw
+  try {
+    if (!recoveryDrafts().some(item => item.raw === raw)) {
+      const key = `${RECOVERY_PREFIX}${Date.now()}-${crypto.randomUUID()}`
+      window.localStorage.setItem(key, raw)
+      if (window.localStorage.getItem(key) !== raw) return false
+    }
+    return true
+  } catch { return false }
+}
 
 interface ManualTimelineDraft {
   schemaVersion: 'timeline-browser-draft.v1'
   expiresAt: string
   result: TimelineAnalysisResult
   workspace: TimelineWorkspaceState
+  origin?: 'manual' | 'extracted'
 }
 
 function createRequestId(): string {
@@ -54,10 +77,15 @@ function manualTimelineResult(title: string): TimelineAnalysisResult {
 
 function readManualDraft(): ManualTimelineDraft | null {
   if (typeof window === 'undefined') return null
+  let raw: string | null = null
   try {
-    const raw = window.localStorage.getItem(MANUAL_DRAFT_KEY)
+    raw = window.localStorage.getItem(MANUAL_DRAFT_KEY)
     if (!raw) return null
     const candidate = JSON.parse(raw) as ManualTimelineDraft
+    if (typeof candidate?.expiresAt === 'string' && Number.isFinite(Date.parse(candidate.expiresAt)) && Date.parse(candidate.expiresAt) <= Date.now()) {
+      window.localStorage.removeItem(MANUAL_DRAFT_KEY)
+      return null
+    }
     const valid = candidate?.schemaVersion === 'timeline-browser-draft.v1'
       && Date.parse(candidate.expiresAt) > Date.now()
       && candidate.result?.schemaVersion === 'timeline-analysis.v1'
@@ -66,16 +94,24 @@ function readManualDraft(): ManualTimelineDraft | null {
       && Array.isArray(candidate.workspace.events)
       && Array.isArray(candidate.workspace.questions)
       && Array.isArray(candidate.workspace.hypotheses)
-    if (valid) return candidate
-    window.localStorage.removeItem(MANUAL_DRAFT_KEY)
+    if (valid && (candidate.origin === undefined || candidate.origin === 'manual' || candidate.origin === 'extracted')) {
+      const decoded = decodeTimelineWorkspace(JSON.stringify({
+        schemaVersion: 'timeline-workspace.v1', exportedAt: new Date().toISOString(),
+        source: candidate.origin === 'extracted' ? candidate.result : { schemaVersion: 'timeline-manual.v1', title: candidate.result.article.title },
+        analystWorkspace: candidate.workspace,
+      }))
+      return { ...candidate, workspace: decoded.analystWorkspace }
+    }
+    preserveUnreadableDraft(raw)
   } catch {
-    window.localStorage.removeItem(MANUAL_DRAFT_KEY)
+    if (raw) preserveUnreadableDraft(raw)
   }
   return null
 }
 
 function writeManualDraft(draft: ManualTimelineDraft): boolean {
   try {
+    if (protectedDraftRaw && !preserveUnreadableDraft(protectedDraftRaw)) return false
     window.localStorage.setItem(MANUAL_DRAFT_KEY, JSON.stringify(draft))
     return true
   } catch {
@@ -94,6 +130,14 @@ export function TimelineAnalysisPage() {
   const [resultOrigin, setResultOrigin] = useState<'manual' | 'extracted' | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [initialWorkspace, setInitialWorkspace] = useState<TimelineWorkspaceState | undefined>()
+  const [workspaceGeneration, setWorkspaceGeneration] = useState(0)
+  const [recovery] = useState(() => {
+    const saved = recoveryDrafts()
+    return protectedDraftRaw && !saved.some(item => item.raw === protectedDraftRaw)
+      ? [...saved, { key: 'original-draft', raw: protectedDraftRaw }]
+      : saved
+  })
   const requestRef = useRef<AbortController | null>(null)
 
   useEffect(() => {
@@ -127,6 +171,7 @@ export function TimelineAnalysisPage() {
     setError(null)
     setResult(null)
     setResultOrigin(null)
+    setInitialWorkspace(undefined)
     try {
       const nextResult = await analyzeTimeline({ url: target }, { signal: controller.signal })
       if (!controller.signal.aborted) {
@@ -169,6 +214,7 @@ export function TimelineAnalysisPage() {
     }
     const savedLocally = writeManualDraft(nextDraft)
     setManualDraft(nextDraft)
+    setInitialWorkspace(nextDraft.workspace)
     setResult(nextResult)
     setResultOrigin('manual')
     setError(savedLocally ? null : 'The timeline is open, but this browser could not save the local draft. Export JSON before leaving.')
@@ -177,23 +223,49 @@ export function TimelineAnalysisPage() {
   const resumeManualTimeline = () => {
     if (!manualDraft) return
     setResult(manualDraft.result)
-    setResultOrigin('manual')
-    setEntryMode('manual')
+    setResultOrigin(manualDraft.origin ?? 'manual')
+    setInitialWorkspace(manualDraft.workspace)
+    setWorkspaceGeneration(current => current + 1)
+    setEntryMode(manualDraft.origin === 'extracted' ? 'article' : 'manual')
     setError(null)
   }
 
   const handleManualWorkspaceChange = useCallback((workspace: TimelineWorkspaceState) => {
-    setManualDraft(current => {
-      if (!current) return current
-      const next: ManualTimelineDraft = {
-        ...current,
-        expiresAt: new Date(Date.now() + MANUAL_DRAFT_TTL_MS).toISOString(),
-        workspace,
+    if (!result || !resultOrigin) return
+    const next: ManualTimelineDraft = {
+      schemaVersion: 'timeline-browser-draft.v1', result, origin: resultOrigin,
+      expiresAt: new Date(Date.now() + MANUAL_DRAFT_TTL_MS).toISOString(), workspace,
+    }
+    setManualDraft(next)
+    if (!writeManualDraft(next)) setError('The timeline is open, but this browser could not save the local draft. Export JSON before leaving.')
+  }, [result, resultOrigin])
+
+  const importWorkspace = async (file: File) => {
+    try {
+      if (file.size > TIMELINE_IMPORT_MAX_BYTES) throw new Error('Timeline JSON must be 4 MiB or smaller.')
+      const imported = decodeTimelineWorkspace(await file.text())
+      requestRef.current?.abort()
+      requestRef.current = null
+      setLoading(false)
+      const origin = imported.source.schemaVersion === 'timeline-manual.v1' ? 'manual' : 'extracted'
+      const nextResult = imported.source.schemaVersion === 'timeline-manual.v1' ? manualTimelineResult(imported.source.title) : imported.source
+      const draft: ManualTimelineDraft = {
+        schemaVersion: 'timeline-browser-draft.v1', expiresAt: new Date(Date.now() + MANUAL_DRAFT_TTL_MS).toISOString(),
+        result: nextResult, origin, workspace: imported.analystWorkspace,
       }
-      writeManualDraft(next)
-      return next
-    })
-  }, [])
+      const saved = writeManualDraft(draft)
+      setManualDraft(draft)
+      setResult(nextResult)
+      setResultOrigin(origin)
+      setInitialWorkspace(imported.analystWorkspace)
+      setWorkspaceGeneration(current => current + 1)
+      setEntryMode(origin === 'manual' ? 'manual' : 'article')
+      setUrl(nextResult.article.url)
+      setError(saved ? null : 'Imported timeline is open, but local saving failed. Export JSON before leaving.')
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Unable to import this timeline.')
+    }
+  }
 
   return (
     <div className="mx-auto w-full max-w-6xl space-y-6 py-8">
@@ -209,8 +281,33 @@ export function TimelineAnalysisPage() {
 
       <Alert className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/40">
         <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-        <AlertDescription>No login is required. One manual draft stays in this browser for 7 days. Workspace saving and collaboration are not available yet; export JSON to keep or share your work.</AlertDescription>
+        <AlertDescription>No login is required. One local draft stays in this browser for 7 days. Creating, extracting or importing another timeline replaces that draft. Durable workspace saving and collaboration are not available yet; export JSON to keep or share your work.</AlertDescription>
       </Alert>
+
+      {recovery.length > 0 && <Alert variant="destructive">
+        <AlertDescription className="space-y-2">
+          <p>A saved timeline could not be read by this version. Its original JSON has been preserved for recovery. Recovery files contain the original browser draft envelope and may need repair before import.</p>
+          {recovery.map((item, index) => <Button key={item.key} variant="outline" onClick={() => {
+            const objectUrl = URL.createObjectURL(new Blob([item.raw], { type: 'application/json' }))
+            const anchor = document.createElement('a')
+            anchor.href = objectUrl
+            anchor.download = `timeline-recovery-${index + 1}.json`
+            anchor.click()
+            window.setTimeout(() => URL.revokeObjectURL(objectUrl), 0)
+          }}>Download recovery JSON{recovery.length > 1 ? ` ${index + 1}` : ''}</Button>)}
+        </AlertDescription>
+      </Alert>}
+
+      <div className="space-y-2 rounded-lg border p-4">
+        <Label htmlFor="timeline-import">Import timeline JSON</Label>
+        <Input id="timeline-import" type="file" accept=".json,application/json" onChange={event => {
+          const file = event.target.files?.[0]
+          event.target.value = ''
+          if (file) void importWorkspace(file)
+        }} />
+        <p className="text-xs text-muted-foreground">Restore a timeline-workspace.v1 export (up to 4 MiB). Import reads the file locally and does not extract or fetch its sources. Export the current workspace first to keep both.</p>
+        {manualDraft && !result && <Button variant="outline" onClick={resumeManualTimeline}>Resume saved timeline</Button>}
+      </div>
 
       <div className="flex w-fit rounded-md border bg-background p-1" role="group" aria-label="Timeline starting point">
         <Button size="sm" variant={entryMode === 'manual' ? 'default' : 'ghost'} aria-pressed={entryMode === 'manual'} onClick={() => setEntryMode('manual')}>
@@ -289,10 +386,11 @@ export function TimelineAnalysisPage() {
 
       {result && resultOrigin && (
         <TimelineResults
+          key={`${result.requestId}-${workspaceGeneration}`}
           result={result}
           workspaceOrigin={resultOrigin}
-          initialWorkspace={resultOrigin === 'manual' ? manualDraft?.workspace : undefined}
-          onWorkspaceChange={resultOrigin === 'manual' ? handleManualWorkspaceChange : undefined}
+          initialWorkspace={initialWorkspace}
+          onWorkspaceChange={handleManualWorkspaceChange}
           onRegenerate={resultOrigin === 'extracted' ? () => void runAnalysis() : undefined}
           regenerating={loading}
         />

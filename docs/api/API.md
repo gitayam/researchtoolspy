@@ -229,6 +229,14 @@ Open Graph headline/description metadata alone is never accepted for claims.
 
 #### Timeline analysis v1
 
+Reusable v1 materials: [JSON Schema](./schemas/timeline-analysis.v1.schema.json),
+[service error schema](./schemas/integration-error.v1.schema.json),
+[OpenAPI operation and discovery](./openapi/timeline-analysis.v1.json), and
+[generic server client](../../examples/timeline-client/README.md).
+The [frozen synthetic corpus](../../benchmarks/timeline/corpus-v1/manifest.json)
+reproduces contract behavior; it does not establish historical extraction quality.
+
+
 `POST /api/tools/extract-timeline` accepts both the legacy `{ "url": "..." }`
 body and the versioned `timeline-analysis.v1` contract. New integrations must
 discover `timelineAnalysis: true`, hold `community.research.execute`, and send

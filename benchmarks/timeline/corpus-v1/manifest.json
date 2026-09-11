@@ -1,0 +1,18 @@
+{
+  "schemaVersion": "timeline-fixture-manifest.v1",
+  "corpusId": "timeline-synthetic-contract-v1",
+  "asOf": "2026-09-11T00:00:00Z",
+  "retrievedAt": null,
+  "provenance": "Synthetic text authored for this repository; never retrieved from a publisher or reviewed as historical gold.",
+  "usageConstraints": "Repository test material only; examples are fictional. No live network or model calls during regression.",
+  "publisherTimezone": null,
+  "dataThrough": "2026-09-11T00:00:00Z",
+  "fixturesFile": "fixtures.json",
+  "rubricFile": "rubric.md",
+  "fixtures": [
+    { "id": "precision-and-dedup", "sourceUrl": "https://publisher.example/synthetic-chronology", "asOf": "2026-09-11T00:00:00Z", "retrievedAt": null, "publisherTimezone": null, "dataThrough": "2026-09-11T00:00:00Z", "usageConstraints": "Synthetic repository fixture", "capabilities": ["timeline-analysis.v1", "date-precision", "normalization", "deduplication"], "reviewStatus": "synthetic-unreviewed" },
+    { "id": "no-datable-events", "sourceUrl": "https://publisher.example/synthetic-undated", "asOf": "2026-09-11T00:00:00Z", "retrievedAt": null, "publisherTimezone": null, "dataThrough": "2026-09-11T00:00:00Z", "usageConstraints": "Synthetic repository fixture", "capabilities": ["timeline-analysis.v1", "no_events"], "reviewStatus": "synthetic-unreviewed" },
+    { "id": "invalid-model-date", "sourceUrl": "https://publisher.example/synthetic-invalid", "asOf": "2026-09-11T00:00:00Z", "retrievedAt": null, "publisherTimezone": null, "dataThrough": "2026-09-11T00:00:00Z", "usageConstraints": "Synthetic repository fixture", "capabilities": ["timeline-analysis.v1", "invalid-output"], "reviewStatus": "synthetic-unreviewed" }
+  ],
+  "pendingCapabilities": ["analyst-reviewed historical gold", "event-level evidence attribution", "occurrence/report/knowledge clocks", "source dependency detection", "cross-source identity and incorrect merges", "narrative statement support", "comparison", "composition", "planning", "Signal/RSS lineage equivalence"]
+}
