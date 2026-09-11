@@ -1,5 +1,7 @@
 # Timeline stage release receipt
 
+Later complete browser snapshot saving and migration 0012 are recorded in the [browser release receipt](./2026-09-11-timeline-browser-release-receipt.md). This receipt preserves the earlier stage.
+
 TL-00 and TL-02 are released on [researchtools.net](https://researchtools.net/dashboard/tools/timeline). The human-only TL-03 artifact/revision API is deployed; full TL-03 remains in progress until scoped service access and durable browser integration pass acceptance.
 
 Accepted source: `6e832e734b0e28d7fe189c5b76d6e68112fe894d`. GitHub `origin/main` and GitLab `gitlab/main` were fast-forwarded to this exact SHA and confirmed remotely. The primary dirty checkout was preserved. This receipt and availability updates form a documentation-only follow-up; the deployed source remains the accepted SHA.
