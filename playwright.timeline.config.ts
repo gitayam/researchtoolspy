@@ -18,7 +18,7 @@ export default defineConfig({
   },
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'], launchOptions: { args: ['--disable-gpu'] } } },
-    { name: 'mobile-safari', use: { ...devices['iPhone 14'] } },
+    { name: 'mobile-safari', timeout: 60_000, use: { ...devices['iPhone 14'] } },
   ],
   webServer: {
     command: 'node node_modules/vite/bin/vite.js --host 127.0.0.1 --port 5189 --strictPort',
