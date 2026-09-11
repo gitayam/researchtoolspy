@@ -178,6 +178,7 @@ async function attachReceipt(testInfo: TestInfo, lane: string) {
       migrations: migrations.map(({ name, bytes, sha256 }) => ({ name, bytes, sha256 })),
     }, null, 2)),
   })
+}
 async function legacySnapshot(db: D1Database) {
   const tables = ['users','workspaces','workspace_members','investigations','evidence_items','framework_sessions','actors','evidence_actors','evidence_citations','content_analysis','claim_evidence_links','guest_conversions','integration_clients','integration_client_tokens','integration_client_token_scopes']
   const snapshot: Record<string, unknown> = {}
