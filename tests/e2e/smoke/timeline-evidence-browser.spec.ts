@@ -43,6 +43,8 @@ async function addEvidence(page: Page) {
 
 test.describe('timeline inspectable evidence @smoke', () => {
   test('add independent assertions, review, export/import, stale review and known common origin', async ({ page }, testInfo) => {
+    // Complete two-source authoring, multiple downloads and visual inspection on mobile.
+    test.setTimeout(120_000)
     await start(page, fixture('unreviewed', true))
     const panel = await addEvidence(page)
     await panel.getByLabel('Independence', { exact: true }).selectOption('independent')

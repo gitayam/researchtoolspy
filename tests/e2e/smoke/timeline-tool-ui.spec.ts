@@ -192,7 +192,7 @@ test.describe('Timeline research tool @smoke', () => {
     await page.getByRole('button', { name: 'Actions for A source-backed event occurred' }).click()
     await page.getByRole('menuitem', { name: 'Add event before' }).click()
     await expect(page.getByLabel('Placement')).toHaveValue('relative')
-    await expect(page.getByLabel('Relation')).toHaveValue('before')
+    await expect(page.getByRole('dialog').getByLabel('Relation', { exact: true })).toHaveValue('before')
     await expect(page.getByLabel('Reference event')).toHaveValue('source-req-ui-smoke-0')
     await page.getByLabel('Date').fill('2026-02-31')
     await page.getByRole('dialog').getByLabel('Title', { exact: true }).fill('Analyst supplied precursor')
