@@ -50,6 +50,35 @@ async function state(db:D1Database) {
 }
 
 test.describe('complete workspace snapshot actual D1 @smoke',()=>{
+  test('source assertions and contrary passage snapshots survive immutable revisions and reject dangling provenance',async()=>{
+    const {mf,db}=await setup()
+    try {
+      await db.batch(upgrade.map(s=>db.prepare(s)))
+      const created=await create(db),id=created.body.artifactId
+      const full={...extractedSnapshot(),analystWorkspace:{...extractedSnapshot().analystWorkspace,evidence:{"schemaVersion":"timeline-evidence.v1","sources":[{"id":"source:first","url":"https://example.test/first","title":"First report","publisher":"Fixture desk","publishedAt":"2026-09-01T10:00:00Z","retrievedAt":"2026-09-11T00:00:00Z"},{"id":"source:second","url":"https://other.example.test/second","title":"Conflicting report","publisher":"Other fixture desk"}],"assertions":[{"id":"assertion:first","sourceId":"source:first","claimText":"The source reported the meeting occurred in September.","temporalClaim":"September 2026","passage":{"id":"passage:first","quote":"The meeting took place in September.","locator":"paragraph 2"},"status":"active","derivesFrom":[],"reportedAt":"2026-09-01T10:00:00Z"},{"id":"assertion:contrary","sourceId":"source:second","claimText":"The second source reported October instead.","temporalClaim":"October 2026","passage":{"id":"passage:contrary","quote":"The meeting occurred in October.","locator":"paragraph 4"},"status":"active","derivesFrom":[]}],"links":[{"id":"link:support","eventId":"event:stable.original","assertionId":"assertion:first","relation":"supports"},{"id":"link:contrary","eventId":"event:stable.original","assertionId":"assertion:contrary","relation":"contradicts"}],"reviews":[]}}}
+      const first=await call(db,'PATCH',id,commit(put(full)),'evidence-first-key01',created.etag)
+      expect(first.status).toBe(200)
+      const firstBody=await first.json() as any
+      const firstRead=await (await call(db,'GET',id,undefined,undefined,undefined,firstBody.revisionId)).text()
+      const changed=structuredClone(full)
+      changed.analystWorkspace.evidence.assertions[0].claimText='Corrected transcription, retained in a new snapshot.'
+      changed.analystWorkspace.evidence.assertions[0].passage.quote='Corrected wording.'
+      const second=await call(db,'PATCH',id,commit(put(changed)),'evidence-second-key01',first.headers.get('etag')!)
+      expect(second.status).toBe(200)
+      expect(await (await call(db,'GET',id,undefined,undefined,undefined,firstBody.revisionId)).text()).toBe(firstRead)
+      const old=JSON.parse(firstRead).objects[0]
+      expect(old.payload.analystWorkspace.evidence).toEqual({"schemaVersion":"timeline-evidence.v1","sources":[{"id":"source:first","url":"https://example.test/first","title":"First report","publisher":"Fixture desk","publishedAt":"2026-09-01T10:00:00Z","retrievedAt":"2026-09-11T00:00:00Z"},{"id":"source:second","url":"https://other.example.test/second","title":"Conflicting report","publisher":"Other fixture desk"}],"assertions":[{"id":"assertion:first","sourceId":"source:first","claimText":"The source reported the meeting occurred in September.","temporalClaim":"September 2026","passage":{"id":"passage:first","quote":"The meeting took place in September.","locator":"paragraph 2"},"status":"active","derivesFrom":[],"reportedAt":"2026-09-01T10:00:00Z"},{"id":"assertion:contrary","sourceId":"source:second","claimText":"The second source reported October instead.","temporalClaim":"October 2026","passage":{"id":"passage:contrary","quote":"The meeting occurred in October.","locator":"paragraph 4"},"status":"active","derivesFrom":[]}],"links":[{"id":"link:support","eventId":"event:stable.original","assertionId":"assertion:first","relation":"supports"},{"id":"link:contrary","eventId":"event:stable.original","assertionId":"assertion:contrary","relation":"contradicts"}],"reviews":[]})
+      expect(old.contentHash).toBe(await hashContent({schemaVersion:'timeline-workspace.v1',tombstone:false,payload:full}))
+      const latest=await (await call(db,'GET',id)).json() as any
+      expect(latest.objects[0].payload.analystWorkspace.evidence).toEqual(changed.analystWorkspace.evidence)
+      const invalid=structuredClone(changed)
+      invalid.analystWorkspace.evidence.assertions[0].derivesFrom=['assertion:missing']
+      const before=await state(db)
+      expect((await call(db,'PATCH',id,commit(put(invalid)),'evidence-invalid-key1',second.headers.get('etag')!)).status).toBe(400)
+      expect(await state(db)).toEqual(before)
+    } finally {await mf.dispose()}
+  })
+
   test('populated 0011 upgrade preserves every history byte and rolls back a failed rebuild',async()=>{
     const {mf,db}=await setup()
     try {
