@@ -177,6 +177,9 @@ try {
     const [first, second] = statement.words
     if (['BEGIN', 'COMMIT', 'END'].includes(first)) { receipt.skippedSchemaDirectives.push(first); continue }
     if (first === 'PRAGMA' && ['FOREIGN_KEYS', 'DEFER_FOREIGN_KEYS'].includes(second)) { receipt.skippedSchemaDirectives.push(`${first} ${second}`); continue }
+    // Cloudflare's schema-only export resets empty AUTOINCREMENT metadata.
+    // Skip only this exact directive; never admit arbitrary top-level DML.
+    if (/^DELETE FROM sqlite_sequence;?$/.test(statement.sql)) { receipt.skippedSchemaDirectives.push('DELETE FROM sqlite_sequence'); continue }
     // A schema export must not contain rows, DELETEs or arbitrary executable SQL.
     assert(first === 'CREATE' && ['TABLE', 'INDEX', 'UNIQUE', 'TRIGGER', 'VIEW', 'VIRTUAL'].includes(second), `Schema-only input contains unsupported ${first} ${second ?? ''}`)
     await db.prepare(statement.sql).run()
