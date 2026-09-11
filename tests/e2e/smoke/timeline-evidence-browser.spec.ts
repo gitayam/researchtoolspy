@@ -84,9 +84,23 @@ test.describe('timeline inspectable evidence @smoke', () => {
     await reopened.getByRole('button', { name: 'Record review' }).click()
     await expect(page.getByText('Corroboration needs review', { exact: true })).toBeVisible()
     await page.getByRole('button', { name: 'Narrative view', exact: true }).click()
-    await expect(page.getByRole('article', { name: 'Narrative presentation' })).toContainText('Corroboration needs review')
-    await page.getByTestId('evidence-event-evidence').locator('summary').first().click()
-    await expect(page.getByTestId('evidence-event-evidence')).toContainText('Paragraph 2')
+    const narrative = page.getByRole('article', { name: 'Narrative presentation' })
+    await expect(narrative).toContainText('Corroboration needs review')
+    await narrative.getByTestId('evidence-event-evidence').locator('summary').first().click()
+    await expect(narrative.getByTestId('evidence-event-evidence')).toContainText('Paragraph 2')
+  })
+
+  test('AI review qualifies unsupported imported assessment without rewriting saved data', async ({ page }) => {
+    let submitted: any
+    await page.route('**/api/tools/timeline-assist', async route => {
+      submitted = route.request().postDataJSON()
+      await route.fulfill({ status: 200, json: { schemaVersion: 'timeline-assist.v1', requestId: 'evidence-assist', action: submitted.action, outcome: 'no_suggestions', suggestions: [], model: { name: 'fixture', status: 'no_suggestions', rejectedSuggestionCount: 0 } } })
+    })
+    await start(page, fixture('corroborated'))
+    await page.getByRole('button', { name: 'Run AI review', exact: true }).click()
+    await expect(page.getByText('The AI review did not identify a useful suggestion for this timeline.', { exact: true })).toBeVisible()
+    expect(submitted.events[0].assessment).toBe('unreviewed')
+    expect((await exported(page)).analystWorkspace.events[0].assessment).toBe('corroborated')
   })
 
   test('legacy assessment is qualified; relation/retraction/unlink/delete preserve records and local draft', async ({ page }) => {

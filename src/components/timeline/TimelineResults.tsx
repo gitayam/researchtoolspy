@@ -586,7 +586,7 @@ function TimelineWorkspace({
       const response = await assistTimeline({
         action: assistAction,
         article: result.article,
-        events: sortedEvents,
+        events: sortedEvents.map(event => event.assessment === 'corroborated' && !timelineCorroboration(evidence, event).eligible ? { ...event, assessment: 'unreviewed' as const } : event),
         ...(focus ? { focus } : {}),
       }, { signal: controller.signal })
       if (controller.signal.aborted) return

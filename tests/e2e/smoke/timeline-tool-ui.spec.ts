@@ -215,11 +215,12 @@ test.describe('Timeline research tool @smoke', () => {
 
     await page.getByRole('button', { name: 'Actions for A source-backed event occurred' }).click()
     await page.getByRole('menuitem', { name: 'Edit event' }).click()
-    await page.getByLabel('Assessment').selectOption('corroborated')
-    await page.getByLabel('Analyst note').fill('Confirmed against a second source.')
+    await expect(page.getByLabel('Assessment').locator('option[value="corroborated"]')).toBeDisabled()
+    await page.getByLabel('Assessment').selectOption('disputed')
+    await page.getByLabel('Analyst note').fill('Conflicting reports require evidence review.')
     await page.getByRole('button', { name: 'Save event' }).click()
-    await expect(page.getByText('Confirmed against a second source.')).toBeVisible()
-    await expect(page.getByText('corroborated', { exact: true })).toBeVisible()
+    await expect(page.getByText('Conflicting reports require evidence review.')).toBeVisible()
+    await expect(page.getByText('Disputed', { exact: true })).toBeVisible()
     await expect(page.getByText('Source · edited')).toHaveCount(0)
 
     await expect(page.getByLabel('AI task')).toHaveValue('identify_gaps')
