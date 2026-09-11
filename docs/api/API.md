@@ -18,6 +18,11 @@ A hash auto-creates an account on first use (no registration step required). Has
 
 **Minimum length:** 16 characters. Shorter hashes are rejected with `400 Bad Request`.
 
+The local durable timeline foundation is an exception: `/api/timelines` requires
+an existing active human account and explicit private-workspace membership. It
+never provisions an identity from an unknown hash. See
+[Timeline artifacts](./TIMELINE-ARTIFACTS.md) for its staged availability.
+
 ### Obtaining a hash
 
 - **New user:** use **Save Bookmark** in the dashboard to create a permanent hash.
@@ -322,6 +327,18 @@ mutation or model output. Durable
 promotion into an investigation/COP, passage-linked evidence on analyst-added
 events, multi-source merge/corroboration, and answer-packet conversion remain
 authenticated follow-on work.
+
+#### Durable timeline artifact foundation
+
+The local implementation adds human-authenticated create/read/revision routes at
+`/api/timelines`. Writes require idempotency keys; revision commits also require a
+strong `If-Match` head-revision ETag. History and event-candidate object versions are
+immutable and workspace-scoped. This first slice has no guest persistence,
+service-token scopes, browser save integration, or publication endpoints. It has
+not been deployed or migrated in production.
+
+See [Timeline artifacts](./TIMELINE-ARTIFACTS.md) for payloads, bounds, errors and
+runtime verification limits. Existing extraction discovery remains unchanged.
 
 #### Timeline AI assistance v1
 
