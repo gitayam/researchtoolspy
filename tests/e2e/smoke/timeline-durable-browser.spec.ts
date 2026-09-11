@@ -5,6 +5,7 @@ import { Miniflare } from 'miniflare'
 import { onRequestPost } from '../../../functions/api/timelines'
 import { onRequestGet, onRequestPatch } from '../../../functions/api/timelines/[id]'
 import { onRequestGet as objects } from '../../../functions/api/timelines/[id]/objects'
+import { snapshotIdentity, prepareTimelineSave } from '../../../src/lib/timeline-durable'
 import { decodeTimelineWorkspace } from '../../../src/lib/timeline-workspace-codec'
 import type { TimelineWorkspaceExport } from '../../../src/types/timeline-workspace'
 
@@ -69,6 +70,10 @@ async function exported(page: Page) {
 async function saved(page: Page) { await expect(page.getByTestId('timeline-save-state')).toHaveText('Saved') }
 
 test.describe('durable browser with actual D1 routes @smoke', () => {
+  test('optional editor fields use the same JSON identity as durable saves', () => {
+    const value = fixture(); value.analystWorkspace.events[0].chapterId = undefined
+    expect(snapshotIdentity(value)).toBe(snapshotIdentity(prepareTimelineSave(value).snapshot))
+  })
   test('complete save/reopen round trip preserves IDs and private edits stay out of local draft', async ({ page }, info) => {
     const b = await bridge(page)
     try {

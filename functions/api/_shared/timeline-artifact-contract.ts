@@ -5,7 +5,9 @@ import type { TimelineWorkspaceExport } from '../../../src/types/timeline-worksp
 export const ARTIFACT_LIMITS = { requestBytes: 65536, changes: 10, objects: 1000, pageSize: 100 } as const
 export type ArtifactErrorCode = 'invalid_request' | 'authentication_required' | 'human_identity_required' | 'not_found' | 'access_denied' | 'precondition_required' | 'stale_revision' | 'idempotency_conflict' | 'object_conflict' | 'limit_exceeded' | 'datastore_unavailable'
 export class ArtifactError extends Error {
-  constructor(public readonly code: ArtifactErrorCode, public readonly status: number) { super(code); this.name = 'ArtifactError' }
+  readonly code: ArtifactErrorCode
+  readonly status: number
+  constructor(code: ArtifactErrorCode, status: number) { super(code); this.name = 'ArtifactError'; this.code = code; this.status = status }
 }
 export interface CandidatePayload { title: string; description: string | null; eventDate?: string; datePrecision?: 'year' | 'month' | 'day' }
 export type ArtifactKind = 'event-candidate.v1' | 'timeline-workspace.v1'

@@ -15,9 +15,10 @@ export interface SaveAttempt {
   identityBinding?: string
 }
 export class DurableTimelineError extends Error {
-  constructor(message: string, public readonly status = 0) { super(message); this.name = 'DurableTimelineError' }
+  readonly status: number
+  constructor(message: string, status = 0) { super(message); this.name = 'DurableTimelineError'; this.status = status }
 }
-export const snapshotIdentity = (snapshot: TimelineWorkspaceExport) => canonicalJson({ source: snapshot.source, analystWorkspace: snapshot.analystWorkspace })
+export const snapshotIdentity = (snapshot: TimelineWorkspaceExport) => canonicalJson(JSON.parse(JSON.stringify({ source: snapshot.source, analystWorkspace: snapshot.analystWorkspace })))
 
 export function prepareTimelineSave(snapshot: TimelineWorkspaceExport, artifact?: DurableDocument): SaveAttempt {
   const decoded = decodeTimelineWorkspace(JSON.stringify(snapshot))

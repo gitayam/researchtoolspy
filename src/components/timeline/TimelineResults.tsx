@@ -835,7 +835,7 @@ function TimelineWorkspace({
         <Button aria-pressed={presentation === 'narrative'} variant={presentation === 'narrative' ? 'default' : 'outline'} onClick={() => setPresentation('narrative')}>Narrative view</Button>
         <Button variant="outline" onClick={exportWorkspace}>Export JSON</Button>
       </div>
-      <p className="text-xs text-muted-foreground">Local workspace only. Event and chapter links work with this browser draft or an imported copy; they are not published evidence URLs. Export JSON to keep your work.</p>
+      <p className="text-xs text-muted-foreground">Event and chapter links refer to this open timeline or an imported copy; they are not published evidence URLs. Export JSON to keep an offline copy.</p>
       <TimelineNarrative narrative={narrative} events={events} editing={presentation === 'analyst'} sourceUrl={result.article.url} openGapCount={questions.filter(question => question.status === 'open').length} onNarrative={setNarrative} onEvents={setEvents} onInspect={id => {
         setPresentation('analyst')
         window.setTimeout(() => {
