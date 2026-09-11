@@ -1,6 +1,16 @@
 import { expect, test } from '@playwright/test'
 import type { Page } from '@playwright/test'
 
+async function openContentTimelineSection(page: Page) {
+  const mobileNavigation = page.getByRole('button', { name: 'Open analysis sections' })
+  if (await mobileNavigation.isVisible()) {
+    await mobileNavigation.click()
+    await page.getByRole('dialog').getByText('Timeline', { exact: true }).click()
+  } else {
+    await page.getByText('Timeline', { exact: true }).click()
+  }
+}
+
 const articleUrl = 'https://publisher.example/2026/09/story'
 const extractedText = Array.from(
   { length: 90 },
@@ -402,7 +412,7 @@ test.describe('Timeline research tool @smoke', () => {
     await expect(page.getByPlaceholder('Enter URL to analyze...')).toHaveValue(articleUrl)
     await page.getByRole('button', { name: 'Analyze Content' }).click()
     await expect(page.getByText('A test article with dated events.')).toBeVisible()
-    await page.getByText('Timeline', { exact: true }).click()
+    await openContentTimelineSection(page)
     await page.getByRole('button', { name: 'Generate Timeline' }).click()
 
     await expect(page.getByRole('heading', { name: 'A source-backed event occurred' })).toBeVisible()
@@ -479,7 +489,7 @@ test.describe('Timeline research tool @smoke', () => {
     await page.goto('/dashboard/tools/content-intelligence')
     await page.getByPlaceholder('Enter URL to analyze...').fill(articleUrl)
     await page.getByRole('button', { name: 'Analyze Content' }).click()
-    await page.getByText('Timeline', { exact: true }).click()
+    await openContentTimelineSection(page)
     await page.getByRole('button', { name: 'Generate Timeline' }).click()
 
     await expect(page.getByLabel('Main content').getByText('This analysis has no extracted article text.')).toBeVisible()
