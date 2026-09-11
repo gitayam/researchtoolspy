@@ -1,5 +1,7 @@
 # Timeline browser snapshot release
 
+Historical browser release record. Scoped service access subsequently shipped in the [service release](./2026-09-11-timeline-service-release-receipt.md); the evidence below remains tied to its original source.
+
 Complete browser timeline saving is live at [Timeline Analysis](https://researchtools.net/dashboard/tools/timeline). Sign in, choose a private saving workspace, then use **Save timeline**. Keep the saved link to reopen on another device. A snapshot preserves narrative, notes, source extraction, original event data and stable IDs. This slice supports 60 KiB snapshots; larger local timelines remain editable/exportable and are rejected before upload without truncation.
 
 Accepted/deployed source: `2960d0da8594c6498c008bdb9450c0d1561257f5`. Both GitHub `origin/main` and GitLab `gitlab/main` were fast-forwarded and confirmed at that SHA. The commit containing this receipt and availability updates is a documentation-only follow-up; it does not represent a different runtime deployment. The primary dirty checkout remains untouched.

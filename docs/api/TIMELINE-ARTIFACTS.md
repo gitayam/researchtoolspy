@@ -1,11 +1,11 @@
 # Private timeline artifact foundation
 
-Availability: human API slice deployed to researchtools.net on 2026-09-11 with
-managed migrations 0011 and 0012. Complete browser snapshot saving is deployed. See the [browser release receipt](../plans/2026-09-11-timeline-browser-release-receipt.md).
+Availability: durable human and service APIs deployed to researchtools.net on 2026-09-11 with
+managed migrations 0011–0013. Browser snapshot saving and scoped service read/write are deployed. See the [service release receipt](../plans/2026-09-11-timeline-service-release-receipt.md).
 
-This is the human-only first slice of TL-03. It persists private investigation artifacts, stable event-candidate identities and immutable revisions. The complete browser workspace snapshot consumer is deployed with migration 0012. It does not complete external-service access. Extraction remains the independent, nonpersistent `timeline-analysis.v1` API. Capability discovery is unchanged and does not advertise this slice to service clients.
+This is the released durable foundation of TL-03. It persists private investigation artifacts, stable event-candidate identities and immutable revisions. The complete browser workspace snapshot consumer is deployed with migration 0012. Existing service credentials can be assigned independent timeline read/write scopes. Extraction remains the independent, nonpersistent `timeline-analysis.v1` API. Capability discovery advertises durable operations only to currently authorized service clients.
 
-Existing active human JWT/session bearer or registered `X-User-Hash` identity is required. This route family never provisions an identity. Guest sessions, guest/service database roles and reserved `rt_svc_` bearers are rejected; a service bearer cannot fall through to a human hash header. Fresh database state must show a nonblank human role and active user. The caller must own the explicit private workspace or have `VIEWER` for reads, `EDITOR`/`ADMIN` for writes. Workspace `1` is excluded. Public flags and `cop-*` names never confer access. `X-Workspace-ID`, when supplied, must match the resource. Inaccessible artifact IDs return the same 404 as missing artifacts; explicit workspace creation denial is 403. POST/PATCH replays require current write permission, including after membership demotion.
+Human calls require an existing active JWT/session bearer or registered `X-User-Hash` identity. This route family never provisions an identity. Guest sessions and guest/service roles on human credentials are rejected. Reserved `rt_svc_` bearers use scoped service authentication and never fall through to a human hash header. For human calls, fresh database state must show a nonblank human role and active user. A human caller must own the explicit private workspace or have `VIEWER` for reads, `EDITOR`/`ADMIN` for writes. Workspace `1` is excluded. Public flags and `cop-*` names never confer access. `X-Workspace-ID`, when supplied, must match the resource. Inaccessible artifact IDs return the same 404 as missing artifacts; explicit workspace creation denial is 403. POST/PATCH replays require current write permission, including after membership demotion.
 
 ## Create and commit
 
@@ -85,9 +85,44 @@ Saving and reopening require an existing authenticated human in the selected pri
 
 Updates send the saved revision's strong ETag in `If-Match`. A retry retains the same payload, idempotency key and original ETag to recover an acknowledged or uncertain save. A newer head produces an explicit conflict; it never silently overwrites another revision. Permission loss, network failure or invalid responses preserve the open local workspace. Changing the authenticated identity, selected saving workspace or human eligibility clears opened private content and invalidates reuse of that save attempt; the prior local draft remains intact. Same-principal credential refresh can retry the original operation. Explicit reopen or saving a separate copy lets the analyst resolve a conflict.
 
+## Scoped service access
+
+`timeline.read` grants all four GET routes: metadata, object pages, revision pages
+and revision detail. `timeline.write` grants create and commit; it does not grant
+GET. The existing community artifact/research scopes grant neither operation.
+`COMMUNITY_INTEGRATIONS_ENABLED` must be exactly `true`. The credential remains
+bound to its one private TEAM workspace, service principal, active intake
+investigation, audience and deployment environment. No guest identity, public
+workspace or caller-selected replacement binding is accepted.
+
+Reads and idempotency replays check the current presented token, scope and binding.
+A valid rotated token for the same principal can replay the original key/body/ETag;
+a revoked, expired, replaced or insufficiently scoped token cannot borrow authority
+from another live slot. Every service mutation batch begins with an aborting SQL
+assertion of the exact token ID and HMAC digest, database-time validity, integer
+timestamp validity and complete current binding. The revision trigger independently
+retains human authorization and checks live service write eligibility. Direct SQL
+is privileged; the request-specific token check belongs to the atomic API batch.
+No credential or digest is stored in timeline history or returned by the API.
+
+Service authentication failures use the existing `timeline-artifact-error.v1`
+envelope: invalid/expired/revoked credentials return 401 `authentication_required`,
+missing scope or disabled integration returns 403 `access_denied`, and unavailable
+auth storage returns 503 `datastore_unavailable`. Cross-workspace artifact reads
+remain indistinguishable from missing artifacts. All existing bounds and revision
+preconditions apply to both identity types.
+
+Migration `0013_timeline_service_scopes.sql` atomically widens the existing scope
+table CHECK and replaces the revision authorization trigger. Existing scope rows,
+PK/FK/index definitions and timeline history are preserved. It creates no client,
+token or grant. Assign new scopes only after compatible deployment; old applications
+reject tokens containing unknown scopes. Rollback must retain compatible code or
+use separately authorized credential remediation, never silently remove grants or
+restore the whole database. See [service rollout and discovery](./COMMUNITY-INTEGRATIONS-API.md#durable-timeline-service-scopes-deployed).
+
 ## Pinned reads
 
-All read routes reauthorize current membership, active human identity and workspace privacy. All responses use `Cache-Control: no-store` and `X-Content-Type-Options: nosniff`. No response or replay stores raw credentials. Mutation responses and all revision-pinned reads expose a quoted revision ETag.
+All read routes reauthorize current human membership or service credential binding and workspace privacy. All responses use `Cache-Control: no-store` and `X-Content-Type-Options: nosniff`. No response or replay stores raw credentials. Mutation responses and all revision-pinned reads expose a quoted revision ETag.
 
 | Route | Required response shape | Pagination |
 |---|---|---|
@@ -136,8 +171,8 @@ There is no destructive down migration. Rolling back to the older application re
 Run only inside the credential-free validator:
 
 ```sh
-node node_modules/playwright/cli.js test --config=playwright.timeline.config.ts --project=chromium timeline-artifact-contract.spec.ts timeline-artifact-auth.spec.ts timeline-artifact-d1.spec.ts timeline-artifact-migrations.spec.ts timeline-workspace-snapshot-d1.spec.ts
+node node_modules/playwright/cli.js test --config=playwright.timeline.config.ts --project=chromium timeline-artifact-contract.spec.ts timeline-artifact-auth.spec.ts timeline-artifact-d1.spec.ts timeline-artifact-migrations.spec.ts timeline-workspace-snapshot-d1.spec.ts timeline-service-d1.spec.ts
 node node_modules/typescript/bin/tsc -p tsconfig.functions.json --noEmit
 ```
 
-Route tests use actual Miniflare D1, without publishers, model calls or real credentials. They cover concurrent retries, CAS losers, rollback around publication, transaction-time auth changes, current permission checks on replay, pinned pagination, history/hash reconstruction, sealed INSERT/REPLACE attacks, tombstone preservation and corrupt replay rejection. Separate migration tests apply the actual complete managed migration chain to a documented synthetic prerequisite schema and rehearse seeded-prefix upgrade. These historical-chain tests do not establish an authoritative bootstrap. Release verification separately imported a schema-only production export, applied the pending migration in disposable D1, and exercised the compiled Pages worker with synthetic users. Production migrations 0011 and 0012 are applied and all nine tables, columns, foreign keys, indexes and triggers match the rehearsal manifest. Production smoke checks are anonymous reads/preflights; authenticated writes were tested in the isolated rehearsal. Snapshot tests additionally exercise full extraction/narrative round trips, pinned historical snapshots, replay and stale heads, kind-switch rejection, exact 60 KiB UTF-8 boundaries, malformed stored payload rejection, populated 0011→0012 preservation and injected migration rollback. The snapshot slice is deployed. The production catalog was compared before and after managed application: all nine tables, 219 schema details and pre-existing row counts match the guarded rehearsal; no rebuild backup tables remain. Browser save/reopen, conflict, lost-response/token-refresh retry and private-content cleanup tests passed in Chromium and mobile Safari through real D1 routes. The broader TL-03 checkpoint still requires scoped external-service access and remaining checkpoint acceptance.
+Route tests use actual Miniflare D1, without publishers, model calls or real credentials. They cover concurrent retries, CAS losers, rollback around publication, transaction-time auth changes, current permission checks on replay, pinned pagination, history/hash reconstruction, sealed INSERT/REPLACE attacks, tombstone preservation and corrupt replay rejection. Separate migration tests apply the actual complete managed migration chain to a documented synthetic prerequisite schema and rehearse seeded-prefix upgrade. These historical-chain tests do not establish an authoritative bootstrap. Release verification separately imported a schema-only production export, applied the pending migration in disposable D1, and exercised the compiled Pages worker with synthetic users. Production migrations 0011–0013 are applied and all 12 timeline/credential tables, columns, foreign keys, indexes and triggers match the service rehearsal manifest. Production smoke checks are anonymous reads/preflights; authenticated writes were tested in the isolated rehearsal. Snapshot tests additionally exercise full extraction/narrative round trips, pinned historical snapshots, replay and stale heads, kind-switch rejection, exact 60 KiB UTF-8 boundaries, malformed stored payload rejection, populated 0011→0012 preservation and injected migration rollback. The snapshot slice is deployed. The production catalog was compared before and after managed application: all 12 timeline/credential tables, 282 schema details, existing scope rows and timeline counts match the guarded rehearsal; no rebuild backup tables remain. Browser save/reopen, conflict, lost-response/token-refresh retry and private-content cleanup tests passed in Chromium and mobile Safari through real D1 routes. TL-03 scoped service acceptance now passes real-D1 and compiled-worker gates. Later evidence, handoff and composition checkpoints remain separate.

@@ -337,8 +337,11 @@ strong `If-Match` head-revision ETag. History and event-candidate object version
 immutable and workspace-scoped. Complete browser workspaces can be saved as `timeline-workspace.v1` objects
 (up to 60 KiB) and reopened from a private saved link. Migration 0012 adds this
 snapshot kind without changing candidate history. Browser saving, lost-response
-retries and stale-edit protection are deployed. Guest persistence, service-token
-scopes and publication endpoints remain unavailable.
+retries and stale-edit protection are deployed. Migration 0013 adds independent
+`timeline.read` and `timeline.write` service scopes, bound to the credential’s private
+workspace and advertised through capability discovery. Existing credentials are
+unchanged; scope assignment is a separate operator action. Guest persistence and
+publication endpoints remain unavailable.
 
 See [Timeline artifacts](./TIMELINE-ARTIFACTS.md) for payloads, bounds, errors and
 runtime verification limits. Existing extraction discovery remains unchanged.

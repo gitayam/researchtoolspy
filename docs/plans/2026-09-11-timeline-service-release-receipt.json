@@ -1,0 +1,384 @@
+{
+  "schemaVersion": "timeline-service-release.v1",
+  "recordedAt": "2026-09-11T21:50:11.028541+00:00",
+  "baselineSha": "d33b9bac9b2aaaf85b008f7c3bb6a29ce1fbe064",
+  "acceptedReleaseSha": "839a657ca44b0a3fe83ed8e809444a31e8cf53a2",
+  "checkpoint": "TL-03 released",
+  "scope": {
+    "read": "timeline.read",
+    "write": "timeline.write",
+    "independent": true,
+    "workspace": "One private TEAM workspace per existing service binding",
+    "extractionScopeUnchanged": "community.research.execute",
+    "credentialsCreated": false,
+    "existingGrantsChanged": false
+  },
+  "states": {
+    "canonicalLanded": true,
+    "mirrorConfirmed": true,
+    "migrationApplied": true,
+    "productionDeployed": true,
+    "integrationCheckoutCleanAtRelease": true,
+    "primaryCheckoutSynced": false
+  },
+  "publication": {
+    "canonical": "origin/main",
+    "mirror": "gitlab/main",
+    "releaseRefSha": "839a657ca44b0a3fe83ed8e809444a31e8cf53a2",
+    "forcePush": false,
+    "documentationFollowup": "This receipt is committed with documentation only. Runtime remains acceptedReleaseSha."
+  },
+  "validation": {
+    "sourceSha": "839a657ca44b0a3fe83ed8e809444a31e8cf53a2",
+    "typeChecksPassed": 5,
+    "apiContractTestsPassed": 97,
+    "browserProjectChecksPassed": 54,
+    "browserProjects": [
+      "chromium",
+      "mobile-safari"
+    ],
+    "build": "passed",
+    "pagesFunctionsBuild": "passed",
+    "schemaRehearsal": "passed",
+    "catalogPreservation": "passed",
+    "compiledHttpGate": "passed",
+    "staticGate": "passed",
+    "externalOutboundAttempts": 0,
+    "runtimeImage": "mcr.microsoft.com/playwright@sha256:9bd26ad900bb5e0f4dee75839e957a89ae89c2b7ab1e76050e559790e946b948",
+    "seconds": 411.25,
+    "archiveSha256": "bcc125718c3836ab1aa83fc13c2ca86455c0a25cbd3e174b2aa0bdcd17cef27e",
+    "supervisorSha256": "869d61c1e2691530d787992a34caf2e8b1648112e8ce6b02812b7ff1401c048d",
+    "receiptSha256": "2cb6767bbcf9fdb493a6cedd9dba72941265e0badb0e49f282a60d55e068f119",
+    "runLogSha256": "8feb3a4f10fbb1593abcb6e70106349383964823d342714162cece754c4e2c8c",
+    "schemaManifestSha256": "48b206331a132e13b3bbc5af3ec8aec852c9c364ed7af1252dfe27b3e5b5585a",
+    "commands": [
+      "node scripts/verify-timeline.mjs",
+      "node node_modules/wrangler/bin/wrangler.js pages functions build functions --outdir dist/_worker.js --build-output-directory dist --compatibility-date 2025-09-30 --compatibility-flags nodejs_compat",
+      "node scripts/verify-timeline-release.mjs"
+    ],
+    "executionBoundary": "Pinned no-network Docker; readonly source/dependencies/root; no host credentials/socket; schema-only SQL and migration names only."
+  },
+  "review": {
+    "backendProvider": "validator_review",
+    "discoveryProvider": "tl00_recon",
+    "independentSecurityReviewer": "dependency_review",
+    "ownerReleaseScriptReviewer": "tl00_recon",
+    "sourceAndRuntimeAcceptedSha": "839a657ca44b0a3fe83ed8e809444a31e8cf53a2",
+    "artifactFilesIndependentlyCompared": 145,
+    "distManifestSha256": "461a9d897e7a2098e04dcb92f4c59c5289a11242a3f1c41bf3efdd3193c0ab9b",
+    "packageManifestFileSha256": "10ffef26ac0f3b74110492e24f7af5523727a57b5452f53fce68d3eed7174b50",
+    "wranglerConfigSha256": "973e4f752a15272470b80d6937188998997e157a7b81b243932f2a31663f5f21"
+  },
+  "database": {
+    "name": "researchtoolspy-prod",
+    "migration": "0013_timeline_service_scopes.sql",
+    "migrationSha256": "10acfb57d65c2d7c4bbe3362053ea559a648570959978c0450917a64b46319ae",
+    "priorAppliedMigrationsUnchanged": true,
+    "atomicMethod": "Pinned Wrangler managed apply: complete migration plus tracker in one D1 transaction",
+    "pendingAfter": [],
+    "preApplyCatalog": {
+      "result": "passed",
+      "tables": 12,
+      "schemaRows": 282,
+      "normalizedSchemaSha256": "0019fec582d8889b0b9eec6874cbfd9ac306bd8568a2abc185915ccd529f80eb"
+    },
+    "postApplyCatalog": {
+      "result": "passed",
+      "tables": 12,
+      "schemaRows": 282,
+      "normalizedSchemaSha256": "beed665d1b3c8004c61d4e54f9b39dfe564e1d68c901ec0f6ddb91ba03b86797"
+    },
+    "verification": {
+      "result": "passed",
+      "scopeRowsUnchanged": true,
+      "scopeRowsSha256": "93993faa9c3dbf47b438c1262f68720eaf1ab4de1e6f359970641e0e2a6b1669",
+      "counts": [
+        {
+          "entity": "scopes",
+          "n": 1
+        },
+        {
+          "entity": "artifacts",
+          "n": 0
+        },
+        {
+          "entity": "revisions",
+          "n": 0
+        },
+        {
+          "entity": "versions",
+          "n": 0
+        }
+      ],
+      "baselineChecks": 23,
+      "backupTablesRemaining": 0,
+      "appliedMigrationCount": 13
+    },
+    "backup": {
+      "private": true,
+      "bytes": 9917585,
+      "sha256": "78cdd4823d2c230eb19ed38469c152103e760efa6f9454e52aee774d8e91af1c",
+      "timeTravelBookmarkRecorded": true,
+      "timeTravelRecordSha256": "fbaa8a0540cd8a2330c2ddfa12da7997c572e316c53a76555aa0899266a3d2dc"
+    },
+    "populatedProof": "Actual D1 preserves exact populated scope rows and timeline state, PK/FKs, and rolls back an injected mid-rebuild failure."
+  },
+  "deployment": {
+    "project": "researchtoolspy",
+    "id": "3b8fd9ff-a400-4858-976b-b33f9315c315",
+    "url": "https://3b8fd9ff.researchtoolspy.pages.dev",
+    "productionUrl": "https://researchtools.net",
+    "sourceSha": "839a657ca44b0a3fe83ed8e809444a31e8cf53a2",
+    "wranglerVersion": "4.100.0",
+    "prebuilt": true,
+    "noBundle": true,
+    "stagingHasFunctionsSource": false,
+    "requiredSecretNamesPresent": true,
+    "unrelatedWorkersDeployed": false,
+    "smoke": [
+      {
+        "result": "passed",
+        "baseUrl": "https://3b8fd9ff.researchtoolspy.pages.dev",
+        "checks": [
+          {
+            "path": "/",
+            "method": "GET",
+            "status": 200,
+            "bodySha256": "ab113275ae5026e3e8a463c6fc0fc93a6b060c6923b026d733fe42b3ad09e10a"
+          },
+          {
+            "path": "/dashboard/tools/timeline",
+            "method": "GET",
+            "status": 200,
+            "bodySha256": "ab113275ae5026e3e8a463c6fc0fc93a6b060c6923b026d733fe42b3ad09e10a"
+          },
+          {
+            "path": "/assets/index-DCBdAx9V.js",
+            "method": "GET",
+            "status": 200,
+            "bodySha256": "6fc22d104562f9febf8a256abba0b598832c263701fd51c62e276601f845bff7"
+          },
+          {
+            "path": "/assets/react-vendor-WKsI28Pk.js",
+            "method": "GET",
+            "status": 200,
+            "bodySha256": "8cbc7e2da057556259d80a3eb55afb2f7d1ac4ffebac1989acb7921b3747b531"
+          },
+          {
+            "path": "/assets/state-vendor-CpgMo49P.js",
+            "method": "GET",
+            "status": 200,
+            "bodySha256": "d6e2233fc849cc851b55e14e101717664046c4d524383cb39fcf2b6ddf3b0ab0"
+          },
+          {
+            "path": "/assets/icons-t1FrF7j5.js",
+            "method": "GET",
+            "status": 200,
+            "bodySha256": "635337ad344d8196f6f9cbc68db9820a9334dd38603033197d849d41586dbeec"
+          },
+          {
+            "path": "/assets/ui-vendor-D2SxediK.js",
+            "method": "GET",
+            "status": 200,
+            "bodySha256": "2bdbb6ae2b37f57591060c33b1f38f889bb8074abe2665371c5385e4c6a102b4"
+          },
+          {
+            "path": "/assets/index-5nKzOwqg.css",
+            "method": "GET",
+            "status": 200,
+            "bodySha256": "ddbbcdd4e69112adf5d4feb4052a415f928c0d3b1955006db9b05c87567bcbe8"
+          },
+          {
+            "path": "/assets/TimelineAnalysisPage-DGSjrMxs.js",
+            "method": "GET",
+            "status": 200,
+            "bodySha256": "3842ef7296ef748d272320bec80ecfdbfdfb244592515932afd4e348d89f4b06"
+          },
+          {
+            "path": "/assets/TimelineResults-BCVBjPa8.js",
+            "method": "GET",
+            "status": 200,
+            "bodySha256": "ac940356731b51a39fd813e0f3e3fd7f478e952ecd37edf70c95f15289ccd9be"
+          },
+          {
+            "path": "/api/timelines/timeline_release_probe",
+            "method": "GET",
+            "status": 401,
+            "bodySha256": "6756f712a215e17d25888625679869489257d4face2db0379066d7a93bfd7669"
+          },
+          {
+            "path": "/api/timelines/timeline_release_probe/objects",
+            "method": "GET",
+            "status": 401,
+            "bodySha256": "ac8df1727a77c546a8c0627769e4b6191557bff35f65eb5219cd8068fa117fdd"
+          },
+          {
+            "path": "/api/timelines/timeline_release_probe/revisions",
+            "method": "GET",
+            "status": 401,
+            "bodySha256": "714ee35fc36f8a2bcae1fbbb55d4c05710836711bfd09489ec91f00f2c64c1e7"
+          },
+          {
+            "path": "/api/timelines/timeline_release_probe/revisions/rev_release_probe",
+            "method": "GET",
+            "status": 401,
+            "bodySha256": "2e570384ad6e41042baaefa7615e473a00318505df2922da1396b0362feec962"
+          },
+          {
+            "path": "/api/timelines/timeline_release_probe",
+            "method": "OPTIONS",
+            "status": 204,
+            "bodySha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "path": "/api/integrations/capabilities",
+            "method": "GET",
+            "status": 200,
+            "bodySha256": "f83d45d3bf9d629b9d7e24810d883ed713db18a3497c4adafac6ebecd3a4d2c2"
+          },
+          {
+            "path": "/api/timelines/timeline_release_probe",
+            "method": "GET",
+            "status": 401,
+            "bodySha256": "c71f0ea8e1da2e2152afa73527e09acc76cf65429219e65d8560694e954cadcf"
+          }
+        ],
+        "mutatingRequests": 0,
+        "note": "Anonymous GET and CORS OPTIONS only; no production content writes, credentials or model calls."
+      },
+      {
+        "result": "passed",
+        "baseUrl": "https://researchtools.net",
+        "checks": [
+          {
+            "path": "/",
+            "method": "GET",
+            "status": 200,
+            "bodySha256": "78efee8b6f6d9b5f02aca5cf59488502a3cc5e42d06ad597bd8f485d71acb3f3"
+          },
+          {
+            "path": "/dashboard/tools/timeline",
+            "method": "GET",
+            "status": 200,
+            "bodySha256": "6da1958bf6470897a6ae97856a71d58f8ab92edb1c05539464bccc9960be8782"
+          },
+          {
+            "path": "/assets/index-DCBdAx9V.js",
+            "method": "GET",
+            "status": 200,
+            "bodySha256": "6fc22d104562f9febf8a256abba0b598832c263701fd51c62e276601f845bff7"
+          },
+          {
+            "path": "/assets/react-vendor-WKsI28Pk.js",
+            "method": "GET",
+            "status": 200,
+            "bodySha256": "8cbc7e2da057556259d80a3eb55afb2f7d1ac4ffebac1989acb7921b3747b531"
+          },
+          {
+            "path": "/assets/state-vendor-CpgMo49P.js",
+            "method": "GET",
+            "status": 200,
+            "bodySha256": "d6e2233fc849cc851b55e14e101717664046c4d524383cb39fcf2b6ddf3b0ab0"
+          },
+          {
+            "path": "/assets/icons-t1FrF7j5.js",
+            "method": "GET",
+            "status": 200,
+            "bodySha256": "635337ad344d8196f6f9cbc68db9820a9334dd38603033197d849d41586dbeec"
+          },
+          {
+            "path": "/assets/ui-vendor-D2SxediK.js",
+            "method": "GET",
+            "status": 200,
+            "bodySha256": "2bdbb6ae2b37f57591060c33b1f38f889bb8074abe2665371c5385e4c6a102b4"
+          },
+          {
+            "path": "/assets/index-5nKzOwqg.css",
+            "method": "GET",
+            "status": 200,
+            "bodySha256": "ddbbcdd4e69112adf5d4feb4052a415f928c0d3b1955006db9b05c87567bcbe8"
+          },
+          {
+            "path": "/assets/TimelineAnalysisPage-DGSjrMxs.js",
+            "method": "GET",
+            "status": 200,
+            "bodySha256": "3842ef7296ef748d272320bec80ecfdbfdfb244592515932afd4e348d89f4b06"
+          },
+          {
+            "path": "/assets/TimelineResults-BCVBjPa8.js",
+            "method": "GET",
+            "status": 200,
+            "bodySha256": "ac940356731b51a39fd813e0f3e3fd7f478e952ecd37edf70c95f15289ccd9be"
+          },
+          {
+            "path": "/api/timelines/timeline_release_probe",
+            "method": "GET",
+            "status": 401,
+            "bodySha256": "f4da5079597e3546517a90e649d649d173760668fc7a80610234978ad1b6326f"
+          },
+          {
+            "path": "/api/timelines/timeline_release_probe/objects",
+            "method": "GET",
+            "status": 401,
+            "bodySha256": "e93e0562193a5ae686b70e162d3cdd61d58a5bd348b5d4fcecc01700b284c47d"
+          },
+          {
+            "path": "/api/timelines/timeline_release_probe/revisions",
+            "method": "GET",
+            "status": 401,
+            "bodySha256": "edc27af5983fee18435aca2b2494e7983bc9d5eb0b83bada1febf0963e29bd8c"
+          },
+          {
+            "path": "/api/timelines/timeline_release_probe/revisions/rev_release_probe",
+            "method": "GET",
+            "status": 401,
+            "bodySha256": "3b30abb92464207029395a2cf8a664acbb59684db3bfef8a697e08d5b75bdd20"
+          },
+          {
+            "path": "/api/timelines/timeline_release_probe",
+            "method": "OPTIONS",
+            "status": 204,
+            "bodySha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "path": "/api/integrations/capabilities",
+            "method": "GET",
+            "status": 200,
+            "bodySha256": "1c93e7130ead37bdec9a82c8f6f61cb1679330fefe5e47b169b2c99856c3f8e6"
+          },
+          {
+            "path": "/api/timelines/timeline_release_probe",
+            "method": "GET",
+            "status": 401,
+            "bodySha256": "1af334ff318dfc7cf489f91fc03544b6b93daf45e96841103629c2eff2269492"
+          }
+        ],
+        "mutatingRequests": 0,
+        "note": "Anonymous GET and CORS OPTIONS only; no production content writes, credentials or model calls."
+      }
+    ]
+  },
+  "rollback": {
+    "previousDeploymentId": "5b0ac276-e52e-4436-9cf9-a4ba5a421a5c",
+    "limits": "Previous application supports human snapshots but not scoped timeline access and rejects credentials containing new scope names. This release changed no grants. Prefer compatible application recovery; credential remediation requires separate authorization. Preserve schema/history; no automatic database restore."
+  },
+  "recovery": [
+    "Initial validator deliberately stopped (exit137) after GET-body fixture review finding; no completed gate is claimed.",
+    "Corrected fixture and exact scope-row rollback assertion passed20 focused tests at f170d4468755e5dc42a92e9637424d2eb747706e.",
+    "Fractional timestamp parity checks and regressions were added before the full final run.",
+    "Initial Time Travel metadata request returned Cloudflare internal error7500; retry succeeded."
+  ],
+  "instructionSha256": {
+    "CLAUDE.md": "3852de6d95104c64f3a35b670f350e1d7a2c6c9ed93d03d53895e7bc8c44ff1b",
+    ".team/project.json": "c87cd27090a1a8ff779dd0d850668ebf0ecb6581cefb2d0b0a66ed63aabbcf78",
+    "docs/plans/2026-09-11-timeline-service-charter.md": "c5f2da85ce3147fb800fbb037834be7e0b86f96322ab76d3c2135c27a3548a7b"
+  },
+  "limitations": [
+    "Production smoke uses anonymous GET/OPTIONS and a deliberately malformed credential; authenticated mutations are tested in isolated actual D1 and compiled worker.",
+    "No credential or grant was provisioned; operators assign least-privilege scopes after compatible deployment.",
+    "TL-01 and TL-04\u2013TL-18 remain pending; no Signal/RSS or evidence-model implementation claimed.",
+    "Unrelated dirty primary preserved; external authenticated worker lanes remain unqualified.",
+    "Existing Vite large-chunk warning remains."
+  ],
+  "retrospective": "Two disjoint native providers plus independent review kept ownership separate. Focused D1 checks corrected fixtures before the full run; exact-source review and isolated runtime remained release gates. Keep the bounded topology for the next evidence/provenance slice."
+}

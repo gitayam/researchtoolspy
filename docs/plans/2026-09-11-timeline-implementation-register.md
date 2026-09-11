@@ -2,7 +2,7 @@
 
 Date: 2026-09-11
 
-Status: TL-00 and TL-02 released. The human API and complete browser snapshot saving slices of TL-03 are deployed; the full TL-03 checkpoint remains in progress. GitHub and GitLab main contain the accepted release, and production migrations 0011 and 0012 are applied.
+Status: TL-00, TL-02 and TL-03 released. Human APIs, complete browser snapshots and scoped service read/write are deployed. Both main refs contain the accepted release; production migrations 0011–0013 are applied. Existing service credentials and grants are unchanged.
 
 This register translates the [platform roadmap](./2026-09-11-timeline-evidence-narrative-roadmap.md)
 into independently verifiable releases. Each checkpoint includes API behavior,
@@ -38,22 +38,27 @@ Current delivery state (2026-09-11):
 - **TL-02: released.** Narrative metadata, chapters, selection, stable links,
   strict local import and draft recovery pass Chromium and mobile Safari acceptance,
   including real downloaded-byte round trips. All 42 browser-project checks pass.
-- **TL-03: in_progress; human API and browser snapshot saving deployed.** Private workspace auth,
+- **TL-03: released; human API, browser snapshots and scoped service access deployed.** Private workspace auth,
   artifact/default branch, stable event-candidate identities, immutable versions,
   transactional revisions, exact retry replay and pinned history are implemented.
-  The combined 90 API/contract checks, 54 browser checks and all five TypeScript checks/build pass.
+  The combined 97 API/contract checks, 54 browser checks and all five TypeScript checks/build pass.
   Actual managed-chain and seeded-prefix upgrade tests pass in Miniflare D1 with
   synthetic prerequisites. Release rehearsal additionally imported the actual
   production schema and exercised the compiled Pages worker with synthetic users.
-  Migrations 0011 and 0012 are applied; all nine affected tables and 219 schema
-  details match rehearsal, with existing catalog and row counts preserved.
+  Migrations 0011–0013 are applied. The service release compares all 12 timeline
+  and credential tables, with 282 schema details matching rehearsal and existing
+  scope rows and timeline counts preserved.
   Complete browser snapshots up to 60 KiB support explicit save/reopen, conflict
-  handling and exact retries through real D1 routes in both browsers. Scoped
-  external-service access remains pending; this does not complete full TL-03.
+  handling and exact retries through real D1 routes in both browsers. Independent
+  `timeline.read`/`timeline.write` scopes and current-token replay pass real D1
+  and compiled routes. Transaction-time revocation, rotation and malformed-timestamp
+  cases additionally pass the actual-D1 race tests.
+  No production credential was created or widened.
 - **TL-01 and TL-04–TL-18: pending.** No delivery of these checkpoints or cross-app changes is claimed.
 
-See the [browser release receipt](./2026-09-11-timeline-browser-release-receipt.md)
-for current snapshot deployment and its limits. See the [release receipt](./2026-09-11-timeline-release-receipt.md) for main pushes,
+See the [service release receipt](./2026-09-11-timeline-service-release-receipt.md)
+for current scoped-service deployment. See the [browser release receipt](./2026-09-11-timeline-browser-release-receipt.md)
+for the earlier snapshot release and its limits. See the [release receipt](./2026-09-11-timeline-release-receipt.md) for main pushes,
 production deployment and verification. See the [continuation receipt](./2026-09-11-timeline-continuation-receipt.md) for prior local
 acceptance and the [foundation receipt](./2026-09-11-timeline-foundation-receipt.md)
 for historical attempts. The continuation resolves the earlier browser limitations.
