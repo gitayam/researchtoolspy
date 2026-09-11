@@ -1,10 +1,12 @@
+import { TimelineEvidence } from './TimelineEvidence'
+import { timelineAssessmentLabel } from '@/lib/timeline-evidence'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { narrativeTimelineEvents, timelineChapterAnchor, timelineEventAnchor, timelineEventTemporalLabel } from '@/lib/timeline-workspace'
-import type { TimelineNarrative as Narrative, TimelineNarrativeRole, TimelineWorkspaceEvent } from '@/types/timeline-workspace'
+import type { TimelineEvidence as Evidence, TimelineNarrative as Narrative, TimelineNarrativeRole, TimelineWorkspaceEvent } from '@/types/timeline-workspace'
 
 const roles: TimelineNarrativeRole[] = ['context', 'buildup', 'turning_point', 'response', 'consequence', 'resolution']
 const fields = [
@@ -14,6 +16,8 @@ const fields = [
 const selectStyle = 'h-10 w-full rounded-md border bg-background px-3 text-sm'
 
 interface Props {
+  evidence?: Evidence
+  onEvidence: (value: Evidence) => boolean
   narrative: Narrative
   events: TimelineWorkspaceEvent[]
   editing: boolean
@@ -24,7 +28,7 @@ interface Props {
   onInspect: (id: string) => void
 }
 
-export function TimelineNarrative({ narrative, events, editing, sourceUrl, openGapCount, onNarrative, onEvents, onInspect }: Props) {
+export function TimelineNarrative({ evidence, onEvidence, narrative, events, editing, sourceUrl, openGapCount, onNarrative, onEvents, onInspect }: Props) {
   const [metadataError, setMetadataError] = useState<string | null>(null)
   const selected = narrativeTimelineEvents(events)
   const hasDeparture = selected.some((event, index) => {
@@ -129,11 +133,12 @@ export function TimelineNarrative({ narrative, events, editing, sourceUrl, openG
     {narrative.chapters.filter(chapter => !selected.some(event => event.chapterId === chapter.id)).map(chapter => <section id={timelineChapterAnchor(chapter.id)} key={chapter.id} className="scroll-mt-4"><h3 className="font-semibold">{chapter.title || 'Untitled chapter'}</h3><p>{chapter.claim}</p><p className="text-sm text-muted-foreground">No selected events in this chapter.</p></section>)}
     <ol className="space-y-5">{selected.map(event => <li id={`narrative-${timelineEventAnchor(event.id)}`} key={event.id} className="scroll-mt-4 rounded border p-4">
       {narrative.chapters.filter(chapter => chapter.id === event.chapterId && selected.find(item => item.chapterId === chapter.id)?.id === event.id).map(chapter => <div id={timelineChapterAnchor(chapter.id)} key={chapter.id} className="mb-4 scroll-mt-4 border-b pb-3"><h4 className="font-semibold">{chapter.title || 'Untitled chapter'}</h4><p className="text-sm">{chapter.claim}</p></div>)}
-      <p className="text-sm text-muted-foreground">{timelineEventTemporalLabel(event)} · {event.narrativeRole?.replace('_', ' ') || 'Role needed'} · {event.assessment}</p>
+      <p className="text-sm text-muted-foreground">{timelineEventTemporalLabel(event)} · {event.narrativeRole?.replace('_', ' ') || 'Role needed'} · {timelineAssessmentLabel(evidence,event)}</p>
       <h3 className="mt-1 font-semibold">{event.title}</h3>
       {event.description && <p className="mt-2">{event.description}</p>}
       <p className="mt-2 text-sm"><strong>Why it matters:</strong> {event.whyItMatters || 'Explanation needed.'}</p>
       {event.transition && <p className="mt-2 text-sm">{event.transition}</p>}
+      <TimelineEvidence event={event} eventIds={events.map(item => item.id)} evidence={evidence} onChange={onEvidence} />
       <a className="mt-3 inline-block text-sm text-blue-600 underline" href={`#${timelineEventAnchor(event.id)}`} onClick={click => { click.preventDefault(); onInspect(event.id) }}>Inspect evidence for {event.title}</a>
     </li>)}</ol>
   </article>
