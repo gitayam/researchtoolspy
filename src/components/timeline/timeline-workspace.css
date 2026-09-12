@@ -1,0 +1,54 @@
+/* Timeline surfaces distinguish the type of work, never the truth of a claim. */
+.timeline-workspace, .timeline-results {
+  --tl-blue: #1d4ed8; --tl-blue-soft: #eff6ff; --tl-line: #bfdbfe;
+  --tl-amber: #92400e; --tl-amber-soft: #fffbeb;
+  --tl-surface: #fff; --tl-ink: #0f172a; --tl-muted: #475569;
+  min-width: 0;
+}
+.dark .timeline-workspace, .dark .timeline-results {
+  --tl-blue: #93c5fd; --tl-blue-soft: #17243a; --tl-line: #334b6e;
+  --tl-amber: #fcd34d; --tl-amber-soft: #2c2519;
+  --tl-surface: #111827; --tl-ink: #f1f5f9; --tl-muted: #cbd5e1;
+}
+.timeline-page-heading { border-bottom: 1px solid var(--tl-line); padding: 0 0 1.5rem; }
+.timeline-page-heading h1 svg { color: var(--tl-blue); flex-shrink: 0; }
+.timeline-results [data-timeline-toolbar] { border-radius: 1rem; background: var(--tl-blue-soft); padding: .75rem; border: 1px solid var(--tl-line); }
+.timeline-results [data-timeline-toolbar] button { min-height: 2.75rem; }
+.timeline-workspace-nav { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: .75rem; }
+.timeline-workspace-nav a { display: flex; align-items: flex-start; gap: .75rem; padding: 1rem; border: 1px solid var(--tl-line); border-radius: .875rem; background: var(--tl-surface); color: var(--tl-ink); }
+.timeline-workspace-nav a:hover { background: var(--tl-blue-soft); border-color: var(--tl-blue); }
+.timeline-workspace-nav svg { width: 1.25rem; height: 1.25rem; flex-shrink: 0; color: var(--tl-blue); margin-top: .125rem; }
+.timeline-workspace-nav strong, .timeline-workspace-nav small { display: block; }
+.timeline-workspace-nav strong { font-size: .875rem; }
+.timeline-workspace-nav small { margin-top: .3rem; font-size: .75rem; line-height: 1.5; color: var(--tl-muted); }
+.timeline-overview { border-top: 3px solid var(--tl-blue); background: var(--tl-surface); }
+.timeline-contents { background: var(--tl-blue-soft); border-color: var(--tl-line); }
+.timeline-contents nav a { display: flex; padding: .4rem .5rem; border-radius: .375rem; }
+.timeline-contents nav a:hover { background: var(--tl-surface); }
+.timeline-sequence { border-color: var(--tl-line); background: var(--tl-blue-soft); box-shadow: none; }
+.timeline-sequence > div:first-child { border-bottom: 1px solid var(--tl-line); margin-bottom: 1.5rem; }
+.timeline-sequence > div:first-child h3 { color: var(--tl-ink); font-size: 1.25rem; }
+.timeline-sequence ol { border-color: var(--tl-line); }
+.timeline-event-card { padding: 1.25rem; border: 1px solid var(--tl-line); border-left: 3px solid var(--tl-blue); border-radius: .75rem; background: var(--tl-surface); box-shadow: 0 2px 5px rgb(15 23 42 / .04); margin-bottom: .75rem; }
+.timeline-event-card time, .timeline-event-card .font-mono { font-size: .8rem; color: var(--tl-blue); }
+.timeline-event-card:target { outline: 3px solid var(--tl-blue); outline-offset: 3px; }
+.timeline-event-node { box-shadow: 0 0 0 5px var(--tl-blue-soft); }
+.timeline-gap { border-color: #d6c29b; background: var(--tl-amber-soft); margin-bottom: .75rem; }
+.timeline-question { border-left: 4px solid #d97706; border-color: #d6c29b; background: var(--tl-surface); color: var(--tl-ink); }
+.timeline-question > div > div:first-child > p:first-of-type { font-size: 1rem; color: var(--tl-amber); }
+.timeline-section-anchor { scroll-margin-top: 6rem; }
+.timeline-section-anchor:target { outline: 2px solid var(--tl-blue); outline-offset: 4px; border-radius: 1rem; }
+.timeline-import-panel { background: var(--tl-surface); border-style: dashed; }
+.timeline-workspace :is(input,textarea,select), .timeline-results :is(input,textarea,select) { max-width: 100%; min-width: 0; }
+.timeline-workspace button, .timeline-results button { max-width: 100%; white-space: normal; height: auto; min-height: 2.25rem; }
+.timeline-workspace :is(a,button,summary,input,textarea,select):focus-visible, .timeline-results :is(a,button,summary,input,textarea,select):focus-visible { outline: 3px solid var(--tl-blue); outline-offset: 3px; }
+@media (max-width: 639px) {
+  .timeline-workspace-nav { grid-template-columns: 1fr; gap: .5rem; }
+  .timeline-workspace-nav a { padding: .75rem; }
+  .timeline-event-card { padding: .875rem; }
+  .timeline-sequence > div { padding-left: .75rem; padding-right: .75rem; }
+  .timeline-sequence > div > ol { margin-left: .4rem; padding-left: 1.2rem; }
+  .timeline-event-node { left: -1.75rem; }
+  .timeline-contents nav[aria-label="Timeline events"] a { flex-direction: column; gap: .15rem; }
+  .timeline-contents nav[aria-label="Timeline events"] a span { white-space: normal; overflow-wrap: anywhere; }
+}

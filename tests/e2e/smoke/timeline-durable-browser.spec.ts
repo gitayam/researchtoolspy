@@ -103,6 +103,44 @@ async function exported(page: Page) {
 async function saved(page: Page) { await expect(page.getByTestId('timeline-save-state')).toHaveText('Saved') }
 
 test.describe('durable browser with actual D1 routes @smoke', () => {
+  test('visual workspace hierarchy and event finding preserve the complete private sequence',async({page},testInfo)=>{
+    test.setTimeout(120_000)
+    const b=await bridge(page)
+    try{
+      const value=fixture()
+      value.analystWorkspace.events.push({...value.analystWorkspace.events[0],id:'event:arrival',title:'Supplies arrive at the bridge',eventDate:'2026-09-10',datePrecision:'day',eventTime:'09:00',description:'A dated observation recorded separately from the disputed account.',assessment:'unreviewed',sequenceOrder:1,placement:{mode:'position',position:2}}, {...value.analystWorkspace.events[0],id:'event:reopening',title:'Reopening reported by the local desk',eventDate:'2026-09-11',datePrecision:'day',eventTime:undefined,description:'The report describes deliveries resuming; the underlying claim remains under review.',assessment:'hypothesis',sequenceOrder:2,placement:{mode:'position',position:3}})
+      await page.goto('/dashboard/tools/timeline');await importFixture(page,value)
+      await page.getByRole('button',{name:'Save timeline',exact:true}).click();await saved(page)
+      await page.reload();await page.getByRole('button',{name:'Open saved timeline',exact:true}).click();await saved(page)
+      const before=(await exported(page)).analystWorkspace,raw=await page.evaluate(key=>localStorage.getItem(key),draftKey)
+      const finder=page.getByLabel('Find an event',{exact:true}),links=page.getByRole('navigation',{name:'Timeline events',exact:true})
+      await finder.fill('supplies')
+      await expect(links.getByRole('link')).toHaveCount(1)
+      await links.getByRole('link').click()
+      await expect(page).toHaveURL(/#timeline-event-event%3Aarrival$/)
+      await expect(page.locator('#timeline-sequence .timeline-event-card')).toHaveCount(3)
+      await finder.fill('no-match-record')
+      await expect(links.getByRole('link')).toHaveCount(0)
+      await expect(links.getByRole('status')).toContainText('0 matching event links')
+      await finder.fill('')
+      await expect(links.getByRole('link')).toHaveCount(3)
+      const navigation=page.getByRole('navigation',{name:'Workspace navigation',exact:true})
+      await navigation.getByRole('link',{name:/Judgments/}).focus();await page.keyboard.press('Enter')
+      await expect(page.locator('#timeline-judgments')).toBeFocused()
+      await navigation.getByRole('link',{name:/Event sequence/}).click()
+      await expect(page.locator('#timeline-sequence')).toBeFocused()
+      for(const theme of ['light','dark']){
+        await page.evaluate(dark=>document.documentElement.classList.toggle('dark',dark),theme==='dark')
+        expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true)
+        for(const [name,selector] of [['navigation','.timeline-workspace-nav'],['sequence','#timeline-sequence'],['judgments','#timeline-judgments']] as const){
+          const target=page.locator(selector),path=testInfo.outputPath(`${name}-${theme}.png`)
+          await target.screenshot({path,animations:'disabled'});await testInfo.attach(`${name} ${theme}`,{path,contentType:'image/png'})
+        }
+      }
+      expect((await exported(page)).analystWorkspace).toEqual(before)
+      expect(await page.evaluate(key=>localStorage.getItem(key),draftKey)).toBe(raw)
+    }finally{await b.mf.dispose()}
+  })
   test('a passage beyond the stored prefix imports from verified chunks and survives private reopen', async ({ page }, testInfo) => {
     test.setTimeout(120_000)
     const b=await bridge(page,true,true)

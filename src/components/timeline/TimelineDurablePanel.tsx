@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { FolderLock } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
 import { Button } from '@/components/ui/button'
@@ -34,9 +35,9 @@ export function TimelineDurablePanel(props: Props) {
   const eligible = signedIn && Boolean(user) && (user?.is_active === undefined || user?.is_active === true || Number(user?.is_active) === 1) && Boolean(role) && !['guest', 'service'].includes(role)
   const scope = `${eligible ? user?.id : 'guest'}:${selected?.id || ''}`
   useEffect(() => () => props.onForgetRemote(), [scope, props.onForgetRemote])
-  if (!eligible || !user) return <section aria-label="Workspace saving" className="rounded-lg border p-4 text-sm">Sign in to save complete timelines to a private workspace. Local drafts and JSON export remain available.</section>
-  return <section aria-label="Workspace saving" className="space-y-3 rounded-lg border p-4">
-    <h2 className="font-semibold">Save to a private workspace</h2>
+  if (!eligible || !user) return <section aria-label="Workspace saving" className="timeline-saving min-w-0 rounded-xl border border-slate-200 bg-slate-50/60 p-4 text-sm leading-relaxed dark:border-slate-700 dark:bg-slate-900/40"><FolderLock aria-hidden="true" className="mr-2 inline-block h-4 w-4 align-text-bottom text-slate-600 dark:text-slate-300" />Sign in to save complete timelines to a private workspace. Local drafts and JSON export remain available.</section>
+  return <section aria-label="Workspace saving" className="timeline-saving min-w-0 space-y-4 rounded-xl border border-slate-200 border-l-4 border-l-slate-400 bg-slate-50/60 p-4 sm:p-5 dark:border-slate-700 dark:border-l-slate-500 dark:bg-slate-900/40">
+    <h2 className="flex items-start gap-2 font-semibold text-slate-900 dark:text-slate-100"><FolderLock aria-hidden="true" className="h-5 w-5 shrink-0" />Save to a private workspace</h2>
     <Label htmlFor="timeline-save-workspace">Saving workspace</Label>
     <select id="timeline-save-workspace" className="w-full rounded-md border bg-background p-2" value={selected?.id || ''} onChange={event => setChoice(event.target.value)}>
       <option value="">Choose a private workspace</option>
@@ -103,19 +104,19 @@ function WorkspaceSaving({ snapshot, onOpen, workspaceId, principalId, canWrite 
       } finally { if (!abort.signal.aborted) setBusy(false) }
     } catch (error) { if (!controller.current?.signal.aborted) setMessage(error instanceof Error ? error.message : 'Unable to open this timeline. Your current timeline is unchanged.') }
   }
-  return <div className="space-y-3">
+  return <div className="min-w-0 space-y-4">
     <p className="text-sm text-muted-foreground">Saves include the narrative, notes, source extraction and event IDs. Each save supports up to 60 KiB. Opened private timelines are kept in memory; export JSON to keep an offline copy.</p>
     <div className="flex flex-wrap gap-2">
       <Button disabled={!snapshot || !canWrite || busy || conflict || Boolean(artifact && !dirty && !pending)} onClick={() => void save()}>{pending ? 'Retry previous save' : artifact ? 'Save changes' : 'Save timeline'}</Button>
       {artifact && !pending && <Button variant="outline" disabled={!snapshot || !canWrite || busy} onClick={() => void save(true)}>Save a separate copy</Button>}
-      {artifact && <span className="self-center text-sm" data-testid="timeline-save-state">{dirty ? 'Unsaved changes' : 'Saved'}</span>}
+      {artifact && <span className="self-center rounded-full border border-slate-300 bg-background px-3 py-1 text-xs font-medium dark:border-slate-600" data-testid="timeline-save-state">{dirty ? 'Unsaved changes' : 'Saved'}</span>}
     </div>
     {!canWrite && <p className="text-sm">You have read-only access to this workspace.</p>}
-    <div className="space-y-2">
+    <div className="min-w-0 space-y-3 border-t border-slate-200 pt-4 dark:border-slate-700">
       <Label htmlFor="timeline-saved-link">Saved timeline link</Label>
       <Input id="timeline-saved-link" value={linkInput} onChange={event => setLinkInput(event.target.value)} placeholder="Paste a saved timeline link" />
       <Button variant="outline" disabled={busy || Boolean(pending) || !linkInput.trim()} onClick={() => void open()}>Open saved timeline</Button>
     </div>
-    {message && <p role="status" className="text-sm">{message}</p>}
+    {message && <p role="status" className="rounded-lg border bg-background p-3 text-sm leading-relaxed">{message}</p>}
   </div>
 }

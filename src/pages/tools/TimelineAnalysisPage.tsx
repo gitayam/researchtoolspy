@@ -307,13 +307,14 @@ export function TimelineAnalysisPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-6 py-8">
-      <div className="flex items-start gap-4">
+    <div className="timeline-workspace mx-auto w-full max-w-6xl space-y-6 py-6 sm:py-8">
+      <div className="timeline-page-heading flex items-start gap-4">
         <Button variant="outline" size="icon" asChild aria-label="Back to research tools">
           <Link to="/dashboard/tools"><ArrowLeft className="h-4 w-4" /></Link>
         </Button>
         <div>
-          <h1 className="flex items-center gap-2 text-3xl font-bold"><Calendar className="h-8 w-8" />Timeline Analysis</h1>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-blue-700 dark:text-blue-300">Research workspace</p>
+          <h1 className="flex items-center gap-2 text-3xl font-bold tracking-tight"><Calendar className="h-8 w-8" />Timeline Analysis</h1>
           <p className="mt-1 text-muted-foreground">Build what you know, expose what is missing, and turn those gaps into evidence-backed research.</p>
         </div>
       </div>
@@ -339,7 +340,7 @@ export function TimelineAnalysisPage() {
         </AlertDescription>
       </Alert>}
 
-      <div className="space-y-2 rounded-lg border p-4">
+      <div className="timeline-import-panel space-y-2 rounded-lg border p-4">
         <Label htmlFor="timeline-import">Import timeline JSON</Label>
         <Input id="timeline-import" type="file" accept=".json,application/json" onChange={event => {
           const file = event.target.files?.[0]
@@ -350,7 +351,7 @@ export function TimelineAnalysisPage() {
         {manualDraft && !result && <Button variant="outline" onClick={resumeManualTimeline}>Resume saved timeline</Button>}
       </div>
 
-      <div className="flex w-fit rounded-md border bg-background p-1" role="group" aria-label="Timeline starting point">
+      <div className="flex w-full flex-wrap gap-1 rounded-xl border bg-muted/40 p-1.5 sm:w-fit" role="group" aria-label="Timeline starting point">
         <Button size="sm" variant={entryMode === 'manual' ? 'default' : 'ghost'} aria-pressed={entryMode === 'manual'} onClick={() => setEntryMode('manual')}>
           <PencilLine className="mr-2 h-4 w-4" />Start with what you know
         </Button>

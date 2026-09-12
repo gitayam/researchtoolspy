@@ -1,5 +1,6 @@
 import { TimelineSourceImport } from './TimelineSourceImport'
 import { useState } from 'react'
+import { FileSearch } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -52,22 +53,22 @@ export function TimelineEvidence({ sourceImportWorkspaceId, event, eventIds, evi
     setEditingAssertion(item.id); setSourceId(item.sourceId)
     setAssertion({ claimText: item.claimText, temporalClaim: item.temporalClaim, quote: item.passage.quote, locator: item.passage.locator, observedAt: item.observedAt ?? '', reportedAt: item.reportedAt ?? '', derivesFrom: item.derivesFrom })
   }
-  return <details className="mt-3 min-w-0 rounded border p-3" data-testid={`evidence-${event.id}`}>
-    <summary className="cursor-pointer font-medium">Evidence for {event.title} · {data.links.filter(item => item.eventId === event.id).length} assertions</summary>
-    <div className="mt-3 space-y-4 break-words text-sm">
+  return <details className="timeline-evidence mt-4 min-w-0 rounded-xl border border-teal-200 border-l-4 border-l-teal-500 bg-teal-50/40 p-4 dark:border-teal-900 dark:border-l-teal-500 dark:bg-teal-950/20" data-testid={`evidence-${event.id}`}>
+    <summary className="cursor-pointer break-words font-semibold leading-relaxed text-teal-950 dark:text-teal-100"><FileSearch aria-hidden="true" className="mr-2 inline-block h-4 w-4 align-text-bottom" />Evidence for {event.title} · {data.links.filter(item => item.eventId === event.id).length} assertions</summary>
+    <div className="mt-4 space-y-5 break-words text-sm leading-relaxed">
       {sourceImportWorkspaceId ? <TimelineSourceImport workspaceId={sourceImportWorkspaceId} event={event} eventIds={eventIds} evidence={evidence} onChange={onChange} /> : <p>To import a stored Content Research passage, save this timeline to a private workspace, then reopen its saved link with write access.</p>}
       <p>Analyst-entered source assertions. Quotes, locators and derivation are recorded snapshots, not independently verified provenance. Event wording remains separate.</p>
       {(['supports', 'contradicts', 'context'] as const).map(group => <section key={group} aria-label={`${group} assertions`} className="space-y-2">
-        <h4 className="font-semibold capitalize">{group}</h4>
+        <h4 className="border-b border-teal-200/70 pb-2 text-xs font-semibold uppercase tracking-wide text-teal-900 dark:border-teal-900 dark:text-teal-200">{group}</h4>
         {data.links.filter(link => link.eventId === event.id && link.relation === group).map(link => {
           const item = data.assertions.find(candidate => candidate.id === link.assertionId)!
           const cited = data.sources.find(candidate => candidate.id === item.sourceId)!
-          return <article key={link.id} className="space-y-2 rounded border p-3">
+          return <article key={link.id} className="min-w-0 space-y-3 rounded-lg border border-teal-200/70 bg-background p-4 dark:border-teal-900">
             <p><strong>{item.claimText}</strong> · {item.status}</p>
-            <a href={cited.url} target="_blank" rel="noopener noreferrer" className="break-all text-blue-600 underline">{cited.title}</a>
+            <a href={cited.url} target="_blank" rel="noopener noreferrer" className="break-all font-medium text-teal-800 underline underline-offset-4 dark:text-teal-200">{cited.title}</a>
             <p className="break-all">{cited.url}</p><p>Publisher: {cited.publisher || 'Not recorded'}</p>
             <p>Published: {cited.publishedAt || 'Not recorded'} · Retrieved: {cited.retrievedAt || 'Not recorded'}</p>
-            <blockquote className="border-l-2 pl-3 whitespace-pre-wrap">{item.passage.quote || 'No quotation recorded'}</blockquote>
+            <blockquote className="whitespace-pre-wrap rounded-r-md border-l-2 border-teal-400 bg-teal-50/60 py-3 pl-4 pr-3 dark:bg-teal-950/30">{item.passage.quote || 'No quotation recorded'}</blockquote>
             <p>Locator: {item.passage.locator}</p><p>Temporal claim: {item.temporalClaim || 'Not recorded'}</p>
             <p>Observed: {item.observedAt || 'Not recorded'} · Reported: {item.reportedAt || 'Not recorded'}</p>
             <p>Derives from: {item.derivesFrom.length ? item.derivesFrom.map(parent => data.assertions.find(candidate => candidate.id === parent)?.claimText).join('; ') : 'None recorded; independence requires review'}</p>
@@ -98,12 +99,12 @@ export function TimelineEvidence({ sourceImportWorkspaceId, event, eventIds, evi
           {editingAssertion && <Button variant="outline" onClick={()=>{setEditingAssertion(null);setAssertion(blankAssertion)}}>Cancel assertion edit</Button>}
         </div>
       </details>
-      <fieldset className="space-y-2 rounded border p-3"><legend>Link an existing assertion</legend>
+      <fieldset className="min-w-0 space-y-3 rounded-lg border bg-background p-4"><legend className="px-2 font-semibold">Link an existing assertion</legend>
         <label className="block">Existing assertion<select aria-label="Existing assertion" className={selectStyle} value={existingAssertion} onChange={change=>setExistingAssertion(change.target.value)}><option value="">Choose assertion</option>{data.assertions.filter(item=>!data.links.some(link=>link.eventId===event.id&&link.assertionId===item.id)).map(item=><option key={item.id} value={item.id}>{item.claimText}</option>)}</select></label>
         <label className="block">Link relation<select aria-label="Link relation" className={selectStyle} value={relation} onChange={change=>setRelation(change.target.value as TimelineEvidenceLink['relation'])}>{['supports','contradicts','context'].map(value=><option key={value}>{value}</option>)}</select></label>
         <Button disabled={!existingAssertion} onClick={()=>{if(save({...data,links:[...data.links,{id:id('link'),eventId:event.id,assertionId:existingAssertion,relation}]}))setExistingAssertion('')}}>Link assertion</Button>
       </fieldset>
-      <fieldset className="space-y-3 rounded border p-3"><legend>Review corroboration</legend>
+      <fieldset className="min-w-0 space-y-3 rounded-lg border border-teal-200 bg-background p-4 dark:border-teal-900"><legend className="px-2 font-semibold">Review corroboration</legend>
         <p role="status">{gate.reason}</p>
         {review && <p>Recorded review: {review.independence} / {review.compatibility} · {review.reviewedAt}<br/>{review.rationale}</p>}
         <label className="block">Independence<select aria-label="Independence" className={selectStyle} value={independence} onChange={change=>setIndependence(change.target.value as TimelineEvidenceReview['independence'])}>{['unresolved','independent','dependent'].map(value=><option key={value}>{value}</option>)}</select></label>

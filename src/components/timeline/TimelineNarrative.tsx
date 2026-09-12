@@ -2,6 +2,7 @@ import { TimelineJudgments } from './TimelineJudgments'
 import { TimelineEvidence } from './TimelineEvidence'
 import { timelineAssessmentLabel } from '@/lib/timeline-evidence'
 import { useState } from 'react'
+import { BookOpen, PenLine } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -71,8 +72,8 @@ export function TimelineNarrative({ analysis, evidence, onEvidence, narrative, e
     {incomplete > 0 && <p role="status">{incomplete} selected events need a narrative role or why-it-matters explanation.</p>}
   </div>
 
-  if (editing) return <details className="rounded-lg border p-4" open>
-    <summary className="cursor-pointer font-semibold">Narrative editor</summary>
+  if (editing) return <details className="timeline-narrative-editor min-w-0 rounded-xl border border-indigo-200 border-l-4 border-l-indigo-500 bg-indigo-50/40 p-4 sm:p-5 dark:border-indigo-900 dark:border-l-indigo-500 dark:bg-indigo-950/20" open>
+    <summary className="cursor-pointer text-lg font-semibold text-indigo-950 dark:text-indigo-100"><PenLine aria-hidden="true" className="mr-2 inline-block h-5 w-5 align-text-bottom" />Narrative editor</summary>
     <p className="my-3 text-sm text-muted-foreground">Curate an account without changing the source extraction. Importance does not determine narrative role.</p>
     <div className="grid gap-3 sm:grid-cols-2">
       {fields.map(([key, label]) => <div key={key} className={key === 'framing' ? 'sm:col-span-2' : ''}>
@@ -85,8 +86,8 @@ export function TimelineNarrative({ analysis, evidence, onEvidence, narrative, e
     {metadataError && <p role="alert" className="text-sm text-red-600">{metadataError}</p>}
     <div className="my-4 space-y-3">
       <h3 className="font-semibold">Chapters</h3>
-      {narrative.chapters.map(chapter => <fieldset key={chapter.id} className="space-y-2 rounded border p-3">
-        <legend className="px-1">{chapter.title || 'Untitled chapter'}</legend>
+      {narrative.chapters.map(chapter => <fieldset key={chapter.id} className="min-w-0 space-y-3 rounded-lg border border-indigo-200 bg-background p-4 dark:border-indigo-900">
+        <legend className="max-w-full break-words px-2 font-medium">{chapter.title || 'Untitled chapter'}</legend>
         <Label htmlFor={`chapter-title-${chapter.id}`}>Chapter title</Label>
         <Input id={`chapter-title-${chapter.id}`} maxLength={1000} value={chapter.title} onChange={event => onNarrative({ ...narrative, chapters: narrative.chapters.map(item => item.id === chapter.id ? { ...item, title: event.target.value } : item) })} />
         <Label htmlFor={`chapter-claim-${chapter.id}`}>What changes in this chapter?</Label>
@@ -101,8 +102,8 @@ export function TimelineNarrative({ analysis, evidence, onEvidence, narrative, e
     {warnings}
     <h3 className="my-3 font-semibold">Event selection · {selected.length} of {events.length}</h3>
     <div className="space-y-2">
-      {events.map(event => <details key={event.id} data-testid={`narrative-edit-${event.id}`} className="rounded border p-3">
-        <summary className="cursor-pointer">{event.narrativeIncluded ? 'Included' : 'Not selected'} · {event.title}</summary>
+      {events.map(event => <details key={event.id} data-testid={`narrative-edit-${event.id}`} className="min-w-0 rounded-lg border bg-background p-4">
+        <summary className="cursor-pointer break-words font-medium leading-relaxed">{event.narrativeIncluded ? 'Included' : 'Not selected'} · {event.title}</summary>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           <label className="flex items-center gap-2 sm:col-span-2"><input type="checkbox" checked={!!event.narrativeIncluded} onChange={change => updateEvent(event.id, { narrativeIncluded: change.target.checked, ...(change.target.checked ? { narrativeOrder: Math.max(-1, ...selected.map(item => item.narrativeOrder ?? 0)) + 1 } : {}) })} />Include {event.title} in narrative</label>
           <div><Label htmlFor={`role-${event.id}`}>Narrative role</Label><select id={`role-${event.id}`} className={selectStyle} value={event.narrativeRole ?? ''} onChange={change => updateEvent(event.id, { narrativeRole: (change.target.value || undefined) as TimelineNarrativeRole | undefined })}><option value="">Choose a role</option>{roles.map(role => <option key={role} value={role}>{role.replace('_', ' ')}</option>)}</select></div>
@@ -116,27 +117,27 @@ export function TimelineNarrative({ analysis, evidence, onEvidence, narrative, e
     <ol className="space-y-2">{selected.map((event, index) => <li key={event.id} className="flex flex-wrap items-center gap-2"><span className="min-w-0 flex-1">{index + 1}. {event.title}</span><Button variant="outline" size="sm" disabled={index === 0} aria-label={`Move ${event.title} earlier in narrative`} onClick={() => move(event.id, -1)}>Earlier</Button><Button variant="outline" size="sm" disabled={index === selected.length - 1} aria-label={`Move ${event.title} later in narrative`} onClick={() => move(event.id, 1)}>Later</Button></li>)}</ol>
   </details>
 
-  return <article aria-label="Narrative presentation" className="space-y-5 rounded-lg border p-4 sm:p-6">
-    <header className="space-y-2">
-      <h2 className="text-2xl font-semibold">{narrative.title || 'Untitled narrative'}</h2>
+  return <article aria-label="Narrative presentation" className="timeline-narrative min-w-0 space-y-6 rounded-xl border border-indigo-200 bg-background p-4 leading-relaxed sm:p-6 dark:border-indigo-900">
+    <header className="space-y-3 border-b border-indigo-200 pb-5 dark:border-indigo-900">
+      <h2 className="flex items-start gap-3 break-words text-2xl font-semibold leading-tight text-indigo-950 dark:text-indigo-100"><BookOpen aria-hidden="true" className="mt-1 h-6 w-6 shrink-0" /><span className="min-w-0">{narrative.title || 'Untitled narrative'}</span></h2>
       <p>{narrative.framing || 'Framing has not been supplied.'}</p>
       <dl className="grid gap-2 text-sm sm:grid-cols-2">{fields.filter(([key]) => key !== 'title' && key !== 'framing').map(([key, label]) => <div key={key}><dt className="font-medium">{label}</dt><dd>{narrative[key] || 'Not supplied'}</dd></div>)}</dl>
       <p className="text-sm text-muted-foreground">{selected.length} selected events · {sourceUrl ? '1 extraction source; event support requires review' : 'Analyst-created; no extraction source'} · {openGapCount} open questions</p>
       <p className="text-sm text-muted-foreground">Chronological sequence alone does not establish causation, motive, or a forecast.</p>
     </header>
     {warnings}
-    <nav aria-label="Narrative outline" className="rounded border p-3">
-      <h3 className="font-semibold">Narrative outline</h3>
+    <nav aria-label="Narrative outline" className="space-y-3 rounded-lg border border-indigo-200 bg-indigo-50/50 p-4 dark:border-indigo-900 dark:bg-indigo-950/20">
+      <h3 className="text-xs font-semibold uppercase tracking-wide text-indigo-900 dark:text-indigo-200">Narrative outline</h3>
       {narrative.chapters.length === 0 && <p className="text-sm">No chapters yet.</p>}
       <ul className="space-y-2">{narrative.chapters.map(chapter => <li key={chapter.id}><a className="font-medium text-blue-600 underline" href={`#${timelineChapterAnchor(chapter.id)}`}>{chapter.title || 'Untitled chapter'}</a><p className="text-sm">{chapter.claim || 'Chapter claim not supplied.'}</p><ul className="ml-4 list-disc">{selected.filter(event => event.chapterId === chapter.id).map(event => <li key={event.id}><a className="text-sm text-blue-600 underline" href={`#narrative-${timelineEventAnchor(event.id)}`}>{event.title}</a></li>)}</ul></li>)}</ul>
       <ul className="mt-2 space-y-1">{selected.filter(event => !event.chapterId).map(event => <li key={event.id}><a className="text-sm text-blue-600 underline" href={`#narrative-${timelineEventAnchor(event.id)}`}>{event.title}</a></li>)}</ul>
     </nav>
     {selected.length === 0 && <p>No events selected. Return to Analyst view to curate the narrative.</p>}
     {narrative.chapters.filter(chapter => !selected.some(event => event.chapterId === chapter.id)).map(chapter => <section id={timelineChapterAnchor(chapter.id)} key={chapter.id} className="scroll-mt-4"><h3 className="font-semibold">{chapter.title || 'Untitled chapter'}</h3><p>{chapter.claim}</p><p className="text-sm text-muted-foreground">No selected events in this chapter.</p></section>)}
-    <ol className="space-y-5">{selected.map(event => <li id={`narrative-${timelineEventAnchor(event.id)}`} key={event.id} className="scroll-mt-4 rounded border p-4">
+    <ol className="space-y-5">{selected.map(event => <li id={`narrative-${timelineEventAnchor(event.id)}`} key={event.id} className="min-w-0 scroll-mt-4 break-words rounded-lg border border-l-4 border-l-indigo-400 p-4 sm:p-5">
       {narrative.chapters.filter(chapter => chapter.id === event.chapterId && selected.find(item => item.chapterId === chapter.id)?.id === event.id).map(chapter => <div id={timelineChapterAnchor(chapter.id)} key={chapter.id} className="mb-4 scroll-mt-4 border-b pb-3"><h4 className="font-semibold">{chapter.title || 'Untitled chapter'}</h4><p className="text-sm">{chapter.claim}</p></div>)}
       <p className="text-sm text-muted-foreground">{timelineEventTemporalLabel(event)} · {event.narrativeRole?.replace('_', ' ') || 'Role needed'} · {timelineAssessmentLabel(evidence,event)}</p>
-      <h3 className="mt-1 font-semibold">{event.title}</h3>
+      <h3 className="mt-2 text-lg font-semibold leading-snug">{event.title}</h3>
       {event.description && <p className="mt-2">{event.description}</p>}
       <p className="mt-2 text-sm"><strong>Why it matters:</strong> {event.whyItMatters || 'Explanation needed.'}</p>
       {event.transition && <p className="mt-2 text-sm">{event.transition}</p>}

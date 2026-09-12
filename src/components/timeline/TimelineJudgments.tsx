@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Scale, MessagesSquare } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -44,8 +45,8 @@ export function TimelineJudgments({ analysis, events, evidence, editable=false, 
     const review:TimelineJudgmentReview={id:`review-${crypto.randomUUID()}`,judgmentId:judgment.id,reviewerLabel:reviewerLabel.trim(),position,rationale:rationale.trim(),alternative,createdAt:new Date().toISOString(),basis:reviewing.basis}
     if(save({...data,reviews:[...data.reviews,review]})){setReviewing(null);setReviewerLabel('');setRationale('');setAlternative('')}
   }
-  return <section aria-label={editable?'Analytic judgments':'Narrative judgments'} className="space-y-4 rounded-lg border p-4">
-    <h2 className="text-xl font-semibold">Analytic judgments and retained dissent</h2>
+  return <section aria-label={editable?'Analytic judgments':'Narrative judgments'} className="timeline-judgments min-w-0 space-y-5 rounded-xl border border-violet-200 border-l-4 border-l-violet-500 bg-violet-50/40 p-4 sm:p-5 dark:border-violet-900 dark:border-l-violet-500 dark:bg-violet-950/20">
+    <h2 className="flex items-start gap-3 text-xl font-semibold leading-snug text-violet-950 dark:text-violet-100"><Scale aria-hidden="true" className="mt-0.5 h-5 w-5 shrink-0" /><span>Analytic judgments and retained dissent</span></h2>
     <p className="text-sm text-muted-foreground">Judgments are separate from event and source wording. Likelihood uses a local verbal vocabulary, not numeric probabilities. Analytical confidence is stated separately and is not calculated from source counts. Review labels are self-attributed, not verified identities or sign-off.</p>
     {!data.judgments.length&&<p>No analytic judgments recorded.</p>}
     {data.judgments.map(judgment=>{
@@ -53,11 +54,13 @@ export function TimelineJudgments({ analysis, events, evidence, editable=false, 
       const referenced=new Set([...judgment.evidenceRefs,...judgment.contraryEvidenceRefs,...(evidence?.links.filter(link=>judgment.eventRefs.includes(link.eventId)).map(link=>link.assertionId)??[])])
       const visit=(id:string)=>{for(const parent of evidence?.assertions.find(item=>item.id===id)?.derivesFrom??[])if(!referenced.has(parent)){referenced.add(parent);visit(parent)}}
       for(const id of [...referenced])visit(id)
-      return <article key={judgment.id} aria-label={`Judgment: ${judgment.claim}`} className="space-y-3 rounded border p-3 break-words">
-        <h3 className="font-semibold">{judgment.claim}</h3><p className="text-sm">{judgment.status} · As of {judgment.asOf} · Updated {judgment.updatedAt}</p>
+      return <article key={judgment.id} aria-label={`Judgment: ${judgment.claim}`} className="min-w-0 space-y-4 break-words rounded-lg border border-violet-200/70 bg-background p-4 leading-relaxed dark:border-violet-900">
+        <h3 className="text-lg font-semibold leading-snug">{judgment.claim}</h3><p className="text-xs text-muted-foreground">{judgment.status} · As of {judgment.asOf} · Updated {judgment.updatedAt}</p>
         <p><strong>Scope:</strong> {judgment.scope}</p><p><strong>Reasoning:</strong> {judgment.reasoning}</p>
-        <p><strong>Likelihood:</strong> {judgment.likelihood.value.replace('_',' ')} (timeline-verbal.v1)</p>
-        <p><strong>Analytical confidence:</strong> {judgment.analyticConfidence}</p><p><strong>Confidence basis:</strong> {judgment.confidenceBasis}</p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <p className="rounded-lg border border-violet-200 bg-violet-50/50 p-3 dark:border-violet-900 dark:bg-violet-950/30"><strong className="block text-sm">Likelihood:</strong> {judgment.likelihood.value.replace('_',' ')} (timeline-verbal.v1)</p>
+          <p className="rounded-lg border bg-muted/30 p-3"><strong className="block text-sm">Analytical confidence:</strong> {judgment.analyticConfidence}</p>
+        </div><p><strong>Confidence basis:</strong> {judgment.confidenceBasis}</p>
         {listFields.map(([key,label])=><div key={key}><strong>{label}:</strong>{judgment[key].length?<ul className="list-disc pl-5">{judgment[key].map((item,index)=><li key={index}>{item}</li>)}</ul>:<p>None recorded.</p>}</div>)}
         <p><strong>Change reason:</strong> {judgment.changeReason}</p>
         {stale&&<p role="status" className="font-medium text-amber-700 dark:text-amber-300">Judgment inputs changed; review and save this judgment before recording another review.</p>}
@@ -66,9 +69,9 @@ export function TimelineJudgments({ analysis, events, evidence, editable=false, 
           {[...referenced].map(id=>{const assertion=evidence?.assertions.find(item=>item.id===id);const source=evidence?.sources.find(item=>item.id===assertion?.sourceId);return assertion&&source?<div key={id} className="mt-3 space-y-1 border-t pt-2"><p><strong>{judgment.contraryEvidenceRefs.includes(id)?'Contrary assertion':judgment.evidenceRefs.includes(id)?'Cited assertion':'Event-linked or derived assertion'}:</strong> {assertion.claimText} · {assertion.status}</p><a className="break-all text-blue-600 underline" href={source.url} target="_blank" rel="noopener noreferrer">{source.title} — {source.url}</a><blockquote className="whitespace-pre-wrap border-l-2 pl-3">{assertion.passage.quote||'No quote recorded'}</blockquote><p>Locator: {assertion.passage.locator}</p><p>Temporal wording: {assertion.temporalClaim||'Not recorded'}</p></div>:null})}
         </details>
         <details><summary className="cursor-pointer">Recorded input basis</summary><pre className="max-h-64 overflow-auto whitespace-pre-wrap break-all text-xs">{judgment.basis}</pre></details>
-        <section aria-label="Retained reviews and dissent" className="space-y-3">
-          <h4 className="font-semibold">Retained reviews and dissent</h4>
-          {data.reviews.filter(review=>review.judgmentId===judgment.id).map(review=><article key={review.id} className="rounded border p-3">
+        <section aria-label="Retained reviews and dissent" className="space-y-3 border-t border-violet-200 pt-4 dark:border-violet-900">
+          <h4 className="flex items-center gap-2 font-semibold text-violet-900 dark:text-violet-200"><MessagesSquare aria-hidden="true" className="h-4 w-4 shrink-0" />Retained reviews and dissent</h4>
+          {data.reviews.filter(review=>review.judgmentId===judgment.id).map(review=><article key={review.id} className="space-y-2 rounded-lg border border-l-4 border-l-violet-400 bg-violet-50/40 p-4 dark:bg-violet-950/20">
             <p><strong>{review.position}</strong> · {review.reviewerLabel} (self-attributed) · {review.createdAt}</p><p>{review.rationale}</p>{review.alternative&&<p>Alternative: {review.alternative}</p>}
             {review.basis!==timelineJudgmentReviewBasis(judgment)&&<p className="font-medium">Review concerns an earlier judgment version.</p>}
             <details><summary className="cursor-pointer">Reviewed judgment snapshot</summary><pre className="max-h-64 overflow-auto whitespace-pre-wrap break-all text-xs">{review.basis}</pre></details>
@@ -86,7 +89,7 @@ export function TimelineJudgments({ analysis, events, evidence, editable=false, 
       {listFields.map(([key,label])=><label key={key} className="block">{label} (one per line, up to 10)<Textarea aria-label={label} value={editor[key].join('\n')} maxLength={10009} onChange={e=>setEditor({...editor,[key]:e.target.value===''?[]:e.target.value.split('\n')})}/></label>)}
       {(['eventRefs','evidenceRefs','contraryEvidenceRefs'] as const).map(key=>{const label={eventRefs:'Cited events',evidenceRefs:'Cited assertions',contraryEvidenceRefs:'Contrary assertions'}[key];return <label key={key} className="block">{label}<select multiple aria-label={label} className={selectStyle} value={editor[key]} onChange={e=>setEditor({...editor,[key]:Array.from(e.target.selectedOptions,o=>o.value)})}>{(key==='eventRefs'?events.map(e=>({id:e.id,label:e.title})):evidence?.assertions.map(a=>({id:a.id,label:a.claimText}))??[]).map(item=><option key={item.id} value={item.id}>{item.label}</option>)}</select></label>})}
       <label className="block">Judgment status<select aria-label="Judgment status" className={selectStyle} value={editor.status} onChange={e=>setEditor({...editor,status:e.target.value as TimelineJudgment['status']})}><option>active</option><option>withdrawn</option></select></label>
-      <div className="flex gap-2"><Button onClick={saveJudgment}>Save judgment</Button><Button variant="outline" onClick={()=>setEditor(null)}>Cancel judgment edit</Button></div>
+      <div className="flex flex-wrap gap-2"><Button onClick={saveJudgment}>Save judgment</Button><Button variant="outline" onClick={()=>setEditor(null)}>Cancel judgment edit</Button></div>
     </fieldset>}
     {editable&&reviewing&&<fieldset className="space-y-3 rounded border p-4" aria-label="Review editor"><legend>Append review or dissent</legend>
       {draftVersionChanged&&<p role="status">This judgment changed while the review was being drafted. Your draft is retained. Cancel and reopen after inspecting the new version.</p>}

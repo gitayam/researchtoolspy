@@ -1,3 +1,4 @@
+import './timeline-workspace.css'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
 import {
@@ -303,6 +304,7 @@ function TimelineWorkspace({
   const [assistSuggestions, setAssistSuggestions] = useState<TimelineAssistSuggestion[]>([])
   const [assistLoading, setAssistLoading] = useState(false)
   const [assistError, setAssistError] = useState<string | null>(null)
+  const [eventQuery, setEventQuery] = useState('')
   const [sortDirection, setSortDirection] = useState<TimelineSortDirection>(initialState.sortDirection!)
   function boundedSetter<T>(key: string, current: T, write: Dispatch<SetStateAction<T>>): Dispatch<SetStateAction<T>> {
     return update => {
@@ -766,12 +768,12 @@ function TimelineWorkspace({
   }
 
   const renderQuestion = (question: TimelineWorkspaceQuestion) => (
-    <div key={question.id} className="rounded-lg border border-dashed border-purple-300 bg-purple-50/70 p-3 dark:border-purple-800 dark:bg-purple-950/30">
+    <div key={question.id} className="timeline-question rounded-lg border p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <CircleHelp className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-            <Badge variant="outline" className="border-purple-300 text-purple-700 dark:border-purple-800 dark:text-purple-300">
+            <CircleHelp className="h-4 w-4 text-amber-700 dark:text-amber-300" />
+            <Badge variant="outline" className="border-amber-300 text-amber-800 dark:border-amber-700 dark:text-amber-200">
               {question.status === 'answered' ? 'Answered' : 'Information gap'}
             </Badge>
           </div>
@@ -867,7 +869,7 @@ function TimelineWorkspace({
     const gapHypotheses = hypotheses.filter(hypothesis => hypothesis.afterEventId === previous?.id)
     return (
       <li className="relative py-2" key={`gap-${previous?.id || 'start'}`}>
-        <div className="space-y-2 rounded-lg border border-dashed bg-muted/20 p-2">
+        <div className="timeline-gap space-y-2 rounded-lg border border-dashed p-3">
           {gapQuestions.map(renderQuestion)}
           {gapHypotheses.map(renderHypothesis)}
           <div className="flex flex-wrap items-center justify-center gap-1">
@@ -901,27 +903,21 @@ function TimelineWorkspace({
   }
 
   return (
-    <div className="space-y-4" data-testid="timeline-results">
+    <div className="timeline-results space-y-6" data-testid="timeline-results">
       {workspaceError && <p role="alert" className="rounded border border-red-300 p-3 text-sm text-red-700">{workspaceError}</p>}
-      <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Timeline presentation">
+      <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Timeline presentation" data-timeline-toolbar="true">
         <Button aria-pressed={presentation === 'analyst'} variant={presentation === 'analyst' ? 'default' : 'outline'} onClick={() => setPresentation('analyst')}>Analyst view</Button>
         <Button aria-pressed={presentation === 'narrative'} variant={presentation === 'narrative' ? 'default' : 'outline'} onClick={() => setPresentation('narrative')}>Narrative view</Button>
         <Button variant="outline" onClick={exportWorkspace}>Export JSON</Button>
       </div>
+      {presentation === 'analyst' && <nav aria-label="Workspace navigation" className="timeline-workspace-nav">
+        <a href="#timeline-sequence"><Calendar aria-hidden="true"/><span><strong>Event sequence</strong><small>{events.length} events · {questions.filter(q=>q.status==='open').length} open questions</small></span></a>
+        <a href="#timeline-judgments"><Brain aria-hidden="true"/><span><strong>Judgments &amp; dissent</strong><small>Assess claims and competing explanations</small></span></a>
+        <a href="#timeline-narrative-editor"><FileSearch aria-hidden="true"/><span><strong>Narrative editor</strong><small>Shape chapters and select key events</small></span></a>
+      </nav>}
       <p className="text-xs text-muted-foreground">Event and chapter links refer to this open timeline or an imported copy; they are not published evidence URLs. Export JSON to keep an offline copy.</p>
-      {presentation === 'analyst' && <TimelineJudgments analysis={analysis} events={events} evidence={evidence} editable onChange={saveAnalysis} />}
-      <TimelineNarrative analysis={analysis} evidence={evidence} onEvidence={saveEvidence} narrative={narrative} events={events} editing={presentation === 'analyst'} sourceUrl={result.article.url} openGapCount={questions.filter(question => question.status === 'open').length} onNarrative={setNarrative} onEvents={setEvents} onInspect={id => {
-        setPresentation('analyst')
-        window.setTimeout(() => {
-          const anchor = timelineEventAnchor(id)
-          window.location.hash = anchor
-          const element = document.getElementById(anchor)
-          element?.focus({ preventScroll: true })
-          element?.scrollIntoView({ behavior: 'instant', block: 'start' })
-        }, 0)
-      }} />
       <div hidden={presentation !== 'analyst'} className="space-y-4">
-      <Card id="timeline-overview" className="scroll-mt-4">
+      <Card id="timeline-overview" className="timeline-overview scroll-mt-24">
         <CardHeader className="gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0 space-y-2">
             <div className="flex flex-wrap items-center gap-2">
@@ -1034,7 +1030,7 @@ function TimelineWorkspace({
         </CardContent>
       </Card>
 
-      <Card aria-label="Timeline contents">
+      <Card aria-label="Timeline contents" className="timeline-contents">
         <CardHeader className="gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <CardTitle className="text-base">Timeline contents</CardTitle>
@@ -1064,10 +1060,13 @@ function TimelineWorkspace({
             </ul>
           </nav>
           <nav aria-label="Timeline events">
+            <Label htmlFor="timeline-find-event" className="text-xs">Find an event</Label>
+            <Input id="timeline-find-event" type="search" className="mb-3 mt-1 bg-background" placeholder="Search titles or dates…" value={eventQuery} onChange={event=>setEventQuery(event.target.value)}/>
+            {eventQuery.trim() && <p role="status" className="mb-2 text-xs text-muted-foreground">{displayedEvents.filter(event=>`${event.title} ${timelineEventTemporalLabel(event)}`.toLocaleLowerCase().includes(eventQuery.trim().toLocaleLowerCase())).length} matching event links. The sequence below stays complete.</p>}
             <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">Events in displayed order</p>
             {displayedEvents.length > 0 ? (
               <ol className="grid max-h-48 gap-x-5 gap-y-1 overflow-y-auto pr-2 text-sm sm:grid-cols-2">
-                {displayedEvents.map(event => (
+                {displayedEvents.filter(event=>`${event.title} ${timelineEventTemporalLabel(event)}`.toLocaleLowerCase().includes(eventQuery.trim().toLocaleLowerCase())).map(event => (
                   <li key={event.id} className="min-w-0">
                     <a
                       className="flex min-w-0 gap-2 text-blue-600 hover:underline dark:text-blue-400"
@@ -1086,6 +1085,129 @@ function TimelineWorkspace({
         </CardContent>
       </Card>
 
+      {sortedEvents.length === 0 ? (
+        <Card id="timeline-sequence" tabIndex={-1} className="timeline-sequence scroll-mt-24 border-dashed">
+          <CardContent className="py-12 text-center">
+            <Calendar className="mx-auto mb-3 h-10 w-10 text-muted-foreground" />
+            <h3 className="font-semibold">{workspaceOrigin === 'manual' ? 'Start with what you know' : 'No supported dated events found'}</h3>
+            <p className="mx-auto mt-2 max-w-xl text-sm text-muted-foreground">
+              {workspaceOrigin === 'manual'
+                ? 'Add a known dated event, or begin with an open question when the chronology itself is uncertain.'
+                : 'The source may not contain reliable dates, or all events may have been removed from this working view. Add an analyst event without changing the source extraction.'}
+            </p>
+            {mode === 'robust' && (questions.length > 0 || hypotheses.length > 0) && (
+              <div className="mx-auto mt-4 max-w-2xl space-y-2 text-left">
+                {questions.map(renderQuestion)}
+                {hypotheses.map(renderHypothesis)}
+              </div>
+            )}
+            <div className="mt-4 flex flex-wrap justify-center gap-2">
+              <Button onClick={() => openAddEvent()}><Plus className="mr-2 h-4 w-4" />Add first event</Button>
+              {mode === 'robust' && (
+                <Button variant="outline" onClick={() => openAddQuestion()}><CircleHelp className="mr-2 h-4 w-4" />Add research question</Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card id="timeline-sequence" tabIndex={-1} className="timeline-sequence scroll-mt-24">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2"><Calendar className="h-5 w-5" />Working event sequence</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ol className="ml-3 border-l-2 border-blue-200 pl-6 dark:border-blue-900">
+              {displayedSequence.map(item => {
+                if (item.kind === 'gap') return renderGap(item.previous, item.next)
+                const { event, sequenceIndex } = item
+                const originalEvent = event.original || result.events.find((_, index) => event.id === `source-${result.requestId}-${index}`)
+                return (
+                  <li
+                    id={eventAnchorIds.get(event.id)}
+                    tabIndex={-1}
+                    key={event.id}
+                    className="timeline-event-card relative scroll-mt-24"
+                  >
+                    <span className="timeline-event-node absolute -left-[31px] top-6 h-3 w-3 rounded-full border-2 border-blue-600 bg-background" />
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          {event.eventDate ? (
+                            <time
+                              dateTime={`${event.eventDate}${event.eventTime && event.datePrecision === 'day' ? `T${event.eventTime}` : ''}`}
+                              className="font-mono text-sm font-semibold text-blue-700 dark:text-blue-300"
+                            >
+                              {timelineEventTemporalLabel(event)}
+                            </time>
+                          ) : (
+                            <span className="font-mono text-sm font-semibold text-blue-700 dark:text-blue-300">
+                              {timelineEventTemporalLabel(event)}
+                            </span>
+                          )}
+                          <Badge variant="outline" className="capitalize">{event.category}</Badge>
+                          {event.importance !== 'normal' && (
+                            <Badge variant="outline" className={`capitalize ${importanceClasses[event.importance]}`}>{event.importance}</Badge>
+                          )}
+                          <Badge variant="outline" className={event.origin === 'source' ? '' : 'border-purple-300 text-purple-700 dark:border-purple-800 dark:text-purple-300'}>
+                            {event.origin === 'source' ? event.modified ? 'Source · edited' : 'Source' : 'Analyst added'}
+                          </Badge>
+                          {mode === 'robust' && (
+                            <Badge variant="outline" className={`capitalize ${assessmentClasses[event.assessment === 'corroborated' && !timelineCorroboration(evidence,event).eligible ? 'unreviewed' : event.assessment]}`}>{timelineAssessmentLabel(evidence,event)}</Badge>
+                          )}
+                          {event.placement?.mode === 'relative' && (
+                            <Badge variant="outline">{event.placement.relation === 'before' ? 'Before event' : 'After event'}</Badge>
+                          )}
+                          {event.placement?.mode === 'position' && (
+                            <Badge variant="outline">Position {(event.sequenceOrder ?? sequenceIndex) + 1}</Badge>
+                          )}
+                        </div>
+                        <h3 className="mt-3 text-lg font-semibold leading-snug tracking-tight">{event.title}</h3>
+                        {event.description && <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{event.description}</p>}
+                        {event.origin === 'source' && <details className="mt-2 text-sm"><summary className="cursor-pointer">Original extraction and source</summary>{originalEvent ? <div className="my-2"><p>{originalEvent.eventDate} ({originalEvent.datePrecision} precision) · {originalEvent.title}</p>{originalEvent.description && <p>{originalEvent.description}</p>}<p>{originalEvent.category} · {originalEvent.importance} importance</p></div> : <p>Original event unavailable; consult the preserved source export.</p>}{result.article.url && <a className="text-blue-600 underline" href={result.article.url} target="_blank" rel="noopener noreferrer">Open extraction source</a>}<p className="text-xs text-muted-foreground">Source extraction is a candidate claim; source presence does not establish corroboration.</p></details>}
+                        <TimelineEvidence event={event} eventIds={events.map(item => item.id)} evidence={evidence} onChange={saveEvidence} sourceImportWorkspaceId={sourceImportWorkspaceId} />
+                        {mode === 'robust' && event.analystNote && (
+                          <p className="mt-2 rounded border-l-2 border-purple-400 bg-purple-50/60 px-3 py-2 text-sm dark:bg-purple-950/20">
+                            <span className="font-medium">Analyst note:</span> {event.analystNote}
+                          </p>
+                        )}
+                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" aria-label={`Actions for ${event.title}`}>
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onSelect={() => openEditEvent(event)}><Pencil className="mr-2 h-4 w-4" />Edit event</DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => openAddEvent({ anchorEventId: event.id, relation: 'before' })}><Plus className="mr-2 h-4 w-4" />Add event before</DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => openAddEvent({ anchorEventId: event.id, relation: 'after' })}><Plus className="mr-2 h-4 w-4" />Add event after</DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem className="text-red-600 focus:text-red-700" onSelect={() => removeEvent(event.id)}>
+                            <Trash2 className="mr-2 h-4 w-4" />Remove from timeline
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </li>
+                )
+              })}
+            </ol>
+          </CardContent>
+        </Card>
+      )}
+
+      </div>
+      {presentation === 'analyst' && <div id="timeline-judgments" tabIndex={-1} className="timeline-section-anchor"><TimelineJudgments analysis={analysis} events={events} evidence={evidence} editable onChange={saveAnalysis} /></div>}
+      <div id="timeline-narrative-editor" tabIndex={-1} className="timeline-section-anchor"><TimelineNarrative analysis={analysis} evidence={evidence} onEvidence={saveEvidence} narrative={narrative} events={events} editing={presentation === 'analyst'} sourceUrl={result.article.url} openGapCount={questions.filter(question => question.status === 'open').length} onNarrative={setNarrative} onEvents={setEvents} onInspect={id => {
+        setPresentation('analyst')
+        window.setTimeout(() => {
+          const anchor = timelineEventAnchor(id)
+          window.location.hash = anchor
+          const element = document.getElementById(anchor)
+          element?.focus({ preventScroll: true })
+          element?.scrollIntoView({ behavior: 'instant', block: 'start' })
+        }, 0)
+      }} /></div>
+      <div hidden={presentation !== 'analyst'} className="space-y-6">
       {mode === 'robust' && (
         <Card id="timeline-ai-review" className="scroll-mt-4 border-purple-200 dark:border-purple-900">
           <CardHeader>
@@ -1151,116 +1273,6 @@ function TimelineWorkspace({
                 ))}
               </div>
             )}
-          </CardContent>
-        </Card>
-      )}
-
-      {sortedEvents.length === 0 ? (
-        <Card id="timeline-sequence" className="scroll-mt-4 border-dashed">
-          <CardContent className="py-12 text-center">
-            <Calendar className="mx-auto mb-3 h-10 w-10 text-muted-foreground" />
-            <h3 className="font-semibold">{workspaceOrigin === 'manual' ? 'Start with what you know' : 'No supported dated events found'}</h3>
-            <p className="mx-auto mt-2 max-w-xl text-sm text-muted-foreground">
-              {workspaceOrigin === 'manual'
-                ? 'Add a known dated event, or begin with an open question when the chronology itself is uncertain.'
-                : 'The source may not contain reliable dates, or all events may have been removed from this working view. Add an analyst event without changing the source extraction.'}
-            </p>
-            {mode === 'robust' && (questions.length > 0 || hypotheses.length > 0) && (
-              <div className="mx-auto mt-4 max-w-2xl space-y-2 text-left">
-                {questions.map(renderQuestion)}
-                {hypotheses.map(renderHypothesis)}
-              </div>
-            )}
-            <div className="mt-4 flex flex-wrap justify-center gap-2">
-              <Button onClick={() => openAddEvent()}><Plus className="mr-2 h-4 w-4" />Add first event</Button>
-              {mode === 'robust' && (
-                <Button variant="outline" onClick={() => openAddQuestion()}><CircleHelp className="mr-2 h-4 w-4" />Add research question</Button>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <Card id="timeline-sequence" className="scroll-mt-4">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2"><Calendar className="h-5 w-5" />Working event sequence</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ol className="ml-3 border-l-2 border-blue-200 pl-6 dark:border-blue-900">
-              {displayedSequence.map(item => {
-                if (item.kind === 'gap') return renderGap(item.previous, item.next)
-                const { event, sequenceIndex } = item
-                const originalEvent = event.original || result.events.find((_, index) => event.id === `source-${result.requestId}-${index}`)
-                return (
-                  <li
-                    id={eventAnchorIds.get(event.id)}
-                    tabIndex={-1}
-                    key={event.id}
-                    className="relative scroll-mt-4 pb-1"
-                  >
-                    <span className="absolute -left-[31px] top-1.5 h-3 w-3 rounded-full border-2 border-blue-600 bg-background" />
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          {event.eventDate ? (
-                            <time
-                              dateTime={`${event.eventDate}${event.eventTime && event.datePrecision === 'day' ? `T${event.eventTime}` : ''}`}
-                              className="font-mono text-sm font-semibold text-blue-700 dark:text-blue-300"
-                            >
-                              {timelineEventTemporalLabel(event)}
-                            </time>
-                          ) : (
-                            <span className="font-mono text-sm font-semibold text-blue-700 dark:text-blue-300">
-                              {timelineEventTemporalLabel(event)}
-                            </span>
-                          )}
-                          <Badge variant="outline" className="capitalize">{event.category}</Badge>
-                          {event.importance !== 'normal' && (
-                            <Badge variant="outline" className={`capitalize ${importanceClasses[event.importance]}`}>{event.importance}</Badge>
-                          )}
-                          <Badge variant="outline" className={event.origin === 'source' ? '' : 'border-purple-300 text-purple-700 dark:border-purple-800 dark:text-purple-300'}>
-                            {event.origin === 'source' ? event.modified ? 'Source · edited' : 'Source' : 'Analyst added'}
-                          </Badge>
-                          {mode === 'robust' && (
-                            <Badge variant="outline" className={`capitalize ${assessmentClasses[event.assessment === 'corroborated' && !timelineCorroboration(evidence,event).eligible ? 'unreviewed' : event.assessment]}`}>{timelineAssessmentLabel(evidence,event)}</Badge>
-                          )}
-                          {event.placement?.mode === 'relative' && (
-                            <Badge variant="outline">{event.placement.relation === 'before' ? 'Before event' : 'After event'}</Badge>
-                          )}
-                          {event.placement?.mode === 'position' && (
-                            <Badge variant="outline">Position {(event.sequenceOrder ?? sequenceIndex) + 1}</Badge>
-                          )}
-                        </div>
-                        <h3 className="mt-2 font-semibold leading-snug">{event.title}</h3>
-                        {event.description && <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{event.description}</p>}
-                        {event.origin === 'source' && <details className="mt-2 text-sm"><summary className="cursor-pointer">Original extraction and source</summary>{originalEvent ? <div className="my-2"><p>{originalEvent.eventDate} ({originalEvent.datePrecision} precision) · {originalEvent.title}</p>{originalEvent.description && <p>{originalEvent.description}</p>}<p>{originalEvent.category} · {originalEvent.importance} importance</p></div> : <p>Original event unavailable; consult the preserved source export.</p>}{result.article.url && <a className="text-blue-600 underline" href={result.article.url} target="_blank" rel="noopener noreferrer">Open extraction source</a>}<p className="text-xs text-muted-foreground">Source extraction is a candidate claim; source presence does not establish corroboration.</p></details>}
-                        <TimelineEvidence event={event} eventIds={events.map(item => item.id)} evidence={evidence} onChange={saveEvidence} sourceImportWorkspaceId={sourceImportWorkspaceId} />
-                        {mode === 'robust' && event.analystNote && (
-                          <p className="mt-2 rounded border-l-2 border-purple-400 bg-purple-50/60 px-3 py-2 text-sm dark:bg-purple-950/20">
-                            <span className="font-medium">Analyst note:</span> {event.analystNote}
-                          </p>
-                        )}
-                      </div>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" aria-label={`Actions for ${event.title}`}>
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onSelect={() => openEditEvent(event)}><Pencil className="mr-2 h-4 w-4" />Edit event</DropdownMenuItem>
-                          <DropdownMenuItem onSelect={() => openAddEvent({ anchorEventId: event.id, relation: 'before' })}><Plus className="mr-2 h-4 w-4" />Add event before</DropdownMenuItem>
-                          <DropdownMenuItem onSelect={() => openAddEvent({ anchorEventId: event.id, relation: 'after' })}><Plus className="mr-2 h-4 w-4" />Add event after</DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-red-600 focus:text-red-700" onSelect={() => removeEvent(event.id)}>
-                            <Trash2 className="mr-2 h-4 w-4" />Remove from timeline
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </li>
-                )
-              })}
-            </ol>
           </CardContent>
         </Card>
       )}
