@@ -55,7 +55,7 @@ export function TimelineSourcePicker(props: Props) {
   }
   return <div aria-label="Recent stored sources" role="region" className="space-y-2 rounded border p-3">
     <p className="text-sm">List up to 20 recent complete records you own in this workspace, newest stored ID first. Titles may be shortened. Listing does not verify extraction integrity.</p>
-    <Button variant="outline" disabled={busy || props.disabled} onClick={() => void load()}>Load recent stored sources</Button>
+    <Button variant="outline" className="h-auto w-full whitespace-normal sm:w-auto" disabled={busy || props.disabled} onClick={() => void load()}>Load recent stored sources</Button>
     {items.length > 0 && <ul className="space-y-2">{items.map(item => <li key={item.analysisId}><Button variant="outline" className="h-auto w-full justify-start whitespace-normal text-left break-words" disabled={props.disabled} onClick={() => select(item.analysisId)}>Use analysis {item.analysisId}: {item.title}</Button></li>)}</ul>}
     {message && <p role={error ? 'alert' : 'status'}>{message}</p>}
   </div>
