@@ -40,7 +40,7 @@ async function bridge(page: Page, signedIn = true) {
   ]) await db.prepare(query).run()
   await db.batch(sql('0012_timeline_workspace_snapshots.sql').map(s => db.prepare(s)))
   await db.prepare("INSERT INTO content_analysis VALUES(?,1,'browser-private',?,?,?,?,NULL,1,'complete')").bind(storedSource.analysisId, storedSource.url, storedSource.title, storedSource.text, sourceDigest(storedSource.text)).run()
-  const faults = { dropCreate: false, dropCommit: false, malformedRead: false }
+  const faults = { dropCreate: false, dropCommit: false, malformedRead: false, holdSource: null as Promise<void> | null, sourceReady: false }
   const calls: Array<{ method: string; body: string | null; key?: string; etag?: string; status: number; response: any }> = []
   await page.addInitScript(({ hash, signedIn }) => {
     if (!signedIn) return
@@ -55,7 +55,9 @@ async function bridge(page: Page, signedIn = true) {
     if (url.pathname === '/api/workspaces') return route.fulfill({ json: { owned: ['browser-private', 'browser-other'].map(id => ({ id, name: id === 'browser-private' ? 'Private investigation' : 'Other workspace', owner_id: 1, is_public: false, type: 'PERSONAL' })), member: [] } })
     if (url.pathname === '/api/timeline-source-import') {
       const response = await sourceImport({ request: new Request(url, { method: incoming.method(), headers: incoming.headers(), body: incoming.postData()! }), env: { DB: db } } as never)
-      return route.fulfill({ status: response.status, body: await response.text(), headers: Object.fromEntries(response.headers) })
+      const body = await response.text(); faults.sourceReady = true
+      if (faults.holdSource) await faults.holdSource
+      return route.fulfill({ status: response.status, body, headers: Object.fromEntries(response.headers) }).catch(() => {})
     }
     if (!url.pathname.startsWith('/api/timelines')) return route.fulfill({ json: {} })
     const request = new Request(url, { method: incoming.method(), headers: incoming.headers(), ...(incoming.postData() ? { body: incoming.postData()! } : {}) })
@@ -83,6 +85,31 @@ async function exported(page: Page) {
 async function saved(page: Page) { await expect(page.getByTestId('timeline-save-state')).toHaveText('Saved') }
 
 test.describe('durable browser with actual D1 routes @smoke', () => {
+  test('a delayed private passage response cannot restore content after sign-out', async ({ page }) => {
+    test.setTimeout(90_000)
+    const b = await bridge(page)
+    let release = () => {}
+    try {
+      await page.goto('/dashboard/tools/timeline'); await importFixture(page)
+      await page.getByRole('button', { name: 'Save timeline', exact: true }).click(); await saved(page)
+      await page.reload(); await page.getByRole('button', { name: 'Open saved timeline', exact: true }).click(); await saved(page)
+      const raw = await page.evaluate(key => localStorage.getItem(key), draftKey)
+      const panel = page.getByTestId('evidence-event:unknown.1')
+      await panel.locator('summary').first().click()
+      const form = panel.getByRole('region', { name: 'Import stored passage' })
+      await form.getByLabel('Stored analysis ID', { exact: true }).fill(String(storedSource.analysisId))
+      await form.getByLabel('Exact stored quote', { exact: true }).fill(storedSource.quote)
+      b.faults.holdSource = new Promise<void>(resolve => { release = resolve })
+      await form.getByRole('button', { name: 'Check stored passage', exact: true }).click()
+      await expect.poll(() => b.faults.sourceReady).toBe(true)
+      await page.evaluate(async () => { const { useAuthStore } = await import('/src/stores/auth.ts'); useAuthStore.setState({ isAuthenticated: false, user: null }) })
+      await expect(page.getByRole('button', { name: 'Export JSON', exact: true })).toHaveCount(0)
+      release()
+      await expect(page.getByRole('region', { name: 'Import stored passage' })).toHaveCount(0)
+      await expect(page.getByText('Matched to stored extraction', { exact: true })).toHaveCount(0)
+      expect(await page.evaluate(key => localStorage.getItem(key), draftKey)).toBe(raw)
+    } finally { release(); await b.mf.dispose() }
+  })
   test('stored passage import survives private revisions without entering the browser draft', async ({ page }, testInfo) => {
     test.setTimeout(120_000)
     const b = await bridge(page)
