@@ -108,6 +108,8 @@ test.describe('timeline inspectable evidence @smoke', () => {
       const { default: React } = await import('/node_modules/.vite/deps/react.js')
       const { default: ReactDOM } = await import('/node_modules/.vite/deps/react-dom_client.js')
       const { TimelineEvidence } = await import('/src/components/timeline/TimelineEvidence.tsx')
+      // Isolate the supplementary prop-race harness from the application's fixed navigation.
+      document.getElementById('root')!.style.display = 'none'
       const host = document.createElement('div'); document.body.appendChild(host)
       const root = ReactDOM.createRoot(host)
       const event = { id: 'race-event', title: 'Original title', description: '', assessment: 'corroborated' }
@@ -129,6 +131,7 @@ test.describe('timeline inspectable evidence @smoke', () => {
         h.render()
       }, field)
       await expect(panel.locator('summary').first()).toContainText('Newer title')
+      if (field === 'evidence') await expect(panel.getByText('Publisher: Newer publisher', { exact: true })).toBeVisible()
       await page.getByRole('alertdialog').getByRole('button', { name: 'Apply change' }).click()
       await expect(page.getByRole('alertdialog')).toHaveCount(0)
       await expect(panel.getByRole('alert')).toContainText('Nothing was applied')
