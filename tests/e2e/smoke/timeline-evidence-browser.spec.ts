@@ -72,7 +72,15 @@ test.describe('timeline inspectable evidence @smoke', () => {
     await expect(dialog.getByRole('button', { name: 'Keep support' })).toBeFocused()
     for (const theme of ['light', 'dark']) {
       await page.evaluate(theme => document.documentElement.classList.toggle('dark', theme === 'dark'), theme)
-      await expect(dialog).toHaveCSS('background-color', theme === 'dark' ? /^(?:rgb\(2, 6, 23\)|oklch\(0\.129 0\.042 264\.695\))$/ : 'rgb(255, 255, 255)')
+      // Check painted color and alpha; browsers serialize OKLCH with different precision.
+      await expect.poll(() => dialog.evaluate((element, dark) => {
+        const canvas = document.createElement('canvas'); canvas.width = 1; canvas.height = 1
+        const context = canvas.getContext('2d')!
+        context.fillStyle = getComputedStyle(element).backgroundColor; context.fillRect(0, 0, 1, 1)
+        const rgba = context.getImageData(0, 0, 1, 1).data
+        const expected = dark ? [2, 6, 23] : [255, 255, 255]
+        return rgba[3] === 255 && expected.every((channel, index) => Math.abs(rgba[index] - channel) <= 2)
+      }, theme === 'dark')).toBe(true)
       await testInfo.attach(`support-warning-${theme}`, { body: await dialog.screenshot({ path: testInfo.outputPath(`support-warning-${theme}.png`), scale: 'css', animations: 'disabled' }), contentType: 'image/png' })
     }
     await page.keyboard.press('Escape')
