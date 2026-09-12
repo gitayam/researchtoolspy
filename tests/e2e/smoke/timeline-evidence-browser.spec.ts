@@ -105,11 +105,11 @@ test.describe('timeline inspectable evidence @smoke', () => {
     await page.goto('/dashboard/tools/timeline')
     // A component harness changes props while the modal is open, as an external update would.
     await page.evaluate(async () => {
-      const React = await import('/node_modules/.vite/deps/react.js')
-      const { createRoot } = await import('/node_modules/.vite/deps/react-dom_client.js')
+      const { default: React } = await import('/node_modules/.vite/deps/react.js')
+      const { default: ReactDOM } = await import('/node_modules/.vite/deps/react-dom_client.js')
       const { TimelineEvidence } = await import('/src/components/timeline/TimelineEvidence.tsx')
       const host = document.createElement('div'); document.body.appendChild(host)
-      const root = createRoot(host)
+      const root = ReactDOM.createRoot(host)
       const event = { id: 'race-event', title: 'Original title', description: '', assessment: 'corroborated' }
       const evidence = { schemaVersion: 'timeline-evidence.v1', sources: [{ id: 's', url: 'https://example.test', title: 'Report', publisher: '' }], assertions: [{ id: 'a', sourceId: 's', claimText: 'Account', temporalClaim: '', passage: { id: 'p', quote: '', locator: 'p1' }, status: 'active', derivesFrom: [] }], links: [{ id: 'l', eventId: event.id, assertionId: 'a', relation: 'supports' }], reviews: [] }
       const state = { event, evidence, writes: 0 }
