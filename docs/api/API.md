@@ -322,12 +322,16 @@ original values in that export. Open questions can prefill an Agentic Research
 collection query; answers are deliberately recorded back on the timeline by the
 analyst so a search result cannot silently become a finding or event.
 
-The workspace overlay is client-side. Extracted overlays reset on regeneration;
-the single manual browser draft expires after seven days. Neither is an API
-mutation or model output. Durable
-promotion into an investigation/COP, passage-linked evidence on analyst-added
-events, multi-source merge/corroboration, and answer-packet conversion remain
-authenticated follow-on work.
+The working overlay is client-side. Extracted overlays reset on regeneration;
+the single manual browser draft expires after seven days. Opened private timelines
+stay in memory until explicit save/export. Authenticated users can save immutable
+revisions, attach passage-linked evidence, record support/challenge judgments and
+import exact passages from owned stored Content Research extractions, including
+bounded complete chunk sets. These actions do not automatically establish
+corroboration or source truth. See [Timeline Artifacts](./TIMELINE-ARTIFACTS.md)
+for authorization, evidence semantics and import bounds. Durable promotion into
+an investigation/COP, automatic multi-source merge and answer-packet conversion
+remain follow-on work.
 
 #### Durable timeline artifact foundation
 

@@ -16,6 +16,8 @@ Likelihood and analytical confidence remain separate; reviews preserve the judgm
 version they addressed. Import verifies stored-text equality, not source truth or
 authenticated historical provenance. TL-04 remains in progress: broader source-store
 support, dedicated judgment services and authenticated peer review are pending.
+Complete larger extractions now support bounded, hash-checked chunk reconstruction, including passages beyond the stored prefix. Incomplete chunk sets fail closed. See the [chunk import release receipt](./2026-09-11-timeline-chunk-import-release-receipt.md).
+
 See the [source import release receipt](./2026-09-11-timeline-source-import-release-receipt.md),
 preceding [judgment release receipt](./2026-09-11-timeline-judgment-release-receipt.md)
 and [evidence release receipt](./2026-09-11-timeline-evidence-release-receipt.md).

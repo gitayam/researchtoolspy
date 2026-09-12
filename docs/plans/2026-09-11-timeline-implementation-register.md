@@ -68,16 +68,18 @@ Current delivery state (2026-09-11):
   Content Research extraction in the same workspace. The resolver checks current
   access, retention, full-text hash and unique quote match; the recorded locator
   preserves hashes and UTF-16 offsets. Preview is rechecked before import, and
-  private passages never enter automatic browser drafts. All 116 API/contract
-  checks, 72 browser checks, five type checks and compiled release gates pass.
+  private passages never enter automatic browser drafts. All 123 API/contract
+  checks, 74 browser checks, five type checks and compiled release gates pass.
   No database migration was required. Broader source-store support, dedicated
   judgment services and authenticated peer review remain pending. Stored-text
   equality is not source truth, authenticated historical provenance or append-only
   review permission.
 - **TL-01 and TL-05–TL-18: pending.** No delivery of these checkpoints or cross-app changes is claimed.
 
+Complete larger extractions now support bounded, hash-checked chunk reconstruction, including passages beyond the stored prefix. Incomplete chunk sets fail closed. See the [chunk import release receipt](./2026-09-11-timeline-chunk-import-release-receipt.md).
+
 See the [source import release receipt](./2026-09-11-timeline-source-import-release-receipt.md)
-for the current partial TL-04 deployment, the [judgment release receipt](./2026-09-11-timeline-judgment-release-receipt.md)
+for the preceding short-record import slice, the [judgment release receipt](./2026-09-11-timeline-judgment-release-receipt.md)
 for judgments/dissent, and the [evidence release receipt](./2026-09-11-timeline-evidence-release-receipt.md)
 for its preceding source-assertion slice. See the [service release receipt](./2026-09-11-timeline-service-release-receipt.md)
 for current scoped-service deployment. See the [browser release receipt](./2026-09-11-timeline-browser-release-receipt.md)

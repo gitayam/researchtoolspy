@@ -29,3 +29,7 @@ An initial migration-inventory read returned Cloudflare internal error 7500; ret
 The primary checkout was untouched. External authenticated worker lanes remain unqualified and were not bypassed. Previous deployment `da6b9380-ba08-485f-bf65-6d5de2eefd6b` understands the unchanged evidence snapshots but has no import resolver/UI.
 
 **TL-04 remains in progress.** Broader source-store support, dedicated judgment services and authenticated peer review remain pending. No cross-product handoff or later checkpoint is claimed.
+
+## Subsequent deployment
+
+The [chunk import release](./2026-09-11-timeline-chunk-import-release-receipt.md) extends this resolver to bounded complete chunked extractions. This receipt retains the historical first-slice results and limits; the newer receipt records the current deployment. TL-04 remains partial.

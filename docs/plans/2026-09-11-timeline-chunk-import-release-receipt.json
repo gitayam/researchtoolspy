@@ -1,0 +1,136 @@
+{
+  "schemaVersion": "timeline-chunk-import-release.v1",
+  "recordedAt": "2026-09-12T03:14:05.013236+00:00",
+  "baselineSha": "463d2976538afef6179b30f477eb4c771d465153",
+  "acceptedReleaseSha": "f0a613b3ca9d1fd6c42cf82cda6eccc4cbbdf1c9",
+  "checkpoint": "TL-04 partial: bounded complete chunked extraction import deployed",
+  "states": {
+    "canonicalLanded": true,
+    "mirrorConfirmed": true,
+    "productionDeployed": true,
+    "migrationRequired": false,
+    "integrationCheckoutCleanAtRelease": true,
+    "primaryCheckoutSynced": false
+  },
+  "publication": {
+    "canonical": "origin/main",
+    "mirror": "gitlab/main",
+    "releaseRefSha": "f0a613b3ca9d1fd6c42cf82cda6eccc4cbbdf1c9",
+    "forcePush": false,
+    "documentationFollowup": "Documentation-only commit follows; runtime remains acceptedReleaseSha."
+  },
+  "validation": {
+    "sourceSha": "f0a613b3ca9d1fd6c42cf82cda6eccc4cbbdf1c9",
+    "typeChecksPassed": 5,
+    "apiContractTestsPassed": 123,
+    "browserProjectChecksPassed": 74,
+    "build": "passed",
+    "pagesFunctionsBuild": "passed",
+    "schemaRehearsal": "passed",
+    "compiledHttpGate": "passed",
+    "staticGate": "passed",
+    "externalOutboundAttempts": 0,
+    "seconds": 563.27,
+    "archiveSha256": "edd48c73aea1b7b1b0b95529ca980ce1788fa6226082f2964904e676de0419e9",
+    "supervisorSha256": "869d61c1e2691530d787992a34caf2e8b1648112e8ce6b02812b7ff1401c048d",
+    "receiptSha256": "63411209db52f2157a69945473994120e65e8399f3e1d437fd69c8dba5c4a727",
+    "runLogSha256": "deabb905e5ce485212a1d858b32409efc70f53718c1e1396279035e7fd32fcb6",
+    "schemaManifestSha256": "cc38277cdcbe86ed06102319d6c3167cca379b903febc5d23e40ad935d616c3e",
+    "runtimeImage": "mcr.microsoft.com/playwright@sha256:9bd26ad900bb5e0f4dee75839e957a89ae89c2b7ab1e76050e559790e946b948",
+    "commands": [
+      "node scripts/verify-timeline.mjs",
+      "node node_modules/wrangler/bin/wrangler.js pages functions build functions --outdir dist/_worker.js --build-output-directory dist --compatibility-date 2025-09-30 --compatibility-flags nodejs_compat",
+      "node scripts/verify-timeline-release.mjs"
+    ],
+    "executionBoundary": "Pinned network-none Docker; readonly source/dependencies/root; no host credentials/socket; only schema SQL and migration names enter rehearsal."
+  },
+  "review": {
+    "backendProvider": "tl00_recon",
+    "uiProvider": "integration-owner",
+    "independentReviewer": "dependency_review",
+    "sourceAndRuntimeAcceptedSha": "f0a613b3ca9d1fd6c42cf82cda6eccc4cbbdf1c9",
+    "artifactFilesIndependentlyCompared": 145,
+    "distManifestSha256": "d05d9a3cd82cf09dcc2baf3800ce6b18ffb6630b93d29d59baad079aca763b25",
+    "packageManifestFileSha256": "eb6e92408666cc8fb61ed562a0f33e47ae0d0c9fc522a5e0f9ed5ec3e20e1cc6",
+    "wranglerConfigSha256": "a58a42371915ceebd779014377cc336df722edae9f6822ca1ab4e329d0755a24",
+    "acceptanceReceiptSha256": "416582a899054fb23bb774bfe39800abfca6a61abe812b95325d8fc6b1ce7792"
+  },
+  "database": {
+    "name": "researchtoolspy-prod",
+    "mutationsPerformed": false,
+    "appliedMigrationCount": 13,
+    "pendingMigrations": [],
+    "productionSchemaSha256": "22cb033df9400412f4d83b5f3668b8752ec4126a9c8402b6d502187727bf60bd",
+    "beforeCatalog": {
+      "result": "passed",
+      "tables": 14,
+      "schemaRows": 386,
+      "normalizedSchemaSha256": "ec0d28165382f028c98208a003d8c5ab672a9a0ae7ba44ef2f23e3b2bfa46729"
+    },
+    "afterCatalog": {
+      "result": "passed",
+      "tables": 14,
+      "schemaRows": 386,
+      "normalizedSchemaSha256": "ec0d28165382f028c98208a003d8c5ab672a9a0ae7ba44ef2f23e3b2bfa46729"
+    },
+    "migrationInventoryComparison": {
+      "result": "passed",
+      "appliedMigrationCount": 13,
+      "unchanged": true
+    },
+    "rehearsal": "Actual production schema with synthetic complete chunks; compiled resolver verifies long passages and refuses missing chunks; historical imported snapshots survive source unavailability."
+  },
+  "deployment": {
+    "project": "researchtoolspy",
+    "id": "397e28ca-1e7b-4b37-a361-ecd0fe5019c3",
+    "url": "https://397e28ca.researchtoolspy.pages.dev",
+    "productionUrl": "https://researchtools.net",
+    "sourceSha": "f0a613b3ca9d1fd6c42cf82cda6eccc4cbbdf1c9",
+    "wranglerVersion": "4.100.0",
+    "prebuilt": true,
+    "noBundle": true,
+    "stagingHasFunctionsSource": false,
+    "existingSecretNamesPreserved": true,
+    "unrelatedWorkersDeployed": false,
+    "smoke": [
+      {
+        "result": "passed",
+        "baseUrl": "https://397e28ca.researchtoolspy.pages.dev",
+        "readonlyChecksPassed": 19,
+        "mutatingRequests": 0,
+        "receiptSha256": "c532c0a90834be161e2e2f37a3bc23fb488592aae2d0ab98d64fca9195bcea06"
+      },
+      {
+        "result": "passed",
+        "baseUrl": "https://researchtools.net",
+        "readonlyChecksPassed": 19,
+        "mutatingRequests": 0,
+        "receiptSha256": "9f879da586f4a5addfc9056967092d3fa0592336411028d183cd21e92eeb080c"
+      }
+    ]
+  },
+  "rollback": {
+    "previousDeploymentId": "62e1c677-6c3c-434c-9c5f-1ff7ffed6e20",
+    "limits": "Previous code retains unchanged imported evidence snapshots but cannot resolve chunked sources. Preserve saved snapshots and immutable history."
+  },
+  "recovery": [
+    "Initial focused run at 70e0d5bd0a3fcaf9a6f8b2269d9d9114e8612816 stopped on a test-wrapper syntax error before executing tests; owner corrected the brace in 8a870556ecc1817697f1cab3f2b04d54c8c4b55b.",
+    "Corrected focused run passed 13 actual-D1 tests and 2 desktop/mobile long-passage import checks at 8a870556ecc1817697f1cab3f2b04d54c8c4b55b.",
+    "Independent source review found SQLite TEXT suffix matching incorrectly rejected valid NUL-containing parent prefixes. Both predicates now compare BLOB suffixes; a real-D1 regression passed in the complete final exact-source run.",
+    "Final exact-source isolated run passed five type checks, 123 API/contract tests, 74 browser checks, frontend and Pages Functions builds and compiled production-schema rehearsal. Existing upstream telemetry was blocked by the network-none validator; no test failure resulted."
+  ],
+  "instructionSha256": {
+    "CLAUDE.md": "3852de6d95104c64f3a35b670f350e1d7a2c6c9ed93d03d53895e7bc8c44ff1b",
+    ".team/project.json": "c87cd27090a1a8ff779dd0d850668ebf0ecb6581cefb2d0b0a66ed63aabbcf78",
+    "docs/plans/2026-09-11-timeline-chunk-import-charter.md": "8d9ccdc5cadbbead6fe0cd0b3e48188b73eef5c8320750a281f641a50c295ab4"
+  },
+  "limitations": [
+    "Only complete canonical 3\u20138 chunk sets within 409600 UTF-16 units, 512000 UTF-8 bytes and bounded JSON projection are supported; incomplete, malformed, oversized or hash/prefix mismatches fail closed.",
+    "Legacy surrogate-split chunk storage that cannot reproduce the original text/hash is rejected. No repair, fallback fetch or source mutation is performed.",
+    "Stored-text equality is not source truth or authenticated historical provenance; recorded locators and self-attributed reviews retain existing limitations.",
+    "Only current human-owned sources in an opened writable private workspace can be imported. No service-source import, automatic browser draft persistence or automatic corroboration.",
+    "Production smoke is read-only and anonymous; authenticated content operations use synthetic isolated actual-D1/compiled-worker fixtures.",
+    "TL-04 remains partial; broader source stores, dedicated judgment services and authenticated peer review remain pending. Primary checkout untouched; external authenticated worker lanes remain unqualified. Existing Vite chunk-size warning remains."
+  ],
+  "retrospective": "Backend ownership plus independent review verified database-side projection bounds before materialization. Real-D1 and browser tests prove a passage beyond the old prefix survives existing private save/reopen without browser draft persistence."
+}

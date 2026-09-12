@@ -244,12 +244,21 @@ checks these predicates together. It never provisions a guest. Service Timeline
 scopes do not grant access to this human-only Content Research store. An optional
 `X-Workspace-ID` header must match the body.
 
-Only complete `content_analysis.extracted_text` records of at most 102400 UTF-16
-units qualify. The recomputed UTF-8 SHA-256 must match the stored content hash.
-Truncated/chunked, missing, unfinished or hash-mismatched text is refused. Retained
+Complete `content_analysis.extracted_text` records up to 102400 UTF-16 units use
+the stored text directly. Larger records can use a complete canonical `content_chunks`
+set with the writer's exact truncation suffix after a 102400-unit parent prefix.
+The final authorized SELECT reads parent metadata and bounded ordered chunks together.
+Exactly 3–8 chunks must have contiguous indexes from zero, each nonfinal chunk exactly
+51200 UTF-16 units and the final chunk 1–51200. `chunk_size` uses these existing writer
+units; each chunk hash, full content hash and parent prefix must match. The complete
+text must be well-formed Unicode, at most 409600 UTF-16 units and 512000 UTF-8 bytes;
+the database bounds JSON projection to 1048576 bytes before returning it. Extra,
+missing, malformed or inconsistent chunks fail closed with 400, or 413 for bounds.
+Legacy surrogate-split chunks that cannot reproduce the original hash are rejected.
+No repair, partial fallback, source fetch or source mutation occurs. Existing short
+records ignore unrelated chunks. Missing, unfinished or hash-mismatched text is refused. Retained
 records must have `is_saved=1` and null expiry; unsaved records need a parseable
-strictly future expiry. Inconsistent states are rejected. No content chunks,
-editable evidence descriptions or alternative content-library store are used.
+strictly future expiry. Inconsistent states are rejected. Editable evidence descriptions and alternative content-library stores are not used.
 
 Response `timeline-source-import.v1` contains `workspaceId`, `analysisId`,
 `contentHash`, `quoteHash`, `start`, `end`, `matchedAt`, `source` and `passage`.
@@ -282,7 +291,7 @@ bounds return 413 `limit_exceeded`; a changed expected hash returns 412
 authentication/content header allowlist; that empty preflight is distinct from
 the resolver JSON response and does not carry its no-store header. No database migration, new credential or source-record mutation is needed.
 
-Broader source-store import, chunk reconstruction, authenticated peer review,
+Broader source-store import and repair, authenticated peer review,
 dedicated judgment services and later roadmap checkpoints remain separate work.
 
 ## Scoped service access
