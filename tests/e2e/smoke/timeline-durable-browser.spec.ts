@@ -125,7 +125,7 @@ test.describe('durable browser with actual D1 routes @smoke', () => {
       await expect(evaluation.getByRole('status')).toHaveText('Evaluation matches the recorded source inputs.')
       const first = (await exported(page)).analystWorkspace.evidence!.assertions[0].evaluation!
       expect(first.access.value).toBe('indirect'); expect(first.credibility.value).toBe('unassessed')
-      await page.getByRole('button', { name: 'Save timeline', exact: true }).click(); await saved(page)
+      await page.getByRole('button', { name: 'Save changes', exact: true }).click(); await saved(page)
       await evaluation.getByRole('button', { name: 'Review source evaluation', exact: true }).click()
       await evidence.getByText('Add or edit source', { exact: true }).click()
       await evidence.getByLabel('Source to edit', { exact: true }).selectOption('source:browser')
@@ -142,7 +142,7 @@ test.describe('durable browser with actual D1 routes @smoke', () => {
       await evidence.getByRole('button', { name: 'Save assertion changes', exact: true }).click()
       const final = await exported(page)
       expect(final.analystWorkspace.evidence!.assertions[0].evaluation).toEqual(changed.analystWorkspace.evidence!.assertions[0].evaluation)
-      await page.getByRole('button', { name: 'Save timeline', exact: true }).click(); await saved(page)
+      await page.getByRole('button', { name: 'Save changes', exact: true }).click(); await saved(page)
       await page.reload(); await page.getByRole('button', { name: 'Open saved timeline', exact: true }).click(); await saved(page)
       expect((await exported(page)).analystWorkspace.evidence).toEqual(final.analystWorkspace.evidence)
       expect(await page.evaluate(key => localStorage.getItem(key), draftKey)).toBe(rawDraft)
