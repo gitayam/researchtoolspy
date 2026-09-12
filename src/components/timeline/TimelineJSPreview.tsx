@@ -27,10 +27,10 @@ function PresentationFrame({ timeline, theme, startAtEnd }: { timeline: Timeline
     window.addEventListener('message', receive)
     return () => { window.clearTimeout(timer); window.removeEventListener('message', receive) }
   }, [nonce, timeline, theme, startAtEnd])
-  return <div className="relative min-h-0 flex-1 rounded-lg border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-950">
+  return <div className="relative min-h-[230px] flex-1 overflow-hidden rounded-lg border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-950">
     {status === 'loading' && <p role="status" className="absolute left-4 top-4 z-10 rounded bg-white p-2 text-sm text-slate-900 dark:bg-slate-950 dark:text-slate-100">Loading presentation…</p>}
     {status === 'error' && <p role="alert" className="absolute inset-x-4 top-4 z-10 rounded border border-amber-400 bg-amber-50 p-3 text-sm text-amber-950 dark:bg-amber-950 dark:text-amber-100">Presentation could not load. Retry, or use the accessible event list below.</p>}
-    <iframe ref={frame} title="TimelineJS narrative presentation" src={`/timelinejs/preview.html#${nonce}`} sandbox="allow-scripts" referrerPolicy="no-referrer" className="h-full min-h-[230px] w-full rounded-lg border-0" />
+    <iframe ref={frame} title="TimelineJS narrative presentation" src={`/timelinejs/preview.html#${nonce}`} sandbox="allow-scripts" referrerPolicy="no-referrer" className="absolute inset-0 block h-full w-full rounded-lg border-0" />
     <span className="sr-only" role="status">{status === 'loaded' ? 'TimelineJS presentation loaded' : ''}</span>
   </div>
 }
@@ -52,7 +52,7 @@ export function TimelineJSPreview({ timeline, snapshot }: { timeline: TimelineDa
     return 0
   })
   const originals = new Map(snapshot.analystWorkspace.events.map(event => [`event-${encodeURIComponent(event.id)}`, event]))
-  return <section aria-label="TimelineJS presentation" className="flex min-h-0 flex-1 flex-col gap-3">
+  return <section aria-label="TimelineJS presentation" className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto">
     <div className="flex shrink-0 flex-wrap items-center gap-2 text-sm">
       <Label htmlFor="timelinejs-start">Open at</Label>
       <select id="timelinejs-start" className="rounded border border-slate-400 bg-white p-2 text-slate-950 dark:bg-slate-900 dark:text-slate-100" value={startAtEnd ? 'latest' : 'beginning'} onChange={event => setStartAtEnd(event.target.value === 'latest')}><option value="beginning">Beginning</option><option value="latest">Latest event</option></select>
