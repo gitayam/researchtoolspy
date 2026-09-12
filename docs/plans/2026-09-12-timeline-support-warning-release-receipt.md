@@ -13,3 +13,7 @@ Independent review compared all 146 staged files; inventory SHA256 `b8365236594a
 The [JSON receipt](./2026-09-12-timeline-support-warning-release-receipt.json) records fingerprints and recovery, including the corrected test-harness import. Previous deployment `efc6c3f1-700b-4bbc-b63a-d1e91334cd9a` reads identical snapshots but lacks this warning; preserve saved data and immutable revisions. Older pre-epistemic codecs remain incompatible with classified snapshots. Existing size limits and Vite large-chunk warning remain. Primary checkout untouched.
 
 **TL-04 remains partial.** Broader source-store support, handling/export policy, authenticated peer review and dedicated judgment services remain pending.
+
+## Subsequent deployment
+
+The [compact source coverage release](./2026-09-12-timeline-source-coverage-release-receipt.md) adds read-only event summaries with the same snapshot format. This receipt retains historical warning evidence; the newer receipt records current deployment.

@@ -1,0 +1,175 @@
+{
+  "schemaVersion": "timeline-source-coverage-release.v1",
+  "recordedAt": "2026-09-12T16:20:46.873036+00:00",
+  "baselineSha": "dde7f1a228598658046715c5c5058525a80099f4",
+  "acceptedReleaseSha": "4ba13bdeedbff7686f8b021604a5be85e4019837",
+  "checkpoint": "Compact source coverage deployed; TL-04 remains partial",
+  "states": {
+    "canonicalLanded": true,
+    "mirrorConfirmed": true,
+    "productionDeployed": true,
+    "migrationRequired": false,
+    "integrationCheckoutCleanAtRelease": true,
+    "primaryCheckoutSynced": false
+  },
+  "publication": {
+    "canonical": "origin/main",
+    "mirror": "gitlab/main",
+    "releaseRefSha": "4ba13bdeedbff7686f8b021604a5be85e4019837",
+    "forcePush": false,
+    "documentationFollowup": "Documentation-only commit follows; runtime remains acceptedReleaseSha."
+  },
+  "validation": {
+    "sourceSha": "4ba13bdeedbff7686f8b021604a5be85e4019837",
+    "typeChecksPassed": 5,
+    "apiContractTestsPassed": 149,
+    "browserProjectChecksPassed": 92,
+    "build": "passed",
+    "pagesFunctionsBuild": "passed",
+    "schemaRehearsal": "passed",
+    "compiledHttpGate": "passed",
+    "staticGate": "passed",
+    "externalOutboundAttempts": 0,
+    "seconds": 681.03,
+    "archiveSha256": "ba2c66bf657809d527106a6a086aa5f6d25186093de0df7e6da721346ec401b1",
+    "supervisorSha256": "869d61c1e2691530d787992a34caf2e8b1648112e8ce6b02812b7ff1401c048d",
+    "receiptSha256": "48135c4c5bcc77b508bdacc51d55ec257fafc3fb0a075db338d76c2c2c7dbf98",
+    "runLogSha256": "4c4490cedfed0633d54e91e452e782c416d794702cc9b56fde295eaea1deb215",
+    "schemaManifestSha256": "7be7967fc064f5e7dca04421f23eb447c947a639c945672a0c0453f3dc79ed28",
+    "runtimeImage": "mcr.microsoft.com/playwright@sha256:9bd26ad900bb5e0f4dee75839e957a89ae89c2b7ab1e76050e559790e946b948",
+    "commands": [
+      "node scripts/verify-timeline.mjs",
+      "node node_modules/wrangler/bin/wrangler.js pages functions build functions --outdir dist/_worker.js --build-output-directory dist --compatibility-date 2025-09-30 --compatibility-flags nodejs_compat",
+      "node scripts/verify-timeline-release.mjs"
+    ],
+    "executionBoundary": "Pinned network-none Docker; readonly source/dependencies/root; no host credentials/socket; only schema SQL and migration names enter rehearsal."
+  },
+  "review": {
+    "backendProvider": "tl00_recon pure coverage helper and five contract tests",
+    "uiProvider": "integration-owner compact coverage UI and browser acceptance",
+    "independentReviewer": "dependency_review",
+    "sourceAndRuntimeAcceptedSha": "4ba13bdeedbff7686f8b021604a5be85e4019837",
+    "artifactFilesIndependentlyCompared": 146,
+    "distManifestSha256": "049d856e5ab4158baccf65b58d31d2ae1e8554a96f01290a4b9cb1dd4b6307d6",
+    "packageManifestFileSha256": "acb1f10309c9ae4b8d44745a1b4c0df5dcb9cd8206fe35c0d773171267bb48fe",
+    "wranglerConfigSha256": "a58a42371915ceebd779014377cc336df722edae9f6822ca1ab4e329d0755a24",
+    "acceptanceReceiptSha256": "f75416c541da5b7093192a6aa8b6a0167fd4b5d7e02d4f223df7dee25d89eb5f",
+    "visualAcceptanceSha256": "57b1e94f2d3dbafe4d11fd07914e48be137cafc56da023ad72ee3408be893a76"
+  },
+  "database": {
+    "name": "researchtoolspy-prod",
+    "mutationsPerformed": false,
+    "appliedMigrationCount": 13,
+    "pendingMigrations": [],
+    "productionSchemaSha256": "22cb033df9400412f4d83b5f3668b8752ec4126a9c8402b6d502187727bf60bd",
+    "beforeCatalog": {
+      "result": "passed",
+      "tables": 14,
+      "schemaRows": 386,
+      "normalizedSchemaSha256": "ec0d28165382f028c98208a003d8c5ab672a9a0ae7ba44ef2f23e3b2bfa46729"
+    },
+    "afterCatalog": {
+      "result": "passed",
+      "tables": 14,
+      "schemaRows": 386,
+      "normalizedSchemaSha256": "ec0d28165382f028c98208a003d8c5ab672a9a0ae7ba44ef2f23e3b2bfa46729"
+    },
+    "migrationInventoryComparison": {
+      "result": "passed",
+      "appliedMigrationCount": 13,
+      "unchanged": true
+    },
+    "rehearsal": "Existing compiled human/service classified snapshots, replay, imports and static routes pass against actual production schema with synthetic fixtures. No API or schema change in this stage."
+  },
+  "deployment": {
+    "project": "researchtoolspy",
+    "id": "58710a88-8e09-4c96-9aed-e7233a6d2d32",
+    "url": "https://58710a88.researchtoolspy.pages.dev",
+    "productionUrl": "https://researchtools.net",
+    "sourceSha": "4ba13bdeedbff7686f8b021604a5be85e4019837",
+    "wranglerVersion": "4.100.0",
+    "prebuilt": true,
+    "noBundle": true,
+    "stagingHasFunctionsSource": false,
+    "existingSecretNamesPreserved": true,
+    "unrelatedWorkersDeployed": false,
+    "smoke": [
+      {
+        "result": "passed",
+        "baseUrl": "https://58710a88.researchtoolspy.pages.dev",
+        "readonlyChecksPassed": 21,
+        "mutatingRequests": 0,
+        "receiptSha256": "66a931045e07ece07d489801b103b169db63865eeefccaa0b7d0ca9ef64736f5"
+      },
+      {
+        "result": "passed",
+        "baseUrl": "https://researchtools.net",
+        "readonlyChecksPassed": 21,
+        "mutatingRequests": 0,
+        "receiptSha256": "75b874fdf7c2db81e0c1b3249f4d966f2d3c2504a8b74df8da2d428249dbe8af"
+      }
+    ]
+  },
+  "rollback": {
+    "previousDeploymentId": "9ded586f-b693-44c6-8dee-bb4014ef9170",
+    "limits": "Previous runtime reads identical snapshots but lacks compact source coverage. Preserve saved data and immutable revisions; older pre-epistemic codecs remain incompatible with classified snapshots."
+  },
+  "recovery": [
+    "Initial focused run passed main type check, five coverage contract checks and desktop/mobile private-save coverage checks. Coverage counts and captures completed, but subsequent evidence disclosure clicks failed visibility checks; failed receipts retained.",
+    "Independent trace review identified a test locator error: Analyst and Narrative evidence panels both remain mounted, and .first() selected the hidden Analyst summary. The scroll-only attempt exposed strict duplicate matching. Test-only4ba13bdee scopes interaction to the visible Narrative article; product code remainsff9a66094.",
+    "Final exact-source focused run passed all four desktop/mobile coverage and private-save checks. No product change was needed for the locator correction.",
+    "Final exact-source release run passed five type checks,149 API/contract checks,92 desktop/mobile browser checks,frontend/worker builds and every compiled production-schema gate. Earlier failed focused attempts remain separate and unaccepted."
+  ],
+  "instructionSha256": {
+    "CLAUDE.md": "3852de6d95104c64f3a35b670f350e1d7a2c6c9ed93d03d53895e7bc8c44ff1b",
+    ".team/project.json": "c87cd27090a1a8ff779dd0d850668ebf0ecb6581cefb2d0b0a66ed63aabbcf78",
+    "docs/plans/2026-09-12-timeline-source-coverage-charter.md": "a3a200abf5a4c3ff6ff7df0c14e22c7552d343cef05e7be40458d53630f14612"
+  },
+  "limitations": [
+    "Coverage is a read-only summary of validated linked records. Distinct source IDs, including duplicate URLs, do not establish independence or truth. Role counts include retracted records.",
+    "Active support requires active complete recorded ancestry; withdrawn ancestry and directly retracted assertions are displayed separately. Missing support does not rewrite saved event assessment or historical reviews.",
+    "No persisted field, API, migration, auth or size-limit change. Prior runtime reads identical snapshots.",
+    "Production smoke is anonymous/read-only; authenticated operations use isolated synthetic actual-D1 and compiled-worker fixtures.",
+    "TL-04 remains partial. RSS coverage, broader source stores, handling/export policy, dedicated judgment services and authenticated peer review remain separate. Primary checkout untouched. Existing Vite large-chunk warning and representative visual-review limits remain."
+  ],
+  "retrospective": "A native provider supplied pure event-scoped source coverage while the owner added a compact read-only summary to both Analyst and Narrative. Separate role colors and text labels expose evidence gaps without changing saved data. Independent review and browser/private-D1 acceptance cover duplicate URL records, retracted ancestry, view/theme changes and recomputed coverage after private reopen.",
+  "promptManifestSha256": "73ed8cef01adddb608cf21455b56975d0ca3c67747dc38cb935cdda186efde43",
+  "visual": {
+    "reviewer": "validator_review",
+    "visualSource": "4ba13bdeedbff7686f8b021604a5be85e4019837",
+    "acceptedSource": "4ba13bdeedbff7686f8b021604a5be85e4019837",
+    "themes": [
+      "light",
+      "dark"
+    ],
+    "browsers": [
+      "chromium",
+      "mobile-safari"
+    ],
+    "evidence": {
+      "timeline-evidence-browser--954eb-rawn-ancestry-in-both-views-chromium/source-coverage-dark.png": "2f99e083d2dcbc2ed7b0972b43e1eee1f4161302dd1e6e50a0869ba2b8c9a8f0",
+      "timeline-evidence-browser--954eb-rawn-ancestry-in-both-views-chromium/source-coverage-light.png": "98f1eca38f7f483f6b5de13bb9a0d23aefaa47947175d884bcad449cc56b7905",
+      "timeline-evidence-browser--954eb-rawn-ancestry-in-both-views-mobile-safari/source-coverage-dark.png": "c7d5b797a23021f2516de05e654538a279d3eadaeecd1871906fda2569a45a1b",
+      "timeline-evidence-browser--954eb-rawn-ancestry-in-both-views-mobile-safari/source-coverage-light.png": "8e0945abf079d5cd1bef89d1de1e64aba6e07156ca4c15867b52838f1ca74020"
+    },
+    "limitations": "Representative populated summary in desktop/mobile light/dark with screenshot animations disabled. Role badges, active support, retractions and independence qualification are readable; mobile wrapping stays contained. Zero-support states, full-page hierarchy and measured contrast are outside this visual review."
+  },
+  "failedAttempts": [
+    {
+      "runName": "coverage-focused",
+      "source": "ff9a66094657ad12d70e641aa124992e92fce4f7",
+      "exitCode": 1,
+      "receiptSha256": "50f059f1e86875722b3e91e3ff598bf06049d16b66ec4817d543df4a2ef2fdf2",
+      "runLogSha256": "19ce6e076ac39ad63d1cb88b4477eaf75beabf159f683b6ddecb5c262fb91e3a",
+      "reason": "Main type check, five contracts and both private-D1 browser checks passed. Both new coverage flows stalled on evidence disclosure visibility after captures and export; investigation continued before release acceptance."
+    },
+    {
+      "runName": "coverage-scroll-focused",
+      "source": "890054c25c7fdd993e7199f927f33de95d8bc113",
+      "exitCode": 1,
+      "receiptSha256": "88bdcb5b754984340f3fc5b3f56188877795e4545b6a16ebf6aa33f995d5b8e5",
+      "runLogSha256": "227416889df6e27ebd5b7866e19bf9350ed1a2020a8c29ac8bdd27b299a183e4",
+      "reason": "Parent scrolling exposed duplicate hidden Analyst and visible Narrative panels. Original .first() selected hidden Analyst summary; corrected test scopes to Narrative article."
+    }
+  ]
+}

@@ -68,13 +68,15 @@ Current delivery state (2026-09-11):
   Content Research extraction in the same workspace. The resolver checks current
   access, retention, full-text hash and unique quote match; the recorded locator
   preserves hashes and UTF-16 offsets. Preview is rechecked before import, and
-  private passages never enter automatic browser drafts. All 144 API/contract
-  checks, 90 browser checks, five type checks and compiled release gates pass.
+  private passages never enter automatic browser drafts. All 149 API/contract
+  checks, 92 browser checks, five type checks and compiled release gates pass.
   No database migration was required. Broader source-store support, dedicated
   judgment services and authenticated peer review remain pending. Stored-text
   equality is not source truth, authenticated historical provenance or append-only
   review permission.
 - **TL-01 and TL-05–TL-18: pending.** No delivery of these checkpoints or cross-app changes is claimed.
+
+Compact source coverage now distinguishes linked roles, active support, retractions and withdrawn ancestry in Analyst and Narrative views without changing saved data. Recorded sources do not imply independent confirmation. RSS coverage remains pending. See the [source coverage release receipt](./2026-09-12-timeline-source-coverage-release-receipt.md).
 
 Evidence edits now warn before removing the final active support from a saved corroborated event, including shared ancestry and already-stale assessments. Cancellation preserves data; changed context requires a fresh action. See the [final-support warning release receipt](./2026-09-12-timeline-support-warning-release-receipt.md).
 
