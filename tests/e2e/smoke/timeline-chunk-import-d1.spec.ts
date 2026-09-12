@@ -96,7 +96,17 @@ test.describe('bounded chunk reconstruction actual D1 @smoke',()=>{
       const {mf,db}=await setup()
       try {
         let sourceReads=0
-        const wrapped={prepare:(sql:string)=>{const prepared=db.prepare(sql);if(!sql.includes('WITH authorized')) return prepared;return {bind:(...args:any[])=>({first:async()=>{sourceReads++;await db.prepare(mutation).run();return prepared.bind(...args).first()}})}} as unknown as D1Database
+        const wrapped = {
+          prepare: (sql: string) => {
+            const prepared = db.prepare(sql)
+            if (!sql.includes('WITH authorized')) return prepared
+            return { bind: (...args: any[]) => ({ first: async () => {
+              sourceReads++
+              await db.prepare(mutation).run()
+              return prepared.bind(...args).first()
+            } }) }
+          },
+        } as unknown as D1Database
         expect((await call(wrapped)).status).toBe(mutation.startsWith('DELETE')?400:404)
         expect(sourceReads).toBe(1)
       } finally {await mf.dispose()}
