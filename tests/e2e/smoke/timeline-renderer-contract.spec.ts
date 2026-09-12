@@ -78,7 +78,7 @@ test.describe('self-hosted TimelineJS renderer contract @smoke', () => {
     const scripts = [read(`${root}timeline.js`), bridge]
     const styles = [read(`${root}timeline.css`), read('public/timelinejs/preview-font.css'), read('public/timelinejs/preview.css')]
     expect(html).toBe(timelineRendererShell({ scripts, styles }))
-    expect([...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(match => match[1])).toEqual(scripts)
+    expect([...html.matchAll(/<script data-cfasync="false">([\s\S]*?)<\/script>/g)].map(match => match[1])).toEqual(scripts)
     expect(csp.match(/script-src ([^;]+)/)![1]).toBe(scripts.map(value => `'sha256-${createHash('sha256').update(value).digest('base64')}'`).join(' '))
     expect(html).not.toMatch(/<(?:script|link)[^>]+(?:src|href)=/)
     const embeddedStyles = [...html.matchAll(/<style>([\s\S]*?)<\/style>/g)].map(match => match[1])
