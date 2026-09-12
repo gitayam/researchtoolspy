@@ -13,3 +13,7 @@ Independent review accepted all 146 identical staged files; inventory SHA256 `a4
 The [JSON receipt](./2026-09-12-timeline-visual-hierarchy-release-receipt.json) records fingerprints, visual evidence and recovery. Previous deployment `096a53e4-549a-4750-9c6f-8ac107053a44` retains identical data/APIs but lacks this visual/navigation update. The primary checkout was untouched. Existing Vite large-chunk warnings remain.
 
 **TL-04 remains partial.** Broader source-store support, dedicated judgment services and authenticated peer review remain pending. This release improves the existing workspace and navigation; it does not claim completion of later roadmap checkpoints.
+
+## Subsequent deployment
+
+The [source evaluation release](./2026-09-12-timeline-source-evaluation-release-receipt.md) adds separate source-quality factors and rationale with changed-input notices. This receipt retains historical visual/navigation evidence; the newer receipt records current deployment.

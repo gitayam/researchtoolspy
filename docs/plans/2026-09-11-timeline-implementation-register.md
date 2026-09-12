@@ -68,13 +68,15 @@ Current delivery state (2026-09-11):
   Content Research extraction in the same workspace. The resolver checks current
   access, retention, full-text hash and unique quote match; the recorded locator
   preserves hashes and UTF-16 offsets. Preview is rechecked before import, and
-  private passages never enter automatic browser drafts. All 128 API/contract
-  checks, 80 browser checks, five type checks and compiled release gates pass.
+  private passages never enter automatic browser drafts. All 134 API/contract
+  checks, 82 browser checks, five type checks and compiled release gates pass.
   No database migration was required. Broader source-store support, dedicated
   judgment services and authenticated peer review remain pending. Stored-text
   equality is not source truth, authenticated historical provenance or append-only
   review permission.
 - **TL-01 and TL-05–TL-18: pending.** No delivery of these checkpoints or cross-app changes is claimed.
+
+Source assertions now retain separate source-evaluation factors and rationale, frozen opening inputs and changed-input notices through local export and private immutable snapshots. Evaluations do not certify truth or replace independence review. See the [source evaluation release receipt](./2026-09-12-timeline-source-evaluation-release-receipt.md).
 
 The workspace now distinguishes events, evidence, questions, judgments and narrative with labeled visual treatments. The event sequence precedes advanced editors; section links and a transient event finder improve navigation without hiding events or changing saved data. See the [visual hierarchy release receipt](./2026-09-12-timeline-visual-hierarchy-release-receipt.md).
 

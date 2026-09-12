@@ -1,0 +1,161 @@
+{
+  "schemaVersion": "timeline-source-evaluation-release.v1",
+  "recordedAt": "2026-09-12T13:34:50.077261+00:00",
+  "baselineSha": "66f5a049a5a28363d8e3ffdde9d7a425d36b6108",
+  "acceptedReleaseSha": "639f2cab66b81b48f3069dfa0348021e6855b7ce",
+  "checkpoint": "Assertion source evaluations deployed; TL-04 remains partial",
+  "states": {
+    "canonicalLanded": true,
+    "mirrorConfirmed": true,
+    "productionDeployed": true,
+    "migrationRequired": false,
+    "integrationCheckoutCleanAtRelease": true,
+    "primaryCheckoutSynced": false
+  },
+  "publication": {
+    "canonical": "origin/main",
+    "mirror": "gitlab/main",
+    "releaseRefSha": "639f2cab66b81b48f3069dfa0348021e6855b7ce",
+    "forcePush": false,
+    "documentationFollowup": "Documentation-only commit follows; runtime remains acceptedReleaseSha."
+  },
+  "validation": {
+    "sourceSha": "639f2cab66b81b48f3069dfa0348021e6855b7ce",
+    "typeChecksPassed": 5,
+    "apiContractTestsPassed": 134,
+    "browserProjectChecksPassed": 82,
+    "build": "passed",
+    "pagesFunctionsBuild": "passed",
+    "schemaRehearsal": "passed",
+    "compiledHttpGate": "passed",
+    "staticGate": "passed",
+    "externalOutboundAttempts": 0,
+    "seconds": 664.0,
+    "archiveSha256": "cdc4635591b6b8779bbc76f5ec16ba761a43a889591c6f42587854b9d528d4e4",
+    "supervisorSha256": "869d61c1e2691530d787992a34caf2e8b1648112e8ce6b02812b7ff1401c048d",
+    "receiptSha256": "9ef64bf3fa1b53638452ce86df3180e6825bd57285d290b1005ff6da47d3ce41",
+    "runLogSha256": "61a9dd68886886bb7088ff1a69bda73a75f8969d0c4758084ff2af6ea89dae6b",
+    "schemaManifestSha256": "0cf264df00a2db018bf1b8a8cd06aca85633245b91b937a5437b9249ba5dba9d",
+    "runtimeImage": "mcr.microsoft.com/playwright@sha256:9bd26ad900bb5e0f4dee75839e957a89ae89c2b7ab1e76050e559790e946b948",
+    "commands": [
+      "node scripts/verify-timeline.mjs",
+      "node node_modules/wrangler/bin/wrangler.js pages functions build functions --outdir dist/_worker.js --build-output-directory dist --compatibility-date 2025-09-30 --compatibility-flags nodejs_compat",
+      "node scripts/verify-timeline-release.mjs"
+    ],
+    "executionBoundary": "Pinned network-none Docker; readonly source/dependencies/root; no host credentials/socket; only schema SQL and migration names enter rehearsal."
+  },
+  "review": {
+    "backendProvider": "tl00_recon domain provider; existing human/service snapshot validation seam",
+    "uiProvider": "integration-owner",
+    "independentReviewer": "dependency_review",
+    "sourceAndRuntimeAcceptedSha": "639f2cab66b81b48f3069dfa0348021e6855b7ce",
+    "artifactFilesIndependentlyCompared": 146,
+    "distManifestSha256": "fb4945e23e7a64cebda8e8cf66776c4aee0c29695173b7252ecde033e8e69705",
+    "packageManifestFileSha256": "9f2e0370e0266017cb88b5166c1973d114b59efe1fef49acfd3a723fc547660a",
+    "wranglerConfigSha256": "a58a42371915ceebd779014377cc336df722edae9f6822ca1ab4e329d0755a24",
+    "acceptanceReceiptSha256": "943ece8551cab2ec4ec4cee3067d27ca2266fd14c3f0bbdfc6f8159a20bcd694",
+    "visualAcceptanceSha256": "3701f7a8cbe0f8b25d3e3a0b77a9f80b8a665185f8a1f747318ce8cf2a44f1db"
+  },
+  "database": {
+    "name": "researchtoolspy-prod",
+    "mutationsPerformed": false,
+    "appliedMigrationCount": 13,
+    "pendingMigrations": [],
+    "productionSchemaSha256": "22cb033df9400412f4d83b5f3668b8752ec4126a9c8402b6d502187727bf60bd",
+    "beforeCatalog": {
+      "result": "passed",
+      "tables": 14,
+      "schemaRows": 386,
+      "normalizedSchemaSha256": "ec0d28165382f028c98208a003d8c5ab672a9a0ae7ba44ef2f23e3b2bfa46729"
+    },
+    "afterCatalog": {
+      "result": "passed",
+      "tables": 14,
+      "schemaRows": 386,
+      "normalizedSchemaSha256": "ec0d28165382f028c98208a003d8c5ab672a9a0ae7ba44ef2f23e3b2bfa46729"
+    },
+    "migrationInventoryComparison": {
+      "result": "passed",
+      "appliedMigrationCount": 13,
+      "unchanged": true
+    },
+    "rehearsal": "Actual production schema with synthetic human/service source-evaluation snapshots: compiled save/read/replay and hashes pass alongside source import and existing contracts. No route or migration added."
+  },
+  "deployment": {
+    "project": "researchtoolspy",
+    "id": "5eaf67bd-31a6-440f-80d1-cb54e366b8ac",
+    "url": "https://5eaf67bd.researchtoolspy.pages.dev",
+    "productionUrl": "https://researchtools.net",
+    "sourceSha": "639f2cab66b81b48f3069dfa0348021e6855b7ce",
+    "wranglerVersion": "4.100.0",
+    "prebuilt": true,
+    "noBundle": true,
+    "stagingHasFunctionsSource": false,
+    "existingSecretNamesPreserved": true,
+    "unrelatedWorkersDeployed": false,
+    "smoke": [
+      {
+        "result": "passed",
+        "baseUrl": "https://5eaf67bd.researchtoolspy.pages.dev",
+        "readonlyChecksPassed": 21,
+        "mutatingRequests": 0,
+        "receiptSha256": "34c8592aaa43ba4607db363d04445eac2fae6b4b4fe60dfdf4b288057e531f52"
+      },
+      {
+        "result": "passed",
+        "baseUrl": "https://researchtools.net",
+        "readonlyChecksPassed": 21,
+        "mutatingRequests": 0,
+        "receiptSha256": "109cf444217f3e7bddb9cd34d897d7c6f5e26aab4a0fbe6f84326281fb8bfe79"
+      }
+    ]
+  },
+  "rollback": {
+    "previousDeploymentId": "3774773e-7dc2-4dd1-8ca5-5b134119c842",
+    "limits": "Previous code rejects snapshots containing evaluation. Preserve all immutable history; use compatible readers or a forward fix, never strip evaluation to make older code accept a snapshot."
+  },
+  "recovery": [
+    "Initial focused run at a524f09d6 passed main type check and eleven of twelve contract/D1 checks; oversized request correctly returned 413, while new test expected 400. Correction separately asserts 413 wire and 400 canonical limits with unchanged database state. All 12 contract/D1 checks passed at 61e8a5b1f.",
+    "Browser flow at 61e8a5b1f timed out selecting Access because implicit select naming included option text. Explicit aria-labels added at 9185efc79; same assertions then reached the private-save step. Owner stopped superseded runs with exit 137 after failures were recorded.",
+    "Next browser attempt used the wrong new-test save selector for an opened private timeline. Corrected to existing Save changes at 5a3475016, preserving behavior assertions.",
+    "Initial read-only Cloudflare catalog query returned internal error 7500; preserved failed receipt/log and unchanged query retry succeeded. No production mutations performed during preflight.",
+    "Browser attempt at 5a347 reached assertion editing but its prefilled textarea implicit label no longer matched Source claim. Owner stopped superseded run with exit 137 and added explicit accessible names for assertion and evaluation rationale textareas. Data/schema logic and browser behavior assertions unchanged.",
+    "At639f2cab6 the unchanged behavior assertions passed both desktop and mobile end-to-end evaluation flows, including preservation on source/assertion edits, frozen inputs, private save/reopen, Narrative inspection and JSON roundtrip. Full exact-source release validation followed.",
+    "Final exact-source release-evaluation-final completed with exit0: five type checks,134 API/contract checks,82 browser checks and frontend/worker builds followed by compiled production-schema gates, all passing."
+  ],
+  "instructionSha256": {
+    "CLAUDE.md": "3852de6d95104c64f3a35b670f350e1d7a2c6c9ed93d03d53895e7bc8c44ff1b",
+    ".team/project.json": "c87cd27090a1a8ff779dd0d850668ebf0ecb6581cefb2d0b0a66ed63aabbcf78",
+    "docs/plans/2026-09-12-timeline-source-evaluation-charter.md": "763348deb2fb0ad970b97a1f6d98d9a278bf098980d9da7fbcfee4193330559c"
+  },
+  "limitations": [
+    "Separate analyst-entered factors and rationale do not certify truth or automatically determine corroboration, independence or analytical confidence. No indication of bias/deception does not prove absence.",
+    "Current evaluation content is client editable, not an authenticated peer-review record. Immutable revisions preserve prior snapshots; no dedicated judgment service or append-only review permission is claimed.",
+    "Opening inputs remain frozen during an evaluation draft; changed inputs are marked for review. Existing 60 KiB canonical snapshot and 64 KiB request limits remain.",
+    "Legacy absence stays absent; older deployed codecs reject evaluations. Rollback must retain data and compatible readers.",
+    "Production smoke is anonymous/read-only; authenticated operations use isolated synthetic actual-D1 and compiled-worker fixtures.",
+    "TL-04 remains partial. Primary checkout untouched. Existing Vite large-chunk warning and representative visual-review limits remain."
+  ],
+  "retrospective": "A native domain provider supplied strict bounded source evaluations and lineage bases while the owner implemented the editor, Markdown, private history and compiled human/service acceptance. Independent source, runtime, artifact and visual reviews followed. Acceptance corrected a size-boundary test expectation, explicit select accessible names, and the existing private-save control selector; superseded runs remain recorded.",
+  "promptManifestSha256": "2b35af4743d8e9cc0032dd343ca306ff5a4db567e14fe0557f9a112a4300af6a",
+  "visual": {
+    "reviewer": "validator_review",
+    "visualSource": "639f2cab66b81b48f3069dfa0348021e6855b7ce",
+    "acceptedSource": "639f2cab66b81b48f3069dfa0348021e6855b7ce",
+    "themes": [
+      "light",
+      "dark"
+    ],
+    "browsers": [
+      "chromium",
+      "mobile-safari"
+    ],
+    "evidence": {
+      "timeline-durable-browser-d-7902c-ve-and-narrative-inspection-chromium/source-evaluation-dark.png": "456469e56f6b19f4ac04f59ed00475aaa0b39c2b535d9fafb8343accf4966fbf",
+      "timeline-durable-browser-d-7902c-ve-and-narrative-inspection-chromium/source-evaluation-light.png": "e1397cf852003f736c98edf8e15d567343d4870853aeeb4c7630a53720f688c4",
+      "timeline-durable-browser-d-7902c-ve-and-narrative-inspection-mobile-safari/source-evaluation-dark.png": "7dcf0c307998e571abd8030734e146c5d314937f5f05d5bee0d3516ab890e04b",
+      "timeline-durable-browser-d-7902c-ve-and-narrative-inspection-mobile-safari/source-evaluation-light.png": "7f59b737efc58f6c2b93f7ce4f76bca2731555d2cd1714cbb4af5ff199512a9d"
+    },
+    "limitations": "Representative recorded-evaluation states only, not an exhaustive accessibility or contrast audit. Desktop light/dark cards are clear. Existing mobile bottom navigation overlays the Possible bias rationale in both tall mobile component captures despite the screenshot-only chrome selector; these two images do not fully expose that rationale or fully hide app chrome. Remaining factors, stale notice, analyst qualification and controls are readable and contained."
+  }
+}
