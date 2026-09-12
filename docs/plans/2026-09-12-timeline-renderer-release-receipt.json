@@ -1,0 +1,353 @@
+{
+  "schemaVersion": "timeline-renderer-release.v1",
+  "recordedAt": "2026-09-12T18:53:45.192720+00:00",
+  "baselineSha": "d875ea49699963dd1a6f6cfc7e7e14fe8227a5a9",
+  "acceptedReleaseSha": "a11ef636a5fbde09d17cb58b19afb4f9047092ee",
+  "checkpoint": "Self-hosted TimelineJS presentation deployed; TL-17 remains partial",
+  "states": {
+    "canonicalLanded": true,
+    "mirrorConfirmed": true,
+    "productionDeployed": true,
+    "migrationRequired": false,
+    "integrationCheckoutCleanAtRelease": true,
+    "primaryCheckoutSynced": false
+  },
+  "publication": {
+    "canonical": "origin/main",
+    "mirror": "gitlab/main",
+    "releaseRefSha": "a11ef636a5fbde09d17cb58b19afb4f9047092ee",
+    "forcePush": false,
+    "documentationFollowup": "Documentation-only commit follows; runtime remains acceptedReleaseSha."
+  },
+  "validation": {
+    "fullBaseline": {
+      "sourceSha": "2c65f486b718f68f55ec0a70941bd9d23f230bb7",
+      "seconds": 809.23,
+      "archiveSha256": "2407e049b19fd734112c0376f768cec101e88240f3810761c5f09b62306fe007",
+      "supervisorSha256": "951e88d8b3c2c934de367407ce3269bbdebfcebf5a731a64f10a630366d52639",
+      "receiptSha256": "7d350a37f718335939bfb1b07fd5aeba7816ed86eb458a691b41082f47d1e24f",
+      "runLogSha256": "2e4920307dcbe953f7bc2a97ce81b58fa5c6b04b2f9f7429637280942958a6d0",
+      "schemaManifestSha256": "0a2c82e484eaa9af7f51bd3b23fd583c78d207666c2d3bd3b8db500b798c10a1",
+      "result": "passed",
+      "typeChecksPassed": 5,
+      "apiContractTestsPassed": 161,
+      "browserProjectChecksPassed": 104,
+      "build": "passed",
+      "pagesFunctionsBuild": "passed",
+      "schemaRehearsal": "passed",
+      "compiledHttpGate": "passed",
+      "staticGate": "passed"
+    },
+    "exactRepair": {
+      "sourceSha": "a11ef636a5fbde09d17cb58b19afb4f9047092ee",
+      "seconds": 261.48,
+      "archiveSha256": "d357575e8b9b344fb8ffd58a9b236c7488dc131f54758195119a5e9899f0f384",
+      "supervisorSha256": "951e88d8b3c2c934de367407ce3269bbdebfcebf5a731a64f10a630366d52639",
+      "receiptSha256": "114c5b3ad696034d0e523510ded94e0a4989524e514a9b454adef29afd2f3c8f",
+      "runLogSha256": "75cc88f176863d69050fc5d4103b977d79bb9a5bb1acbc7b2207453695a4ae9f",
+      "schemaManifestSha256": "046adf9d4cae74cb3bdd40f89f3d485e13c63d27b5c00bca9cf8dafda00e081e",
+      "result": "passed",
+      "rendererContractChecksPassed": 6,
+      "browserProjectChecksPassed": 12,
+      "build": "passed",
+      "pagesFunctionsBuild": "passed",
+      "schemaRehearsal": "passed",
+      "compiledHttpGate": "passed",
+      "staticGate": "passed"
+    },
+    "inheritance": "Full gates bind to 2c65f486b718f68f55ec0a70941bd9d23f230bb7; only shell script attributes, generator and contract assertion changed. Final source received focused renderer contracts/browser checks and fresh builds/schema rehearsal; full suite and type checks were not rerun at final source.",
+    "runtimeImage": "mcr.microsoft.com/playwright@sha256:9bd26ad900bb5e0f4dee75839e957a89ae89c2b7ab1e76050e559790e946b948",
+    "executionBoundary": "Pinned network-none Docker with readonly source/dependencies/root; no host credentials or socket."
+  },
+  "review": {
+    "backendProvider": "tl00_recon isolated renderer shell, bridge, styles and six contract tests",
+    "uiProvider": "integration-owner React presentation lifecycle, fallback, vendor provenance and browser acceptance",
+    "independentReviewer": "dependency_review",
+    "sourceAndRuntimeAcceptedSha": "a11ef636a5fbde09d17cb58b19afb4f9047092ee",
+    "artifactFilesIndependentlyCompared": 155,
+    "distManifestSha256": "4552f19e7e8e53af1caa8d4eed95e3184ac133ae7066ff810ea32cbd5da39e2c",
+    "packageManifestFileSha256": "e85fd5f38fde6f1bfb0a68cc21f5d80538f5f90663ac0238135f5439b8e4e51a",
+    "wranglerConfigSha256": "a58a42371915ceebd779014377cc336df722edae9f6822ca1ab4e329d0755a24",
+    "acceptanceReceiptSha256": "c04d9c6758174566bcf88a1be472f3447474980b87beb13809a4cdaa1605d6f3",
+    "visualAcceptanceSha256": "6af8a013cd5696c080f476e6f4acc9c611c4109333c7b55617f5f8c0944dd39f"
+  },
+  "database": {
+    "name": "researchtoolspy-prod",
+    "mutationsPerformed": false,
+    "appliedMigrationCount": 13,
+    "pendingMigrations": [],
+    "productionSchemaSha256": "22cb033df9400412f4d83b5f3668b8752ec4126a9c8402b6d502187727bf60bd",
+    "beforeCatalog": {
+      "result": "passed",
+      "tables": 14,
+      "schemaRows": 386,
+      "normalizedSchemaSha256": "ec0d28165382f028c98208a003d8c5ab672a9a0ae7ba44ef2f23e3b2bfa46729"
+    },
+    "afterCatalog": {
+      "result": "passed",
+      "tables": 14,
+      "schemaRows": 386,
+      "normalizedSchemaSha256": "ec0d28165382f028c98208a003d8c5ab672a9a0ae7ba44ef2f23e3b2bfa46729"
+    },
+    "migrationInventoryComparison": {
+      "result": "passed",
+      "appliedMigrationCount": 13,
+      "unchanged": true
+    },
+    "rehearsal": "Existing compiled human/service classified snapshots, replay, imports and static routes pass against actual production schema with synthetic fixtures. No API or schema change in this stage."
+  },
+  "deployment": {
+    "project": "researchtoolspy",
+    "id": "971c8e13-acd6-4f1c-bc55-5829ac10c2af",
+    "url": "https://971c8e13.researchtoolspy.pages.dev",
+    "productionUrl": "https://researchtools.net",
+    "sourceSha": "a11ef636a5fbde09d17cb58b19afb4f9047092ee",
+    "wranglerVersion": "4.100.0",
+    "prebuilt": true,
+    "noBundle": true,
+    "stagingHasFunctionsSource": false,
+    "existingSecretNamesPreserved": true,
+    "unrelatedWorkersDeployed": false,
+    "smoke": [
+      {
+        "result": "passed",
+        "baseUrl": "https://971c8e13.researchtoolspy.pages.dev",
+        "readonlyChecksPassed": 30,
+        "mutatingRequests": 0,
+        "receiptSha256": "6b2f68cd7582f8b040a04b4baa78b8fdb29dec9c2a9b31d1ba6d9705de2ddc16"
+      },
+      {
+        "result": "passed",
+        "baseUrl": "https://researchtools.net",
+        "readonlyChecksPassed": 30,
+        "mutatingRequests": 0,
+        "receiptSha256": "e540dd3e038beb5da9ae85e878030479d90b39d83264e074a2cf9db48e6c1f71"
+      }
+    ]
+  },
+  "rollback": {
+    "previousDeploymentId": "d1a610f0-3876-4381-82ac-685730dfd32b",
+    "limits": "Previous runtime reads identical snapshots but lacks embedded TimelineJS presentation. Preserve saved data and immutable revisions; older pre-epistemic codecs remain incompatible with classified snapshots."
+  },
+  "recovery": [
+    {
+      "source": "c2ed91f04753e80ce0c0b9edb6e1d7f3fb3460c3",
+      "gate": "visual review",
+      "result": "rejected",
+      "reason": "All18 focused checks passed but independent screenshots found mobile zoom toolbar overlapping assessment and dark pre-start axis with unreadable white background. Fix CSS and capture the same event in both themes with toolbar non-overlap assertion."
+    },
+    {
+      "source": "964f85a36db2be82fcd655c3fa7e3ae809969360",
+      "gate": "visual review",
+      "result": "rejected",
+      "reason": "18 checks passed; toolbar and axis fixed. Dark marker nested headline still inherited upstream black text on purple. Owner applied specific light text rule and computed-color browser assertion. Full release recaptures finalsource."
+    },
+    {
+      "source": "2c65f486b718f68f55ec0a70941bd9d23f230bb7",
+      "deployment": "7f659be5",
+      "gate": "live HTML verification",
+      "result": "rejected",
+      "reason": "Both deployed URLs add Cloudflare analytics. Production additionally rewrites inline script types with Rocket Loader and appends challenge code. Repaired script tags opt out using data-cfasync=false; child CSP unchanged. Initial staged artifact and smoke evidence retained privately. Exact-source focused browser/build/schema repair validation supplements full baseline tests."
+    }
+  ],
+  "instructionSha256": {
+    "CLAUDE.md": "3852de6d95104c64f3a35b670f350e1d7a2c6c9ed93d03d53895e7bc8c44ff1b",
+    ".team/project.json": "c87cd27090a1a8ff779dd0d850668ebf0ecb6581cefb2d0b0a66ed63aabbcf78",
+    "docs/plans/2026-09-11-timeline-tranche-charter.md": "367a6bc5c7f7c706ce4f6b368df952fbe5c8a6e34bde3f959b72775e138a0682",
+    "docs/plans/2026-09-12-timeline-renderer-charter.md": "00ac2242a0114805dc569161e412b30fc5f7f545a790db0b77426a16f2dbf7b1"
+  },
+  "limitations": [
+    "Optional self-hosted TimelineJS 3.9.13 renders one frozen selected-narrative projection with at most 100 eligible events. Unknown/relative/position-only events remain omitted under the existing adapter; JSON exports retain all eligible events beyond the renderer limit.",
+    "Renderer is an opaque allow-scripts-only iframe. It receives only whitelisted presentation fields, never the complete companion or evidence graph. Strict child CSP blocks external fetch/media/frames; a self-contained shell with exact script hashes, embedded styles/icon font and system text fonts removes CDN/font/spreadsheet dependencies. No application analytics IDs or tracking events enabled. Cloudflare may append edge scripts; owned HTML bytes and exact child script hashes are checked, and isolated replay verifies edge scripts are blocked.",
+    "Root CSP adds same-origin frames and data fonts; other directives/allowlists remain unchanged. Beginning/latest, keyboard navigation, fallback event list, stale unmount and retry are tested. Representative visual review is not exhaustive accessibility certification.",
+    "No persisted field, API, migration, auth or size-limit change. Public publication/revocation endpoints and richer revision/composite/plan/comparison snapshots remain pending; TL-17 and TL-04 remain partial.",
+    "Production checks use anonymous/read-only requests, eight raw renderer asset hashes and exact owned HTML bytes allowing only CSP-blocked Cloudflare additions; authenticated operations use isolated synthetic actual-D1/compiled fixtures. Primary checkout untouched; existing Vite large-chunk warning remains."
+  ],
+  "retrospective": "Native provider implemented the strict frame bridge and dependency contracts while the owner integrated lazy rendering, viewport controls and a native fallback. Independent review found a valid narrative-title limit mismatch, repaired with real codec/adapter boundary checks. Failed attempts remain recorded. Exact-source browser, isolated release, artifact comparison and live static-policy verification precede delivery.",
+  "promptManifestSha256": "587ac7accdcfe17be4709e6a70ddc0b7316bf074d783113ad7d689ff8519716b",
+  "visual": {
+    "reviewer": "validator_review",
+    "runName": "release-renderer-edge",
+    "visualSource": "a11ef636a5fbde09d17cb58b19afb4f9047092ee",
+    "acceptedSource": "a11ef636a5fbde09d17cb58b19afb4f9047092ee",
+    "themes": [
+      "light",
+      "dark"
+    ],
+    "browsers": [
+      "chromium",
+      "mobile-safari"
+    ],
+    "evidence": [
+      {
+        "file": "timeline-renderer-browser--270b6-ed-and-preserves-the-source-chromium/renderer-dark.png",
+        "sha256": "1fe9da9448ab531ab27527792a0fb97fa5cf409d8c32932fde82b25c37ce9621"
+      },
+      {
+        "file": "timeline-renderer-browser--270b6-ed-and-preserves-the-source-chromium/renderer-light.png",
+        "sha256": "1b37fe6e157267d34b5d4330060d367bba5f199dd757fa0838d29ecc34411c71"
+      },
+      {
+        "file": "timeline-renderer-browser--270b6-ed-and-preserves-the-source-mobile-safari/renderer-dark.png",
+        "sha256": "937b1041bb5f176616864839aeca19277192089e50504d304f1292e7d2f08419"
+      },
+      {
+        "file": "timeline-renderer-browser--270b6-ed-and-preserves-the-source-mobile-safari/renderer-light.png",
+        "sha256": "30ecf60fbd9d0715cfd220e78c517833a2f2efa1c8f37ef3a805cd574dc7e9e6"
+      }
+    ],
+    "limitations": "Representative same-event desktop/mobile light/dark captures only. Prior toolbar overlap, dark axis and selected-marker contrast blockers are cleared. Event text, assessment, selected marker, controls and fallback disclosure are readable. Mobile timeline group text is partly covered by the event marker; edge tick labels are clipped by the panning viewport. A floating widget touches the lower-right outer edge without obscuring navigation actions. Long content, dense timelines, expanded fallback states and measured contrast or exhaustive accessibility certification are outside this visual review."
+  },
+  "failedAttempts": [
+    {
+      "runName": "renderer-focused",
+      "source": "670b38acd6291a39846df84ed039b9d99b9546d6",
+      "exitCode": 1,
+      "receiptSha256": "708baba654230fb1bc951599f7773552970c6999253b2444bc38bd3cefde93eb",
+      "runLogSha256": "346c85113635dbaf5148813b06186d91d02aca230004e97740b111bbcfbd272e",
+      "reason": "Five of six contracts passed; projection clone oracle compared JSON property order. Replaced with structural equality while retaining input-byte and reference immutability checks. Independent review separately caught valid narrative-title bound mismatch, repaired before next run."
+    },
+    {
+      "runName": "renderer-boundary-focused",
+      "source": "949f32a8d6da8bf09efdaba40f89dcc70836d961",
+      "exitCode": 137,
+      "receiptSha256": "ada9ac8f45489a17799ab2d44027bb8e250b74ca21ed790eee46d2bcdc5eb495",
+      "runLogSha256": "0ec74177b84aa90638f2deb6a56bc43f7f79b518eb103dcb35a657fbd158fc96",
+      "reason": "Main type check and six contracts passed. Browser fixture API wildcard intercepted application modules, producing JSON MIME errors; owner stopped same run after diagnosis (exit137), retained logs and corrected URL scope."
+    },
+    {
+      "runName": "renderer-browser-focused",
+      "source": "b20217006e1a5150e91be3e4d39f6dcacc0e4639",
+      "exitCode": 1,
+      "receiptSha256": "03aa000160444c2310d5042c80146d8fafec70fd48017f4d50ca9549790abc9b",
+      "runLogSha256": "c79dbebbd9207b7f4c4e45b13ef666da70a61a0f0403c680797f5152d514d2ee",
+      "reason": "Four actual renderer flows failed under opaque-frame subresource policies (Chromium loopback network-access restrictions and Safari self-source CSP). Eight export/bounds checks passed. Replaced external subresource shell with self-contained hashed scripts; retained sandbox protections."
+    },
+    {
+      "runName": "renderer-contained-focused",
+      "source": "a4a3b352ae99e1534c06e335090021027f3c00fe",
+      "exitCode": 1,
+      "receiptSha256": "8fae601bebde3070337b58123778ebf505bc819bd7d331eb4e60f9d715b44ef5",
+      "runLogSha256": "0ffd5351ad6ef9356e5e91724681545e6d39304e391450ee410818cbe8135ab8",
+      "reason": "Six contracts and eleven browser checks passed. Mobile real renderer loaded but upstream hides next/previous buttons for swipe-only navigation; keyboard locator timed out. Added native frame controls and embedded-only font selection; refined navigation contrast after owner screenshots."
+    },
+    {
+      "runName": "renderer-controls-focused",
+      "source": "29b27c0033af3aa08c35e02688506c2178f8ef79",
+      "exitCode": 1,
+      "receiptSha256": "7cf69f5fd1006c2b0e5fd24a1eea32fc57f0ece2103c74837405606e0d74ebb3",
+      "runLogSha256": "e8c5bef6d908b2bfeb1d9ba8ae2d1c435ed9e7f4430157510d70195e9bd794f2",
+      "reason": "Six contracts and eleven browser checks passed. Expanded accessible list revealed iframe minimum-height overflow on mobile, obstructing the summary hit target. Repair moves the minimum height to the frame container and provides contained section scrolling."
+    }
+  ],
+  "focusedValidation": [
+    {
+      "runName": "renderer-layout-focused",
+      "source": "c2ed91f04753e80ce0c0b9edb6e1d7f3fb3460c3",
+      "seconds": 97.24,
+      "receiptSha256": "162fb28e6884896c15ceac893cefa64106b06a016c2e9ca85cce55ecc335fe25",
+      "runLogSha256": "d4897794f954c764893094175cce6252069456c9be737751603ceeb50af0cd20",
+      "result": "passed"
+    },
+    {
+      "runName": "renderer-visual-focused",
+      "source": "964f85a36db2be82fcd655c3fa7e3ae809969360",
+      "seconds": 103.8,
+      "receiptSha256": "95291e479fd6698e64af3558582c9155cb7dc7879fdfb3987e4b4d69d4479919",
+      "runLogSha256": "f2347781729197dfa325eb5e038c844f6ce36de69ca67b64aa5477eb42737cdf",
+      "result": "passed"
+    }
+  ],
+  "formatReference": {
+    "json": "https://timeline.knightlab.com/docs/json-format.html",
+    "renderer": "https://timeline.knightlab.com/docs/instantiate-a-timeline.html",
+    "upstreamSource": "https://github.com/NUKnightLab/TimelineJS3/tree/bdc928fe8cbf621575c8e335b197aadb0cfe1526",
+    "verifiedAt": "2026-09-12"
+  },
+  "liveEdgeReplay": {
+    "sourceSha": "a11ef636a5fbde09d17cb58b19afb4f9047092ee",
+    "runName": "renderer-live-edge",
+    "receiptSha256": "bd804a5a83888da5c1b7f04f51f04131cfb417da2b9377a68ea7870795f0bbaf",
+    "browserEvidenceSha256": "1b75417c97e22c9334c8b2bf0eca22c4c869e85b0440c93774dc4d7a8c736b17",
+    "supervisorSha256": "2029ceb9d9a6a3df2a5689fe9f6c1086adfc33c788001fcd7b69d9b1297752ef",
+    "shellSha256": "ee1a31e328b79d60b1c5aaf02892d13bb5313dff7193cbcf455d43825f31156f",
+    "headersSha256": "83e8ae2a741b2e4bb8d82e9a932b389bca82a63decd2384b0bb569789c13d230",
+    "result": "passed",
+    "browsers": [
+      "chromium",
+      "mobile-safari"
+    ],
+    "scope": "Captured production HTML and headers replayed with synthetic presentation data in network-none browsers; not a live authenticated user session.",
+    "harnessSha256": "fd02ce4ae4d6eb2b9185b8c5264d6aeeedb19b2227d5a5162f6458bbe50e211a"
+  },
+  "instructionAmendment": {
+    "source": "8d75a74d69f517039f1ead2523e7f5d8ff9fbaf6",
+    "file": "docs/plans/2026-09-12-timeline-renderer-charter.md",
+    "sha256": "35a7c82cb2342fbff64fc2758a500036d914aed320b144f75abed77c9ebf5244",
+    "reason": "Inherited CSP must also allow data icon fonts; original prompt and instruction hashes retained."
+  },
+  "instructionAmendmentSha256": "342a1b58f1a2faf0dc57a95d4b8ef8708755c20045a5999b528b669765850a67",
+  "shellInstructionAmendment": {
+    "source": "a4a3b352ae99e1534c06e335090021027f3c00fe",
+    "file": "docs/plans/2026-09-12-timeline-renderer-charter.md",
+    "sha256": "f933477f2804a34c876e6009a6a46aef0faa4794f7809a3fdecd36f00da80d30",
+    "reason": "Actual opaque-frame browser tests required a self-contained shell with exact script hashes instead of external subresources. Browser harness uses routed public HTTPS origin and shipped headers. Embedded CSS removes external font-face and trailing whitespace while retained vendor CSS stays unmodified. Original dispatch prompt and hashes remain preserved."
+  },
+  "shellInstructionAmendmentSha256": "75b2fc18e84c415601ff9d177caea9d3879b16f9b78d9eb714844ee0b23194f5",
+  "supervisorAmendment": {
+    "originalSha256": "869d61c1e2691530d787992a34caf2e8b1648112e8ce6b02812b7ff1401c048d",
+    "amendedSha256": "951e88d8b3c2c934de367407ce3269bbdebfcebf5a731a64f10a630366d52639",
+    "change": "Dedicated renderer release supervisor only extends bounded total timeout from900 to1200 seconds. Original supervisor retained; isolation, kill/inspect cleanup, mounts and receipt logic unchanged.",
+    "reason": "Previous full accepted suite took879.53s before added renderer browser checks."
+  },
+  "supervisorAmendmentSha256": "4afa4162b2e66c0a476eee4c1a94dc8e0004486bc926e3f34dbb154314c30819",
+  "edgeSupervisorAmendment": {
+    "originalSha256": "869d61c1e2691530d787992a34caf2e8b1648112e8ce6b02812b7ff1401c048d",
+    "amendedSha256": "2029ceb9d9a6a3df2a5689fe9f6c1086adfc33c788001fcd7b69d9b1297752ef",
+    "change": "Original900-second isolated supervisor adds one read-only /edge mount containing captured public HTML, response headers and browser replay harness. Original isolation and cleanup unchanged.",
+    "reviewer": "dependency_review"
+  },
+  "edgeSupervisorAmendmentSha256": "edc81b08c60ecda674f3fd6f350ab3cea1ca805e17cba27543928028d558690e",
+  "vendor": {
+    "package": "@knight-lab/timelinejs",
+    "version": "3.9.13",
+    "license": "MPL-2.0",
+    "sourceCommit": "bdc928fe8cbf621575c8e335b197aadb0cfe1526",
+    "sourceUrl": "https://github.com/NUKnightLab/TimelineJS3/tree/bdc928fe8cbf621575c8e335b197aadb0cfe1526",
+    "tarballUrl": "https://registry.npmjs.org/@knight-lab/timelinejs/-/timelinejs-3.9.13.tgz",
+    "tarballIntegrity": "sha512-Bjf6LzJnfA947hUHOAfnYzPGRLZUOvXNn1za1FLyV88b/dFzxWeLA3KGpmK3oQGwx3aQRmoYPwkwcIUx6d9dqQ==",
+    "tarballSha256": "f5131f7f0dd8b06c80b44f1b00117c150329af13a26667ada03a645c6cd7f0bc",
+    "files": {
+      "timeline.js": {
+        "upstreamPath": "package/dist/js/timeline.js",
+        "bytes": 228361,
+        "sha256": "3d38229869a2d1d9f303626e141b02e9acd0fc972c1150bbf5b1e5655cc4d5b8"
+      },
+      "timeline.css": {
+        "upstreamPath": "package/dist/css/timeline.css",
+        "bytes": 96474,
+        "sha256": "bf78018d195b3b47e934585b78da0c0b620868c3f29b923164dcf302235484f4"
+      },
+      "LICENSE": {
+        "upstreamPath": "package/LICENSE",
+        "bytes": 15921,
+        "sha256": "af175b9d96ee93c21a036152e1b905b0b95304d4ae8c2c921c7609100ba8df7e"
+      },
+      "timeline.js.LICENSE.txt": {
+        "upstreamPath": "package/dist/js/timeline.js.LICENSE.txt",
+        "bytes": 190,
+        "sha256": "6572577ccf252e40df28082f49f8aa50ed979268e442ccd23f37d5c383591722"
+      }
+    },
+    "iconFont": {
+      "upstreamPath": "package/dist/css/icons/tl-icons.woff2",
+      "sha256": "a41eae68e05741f1af4b4c4df2f2ba19effaab7b3f74d8add8299ce799eb781e",
+      "bytes": 13452,
+      "localFile": "/timelinejs/preview-font.css",
+      "localFileSha256": "a339b06860a5b5c4e74c1f6236a94b5def469e1536c45a433c6884ee7a311907"
+    },
+    "notes": "Unmodified prebuilt JS/CSS. System text fonts; embedded unmodified icon font. Bundled DOMPurify3.4.12 distributed under its MPL-2.0 option; upstream notice retained. Corresponding source is available in the exact source commit and npm tarball. No CDN runtime dependency."
+  },
+  "vendorManifestSha256": "566870c7c8ac2576ffcbe41b104ea8e428b740104ad093a9bdd453eaff621a2e",
+  "headersSha256": "db140fc13ab9ed7aa9b92c9f4d739953fbcd02c5cd1a7952fdd853607f5d242e"
+}

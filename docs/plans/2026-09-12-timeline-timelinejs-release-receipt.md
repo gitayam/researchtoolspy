@@ -15,3 +15,7 @@ Independent review compared all 146 staged files; inventory SHA256 `cfb96858244a
 The [JSON receipt](./2026-09-12-timeline-timelinejs-release-receipt.json) records fingerprints and any failed attempts. Previous deployment `58710a88-8e09-4c96-9aed-e7233a6d2d32` reads identical snapshots but lacks TimelineJS export; preserve saved data and immutable revisions. Existing size limits and Vite large-chunk warning remain. Visual review is representative, not an exhaustive accessibility audit. Primary checkout untouched.
 
 **TL-17 remains partial.** A pinned/self-hosted renderer, immutable authorized publication/revocation, richer narrative/composite/plan/comparison snapshots and their dependencies remain pending. TL-04 RSS coverage and broader source stores also remain pending.
+
+## Subsequent deployment
+
+The [self-hosted renderer release](./2026-09-12-timeline-renderer-release-receipt.md) adds optional isolated presentation with the same snapshot format. This receipt retains historical export evidence; the newer receipt records current deployment.
