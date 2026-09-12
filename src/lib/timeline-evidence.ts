@@ -1,4 +1,5 @@
 import type { TimelineEvidence, TimelineSourceAssertion, TimelineWorkspaceEvent } from '../types/timeline-workspace'
+import { validateTimelineSourceEvaluation } from './timeline-source-evaluation'
 
 export function emptyTimelineEvidence(): TimelineEvidence { return {schemaVersion:'timeline-evidence.v1',sources:[],assertions:[],links:[],reviews:[]} }
 type RecordValue = Record<string,unknown>
@@ -38,8 +39,12 @@ export function validateTimelineEvidence(value:unknown,eventIds:readonly string[
     for(const field of ['publishedAt','retrievedAt']) if(source[field]!==undefined) timestamp(source[field])
   }
   for(const item of list(root.assertions,200)) {
-    const assertion=object(item,['id','sourceId','claimText','temporalClaim','passage','status','derivesFrom','observedAt','reportedAt'])
+    const assertion=object(item,['id','sourceId','claimText','temporalClaim','passage','status','derivesFrom','observedAt','reportedAt','evaluation'])
     id(assertion.id);if(assertions.has(assertion.id)) fail();assertions.set(assertion.id,assertion)
+    if(assertion.evaluation!==undefined) {
+      validateTimelineSourceEvaluation(assertion.evaluation)
+      if(JSON.parse(assertion.evaluation.basis).assertionId!==assertion.id) fail()
+    }
     id(assertion.sourceId);if(!sources.has(assertion.sourceId)) fail()
     text(assertion.claimText,4000,true);text(assertion.temporalClaim,1000)
     const passage=object(assertion.passage,['id','quote','locator'])

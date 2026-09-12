@@ -1,3 +1,5 @@
+import { emptyTimelineSourceEvaluation, timelineSourceEvaluationBasis } from '../../../src/lib/timeline-source-evaluation'
+import type { TimelineEvidence } from '../../../src/types/timeline-workspace'
 import { test, expect } from '@playwright/test'
 import { Miniflare } from 'miniflare'
 import type { D1Database } from '@cloudflare/workers-types'
@@ -50,6 +52,38 @@ async function state(db:D1Database) {
 }
 
 test.describe('complete workspace snapshot actual D1 @smoke',()=>{
+  test('source evaluation revisions preserve earlier factors and reject malformed or oversized evaluation writes atomically', async () => {
+    const { mf, db } = await setup()
+    try {
+      await db.batch(upgrade.map(s => db.prepare(s)))
+      const created = await create(db), id = created.body.artifactId
+      const evidence: TimelineEvidence = { schemaVersion: 'timeline-evidence.v1', sources: [{ id: 's1', url: 'https://source.example/', title: 'Synthetic report', publisher: 'Desk' }], assertions: [{ id: 'a1', sourceId: 's1', claimText: 'A source account', temporalClaim: '', passage: { id: 'p1', quote: 'An observation', locator: 'paragraph 1' }, status: 'active', derivesFrom: [] }], links: [{ id: 'l1', eventId: 'event:stable.original', assertionId: 'a1', relation: 'supports' }], reviews: [] }
+      evidence.assertions[0].evaluation = emptyTimelineSourceEvaluation(timelineSourceEvaluationBasis(evidence, 'a1'), '2026-09-12T00:00:00Z')
+      evidence.assertions[0].evaluation.access = { value: 'direct', rationale: 'The author reports being present.' }
+      const full = { ...extractedSnapshot(), analystWorkspace: { ...extractedSnapshot().analystWorkspace, evidence } }
+      const first = await call(db, 'PATCH', id, commit(put(full)), 'evaluation-first-key', created.etag)
+      expect(first.status).toBe(200)
+      const revision = (await first.json() as any).revisionId
+      const historical = await (await call(db, 'GET', id, undefined, undefined, undefined, revision)).text()
+      const changed = structuredClone(full)
+      changed.analystWorkspace.evidence.assertions[0].evaluation!.access = { value: 'indirect', rationale: 'A correction identifies an intermediary.' }
+      const second = await call(db, 'PATCH', id, commit(put(changed)), 'evaluation-next-key', first.headers.get('etag')!)
+      expect(second.status).toBe(200)
+      expect(await (await call(db, 'GET', id, undefined, undefined, undefined, revision)).text()).toBe(historical)
+      expect(JSON.parse(historical).objects[0].payload.analystWorkspace.evidence.assertions[0].evaluation.access.value).toBe('direct')
+      expect((await (await call(db, 'GET', id)).json() as any).objects[0].payload.analystWorkspace.evidence).toEqual(changed.analystWorkspace.evidence)
+      const before = await state(db)
+      const malformed = structuredClone(changed)
+      ;(malformed.analystWorkspace.evidence.assertions[0].evaluation as any).verified = true
+      expect((await call(db, 'PATCH', id, commit(put(malformed)), 'evaluation-bad-key1', second.headers.get('etag')!)).status).toBe(400)
+      expect(await state(db)).toEqual(before)
+      const oversized = structuredClone(changed)
+      for (const key of ['framing','question','intendedUse','scope','title'] as const) oversized.analystWorkspace.narrative[key] = 'é'.repeat(7000)
+      expect((await call(db, 'PATCH', id, commit(put(oversized)), 'evaluation-large-key', second.headers.get('etag')!)).status).toBe(400)
+      expect(await state(db)).toEqual(before)
+    } finally { await mf.dispose() }
+  })
+
   test('judgment revisions retain prior dissent snapshots and reject dangling current references atomically',async()=>{
     const {mf,db}=await setup()
     try {

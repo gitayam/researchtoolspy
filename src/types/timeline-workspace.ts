@@ -136,6 +136,7 @@ export interface TimelineEvidenceSource {
   retrievedAt?: string
 }
 export interface TimelineSourceAssertion {
+  evaluation?: TimelineSourceEvaluation
   id: string
   sourceId: string
   claimText: string
@@ -145,6 +146,22 @@ export interface TimelineSourceAssertion {
   derivesFrom: string[]
   observedAt?: string
   reportedAt?: string
+}
+export interface TimelineSourceEvaluationFactor<Value extends string> {
+  value: Value
+  rationale: string
+}
+export interface TimelineSourceEvaluation {
+  schemaVersion: 'timeline-source-evaluation.v1'
+  access: TimelineSourceEvaluationFactor<'unassessed' | 'direct' | 'indirect'>
+  reliability: TimelineSourceEvaluationFactor<'unassessed' | 'low' | 'medium' | 'high'>
+  credibility: TimelineSourceEvaluationFactor<'unassessed' | 'low' | 'medium' | 'high'>
+  currency: TimelineSourceEvaluationFactor<'unassessed' | 'current' | 'outdated' | 'unclear'>
+  completeness: TimelineSourceEvaluationFactor<'unassessed' | 'complete' | 'partial'>
+  bias: TimelineSourceEvaluationFactor<'unassessed' | 'no_indication' | 'possible' | 'indicated'>
+  deception: TimelineSourceEvaluationFactor<'unassessed' | 'no_indication' | 'possible' | 'indicated'>
+  reviewedAt: string
+  basis: string
 }
 export interface TimelineEvidenceLink {
   id: string

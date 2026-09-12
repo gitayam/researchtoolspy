@@ -1,3 +1,4 @@
+import { TimelineSourceEvaluation } from './TimelineSourceEvaluation'
 import { TimelineSourceImport } from './TimelineSourceImport'
 import { useState } from 'react'
 import { FileSearch } from 'lucide-react'
@@ -44,7 +45,7 @@ export function TimelineEvidence({ sourceImportWorkspaceId, event, eventIds, evi
   }
   function saveAssertion() {
     const prior = data.assertions.find(item => item.id === editingAssertion)
-    const value: TimelineSourceAssertion = { id: editingAssertion ?? id('assertion'), sourceId, claimText: assertion.claimText.trim(), temporalClaim: assertion.temporalClaim, passage: { id: prior?.passage.id ?? id('passage'), quote: assertion.quote, locator: assertion.locator.trim() }, status: prior?.status ?? 'active', derivesFrom: assertion.derivesFrom, ...(assertion.observedAt ? { observedAt: assertion.observedAt } : {}), ...(assertion.reportedAt ? { reportedAt: assertion.reportedAt } : {}) }
+    const value: TimelineSourceAssertion = { id: editingAssertion ?? id('assertion'), sourceId, claimText: assertion.claimText.trim(), temporalClaim: assertion.temporalClaim, passage: { id: prior?.passage.id ?? id('passage'), quote: assertion.quote, locator: assertion.locator.trim() }, status: prior?.status ?? 'active', ...(prior?.evaluation ? { evaluation: prior.evaluation } : {}), derivesFrom: assertion.derivesFrom, ...(assertion.observedAt ? { observedAt: assertion.observedAt } : {}), ...(assertion.reportedAt ? { reportedAt: assertion.reportedAt } : {}) }
     if (save({ ...data, assertions: editingAssertion ? data.assertions.map(item => item.id === editingAssertion ? value : item) : [...data.assertions, value], links: editingAssertion ? data.links : [...data.links, { id: id('link'), eventId: event.id, assertionId: value.id, relation }] })) {
       setEditingAssertion(null); setAssertion(blankAssertion)
     }
@@ -72,6 +73,7 @@ export function TimelineEvidence({ sourceImportWorkspaceId, event, eventIds, evi
             <p>Locator: {item.passage.locator}</p><p>Temporal claim: {item.temporalClaim || 'Not recorded'}</p>
             <p>Observed: {item.observedAt || 'Not recorded'} · Reported: {item.reportedAt || 'Not recorded'}</p>
             <p>Derives from: {item.derivesFrom.length ? item.derivesFrom.map(parent => data.assertions.find(candidate => candidate.id === parent)?.claimText).join('; ') : 'None recorded; independence requires review'}</p>
+            <TimelineSourceEvaluation evidence={data} assertion={item} onSave={evaluation => save({ ...data, assertions: data.assertions.map(candidate => candidate.id === item.id ? { ...candidate, evaluation } : candidate) })} />
             <div className="flex flex-wrap gap-2">
               <Button size="sm" variant="outline" onClick={() => editAssertion(item)}>Edit assertion</Button>
               <Button size="sm" variant="outline" onClick={() => save({ ...data, assertions: data.assertions.map(candidate => candidate.id === item.id ? { ...candidate, status: item.status === 'active' ? 'retracted' : 'active' } : candidate) })}>{item.status === 'active' ? 'Retract assertion' : 'Restore assertion'}</Button>

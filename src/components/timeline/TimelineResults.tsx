@@ -1,3 +1,4 @@
+import { timelineSourceEvaluationNeedsReview } from '@/lib/timeline-source-evaluation'
 import './timeline-workspace.css'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
@@ -199,6 +200,10 @@ function timelineMarkdown(
       const assertion = evidence!.assertions.find(item => item.id === link.assertionId)!
       const source = evidence!.sources.find(item => item.id === assertion.sourceId)!
       lines.push(`  Evidence (${link.relation}; ${assertion.status}; analyst recorded): ${assertion.claimText}`, `  Source: ${source.title} — ${source.url}`, `  Quote: ${assertion.passage.quote}`, `  Locator: ${assertion.passage.locator}`, `  Temporal claim: ${assertion.temporalClaim}`, `  Derives from: ${assertion.derivesFrom.join(', ') || 'None recorded; independence not implied'}`)
+      if (assertion.evaluation) {
+        lines.push(`Source evaluation (analyst-entered): ${timelineSourceEvaluationNeedsReview(evidence!, assertion.id) ? 'needs review; inputs changed' : 'matches recorded inputs'}; recorded ${assertion.evaluation.reviewedAt}`)
+        for (const factor of ['access', 'reliability', 'credibility', 'currency', 'completeness', 'bias', 'deception'] as const) lines.push(`  ${factor}: ${assertion.evaluation[factor].value} — ${assertion.evaluation[factor].rationale || 'No rationale recorded'}`)
+      }
     }
   }
   if (events.length === 0) lines.push('No timeline events are currently included.')
@@ -227,6 +232,10 @@ function timelineMarkdown(
       for (const assertion of evidence?.assertions.filter(item => judgment.evidenceRefs.includes(item.id) || judgment.contraryEvidenceRefs.includes(item.id)) ?? []) {
         const source = evidence!.sources.find(item => item.id === assertion.sourceId)!
         lines.push(`Source wording (${judgment.contraryEvidenceRefs.includes(assertion.id) ? 'contrary' : 'cited'}; ${assertion.status}): ${assertion.claimText}`, `Source: ${source.title} — ${source.url}`, `Quote: ${assertion.passage.quote}`, `Locator: ${assertion.passage.locator}`)
+        if (assertion.evaluation) {
+          lines.push(`Source evaluation (analyst-entered): ${timelineSourceEvaluationNeedsReview(evidence!, assertion.id) ? 'needs review; inputs changed' : 'matches recorded inputs'}; recorded ${assertion.evaluation.reviewedAt}`)
+          for (const factor of ['access', 'reliability', 'credibility', 'currency', 'completeness', 'bias', 'deception'] as const) lines.push(`  ${factor}: ${assertion.evaluation[factor].value} — ${assertion.evaluation[factor].rationale || 'No rationale recorded'}`)
+        }
       }
       for (const review of analysis.reviews.filter(item => item.judgmentId === judgment.id)) {
         lines.push(`Review: ${review.position} by ${review.reviewerLabel} (self-attributed), ${review.createdAt}`, review.rationale, `Alternative: ${review.alternative}`)

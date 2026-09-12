@@ -140,6 +140,47 @@ import. No migration, new grant or credential is required. Earlier application
 versions reject the optional evidence field; recovery must use compatible code
 and preserve snapshots rather than strip evidence to satisfy an older codec.
 
+## Assertion source evaluation (partial TL-04)
+
+An assertion may include `evaluation` with discriminator `timeline-source-evaluation.v1`.
+Absence stays absent on legacy decode/export. Required fields are `access`,
+`reliability`, `credibility`, `currency`, `completeness`, `bias`, `deception`,
+`reviewedAt` and `basis`. Each factor is exactly `{value,rationale}`; rationale is
+at most 1000 UTF-16 code units and must be nonblank when value is assessed.
+
+| Factor | Allowed values |
+| --- | --- |
+| Access | unassessed, direct, indirect |
+| Reliability / credibility | unassessed, low, medium, high |
+| Currency | unassessed, current, outdated, unclear |
+| Completeness | unassessed, complete, partial |
+| Bias / deception | unassessed, no_indication, possible, indicated |
+
+`reviewedAt` is an analyst-entered ISO timestamp, not authenticated review identity.
+`basis` is canonical JSON text up to 262144 code units, tagged
+`timeline-source-evaluation-basis.v1`, containing `assertionId`, its complete
+`assertions` ancestry and corresponding `sources`, sorted by ID. Derivation IDs
+are sorted. Evaluations are excluded throughout this basis to prevent recursion.
+Changed source/assertion inputs mark the evaluation as needing review; old bases
+remain inspectable. Unknown keys, malformed fields and invalid bases fail closed.
+
+The browser binds an evaluation draft to inputs present when opened. If inputs
+change during editing, saving retains the opening basis and displays needs-review;
+cancel/reopen explicitly selects the new inputs. Assertion edits retain evaluations.
+Evaluations remain separate factors with rationale, without an aggregate score or
+automatic credibility/corroboration decision. No indication of bias/deception does
+not establish absence. Changing a recorded evaluation also stales applicable
+existing evidence/judgment reviews because their basis includes whole assertions.
+
+JSON imports/exports and human/service workspace snapshots retain evaluations;
+Markdown includes the factors, rationale and stale-input qualification. Immutable
+saved revisions preserve previous evaluations, but current snapshot content remains
+client editable. Existing 60 KiB canonical /64 KiB wire limits still apply; larger
+snapshots are rejected before writes. No route or migration is added. Older code
+rejects this optional field: rollback must preserve snapshots and use compatible
+readers rather than stripping evaluations. Authenticated peer review and dedicated
+judgment services remain separate work.
+
 ## Analytic judgments and retained dissent (partial TL-04)
 
 The optional `analystWorkspace.analysis` field has discriminator

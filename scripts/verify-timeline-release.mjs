@@ -314,6 +314,14 @@ try {
   stage = 'compiled-workspace-snapshot'
   const snapshot = { schemaVersion: 'timeline-workspace.v1', exportedAt: '2026-09-11T00:00:00.000Z', source: { schemaVersion: 'timeline-manual.v1', title: 'Complete workspace' }, analystWorkspace: { mode: 'robust', events: [{ id: 'event:unknown.1', title: 'Uncertain date', description: null, category: 'event', importance: 'normal', origin: 'analyst', assessment: 'disputed', analystNote: 'Keep uncertainty', modified: false, eventTime: '14:30:59' }], questions: [], hypotheses: [], narrative: { title: 'Complete account', framing: 'Preserve the whole workspace', question: '', intendedUse: '', scope: '', timezone: 'UTC', dataThrough: '', chapters: [] } } }
   snapshot.analystWorkspace.evidence = {"schemaVersion":"timeline-evidence.v1","sources":[{"id":"source:first","url":"https://example.test/first","title":"First report","publisher":"Fixture desk","publishedAt":"2026-09-01T10:00:00Z","retrievedAt":"2026-09-11T00:00:00Z"},{"id":"source:second","url":"https://other.example.test/second","title":"Conflicting report","publisher":"Other fixture desk"}],"assertions":[{"id":"assertion:first","sourceId":"source:first","claimText":"The source reported the meeting occurred in September.","temporalClaim":"September 2026","passage":{"id":"passage:first","quote":"The meeting took place in September.","locator":"paragraph 2"},"status":"active","derivesFrom":[],"reportedAt":"2026-09-01T10:00:00Z"},{"id":"assertion:contrary","sourceId":"source:second","claimText":"The second source reported October instead.","temporalClaim":"October 2026","passage":{"id":"passage:contrary","quote":"The meeting occurred in October.","locator":"paragraph 4"},"status":"active","derivesFrom":[]}],"links":[{"id":"link:support","eventId":"event:unknown.1","assertionId":"assertion:first","relation":"supports"},{"id":"link:contrary","eventId":"event:unknown.1","assertionId":"assertion:contrary","relation":"contradicts"}],"reviews":[]}
+  const assessedAssertion = snapshot.analystWorkspace.evidence.assertions[0]
+  assessedAssertion.evaluation = {
+    schemaVersion: 'timeline-source-evaluation.v1',
+    ...Object.fromEntries(['access','reliability','credibility','currency','completeness','bias','deception'].map(key => [key, { value: 'unassessed', rationale: '' }])),
+    access: { value: 'indirect', rationale: 'The synthetic report quotes an observer.' },
+    reviewedAt: '2026-09-12T00:00:00Z',
+    basis: canonical({ schemaVersion: 'timeline-source-evaluation-basis.v1', assertionId: assessedAssertion.id, assertions: [structuredClone(assessedAssertion)], sources: [snapshot.analystWorkspace.evidence.sources[0]] }),
+  }
   snapshot.analystWorkspace.evidence.sources.push(matched.json.source)
   snapshot.analystWorkspace.evidence.assertions.push({ id: 'assertion:stored', sourceId: matched.json.source.id, claimText: 'The report describes a reopening.', temporalClaim: '', passage: matched.json.passage, status: 'active', derivesFrom: [] })
   snapshot.analystWorkspace.evidence.links.push({ id: 'link:stored', eventId: 'event:unknown.1', assertionId: 'assertion:stored', relation: 'context' })
@@ -338,7 +346,7 @@ try {
   assert.equal(snapshotRetry.text, snapshotSave.text)
   const snapshotRevision = await request(`${snapshotPath}/revisions/${snapshotSave.json.revisionId}`)
   assert.equal(snapshotRevision.status, 200); assert.equal(sha256(canonical(snapshotRevision.json.manifest)), snapshotSave.json.contentHash)
-  receipt.checks.push('compiled human source assertion/judgment/dissent snapshot save/reopen/replay and manifest binding')
+  receipt.checks.push('compiled human source assertion/evaluation/judgment/dissent snapshot save/reopen/replay and manifest binding')
   stage = 'compiled-service-scopes'
   const serviceClient = 'release_service_client_01', serviceSecret = 'S'.repeat(43)
   const serviceHash = createHmac('sha256', 'synthetic-release-hmac-key-not-production-0001').update(`rt-service-token.v1\0${serviceClient}\0${serviceSecret}`).digest('hex')
@@ -370,7 +378,7 @@ try {
   assert.equal((await serviceRequest(servicePath)).status, 200)
   await db.prepare('UPDATE integration_client_tokens SET revoked_at=unixepoch() WHERE id=?').bind(serviceTokenId).run()
   assert.equal((await serviceRequest(servicePath)).status, 401)
-  receipt.checks.push('compiled scoped service source assertion/judgment/dissent snapshot create/read/replay and discovery', 'independent write scope and fresh replay revocation', 'human/service workspace isolation')
+  receipt.checks.push('compiled scoped service source assertion/evaluation/judgment/dissent snapshot create/read/replay and discovery', 'independent write scope and fresh replay revocation', 'human/service workspace isolation')
   receipt.compiledHttpGate = 'passed'
   receipt.checks.push('compiled Pages create/commit routes', 'human/service/viewer/cross-workspace authorization', 'exact replay after later revision', 'idempotency conflict and stale head', 'pinned object/history reads and manifest hash', 'real D1 partial-batch rollback', 'immutable replacement rejected', 'privacy change reauthorizes read/replay')
   await save(receipt)
