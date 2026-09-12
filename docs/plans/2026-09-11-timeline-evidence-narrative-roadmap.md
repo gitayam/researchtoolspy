@@ -16,6 +16,8 @@ Likelihood and analytical confidence remain separate; reviews preserve the judgm
 version they addressed. Import verifies stored-text equality, not source truth or
 authenticated historical provenance. TL-04 remains in progress: broader source-store
 support, dedicated judgment services and authenticated peer review are pending.
+Presentation search now filters the native event list and jumps to allowed stable event IDs without changing selection, exports or chronology. Query/disclosure survive frame replacement; old jumps do not replay. See the [navigation release receipt](./2026-09-12-timeline-navigation-release-receipt.md).
+
 Optional self-hosted TimelineJS presentation now renders the frozen selected narrative with beginning/latest controls, keyboard navigation, an accessible event list and isolated local assets. The renderer is bounded to 100 eligible events; exports remain available. See the [renderer release receipt](./2026-09-12-timeline-renderer-release-receipt.md).
 
 TimelineJS selected-narrative export now provides an explicit loss/omission preview and matching complete ResearchTools companion without publishing or changing saved data. Recorded date precision, qualified assessments and escaped text are preserved. **TL-17 is partial:** the adapter is delivered; immutable authorized publication/revocation and richer snapshot types remain pending. See the [TimelineJS release receipt](./2026-09-12-timeline-timelinejs-release-receipt.md).

@@ -1,0 +1,867 @@
+{
+  "schemaVersion": "timeline-navigation-release.v1",
+  "recordedAt": "2026-09-12T19:59:10.043175+00:00",
+  "baselineSha": "d297d5ab78ac70f8e85cd2a832ebefcd290e931d",
+  "acceptedReleaseSha": "ae238e63ed03b103553491a6f10b8fd4a672cdf8",
+  "checkpoint": "Presentation search and stable-ID jump deployed; TL-17 remains partial",
+  "states": {
+    "canonicalLanded": true,
+    "mirrorConfirmed": true,
+    "productionDeployed": true,
+    "migrationRequired": false,
+    "integrationCheckoutCleanAtRelease": true,
+    "primaryCheckoutSynced": false
+  },
+  "publication": {
+    "canonical": "origin/main",
+    "mirror": "gitlab/main",
+    "releaseRefSha": "ae238e63ed03b103553491a6f10b8fd4a672cdf8",
+    "forcePush": false,
+    "documentationFollowup": "Documentation-only commit follows; runtime remains acceptedReleaseSha."
+  },
+  "validation": {
+    "sourceSha": "ae238e63ed03b103553491a6f10b8fd4a672cdf8",
+    "executionMode": "Same-source split completion; initial timed out, no single full-green run",
+    "initialRun": {
+      "runName": "release-navigation-final",
+      "exitCode": 124,
+      "receiptSha256": "b241304f73395e84e5a3b4da2b6e808f3fe77fbcde64ad964e6b836dbb23a932",
+      "runLogSha256": "565d868a371a7c0806cef022b88adee1d5bf248a2ec02989ab3ed208cd023f74",
+      "seconds": 1202.29,
+      "archiveSha256": "ae8d6af21b625913912c8a384b5d3b21b631b007c6de03beaf3888e4416a1d02",
+      "supervisorSha256": "951e88d8b3c2c934de367407ce3269bbdebfcebf5a731a64f10a630366d52639"
+    },
+    "browserCoverageSha256": "2e9462005c3051f66a8b2a550f69539bbf476cf28019b74df46afb858493d31b",
+    "browserCoverageParserSha256": "942ba93c553bed428c5b8fa2c174d6a8d12737060bc75753a35b1bc37d3b5088",
+    "browserCoverage": {
+      "source": "ae238e63ed03b103553491a6f10b8fd4a672cdf8",
+      "result": "passed",
+      "expected": 106,
+      "completed": 106,
+      "projectCounts": {
+        "chromium": 53,
+        "mobile-safari": 53
+      },
+      "inventorySha256": "e07bbbcced5e2600ff4cdfc1a4c25457feeec8e8b8a5e0fa21b992e420806221",
+      "inventoryRunName": "release-navigation-completion",
+      "runs": [
+        {
+          "runName": "release-navigation-final",
+          "source": "ae238e63ed03b103553491a6f10b8fd4a672cdf8",
+          "exitCode": 124,
+          "completedUniqueCases": 74,
+          "receiptSha256": "b241304f73395e84e5a3b4da2b6e808f3fe77fbcde64ad964e6b836dbb23a932",
+          "runLogSha256": "565d868a371a7c0806cef022b88adee1d5bf248a2ec02989ab3ed208cd023f74"
+        },
+        {
+          "runName": "release-navigation-completion",
+          "source": "ae238e63ed03b103553491a6f10b8fd4a672cdf8",
+          "exitCode": 0,
+          "completedUniqueCases": 37,
+          "receiptSha256": "45ffbcaed61c36c1808e0552ca552b33d963fe5cf51058453837a6e3249ba2c9",
+          "runLogSha256": "bfb5643ced0f808e58a93ded73e3e1c0460b2dcb5fdbf70623aca19d1dffc707"
+        }
+      ],
+      "keys": [
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-durable-browser.spec.ts",
+          "line": 107,
+          "column": 3,
+          "project": "chromium"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-durable-browser.spec.ts",
+          "line": 107,
+          "column": 3,
+          "project": "mobile-safari"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-durable-browser.spec.ts",
+          "line": 168,
+          "column": 3,
+          "project": "chromium"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-durable-browser.spec.ts",
+          "line": 168,
+          "column": 3,
+          "project": "mobile-safari"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-durable-browser.spec.ts",
+          "line": 261,
+          "column": 3,
+          "project": "chromium"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-durable-browser.spec.ts",
+          "line": 261,
+          "column": 3,
+          "project": "mobile-safari"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-durable-browser.spec.ts",
+          "line": 292,
+          "column": 3,
+          "project": "chromium"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-durable-browser.spec.ts",
+          "line": 292,
+          "column": 3,
+          "project": "mobile-safari"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-durable-browser.spec.ts",
+          "line": 334,
+          "column": 3,
+          "project": "chromium"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-durable-browser.spec.ts",
+          "line": 334,
+          "column": 3,
+          "project": "mobile-safari"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-durable-browser.spec.ts",
+          "line": 372,
+          "column": 3,
+          "project": "chromium"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-durable-browser.spec.ts",
+          "line": 372,
+          "column": 3,
+          "project": "mobile-safari"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-durable-browser.spec.ts",
+          "line": 391,
+          "column": 3,
+          "project": "chromium"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-durable-browser.spec.ts",
+          "line": 391,
+          "column": 3,
+          "project": "mobile-safari"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-durable-browser.spec.ts",
+          "line": 420,
+          "column": 3,
+          "project": "chromium"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-durable-browser.spec.ts",
+          "line": 420,
+          "column": 3,
+          "project": "mobile-safari"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-durable-browser.spec.ts",
+          "line": 446,
+          "column": 3,
+          "project": "chromium"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-durable-browser.spec.ts",
+          "line": 446,
+          "column": 3,
+          "project": "mobile-safari"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-durable-browser.spec.ts",
+          "line": 486,
+          "column": 3,
+          "project": "chromium"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-durable-browser.spec.ts",
+          "line": 486,
+          "column": 3,
+          "project": "mobile-safari"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-durable-browser.spec.ts",
+          "line": 509,
+          "column": 3,
+          "project": "chromium"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-durable-browser.spec.ts",
+          "line": 509,
+          "column": 3,
+          "project": "mobile-safari"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-durable-browser.spec.ts",
+          "line": 513,
+          "column": 3,
+          "project": "chromium"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-durable-browser.spec.ts",
+          "line": 513,
+          "column": 3,
+          "project": "mobile-safari"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-durable-browser.spec.ts",
+          "line": 535,
+          "column": 3,
+          "project": "chromium"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-durable-browser.spec.ts",
+          "line": 535,
+          "column": 3,
+          "project": "mobile-safari"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-durable-browser.spec.ts",
+          "line": 560,
+          "column": 3,
+          "project": "chromium"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-durable-browser.spec.ts",
+          "line": 560,
+          "column": 3,
+          "project": "mobile-safari"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-durable-browser.spec.ts",
+          "line": 581,
+          "column": 3,
+          "project": "chromium"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-durable-browser.spec.ts",
+          "line": 581,
+          "column": 3,
+          "project": "mobile-safari"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-durable-browser.spec.ts",
+          "line": 596,
+          "column": 3,
+          "project": "chromium"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-durable-browser.spec.ts",
+          "line": 596,
+          "column": 3,
+          "project": "mobile-safari"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-evidence-browser.spec.ts",
+          "line": 45,
+          "column": 3,
+          "project": "chromium"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-evidence-browser.spec.ts",
+          "line": 45,
+          "column": 3,
+          "project": "mobile-safari"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-evidence-browser.spec.ts",
+          "line": 98,
+          "column": 3,
+          "project": "chromium"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-evidence-browser.spec.ts",
+          "line": 98,
+          "column": 3,
+          "project": "mobile-safari"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-evidence-browser.spec.ts",
+          "line": 166,
+          "column": 3,
+          "project": "chromium"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-evidence-browser.spec.ts",
+          "line": 166,
+          "column": 3,
+          "project": "mobile-safari"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-evidence-browser.spec.ts",
+          "line": 211,
+          "column": 3,
+          "project": "chromium"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-evidence-browser.spec.ts",
+          "line": 211,
+          "column": 3,
+          "project": "mobile-safari"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-evidence-browser.spec.ts",
+          "line": 261,
+          "column": 3,
+          "project": "chromium"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-evidence-browser.spec.ts",
+          "line": 261,
+          "column": 3,
+          "project": "mobile-safari"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-evidence-browser.spec.ts",
+          "line": 274,
+          "column": 3,
+          "project": "chromium"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-evidence-browser.spec.ts",
+          "line": 274,
+          "column": 3,
+          "project": "mobile-safari"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-judgments-browser.spec.ts",
+          "line": 39,
+          "column": 2,
+          "project": "chromium"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-judgments-browser.spec.ts",
+          "line": 39,
+          "column": 2,
+          "project": "mobile-safari"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-judgments-browser.spec.ts",
+          "line": 97,
+          "column": 2,
+          "project": "chromium"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-judgments-browser.spec.ts",
+          "line": 97,
+          "column": 2,
+          "project": "mobile-safari"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-judgments-browser.spec.ts",
+          "line": 120,
+          "column": 2,
+          "project": "chromium"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-judgments-browser.spec.ts",
+          "line": 120,
+          "column": 2,
+          "project": "mobile-safari"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-narrative-ui.spec.ts",
+          "line": 43,
+          "column": 3,
+          "project": "chromium"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-narrative-ui.spec.ts",
+          "line": 43,
+          "column": 3,
+          "project": "mobile-safari"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-narrative-ui.spec.ts",
+          "line": 58,
+          "column": 3,
+          "project": "chromium"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-narrative-ui.spec.ts",
+          "line": 58,
+          "column": 3,
+          "project": "mobile-safari"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-narrative-ui.spec.ts",
+          "line": 80,
+          "column": 3,
+          "project": "chromium"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-narrative-ui.spec.ts",
+          "line": 80,
+          "column": 3,
+          "project": "mobile-safari"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-narrative-ui.spec.ts",
+          "line": 122,
+          "column": 3,
+          "project": "chromium"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-narrative-ui.spec.ts",
+          "line": 122,
+          "column": 3,
+          "project": "mobile-safari"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-narrative-ui.spec.ts",
+          "line": 167,
+          "column": 3,
+          "project": "chromium"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-narrative-ui.spec.ts",
+          "line": 167,
+          "column": 3,
+          "project": "mobile-safari"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-narrative-ui.spec.ts",
+          "line": 192,
+          "column": 3,
+          "project": "chromium"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-narrative-ui.spec.ts",
+          "line": 192,
+          "column": 3,
+          "project": "mobile-safari"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-narrative-ui.spec.ts",
+          "line": 214,
+          "column": 3,
+          "project": "chromium"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-narrative-ui.spec.ts",
+          "line": 214,
+          "column": 3,
+          "project": "mobile-safari"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-narrative-ui.spec.ts",
+          "line": 244,
+          "column": 3,
+          "project": "chromium"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-narrative-ui.spec.ts",
+          "line": 244,
+          "column": 3,
+          "project": "mobile-safari"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-narrative-ui.spec.ts",
+          "line": 265,
+          "column": 3,
+          "project": "chromium"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-narrative-ui.spec.ts",
+          "line": 265,
+          "column": 3,
+          "project": "mobile-safari"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-renderer-browser.spec.ts",
+          "line": 48,
+          "column": 3,
+          "project": "chromium"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-renderer-browser.spec.ts",
+          "line": 48,
+          "column": 3,
+          "project": "mobile-safari"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-renderer-browser.spec.ts",
+          "line": 124,
+          "column": 3,
+          "project": "chromium"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-renderer-browser.spec.ts",
+          "line": 124,
+          "column": 3,
+          "project": "mobile-safari"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-renderer-browser.spec.ts",
+          "line": 185,
+          "column": 3,
+          "project": "chromium"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-renderer-browser.spec.ts",
+          "line": 185,
+          "column": 3,
+          "project": "mobile-safari"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-renderer-browser.spec.ts",
+          "line": 206,
+          "column": 3,
+          "project": "chromium"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-renderer-browser.spec.ts",
+          "line": 206,
+          "column": 3,
+          "project": "mobile-safari"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-timelinejs-browser.spec.ts",
+          "line": 34,
+          "column": 3,
+          "project": "chromium"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-timelinejs-browser.spec.ts",
+          "line": 34,
+          "column": 3,
+          "project": "mobile-safari"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-timelinejs-browser.spec.ts",
+          "line": 79,
+          "column": 3,
+          "project": "chromium"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-timelinejs-browser.spec.ts",
+          "line": 79,
+          "column": 3,
+          "project": "mobile-safari"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-timelinejs-browser.spec.ts",
+          "line": 92,
+          "column": 3,
+          "project": "chromium"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-timelinejs-browser.spec.ts",
+          "line": 92,
+          "column": 3,
+          "project": "mobile-safari"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-tool-ui.spec.ts",
+          "line": 83,
+          "column": 3,
+          "project": "chromium"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-tool-ui.spec.ts",
+          "line": 83,
+          "column": 3,
+          "project": "mobile-safari"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-tool-ui.spec.ts",
+          "line": 106,
+          "column": 3,
+          "project": "chromium"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-tool-ui.spec.ts",
+          "line": 106,
+          "column": 3,
+          "project": "mobile-safari"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-tool-ui.spec.ts",
+          "line": 149,
+          "column": 3,
+          "project": "chromium"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-tool-ui.spec.ts",
+          "line": 149,
+          "column": 3,
+          "project": "mobile-safari"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-tool-ui.spec.ts",
+          "line": 266,
+          "column": 3,
+          "project": "chromium"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-tool-ui.spec.ts",
+          "line": 266,
+          "column": 3,
+          "project": "mobile-safari"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-tool-ui.spec.ts",
+          "line": 302,
+          "column": 3,
+          "project": "chromium"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-tool-ui.spec.ts",
+          "line": 302,
+          "column": 3,
+          "project": "mobile-safari"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-tool-ui.spec.ts",
+          "line": 383,
+          "column": 3,
+          "project": "chromium"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-tool-ui.spec.ts",
+          "line": 383,
+          "column": 3,
+          "project": "mobile-safari"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-tool-ui.spec.ts",
+          "line": 397,
+          "column": 3,
+          "project": "chromium"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-tool-ui.spec.ts",
+          "line": 397,
+          "column": 3,
+          "project": "mobile-safari"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-tool-ui.spec.ts",
+          "line": 431,
+          "column": 3,
+          "project": "chromium"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-tool-ui.spec.ts",
+          "line": 431,
+          "column": 3,
+          "project": "mobile-safari"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-tool-ui.spec.ts",
+          "line": 458,
+          "column": 3,
+          "project": "chromium"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-tool-ui.spec.ts",
+          "line": 458,
+          "column": 3,
+          "project": "mobile-safari"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-tool-ui.spec.ts",
+          "line": 482,
+          "column": 3,
+          "project": "chromium"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-tool-ui.spec.ts",
+          "line": 482,
+          "column": 3,
+          "project": "mobile-safari"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-workspace-ordering.spec.ts",
+          "line": 27,
+          "column": 3,
+          "project": "chromium"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-workspace-ordering.spec.ts",
+          "line": 27,
+          "column": 3,
+          "project": "mobile-safari"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-workspace-ordering.spec.ts",
+          "line": 58,
+          "column": 3,
+          "project": "chromium"
+        },
+        {
+          "file": "/workspace/tests/e2e/smoke/timeline-workspace-ordering.spec.ts",
+          "line": 58,
+          "column": 3,
+          "project": "mobile-safari"
+        }
+      ],
+      "scope": "Union of explicit completed checkmarks at identical source; initial timed out and completion reran interrupted/remaining suites. No single full-green run claimed."
+    },
+    "typeChecksPassed": 5,
+    "apiContractTestsPassed": 163,
+    "browserProjectChecksPassed": 106,
+    "build": "passed",
+    "pagesFunctionsBuild": "passed",
+    "schemaRehearsal": "passed",
+    "compiledHttpGate": "passed",
+    "staticGate": "passed",
+    "externalOutboundAttempts": 0,
+    "seconds": 507.02,
+    "archiveSha256": "ae8d6af21b625913912c8a384b5d3b21b631b007c6de03beaf3888e4416a1d02",
+    "supervisorSha256": "951e88d8b3c2c934de367407ce3269bbdebfcebf5a731a64f10a630366d52639",
+    "receiptSha256": "45ffbcaed61c36c1808e0552ca552b33d963fe5cf51058453837a6e3249ba2c9",
+    "runLogSha256": "bfb5643ced0f808e58a93ded73e3e1c0460b2dcb5fdbf70623aca19d1dffc707",
+    "schemaManifestSha256": "d98633d60c5558f4f929c3c10395bfbd774a99b14e52cf4ffc07aeb01f818a29",
+    "runtimeImage": "mcr.microsoft.com/playwright@sha256:9bd26ad900bb5e0f4dee75839e957a89ae89c2b7ab1e76050e559790e946b948",
+    "executionBoundary": "Pinned network-none Docker; readonly root/source/dependencies; no host credentials/socket."
+  },
+  "review": {
+    "independentReviewer": "dependency_review",
+    "sourceAndRuntimeAcceptedSha": "ae238e63ed03b103553491a6f10b8fd4a672cdf8",
+    "artifactFilesIndependentlyCompared": 155,
+    "distManifestSha256": "52cd03af6c4daf0066dfde36aed662ec6a3eaefd561e54f375e5c58a42a97935",
+    "packageManifestFileSha256": "0773cdf40dc7d8ca8cb5b02c8a9991f3d7821c3f4855f7e6ded69f866839204b",
+    "wranglerConfigSha256": "a58a42371915ceebd779014377cc336df722edae9f6822ca1ab4e329d0755a24",
+    "acceptanceReceiptSha256": "6a8a792b4015b902f42b7c9fcc764aea7748625cb3a303f937ae1fcdf275bd4c",
+    "visualAcceptanceSha256": "4d34b541111aff8c2012f4d2da24b12be0b358264d9d917b31e075b593bd1907"
+  },
+  "database": {
+    "mutationsPerformed": false,
+    "appliedMigrationCount": 13,
+    "pendingMigrations": [],
+    "productionSchemaSha256": "22cb033df9400412f4d83b5f3668b8752ec4126a9c8402b6d502187727bf60bd",
+    "beforeCatalog": {
+      "result": "passed",
+      "tables": 14,
+      "schemaRows": 386,
+      "normalizedSchemaSha256": "ec0d28165382f028c98208a003d8c5ab672a9a0ae7ba44ef2f23e3b2bfa46729"
+    },
+    "afterCatalog": {
+      "result": "passed",
+      "tables": 14,
+      "schemaRows": 386,
+      "normalizedSchemaSha256": "ec0d28165382f028c98208a003d8c5ab672a9a0ae7ba44ef2f23e3b2bfa46729"
+    },
+    "migrationInventoryComparison": {
+      "result": "passed",
+      "appliedMigrationCount": 13,
+      "unchanged": true
+    }
+  },
+  "deployment": {
+    "project": "researchtoolspy",
+    "id": "9d1d77c6-7225-4980-81f0-c24d7c8df0c7",
+    "url": "https://9d1d77c6.researchtoolspy.pages.dev",
+    "productionUrl": "https://researchtools.net",
+    "sourceSha": "ae238e63ed03b103553491a6f10b8fd4a672cdf8",
+    "prebuilt": true,
+    "noBundle": true,
+    "existingSecretNamesPreserved": true,
+    "smoke": [
+      {
+        "result": "passed",
+        "baseUrl": "https://9d1d77c6.researchtoolspy.pages.dev",
+        "readonlyChecksPassed": 30,
+        "mutatingRequests": 0,
+        "receiptSha256": "4d5d7be006198f004274371138947e1bd05713661fb7a1f12ac536f07d42b87d"
+      },
+      {
+        "result": "passed",
+        "baseUrl": "https://researchtools.net",
+        "readonlyChecksPassed": 30,
+        "mutatingRequests": 0,
+        "receiptSha256": "4b6db8a049e235cdb0cf64c339927e01440db2faeb1a15095086696f2170542b"
+      }
+    ]
+  },
+  "rollback": {
+    "previousDeploymentId": "971c8e13-acd6-4f1c-bc55-5829ac10c2af",
+    "limits": "Previous accepted renderer reads identical snapshots but lacks list search and stable-ID jump. Preserve saved data and immutable history."
+  },
+  "focusedValidation": [
+    {
+      "runName": "navigation-focused",
+      "source": "ae238e63ed03b103553491a6f10b8fd4a672cdf8",
+      "seconds": 172.79,
+      "receiptSha256": "eec17302baa41ac20caf7ff11a966e942b48228e6ae61a06553f3b4bc2ad8162",
+      "runLogSha256": "2324baa196a164a759802abc1825c6521543f2e3c4badc20a7518be72997679f",
+      "result": "passed"
+    }
+  ],
+  "failedAttempts": [
+    {
+      "runName": "release-navigation-final",
+      "source": "ae238e63ed03b103553491a6f10b8fd4a672cdf8",
+      "exitCode": 124,
+      "receiptSha256": "b241304f73395e84e5a3b4da2b6e808f3fe77fbcde64ad964e6b836dbb23a932",
+      "runLogSha256": "565d868a371a7c0806cef022b88adee1d5bf248a2ec02989ab3ed208cd023f74",
+      "reason": "Bounded1200-second supervisor expired during mobile evidence tests under slow execution. Five type checks and163API contracts completed; completed browser cases retained. Interrupted and remaining suites rerun at same source; no single full-green run claim."
+    }
+  ],
+  "recovery": [
+    {
+      "reason": "Complete same-SHA browser coverage from explicit listed test inventory, rerun entire mobile evidence and remaining suites, then fresh frontend/worker/compiled-schema gates. Preserve timed-out receipt and successful cleanup."
+    }
+  ],
+  "instructionSha256": {
+    "CLAUDE.md": "3852de6d95104c64f3a35b670f350e1d7a2c6c9ed93d03d53895e7bc8c44ff1b",
+    ".team/project.json": "c87cd27090a1a8ff779dd0d850668ebf0ecb6581cefb2d0b0a66ed63aabbcf78",
+    "docs/plans/2026-09-11-timeline-tranche-charter.md": "367a6bc5c7f7c706ce4f6b368df952fbe5c8a6e34bde3f959b72775e138a0682",
+    "docs/plans/2026-09-12-timeline-navigation-charter.md": "f2d6818723edda4070646398ce81ce90ee0e33b56990668a887d2811d1819b50"
+  },
+  "promptManifestSha256": "279802619b426cdc56a1e3fca080a84dc27bbf1246b094a8e5cad80201da4af3",
+  "visual": {
+    "source": "ae238e63ed03b103553491a6f10b8fd4a672cdf8",
+    "accepted": true,
+    "runName": "navigation-focused",
+    "visualSource": "ae238e63ed03b103553491a6f10b8fd4a672cdf8",
+    "evidence": [
+      {
+        "file": "timeline-renderer-browser--3ab9d--the-presentation-or-backup-chromium/finder-dark.png",
+        "sha256": "1e4b02d5c41acad7cd63dd9f0ab80f835970afcfc7b67c7128955015cb871838"
+      },
+      {
+        "file": "timeline-renderer-browser--3ab9d--the-presentation-or-backup-chromium/finder-light.png",
+        "sha256": "c52f58dab829e6ae955e53d445c94967d519c065196e79615f664df82f6fccef"
+      },
+      {
+        "file": "timeline-renderer-browser--3ab9d--the-presentation-or-backup-mobile-safari/finder-dark.png",
+        "sha256": "892d8faf1a69e8f8cdec3f2f80eb7f337b218250ebb11142e5c590999b6655b4"
+      },
+      {
+        "file": "timeline-renderer-browser--3ab9d--the-presentation-or-backup-mobile-safari/finder-light.png",
+        "sha256": "529d6c62c78672b85323fa347ccbd7184682bd0b635af3b3aaf27555b3d840df"
+      }
+    ],
+    "limitations": "Representative filtered-list state in desktop/mobile light/dark only. Search, Clear search, result count, list-only qualification and event text are readable with contained mobile wrapping. Desktop Show in presentation is fully visible; mobile Show action is partly below the scroll boundary and requires further scrolling, with a visible scrollbar. Presentation top is intentionally clipped by the section scroll to expose the finder. The second matching result and no-results state are not shown. A floating widget touches the outer lower-right edge. These images do not establish whole-presentation viewport coverage, keyboard behavior or measured contrast/accessibility certification.",
+    "reviewer": "validator_review"
+  },
+  "liveEdgeReplay": {
+    "sourceSha": "ae238e63ed03b103553491a6f10b8fd4a672cdf8",
+    "runName": "navigation-live-edge",
+    "receiptSha256": "db12dc0c16853d97ac0a9e8685da40e28eed92a2b00be7f9d08ca9c76ee87347",
+    "browserEvidenceSha256": "9ba227f4c2481d8c04bf939cd9b308b60876aeda768861731961179ef36adb66",
+    "supervisorSha256": "2274ff52e9904687091b3528539337295e2b0ea6d984889d8231793bc1c1dcbb",
+    "shellSha256": "e71dd52cd7feba25bcf50519f30bb492cdcdb46d54bb77e7398cb1dae055f728",
+    "headersSha256": "83e8ae2a741b2e4bb8d82e9a932b389bca82a63decd2384b0bb569789c13d230",
+    "harnessSha256": "d479b1a7a00e91d9c080844d95e317e370563bf75948a2a6b43b85539b1724f7",
+    "result": "passed",
+    "jumpedByStableId": true,
+    "scope": "Captured public production HTML/headers replayed with synthetic data in network-none Chromium and WebKit; not a live authenticated browser session."
+  },
+  "vendorManifestSha256": "566870c7c8ac2576ffcbe41b104ea8e428b740104ad093a9bdd453eaff621a2e",
+  "headersSha256": "db140fc13ab9ed7aa9b92c9f4d739953fbcd02c5cd1a7952fdd853607f5d242e",
+  "limitations": [
+    "Search filters only the native list, never selection, export bytes or renderer slide membership. Query/disclosure survive replacement frames; prior jump commands do not replay.",
+    "Navigation accepts only current nonce, exact parent and allowed stable event IDs after load. Renderer failure retains the native list; jumping requires successful loading.",
+    "No API, schema, dependency, header, auth or persistent-field change. Existing 100-event renderer bound remains; JSON exports retain eligible events beyond it.",
+    "TL-17 remains partial: immutable authorized publication/revocation and richer snapshot types remain pending. TL-04 RSS coverage and broader source stores remain pending.",
+    "Representative visual review is not exhaustive accessibility certification; primary checkout untouched."
+  ],
+  "retrospective": "The native provider delivered the bounded frame protocol and contracts while the owner implemented native search and real browser acceptance. The first source candidate passed review and focused checks without code rework. Slow full-browser execution exceeded its wall-clock bound; explicit same-source test inventory and completion evidence preserved coverage without claiming a single successful full run. For similarly bounded UI stages, budget browser verification separately or plan equivalent isolated suite partitions upfront. This is one task-specific observation, not a general worker ranking."
+}

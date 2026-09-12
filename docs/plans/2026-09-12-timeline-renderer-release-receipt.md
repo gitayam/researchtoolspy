@@ -15,3 +15,7 @@ All 155 staged files were independently compared; inventory SHA256 `4552f19e7e8e
 The [JSON receipt](./2026-09-12-timeline-renderer-release-receipt.json) records fingerprints, instruction/supervisor amendments and recovery. The full-run supervisor retains the same isolation and cleanup with a 1200-second bound; the preceding accepted suite had taken 879.53 seconds before renderer coverage. Previous deployment `d1a610f0-3876-4381-82ac-685730dfd32b` reads identical saved snapshots and retains JSON export but lacks the embedded presentation. Preserve data and immutable revisions. Primary checkout untouched; existing build chunk-size warning remains.
 
 **TL-17 remains partial:** immutable authorized publication/revocation and richer revision/composite/plan/comparison snapshots remain pending. **TL-04 remains partial:** RSS coverage and broader source stores remain pending.
+
+## Subsequent deployment
+
+The [presentation navigation release](./2026-09-12-timeline-navigation-release-receipt.md) adds native list search and stable-ID jumping with the same snapshot format. This receipt retains historical renderer and edge-repair evidence; the newer receipt records current deployment.
