@@ -14,6 +14,8 @@ import type { TimelineWorkspaceExport } from '../../../src/types/timeline-worksp
 const hash = 'browser-snapshot-human-0001'
 const storedSource = JSON.parse(readFileSync(new URL('../../fixtures/timeline-stored-source.json', import.meta.url), 'utf8'))
 const sourceDigest = (text: string) => createHash('sha256').update(text).digest('hex')
+const chunkFixture = JSON.parse(readFileSync(new URL('../../fixtures/timeline-chunked-source.json', import.meta.url), 'utf8'))
+const chunkedSource = { ...chunkFixture, text: chunkFixture.prefixUnit.repeat(chunkFixture.prefixRepeats) + chunkFixture.quote + chunkFixture.suffix }
 const draftKey = 'researchtools.timeline.manual-draft.v1'
 function fixture(): TimelineWorkspaceExport {
   return decodeTimelineWorkspace(JSON.stringify({ schemaVersion: 'timeline-workspace.v1', exportedAt: '2026-09-11T12:00:00.000Z', source: { schemaVersion: 'timeline-manual.v1', title: 'Private browser investigation' }, analystWorkspace: {
@@ -25,7 +27,7 @@ function fixture(): TimelineWorkspaceExport {
     narrative: { title: 'Private account', framing: 'Preserve uncertainty', question: 'What changed?', intendedUse: 'Review', scope: 'Synthetic', timezone: 'UTC', dataThrough: '', chapters: [{ id: 'chapter:one', title: 'Context', claim: 'A disputed report' }] },
   } }))
 }
-async function bridge(page: Page, signedIn = true) {
+async function bridge(page: Page, signedIn = true, chunked = false) {
   const mf = new Miniflare({ modules: true, script: 'export default {fetch(){return new Response("ok")}}', d1Databases: { DB: 'browser-snapshot' } })
   const db = await mf.getD1Database('DB')
   const sql = (name: string) => readFileSync(new URL(`../../../schema/managed-migrations/${name}`, import.meta.url), 'utf8').split('-- statement\n').slice(1).map(s => s.trim())
@@ -34,12 +36,20 @@ async function bridge(page: Page, signedIn = true) {
     'CREATE TABLE workspaces(id TEXT PRIMARY KEY,owner_id INTEGER REFERENCES users(id),is_public INTEGER NOT NULL)',
     'CREATE TABLE workspace_members(id TEXT PRIMARY KEY,workspace_id TEXT REFERENCES workspaces(id),user_id INTEGER REFERENCES users(id),role TEXT NOT NULL)',
     'CREATE TABLE content_analysis(id INTEGER PRIMARY KEY,user_id INTEGER,workspace_id TEXT,url TEXT,title TEXT,extracted_text TEXT,content_hash TEXT,expires_at TEXT,is_saved INTEGER,processing_status TEXT)',
+    'CREATE TABLE content_chunks(content_analysis_id INTEGER,chunk_index INTEGER,chunk_size INTEGER,chunk_hash TEXT,chunk_text TEXT)',
     `INSERT INTO users VALUES(1,'${hash}','researcher',1)`,
     "INSERT INTO workspaces VALUES('browser-private',1,0),('browser-other',1,0)",
     ...sql('0011_timeline_foundation.sql'),
   ]) await db.prepare(query).run()
   await db.batch(sql('0012_timeline_workspace_snapshots.sql').map(s => db.prepare(s)))
   await db.prepare("INSERT INTO content_analysis VALUES(?,1,'browser-private',?,?,?,?,NULL,1,'complete')").bind(storedSource.analysisId, storedSource.url, storedSource.title, storedSource.text, sourceDigest(storedSource.text)).run()
+  if (chunked) {
+    await db.prepare("INSERT INTO content_analysis VALUES(?,1,'browser-private',?,?,?,?,NULL,1,'complete')").bind(chunkedSource.analysisId,chunkedSource.url,chunkedSource.title,chunkedSource.text.slice(0,102400)+'\n\n[Content truncated - see content_chunks table for full text]',sourceDigest(chunkedSource.text)).run()
+    for (let start=0;start<chunkedSource.text.length;start+=51200) {
+      const text=chunkedSource.text.slice(start,start+51200)
+      await db.prepare('INSERT INTO content_chunks VALUES(?,?,?,?,?)').bind(chunkedSource.analysisId,start/51200,text.length,sourceDigest(text),text).run()
+    }
+  }
   const faults = { dropCreate: false, dropCommit: false, malformedRead: false, holdSource: null as Promise<void> | null, sourceReady: false, sourceDelivered: false }
   const calls: Array<{ method: string; body: string | null; key?: string; etag?: string; status: number; response: any }> = []
   await page.addInitScript(({ hash, signedIn }) => {
@@ -85,6 +95,34 @@ async function exported(page: Page) {
 async function saved(page: Page) { await expect(page.getByTestId('timeline-save-state')).toHaveText('Saved') }
 
 test.describe('durable browser with actual D1 routes @smoke', () => {
+  test('a passage beyond the stored prefix imports from verified chunks and survives private reopen', async ({ page }, testInfo) => {
+    test.setTimeout(120_000)
+    const b=await bridge(page,true,true)
+    try {
+      await page.goto('/dashboard/tools/timeline');await importFixture(page)
+      await page.getByRole('button',{name:'Save timeline',exact:true}).click();await saved(page)
+      await page.reload();await page.getByRole('button',{name:'Open saved timeline',exact:true}).click();await saved(page)
+      const raw=await page.evaluate(key=>localStorage.getItem(key),draftKey)
+      const panel=page.getByTestId('evidence-event:unknown.1');await panel.locator('summary').first().click()
+      const form=panel.getByRole('region',{name:'Import stored passage'})
+      await form.getByLabel('Stored analysis ID',{exact:true}).fill(String(chunkedSource.analysisId))
+      await form.getByLabel('Exact stored quote',{exact:true}).fill(chunkedSource.quote)
+      await form.getByRole('button',{name:'Check stored passage',exact:true}).click()
+      await expect(form.getByText('Matched to stored extraction',{exact:true})).toBeVisible()
+      await form.getByLabel('Imported assertion wording',{exact:true}).fill('The full report contains a later reopening account.')
+      await form.getByRole('button',{name:'Import matched passage',exact:true}).click()
+      await expect(form.getByText('Stored passage imported',{exact:true})).toBeVisible()
+      const imported=(await exported(page)).analystWorkspace
+      const assertion=imported.evidence!.assertions.find(item=>item.passage.quote===chunkedSource.quote)!
+      expect(assertion.passage.id).toBe(`passage:${chunkedSource.analysisId}:${sourceDigest(chunkedSource.text)}:112000:${112000+chunkedSource.quote.length}`)
+      expect(await page.evaluate(key=>localStorage.getItem(key),draftKey)).toBe(raw)
+      const screenshot=testInfo.outputPath('chunk-import.png');await form.screenshot({path:screenshot,animations:'disabled'});await testInfo.attach('Chunk import form',{path:screenshot,contentType:'image/png'})
+      await page.getByRole('button',{name:'Save changes',exact:true}).click();await saved(page)
+      await page.reload();await page.getByRole('button',{name:'Open saved timeline',exact:true}).click();await saved(page)
+      expect((await exported(page)).analystWorkspace.evidence).toEqual(imported.evidence)
+      expect(await page.evaluate(key=>localStorage.getItem(key),draftKey)).toBe(raw)
+    }finally{await b.mf.dispose()}
+  })
   test('a delayed private passage response cannot restore content after sign-out', async ({ page }) => {
     test.setTimeout(90_000)
     const b = await bridge(page)

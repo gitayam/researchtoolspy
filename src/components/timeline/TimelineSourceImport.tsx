@@ -43,7 +43,7 @@ async function validateReply(value:unknown,workspaceId:string,analysisId:number,
   const bad=()=>{throw new Error('The passage response did not match this request. Check the stored passage again.')}
   if(!exact(value,['schemaVersion','workspaceId','analysisId','contentHash','quoteHash','start','end','matchedAt','source','passage']))return bad()
   if(value.schemaVersion!=='timeline-source-import.v1'||value.workspaceId!==workspaceId||value.analysisId!==analysisId||typeof value.contentHash!=='string'||!/^[a-f0-9]{64}$/.test(value.contentHash)||typeof value.quoteHash!=='string'||!/^[a-f0-9]{64}$/.test(value.quoteHash)||(expected&&value.contentHash!==expected))return bad()
-  if(!Number.isSafeInteger(value.start)||!Number.isSafeInteger(value.end)||Number(value.start)<0||Number(value.end)>102400||Number(value.end)-Number(value.start)!==quote.length)return bad()
+  if(!Number.isSafeInteger(value.start)||!Number.isSafeInteger(value.end)||Number(value.start)<0||Number(value.end)>409600||Number(value.end)-Number(value.start)!==quote.length)return bad()
   if(typeof value.matchedAt!=='string'||!/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z$/.test(value.matchedAt)||!Number.isFinite(Date.parse(value.matchedAt))||new Date(value.matchedAt).toISOString()!==value.matchedAt)return bad()
   if(!exact(value.source,['id','url','title','publisher'])||value.source.id!==`content:${analysisId}:${value.contentHash}`||!exact(value.passage,['id','quote','locator'])||value.passage.id!==`passage:${analysisId}:${value.contentHash}:${value.start}:${value.end}`||value.passage.quote!==quote||value.quoteHash!==await digest(quote))return bad()
   const locator=`Recorded reference to stored analysis ${analysisId}; content SHA-256 ${value.contentHash}; UTF-16 [${value.start},${value.end}); quote SHA-256 ${value.quoteHash}; matched ${value.matchedAt}. Matches stored extraction, not verified source truth.`
@@ -103,7 +103,7 @@ export function TimelineSourceImport(props:Props){
   }
   return <section aria-label="Import stored passage" className="space-y-3 rounded border p-3">
     <h4 className="font-semibold">Import a stored Content Research passage</h4>
-    <p>Use a complete extraction you own in this private workspace. Matching records stored text at this moment; it does not verify source truth. Exported locators are recorded references, not authenticated receipts. Save the timeline after import to retain the reference in a new immutable revision.</p>
+    <p>Use a complete extraction you own in this private workspace. Complete larger extractions are supported after an integrity check. Matching records stored text at this moment; it does not verify source truth. Exported locators are recorded references, not authenticated receipts. Save the timeline after import to retain the reference in a new immutable revision.</p>
     <label className="block">Stored analysis ID<Input aria-label="Stored analysis ID" inputMode="numeric" value={analysisId} onChange={e=>{invalidate();setAnalysisId(e.target.value)}}/></label>
     <label className="block">Exact stored quote<Textarea aria-label="Exact stored quote" maxLength={4000} value={quote} onChange={e=>{invalidate();setQuote(e.target.value)}}/></label>
     <Button disabled={busy} variant="outline" onClick={()=>void resolve(false)}>Check stored passage</Button>

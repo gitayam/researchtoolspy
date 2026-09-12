@@ -136,8 +136,8 @@ try {
   const workerBytes = await readFile(workerPath)
   const indexBytes = await readFile(resolve(dist, 'index.html'))
   const expectedTables = [...(await readFile(resolve(migrationDirectory, '0011_timeline_foundation.sql'), 'utf8')).matchAll(/CREATE TABLE (timeline_[a-z_]+)/g)].map(match => match[1]).sort()
-  expectedTables.push('integration_clients', 'integration_client_tokens', 'integration_client_token_scopes', 'content_analysis'); expectedTables.sort()
-  assert.equal(expectedTables.length, 13, 'Unexpected affected table inventory')
+  expectedTables.push('integration_clients', 'integration_client_tokens', 'integration_client_token_scopes', 'content_analysis', 'content_chunks'); expectedTables.sort()
+  assert.equal(expectedTables.length, 14, 'Unexpected affected table inventory')
   receipt = {
     schemaVersion: 'timeline-release-schema-manifest.v1',
     schemaOnly: true,
@@ -231,6 +231,17 @@ try {
   error(await request('/api/timeline-source-import', { method: 'POST', body: { ...importBody, expectedContentHash: '0'.repeat(64) } }), 412, 'stale_revision')
   assert.deepEqual((await db.prepare('SELECT * FROM content_analysis ORDER BY id').all()).results, sourceRows, 'Source resolver mutated stored content')
   receipt.checks.push('compiled stored-source owner/private-workspace authorization, exact Unicode passage/hash, stale refusal and zero source writes')
+  const chunkFixture = JSON.parse(await readFile(resolve(root, 'tests/fixtures/timeline-chunked-source.json'), 'utf8'))
+  const chunkText = chunkFixture.prefixUnit.repeat(chunkFixture.prefixRepeats) + chunkFixture.quote + chunkFixture.suffix
+  await seedRow(db,'content_analysis',{id:chunkFixture.analysisId,user_id:880001,workspace_id:'release-workspace-a',url:chunkFixture.url,title:chunkFixture.title,extracted_text:chunkText.slice(0,102400)+'\n\n[Content truncated - see content_chunks table for full text]',content_hash:sha256(chunkText),is_saved:1,expires_at:null,processing_status:'complete',created_at:'2026-09-11T00:00:00Z',updated_at:'2026-09-11T00:00:00Z'})
+  for(let start=0;start<chunkText.length;start+=51200){const chunk=chunkText.slice(start,start+51200);await seedRow(db,'content_chunks',{content_analysis_id:chunkFixture.analysisId,chunk_index:start/51200,chunk_size:chunk.length,chunk_hash:sha256(chunk),chunk_text:chunk,created_at:'2026-09-11T00:00:00Z'})}
+  const chunkRows=(await db.prepare('SELECT * FROM content_chunks ORDER BY id').all()).results
+  const chunkMatch=await request('/api/timeline-source-import',{method:'POST',body:{...importBody,analysisId:chunkFixture.analysisId,quote:chunkFixture.quote}})
+  assert.equal(chunkMatch.status,200);assert.equal(chunkMatch.json.contentHash,sha256(chunkText));assert.equal(chunkMatch.json.start,112000);assert.equal(chunkMatch.json.passage.quote,chunkFixture.quote)
+  assert.deepEqual((await db.prepare('SELECT * FROM content_chunks ORDER BY id').all()).results,chunkRows)
+  await db.prepare('DELETE FROM content_chunks WHERE content_analysis_id=? AND chunk_index=2').bind(chunkFixture.analysisId).run()
+  error(await request('/api/timeline-source-import',{method:'POST',body:{...importBody,analysisId:chunkFixture.analysisId,quote:chunkFixture.quote}}),400,'invalid_request')
+  receipt.checks.push('compiled complete chunk integrity, quote beyond parent prefix, zero chunk writes and missing-chunk refusal')
   const createBody = { schemaVersion: 'timeline-artifact-create.v1', workspaceId: 'release-workspace-a', title: 'Production-schema rehearsal' }
   const payload = { schemaVersion: 'timeline-artifact-commit.v1', changes: [{ op: 'put', objectId: 'event:release.001', kind: 'event-candidate.v1', payload: { title: 'Synthetic candidate', description: null, eventDate: '2026-09', datePrecision: 'month' } }] }
   stage = 'compiled-http-create-auth'
@@ -293,6 +304,9 @@ try {
   snapshot.analystWorkspace.evidence.sources.push(matched.json.source)
   snapshot.analystWorkspace.evidence.assertions.push({ id: 'assertion:stored', sourceId: matched.json.source.id, claimText: 'The report describes a reopening.', temporalClaim: '', passage: matched.json.passage, status: 'active', derivesFrom: [] })
   snapshot.analystWorkspace.evidence.links.push({ id: 'link:stored', eventId: 'event:unknown.1', assertionId: 'assertion:stored', relation: 'context' })
+  snapshot.analystWorkspace.evidence.sources.push(chunkMatch.json.source)
+  snapshot.analystWorkspace.evidence.assertions.push({id:'assertion:chunked',sourceId:chunkMatch.json.source.id,claimText:'The longer stored report describes a reopening.',temporalClaim:'',passage:chunkMatch.json.passage,status:'active',derivesFrom:[]})
+  snapshot.analystWorkspace.evidence.links.push({id:'link:chunked',eventId:'event:unknown.1',assertionId:'assertion:chunked',relation:'context'})
   const analysis = JSON.parse(await readFile(resolve(root, 'tests/fixtures/timeline-judgment-snapshot.json'), 'utf8'))
   analysis.judgments[0].contraryEvidenceRefs = ['assertion:contrary']
   analysis.reviews[0].basis = canonical(analysis.judgments[0])
@@ -361,7 +375,7 @@ try {
   receipt.staticGate = 'passed'; receipt.externalOutboundAttempts = outboundAttempts
   receipt.checks.push('compiled Pages ASSETS fallback matches built index and referenced static asset')
   assert.deepEqual(await collectManifest(db, receipt.tables.map(table => table.name)), receipt.tables, 'Compiled route rehearsal changed the database catalog')
-  receipt.checks.push('all 13 source/timeline/credential table catalogs remain unchanged after compiled human/service and static routes')
+  receipt.checks.push('all 14 source/chunk/timeline/credential table catalogs remain unchanged after compiled human/service and static routes')
   await save(receipt)
   console.log(JSON.stringify({ result: 'passed', schemaRehearsal: receipt.schemaRehearsal, compiledHttpGate: receipt.compiledHttpGate, staticGate: receipt.staticGate, affectedTables: receipt.tables.length, manifest: manifestPath }))
 } catch (error) {
