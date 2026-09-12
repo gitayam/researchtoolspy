@@ -80,6 +80,7 @@ test.describe('timeline inspectable evidence @smoke', () => {
     expect(unchanged.evidence).toEqual(value.analystWorkspace.evidence)
     expect(unchanged.events).toEqual(value.analystWorkspace.events)
     const panel = page.getByTestId('evidence-event-evidence')
+    await panel.scrollIntoViewIfNeeded()
     await panel.locator('summary').first().click()
     const first = panel.getByRole('article').filter({ has: page.getByText('Coverage account a', { exact: true }) })
     await first.getByRole('button', { name: 'Retract assertion' }).click()
