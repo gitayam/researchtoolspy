@@ -72,6 +72,7 @@ test.describe('timeline inspectable evidence @smoke', () => {
     await expect(dialog.getByRole('button', { name: 'Keep support' })).toBeFocused()
     for (const theme of ['light', 'dark']) {
       await page.evaluate(theme => document.documentElement.classList.toggle('dark', theme === 'dark'), theme)
+      await expect(dialog).toHaveCSS('background-color', theme === 'dark' ? 'rgb(2, 6, 23)' : 'rgb(255, 255, 255)')
       await testInfo.attach(`support-warning-${theme}`, { body: await dialog.screenshot({ path: testInfo.outputPath(`support-warning-${theme}.png`), scale: 'css' }), contentType: 'image/png' })
     }
     await page.keyboard.press('Escape')
