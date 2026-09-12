@@ -47,7 +47,7 @@ export const onRequestPost:PagesFunction<TimelineArtifactEnv>=async ({request,en
           length(k.chunk_text) AS text_length,length(CAST(k.chunk_text AS BLOB)) AS text_bytes,
           CASE WHEN length(k.chunk_text)<=51200 AND length(CAST(k.chunk_text AS BLOB))<=204800 THEN k.chunk_text ELSE NULL END AS chunk_text
         FROM content_chunks k JOIN authorized a ON k.content_analysis_id=a.id
-        WHERE substr(a.extracted_text,-?)=? ORDER BY k.chunk_index LIMIT 8
+        WHERE substr(CAST(a.extracted_text AS BLOB),-?)=CAST(? AS BLOB) ORDER BY k.chunk_index LIMIT 8
       ), chunk_budget AS (
         SELECT coalesce(sum(text_bytes),0) AS assembled_bytes,
           coalesce(sum(length(CAST(json_object('index',chunk_index,'size',chunk_size,'hash',chunk_hash,'text',chunk_text,'length',text_length,'bytes',text_bytes) AS BLOB))),0)+max(count(*)-1,0)+2 AS document_bytes
@@ -58,7 +58,7 @@ export const onRequestPost:PagesFunction<TimelineArtifactEnv>=async ({request,en
             (SELECT json_group_array(json_object('index',chunk_index,'size',chunk_size,'hash',chunk_hash,'text',chunk_text,'length',text_length,'bytes',text_bytes)) FROM chunk_rows)
           ELSE NULL END AS document FROM chunk_budget
       ) SELECT a.*,
-        (SELECT count(*) FROM (SELECT 1 FROM content_chunks k WHERE k.content_analysis_id=a.id AND substr(a.extracted_text,-?)=? LIMIT 9)) AS chunk_count,
+        (SELECT count(*) FROM (SELECT 1 FROM content_chunks k WHERE k.content_analysis_id=a.id AND substr(CAST(a.extracted_text AS BLOB),-?)=CAST(? AS BLOB) LIMIT 9)) AS chunk_count,
         d.document AS chunks_json,d.document_bytes AS chunks_bytes,d.assembled_bytes
       FROM authorized a CROSS JOIN chunk_document d`).bind(analysisId,principal.userId,workspace,TRUNCATION.length,TRUNCATION,TRUNCATION.length,TRUNCATION).first<SourceRow>()
   if(!row) throw new ArtifactError('not_found',404)

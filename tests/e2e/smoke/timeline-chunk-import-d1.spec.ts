@@ -43,6 +43,18 @@ test.describe('bounded chunk reconstruction actual D1 @smoke',()=>{
       expect((await call(db,quote,{expectedContentHash:'0'.repeat(64)})).status).toBe(412)
     } finally {await mf.dispose()}
   })
+  test('well-formed NUL in parent prefix preserves BLOB suffix detection and exact reconstruction',async()=>{
+    const content='prefix\u0000'+'a'.repeat(110000)+quote
+    const {mf,db}=await setup(content)
+    try {
+      const before=await state(db),response=await call(db),result=await response.json() as any
+      expect(response.status).toBe(200)
+      expect(result.start).toBe(content.indexOf(quote))
+      expect(result.contentHash).toBe(await digest(content))
+      expect(result.quoteHash).toBe(await digest(quote))
+      expect(await state(db)).toEqual(before)
+    } finally {await mf.dispose()}
+  })
   test('missing, duplicate, gapped, wrong-size/hash/prefix chunk sets never fall back',async()=>{
     const changes=[
       'DELETE FROM content_chunks WHERE chunk_index=1',
