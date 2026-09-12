@@ -62,3 +62,33 @@ body { display: flex; flex-direction: column; }
 :root[data-theme="dark"] #presentation-controls button { background: #334155; color: #e5e7eb; border-color: #94a3b8; }
 /* Native controls provide the navigation alternative without a blocking swipe hint. */
 .tl-storyslider > .tl-message-full { display: none; }
+/* Reserve a separate toolbar row between the axis and native slide controls.
+   Upstream positions this toolbar above the axis using an inline top value. */
+#timeline { margin-bottom: 42px; overflow: visible; }
+#timeline .tl-menubar {
+  top: auto !important;
+  bottom: -42px !important;
+  left: 0;
+  width: 100%;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 1px 4px;
+  border-top: 1px solid #cbd5e1;
+  border-radius: 0;
+  background: #f1f5f9;
+}
+#timeline .tl-menubar-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 44px;
+  min-width: 44px;
+  height: 40px;
+  padding: 4px;
+}
+:root[data-theme="dark"] #timeline .tl-menubar { background: #1f2937; border-color: #475569; }
+:root[data-theme="dark"] #timeline .tl-timeaxis-background { background: #1f2937; border-top-color: #475569; }
+:root[data-theme="dark"] #timeline .tl-timeaxis .tl-timeaxis-tick-text { color: #e2e8f0; }
+:root[data-theme="dark"] #timeline .tl-timeaxis .tl-timeaxis-tick::before { border-left-color: #94a3b8; color: #94a3b8; }

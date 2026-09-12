@@ -87,7 +87,18 @@ test.describe('Self-hosted TimelineJS renderer @smoke', () => {
     await page.getByText('Accessible event list (3)', { exact: true }).click()
     for (const theme of ['light', 'dark']) {
       await page.evaluate(value => document.documentElement.classList.toggle('dark', value === 'dark'), theme)
+      // Theme changes remount the frame. Select the same event in every capture.
+      await page.getByLabel('Open at', { exact: true }).selectOption('latest')
       await expect(page.getByText('TimelineJS presentation loaded', { exact: true })).toBeAttached()
+      await page.getByLabel('Open at', { exact: true }).selectOption('beginning')
+      await expect(page.getByText('TimelineJS presentation loaded', { exact: true })).toBeAttached()
+      await child.getByRole('button', { name: 'Next slide', exact: true }).click()
+      await expect(child.locator('.tl-storyslider .tl-slide .tl-headline').filter({ hasText: /^Early <report>$/ })).toBeInViewport()
+      const toolbar = await child.locator('.tl-menubar').boundingBox()
+      const story = await child.locator('.tl-storyslider').boundingBox()
+      expect(toolbar).not.toBeNull()
+      expect(story).not.toBeNull()
+      expect(toolbar!.y).toBeGreaterThanOrEqual(story!.y + story!.height - 1)
       const dialog = page.getByRole('dialog', { name: 'TimelineJS export preview' })
       expect(await dialog.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true)
       await expect(page.getByText('Accessible event list (3)', { exact: true })).toBeInViewport()
