@@ -115,6 +115,8 @@ test.describe('durable browser with actual D1 routes @smoke', () => {
       const form=panel.getByRole('region',{name:'Import stored passage'})
       expect(b.faults.candidatesCalls).toBe(0)
       await form.getByRole('button',{name:'Load recent stored sources',exact:true}).click()
+      await expect(form.getByRole('button',{name:`Use analysis ${chunkedSource.analysisId}: ${chunkedSource.title}`,exact:true})).toBeVisible()
+      const pickerScreenshot=testInfo.outputPath('source-picker.png');await form.getByRole('region',{name:'Recent stored sources',exact:true}).screenshot({path:pickerScreenshot,animations:'disabled'});await testInfo.attach('Recent stored source picker',{path:pickerScreenshot,contentType:'image/png'})
       await form.getByRole('button',{name:`Use analysis ${chunkedSource.analysisId}: ${chunkedSource.title}`,exact:true}).click()
       await expect(form.getByLabel('Stored analysis ID',{exact:true})).toHaveValue(String(chunkedSource.analysisId))
       await form.getByLabel('Exact stored quote',{exact:true}).fill(chunkedSource.quote)
