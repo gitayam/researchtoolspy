@@ -9,7 +9,7 @@ import { DurableTimelineError, openSavedTimeline, parseSavedTimelineLink, prepar
 
 interface Props {
   snapshot: TimelineWorkspaceExport | null
-  onOpen: (snapshot: TimelineWorkspaceExport) => void
+  onOpen: (snapshot: TimelineWorkspaceExport, context: { workspaceId: string; canWrite: boolean }) => void
   onForgetRemote: () => void
 }
 function humanHeaders(): Record<string, string> {
@@ -95,7 +95,7 @@ function WorkspaceSaving({ snapshot, onOpen, workspaceId, principalId, canWrite 
       try {
         const loaded = await openSavedTimeline(target.artifactId, { principalId, workspaceId, headers: humanHeaders() }, abort.signal)
         if (abort.signal.aborted) return
-        onOpen(loaded.snapshot)
+        onOpen(loaded.snapshot, { workspaceId, canWrite })
         setArtifact(loaded.artifact); setSavedIdentity(snapshotIdentity(loaded.snapshot)); setPending(null); setConflict(false)
         const link = savedTimelineLink(loaded.artifact); setLinkInput(link)
         window.history.replaceState(window.history.state, '', link)

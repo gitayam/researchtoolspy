@@ -84,6 +84,7 @@ interface TimelineResultsProps {
   workspaceOrigin?: 'extracted' | 'manual'
   initialWorkspace?: TimelineWorkspaceState
   onWorkspaceChange?: (workspace: TimelineWorkspaceState) => void
+  sourceImportWorkspaceId?: string
 }
 
 interface EventEditorState {
@@ -278,6 +279,7 @@ function TimelineWorkspace({
   workspaceOrigin = 'extracted',
   initialWorkspace,
   onWorkspaceChange,
+  sourceImportWorkspaceId,
 }: TimelineResultsProps) {
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'error'>('idle')
   const [mode, setMode] = useState<TimelineWorkspaceMode>(() => initialWorkspace?.mode || (workspaceOrigin === 'manual' ? 'robust' : 'basic'))
@@ -1231,7 +1233,7 @@ function TimelineWorkspace({
                         <h3 className="mt-2 font-semibold leading-snug">{event.title}</h3>
                         {event.description && <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{event.description}</p>}
                         {event.origin === 'source' && <details className="mt-2 text-sm"><summary className="cursor-pointer">Original extraction and source</summary>{originalEvent ? <div className="my-2"><p>{originalEvent.eventDate} ({originalEvent.datePrecision} precision) · {originalEvent.title}</p>{originalEvent.description && <p>{originalEvent.description}</p>}<p>{originalEvent.category} · {originalEvent.importance} importance</p></div> : <p>Original event unavailable; consult the preserved source export.</p>}{result.article.url && <a className="text-blue-600 underline" href={result.article.url} target="_blank" rel="noopener noreferrer">Open extraction source</a>}<p className="text-xs text-muted-foreground">Source extraction is a candidate claim; source presence does not establish corroboration.</p></details>}
-                        <TimelineEvidence event={event} eventIds={events.map(item => item.id)} evidence={evidence} onChange={saveEvidence} />
+                        <TimelineEvidence event={event} eventIds={events.map(item => item.id)} evidence={evidence} onChange={saveEvidence} sourceImportWorkspaceId={sourceImportWorkspaceId} />
                         {mode === 'robust' && event.analystNote && (
                           <p className="mt-2 rounded border-l-2 border-purple-400 bg-purple-50/60 px-3 py-2 text-sm dark:bg-purple-950/20">
                             <span className="font-medium">Analyst note:</span> {event.analystNote}

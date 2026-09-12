@@ -143,12 +143,15 @@ export function TimelineAnalysisPage() {
   const [liveWorkspace, setLiveWorkspace] = useState<TimelineWorkspaceState | undefined>()
   const [durableGeneration, setDurableGeneration] = useState(0)
   const remoteOpened = useRef(false)
+  const [sourceImportWorkspaceId, setSourceImportWorkspaceId] = useState<string | undefined>()
   const forgetRemote = useCallback(() => {
+    setSourceImportWorkspaceId(undefined)
     if (!remoteOpened.current) return
     remoteOpened.current = false
     setResult(null); setResultOrigin(null); setLiveWorkspace(undefined); setInitialWorkspace(undefined)
   }, [])
   const detachDurable = () => {
+    setSourceImportWorkspaceId(undefined)
     remoteOpened.current = false
     setLiveWorkspace(undefined)
     setDurableGeneration(value => value + 1)
@@ -158,9 +161,10 @@ export function TimelineAnalysisPage() {
     source: resultOrigin === 'manual' ? { schemaVersion: 'timeline-manual.v1', title: result.article.title } : result,
     analystWorkspace: liveWorkspace,
   } : null, [result, resultOrigin, liveWorkspace])
-  const openDurable = (snapshot: TimelineWorkspaceExport) => {
+  const openDurable = (snapshot: TimelineWorkspaceExport, context: { workspaceId: string; canWrite: boolean }) => {
     requestRef.current?.abort(); requestRef.current = null; setLoading(false)
     remoteOpened.current = true
+    setSourceImportWorkspaceId(context.canWrite ? context.workspaceId : undefined)
     const origin = snapshot.source.schemaVersion === 'timeline-manual.v1' ? 'manual' : 'extracted'
     const loadedResult = snapshot.source.schemaVersion === 'timeline-manual.v1' ? manualTimelineResult(snapshot.source.title) : snapshot.source
     setResult(loadedResult); setResultOrigin(origin); setInitialWorkspace(snapshot.analystWorkspace)
@@ -428,6 +432,7 @@ export function TimelineAnalysisPage() {
           workspaceOrigin={resultOrigin}
           initialWorkspace={initialWorkspace}
           onWorkspaceChange={handleManualWorkspaceChange}
+          sourceImportWorkspaceId={sourceImportWorkspaceId}
           onRegenerate={resultOrigin === 'extracted' ? () => void runAnalysis() : undefined}
           regenerating={loading}
         />

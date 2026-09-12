@@ -136,8 +136,8 @@ try {
   const workerBytes = await readFile(workerPath)
   const indexBytes = await readFile(resolve(dist, 'index.html'))
   const expectedTables = [...(await readFile(resolve(migrationDirectory, '0011_timeline_foundation.sql'), 'utf8')).matchAll(/CREATE TABLE (timeline_[a-z_]+)/g)].map(match => match[1]).sort()
-  expectedTables.push('integration_clients', 'integration_client_tokens', 'integration_client_token_scopes'); expectedTables.sort()
-  assert.equal(expectedTables.length, 12, 'Unexpected affected table inventory')
+  expectedTables.push('integration_clients', 'integration_client_tokens', 'integration_client_token_scopes', 'content_analysis'); expectedTables.sort()
+  assert.equal(expectedTables.length, 13, 'Unexpected affected table inventory')
   receipt = {
     schemaVersion: 'timeline-release-schema-manifest.v1',
     schemaOnly: true,
@@ -213,6 +213,24 @@ try {
     return { status: response.status, headers: response.headers, text, json }
   }
   const error = (result, status, code) => { assert.equal(result.status, status); assert.equal(result.json?.schemaVersion, 'timeline-artifact-error.v1'); assert.equal(result.json.error.code, code); assert.equal(typeof result.json.error.retryable, 'boolean'); assert(!/INSERT|SELECT|SQLITE|D1_ERROR/.test(result.text), 'Internal SQL leaked') }
+  stage = 'compiled-stored-source-import'
+  const storedSource = JSON.parse(await readFile(resolve(root, 'tests/fixtures/timeline-stored-source.json'), 'utf8'))
+  await seedRow(db, 'content_analysis', { id: storedSource.analysisId, user_id: 880001, workspace_id: 'release-workspace-a', url: storedSource.url, title: storedSource.title, extracted_text: storedSource.text, content_hash: sha256(storedSource.text), is_saved: 1, expires_at: null, processing_status: 'complete', created_at: '2026-09-11T00:00:00Z', updated_at: '2026-09-11T00:00:00Z' })
+  const sourceRows = (await db.prepare('SELECT * FROM content_analysis ORDER BY id').all()).results
+  const importBody = { schemaVersion: 'timeline-source-import-request.v1', workspaceId: 'release-workspace-a', analysisId: storedSource.analysisId, quote: storedSource.quote }
+  const matched = await request('/api/timeline-source-import', { method: 'POST', body: importBody })
+  assert.equal(matched.status, 200); assert.equal(matched.json.schemaVersion, 'timeline-source-import.v1')
+  assert.equal(matched.json.contentHash, sha256(storedSource.text)); assert.equal(matched.json.quoteHash, sha256(storedSource.quote))
+  assert.equal(matched.json.passage.quote, storedSource.quote)
+  assert.equal(matched.json.start, storedSource.text.indexOf(storedSource.quote)); assert.equal(matched.json.end, matched.json.start + storedSource.quote.length)
+  assert(matched.json.passage.locator.includes(matched.json.contentHash))
+  error(await request('/api/timeline-source-import', { method: 'POST', body: importBody, user: null }), 401, 'authentication_required')
+  error(await request('/api/timeline-source-import', { method: 'POST', body: importBody, user: 'viewer' }), 404, 'not_found')
+  error(await request('/api/timeline-source-import', { method: 'POST', body: importBody, user: 'other' }), 404, 'not_found')
+  error(await request('/api/timeline-source-import', { method: 'POST', body: { ...importBody, analysisId: storedSource.analysisId + 1 } }), 404, 'not_found')
+  error(await request('/api/timeline-source-import', { method: 'POST', body: { ...importBody, expectedContentHash: '0'.repeat(64) } }), 412, 'stale_revision')
+  assert.deepEqual((await db.prepare('SELECT * FROM content_analysis ORDER BY id').all()).results, sourceRows, 'Source resolver mutated stored content')
+  receipt.checks.push('compiled stored-source owner/private-workspace authorization, exact Unicode passage/hash, stale refusal and zero source writes')
   const createBody = { schemaVersion: 'timeline-artifact-create.v1', workspaceId: 'release-workspace-a', title: 'Production-schema rehearsal' }
   const payload = { schemaVersion: 'timeline-artifact-commit.v1', changes: [{ op: 'put', objectId: 'event:release.001', kind: 'event-candidate.v1', payload: { title: 'Synthetic candidate', description: null, eventDate: '2026-09', datePrecision: 'month' } }] }
   stage = 'compiled-http-create-auth'
@@ -272,6 +290,9 @@ try {
   stage = 'compiled-workspace-snapshot'
   const snapshot = { schemaVersion: 'timeline-workspace.v1', exportedAt: '2026-09-11T00:00:00.000Z', source: { schemaVersion: 'timeline-manual.v1', title: 'Complete workspace' }, analystWorkspace: { mode: 'robust', events: [{ id: 'event:unknown.1', title: 'Uncertain date', description: null, category: 'event', importance: 'normal', origin: 'analyst', assessment: 'disputed', analystNote: 'Keep uncertainty', modified: false, eventTime: '14:30:59' }], questions: [], hypotheses: [], narrative: { title: 'Complete account', framing: 'Preserve the whole workspace', question: '', intendedUse: '', scope: '', timezone: 'UTC', dataThrough: '', chapters: [] } } }
   snapshot.analystWorkspace.evidence = {"schemaVersion":"timeline-evidence.v1","sources":[{"id":"source:first","url":"https://example.test/first","title":"First report","publisher":"Fixture desk","publishedAt":"2026-09-01T10:00:00Z","retrievedAt":"2026-09-11T00:00:00Z"},{"id":"source:second","url":"https://other.example.test/second","title":"Conflicting report","publisher":"Other fixture desk"}],"assertions":[{"id":"assertion:first","sourceId":"source:first","claimText":"The source reported the meeting occurred in September.","temporalClaim":"September 2026","passage":{"id":"passage:first","quote":"The meeting took place in September.","locator":"paragraph 2"},"status":"active","derivesFrom":[],"reportedAt":"2026-09-01T10:00:00Z"},{"id":"assertion:contrary","sourceId":"source:second","claimText":"The second source reported October instead.","temporalClaim":"October 2026","passage":{"id":"passage:contrary","quote":"The meeting occurred in October.","locator":"paragraph 4"},"status":"active","derivesFrom":[]}],"links":[{"id":"link:support","eventId":"event:unknown.1","assertionId":"assertion:first","relation":"supports"},{"id":"link:contrary","eventId":"event:unknown.1","assertionId":"assertion:contrary","relation":"contradicts"}],"reviews":[]}
+  snapshot.analystWorkspace.evidence.sources.push(matched.json.source)
+  snapshot.analystWorkspace.evidence.assertions.push({ id: 'assertion:stored', sourceId: matched.json.source.id, claimText: 'The report describes a reopening.', temporalClaim: '', passage: matched.json.passage, status: 'active', derivesFrom: [] })
+  snapshot.analystWorkspace.evidence.links.push({ id: 'link:stored', eventId: 'event:unknown.1', assertionId: 'assertion:stored', relation: 'context' })
   const analysis = JSON.parse(await readFile(resolve(root, 'tests/fixtures/timeline-judgment-snapshot.json'), 'utf8'))
   analysis.judgments[0].contraryEvidenceRefs = ['assertion:contrary']
   analysis.reviews[0].basis = canonical(analysis.judgments[0])
@@ -340,7 +361,7 @@ try {
   receipt.staticGate = 'passed'; receipt.externalOutboundAttempts = outboundAttempts
   receipt.checks.push('compiled Pages ASSETS fallback matches built index and referenced static asset')
   assert.deepEqual(await collectManifest(db, receipt.tables.map(table => table.name)), receipt.tables, 'Compiled route rehearsal changed the database catalog')
-  receipt.checks.push('all 12 table catalogs remain unchanged after compiled human/service and static routes')
+  receipt.checks.push('all 13 source/timeline/credential table catalogs remain unchanged after compiled human/service and static routes')
   await save(receipt)
   console.log(JSON.stringify({ result: 'passed', schemaRehearsal: receipt.schemaRehearsal, compiledHttpGate: receipt.compiledHttpGate, staticGate: receipt.staticGate, affectedTables: receipt.tables.length, manifest: manifestPath }))
 } catch (error) {

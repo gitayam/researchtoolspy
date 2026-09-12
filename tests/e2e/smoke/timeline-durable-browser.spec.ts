@@ -1,15 +1,19 @@
 import { expect, test, type Page } from '@playwright/test'
 import { readFileSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
+import { createHash } from 'node:crypto'
 import { Miniflare } from 'miniflare'
 import { onRequestPost } from '../../../functions/api/timelines'
 import { onRequestGet, onRequestPatch } from '../../../functions/api/timelines/[id]'
 import { onRequestGet as objects } from '../../../functions/api/timelines/[id]/objects'
+import { onRequestPost as sourceImport } from '../../../functions/api/timeline-source-import'
 import { snapshotIdentity, prepareTimelineSave } from '../../../src/lib/timeline-durable'
 import { decodeTimelineWorkspace } from '../../../src/lib/timeline-workspace-codec'
 import type { TimelineWorkspaceExport } from '../../../src/types/timeline-workspace'
 
 const hash = 'browser-snapshot-human-0001'
+const storedSource = JSON.parse(readFileSync(new URL('../../fixtures/timeline-stored-source.json', import.meta.url), 'utf8'))
+const sourceDigest = (text: string) => createHash('sha256').update(text).digest('hex')
 const draftKey = 'researchtools.timeline.manual-draft.v1'
 function fixture(): TimelineWorkspaceExport {
   return decodeTimelineWorkspace(JSON.stringify({ schemaVersion: 'timeline-workspace.v1', exportedAt: '2026-09-11T12:00:00.000Z', source: { schemaVersion: 'timeline-manual.v1', title: 'Private browser investigation' }, analystWorkspace: {
@@ -29,11 +33,13 @@ async function bridge(page: Page, signedIn = true) {
     'CREATE TABLE users(id INTEGER PRIMARY KEY,user_hash TEXT UNIQUE,role TEXT NOT NULL,is_active INTEGER NOT NULL)',
     'CREATE TABLE workspaces(id TEXT PRIMARY KEY,owner_id INTEGER REFERENCES users(id),is_public INTEGER NOT NULL)',
     'CREATE TABLE workspace_members(id TEXT PRIMARY KEY,workspace_id TEXT REFERENCES workspaces(id),user_id INTEGER REFERENCES users(id),role TEXT NOT NULL)',
+    'CREATE TABLE content_analysis(id INTEGER PRIMARY KEY,user_id INTEGER,workspace_id TEXT,url TEXT,title TEXT,extracted_text TEXT,content_hash TEXT,expires_at TEXT,is_saved INTEGER,processing_status TEXT)',
     `INSERT INTO users VALUES(1,'${hash}','researcher',1)`,
     "INSERT INTO workspaces VALUES('browser-private',1,0),('browser-other',1,0)",
     ...sql('0011_timeline_foundation.sql'),
   ]) await db.prepare(query).run()
   await db.batch(sql('0012_timeline_workspace_snapshots.sql').map(s => db.prepare(s)))
+  await db.prepare("INSERT INTO content_analysis VALUES(?,1,'browser-private',?,?,?,?,NULL,1,'complete')").bind(storedSource.analysisId, storedSource.url, storedSource.title, storedSource.text, sourceDigest(storedSource.text)).run()
   const faults = { dropCreate: false, dropCommit: false, malformedRead: false }
   const calls: Array<{ method: string; body: string | null; key?: string; etag?: string; status: number; response: any }> = []
   await page.addInitScript(({ hash, signedIn }) => {
@@ -47,6 +53,10 @@ async function bridge(page: Page, signedIn = true) {
     const incoming = route.request(), url = new URL(incoming.url())
     if (!url.pathname.startsWith('/api/')) return route.continue()
     if (url.pathname === '/api/workspaces') return route.fulfill({ json: { owned: ['browser-private', 'browser-other'].map(id => ({ id, name: id === 'browser-private' ? 'Private investigation' : 'Other workspace', owner_id: 1, is_public: false, type: 'PERSONAL' })), member: [] } })
+    if (url.pathname === '/api/timeline-source-import') {
+      const response = await sourceImport({ request: new Request(url, { method: incoming.method(), headers: incoming.headers(), body: incoming.postData()! }), env: { DB: db } } as never)
+      return route.fulfill({ status: response.status, body: await response.text(), headers: Object.fromEntries(response.headers) })
+    }
     if (!url.pathname.startsWith('/api/timelines')) return route.fulfill({ json: {} })
     const request = new Request(url, { method: incoming.method(), headers: incoming.headers(), ...(incoming.postData() ? { body: incoming.postData()! } : {}) })
     const id = url.pathname.split('/')[3]
@@ -73,6 +83,69 @@ async function exported(page: Page) {
 async function saved(page: Page) { await expect(page.getByTestId('timeline-save-state')).toHaveText('Saved') }
 
 test.describe('durable browser with actual D1 routes @smoke', () => {
+  test('stored passage import survives private revisions without entering the browser draft', async ({ page }, testInfo) => {
+    test.setTimeout(120_000)
+    const b = await bridge(page)
+    try {
+      await page.goto('/dashboard/tools/timeline'); await importFixture(page)
+      await page.getByRole('button', { name: 'Save timeline', exact: true }).click(); await saved(page)
+      await page.reload(); await page.getByRole('button', { name: 'Open saved timeline', exact: true }).click(); await saved(page)
+      const raw = await page.evaluate(key => localStorage.getItem(key), draftKey)
+      const panel = page.getByTestId('evidence-event:unknown.1')
+      await panel.locator('summary').first().click()
+      const form = panel.getByRole('region', { name: 'Import stored passage' })
+      await form.getByLabel('Stored analysis ID', { exact: true }).fill(String(storedSource.analysisId))
+      await form.getByLabel('Exact stored quote', { exact: true }).fill(storedSource.quote)
+      await form.getByRole('button', { name: 'Check stored passage', exact: true }).click()
+      await expect(form.getByText('Matched to stored extraction', { exact: true })).toBeVisible()
+      await form.getByLabel('Imported assertion wording', { exact: true }).fill('The stored report describes a delivery reopening.')
+      await form.getByLabel('Imported assertion relation', { exact: true }).selectOption('supports')
+      await form.getByRole('button', { name: 'Import matched passage', exact: true }).click()
+      await expect(form.getByText('Stored passage imported', { exact: true })).toBeVisible()
+      const imported = await exported(page)
+      const assertion = imported.analystWorkspace.evidence!.assertions.find(item => item.passage.quote === storedSource.quote)!
+      expect(assertion.claimText).toBe('The stored report describes a delivery reopening.')
+      expect(assertion.passage.locator).toContain(sourceDigest(storedSource.text))
+      const start = storedSource.text.indexOf(storedSource.quote)
+      expect(assertion.passage.id).toBe(`passage:${storedSource.analysisId}:${sourceDigest(storedSource.text)}:${start}:${start + storedSource.quote.length}`)
+      expect(imported.analystWorkspace.events[0].assessment).toBe('disputed')
+      expect(await page.evaluate(key => localStorage.getItem(key), draftKey)).toBe(raw)
+      await page.getByRole('button', { name: 'Save changes', exact: true }).click(); await saved(page)
+      await page.reload(); await page.getByRole('button', { name: 'Open saved timeline', exact: true }).click(); await saved(page)
+      expect((await exported(page)).analystWorkspace.evidence).toEqual(imported.analystWorkspace.evidence)
+      await page.getByTestId('evidence-event:unknown.1').locator('summary').first().click()
+      const screenshot = testInfo.outputPath('stored-source-import.png')
+      await page.screenshot({ path: screenshot, fullPage: true, animations: 'disabled' })
+      await testInfo.attach('Stored source import', { path: screenshot, contentType: 'image/png' })
+      await page.evaluate(async () => { const { useAuthStore } = await import('/src/stores/auth.ts'); useAuthStore.setState({ isAuthenticated: false, user: null }) })
+      await expect(page.getByRole('button', { name: 'Export JSON', exact: true })).toHaveCount(0)
+      await expect(page.getByText(storedSource.quote, { exact: true })).toHaveCount(0)
+      expect(await page.evaluate(key => localStorage.getItem(key), draftKey)).toBe(raw)
+    } finally { await b.mf.dispose() }
+  })
+  test('stored passage changes after preview refuse import and preserve the open workspace', async ({ page }) => {
+    test.setTimeout(90_000)
+    const b = await bridge(page)
+    try {
+      await page.goto('/dashboard/tools/timeline'); await importFixture(page)
+      await page.getByRole('button', { name: 'Save timeline', exact: true }).click(); await saved(page)
+      await page.reload(); await page.getByRole('button', { name: 'Open saved timeline', exact: true }).click(); await saved(page)
+      const before = (await exported(page)).analystWorkspace
+      const panel = page.getByTestId('evidence-event:unknown.1')
+      await panel.locator('summary').first().click()
+      const form = panel.getByRole('region', { name: 'Import stored passage' })
+      await form.getByLabel('Stored analysis ID', { exact: true }).fill(String(storedSource.analysisId))
+      await form.getByLabel('Exact stored quote', { exact: true }).fill(storedSource.quote)
+      await form.getByRole('button', { name: 'Check stored passage', exact: true }).click()
+      await expect(form.getByText('Matched to stored extraction', { exact: true })).toBeVisible()
+      await form.getByLabel('Imported assertion wording', { exact: true }).fill('Review this changed report.')
+      const changed = storedSource.text + ' Updated later.'
+      await b.db.prepare('UPDATE content_analysis SET extracted_text=?,content_hash=? WHERE id=?').bind(changed,sourceDigest(changed),storedSource.analysisId).run()
+      await form.getByRole('button', { name: 'Import matched passage', exact: true }).click()
+      await expect(form.getByRole('alert')).toBeVisible()
+      expect((await exported(page)).analystWorkspace).toEqual(before)
+    } finally { await b.mf.dispose() }
+  })
   test('optional editor fields use the same JSON identity as durable saves', () => {
     const value = fixture(); value.analystWorkspace.events[0].chapterId = undefined
     expect(snapshotIdentity(value)).toBe(snapshotIdentity(prepareTimelineSave(value).snapshot))

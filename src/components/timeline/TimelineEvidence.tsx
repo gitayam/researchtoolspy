@@ -1,3 +1,4 @@
+import { TimelineSourceImport } from './TimelineSourceImport'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -5,14 +6,14 @@ import { Textarea } from '@/components/ui/textarea'
 import { emptyTimelineEvidence, timelineCorroboration, timelineEvidenceBasis, validateTimelineEvidence } from '@/lib/timeline-evidence'
 import type { TimelineEvidence as Evidence, TimelineWorkspaceEvent, TimelineEvidenceSource, TimelineSourceAssertion, TimelineEvidenceLink, TimelineEvidenceReview } from '@/types/timeline-workspace'
 
-interface Props { event: TimelineWorkspaceEvent; eventIds: string[]; evidence?: Evidence; onChange: (value: Evidence) => boolean }
+interface Props { sourceImportWorkspaceId?: string; event: TimelineWorkspaceEvent; eventIds: string[]; evidence?: Evidence; onChange: (value: Evidence) => boolean }
 const id = (prefix: string) => `${prefix}-${crypto.randomUUID()}`
 const selectStyle = 'min-h-10 w-full rounded border bg-background p-2 text-sm'
 const blankSource = { url: '', title: '', publisher: '', publishedAt: '', retrievedAt: '' }
 const blankAssertion = { claimText: '', temporalClaim: '', quote: '', locator: '', observedAt: '', reportedAt: '', derivesFrom: [] as string[] }
 
 /** Analyst-entered snapshots only. Source links never trigger an automatic fetch. */
-export function TimelineEvidence({ event, eventIds, evidence, onChange }: Props) {
+export function TimelineEvidence({ sourceImportWorkspaceId, event, eventIds, evidence, onChange }: Props) {
   const data = evidence ?? emptyTimelineEvidence()
   const [sourceId, setSourceId] = useState('')
   const [editingSource, setEditingSource] = useState<string | null>(null)
@@ -54,6 +55,7 @@ export function TimelineEvidence({ event, eventIds, evidence, onChange }: Props)
   return <details className="mt-3 min-w-0 rounded border p-3" data-testid={`evidence-${event.id}`}>
     <summary className="cursor-pointer font-medium">Evidence for {event.title} · {data.links.filter(item => item.eventId === event.id).length} assertions</summary>
     <div className="mt-3 space-y-4 break-words text-sm">
+      {sourceImportWorkspaceId ? <TimelineSourceImport workspaceId={sourceImportWorkspaceId} event={event} eventIds={eventIds} evidence={evidence} onChange={onChange} /> : <p>To import a stored Content Research passage, save this timeline to a private workspace, then reopen its saved link with write access.</p>}
       <p>Analyst-entered source assertions. Quotes, locators and derivation are recorded snapshots, not independently verified provenance. Event wording remains separate.</p>
       {(['supports', 'contradicts', 'context'] as const).map(group => <section key={group} aria-label={`${group} assertions`} className="space-y-2">
         <h4 className="font-semibold capitalize">{group}</h4>
