@@ -136,7 +136,7 @@ test.describe('Timeline narrative and import @smoke', () => {
     await expect(page.getByText('Add context or buildup before the turning point.')).toBeVisible()
     await page.getByRole('button', { name: 'Narrative view', exact: true }).click()
     const reader = page.getByRole('article', { name: 'Narrative presentation' })
-    await expect(reader.getByRole('heading', { level: 2 })).toHaveText('Reviewed account')
+    await expect(reader.getByRole('heading', { level: 2, name: 'Reviewed account', exact: true })).toBeVisible()
     await expect(reader.locator('ol > li > h3')).toHaveText(['Later event', 'First event'])
     const screenshot = testInfo.outputPath('narrative-reader.png')
     await page.screenshot({ path: screenshot, fullPage: true, animations: 'disabled' })
