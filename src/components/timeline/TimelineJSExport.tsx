@@ -17,7 +17,7 @@ function downloadJson(value: unknown, filename: string) {
   window.setTimeout(() => URL.revokeObjectURL(url), 0)
 }
 
-export function TimelineJSExport({ snapshot }: { snapshot: SnapshotInput }) {
+export function TimelineJSExport({ snapshot, savedRevision }: { snapshot: SnapshotInput & { exportedAt?: string }; savedRevision?: { revisionId: string; sequence: number } }) {
   const [preview, setPreview] = useState<{
     snapshot: TimelineWorkspaceExport
     signature: string
@@ -28,21 +28,21 @@ export function TimelineJSExport({ snapshot }: { snapshot: SnapshotInput }) {
   const stale = preview !== null && signature !== preview.signature
   const capture = () => {
     setPresenting(false)
-    const captured = { ...structuredClone(snapshot), exportedAt: new Date().toISOString() }
+    const captured = { ...structuredClone(snapshot), exportedAt: savedRevision && snapshot.exportedAt ? snapshot.exportedAt : new Date().toISOString() }
     setPreview({ snapshot: captured, signature, result: buildTimelineJSExport(captured) })
   }
   const download = (companion: boolean) => {
     if (!preview || stale || (!companion && preview.result.timeline.events.length === 0)) return
-    const suffix = preview.snapshot.exportedAt.replace(/[:.]/g, '-')
+    const suffix = `${savedRevision ? `revision-${savedRevision.sequence}-` : ''}${preview.snapshot.exportedAt.replace(/[:.]/g, '-')}`
     downloadJson(companion ? preview.snapshot : preview.result.timeline, `timeline-${companion ? 'researchtools' : 'timelinejs'}-${suffix}.json`)
   }
 
   return <Dialog open={preview !== null} onOpenChange={open => { if (open) capture(); else { setPreview(null); setPresenting(false) } }}>
-    <DialogTrigger asChild><Button variant="outline"><FileJson aria-hidden="true" className="mr-2 h-4 w-4" />Export TimelineJS</Button></DialogTrigger>
+    <DialogTrigger asChild><Button variant="outline"><FileJson aria-hidden="true" className="mr-2 h-4 w-4" />{savedRevision ? 'Preview saved revision' : 'Export TimelineJS'}</Button></DialogTrigger>
     {preview && <DialogContent className={`flex max-h-[90dvh] w-[calc(100%-1.5rem)] flex-col rounded-xl border-indigo-200 bg-white p-4 text-slate-950 sm:p-6 dark:border-indigo-800 dark:bg-slate-950 dark:text-slate-100 ${presenting && !stale ? 'h-[95dvh] max-h-[95dvh] max-w-6xl' : 'max-w-2xl'}`}>
       <DialogHeader className="shrink-0 pr-6 text-left">
-        <DialogTitle className="flex items-center gap-2 text-xl"><FileJson aria-hidden="true" className="h-5 w-5 text-indigo-600 dark:text-indigo-300" />TimelineJS export preview</DialogTitle>
-        <DialogDescription className="text-slate-600 dark:text-slate-300">{presenting && !stale ? 'Selected narrative · This does not publish a timeline.' : 'A presentation file of your selected narrative. Downloads stay on this device; this does not publish a timeline.'}</DialogDescription>
+        <DialogTitle className="flex items-center gap-2 text-xl"><FileJson aria-hidden="true" className="h-5 w-5 text-indigo-600 dark:text-indigo-300" />{savedRevision ? 'Saved revision preview' : 'TimelineJS export preview'}</DialogTitle>
+        <DialogDescription className="text-slate-600 dark:text-slate-300">{savedRevision ? `Saved revision ${savedRevision.sequence} · Selected narrative. This does not publish a timeline.` : presenting && !stale ? 'Selected narrative · This does not publish a timeline.' : 'A presentation file of your selected narrative. Downloads stay on this device; this does not publish a timeline.'}</DialogDescription>
       </DialogHeader>
       {presenting && !stale ? <>
         <Button variant="outline" className="w-fit shrink-0" onClick={() => setPresenting(false)}>Back to export details</Button>
@@ -52,8 +52,9 @@ export function TimelineJSExport({ snapshot }: { snapshot: SnapshotInput }) {
       <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-4 dark:border-indigo-800 dark:bg-indigo-950">
         <h3 className="break-words font-semibold">{preview.snapshot.analystWorkspace.narrative?.title || 'Untitled narrative'}</h3>
         <p className="mt-1 text-sm">{preview.result.timeline.events.length} exportable · {preview.result.selectedCount} selected · {preview.result.omitted.length} omitted</p>
-        <p className="mt-2 text-xs text-slate-600 dark:text-slate-300">Captured from the open workspace, including unsaved edits. Both files use this same snapshot.</p>
+        <p className="mt-2 text-xs text-slate-600 dark:text-slate-300">{savedRevision ? 'Captured from the last successfully saved or opened revision. Current unsaved edits are excluded. Both files use this same saved snapshot.' : 'Captured from the open workspace, including unsaved edits. Both files use this same snapshot.'}</p>
       </div>
+      {savedRevision && <p className="break-all text-xs text-slate-600 dark:text-slate-300">Revision ID: {savedRevision.revisionId}</p>}
       {stale && <div role="alert" className="rounded-lg border border-amber-500 bg-amber-50 p-3 text-sm text-amber-950 dark:bg-amber-950 dark:text-amber-100">
         <p>The workspace changed after this preview. Refresh it before downloading.</p>
         <Button className="mt-2 bg-indigo-700 text-white hover:bg-indigo-800" onClick={capture}>Refresh export preview</Button>

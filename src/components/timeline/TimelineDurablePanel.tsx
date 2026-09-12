@@ -5,6 +5,7 @@ import { useWorkspace } from '@/contexts/WorkspaceContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { TimelineJSExport } from './TimelineJSExport'
 import type { TimelineWorkspaceExport } from '@/types/timeline-workspace'
 import { DurableTimelineError, openSavedTimeline, parseSavedTimelineLink, prepareTimelineSave, saveTimelineAttempt, savedTimelineLink, snapshotIdentity, type DurableDocument, type SaveAttempt } from '@/lib/timeline-durable'
 
@@ -49,6 +50,7 @@ export function TimelineDurablePanel(props: Props) {
 }
 function WorkspaceSaving({ snapshot, onOpen, workspaceId, principalId, canWrite }: Props & { workspaceId: string; principalId: number; canWrite: boolean }) {
   const [artifact, setArtifact] = useState<DurableDocument | undefined>()
+  const [savedRevision, setSavedRevision] = useState<{ snapshot: TimelineWorkspaceExport; artifact: DurableDocument } | null>(null)
   const [savedIdentity, setSavedIdentity] = useState('')
   const [pending, setPending] = useState<SaveAttempt | null>(null)
   const [busy, setBusy] = useState(false)
@@ -74,6 +76,7 @@ function WorkspaceSaving({ snapshot, onOpen, workspaceId, principalId, canWrite 
     try {
       const saved = await saveTimelineAttempt(attempt, { principalId, workspaceId, headers: humanHeaders() }, abort.signal)
       if (abort.signal.aborted) return
+      setSavedRevision({ snapshot: structuredClone(attempt.snapshot), artifact: structuredClone(saved) })
       setArtifact(saved); setSavedIdentity(snapshotIdentity(attempt.snapshot)); setPending(null); setConflict(false)
       const link = savedTimelineLink(saved)
       setLinkInput(link)
@@ -96,7 +99,9 @@ function WorkspaceSaving({ snapshot, onOpen, workspaceId, principalId, canWrite 
       try {
         const loaded = await openSavedTimeline(target.artifactId, { principalId, workspaceId, headers: humanHeaders() }, abort.signal)
         if (abort.signal.aborted) return
+        const retained = { snapshot: structuredClone(loaded.snapshot), artifact: structuredClone(loaded.artifact) }
         onOpen(loaded.snapshot, { workspaceId, canWrite })
+        setSavedRevision(retained)
         setArtifact(loaded.artifact); setSavedIdentity(snapshotIdentity(loaded.snapshot)); setPending(null); setConflict(false)
         const link = savedTimelineLink(loaded.artifact); setLinkInput(link)
         window.history.replaceState(window.history.state, '', link)
@@ -112,6 +117,13 @@ function WorkspaceSaving({ snapshot, onOpen, workspaceId, principalId, canWrite 
       {artifact && <span className="self-center rounded-full border border-slate-300 bg-background px-3 py-1 text-xs font-medium dark:border-slate-600" data-testid="timeline-save-state">{dirty ? 'Unsaved changes' : 'Saved'}</span>}
     </div>
     {!canWrite && <p className="text-sm">You have read-only access to this workspace.</p>}
+    {savedRevision && <section aria-label="Saved revision presentation" className="min-w-0 space-y-3 rounded-lg border border-indigo-200 bg-background p-4 dark:border-indigo-900">
+      <h3 className="font-semibold text-indigo-900 dark:text-indigo-200">Saved revision {savedRevision.artifact.sequence}</h3>
+      <p className="break-words text-sm font-medium">{savedRevision.snapshot.analystWorkspace.narrative?.title || 'Untitled narrative'}</p>
+      <p className="break-all text-xs text-muted-foreground">Revision ID: {savedRevision.artifact.revisionId}</p>
+      <p className="text-sm leading-relaxed">Preview the last successfully saved or opened version. Current unsaved edits are excluded. Someone may have saved a newer version on the server. This version is kept in memory only; previewing does not publish it.</p>
+      <TimelineJSExport key={savedRevision.artifact.revisionId} snapshot={savedRevision.snapshot} savedRevision={{ revisionId: savedRevision.artifact.revisionId, sequence: savedRevision.artifact.sequence }} />
+    </section>}
     <div className="min-w-0 space-y-3 border-t border-slate-200 pt-4 dark:border-slate-700">
       <Label htmlFor="timeline-saved-link">Saved timeline link</Label>
       <Input id="timeline-saved-link" value={linkInput} onChange={event => setLinkInput(event.target.value)} placeholder="Paste a saved timeline link" />
