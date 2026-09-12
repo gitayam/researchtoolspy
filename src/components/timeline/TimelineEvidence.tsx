@@ -1,22 +1,27 @@
 import { TimelineSourceEvaluation } from './TimelineSourceEvaluation'
 import { TimelineSourceImport } from './TimelineSourceImport'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { FileSearch } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { emptyTimelineEvidence, timelineCorroboration, timelineEvidenceBasis, validateTimelineEvidence } from '@/lib/timeline-evidence'
+import { emptyTimelineEvidence, timelineCorroboration, timelineEvidenceBasis, timelineFinalSupportLoss, validateTimelineEvidence } from '@/lib/timeline-evidence'
 import type { TimelineEvidence as Evidence, TimelineWorkspaceEvent, TimelineEvidenceSource, TimelineSourceAssertion, TimelineEvidenceLink, TimelineEvidenceReview, TimelineAssertionEpistemicType } from '@/types/timeline-workspace'
 
-interface Props { sourceImportWorkspaceId?: string; event: TimelineWorkspaceEvent; eventIds: string[]; evidence?: Evidence; onChange: (value: Evidence) => boolean }
+interface Props { sourceImportWorkspaceId?: string; event: TimelineWorkspaceEvent; events: TimelineWorkspaceEvent[]; evidence?: Evidence; onChange: (value: Evidence) => boolean }
 const id = (prefix: string) => `${prefix}-${crypto.randomUUID()}`
 const selectStyle = 'min-h-10 w-full rounded border bg-background p-2 text-sm'
 const blankSource = { url: '', title: '', publisher: '', publishedAt: '', retrievedAt: '' }
 const blankAssertion = { epistemicType: '' as '' | TimelineAssertionEpistemicType, claimText: '', temporalClaim: '', quote: '', locator: '', observedAt: '', reportedAt: '', derivesFrom: [] as string[] }
 
 /** Analyst-entered snapshots only. Source links never trigger an automatic fetch. */
-export function TimelineEvidence({ sourceImportWorkspaceId, event, eventIds, evidence, onChange }: Props) {
+export function TimelineEvidence({ sourceImportWorkspaceId, event, events, evidence, onChange }: Props) {
   const data = evidence ?? emptyTimelineEvidence()
+  const eventIds = events.map(item => item.id)
+  const [pending, setPending] = useState<{ next: Evidence; baseline: string; titles: string[] } | null>(null)
+  const warningTrigger = useRef<HTMLElement | null>(null)
+  const currentContext = JSON.stringify({ evidence: data, events })
   const [sourceId, setSourceId] = useState('')
   const [editingSource, setEditingSource] = useState<string | null>(null)
   const [source, setSource] = useState(blankSource)
@@ -30,12 +35,28 @@ export function TimelineEvidence({ sourceImportWorkspaceId, event, eventIds, evi
   const [error, setError] = useState<string | null>(null)
   const gate = timelineCorroboration(evidence, event)
   const review = data.reviews.find(item => item.eventId === event.id)
-  function save(next: Evidence): boolean {
+  function save(next: Evidence, confirmed = false): boolean {
     try {
       validateTimelineEvidence(next, eventIds)
+      const affected = timelineFinalSupportLoss(data, next, events)
+      if (!confirmed && affected.length) {
+        warningTrigger.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+        setPending({ next, baseline: currentContext, titles: affected.map(item => item.title) })
+        setError(null)
+        return false
+      }
       if (!onChange(next)) { setError('Evidence was not saved. Check the timeline size limit.'); return false }
       setError(null); return true
     } catch { setError('Evidence was not saved. Check required fields, HTTP(S) URLs without credentials, ISO timestamps, limits and derivation references.'); return false }
+  }
+  function confirmSupportLoss() {
+    if (!pending) return
+    if (pending.baseline !== currentContext) {
+      setPending(null)
+      setError('The timeline changed while this warning was open. Nothing was applied. Try the action again to review its current impact.')
+      return
+    }
+    if (save(pending.next, true)) setPending(null)
   }
   function saveSource() {
     const value: TimelineEvidenceSource = { id: editingSource ?? id('source'), url: source.url.trim(), title: source.title.trim(), publisher: source.publisher.trim(), ...(source.publishedAt ? { publishedAt: source.publishedAt } : {}), ...(source.retrievedAt ? { retrievedAt: source.retrievedAt } : {}) }
@@ -118,6 +139,22 @@ export function TimelineEvidence({ sourceImportWorkspaceId, event, eventIds, evi
         <Button onClick={()=>{try {save({...data,reviews:[...data.reviews.filter(item=>item.eventId!==event.id),{eventId:event.id,independence,compatibility,rationale:rationale.trim(),reviewedAt:new Date().toISOString(),basis:timelineEvidenceBasis(data,event)}]})}catch{setError('This evidence basis exceeds the review limit.')}}}>Record review</Button>
         <p className="text-muted-foreground">Review records an analyst judgment. It does not certify the source or prove causation.</p>
       </fieldset>
+      <AlertDialog open={pending !== null} onOpenChange={open => { if (!open) setPending(null) }}>
+        <AlertDialogContent className="max-h-[85dvh] w-[calc(100%-2rem)] overflow-y-auto rounded-xl border-amber-300 dark:border-amber-800" onCloseAutoFocus={event => { event.preventDefault(); if (warningTrigger.current?.isConnected) warningTrigger.current.focus() }}>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove the final active support?</AlertDialogTitle>
+            <AlertDialogDescription>This change would leave these events with no active supporting assertion, including support through recorded ancestry.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <ul aria-label="Events losing final support" className="list-disc space-y-2 break-words rounded-lg border border-amber-200 bg-amber-50 p-4 pl-8 text-sm font-medium text-amber-950 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-100">
+            {pending?.titles.map((title, index) => <li key={index}>{title}</li>)}
+          </ul>
+          <p className="text-sm text-muted-foreground">This is more than a review needing renewal: no active support would remain. The saved corroborated assessment and earlier reviews stay recorded; the timeline will show that corroboration needs review.</p>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep support</AlertDialogCancel>
+            <AlertDialogAction onClick={event => { event.preventDefault(); confirmSupportLoss() }}>Apply change</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       {error && <p role="alert" className="text-red-600">{error}</p>}
     </div>
   </details>

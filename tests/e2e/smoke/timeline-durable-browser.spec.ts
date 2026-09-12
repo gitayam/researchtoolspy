@@ -104,6 +104,52 @@ async function exported(page: Page) {
 async function saved(page: Page) { await expect(page.getByTestId('timeline-save-state')).toHaveText('Saved') }
 
 test.describe('durable browser with actual D1 routes @smoke', () => {
+  test('final support warning preserves cancelled private data and confirmed immutable history', async ({ page }) => {
+    test.setTimeout(120_000)
+    const b = await bridge(page)
+    try {
+      const value = fixture()
+      value.analystWorkspace.events[0].assessment = 'corroborated'
+      value.analystWorkspace.evidence!.links[0].relation = 'supports'
+      await page.goto('/dashboard/tools/timeline'); await importFixture(page, value)
+      await page.getByRole('button', { name: 'Save timeline', exact: true }).click(); await saved(page)
+      await page.reload(); await page.getByRole('button', { name: 'Open saved timeline', exact: true }).click(); await saved(page)
+      const before = (await exported(page)).analystWorkspace
+      const initialVersion = await b.db.prepare('SELECT id, payload_json, content_hash FROM timeline_object_versions').first()
+      const panel = page.getByTestId('evidence-event:unknown.1')
+      await panel.locator('summary').first().click()
+      await panel.getByRole('button', { name: 'Retract assertion' }).click()
+      const dialog = page.getByRole('alertdialog')
+      await dialog.getByRole('button', { name: 'Keep support' }).click()
+      expect((await exported(page)).analystWorkspace).toEqual(before)
+      await saved(page)
+      const previousWrites = b.calls.filter(c => c.method === 'PATCH').length
+      await panel.getByRole('button', { name: 'Unlink assertion' }).click()
+      await dialog.getByRole('button', { name: 'Apply change' }).click()
+      const after = (await exported(page)).analystWorkspace
+      expect(after.evidence!.links).toEqual([])
+      expect(after.evidence!.assertions).toEqual(before.evidence!.assertions)
+      expect(after.evidence!.reviews).toEqual(before.evidence!.reviews)
+      expect(after.events).toEqual(before.events)
+      expect(b.calls.filter(c => c.method === 'PATCH')).toHaveLength(previousWrites)
+      await page.getByRole('button', { name: 'Save changes', exact: true }).click(); await saved(page)
+      await page.reload(); await page.getByRole('button', { name: 'Open saved timeline', exact: true }).click(); await saved(page)
+      expect((await exported(page)).analystWorkspace).toEqual(after)
+      expect(await b.db.prepare('SELECT id, payload_json, content_hash FROM timeline_object_versions WHERE id=?').bind(initialVersion!.id).first()).toEqual(initialVersion)
+      expect((await b.db.prepare('SELECT count(*) AS n FROM timeline_object_versions').first())?.n).toBe(2)
+      await page.getByTestId('evidence-event:unknown.1').locator('summary').first().click()
+      const reopened = page.getByTestId('evidence-event:unknown.1')
+      await reopened.getByLabel('Existing assertion', { exact: true }).selectOption('assertion:browser')
+      await reopened.getByRole('button', { name: 'Link assertion', exact: true }).click()
+      await reopened.getByRole('button', { name: 'Retract assertion' }).click()
+      await expect(dialog).toBeVisible()
+      // Access loss must unmount the private warning and its pending evidence.
+      await page.evaluate(async () => { const { useAuthStore } = await import('/src/stores/auth.ts'); useAuthStore.setState({ user: { ...useAuthStore.getState().user!, is_active: false } }) })
+      await expect(dialog).toHaveCount(0)
+      await expect(page.getByRole('button', { name: 'Export JSON', exact: true })).toHaveCount(0)
+    } finally { await b.mf.dispose() }
+  })
+
   test('source evaluations retain rationale and opening inputs through private save and narrative inspection', async ({ page }, testInfo) => {
     test.setTimeout(120_000)
     const b = await bridge(page)

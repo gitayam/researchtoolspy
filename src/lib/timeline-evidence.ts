@@ -94,6 +94,29 @@ export function timelineEvidenceBasis(evidence:TimelineEvidence,event:TimelineWo
   return canonical({event:claim,links:sort(links),assertions:sort([...selected.values()].map(assertion=>({...assertion,derivesFrom:assertion.derivesFrom.slice().sort()}))),sources:sort(evidence.sources.filter(source=>sourceIds.has(source.id)))})
 }
 
+function activeLineagePredicate(byId: ReadonlyMap<string, TimelineSourceAssertion>) {
+  const cache = new Map<string, boolean>()
+  function activeLineage(assertion: TimelineSourceAssertion): boolean {
+    const cached = cache.get(assertion.id)
+    if (cached !== undefined) return cached
+    const active = assertion.status === 'active' && assertion.derivesFrom.every(parent => activeLineage(byId.get(parent)!))
+    cache.set(assertion.id, active)
+    return active
+  }
+  return activeLineage
+}
+
+/** Inputs have passed evidence validation; this measures support loss, not truth or review currency. */
+export function timelineFinalSupportLoss(before: TimelineEvidence, after: TimelineEvidence, events: readonly TimelineWorkspaceEvent[]): TimelineWorkspaceEvent[] {
+  function supportedEvents(evidence: TimelineEvidence): Set<string> {
+    const byId = new Map(evidence.assertions.map(assertion => [assertion.id, assertion]))
+    const activeLineage = activeLineagePredicate(byId)
+    return new Set(evidence.links.filter(link => link.relation === 'supports' && activeLineage(byId.get(link.assertionId)!)).map(link => link.eventId))
+  }
+  const previouslySupported = supportedEvents(before), currentlySupported = supportedEvents(after)
+  return events.filter(event => event.assessment === 'corroborated' && previouslySupported.has(event.id) && !currentlySupported.has(event.id))
+}
+
 export function timelineCorroboration(evidence:TimelineEvidence|undefined,event:TimelineWorkspaceEvent):{eligible:boolean;reason:string} {
   const no=(reason:string)=>({eligible:false,reason})
   if(!evidence) return no('Add supporting assertions and review their independence.')
@@ -101,12 +124,7 @@ export function timelineCorroboration(evidence:TimelineEvidence|undefined,event:
   const byId=new Map(evidence.assertions.map(assertion=>[assertion.id,assertion])),sources=new Map(evidence.sources.map(source=>[source.id,source]))
   const links=evidence.links.filter(link=>link.eventId===event.id)
   if(links.some(link=>link.relation==='contradicts'&&byId.get(link.assertionId)!.status==='active')) return no('An active contradictory assertion remains.')
-  const activeCache=new Map<string,boolean>()
-  function activeLineage(assertion:TimelineSourceAssertion):boolean {
-    const cached=activeCache.get(assertion.id);if(cached!==undefined) return cached
-    const active=assertion.status==='active'&&assertion.derivesFrom.every(parent=>activeLineage(byId.get(parent)!))
-    activeCache.set(assertion.id,active);return active
-  }
+  const activeLineage=activeLineagePredicate(byId)
   const supports=links.filter(link=>link.relation==='supports'&&activeLineage(byId.get(link.assertionId)!)).map(link=>byId.get(link.assertionId)!)
   const lineageCache=new Map<string,Set<string>>()
   const lineageUrls=(assertion:TimelineSourceAssertion):Set<string>=>{
