@@ -178,6 +178,7 @@ function timelineMarkdown(
   workspaceOrigin: 'extracted' | 'manual',
   evidence?: Evidence,
   analysis?: Analysis,
+  allEvents: TimelineWorkspaceEvent[] = events,
 ): string {
   const lines = [
     `# ${result.article.title}`,
@@ -220,7 +221,7 @@ function timelineMarkdown(
     lines.push('', '## Analytic judgments and retained dissent', '', 'Likelihood uses a local verbal vocabulary. Analytical confidence is separate; reviewer labels are self-attributed, not verified identities.')
     for (const judgment of analysis.judgments) {
       lines.push('', `### ${judgment.claim}`, `Status: ${judgment.status}; as of ${judgment.asOf}; updated ${judgment.updatedAt}`, `Scope: ${judgment.scope}`, `Reasoning: ${judgment.reasoning}`, `Likelihood: ${judgment.likelihood.value} (${judgment.likelihood.vocabulary})`, `Analytical confidence: ${judgment.analyticConfidence}`, `Confidence basis: ${judgment.confidenceBasis}`, `Assumptions: ${judgment.assumptions.join('; ')}`, `Alternatives: ${judgment.alternatives.join('; ')}`, `Change indicators: ${judgment.changeIndicators.join('; ')}`, `Change reason: ${judgment.changeReason}`, `Event references: ${judgment.eventRefs.join(', ')}`, `Cited assertions: ${judgment.evidenceRefs.join(', ')}`, `Contrary assertions: ${judgment.contraryEvidenceRefs.join(', ')}`)
-      if (timelineJudgmentNeedsReview(judgment, events, evidence)) lines.push('Judgment inputs changed; review needed.')
+      if (timelineJudgmentNeedsReview(judgment, allEvents, evidence)) lines.push('Judgment inputs changed; review needed.')
       for (const assertion of evidence?.assertions.filter(item => judgment.evidenceRefs.includes(item.id) || judgment.contraryEvidenceRefs.includes(item.id)) ?? []) {
         const source = evidence!.sources.find(item => item.id === assertion.sourceId)!
         lines.push(`Source wording (${judgment.contraryEvidenceRefs.includes(assertion.id) ? 'contrary' : 'cited'}; ${assertion.status}): ${assertion.claimText}`, `Source: ${source.title} — ${source.url}`, `Quote: ${assertion.passage.quote}`, `Locator: ${assertion.passage.locator}`)
@@ -377,7 +378,7 @@ function TimelineWorkspace({
     if (copyResetRef.current !== null) window.clearTimeout(copyResetRef.current)
     try {
       if (!navigator.clipboard?.writeText) throw new Error('Clipboard API unavailable')
-      await navigator.clipboard.writeText(timelineMarkdown(result, displayedEvents, questions, hypotheses, workspaceOrigin, evidence, analysis))
+      await navigator.clipboard.writeText(timelineMarkdown(result, displayedEvents, questions, hypotheses, workspaceOrigin, evidence, analysis, events))
       setCopyStatus('copied')
     } catch {
       setCopyStatus('error')

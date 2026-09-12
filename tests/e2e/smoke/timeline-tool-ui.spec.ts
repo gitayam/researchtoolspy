@@ -197,7 +197,7 @@ test.describe('Timeline research tool @smoke', () => {
     await page.getByLabel('Date').fill('2026-02-31')
     await page.getByRole('dialog').getByLabel('Title', { exact: true }).fill('Analyst supplied precursor')
     await page.getByRole('button', { name: 'Save event' }).click()
-    await expect(page.getByRole('alert')).toContainText('Use a real date')
+    await expect(page.getByRole('dialog').getByRole('alert')).toContainText('Use a real date')
     await page.getByLabel('Date').fill('2026-09-01')
     await page.getByLabel('Description').fill('Added manually to test the suspected lead-up.')
     await page.getByRole('button', { name: 'Save event' }).click()

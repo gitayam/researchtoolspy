@@ -56,7 +56,7 @@ test.describe('timeline inspectable evidence @smoke', () => {
     await page.getByLabel('Assessment', { exact: true }).selectOption('corroborated')
     await page.getByRole('dialog').getByLabel('Title', { exact: true }).fill('Changed event claim')
     await page.getByRole('button', { name: 'Save event', exact: true }).click()
-    await expect(page.getByRole('alert')).toContainText('Corroboration needs a current')
+    await expect(page.getByRole('dialog').getByRole('alert')).toContainText('Corroboration needs a current')
     await page.getByRole('dialog').getByLabel('Title', { exact: true }).fill('Bridge opened')
     await page.getByRole('button', { name: 'Save event', exact: true }).click()
     const saved = await exported(page)

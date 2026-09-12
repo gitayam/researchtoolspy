@@ -14,12 +14,14 @@ const empty = (): TimelineJudgment => ({ id:`judgment-${crypto.randomUUID()}`,cl
 export function TimelineJudgments({ analysis, events, evidence, editable=false, onChange }: Props) {
   const data=analysis??emptyTimelineJudgments()
   const [editor,setEditor]=useState<TimelineJudgment|null>(null)
-  const [reviewing,setReviewing]=useState<string|null>(null)
+  const [reviewing,setReviewing]=useState<{ id: string; basis: string }|null>(null)
   const [reviewerLabel,setReviewerLabel]=useState('')
   const [position,setPosition]=useState<TimelineJudgmentReview['position']>('challenge')
   const [rationale,setRationale]=useState('')
   const [alternative,setAlternative]=useState('')
   const [error,setError]=useState<string|null>(null)
+  const reviewedJudgment=data.judgments.find(item=>item.id===reviewing?.id)
+  const draftVersionChanged=!!reviewing&&(!reviewedJudgment||timelineJudgmentReviewBasis(reviewedJudgment)!==reviewing.basis)
   function save(next:Analysis):boolean {
     try {
       validateTimelineJudgments(next,events,evidence)
@@ -36,9 +38,10 @@ export function TimelineJudgments({ analysis, events, evidence, editable=false, 
     }catch{setError('The referenced input basis is too large or invalid. Review the selected references.')}
   }
   function saveReview() {
-    const judgment=data.judgments.find(item=>item.id===reviewing)
+    const judgment=data.judgments.find(item=>item.id===reviewing?.id)
     if(!judgment||timelineJudgmentNeedsReview(judgment,events,evidence)){setError('Review cannot be recorded while judgment inputs need review. Edit and save the judgment first.');return}
-    const review:TimelineJudgmentReview={id:`review-${crypto.randomUUID()}`,judgmentId:judgment.id,reviewerLabel:reviewerLabel.trim(),position,rationale:rationale.trim(),alternative,createdAt:new Date().toISOString(),basis:timelineJudgmentReviewBasis(judgment)}
+    if(!reviewing||timelineJudgmentReviewBasis(judgment)!==reviewing.basis){setError('This judgment changed while the review was being drafted. Cancel and reopen the review after inspecting the new version.');return}
+    const review:TimelineJudgmentReview={id:`review-${crypto.randomUUID()}`,judgmentId:judgment.id,reviewerLabel:reviewerLabel.trim(),position,rationale:rationale.trim(),alternative,createdAt:new Date().toISOString(),basis:reviewing.basis}
     if(save({...data,reviews:[...data.reviews,review]})){setReviewing(null);setReviewerLabel('');setRationale('');setAlternative('')}
   }
   return <section aria-label={editable?'Analytic judgments':'Narrative judgments'} className="space-y-4 rounded-lg border p-4">
@@ -72,7 +75,7 @@ export function TimelineJudgments({ analysis, events, evidence, editable=false, 
           </article>)}
           {!data.reviews.some(review=>review.judgmentId===judgment.id)&&<p>No reviews recorded.</p>}
         </section>
-        {editable&&<div className="flex flex-wrap gap-2"><Button variant="outline" onClick={()=>{setEditor({...judgment,changeReason:''});setError(null)}}>Edit judgment</Button><Button variant="outline" onClick={()=>{setEditor({...judgment,status:judgment.status==='active'?'withdrawn':'active',changeReason:''});setError(null)}}>{judgment.status==='active'?'Withdraw judgment':'Restore judgment'}</Button><Button variant="outline" disabled={stale||data.reviews.length>=100} onClick={()=>{setReviewing(judgment.id);setError(null)}}>Add review or dissent</Button></div>}
+        {editable&&<div className="flex flex-wrap gap-2"><Button variant="outline" onClick={()=>{setEditor({...judgment,changeReason:''});setError(null)}}>Edit judgment</Button><Button variant="outline" onClick={()=>{setEditor({...judgment,status:judgment.status==='active'?'withdrawn':'active',changeReason:''});setError(null)}}>{judgment.status==='active'?'Withdraw judgment':'Restore judgment'}</Button><Button variant="outline" disabled={stale||data.reviews.length>=100||reviewing!==null} onClick={()=>{setReviewing({id:judgment.id,basis:timelineJudgmentReviewBasis(judgment)});setError(null)}}>Add review or dissent</Button></div>}
       </article>
     })}
     {editable&&<Button disabled={data.judgments.length>=50} onClick={()=>{setEditor(empty());setError(null)}}>Add analytic judgment</Button>}
@@ -86,11 +89,12 @@ export function TimelineJudgments({ analysis, events, evidence, editable=false, 
       <div className="flex gap-2"><Button onClick={saveJudgment}>Save judgment</Button><Button variant="outline" onClick={()=>setEditor(null)}>Cancel judgment edit</Button></div>
     </fieldset>}
     {editable&&reviewing&&<fieldset className="space-y-3 rounded border p-4" aria-label="Review editor"><legend>Append review or dissent</legend>
+      {draftVersionChanged&&<p role="status">This judgment changed while the review was being drafted. Your draft is retained. Cancel and reopen after inspecting the new version.</p>}
       <label className="block">Reviewer label (self-attributed)<Input aria-label="Reviewer label (self-attributed)" maxLength={200} value={reviewerLabel} onChange={e=>setReviewerLabel(e.target.value)}/></label>
       <label className="block">Review position<select aria-label="Review position" className={selectStyle} value={position} onChange={e=>setPosition(e.target.value as TimelineJudgmentReview['position'])}>{['agree','challenge','dissent'].map(v=><option key={v}>{v}</option>)}</select></label>
       <label className="block">Review rationale<Textarea aria-label="Review rationale" maxLength={4000} value={rationale} onChange={e=>setRationale(e.target.value)}/></label>
       <label className="block">Review alternative<Textarea aria-label="Review alternative" maxLength={4000} value={alternative} onChange={e=>setAlternative(e.target.value)}/></label>
-      <Button disabled={!!data.judgments.find(j=>j.id===reviewing&&timelineJudgmentNeedsReview(j,events,evidence))} onClick={saveReview}>Record judgment review</Button><Button variant="outline" onClick={()=>setReviewing(null)}>Cancel review</Button>
+      <Button disabled={draftVersionChanged||!reviewedJudgment||timelineJudgmentNeedsReview(reviewedJudgment,events,evidence)} onClick={saveReview}>Record judgment review</Button><Button variant="outline" onClick={()=>setReviewing(null)}>Cancel review</Button>
     </fieldset>}
     {error&&<p role="alert" className="text-red-600">{error}</p>}
   </section>
