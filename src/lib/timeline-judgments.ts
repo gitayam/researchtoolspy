@@ -24,7 +24,7 @@ function canonical(value:unknown):string {
   if(value&&typeof value==='object') return `{${Object.keys(value).sort().map(key=>`${JSON.stringify(key)}:${canonical((value as RecordValue)[key])}`).join(',')}}`
   return JSON.stringify(value)
 }
-function basis(value:unknown) {text(value,262144);try {if(canonical(JSON.parse(value))!==value) fail()} catch {fail()}}
+function basis(value:unknown):asserts value is string {text(value,262144);try {if(canonical(JSON.parse(value))!==value) fail()} catch {fail()}}
 function validateJudgment(value:unknown,events?:Set<string>,assertions?:Set<string>):asserts value is TimelineJudgment {
   const judgment=object(value,judgmentKeys)
   id(judgment.id)
