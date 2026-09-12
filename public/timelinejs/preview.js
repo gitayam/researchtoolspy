@@ -5,6 +5,7 @@
   if (window.parent === window || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(nonce)) return;
   var accepted = false;
   var finished = false;
+  var navigate = null;
   function signal(type) { window.parent.postMessage({ type: type, nonce: nonce }, '*'); }
   function fail() { throw new Error('Invalid presentation'); }
   function record(value, required, optional) {
@@ -70,11 +71,21 @@
     signal('timelinejs:error');
   }
   window.addEventListener('message', function (event) {
+    if (event.source === window.parent && event.data && event.data.type === 'timelinejs:navigate' && event.data.nonce === nonce) {
+      if (!navigate) return;
+      try {
+        var command = record(event.data, ['type', 'nonce', 'eventId']);
+        if (typeof command.eventId !== 'string') return;
+        navigate(command.eventId);
+      } catch (_) { /* Invalid commands and navigation failures expose no input or runtime details. */ }
+      return;
+    }
     if (accepted || event.source !== window.parent || !event.data || event.data.type !== 'timelinejs:render' || event.data.nonce !== nonce) return;
     try {
       var message = record(event.data, ['type', 'nonce', 'timeline', 'theme', 'startAtEnd']);
       if ((message.theme !== 'light' && message.theme !== 'dark') || typeof message.startAtEnd !== 'boolean') fail();
       var data = projection(message.timeline);
+      var allowedEventIds = new Set(data.events.map(function (item) { return item.unique_id; }));
       accepted = true;
       finished = false;
       document.documentElement.dataset.theme = message.theme;
@@ -116,6 +127,7 @@
         status.hidden = true;
         updateControls();
         controls.hidden = false;
+        navigate = function (id) { if (allowedEventIds.has(id)) timeline.goToId(id); };
         signal('timelinejs:loaded');
       });
       timeline.on('error', reportError);

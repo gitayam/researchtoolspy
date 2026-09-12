@@ -13,7 +13,7 @@ const nonce = 'bdc928fe-8cbf-4215-b5c8-e335b197aadb'
 function projection() {
   return { scale: 'human', title: { text: { headline: 'Title', text: '<p>Framing</p>' }, unique_id: 'narrative-title', autolink: false }, events: [{ start_date: { year: 2026, month: 9, day: 12 }, text: { headline: '&lt;script&gt;', text: '<p>Description</p><p><strong>Assessment:</strong> Unreviewed</p>' }, unique_id: 'event-safe%3Aid', display_date: '2026-09-12', group: 'Chapter [chapter:one]', autolink: false }] }
 }
-function harness(options: { standalone?: boolean; hash?: string; reduced?: boolean; throws?: boolean } = {}) {
+function harness(options: { standalone?: boolean; hash?: string; reduced?: boolean; throws?: boolean; navigationThrows?: boolean } = {}) {
   const messages: Array<{ data: any; target: string }> = []
   const instances: Array<{ target: string; data: any; options: any }> = []
   const handlers = new Map<string, () => void>()
@@ -29,6 +29,7 @@ function harness(options: { standalone?: boolean; hash?: string; reduced?: boole
   const document = { getElementById: (id: string) => nodes[id], documentElement: { dataset: {} as Record<string, string> } }
   let currentId = 'narrative-title'
   let previousCalls = 0, nextCalls = 0
+  const jumps: string[] = []
   class Timeline {
     constructor(target: string, data: any, config: any) {
       if (options.throws) throw new Error('Private content must not escape')
@@ -39,18 +40,78 @@ function harness(options: { standalone?: boolean; hash?: string; reduced?: boole
     getCurrentSlide() { return { data: { unique_id: currentId } } }
     goToPrev() { previousCalls++ }
     goToNext() { nextCalls++ }
+    goToId(id: string) {
+      if (options.navigationThrows) throw new Error('Private navigation error')
+      jumps.push(id)
+      currentId = id
+      handlers.get('change')?.()
+    }
   }
   const window: any = { parent, TL: { Timeline }, addEventListener: (type: string, handler: (event: any) => void) => listeners.set(type, handler), matchMedia: () => ({ matches: !!options.reduced }) }
   if (options.standalone) window.parent = window
   runInNewContext(bridge, { window, document, location: { hash: options.hash ?? `#${nonce}`, href: `https://research.example/timelinejs/preview.html#${nonce}` }, URL })
   const send = (data: any, source: any = parent) => listeners.get('message')?.({ data, source })
   const render = (timeline: any = projection()) => send({ type: 'timelinejs:render', nonce, timeline, theme: 'dark', startAtEnd: true })
-  return { messages, instances, handlers, status, document, send, render, controls, previous, next, position,
+  return { messages, instances, handlers, status, document, send, render, controls, previous, next, position, jumps,
     changeSlide: (id: string) => { currentId = id; handlers.get('change')?.() },
     navigationCalls: () => ({ previous: previousCalls, next: nextCalls }) }
 }
 
 test.describe('self-hosted TimelineJS renderer contract @smoke', () => {
+  test('navigation requires successful load, exact parent/nonce/fields and a frozen event ID', () => {
+    const frame = harness()
+    const command = { type: 'timelinejs:navigate', nonce, eventId: 'event-safe%3Aid' }
+    frame.send(command)
+    frame.render()
+    frame.send(command)
+    expect(frame.jumps).toEqual([])
+    frame.handlers.get('loaded')!()
+    const invalid = [
+      { ...command, nonce: 'stale-frame' },
+      { ...command, eventId: 'event-unknown' },
+      { ...command, eventId: 'narrative-title' },
+      { ...command, eventId: 'https://external.example/' },
+      { ...command, eventId: null },
+      { ...command, eventId: { unique_id: command.eventId } },
+      { ...command, extra: true },
+      { type: command.type, nonce },
+    ]
+    for (const value of invalid) frame.send(value)
+    frame.send(command, {})
+    expect(frame.jumps).toEqual([])
+    expect(frame.messages.map(item => item.data.type)).toEqual(['timelinejs:ready', 'timelinejs:loaded'])
+    frame.send(command)
+    expect(frame.jumps).toEqual([command.eventId])
+    expect(frame.position.textContent).toBe('Slide 2 of 2')
+    const failed = harness({ throws: true }); failed.render(); failed.send(command)
+    expect(failed.jumps).toEqual([])
+    expect(failed.messages.map(item => item.data.type)).toEqual(['timelinejs:ready', 'timelinejs:error'])
+  })
+
+  test('navigation distinguishes duplicate headlines, preserves bytes and contains runtime failures', () => {
+    const frame = harness(), data = projection()
+    data.events.push({ ...structuredClone(data.events[0]), unique_id: 'event-second' })
+    const original = JSON.stringify(data)
+    frame.render(data); frame.handlers.get('loaded')!()
+    frame.send({ type: 'timelinejs:navigate', nonce, eventId: 'event-second' })
+    frame.send({ type: 'timelinejs:navigate', nonce, eventId: 'event-safe%3Aid' })
+    expect(frame.jumps).toEqual(['event-second', 'event-safe%3Aid'])
+    expect(JSON.stringify(data)).toBe(original)
+    expect(JSON.parse(JSON.stringify(frame.instances[0].data))).toEqual(JSON.parse(original))
+    // Renderer-owned mutation cannot expand the navigation allowlist.
+    frame.instances[0].data.events.push({ ...frame.instances[0].data.events[0], unique_id: 'event-injected' })
+    frame.send({ type: 'timelinejs:navigate', nonce, eventId: 'event-injected' })
+    expect(frame.jumps).toHaveLength(2)
+    expect(JSON.stringify(data)).toBe(original)
+    const broken = harness({ navigationThrows: true }); broken.render(); broken.handlers.get('loaded')!()
+    const messages = JSON.stringify(broken.messages)
+    expect(() => broken.send({ type: 'timelinejs:navigate', nonce, eventId: 'event-safe%3Aid' })).not.toThrow()
+    expect(JSON.stringify(broken.messages)).toBe(messages)
+    expect(broken.status.hidden).toBe(true)
+    expect(broken.status.textContent).not.toContain('Private navigation error')
+    broken.previous.click()
+    expect(broken.navigationCalls().previous).toBe(1)
+  })
   test('pinned vendor artifacts and license provenance match committed byte hashes', () => {
     const manifest = JSON.parse(read(`${root}manifest.json`))
     expect(manifest.package).toBe('@knight-lab/timelinejs')
