@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { TimelineJSPreview } from './TimelineJSPreview'
 import { Download, FileJson, TriangleAlert } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
@@ -22,9 +23,11 @@ export function TimelineJSExport({ snapshot }: { snapshot: SnapshotInput }) {
     signature: string
     result: ReturnType<typeof buildTimelineJSExport>
   } | null>(null)
+  const [presenting, setPresenting] = useState(false)
   const signature = JSON.stringify(snapshot)
   const stale = preview !== null && signature !== preview.signature
   const capture = () => {
+    setPresenting(false)
     const captured = { ...structuredClone(snapshot), exportedAt: new Date().toISOString() }
     setPreview({ snapshot: captured, signature, result: buildTimelineJSExport(captured) })
   }
@@ -34,13 +37,17 @@ export function TimelineJSExport({ snapshot }: { snapshot: SnapshotInput }) {
     downloadJson(companion ? preview.snapshot : preview.result.timeline, `timeline-${companion ? 'researchtools' : 'timelinejs'}-${suffix}.json`)
   }
 
-  return <Dialog open={preview !== null} onOpenChange={open => open ? capture() : setPreview(null)}>
+  return <Dialog open={preview !== null} onOpenChange={open => { if (open) capture(); else { setPreview(null); setPresenting(false) } }}>
     <DialogTrigger asChild><Button variant="outline"><FileJson aria-hidden="true" className="mr-2 h-4 w-4" />Export TimelineJS</Button></DialogTrigger>
-    {preview && <DialogContent className="flex max-h-[90dvh] w-[calc(100%-1.5rem)] max-w-2xl flex-col rounded-xl border-indigo-200 bg-white p-4 text-slate-950 sm:p-6 dark:border-indigo-800 dark:bg-slate-950 dark:text-slate-100">
+    {preview && <DialogContent className={`flex max-h-[90dvh] w-[calc(100%-1.5rem)] flex-col rounded-xl border-indigo-200 bg-white p-4 text-slate-950 sm:p-6 dark:border-indigo-800 dark:bg-slate-950 dark:text-slate-100 ${presenting && !stale ? 'h-[95dvh] max-h-[95dvh] max-w-6xl' : 'max-w-2xl'}`}>
       <DialogHeader className="shrink-0 pr-6 text-left">
         <DialogTitle className="flex items-center gap-2 text-xl"><FileJson aria-hidden="true" className="h-5 w-5 text-indigo-600 dark:text-indigo-300" />TimelineJS export preview</DialogTitle>
-        <DialogDescription className="text-slate-600 dark:text-slate-300">A presentation file of your selected narrative. Downloads stay on this device; this does not publish a timeline.</DialogDescription>
+        <DialogDescription className="text-slate-600 dark:text-slate-300">{presenting && !stale ? 'Selected narrative · This does not publish a timeline.' : 'A presentation file of your selected narrative. Downloads stay on this device; this does not publish a timeline.'}</DialogDescription>
       </DialogHeader>
+      {presenting && !stale ? <>
+        <Button variant="outline" className="w-fit shrink-0" onClick={() => setPresenting(false)}>Back to export details</Button>
+        <TimelineJSPreview timeline={preview.result.timeline} snapshot={preview.snapshot} />
+      </> : <>
       <div className="min-h-0 space-y-4 overflow-y-auto" aria-label="Export details" role="region" tabIndex={0}>
       <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-4 dark:border-indigo-800 dark:bg-indigo-950">
         <h3 className="break-words font-semibold">{preview.snapshot.analystWorkspace.narrative?.title || 'Untitled narrative'}</h3>
@@ -61,6 +68,10 @@ export function TimelineJSExport({ snapshot }: { snapshot: SnapshotInput }) {
       </details>}
       {preview.result.timeline.events.length === 0 && <p role="status" className="text-sm font-medium">Select at least one event with a recorded absolute date to export TimelineJS.</p>}
       </div>
+      <div className="shrink-0 space-y-1">
+        <Button variant="outline" className="w-full border-indigo-400 text-indigo-800 dark:text-indigo-200" disabled={stale || preview.result.timeline.events.length === 0 || preview.result.timeline.events.length > 100} onClick={() => setPresenting(true)}>Open presentation</Button>
+        {preview.result.timeline.events.length > 100 && <p className="text-xs text-slate-600 dark:text-slate-300">Presentation supports up to 100 dated events. Narrow your narrative selection; JSON downloads retain all eligible events.</p>}
+      </div>
       <div className="grid shrink-0 gap-3 border-t border-slate-200 pt-4 dark:border-slate-700 sm:grid-cols-2">
         <div className="space-y-2">
           <Button className="w-full bg-indigo-700 text-white hover:bg-indigo-800" disabled={stale || preview.result.timeline.events.length === 0} onClick={() => download(false)}><Download aria-hidden="true" className="mr-2 h-4 w-4" />Download TimelineJS JSON</Button>
@@ -71,6 +82,7 @@ export function TimelineJSExport({ snapshot }: { snapshot: SnapshotInput }) {
           <p className="text-xs text-slate-600 dark:text-slate-300">Complete backup, including unselected events, evidence and review history. Keep it for reimport.</p>
         </div>
       </div>
+      </>}
     </DialogContent>}
   </Dialog>
 }

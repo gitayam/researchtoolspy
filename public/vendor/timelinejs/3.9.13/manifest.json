@@ -1,0 +1,40 @@
+{
+  "package": "@knight-lab/timelinejs",
+  "version": "3.9.13",
+  "license": "MPL-2.0",
+  "sourceCommit": "bdc928fe8cbf621575c8e335b197aadb0cfe1526",
+  "sourceUrl": "https://github.com/NUKnightLab/TimelineJS3/tree/bdc928fe8cbf621575c8e335b197aadb0cfe1526",
+  "tarballUrl": "https://registry.npmjs.org/@knight-lab/timelinejs/-/timelinejs-3.9.13.tgz",
+  "tarballIntegrity": "sha512-Bjf6LzJnfA947hUHOAfnYzPGRLZUOvXNn1za1FLyV88b/dFzxWeLA3KGpmK3oQGwx3aQRmoYPwkwcIUx6d9dqQ==",
+  "tarballSha256": "f5131f7f0dd8b06c80b44f1b00117c150329af13a26667ada03a645c6cd7f0bc",
+  "files": {
+    "timeline.js": {
+      "upstreamPath": "package/dist/js/timeline.js",
+      "bytes": 228361,
+      "sha256": "3d38229869a2d1d9f303626e141b02e9acd0fc972c1150bbf5b1e5655cc4d5b8"
+    },
+    "timeline.css": {
+      "upstreamPath": "package/dist/css/timeline.css",
+      "bytes": 96474,
+      "sha256": "bf78018d195b3b47e934585b78da0c0b620868c3f29b923164dcf302235484f4"
+    },
+    "LICENSE": {
+      "upstreamPath": "package/LICENSE",
+      "bytes": 15921,
+      "sha256": "af175b9d96ee93c21a036152e1b905b0b95304d4ae8c2c921c7609100ba8df7e"
+    },
+    "timeline.js.LICENSE.txt": {
+      "upstreamPath": "package/dist/js/timeline.js.LICENSE.txt",
+      "bytes": 190,
+      "sha256": "6572577ccf252e40df28082f49f8aa50ed979268e442ccd23f37d5c383591722"
+    }
+  },
+  "iconFont": {
+    "upstreamPath": "package/dist/css/icons/tl-icons.woff2",
+    "sha256": "a41eae68e05741f1af4b4c4df2f2ba19effaab7b3f74d8add8299ce799eb781e",
+    "bytes": 13452,
+    "localFile": "/timelinejs/preview-font.css",
+    "localFileSha256": "a339b06860a5b5c4e74c1f6236a94b5def469e1536c45a433c6884ee7a311907"
+  },
+  "notes": "Unmodified prebuilt JS/CSS. System text fonts; embedded unmodified icon font. Bundled DOMPurify3.4.12 distributed under its MPL-2.0 option; upstream notice retained. Corresponding source is available in the exact source commit and npm tarball. No CDN runtime dependency."
+}
