@@ -48,6 +48,8 @@ test.describe('TimelineJS presentation export @smoke', () => {
     for (const theme of ['light', 'dark']) {
       await page.evaluate(value => document.documentElement.classList.toggle('dark', value === 'dark'), theme)
       await expect(dialog).toBeVisible()
+      await expect(dialog.getByRole('button', { name: 'Download TimelineJS JSON', exact: true })).toBeInViewport()
+      await expect(dialog.getByRole('button', { name: 'Download ResearchTools JSON', exact: true })).toBeInViewport()
       expect(await dialog.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true)
       const path = testInfo.outputPath(`timelinejs-${theme}.png`)
       await dialog.screenshot({ path, animations: 'disabled', scale: 'css' })

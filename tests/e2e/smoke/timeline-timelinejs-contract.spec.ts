@@ -19,7 +19,7 @@ test.describe('TimelineJS selected narrative adapter @smoke', () => {
     expect(result.timeline).not.toHaveProperty('eras')
     expect(JSON.stringify(result.timeline)).not.toContain('excluded')
     expect(result.notices.join(' ')).toContain('TimelineJS sorts chronologically')
-    expect(result.notices.join(' ')).toContain('companion retains the complete workspace')
+    expect(result.notices.join(' ')).toContain('ResearchTools backup keeps all events')
   })
 
   test('preserves partial dates and recorded time precision without conversion or invented parts', () => {
@@ -36,7 +36,7 @@ test.describe('TimelineJS selected narrative adapter @smoke', () => {
       { year: 2026, month: 9, day: 12, hour: 23, minute: 59, second: 7 },
     ])
     expect(result.timeline.events[3].display_date).toBe('2026-09-12 00:03 (America/New_York)')
-    expect(result.notices.join(' ')).toContain('without timezone conversion')
+    expect(result.notices.join(' ')).toContain('does not encode a timezone or convert')
     expect(result.notices.join(' ')).toContain('year- or month-precision')
     const noZone = fixture([event('time', { eventTime: '12:00' })]); noZone.analystWorkspace.narrative!.timezone = ''
     expect(buildTimelineJSExport(noZone).timeline.events[0].display_date).toContain('timezone not recorded')

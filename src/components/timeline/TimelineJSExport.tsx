@@ -36,11 +36,12 @@ export function TimelineJSExport({ snapshot }: { snapshot: SnapshotInput }) {
 
   return <Dialog open={preview !== null} onOpenChange={open => open ? capture() : setPreview(null)}>
     <DialogTrigger asChild><Button variant="outline"><FileJson aria-hidden="true" className="mr-2 h-4 w-4" />Export TimelineJS</Button></DialogTrigger>
-    {preview && <DialogContent className="max-h-[90dvh] w-[calc(100%-1.5rem)] max-w-2xl overflow-y-auto rounded-xl border-indigo-200 bg-white p-4 text-slate-950 sm:p-6 dark:border-indigo-800 dark:bg-slate-950 dark:text-slate-100">
-      <DialogHeader className="pr-6 text-left">
+    {preview && <DialogContent className="flex max-h-[90dvh] w-[calc(100%-1.5rem)] max-w-2xl flex-col rounded-xl border-indigo-200 bg-white p-4 text-slate-950 sm:p-6 dark:border-indigo-800 dark:bg-slate-950 dark:text-slate-100">
+      <DialogHeader className="shrink-0 pr-6 text-left">
         <DialogTitle className="flex items-center gap-2 text-xl"><FileJson aria-hidden="true" className="h-5 w-5 text-indigo-600 dark:text-indigo-300" />TimelineJS export preview</DialogTitle>
         <DialogDescription className="text-slate-600 dark:text-slate-300">A presentation file of your selected narrative. Downloads stay on this device; this does not publish a timeline.</DialogDescription>
       </DialogHeader>
+      <div className="min-h-0 space-y-4 overflow-y-auto" aria-label="Export details" role="region" tabIndex={0}>
       <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-4 dark:border-indigo-800 dark:bg-indigo-950">
         <h3 className="break-words font-semibold">{preview.snapshot.analystWorkspace.narrative?.title || 'Untitled narrative'}</h3>
         <p className="mt-1 text-sm">{preview.result.timeline.events.length} exportable · {preview.result.selectedCount} selected · {preview.result.omitted.length} omitted</p>
@@ -59,7 +60,8 @@ export function TimelineJSExport({ snapshot }: { snapshot: SnapshotInput }) {
         <ul className="mt-2 max-h-40 space-y-2 overflow-y-auto">{preview.result.omitted.map(item => <li key={item.eventId} className="break-words"><strong>{item.title}</strong><span className="block text-slate-700 dark:text-slate-300">{item.reason}</span></li>)}</ul>
       </details>}
       {preview.result.timeline.events.length === 0 && <p role="status" className="text-sm font-medium">Select at least one event with a recorded absolute date to export TimelineJS.</p>}
-      <div className="grid gap-3 border-t border-slate-200 pt-4 dark:border-slate-700 sm:grid-cols-2">
+      </div>
+      <div className="grid shrink-0 gap-3 border-t border-slate-200 pt-4 dark:border-slate-700 sm:grid-cols-2">
         <div className="space-y-2">
           <Button className="w-full bg-indigo-700 text-white hover:bg-indigo-800" disabled={stale || preview.result.timeline.events.length === 0} onClick={() => download(false)}><Download aria-hidden="true" className="mr-2 h-4 w-4" />Download TimelineJS JSON</Button>
           <p className="text-xs text-slate-600 dark:text-slate-300">For a TimelineJS renderer. Cannot restore a ResearchTools workspace.</p>

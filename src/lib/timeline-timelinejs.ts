@@ -41,8 +41,8 @@ export function buildTimelineJSExport(snapshot: TimelineWorkspaceExport): Timeli
   const omitted: TimelineJSExport['omitted'] = []
   const notices = [
     'TimelineJS sorts chronologically; narrative sequence and transitions may change. Transitions are omitted.',
-    'This presentation is not round-trip. The matching ResearchTools companion retains the complete workspace, unselected events, evidence, retained review history and questions.',
-    'Chapter claims and narrative metadata other than title, framing, chapter labels and the displayed timezone are absent from this presentation.',
+    'This file cannot restore your workspace. The ResearchTools backup keeps all events, evidence, retained reviews and questions.',
+    'Title, framing, chapter labels and the displayed timezone are included. Other narrative metadata and chapter claims stay in the backup.',
   ]
   const events: TimelineJSEvent[] = []
   let hasTimes = false, omittedTimes = false
@@ -83,7 +83,7 @@ export function buildTimelineJSExport(snapshot: TimelineWorkspaceExport): Timeli
       autolink: false,
     })
   }
-  if (hasTimes) notices.push('Recorded times are exported as wallclock values without timezone conversion. The display label names the narrative timezone, or states that it was not recorded; TimelineJS date fields do not encode a timezone.')
+  if (hasTimes) notices.push('Times keep their recorded clock values and show the narrative timezone, or “timezone not recorded”. TimelineJS does not encode a timezone or convert these times.')
   if (omittedTimes) notices.push('Recorded times on year- or month-precision events are omitted because a complete day was not recorded.')
   return {
     timeline: {
