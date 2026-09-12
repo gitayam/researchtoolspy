@@ -48,7 +48,7 @@ export function TimelineSourceEvaluation({ evidence, assertion, onSave }: { evid
       <legend className="font-semibold">Evaluate this account</legend>
       {draft.basis !== currentBasis && <p role="status" className="text-amber-800 dark:text-amber-200">Source inputs changed while this draft was open. Saving retains the original inputs and marks the evaluation as needing review. Cancel and reopen to assess the current inputs.</p>}
       {factors.map(factor => <div key={factor.key} className="min-w-0 space-y-2 rounded border bg-background p-3">
-        <label className="block font-medium">{factor.label}<select className="mt-1 min-h-10 w-full rounded border bg-background p-2 text-sm" value={draft[factor.key].value} onChange={event => setDraft({ ...draft, [factor.key]: { ...draft[factor.key], value: event.target.value } } as Evaluation)}>{factor.values.map(value => <option key={value} value={value}>{label(value)}</option>)}</select></label>
+        <label className="block font-medium">{factor.label}<select aria-label={factor.label} className="mt-1 min-h-10 w-full rounded border bg-background p-2 text-sm" value={draft[factor.key].value} onChange={event => setDraft({ ...draft, [factor.key]: { ...draft[factor.key], value: event.target.value } } as Evaluation)}>{factor.values.map(value => <option key={value} value={value}>{label(value)}</option>)}</select></label>
         <p className="text-xs text-muted-foreground">{factor.help}</p>
         <label className="block text-sm">{factor.label} rationale<Textarea maxLength={1000} value={draft[factor.key].rationale} onChange={event => setDraft({ ...draft, [factor.key]: { ...draft[factor.key], rationale: event.target.value } })} /></label>
       </div>)}
