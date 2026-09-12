@@ -19,9 +19,9 @@
     if (/[<>]/.test(paragraphs ? value.replace(/<\/?(?:p|strong)>/g, '') : value)) fail();
     return value;
   }
-  function textBlock(value) {
+  function textBlock(value, headlineLimit) {
     record(value, ['headline', 'text']);
-    return { headline: text(value.headline, 6000, false), text: text(value.text, 131072, true) };
+    return { headline: text(value.headline, headlineLimit, false), text: text(value.text, 131072, true) };
   }
   function date(value) {
     record(value, ['year'], ['month', 'day', 'hour', 'minute', 'second']);
@@ -49,14 +49,14 @@
     var ids = new Set();
     return {
       scale: 'human',
-      title: { text: textBlock(value.title.text), unique_id: 'narrative-title', autolink: false },
+      title: { text: textBlock(value.title.text, 60000), unique_id: 'narrative-title', autolink: false },
       events: value.events.map(function (item) {
         record(item, ['start_date', 'text', 'unique_id', 'display_date', 'autolink'], ['group']);
         if (item.autolink !== false || typeof item.unique_id !== 'string' || item.unique_id.length > 606 || !item.unique_id.startsWith('event-') || ids.has(item.unique_id)) fail();
         var decoded = decodeURIComponent(item.unique_id.slice(6));
         if (!/^[A-Za-z0-9][A-Za-z0-9_.:-]{0,199}$/.test(decoded) || 'event-' + encodeURIComponent(decoded) !== item.unique_id) fail();
         ids.add(item.unique_id);
-        var copy = { start_date: date(item.start_date), text: textBlock(item.text), unique_id: item.unique_id, display_date: text(item.display_date, 1000, false), autolink: false };
+        var copy = { start_date: date(item.start_date), text: textBlock(item.text, 6000), unique_id: item.unique_id, display_date: text(item.display_date, 1000, false), autolink: false };
         if (item.group !== undefined) copy.group = text(item.group, 8000, false);
         return copy;
       })

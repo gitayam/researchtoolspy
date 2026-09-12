@@ -17,7 +17,7 @@ async function start(page: Page, value = fixture()) {
   await page.route('**/api/**', route => route.fulfill({ status: 200, json: { owned: [], member: [] } }))
   // Vite does not apply Pages _headers. Exercise the exact shipped inherited policy.
   for (const pattern of ['**/dashboard/tools/timeline', '**/timelinejs/preview.html*']) {
-    await page.route(pattern, async route => { const response = await route.fetch(); await route.fulfill({ response, headers: { ...response.headers(), 'content-security-policy': csp } }) })
+    await page.route(pattern, async route => { const response = await route.fetch(); await route.fulfill({ response, headers: { ...response.headers(), 'content-security-policy': csp, 'x-frame-options': 'SAMEORIGIN', 'x-content-type-options': 'nosniff' } }) })
   }
   await page.goto('/dashboard/tools/timeline')
   await page.getByLabel('Import timeline JSON').setInputFiles({ name: 'timeline.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(value)) })

@@ -2,6 +2,8 @@ import { test, expect } from '@playwright/test'
 import { readFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { runInNewContext } from 'node:vm'
+import { decodeTimelineWorkspace } from '../../../src/lib/timeline-workspace-codec'
+import { buildTimelineJSExport } from '../../../src/lib/timeline-timelinejs'
 
 const root = 'public/vendor/timelinejs/3.9.13/'
 const read = (path: string) => readFileSync(path, 'utf8')
@@ -69,6 +71,9 @@ test.describe('self-hosted TimelineJS renderer contract @smoke', () => {
     expect(createHash('sha256').update(bytes).digest('hex')).toBe(manifest.iconFont.sha256)
     expect(css).not.toMatch(/https?:\/\//)
     expect(read('public/timelinejs/preview.css')).toContain('prefers-reduced-motion')
+    const rootPolicy = read('public/_headers').match(/Content-Security-Policy:\s*([^\n]+)/)![1]
+    expect(rootPolicy.match(/(?:^|;)\s*frame-src\s+([^;]+)/)![1].trim()).toBe("'self'")
+    expect(rootPolicy.match(/(?:^|;)\s*font-src\s+([^;]+)/)![1].trim().split(/\s+/)).toContain('data:')
   })
 
   test('direct or invalid-nonce shells stay explanatory; messages require parent and nonce', () => {
@@ -93,7 +98,7 @@ test.describe('self-hosted TimelineJS renderer contract @smoke', () => {
     expect(frame.document.documentElement.dataset.theme).toBe('dark')
     const instance = frame.instances[0]
     expect(instance.target).toBe('timeline')
-    expect(JSON.stringify(instance.data)).toBe(original)
+    expect(JSON.parse(JSON.stringify(instance.data))).toEqual(JSON.parse(original))
     expect(instance.data).not.toBe(data)
     expect(instance.data.events[0].start_date).not.toBe(data.events[0].start_date)
     expect(instance.options).toMatchObject({ script_path: 'https://research.example/vendor/timelinejs/3.9.13/', font: null, theme: null, language: 'en', ga_measurement_id: null, ga_property_id: null, track_events: [], hash_bookmark: false, soundcite: false, start_at_end: true, duration: 0, timenav_height_min: 90, timenav_mobile_height_percentage: 30, slide_padding_lr: 24 })
@@ -106,6 +111,27 @@ test.describe('self-hosted TimelineJS renderer contract @smoke', () => {
     expect(frame.messages[1]).toEqual({ data: { type: 'timelinejs:loaded', nonce }, target: '*' })
     frame.handlers.get('loaded')!()
     expect(frame.messages).toHaveLength(2)
+    const snapshot = decodeTimelineWorkspace(JSON.stringify({
+      schemaVersion: 'timeline-workspace.v1', exportedAt: '2026-09-12T00:00:00Z',
+      source: { schemaVersion: 'timeline-manual.v1', title: 'Fixture' },
+      analystWorkspace: {
+        mode: 'basic', questions: [], hypotheses: [],
+        narrative: { title: '"'.repeat(10000), framing: '', question: '', intendedUse: '', scope: '', timezone: '', dataThrough: '', chapters: [] },
+        events: [{ id: 'event:one', title: '"'.repeat(1000), description: null, eventDate: '2026-09-12', datePrecision: 'day', category: 'event', importance: 'normal', origin: 'analyst', assessment: 'unreviewed', analystNote: '', modified: false, narrativeIncluded: true }]
+      }
+    }))
+    const boundary = buildTimelineJSExport(snapshot).timeline
+    expect(boundary.title.text.headline).toHaveLength(60000)
+    expect(boundary.events[0].text.headline).toHaveLength(6000)
+    const maxTitle = harness(); maxTitle.render(boundary)
+    expect(maxTitle.instances).toHaveLength(1)
+    const tooLongTitle = structuredClone(boundary); tooLongTitle.title.text.headline += 'x'
+    const rejectedTitle = harness(); rejectedTitle.render(tooLongTitle)
+    expect(rejectedTitle.instances).toHaveLength(0)
+    expect(rejectedTitle.messages[1].data.type).toBe('timelinejs:error')
+    const tooLongEvent = structuredClone(boundary); tooLongEvent.events[0].text.headline += 'x'
+    const rejectedEvent = harness(); rejectedEvent.render(tooLongEvent)
+    expect(rejectedEvent.instances).toHaveLength(0)
   })
 
   test('rejects URLs, extra payload structures, invalid dates/IDs, unsafe markup and oversized event sets', () => {
@@ -125,7 +151,7 @@ test.describe('self-hosted TimelineJS renderer contract @smoke', () => {
       value => { value.events.push(structuredClone(value.events[0])) },
       value => { value.events = [] },
       value => { value.events = Array.from({ length: 101 }, (_, index) => ({ ...value.events[0], unique_id: `event-${index}` })) },
-      value => { value.title.text.headline = 'x'.repeat(6001) },
+      value => { value.title.text.headline = 'x'.repeat(60001) },
       value => { value.events[0].text.text = 123 },
     ]
     for (const mutate of changes) {
