@@ -209,6 +209,82 @@ optional analysis field; recover with compatible code and preserve saved snapsho
 Verified source-store import, authenticated peer review, dedicated judgment services
 and later structured analysis remain separate roadmap work.
 
+## Stored Content Research passage import (partial TL-04)
+
+`POST /api/timeline-source-import` is a read-only resolver for an existing human's
+owned Content Research record in an exact private workspace. It does not create a
+Timeline revision or fetch a URL. The browser offers it only after opening a saved,
+writable private timeline; imported passages remain in memory until an explicit
+save or export. Automatic browser draft persistence is disabled for opened private
+timelines, and identity/workspace changes clear that content.
+
+Request:
+
+```json
+{
+  "schemaVersion": "timeline-source-import-request.v1",
+  "workspaceId": "private-workspace-id",
+  "analysisId": 771,
+  "quote": "Exact copied passage from the stored extraction.",
+  "expectedContentHash": "0000000000000000000000000000000000000000000000000000000000000000"
+}
+```
+
+`expectedContentHash` is optional during preview; replace the illustrative hash
+with the preview's `contentHash` when checking again before import. Unknown fields
+are rejected. The record ID is a positive safe integer, quote is nonblank and at
+most 4000 UTF-16 units, and the existing 64 KiB streaming request bound applies.
+Malformed Unicode, absent matches and multiple matches (including overlaps) are
+rejected. Offsets use UTF-16 units with an inclusive start and exclusive end.
+
+The resolver requires an existing active non-guest, non-service human identity,
+record ownership, exact workspace equality and current owner/EDITOR/ADMIN access
+to a private workspace other than the default workspace. The final source query
+checks these predicates together. It never provisions a guest. Service Timeline
+scopes do not grant access to this human-only Content Research store. An optional
+`X-Workspace-ID` header must match the body.
+
+Only complete `content_analysis.extracted_text` records of at most 102400 UTF-16
+units qualify. The recomputed UTF-8 SHA-256 must match the stored content hash.
+Truncated/chunked, missing, unfinished or hash-mismatched text is refused. Retained
+records must have `is_saved=1` and null expiry; unsaved records need a parseable
+strictly future expiry. Inconsistent states are rejected. No content chunks,
+editable evidence descriptions or alternative content-library store are used.
+
+Response `timeline-source-import.v1` contains `workspaceId`, `analysisId`,
+`contentHash`, `quoteHash`, `start`, `end`, `matchedAt`, `source` and `passage`.
+Source ID is `content:<analysisId>:<contentHash>`; passage ID is
+`passage:<analysisId>:<contentHash>:<start>:<end>`. The source carries bounded safe
+HTTP(S) URL/title/hostname publisher; uncertain publication and retrieval clocks
+are omitted. The passage retains the exact quote and a locator recording both
+hashes, range and match time.
+
+This proves a match to the stored extraction at the resolver read, not the truth
+of the source or independently authenticated historical provenance. The browser
+re-resolves with the expected hash before explicit import and requires separate
+analyst assertion wording and a supports/contradicts/context relation. It rejects
+conflicting source metadata and already-imported passage IDs, preserving existing
+assertions. Imports never assign corroboration, independence or confidence.
+
+The existing evidence snapshot format is unchanged: the locator is a recorded
+reference, not a signed receipt or a verified badge on imported JSON. Local JSON,
+Markdown and immutable private workspace revisions retain it through existing
+save/export paths. Generic authorized clients retain the existing whole-snapshot
+replacement permissions; no new append-only or source-authenticity guarantee is
+introduced.
+
+Responses use the Timeline artifact error envelope and `Cache-Control: no-store`.
+Missing/inaccessible records return 404 `not_found`; unsupported human identity
+returns 403 `human_identity_required`; missing credentials return 401
+`authentication_required`; unusable text/quote returns 400 `invalid_request`;
+bounds return 413 `limit_exceeded`; a changed expected hash returns 412
+`stale_revision`. The shared API middleware handles `OPTIONS` with its existing method and
+authentication/content header allowlist; that empty preflight is distinct from
+the resolver JSON response and does not carry its no-store header. No database migration, new credential or source-record mutation is needed.
+
+Broader source-store import, chunk reconstruction, authenticated peer review,
+dedicated judgment services and later roadmap checkpoints remain separate work.
+
 ## Scoped service access
 
 `timeline.read` grants all four GET routes: metadata, object pages, revision pages

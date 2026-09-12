@@ -30,3 +30,7 @@ The initial schema export returned an authentication error; reads and export ret
 The primary checkout was untouched. External authenticated worker lanes remain unqualified and were not bypassed. Previous deployment `a7bc3a1c-44ad-4cbf-bc53-d880fac3fd56` supports evidence but rejects the new optional analysis field. Prefer compatible recovery and preserve judgment/dissent/evidence snapshots and immutable history; do not strip new fields to satisfy an older codec.
 
 **TL-04 remains in progress.** Verified source-store import, dedicated judgment services and authenticated peer-review semantics remain separate work, along with the later structured-analysis roadmap. No cross-product handoff or later checkpoint is claimed.
+
+## Subsequent deployment
+
+The [stored-source import release](./2026-09-11-timeline-source-import-release-receipt.md) adds exact passage import from complete owned Content Research extractions into opened private timelines. Its receipt records the current deployment and checks; this document remains the historical judgment/dissent release. TL-04 is still partial.

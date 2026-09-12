@@ -8,13 +8,17 @@
 browser snapshots and independently scoped service read/write are deployed on both
 main refs with migrations 0011–0013. Existing service grants are unchanged. See the
 [service release receipt](./2026-09-11-timeline-service-release-receipt.md).
-The first two TL-04 slices are also deployed: analyst-entered source assertions,
+Three bounded TL-04 slices are also deployed: analyst-entered source assertions,
 passage snapshots, declared derivation, explicit corroboration review, scoped
-analytic judgments and retained self-attributed dissent. Likelihood and analytical
-confidence remain separate; reviews preserve the judgment version they addressed.
-TL-04 remains in progress: verified source-store import, dedicated judgment services
-and authenticated peer review are pending. See the [judgment release receipt](./2026-09-11-timeline-judgment-release-receipt.md)
-and preceding [evidence release receipt](./2026-09-11-timeline-evidence-release-receipt.md).
+analytic judgments, retained self-attributed dissent and exact passage import
+from complete owned Content Research extractions into opened private timelines.
+Likelihood and analytical confidence remain separate; reviews preserve the judgment
+version they addressed. Import verifies stored-text equality, not source truth or
+authenticated historical provenance. TL-04 remains in progress: broader source-store
+support, dedicated judgment services and authenticated peer review are pending.
+See the [source import release receipt](./2026-09-11-timeline-source-import-release-receipt.md),
+preceding [judgment release receipt](./2026-09-11-timeline-judgment-release-receipt.md)
+and [evidence release receipt](./2026-09-11-timeline-evidence-release-receipt.md).
 The remaining proposed capabilities below are not shipped merely because their
 contracts are described here.
 Delivery checkpoints and dependency corrections are maintained in the
@@ -124,7 +128,7 @@ Audited against the Signal, RSS, and ResearchTools implementations on
 | Signal story command | `!story <topic>` and `Story: <label>` | The latest 30 of the matching canonical events, corpus coverage, related topics, analysis state, and an RSS story link | Read-only query over the shared community graph |
 | RSS article page | `Article timeline`, `Build this article’s timeline`, `Generate timeline`, or `Try timeline again` | A compact article summary, date/title events, importance marks, key actors, gaps, and questions when at least three dated events exist | Stored article display blob produced by the Signal pipeline; the action already invokes the same server workflow as `!timeline` |
 | RSS story page | `Story so far`, with `Timeline` in the page contents | Cross-article canonical events grouped into periods, source counts, entities, oldest/latest sort, search/filter controls, freshness checks, and source-corpus coverage | Read-only community record from Signal/Postgres; it is not yet an editorial narrative |
-| ResearchTools dedicated tool | `Timeline Analysis`, `Start with what you know`, `Extract an article`, `Save timeline`, and `Open saved timeline` | Immutable extraction, Basic/Robust analyst workspace, narrative chapters, source assertions, analytic judgments, retained dissent, gaps, questions, findings, AI suggestions, sort and jump navigation | Local drafts for guests; complete private immutable workspace snapshots up to 60 KiB for active humans, with revision guards and saved links. Scoped service APIs are available with separately assigned read/write grants. |
+| ResearchTools dedicated tool | `Timeline Analysis`, `Start with what you know`, `Extract an article`, `Save timeline`, and `Open saved timeline` | Immutable extraction, Basic/Robust analyst workspace, narrative chapters, source assertions, owned stored-passage import, analytic judgments, retained dissent, gaps, questions, findings, AI suggestions, sort and jump navigation | Local drafts for guests; complete private immutable workspace snapshots up to 60 KiB for active humans, with revision guards and saved links. Scoped service APIs are available with separately assigned read/write grants. |
 | ResearchTools Content Research | `Create a source-backed timeline`, `Generate Timeline`, and `Open Dedicated Tool` | The same ResearchTools timeline workspace, using already-extracted article text | Analysis entry point; avoids a second fetch but does not create a community story event |
 | ResearchTools planning | No dedicated planning surface today | No objectives, scheduled work, dependencies, assignments, baselines, or plan-versus-actual view | Explicitly unimplemented; future Plan view belongs to a durable investigation artifact and must not be inferred from forecast events |
 | ResearchTools ACH and Cross Table | Separate hypothesis/evidence scoring and generic decision matrices | ACH stores hypotheses, evidence links, integer consistency scores, and derived diagnosticity/likelihood displays; Cross Table supports options, criteria, several scoring scales, weighting, sensitivity, and Delphi rounds | Useful presentation/calculation components, but neither is linked to immutable timeline revisions, knowledge cutoffs, source assertions, collection coverage, or semantic fork/merge |

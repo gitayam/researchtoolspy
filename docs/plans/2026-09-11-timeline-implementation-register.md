@@ -2,7 +2,7 @@
 
 Date: 2026-09-11
 
-Status: TL-00, TL-02 and TL-03 released. Human APIs, complete browser snapshots and scoped service read/write are deployed. Both main refs contain the accepted release; production migrations 0011–0013 are applied. Existing service credentials and grants are unchanged. TL-04 source assertions, corroboration review, analytic judgments and retained dissent are also deployed; TL-04 remains in progress.
+Status: TL-00, TL-02 and TL-03 released. Human APIs, complete browser snapshots and scoped service read/write are deployed. Both main refs contain the accepted release; production migrations 0011–0013 are applied. Existing service credentials and grants are unchanged. TL-04 source assertions, corroboration review, analytic judgments, retained dissent and owned stored-passage import are also deployed; TL-04 remains in progress.
 
 This register translates the [platform roadmap](./2026-09-11-timeline-evidence-narrative-roadmap.md)
 into independently verifiable releases. Each checkpoint includes API behavior,
@@ -54,7 +54,7 @@ Current delivery state (2026-09-11):
   and compiled routes. Transaction-time revocation, rotation and malformed-timestamp
   cases additionally pass the actual-D1 race tests.
   No production credential was created or widened.
-- **TL-04: in progress; source assertions, judgments and retained dissent deployed.**
+- **TL-04: in progress; source assertions, judgments, dissent and stored-passage import deployed.**
   Analyst-entered source claims, quote/locator snapshots, supporting/contrary/context
   links, recorded derivation and retractions survive local and durable snapshots.
   Corroboration requires a current independence/compatibility review and disjoint
@@ -64,14 +64,21 @@ Current delivery state (2026-09-11):
   references, with qualitative likelihood separate from analytical confidence.
   Self-attributed reviews/dissent retain complete reviewed versions; stale-input
   notices, frozen review drafts and cited-event deletion guards preserve context.
-  All 109 API/contract checks, 66 browser checks, five type checks and compiled
-  release gates pass. No database migration was required. Verified source-store
-  import, dedicated judgment services and authenticated peer review remain pending;
-  manual snapshots are not verified provenance or append-only review permissions.
+  Opened private timelines can now import an exact passage from a complete owned
+  Content Research extraction in the same workspace. The resolver checks current
+  access, retention, full-text hash and unique quote match; the recorded locator
+  preserves hashes and UTF-16 offsets. Preview is rechecked before import, and
+  private passages never enter automatic browser drafts. All 116 API/contract
+  checks, 72 browser checks, five type checks and compiled release gates pass.
+  No database migration was required. Broader source-store support, dedicated
+  judgment services and authenticated peer review remain pending. Stored-text
+  equality is not source truth, authenticated historical provenance or append-only
+  review permission.
 - **TL-01 and TL-05–TL-18: pending.** No delivery of these checkpoints or cross-app changes is claimed.
 
-See the [judgment release receipt](./2026-09-11-timeline-judgment-release-receipt.md)
-for the current partial TL-04 deployment and the [evidence release receipt](./2026-09-11-timeline-evidence-release-receipt.md)
+See the [source import release receipt](./2026-09-11-timeline-source-import-release-receipt.md)
+for the current partial TL-04 deployment, the [judgment release receipt](./2026-09-11-timeline-judgment-release-receipt.md)
+for judgments/dissent, and the [evidence release receipt](./2026-09-11-timeline-evidence-release-receipt.md)
 for its preceding source-assertion slice. See the [service release receipt](./2026-09-11-timeline-service-release-receipt.md)
 for current scoped-service deployment. See the [browser release receipt](./2026-09-11-timeline-browser-release-receipt.md)
 for the earlier snapshot release and its limits. See the [release receipt](./2026-09-11-timeline-release-receipt.md) for main pushes,
