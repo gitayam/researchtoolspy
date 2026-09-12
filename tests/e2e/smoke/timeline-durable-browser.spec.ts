@@ -529,6 +529,8 @@ test.describe('durable browser with actual D1 routes @smoke', () => {
       value.analystWorkspace.events[0].placement = { mode: 'absolute' }
       value.analystWorkspace.events[0].eventDate = '2024-01-02'
       value.analystWorkspace.events[0].datePrecision = 'day'
+      value.analystWorkspace.events[0].narrativeIncluded = true
+      value.analystWorkspace.events[0].narrativeOrder = 0
       await page.goto('/dashboard/tools/timeline'); await importFixture(page, value)
       await expect(page.getByRole('button', { name: 'Preview saved revision', exact: true })).toHaveCount(0)
       await page.getByRole('button', { name: 'Save timeline', exact: true }).click(); await saved(page)
@@ -584,6 +586,8 @@ test.describe('durable browser with actual D1 routes @smoke', () => {
       await page.screenshot({ path: info.outputPath('durable-saving.png'), fullPage: true, scale: 'css' })
       await page.getByLabel('Saving workspace', { exact: true }).selectOption('browser-other')
       await expect(page.getByRole('button', { name: 'Export JSON', exact: true })).toHaveCount(0)
+      await expect(page.getByRole('button', { name: 'Preview saved revision', exact: true })).toHaveCount(0)
+      await expect(page.getByRole('dialog', { name: 'Saved revision preview', exact: true })).toHaveCount(0)
       expect(await page.evaluate(key => localStorage.getItem(key), draftKey)).toBe(raw)
     } finally { await b.mf.dispose() }
   })
