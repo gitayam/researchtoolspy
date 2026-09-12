@@ -83,7 +83,12 @@ test.describe('recent owned source candidates actual D1 @smoke',()=>{
       const {mf,db}=await setup()
       try {
         let reads=0
-        const wrapped={prepare:(sql:string)=>{const prepared=db.prepare(sql);if(!sql.includes('WITH authorized')) return prepared;expect(sql).not.toContain('extracted_text');expect(sql).not.toContain('content_chunks');return {bind:(...args:any[])=>({all:async()=>{reads++;await db.prepare(mutation).run();return prepared.bind(...args).all()}})}} as unknown as D1Database
+        const wrapped={prepare:(sql:string)=>{
+          const prepared=db.prepare(sql)
+          if(!sql.includes('WITH authorized')) return prepared
+          expect(sql).not.toContain('extracted_text');expect(sql).not.toContain('content_chunks')
+          return {bind:(...args:any[])=>({all:async()=>{reads++;await db.prepare(mutation).run();return prepared.bind(...args).all()}})}
+        }} as unknown as D1Database
         expect((await call(wrapped)).status).toBe(404);expect(reads).toBe(1)
       } finally {await mf.dispose()}
     }
