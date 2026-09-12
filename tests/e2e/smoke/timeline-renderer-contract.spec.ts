@@ -1,3 +1,4 @@
+import { timelineRendererShell } from '../../../scripts/timeline-renderer-shell.mjs'
 import { test, expect } from '@playwright/test'
 import { readFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
@@ -58,11 +59,14 @@ test.describe('self-hosted TimelineJS renderer contract @smoke', () => {
   test('shell declares restrictive CSP, local load ordering and only embedded icon fonts', () => {
     const html = read('public/timelinejs/preview.html')
     const csp = html.match(/http-equiv="Content-Security-Policy" content="([^"]+)"/)![1]
-    for (const directive of ["default-src 'none'", "script-src 'self'", "style-src 'self' 'unsafe-inline'", 'font-src data:', 'img-src data:', "connect-src 'none'", "frame-src 'none'", "object-src 'none'", "base-uri 'none'", "form-action 'none'"]) expect(csp).toContain(directive)
+    for (const directive of ["default-src 'none'", "style-src 'unsafe-inline'", 'font-src data:', 'img-src data:', "connect-src 'none'", "frame-src 'none'", "object-src 'none'", "base-uri 'none'", "form-action 'none'"]) expect(csp).toContain(directive)
     expect(csp).not.toContain('unsafe-eval')
-    expect(html.match(/<script[^>]*>/g)).toEqual(['<script defer src="/vendor/timelinejs/3.9.13/timeline.js">', '<script defer src="/timelinejs/preview.js">'])
-    expect(html.indexOf('/timelinejs/preview-font.css')).toBeGreaterThan(html.indexOf('/vendor/timelinejs/3.9.13/timeline.css'))
-    expect(html.indexOf('/timelinejs/preview.css')).toBeGreaterThan(html.indexOf('/timelinejs/preview-font.css'))
+    const scripts = [read(`${root}timeline.js`), bridge]
+    const styles = [read(`${root}timeline.css`), read('public/timelinejs/preview-font.css'), read('public/timelinejs/preview.css')]
+    expect(html).toBe(timelineRendererShell({ scripts, styles }))
+    expect([...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(match => match[1])).toEqual(scripts)
+    expect(csp.match(/script-src ([^;]+)/)![1]).toBe(scripts.map(value => `'sha256-${createHash('sha256').update(value).digest('base64')}'`).join(' '))
+    expect(html).not.toMatch(/<(?:script|link)[^>]+(?:src|href)=/)
     expect(html).toContain('content="no-referrer"')
     const manifest = JSON.parse(read(`${root}manifest.json`)), css = read('public/timelinejs/preview-font.css')
     expect(createHash('sha256').update(css).digest('hex')).toBe(manifest.iconFont.localFileSha256)

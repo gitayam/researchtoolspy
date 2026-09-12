@@ -14,14 +14,24 @@ function fixture(count = 4): TimelineWorkspaceExport {
   } }
 }
 async function start(page: Page, value = fixture()) {
-  await page.route('http://127.0.0.1:5189/api/**', route => route.fulfill({ status: 200, json: { owned: [], member: [] } }))
-  // Vite does not apply Pages _headers. Exercise the exact shipped inherited policy.
-  for (const pattern of ['**/dashboard/tools/timeline', '**/timelinejs/preview.html*']) {
-    await page.route(pattern, async route => { const response = await route.fetch(); await route.fulfill({ response, headers: { ...response.headers(), 'content-security-policy': csp, 'x-frame-options': 'SAMEORIGIN', 'x-content-type-options': 'nosniff' } }) })
-  }
-  await page.goto('/dashboard/tools/timeline')
+  // A public HTTPS origin exercises opaque-frame loading without Chromium's
+  // localhost-only network-access restriction. All bytes come from isolated Vite.
+  await page.route('https://timeline.example/**', async route => {
+    const url = new URL(route.request().url())
+    const response = await route.fetch({ url: `http://127.0.0.1:5189${url.pathname}${url.search}` })
+    const headers = { ...response.headers() }
+    if (url.pathname === '/dashboard/tools/timeline' || url.pathname === '/timelinejs/preview.html') {
+      headers['content-security-policy'] = csp
+      headers['x-frame-options'] = 'SAMEORIGIN'
+      headers['x-content-type-options'] = 'nosniff'
+    }
+    await route.fulfill({ response, headers })
+  })
+  await page.route('https://timeline.example/api/**', route => route.fulfill({ status: 200, json: { owned: [], member: [] } }))
+  await page.goto('https://timeline.example/dashboard/tools/timeline')
   await page.getByLabel('Import timeline JSON').setInputFiles({ name: 'timeline.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(value)) })
 }
+
 async function exported(page: Page) {
   const pending = page.waitForEvent('download')
   await page.getByRole('button', { name: 'Export JSON', exact: true }).click()
@@ -83,7 +93,7 @@ test.describe('Self-hosted TimelineJS renderer @smoke', () => {
       await dialog.screenshot({ path, scale: 'css', animations: 'disabled' })
       await testInfo.attach(`Renderer ${theme}`, { path, contentType: 'image/png' })
     }
-    expect(requests.slice(boundary).filter(url => new URL(url).origin !== 'http://127.0.0.1:5189')).toEqual([])
+    expect(requests.slice(boundary).filter(url => new URL(url).origin !== 'https://timeline.example')).toEqual([])
     await page.getByRole('button', { name: 'Back to export details', exact: true }).click()
     await expect(iframe).toHaveCount(0)
     await page.keyboard.press('Escape')
@@ -95,11 +105,11 @@ test.describe('Self-hosted TimelineJS renderer @smoke', () => {
   test('blocked renderer can retry and stale workspace removes the frame', async ({ page }) => {
     test.setTimeout(90_000)
     await start(page)
-    await page.route('**/vendor/timelinejs/3.9.13/timeline.js', route => route.abort())
+    await page.route('**/timelinejs/preview.html*', route => route.abort())
     await page.getByRole('button', { name: 'Export TimelineJS', exact: true }).click()
     await page.getByRole('button', { name: 'Open presentation', exact: true }).click()
     await expect(page.getByRole('alert')).toContainText('Presentation could not load', { timeout: 15000 })
-    await page.unroute('**/vendor/timelinejs/3.9.13/timeline.js')
+    await page.unroute('**/timelinejs/preview.html*')
     await page.getByRole('button', { name: 'Retry presentation', exact: true }).click()
     await expect(page.getByText('TimelineJS presentation loaded', { exact: true })).toBeAttached()
     await page.getByRole('button', { name: 'Move Early <report> earlier in narrative', includeHidden: true }).evaluate(element => (element as HTMLButtonElement).click())
