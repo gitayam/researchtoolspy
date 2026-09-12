@@ -42,6 +42,59 @@ async function addEvidence(page: Page) {
 }
 
 test.describe('timeline inspectable evidence @smoke', () => {
+  test('compact source coverage distinguishes linked roles, retractions and withdrawn ancestry in both views', async ({ page }, testInfo) => {
+    test.setTimeout(120_000)
+    const value: any = fixture('corroborated')
+    const eventId = value.analystWorkspace.events[0].id
+    value.analystWorkspace.evidence = {
+      schemaVersion: 'timeline-evidence.v1',
+      sources: [
+        { id: 's1', url: 'https://example.test/report', title: 'First saved source record', publisher: '' },
+        { id: 's2', url: 'https://example.test/report', title: 'Duplicate URL saved record', publisher: '' },
+        { id: 's3', url: 'https://example.test/context', title: 'Context record', publisher: '' },
+      ],
+      assertions: ['a', 'b', 'c', 'd', 'e', 'root'].map((id, index) => ({ id, sourceId: ['s1', 's2', 's1', 's2', 's3', 's3'][index], claimText: `Coverage account ${id}`, temporalClaim: '', passage: { id: `p-${id}`, quote: '', locator: 'p1' }, status: id === 'b' || id === 'root' ? 'retracted' : 'active', derivesFrom: id === 'c' ? ['root'] : [] })),
+      links: ['a', 'b', 'c', 'd', 'e'].map((assertionId, index) => ({ id: `l-${assertionId}`, eventId, assertionId, relation: index < 3 ? 'supports' : index === 3 ? 'contradicts' : 'context' })), reviews: [],
+    }
+    await start(page, value)
+    const coverage = page.getByRole('region', { name: 'Source coverage for Bridge opened', exact: true })
+    async function checkCoverage() {
+      await expect(coverage).toContainText('3 recorded sources · 5 linked assertions')
+      for (const [label, count] of [['Supports', '3'], ['Contradicts', '1'], ['Context', '1']]) {
+        await expect(coverage.locator('dl > div').filter({ has: page.getByText(label, { exact: true }) }).locator('dd')).toHaveText(count)
+      }
+      await expect(coverage).toContainText('1 active supporting assertion')
+      await expect(coverage).toContainText('1 linked assertion is retracted')
+      await expect(coverage).toContainText('1 supporting assertion has retracted ancestry')
+      await expect(coverage).toContainText('Recorded sources do not imply independent confirmation')
+    }
+    await checkCoverage()
+    expect((await exported(page)).analystWorkspace.evidence).toEqual(value.analystWorkspace.evidence)
+    await page.getByRole('button', { name: 'Narrative view', exact: true }).click()
+    await checkCoverage()
+    for (const theme of ['light', 'dark']) {
+      await page.evaluate(theme => document.documentElement.classList.toggle('dark', theme === 'dark'), theme)
+      await testInfo.attach(`source-coverage-${theme}`, { body: await coverage.screenshot({ path: testInfo.outputPath(`source-coverage-${theme}.png`), scale: 'css', animations: 'disabled' }), contentType: 'image/png' })
+    }
+    const unchanged = (await exported(page)).analystWorkspace
+    expect(unchanged.evidence).toEqual(value.analystWorkspace.evidence)
+    expect(unchanged.events).toEqual(value.analystWorkspace.events)
+    const panel = page.getByTestId('evidence-event-evidence')
+    await panel.locator('summary').first().click()
+    const first = panel.getByRole('article').filter({ has: page.getByText('Coverage account a', { exact: true }) })
+    await first.getByRole('button', { name: 'Retract assertion' }).click()
+    await page.getByRole('alertdialog').getByRole('button', { name: 'Apply change' }).click()
+    await expect(coverage).toContainText('No active supporting assertion.')
+    await expect(coverage).toContainText('2 linked assertions are retracted')
+    const changed = (await exported(page)).analystWorkspace
+    expect(changed.events).toEqual(unchanged.events)
+    expect(changed.evidence.links).toEqual(unchanged.evidence.links)
+    const empty: any = fixture()
+    await upload(page, empty)
+    await expect(coverage).toContainText('0 recorded sources · 0 linked assertions')
+    await expect(coverage).toContainText('No active supporting assertion.')
+  })
+
   test('final support warning covers shared ancestry, cancellation, relation changes and unlinking', async ({ page }, testInfo) => {
     test.setTimeout(120_000)
     const value: any = fixture('corroborated')

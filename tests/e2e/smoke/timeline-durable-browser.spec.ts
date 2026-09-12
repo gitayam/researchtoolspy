@@ -115,6 +115,9 @@ test.describe('durable browser with actual D1 routes @smoke', () => {
       await page.getByRole('button', { name: 'Save timeline', exact: true }).click(); await saved(page)
       await page.reload(); await page.getByRole('button', { name: 'Open saved timeline', exact: true }).click(); await saved(page)
       const before = (await exported(page)).analystWorkspace
+      const coverage = page.getByRole('region', { name: 'Source coverage for Original uncertain event', exact: true })
+      await expect(coverage).toContainText('1 recorded source · 1 linked assertion')
+      await expect(coverage).toContainText('1 active supporting assertion')
       const initialVersion = await b.db.prepare('SELECT id, payload_json, content_hash FROM timeline_object_versions').first()
       const panel = page.getByTestId('evidence-event:unknown.1')
       await panel.locator('summary').first().click()
@@ -135,6 +138,8 @@ test.describe('durable browser with actual D1 routes @smoke', () => {
       await page.getByRole('button', { name: 'Save changes', exact: true }).click(); await saved(page)
       await page.reload(); await page.getByRole('button', { name: 'Open saved timeline', exact: true }).click(); await saved(page)
       expect((await exported(page)).analystWorkspace).toEqual(after)
+      await expect(coverage).toContainText('0 recorded sources · 0 linked assertions')
+      await expect(coverage).toContainText('No active supporting assertion.')
       expect(await b.db.prepare('SELECT id, payload_json, content_hash FROM timeline_object_versions WHERE id=?').bind(initialVersion!.id).first()).toEqual(initialVersion)
       expect((await b.db.prepare('SELECT count(*) AS n FROM timeline_object_versions').first())?.n).toBe(2)
       await page.getByTestId('evidence-event:unknown.1').locator('summary').first().click()

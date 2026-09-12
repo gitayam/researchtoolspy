@@ -106,6 +106,32 @@ function activeLineagePredicate(byId: ReadonlyMap<string, TimelineSourceAssertio
   return activeLineage
 }
 
+/** Counts validated, directly linked records; source totals do not measure independence. */
+export function timelineSourceCoverage(evidence: TimelineEvidence | undefined, eventId: string): {
+  sourceCount: number; assertionCount: number; supports: number; contradicts: number; context: number;
+  activeSupports: number; retracted: number; withdrawnAncestrySupports: number;
+} {
+  const counts = { sourceCount: 0, assertionCount: 0, supports: 0, contradicts: 0, context: 0, activeSupports: 0, retracted: 0, withdrawnAncestrySupports: 0 }
+  if (!evidence) return counts
+  const byId = new Map(evidence.assertions.map(assertion => [assertion.id, assertion]))
+  const activeLineage = activeLineagePredicate(byId)
+  const sources = new Set<string>()
+  for (const link of evidence.links) {
+    if (link.eventId !== eventId) continue
+    const assertion = byId.get(link.assertionId)!
+    sources.add(assertion.sourceId)
+    counts.assertionCount++
+    counts[link.relation]++
+    if (assertion.status === 'retracted') counts.retracted++
+    if (link.relation === 'supports') {
+      if (activeLineage(assertion)) counts.activeSupports++
+      else if (assertion.status === 'active') counts.withdrawnAncestrySupports++
+    }
+  }
+  counts.sourceCount = sources.size
+  return counts
+}
+
 /** Inputs have passed evidence validation; this measures support loss, not truth or review currency. */
 export function timelineFinalSupportLoss(before: TimelineEvidence, after: TimelineEvidence, events: readonly TimelineWorkspaceEvent[]): TimelineWorkspaceEvent[] {
   function supportedEvents(evidence: TimelineEvidence): Set<string> {

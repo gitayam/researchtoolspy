@@ -1,3 +1,4 @@
+import { TimelineSourceCoverage } from './TimelineSourceCoverage'
 import { TimelineJudgments } from './TimelineJudgments'
 import { TimelineEvidence } from './TimelineEvidence'
 import { timelineAssessmentLabel } from '@/lib/timeline-evidence'
@@ -141,6 +142,7 @@ export function TimelineNarrative({ analysis, evidence, onEvidence, narrative, e
       {event.description && <p className="mt-2">{event.description}</p>}
       <p className="mt-2 text-sm"><strong>Why it matters:</strong> {event.whyItMatters || 'Explanation needed.'}</p>
       {event.transition && <p className="mt-2 text-sm">{event.transition}</p>}
+      <TimelineSourceCoverage event={event} evidence={evidence} />
       <TimelineEvidence event={event} events={events} evidence={evidence} onChange={onEvidence} />
       <a className="mt-3 inline-block text-sm text-blue-600 underline" href={`#${timelineEventAnchor(event.id)}`} onClick={click => { click.preventDefault(); onInspect(event.id) }}>Inspect evidence for {event.title}</a>
     </li>)}</ol>
