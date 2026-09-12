@@ -94,6 +94,11 @@ test.describe('Self-hosted TimelineJS renderer @smoke', () => {
       await expect(page.getByText('TimelineJS presentation loaded', { exact: true })).toBeAttached()
       await child.getByRole('button', { name: 'Next slide', exact: true }).click()
       await expect(child.locator('.tl-storyslider .tl-slide .tl-headline').filter({ hasText: /^Early <report>$/ })).toBeInViewport()
+      if (theme === 'dark') {
+        const marker = child.locator('.tl-timemarker-active .tl-headline')
+        await expect(marker).toHaveCSS('color', 'rgb(248, 250, 252)')
+        for (const paragraph of await marker.locator('p').all()) await expect(paragraph).toHaveCSS('color', 'rgb(248, 250, 252)')
+      }
       const toolbar = await child.locator('.tl-menubar').boundingBox()
       const story = await child.locator('.tl-storyslider').boundingBox()
       expect(toolbar).not.toBeNull()

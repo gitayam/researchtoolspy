@@ -3265,6 +3265,10 @@ body { display: flex; flex-direction: column; }
 :root[data-theme="dark"] #timeline .tl-timeaxis-background { background: #1f2937; border-top-color: #475569; }
 :root[data-theme="dark"] #timeline .tl-timeaxis .tl-timeaxis-tick-text { color: #e2e8f0; }
 :root[data-theme="dark"] #timeline .tl-timeaxis .tl-timeaxis-tick::before { border-left-color: #94a3b8; color: #94a3b8; }
+
+/* Override the upstream nested marker headline rules in dark mode. */
+:root[data-theme="dark"] #timeline .tl-timemarker .tl-headline,
+:root[data-theme="dark"] #timeline .tl-timemarker .tl-headline p { color: #f8fafc; }
 </style>
 </head>
 <body>
