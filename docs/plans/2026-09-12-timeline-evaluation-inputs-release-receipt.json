@@ -1,0 +1,155 @@
+{
+  "schemaVersion": "timeline-evaluation-inputs-release.v1",
+  "recordedAt": "2026-09-12T14:09:10.924476+00:00",
+  "baselineSha": "f8455577d7725849c963da75a2c04855f5763549",
+  "acceptedReleaseSha": "413422cc85de256510538df410c5e60b74870b3b",
+  "checkpoint": "Read-only evaluation input comparison deployed; TL-04 remains partial",
+  "states": {
+    "canonicalLanded": true,
+    "mirrorConfirmed": true,
+    "productionDeployed": true,
+    "migrationRequired": false,
+    "integrationCheckoutCleanAtRelease": true,
+    "primaryCheckoutSynced": false
+  },
+  "publication": {
+    "canonical": "origin/main",
+    "mirror": "gitlab/main",
+    "releaseRefSha": "413422cc85de256510538df410c5e60b74870b3b",
+    "forcePush": false,
+    "documentationFollowup": "Documentation-only commit follows; runtime remains acceptedReleaseSha."
+  },
+  "validation": {
+    "sourceSha": "413422cc85de256510538df410c5e60b74870b3b",
+    "typeChecksPassed": 5,
+    "apiContractTestsPassed": 134,
+    "browserProjectChecksPassed": 84,
+    "build": "passed",
+    "pagesFunctionsBuild": "passed",
+    "schemaRehearsal": "passed",
+    "compiledHttpGate": "passed",
+    "staticGate": "passed",
+    "externalOutboundAttempts": 0,
+    "seconds": 753.35,
+    "archiveSha256": "1d6526dfdd2a6cdd97db3629cfd3d4803c62c1d59df50ecc85b2fe0772df0a44",
+    "supervisorSha256": "869d61c1e2691530d787992a34caf2e8b1648112e8ce6b02812b7ff1401c048d",
+    "receiptSha256": "436b95cdeda9f3f1debffc224a66fac95c545e50636738fe8059ffe139d036dd",
+    "runLogSha256": "3750531b121f7d6dfd40f3a30da800a092bb375b7bd534a46bfa03886ead8f3c",
+    "schemaManifestSha256": "1122289bb1d42b08fab21a8d0a059e46efce99a14c295f8e95e7f397b97ca662",
+    "runtimeImage": "mcr.microsoft.com/playwright@sha256:9bd26ad900bb5e0f4dee75839e957a89ae89c2b7ab1e76050e559790e946b948",
+    "commands": [
+      "node scripts/verify-timeline.mjs",
+      "node node_modules/wrangler/bin/wrangler.js pages functions build functions --outdir dist/_worker.js --build-output-directory dist --compatibility-date 2025-09-30 --compatibility-flags nodejs_compat",
+      "node scripts/verify-timeline-release.mjs"
+    ],
+    "executionBoundary": "Pinned network-none Docker; readonly source/dependencies/root; no host credentials/socket; only schema SQL and migration names enter rehearsal."
+  },
+  "review": {
+    "backendProvider": "not-needed-no-backend-changes",
+    "uiProvider": "tl00_recon comparison; integration-owner parent and acceptance",
+    "independentReviewer": "dependency_review",
+    "sourceAndRuntimeAcceptedSha": "413422cc85de256510538df410c5e60b74870b3b",
+    "artifactFilesIndependentlyCompared": 146,
+    "distManifestSha256": "4a34444534bcf61b58324b237efe1c256a9c0e5348652efa1c92e36bfa7e674b",
+    "packageManifestFileSha256": "d31ad6db23ffd9abdf53d900bb68185c845a6af727be24115ec3d8b9337d132f",
+    "wranglerConfigSha256": "a58a42371915ceebd779014377cc336df722edae9f6822ca1ab4e329d0755a24",
+    "acceptanceReceiptSha256": "65008be9ce5c452dd39d72cf32561334ff5c3debf44e5aa51058347f58d722fc",
+    "visualAcceptanceSha256": "f0c2c24bbec2b7a42a096d213672f6d6a95172347fd15b168fa6d9f7d7bdbfe7"
+  },
+  "database": {
+    "name": "researchtoolspy-prod",
+    "mutationsPerformed": false,
+    "appliedMigrationCount": 13,
+    "pendingMigrations": [],
+    "productionSchemaSha256": "22cb033df9400412f4d83b5f3668b8752ec4126a9c8402b6d502187727bf60bd",
+    "beforeCatalog": {
+      "result": "passed",
+      "tables": 14,
+      "schemaRows": 386,
+      "normalizedSchemaSha256": "ec0d28165382f028c98208a003d8c5ab672a9a0ae7ba44ef2f23e3b2bfa46729"
+    },
+    "afterCatalog": {
+      "result": "passed",
+      "tables": 14,
+      "schemaRows": 386,
+      "normalizedSchemaSha256": "ec0d28165382f028c98208a003d8c5ab672a9a0ae7ba44ef2f23e3b2bfa46729"
+    },
+    "migrationInventoryComparison": {
+      "result": "passed",
+      "appliedMigrationCount": 13,
+      "unchanged": true
+    },
+    "rehearsal": "Existing compiled human/service evaluation snapshots, source listing/import, schema preservation and static routes pass against the actual production schema with synthetic fixtures. No data or API change in this stage."
+  },
+  "deployment": {
+    "project": "researchtoolspy",
+    "id": "05666348-d3b1-44ad-ae6c-e619112ab047",
+    "url": "https://05666348.researchtoolspy.pages.dev",
+    "productionUrl": "https://researchtools.net",
+    "sourceSha": "413422cc85de256510538df410c5e60b74870b3b",
+    "wranglerVersion": "4.100.0",
+    "prebuilt": true,
+    "noBundle": true,
+    "stagingHasFunctionsSource": false,
+    "existingSecretNamesPreserved": true,
+    "unrelatedWorkersDeployed": false,
+    "smoke": [
+      {
+        "result": "passed",
+        "baseUrl": "https://05666348.researchtoolspy.pages.dev",
+        "readonlyChecksPassed": 21,
+        "mutatingRequests": 0,
+        "receiptSha256": "d721eb737ccac02ec3c3bfd6017f838d11611e67f940170bfbd019de5dc4c4c5"
+      },
+      {
+        "result": "passed",
+        "baseUrl": "https://researchtools.net",
+        "readonlyChecksPassed": 21,
+        "mutatingRequests": 0,
+        "receiptSha256": "09d7910d94c24530d1af0a511af91c0f85b0b5f62c56f8f620db04eee75e9b9b"
+      }
+    ]
+  },
+  "rollback": {
+    "previousDeploymentId": "5eaf67bd-31a6-440f-80d1-cb54e366b8ac",
+    "limits": "Previous runtime supports identical evaluation snapshots but lacks the new read-only comparison. Preserve saved data and immutable revisions; older pre-evaluation codecs remain incompatible."
+  },
+  "recovery": [
+    "Focused main type check and all four desktop/mobile comparison checks passed at the final source. No failed candidate attempt preceded the full release run. Independent visual review accepted four representative changed-source captures; mobile navigation is hidden only during component capture, including descendants to prevent prior overlay artifacts.",
+    "The final exact-source release run passed all five type checks,134 API/contract checks and84 browser checks, frontend/worker builds and all compiled production-schema gates without a failed candidate run."
+  ],
+  "instructionSha256": {
+    "CLAUDE.md": "3852de6d95104c64f3a35b670f350e1d7a2c6c9ed93d03d53895e7bc8c44ff1b",
+    ".team/project.json": "c87cd27090a1a8ff779dd0d850668ebf0ecb6581cefb2d0b0a66ed63aabbcf78",
+    "docs/plans/2026-09-12-timeline-evaluation-inputs-charter.md": "2e7122ec780ca4a66f50736648b655145fdf15755cad97417cc91dbd9fcb8107"
+  },
+  "limitations": [
+    "Comparison shows analyst-entered recorded/current snapshots, not authenticated provenance, source truth or reconstruction of past knowledge.",
+    "Read-only disclosure never renews evaluation or changes saved data. Added/removed labels refer to membership in input ancestry, not deletion of underlying evidence.",
+    "Strictly validated bases are compared by stable IDs; unavailable inputs are explicit and are never replaced by current data.",
+    "Production smoke is anonymous/read-only; authenticated operations use isolated synthetic actual-D1 and compiled-worker fixtures.",
+    "TL-04 remains partial. Primary checkout untouched. Existing Vite large-chunk warning and representative visual-review limits remain."
+  ],
+  "retrospective": "A native provider built one disjoint read-only comparison component while the owner integrated it and extended actual-D1 browser flows. Independent source, exact-runtime/artifact and visual reviews checked unchanged data, stable-ID ancestry and explicit recorded/current labels. Existing mobile screenshot overlays are excluded from component evidence by hiding fixed elements and descendants only during capture.",
+  "promptManifestSha256": "e18198e0e9adceb70c45d5550442feaeb93fa71f1d366b13142d0ce5dd0891d3",
+  "visual": {
+    "reviewer": "validator_review",
+    "visualSource": "413422cc85de256510538df410c5e60b74870b3b",
+    "acceptedSource": "413422cc85de256510538df410c5e60b74870b3b",
+    "themes": [
+      "light",
+      "dark"
+    ],
+    "browsers": [
+      "chromium",
+      "mobile-safari"
+    ],
+    "evidence": {
+      "timeline-durable-browser-d-7902c-ve-and-narrative-inspection-chromium/evaluation-inputs-dark.png": "e25d0d18a43396a3d39e4db8979b1e8c0890bbad9434d1ee04bc48a7297aca79",
+      "timeline-durable-browser-d-7902c-ve-and-narrative-inspection-chromium/evaluation-inputs-light.png": "42aef6f3b4265afb049932d19cbd0768fd45d391e1b59edd954ae832fc615e7b",
+      "timeline-durable-browser-d-7902c-ve-and-narrative-inspection-mobile-safari/evaluation-inputs-dark.png": "43eca58934a50dd2bb6ec7575c82a7b1e58a1daa0c97c422d18ff98ef9499063",
+      "timeline-durable-browser-d-7902c-ve-and-narrative-inspection-mobile-safari/evaluation-inputs-light.png": "24f1a750fbc78e953d08520a78140d45a8cbcb4da99ab0760b9158233c1c5a32"
+    },
+    "limitations": "Representative crops of one changed source record, not full disclosure qualification, assertion ancestry/add/remove states, full app chrome or measured contrast. Desktop columns and mobile stacked panels are clearly labeled; changes use text plus highlight, absent clocks are Not recorded, long text wraps within bounds. Screenshot-only fixed-chrome and descendant hiding removes navigation obstruction in these mobile captures."
+  }
+}

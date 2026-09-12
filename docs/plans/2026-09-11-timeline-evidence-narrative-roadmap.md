@@ -16,6 +16,8 @@ Likelihood and analytical confidence remain separate; reviews preserve the judgm
 version they addressed. Import verifies stored-text equality, not source truth or
 authenticated historical provenance. TL-04 remains in progress: broader source-store
 support, dedicated judgment services and authenticated peer review are pending.
+Evaluations now expose a read-only comparison of recorded/current inputs, including changed fields and added/removed source ancestry matched by stable IDs. Opening the comparison does not renew evaluations or modify saved data. See the [evaluation inputs release receipt](./2026-09-12-timeline-evaluation-inputs-release-receipt.md).
+
 Source assertions now retain separate source-evaluation factors and rationale, frozen opening inputs and changed-input notices through local export and private immutable snapshots. Evaluations do not certify truth or replace independence review. See the [source evaluation release receipt](./2026-09-12-timeline-source-evaluation-release-receipt.md).
 
 The workspace now distinguishes events, evidence, questions, judgments and narrative with labeled visual treatments. The event sequence precedes advanced editors; section links and a transient event finder improve navigation without hiding events or changing saved data. See the [visual hierarchy release receipt](./2026-09-12-timeline-visual-hierarchy-release-receipt.md).

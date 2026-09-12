@@ -13,3 +13,7 @@ Independent review compared all 146 staged files; inventory SHA256 `fb4945e23e7a
 The [JSON receipt](./2026-09-12-timeline-source-evaluation-release-receipt.json) records fingerprints and recovery. Previous deployment `3774773e-7dc2-4dd1-8ca5-5b134119c842` rejects evaluation-bearing snapshots: preserve immutable data and use compatible readers or a forward fix. Existing size limits and Vite large-chunk warnings remain. Primary checkout untouched.
 
 **TL-04 remains partial.** Broader source-store support, authenticated peer review and dedicated judgment services remain pending.
+
+## Subsequent deployment
+
+The [evaluation inputs release](./2026-09-12-timeline-evaluation-inputs-release-receipt.md) adds a read-only recorded/current comparison with explicit field and ancestry changes. This receipt retains historical evaluation implementation evidence; the newer receipt records current deployment.
