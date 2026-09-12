@@ -1,6 +1,7 @@
 import type { TimelineWorkspaceExport } from '../types/timeline-workspace'
 import { withTimelineNarrativeDefaults } from './timeline-workspace'
 import { validateTimelineEvidence } from './timeline-evidence'
+import { validateTimelineJudgments } from './timeline-judgments'
 
 export const TIMELINE_IMPORT_MAX_BYTES = 4 * 1024 * 1024
 const categories = ['event', 'meeting', 'communication', 'financial', 'legal', 'travel', 'publication', 'military', 'political']
@@ -117,7 +118,7 @@ export function decodeTimelineWorkspace(text: string): TimelineWorkspaceExport {
     if ((model.status === 'ok') !== (events.length > 0)) fail('model.status/event count mismatch')
     integer(model.rejectedEventCount, 'model.rejectedEventCount')
   }
-  const workspace = object(root.analystWorkspace, 'analystWorkspace', ['mode', 'events', 'questions', 'hypotheses', 'narrative', 'presentation', 'sortDirection', 'evidence'])
+  const workspace = object(root.analystWorkspace, 'analystWorkspace', ['mode', 'events', 'questions', 'hypotheses', 'narrative', 'presentation', 'sortDirection', 'evidence', 'analysis'])
   enumValue(workspace.mode, ['basic', 'robust'], 'workspace.mode')
   if (workspace.presentation !== undefined) enumValue(workspace.presentation, ['analyst', 'narrative'], 'workspace.presentation')
   if (workspace.sortDirection !== undefined) enumValue(workspace.sortDirection, ['oldest', 'latest'], 'workspace.sortDirection')
@@ -218,6 +219,7 @@ export function decodeTimelineWorkspace(text: string): TimelineWorkspaceExport {
   }
   if (workspace.evidence !== undefined) validateTimelineEvidence(workspace.evidence,[...ids])
   const result = parsed as TimelineWorkspaceExport
+  if(workspace.analysis!==undefined) validateTimelineJudgments(workspace.analysis,result.analystWorkspace.events,result.analystWorkspace.evidence)
   const restored = { ...result, analystWorkspace: withTimelineNarrativeDefaults(result.analystWorkspace, title) }
   if (new TextEncoder().encode(JSON.stringify(restored, null, 2)).byteLength > TIMELINE_IMPORT_MAX_BYTES) throw new Error('The restored timeline exceeds the 4 MiB limit. Reduce its content before importing.')
   return restored

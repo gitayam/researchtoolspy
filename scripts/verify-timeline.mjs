@@ -5,9 +5,9 @@ const contractTests = [
   'community-integration-contract', 'community-integration-capabilities',
   'community-service-auth', 'timeline-reference-client', 'timeline-fixtures',
   'timeline-artifact-contract', 'timeline-artifact-auth', 'timeline-artifact-d1',
-  'timeline-artifact-cors', 'timeline-evidence-contract', 'timeline-service-d1', 'timeline-artifact-migrations', 'timeline-workspace-snapshot-d1',
+  'timeline-artifact-cors', 'timeline-evidence-contract', 'timeline-judgments-contract', 'timeline-service-d1', 'timeline-artifact-migrations', 'timeline-workspace-snapshot-d1',
 ]
-const uiTests = ['timeline-tool-ui', 'timeline-workspace-ordering', 'timeline-narrative-ui', 'timeline-durable-browser', 'timeline-evidence-browser']
+const uiTests = ['timeline-tool-ui', 'timeline-workspace-ordering', 'timeline-narrative-ui', 'timeline-durable-browser', 'timeline-evidence-browser', 'timeline-judgments-browser']
 const checks = [
   ['node_modules/typescript/bin/tsc', '-b', '--noEmit'],
   ['node_modules/typescript/bin/tsc', '-p', 'tsconfig.functions.json', '--noEmit'],

@@ -50,6 +50,41 @@ async function state(db:D1Database) {
 }
 
 test.describe('complete workspace snapshot actual D1 @smoke',()=>{
+  test('judgment revisions retain prior dissent snapshots and reject dangling current references atomically',async()=>{
+    const {mf,db}=await setup()
+    try {
+      await db.batch(upgrade.map(s=>db.prepare(s)))
+      const created=await create(db),id=created.body.artifactId
+      const analysis=JSON.parse(readFileSync(new URL('../../fixtures/timeline-judgment-snapshot.json',import.meta.url),'utf8'))
+      analysis.judgments[0].eventRefs=['event:stable.original']
+      analysis.judgments[0].contraryEvidenceRefs=[]
+      analysis.reviews[0].basis=canonicalJson(analysis.judgments[0])
+      const full={...extractedSnapshot(),analystWorkspace:{...extractedSnapshot().analystWorkspace,analysis}}
+      const first=await call(db,'PATCH',id,commit(put(full)),'judgment-first-key01',created.etag)
+      expect(first.status).toBe(200)
+      const firstBody=await first.json() as any
+      const firstRead=await (await call(db,'GET',id,undefined,undefined,undefined,firstBody.revisionId)).text()
+      const changed=structuredClone(full)
+      changed.analystWorkspace.analysis.judgments[0].claim='The separate-meetings explanation now needs testing.'
+      changed.analystWorkspace.analysis.judgments[0].changeReason='Retained dissent prompts a revised interpretation.'
+      changed.analystWorkspace.analysis.judgments[0].updatedAt='2026-09-11T14:00:00Z'
+      const second=await call(db,'PATCH',id,commit(put(changed)),'judgment-second-key01',first.headers.get('etag')!)
+      expect(second.status).toBe(200)
+      expect(await (await call(db,'GET',id,undefined,undefined,undefined,firstBody.revisionId)).text()).toBe(firstRead)
+      expect(JSON.parse(firstRead).objects[0].contentHash).toBe(await hashContent({schemaVersion:'timeline-workspace.v1',tombstone:false,payload:full}))
+      const latest=await (await call(db,'GET',id)).json() as any
+      expect(latest.objects[0].payload.analystWorkspace.analysis).toEqual(changed.analystWorkspace.analysis)
+      expect(latest.objects[0].payload.analystWorkspace.analysis.reviews).toEqual(analysis.reviews)
+      expect(JSON.parse(analysis.reviews[0].basis).claim).toBe(analysis.judgments[0].claim)
+      const invalid=structuredClone(changed)
+      invalid.analystWorkspace.analysis.judgments[0].status='withdrawn'
+      invalid.analystWorkspace.analysis.judgments[0].eventRefs=['event:missing']
+      const before=await state(db)
+      expect((await call(db,'PATCH',id,commit(put(invalid)),'judgment-invalid-key1',second.headers.get('etag')!)).status).toBe(400)
+      expect(await state(db)).toEqual(before)
+    } finally {await mf.dispose()}
+  })
+
   test('source assertions and contrary passage snapshots survive immutable revisions and reject dangling provenance',async()=>{
     const {mf,db}=await setup()
     try {

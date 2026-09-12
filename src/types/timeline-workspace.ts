@@ -80,6 +80,7 @@ export interface TimelineWorkspaceHypothesis {
 }
 
 export interface TimelineWorkspaceState {
+  analysis?: TimelineJudgments
   evidence?: TimelineEvidence
   mode: TimelineWorkspaceMode
   events: TimelineWorkspaceEvent[]
@@ -88,6 +89,42 @@ export interface TimelineWorkspaceState {
   narrative?: TimelineNarrative
   presentation?: 'analyst' | 'narrative'
   sortDirection?: 'oldest' | 'latest'
+}
+
+export interface TimelineJudgment {
+  id: string
+  claim: string
+  scope: string
+  asOf: string
+  reasoning: string
+  likelihood: { vocabulary: 'timeline-verbal.v1'; value: 'unassessed' | 'unlikely' | 'roughly_even' | 'likely' }
+  analyticConfidence: 'unassessed' | 'low' | 'medium' | 'high'
+  confidenceBasis: string
+  assumptions: string[]
+  alternatives: string[]
+  changeIndicators: string[]
+  eventRefs: string[]
+  evidenceRefs: string[]
+  contraryEvidenceRefs: string[]
+  status: 'active' | 'withdrawn'
+  changeReason: string
+  updatedAt: string
+  basis: string
+}
+export interface TimelineJudgmentReview {
+  id: string
+  judgmentId: string
+  reviewerLabel: string
+  position: 'agree' | 'challenge' | 'dissent'
+  rationale: string
+  alternative: string
+  createdAt: string
+  basis: string
+}
+export interface TimelineJudgments {
+  schemaVersion: 'timeline-judgments.v1'
+  judgments: TimelineJudgment[]
+  reviews: TimelineJudgmentReview[]
 }
 
 export interface TimelineEvidenceSource {

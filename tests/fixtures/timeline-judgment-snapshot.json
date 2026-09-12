@@ -1,0 +1,50 @@
+{
+  "schemaVersion": "timeline-judgments.v1",
+  "judgments": [
+    {
+      "id": "judgment:fixture",
+      "claim": "The accounts do not establish a precise meeting date.",
+      "scope": "Synthetic meeting chronology",
+      "asOf": "2026-09-11T12:00:00Z",
+      "reasoning": "The accounts disagree on timing, so the conclusion remains qualified.",
+      "likelihood": {
+        "vocabulary": "timeline-verbal.v1",
+        "value": "unassessed"
+      },
+      "analyticConfidence": "low",
+      "confidenceBasis": "Conflicting accounts and incomplete observation.",
+      "assumptions": [
+        "The reports refer to the same meeting."
+      ],
+      "alternatives": [
+        "The reports describe separate meetings."
+      ],
+      "changeIndicators": [
+        "An original dated record becomes available."
+      ],
+      "eventRefs": [
+        "event:unknown.1"
+      ],
+      "evidenceRefs": [],
+      "contraryEvidenceRefs": [
+        "assertion:browser"
+      ],
+      "status": "active",
+      "changeReason": "Initial bounded judgment with unresolved timing.",
+      "updatedAt": "2026-09-11T12:00:00Z",
+      "basis": "{}"
+    }
+  ],
+  "reviews": [
+    {
+      "id": "review:fixture",
+      "judgmentId": "judgment:fixture",
+      "reviewerLabel": "Synthetic reviewer (self-attributed)",
+      "position": "dissent",
+      "rationale": "The accounts may concern different meetings.",
+      "alternative": "Keep the separate-meetings explanation open.",
+      "createdAt": "2026-09-11T13:00:00Z",
+      "basis": "{\"alternatives\":[\"The reports describe separate meetings.\"],\"analyticConfidence\":\"low\",\"asOf\":\"2026-09-11T12:00:00Z\",\"assumptions\":[\"The reports refer to the same meeting.\"],\"basis\":\"{}\",\"changeIndicators\":[\"An original dated record becomes available.\"],\"changeReason\":\"Initial bounded judgment with unresolved timing.\",\"claim\":\"The accounts do not establish a precise meeting date.\",\"confidenceBasis\":\"Conflicting accounts and incomplete observation.\",\"contraryEvidenceRefs\":[\"assertion:browser\"],\"eventRefs\":[\"event:unknown.1\"],\"evidenceRefs\":[],\"id\":\"judgment:fixture\",\"likelihood\":{\"value\":\"unassessed\",\"vocabulary\":\"timeline-verbal.v1\"},\"reasoning\":\"The accounts disagree on timing, so the conclusion remains qualified.\",\"scope\":\"Synthetic meeting chronology\",\"status\":\"active\",\"updatedAt\":\"2026-09-11T12:00:00Z\"}"
+    }
+  ]
+}
