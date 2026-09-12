@@ -58,6 +58,7 @@ test.describe('complete workspace snapshot actual D1 @smoke',()=>{
       await db.batch(upgrade.map(s => db.prepare(s)))
       const created = await create(db), id = created.body.artifactId
       const evidence: TimelineEvidence = { schemaVersion: 'timeline-evidence.v1', sources: [{ id: 's1', url: 'https://source.example/', title: 'Synthetic report', publisher: 'Desk' }], assertions: [{ id: 'a1', sourceId: 's1', claimText: 'A source account', temporalClaim: '', passage: { id: 'p1', quote: 'An observation', locator: 'paragraph 1' }, status: 'active', derivesFrom: [] }], links: [{ id: 'l1', eventId: 'event:stable.original', assertionId: 'a1', relation: 'supports' }], reviews: [] }
+      evidence.assertions[0].epistemicType = 'reported_claim'
       evidence.assertions[0].evaluation = emptyTimelineSourceEvaluation(timelineSourceEvaluationBasis(evidence, 'a1'), '2026-09-12T00:00:00Z')
       evidence.assertions[0].evaluation.access = { value: 'direct', rationale: 'The author reports being present.' }
       const full = { ...extractedSnapshot(), analystWorkspace: { ...extractedSnapshot().analystWorkspace, evidence } }
@@ -66,11 +67,13 @@ test.describe('complete workspace snapshot actual D1 @smoke',()=>{
       const revision = (await first.json() as any).revisionId
       const historical = await (await call(db, 'GET', id, undefined, undefined, undefined, revision)).text()
       const changed = structuredClone(full)
+      changed.analystWorkspace.evidence.assertions[0].epistemicType = 'inference'
       changed.analystWorkspace.evidence.assertions[0].evaluation!.access = { value: 'indirect', rationale: 'A correction identifies an intermediary.' }
       const second = await call(db, 'PATCH', id, commit(put(changed)), 'evaluation-next-key', first.headers.get('etag')!)
       expect(second.status).toBe(200)
       expect(await (await call(db, 'GET', id, undefined, undefined, undefined, revision)).text()).toBe(historical)
       expect(JSON.parse(historical).objects[0].payload.analystWorkspace.evidence.assertions[0].evaluation.access.value).toBe('direct')
+      expect(JSON.parse(historical).objects[0].payload.analystWorkspace.evidence.assertions[0].epistemicType).toBe('reported_claim')
       expect((await (await call(db, 'GET', id)).json() as any).objects[0].payload.analystWorkspace.evidence).toEqual(changed.analystWorkspace.evidence)
       const before = await state(db)
       const malformed = structuredClone(changed)

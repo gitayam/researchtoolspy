@@ -140,6 +140,34 @@ import. No migration, new grant or credential is required. Earlier application
 versions reject the optional evidence field; recovery must use compatible code
 and preserve snapshots rather than strip evidence to satisfy an older codec.
 
+## Assertion epistemic type (partial TL-04)
+
+A source assertion may contain `epistemicType`: exactly `observation`,
+`reported_claim`, `inference` or `hypothesis`. This is independent of its required
+`status` (`active` or `retracted`), evidence-link relation and event assessment.
+The field describes the analyst’s classification of source wording, not verified
+truth or authenticated first-hand access. Observation records observational wording;
+reported claim an attributed account; inference a conclusion from inputs; hypothesis
+a tentative explanation to test. No composite score or automatic promotion follows.
+
+Absent legacy values remain absent and display **Unclassified**. New assertions and
+stored-passage imports do not receive an inferred type. Explicitly choosing
+Unclassified in the editor removes the optional field. Null, empty strings,
+unknown enum values and extra fields fail strict snapshot validation.
+
+The optional field is included in current source-evaluation, corroboration and
+judgment input bases. Classification changes, including ancestor changes, require
+review of affected inputs. Historical bases without a type remain valid and are
+not rewritten. The comparison shows recorded/current Type separately, using
+Unclassified for absence. Retraction/restoration retains classification. JSON,
+Markdown, Narrative and private human/service snapshots preserve explicit labels;
+immutable revisions retain previous values.
+
+No route or migration is added, and existing payload limits remain. Earlier
+codecs reject classified assertions; preserve saved data and use compatible
+readers or a forward fix when rolling back. This does not complete TL-04 handling
+policy, dedicated judgment services or authenticated peer review.
+
 ## Assertion source evaluation (partial TL-04)
 
 An assertion may include `evaluation` with discriminator `timeline-source-evaluation.v1`.

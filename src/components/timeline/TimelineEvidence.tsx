@@ -6,13 +6,13 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { emptyTimelineEvidence, timelineCorroboration, timelineEvidenceBasis, validateTimelineEvidence } from '@/lib/timeline-evidence'
-import type { TimelineEvidence as Evidence, TimelineWorkspaceEvent, TimelineEvidenceSource, TimelineSourceAssertion, TimelineEvidenceLink, TimelineEvidenceReview } from '@/types/timeline-workspace'
+import type { TimelineEvidence as Evidence, TimelineWorkspaceEvent, TimelineEvidenceSource, TimelineSourceAssertion, TimelineEvidenceLink, TimelineEvidenceReview, TimelineAssertionEpistemicType } from '@/types/timeline-workspace'
 
 interface Props { sourceImportWorkspaceId?: string; event: TimelineWorkspaceEvent; eventIds: string[]; evidence?: Evidence; onChange: (value: Evidence) => boolean }
 const id = (prefix: string) => `${prefix}-${crypto.randomUUID()}`
 const selectStyle = 'min-h-10 w-full rounded border bg-background p-2 text-sm'
 const blankSource = { url: '', title: '', publisher: '', publishedAt: '', retrievedAt: '' }
-const blankAssertion = { claimText: '', temporalClaim: '', quote: '', locator: '', observedAt: '', reportedAt: '', derivesFrom: [] as string[] }
+const blankAssertion = { epistemicType: '' as '' | TimelineAssertionEpistemicType, claimText: '', temporalClaim: '', quote: '', locator: '', observedAt: '', reportedAt: '', derivesFrom: [] as string[] }
 
 /** Analyst-entered snapshots only. Source links never trigger an automatic fetch. */
 export function TimelineEvidence({ sourceImportWorkspaceId, event, eventIds, evidence, onChange }: Props) {
@@ -45,14 +45,14 @@ export function TimelineEvidence({ sourceImportWorkspaceId, event, eventIds, evi
   }
   function saveAssertion() {
     const prior = data.assertions.find(item => item.id === editingAssertion)
-    const value: TimelineSourceAssertion = { id: editingAssertion ?? id('assertion'), sourceId, claimText: assertion.claimText.trim(), temporalClaim: assertion.temporalClaim, passage: { id: prior?.passage.id ?? id('passage'), quote: assertion.quote, locator: assertion.locator.trim() }, status: prior?.status ?? 'active', ...(prior?.evaluation ? { evaluation: prior.evaluation } : {}), derivesFrom: assertion.derivesFrom, ...(assertion.observedAt ? { observedAt: assertion.observedAt } : {}), ...(assertion.reportedAt ? { reportedAt: assertion.reportedAt } : {}) }
+    const value: TimelineSourceAssertion = { id: editingAssertion ?? id('assertion'), sourceId, claimText: assertion.claimText.trim(), temporalClaim: assertion.temporalClaim, passage: { id: prior?.passage.id ?? id('passage'), quote: assertion.quote, locator: assertion.locator.trim() }, status: prior?.status ?? 'active', ...(assertion.epistemicType ? { epistemicType: assertion.epistemicType } : {}), ...(prior?.evaluation ? { evaluation: prior.evaluation } : {}), derivesFrom: assertion.derivesFrom, ...(assertion.observedAt ? { observedAt: assertion.observedAt } : {}), ...(assertion.reportedAt ? { reportedAt: assertion.reportedAt } : {}) }
     if (save({ ...data, assertions: editingAssertion ? data.assertions.map(item => item.id === editingAssertion ? value : item) : [...data.assertions, value], links: editingAssertion ? data.links : [...data.links, { id: id('link'), eventId: event.id, assertionId: value.id, relation }] })) {
       setEditingAssertion(null); setAssertion(blankAssertion)
     }
   }
   function editAssertion(item: TimelineSourceAssertion) {
     setEditingAssertion(item.id); setSourceId(item.sourceId)
-    setAssertion({ claimText: item.claimText, temporalClaim: item.temporalClaim, quote: item.passage.quote, locator: item.passage.locator, observedAt: item.observedAt ?? '', reportedAt: item.reportedAt ?? '', derivesFrom: item.derivesFrom })
+    setAssertion({ epistemicType: item.epistemicType ?? '', claimText: item.claimText, temporalClaim: item.temporalClaim, quote: item.passage.quote, locator: item.passage.locator, observedAt: item.observedAt ?? '', reportedAt: item.reportedAt ?? '', derivesFrom: item.derivesFrom })
   }
   return <details className="timeline-evidence mt-4 min-w-0 rounded-xl border border-teal-200 border-l-4 border-l-teal-500 bg-teal-50/40 p-4 dark:border-teal-900 dark:border-l-teal-500 dark:bg-teal-950/20" data-testid={`evidence-${event.id}`}>
     <summary className="cursor-pointer break-words font-semibold leading-relaxed text-teal-950 dark:text-teal-100"><FileSearch aria-hidden="true" className="mr-2 inline-block h-4 w-4 align-text-bottom" />Evidence for {event.title} · {data.links.filter(item => item.eventId === event.id).length} assertions</summary>
@@ -65,7 +65,8 @@ export function TimelineEvidence({ sourceImportWorkspaceId, event, eventIds, evi
           const item = data.assertions.find(candidate => candidate.id === link.assertionId)!
           const cited = data.sources.find(candidate => candidate.id === item.sourceId)!
           return <article key={link.id} className="min-w-0 space-y-3 rounded-lg border border-teal-200/70 bg-background p-4 dark:border-teal-900">
-            <p><strong>{item.claimText}</strong> · {item.status}</p>
+            <p><strong>{item.claimText}</strong></p>
+            <div className="flex flex-wrap gap-2 text-xs"><span className="rounded border border-indigo-200 bg-indigo-50 px-2 py-1 font-medium text-indigo-950 dark:border-indigo-800 dark:bg-indigo-950/30 dark:text-indigo-100">Type: {item.epistemicType?.replace('_', ' ') || 'Unclassified'}</span><span className="rounded border px-2 py-1">Status: {item.status}</span></div>
             <a href={cited.url} target="_blank" rel="noopener noreferrer" className="break-all font-medium text-teal-800 underline underline-offset-4 dark:text-teal-200">{cited.title}</a>
             <p className="break-all">{cited.url}</p><p>Publisher: {cited.publisher || 'Not recorded'}</p>
             <p>Published: {cited.publishedAt || 'Not recorded'} · Retrieved: {cited.retrievedAt || 'Not recorded'}</p>
@@ -93,6 +94,8 @@ export function TimelineEvidence({ sourceImportWorkspaceId, event, eventIds, evi
       </details>
       <details className="rounded border p-3" open={editingAssertion ? true : undefined}><summary className="cursor-pointer font-medium">Add or edit assertion</summary>
         <div className="mt-3 space-y-3">
+          <label className="block">Assertion type<select aria-label="Assertion type" className={selectStyle} value={assertion.epistemicType} onChange={change => setAssertion({ ...assertion, epistemicType: change.target.value as '' | TimelineAssertionEpistemicType })}><option value="">Unclassified</option><option value="observation">Observation</option><option value="reported_claim">Reported claim</option><option value="inference">Inference</option><option value="hypothesis">Hypothesis</option></select></label>
+          <p className="text-xs text-muted-foreground">Classify the source wording: an observation, an attributed report, an inference from inputs, or a hypothesis to test. This analyst label does not verify truth or first-hand access. Active/retracted status stays separate.</p>
           <label className="block">Assertion source<select aria-label="Assertion source" className={selectStyle} value={sourceId} onChange={change=>setSourceId(change.target.value)}><option value="">Choose source</option>{data.sources.map(item=><option key={item.id} value={item.id}>{item.title}</option>)}</select></label>
           {(['claimText','temporalClaim','quote','locator','observedAt','reportedAt'] as const).map(field=><label key={field} className="block">{({claimText:'Source claim',temporalClaim:'Temporal wording',quote:'Quoted passage',locator:'Passage locator',observedAt:'Observed at (ISO)',reportedAt:'Reported at (ISO)'})[field]}<Textarea aria-label={({claimText:'Source claim',temporalClaim:'Temporal wording',quote:'Quoted passage',locator:'Passage locator',observedAt:'Observed at (ISO)',reportedAt:'Reported at (ISO)'})[field]} value={assertion[field]} maxLength={field==='claimText'||field==='quote'?4000:1000} onChange={change=>setAssertion({...assertion,[field]:change.target.value})}/></label>)}
           <label className="block">Derives from assertions<select aria-label="Derives from assertions" multiple className={selectStyle} value={assertion.derivesFrom} onChange={change=>setAssertion({...assertion,derivesFrom:Array.from(change.target.selectedOptions,option=>option.value)})}>{data.assertions.filter(item=>item.id!==editingAssertion).map(item=><option key={item.id} value={item.id}>{item.claimText}</option>)}</select></label>

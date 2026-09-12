@@ -39,7 +39,8 @@ export function validateTimelineEvidence(value:unknown,eventIds:readonly string[
     for(const field of ['publishedAt','retrievedAt']) if(source[field]!==undefined) timestamp(source[field])
   }
   for(const item of list(root.assertions,200)) {
-    const assertion=object(item,['id','sourceId','claimText','temporalClaim','passage','status','derivesFrom','observedAt','reportedAt','evaluation'])
+    const assertion=object(item,['id','sourceId','claimText','temporalClaim','passage','status','derivesFrom','observedAt','reportedAt','evaluation','epistemicType'])
+    if(Object.prototype.hasOwnProperty.call(assertion,'epistemicType')) choice(assertion.epistemicType,['observation','reported_claim','inference','hypothesis'])
     id(assertion.id);if(assertions.has(assertion.id)) fail();assertions.set(assertion.id,assertion)
     if(assertion.evaluation!==undefined) {
       validateTimelineSourceEvaluation(assertion.evaluation)

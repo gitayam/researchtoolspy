@@ -135,7 +135,9 @@ export interface TimelineEvidenceSource {
   publishedAt?: string
   retrievedAt?: string
 }
+export type TimelineAssertionEpistemicType = 'observation' | 'reported_claim' | 'inference' | 'hypothesis'
 export interface TimelineSourceAssertion {
+  epistemicType?: TimelineAssertionEpistemicType
   evaluation?: TimelineSourceEvaluation
   id: string
   sourceId: string

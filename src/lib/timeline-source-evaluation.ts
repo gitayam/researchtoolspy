@@ -60,7 +60,8 @@ function validateBasis(value: unknown): void {
   }
   const assertions = new Map<string, RecordValue>(), passages = new Set<string>()
   for (const value of root.assertions) {
-    const assertion = record(value, ['id', 'sourceId', 'claimText', 'temporalClaim', 'passage', 'status', 'derivesFrom'], ['observedAt', 'reportedAt'])
+    const assertion = record(value, ['id', 'sourceId', 'claimText', 'temporalClaim', 'passage', 'status', 'derivesFrom'], ['observedAt', 'reportedAt', 'epistemicType'])
+    if (Object.prototype.hasOwnProperty.call(assertion, 'epistemicType') && (typeof assertion.epistemicType !== 'string' || !['observation', 'reported_claim', 'inference', 'hypothesis'].includes(assertion.epistemicType))) fail()
     id(assertion.id); id(assertion.sourceId)
     if (assertions.has(assertion.id) || !sources.has(assertion.sourceId)) fail()
     assertions.set(assertion.id, assertion)

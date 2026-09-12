@@ -199,7 +199,7 @@ function timelineMarkdown(
     for (const link of evidence?.links.filter(item => item.eventId === event.id) ?? []) {
       const assertion = evidence!.assertions.find(item => item.id === link.assertionId)!
       const source = evidence!.sources.find(item => item.id === assertion.sourceId)!
-      lines.push(`  Evidence (${link.relation}; ${assertion.status}; analyst recorded): ${assertion.claimText}`, `  Source: ${source.title} — ${source.url}`, `  Quote: ${assertion.passage.quote}`, `  Locator: ${assertion.passage.locator}`, `  Temporal claim: ${assertion.temporalClaim}`, `  Derives from: ${assertion.derivesFrom.join(', ') || 'None recorded; independence not implied'}`)
+      lines.push(`  Evidence (${link.relation}; ${assertion.status}; analyst recorded): ${assertion.claimText}`, `  Source: ${source.title} — ${source.url}`, `  Quote: ${assertion.passage.quote}`, `  Locator: ${assertion.passage.locator}`, `  Type (analyst classified): ${assertion.epistemicType?.replace('_', ' ') || 'Unclassified'}`, `  Temporal claim: ${assertion.temporalClaim}`, `  Derives from: ${assertion.derivesFrom.join(', ') || 'None recorded; independence not implied'}`)
       if (assertion.evaluation) {
         lines.push(`Source evaluation (analyst-entered): ${timelineSourceEvaluationNeedsReview(evidence!, assertion.id) ? 'needs review; inputs changed' : 'matches recorded inputs'}; recorded ${assertion.evaluation.reviewedAt}`)
         for (const factor of ['access', 'reliability', 'credibility', 'currency', 'completeness', 'bias', 'deception'] as const) lines.push(`  ${factor}: ${assertion.evaluation[factor].value} — ${assertion.evaluation[factor].rationale || 'No rationale recorded'}`)
@@ -231,7 +231,7 @@ function timelineMarkdown(
       if (timelineJudgmentNeedsReview(judgment, allEvents, evidence)) lines.push('Judgment inputs changed; review needed.')
       for (const assertion of evidence?.assertions.filter(item => judgment.evidenceRefs.includes(item.id) || judgment.contraryEvidenceRefs.includes(item.id)) ?? []) {
         const source = evidence!.sources.find(item => item.id === assertion.sourceId)!
-        lines.push(`Source wording (${judgment.contraryEvidenceRefs.includes(assertion.id) ? 'contrary' : 'cited'}; ${assertion.status}): ${assertion.claimText}`, `Source: ${source.title} — ${source.url}`, `Quote: ${assertion.passage.quote}`, `Locator: ${assertion.passage.locator}`)
+        lines.push(`Source wording (${judgment.contraryEvidenceRefs.includes(assertion.id) ? 'contrary' : 'cited'}; ${assertion.status}): ${assertion.claimText}`, `Source: ${source.title} — ${source.url}`, `Quote: ${assertion.passage.quote}`, `Locator: ${assertion.passage.locator}`, `Type (analyst classified): ${assertion.epistemicType?.replace('_', ' ') || 'Unclassified'}`)
         if (assertion.evaluation) {
           lines.push(`Source evaluation (analyst-entered): ${timelineSourceEvaluationNeedsReview(evidence!, assertion.id) ? 'needs review; inputs changed' : 'matches recorded inputs'}; recorded ${assertion.evaluation.reviewedAt}`)
           for (const factor of ['access', 'reliability', 'credibility', 'currency', 'completeness', 'bias', 'deception'] as const) lines.push(`  ${factor}: ${assertion.evaluation[factor].value} — ${assertion.evaluation[factor].rationale || 'No rationale recorded'}`)

@@ -5,7 +5,7 @@ const contractTests = [
   'community-integration-contract', 'community-integration-capabilities',
   'community-service-auth', 'timeline-reference-client', 'timeline-fixtures',
   'timeline-artifact-contract', 'timeline-artifact-auth', 'timeline-artifact-d1',
-  'timeline-artifact-cors', 'timeline-evidence-contract', 'timeline-source-evaluation-contract', 'timeline-judgments-contract', 'timeline-source-import-d1', 'timeline-source-candidates-d1', 'timeline-chunk-import-d1', 'timeline-service-d1', 'timeline-artifact-migrations', 'timeline-workspace-snapshot-d1',
+  'timeline-artifact-cors', 'timeline-evidence-contract', 'timeline-source-evaluation-contract', 'timeline-epistemic-type-contract', 'timeline-judgments-contract', 'timeline-source-import-d1', 'timeline-source-candidates-d1', 'timeline-chunk-import-d1', 'timeline-service-d1', 'timeline-artifact-migrations', 'timeline-workspace-snapshot-d1',
 ]
 const uiTests = ['timeline-tool-ui', 'timeline-workspace-ordering', 'timeline-narrative-ui', 'timeline-durable-browser', 'timeline-evidence-browser', 'timeline-judgments-browser']
 const checks = [

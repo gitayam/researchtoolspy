@@ -19,6 +19,7 @@ interface Field<T> {
 
 const assertionFields: Field<AssertionInput>[] = [
   { label: 'Assertion ID', read: value => value.id },
+  { label: 'Type', read: value => value.epistemicType?.replace('_', ' ') || 'Unclassified' },
   { label: 'Claim wording', read: value => value.claimText },
   { label: 'Temporal wording', read: value => value.temporalClaim },
   { label: 'Passage ID', read: value => value.passage.id },
