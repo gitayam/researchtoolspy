@@ -140,18 +140,18 @@ export function TimelineEvidence({ sourceImportWorkspaceId, event, events, evide
         <p className="text-muted-foreground">Review records an analyst judgment. It does not certify the source or prove causation.</p>
       </fieldset>
       <AlertDialog open={pending !== null} onOpenChange={open => { if (!open) setPending(null) }}>
-        <AlertDialogContent className="max-h-[85dvh] w-[calc(100%-2rem)] overflow-y-auto rounded-xl border-amber-300 dark:border-amber-800" onCloseAutoFocus={event => { event.preventDefault(); if (warningTrigger.current?.isConnected) warningTrigger.current.focus() }}>
+        <AlertDialogContent className="max-h-[85dvh] w-[calc(100%-2rem)] overflow-y-auto rounded-xl border-amber-300 bg-white text-slate-950 dark:border-amber-800 dark:bg-slate-950 dark:text-slate-100" onCloseAutoFocus={event => { event.preventDefault(); if (warningTrigger.current?.isConnected) warningTrigger.current.focus() }}>
           <AlertDialogHeader>
             <AlertDialogTitle>Remove the final active support?</AlertDialogTitle>
-            <AlertDialogDescription>This change would leave these events with no active supporting assertion, including support through recorded ancestry.</AlertDialogDescription>
+            <AlertDialogDescription className="text-slate-600 dark:text-slate-300">This change would leave these events with no active supporting assertion, including support through recorded ancestry.</AlertDialogDescription>
           </AlertDialogHeader>
           <ul aria-label="Events losing final support" className="list-disc space-y-2 break-words rounded-lg border border-amber-200 bg-amber-50 p-4 pl-8 text-sm font-medium text-amber-950 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-100">
             {pending?.titles.map((title, index) => <li key={index}>{title}</li>)}
           </ul>
-          <p className="text-sm text-muted-foreground">This is more than a review needing renewal: no active support would remain. The saved corroborated assessment and earlier reviews stay recorded; the timeline will show that corroboration needs review.</p>
+          <p className="text-sm text-slate-600 dark:text-slate-300">This is more than a review needing renewal: no active support would remain. The saved corroborated assessment and earlier reviews stay recorded; the timeline will show that corroboration needs review.</p>
           <AlertDialogFooter>
-            <AlertDialogCancel>Keep support</AlertDialogCancel>
-            <AlertDialogAction onClick={event => { event.preventDefault(); confirmSupportLoss() }}>Apply change</AlertDialogAction>
+            <AlertDialogCancel className="bg-white text-slate-950 hover:bg-slate-100 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800">Keep support</AlertDialogCancel>
+            <AlertDialogAction className="bg-amber-700 text-white hover:bg-amber-800 dark:bg-amber-400 dark:text-slate-950 dark:hover:bg-amber-300" onClick={event => { event.preventDefault(); confirmSupportLoss() }}>Apply change</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
