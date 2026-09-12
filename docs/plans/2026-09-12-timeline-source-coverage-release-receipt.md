@@ -13,3 +13,7 @@ Independent review compared all 146 staged files; inventory SHA256 `049d856e5ab4
 The [JSON receipt](./2026-09-12-timeline-source-coverage-release-receipt.json) records fingerprints and recovery. Previous deployment `9ded586f-b693-44c6-8dee-bb4014ef9170` reads identical snapshots but lacks this summary; preserve saved data and immutable revisions. Older pre-epistemic codecs remain incompatible with classified snapshots. Existing size limits and Vite large-chunk warning remain. Primary checkout untouched.
 
 **TL-04 remains partial.** RSS source coverage, broader source-store support, handling/export policy, authenticated peer review and dedicated judgment services remain pending.
+
+## Subsequent deployment
+
+The [TimelineJS export release](./2026-09-12-timeline-timelinejs-release-receipt.md) adds a selected-narrative presentation adapter with the same workspace snapshot format. This receipt retains historical coverage evidence; the newer receipt records current deployment.

@@ -1,0 +1,182 @@
+{
+  "schemaVersion": "timeline-timelinejs-release.v1",
+  "recordedAt": "2026-09-12T17:31:10.652855+00:00",
+  "baselineSha": "b54417446ca642b55351b82261e0720b1b11f10e",
+  "acceptedReleaseSha": "86202310b3f9e4b0a95487a88850b14d822346c3",
+  "checkpoint": "Selected-narrative TimelineJS export deployed; TL-17 remains partial",
+  "states": {
+    "canonicalLanded": true,
+    "mirrorConfirmed": true,
+    "productionDeployed": true,
+    "migrationRequired": false,
+    "integrationCheckoutCleanAtRelease": true,
+    "primaryCheckoutSynced": false
+  },
+  "publication": {
+    "canonical": "origin/main",
+    "mirror": "gitlab/main",
+    "releaseRefSha": "86202310b3f9e4b0a95487a88850b14d822346c3",
+    "forcePush": false,
+    "documentationFollowup": "Documentation-only commit follows; runtime remains acceptedReleaseSha."
+  },
+  "validation": {
+    "sourceSha": "86202310b3f9e4b0a95487a88850b14d822346c3",
+    "typeChecksPassed": 5,
+    "apiContractTestsPassed": 155,
+    "browserProjectChecksPassed": 98,
+    "build": "passed",
+    "pagesFunctionsBuild": "passed",
+    "schemaRehearsal": "passed",
+    "compiledHttpGate": "passed",
+    "staticGate": "passed",
+    "externalOutboundAttempts": 0,
+    "seconds": 879.53,
+    "archiveSha256": "8a32a4d3657c4fe4dd518d85706f5d35f290cfc64cfedc6ec3bc2cbf9abf292b",
+    "supervisorSha256": "869d61c1e2691530d787992a34caf2e8b1648112e8ce6b02812b7ff1401c048d",
+    "receiptSha256": "84a52e939c1d2390ba3e3ae88f9d289ba21bdbb383f219d6639ffefa49a22765",
+    "runLogSha256": "23de2c2355af89f810fca992e1ecf641043a6abb50f361a3b67afe2f3badbd41",
+    "schemaManifestSha256": "7b986b84187f8e4e22077d798fbbbf312082b6c6ec0556d39f51c3d6f338bcf2",
+    "runtimeImage": "mcr.microsoft.com/playwright@sha256:9bd26ad900bb5e0f4dee75839e957a89ae89c2b7ab1e76050e559790e946b948",
+    "commands": [
+      "node scripts/verify-timeline.mjs",
+      "node node_modules/wrangler/bin/wrangler.js pages functions build functions --outdir dist/_worker.js --build-output-directory dist --compatibility-date 2025-09-30 --compatibility-flags nodejs_compat",
+      "node scripts/verify-timeline-release.mjs"
+    ],
+    "executionBoundary": "Pinned network-none Docker; readonly source/dependencies/root; no host credentials/socket; only schema SQL and migration names enter rehearsal."
+  },
+  "review": {
+    "backendProvider": "tl00_recon pure TimelineJS adapter and six contract tests",
+    "uiProvider": "integration-owner export preview, matching companion and browser acceptance",
+    "independentReviewer": "dependency_review",
+    "sourceAndRuntimeAcceptedSha": "86202310b3f9e4b0a95487a88850b14d822346c3",
+    "artifactFilesIndependentlyCompared": 146,
+    "distManifestSha256": "cfb96858244a99c447c97db0de7fe7c590453cde1beba9e79d4836f5a8b5969d",
+    "packageManifestFileSha256": "c09a0b8ea3fc6301e21a07809185e08ad45454732c757669edfdabd193c70c77",
+    "wranglerConfigSha256": "a58a42371915ceebd779014377cc336df722edae9f6822ca1ab4e329d0755a24",
+    "acceptanceReceiptSha256": "c78c7dae5a714a56119fa1c56b2ea6661fa0b6d22bf4a5b523470c1df15206f4",
+    "visualAcceptanceSha256": "4f42849558ed6cf365d6bc1d7fbbc37a3bb9e76462517f48b033edb2617500e3"
+  },
+  "database": {
+    "name": "researchtoolspy-prod",
+    "mutationsPerformed": false,
+    "appliedMigrationCount": 13,
+    "pendingMigrations": [],
+    "productionSchemaSha256": "22cb033df9400412f4d83b5f3668b8752ec4126a9c8402b6d502187727bf60bd",
+    "beforeCatalog": {
+      "result": "passed",
+      "tables": 14,
+      "schemaRows": 386,
+      "normalizedSchemaSha256": "ec0d28165382f028c98208a003d8c5ab672a9a0ae7ba44ef2f23e3b2bfa46729"
+    },
+    "afterCatalog": {
+      "result": "passed",
+      "tables": 14,
+      "schemaRows": 386,
+      "normalizedSchemaSha256": "ec0d28165382f028c98208a003d8c5ab672a9a0ae7ba44ef2f23e3b2bfa46729"
+    },
+    "migrationInventoryComparison": {
+      "result": "passed",
+      "appliedMigrationCount": 13,
+      "unchanged": true
+    },
+    "rehearsal": "Existing compiled human/service classified snapshots, replay, imports and static routes pass against actual production schema with synthetic fixtures. No API or schema change in this stage."
+  },
+  "deployment": {
+    "project": "researchtoolspy",
+    "id": "d1a610f0-3876-4381-82ac-685730dfd32b",
+    "url": "https://d1a610f0.researchtoolspy.pages.dev",
+    "productionUrl": "https://researchtools.net",
+    "sourceSha": "86202310b3f9e4b0a95487a88850b14d822346c3",
+    "wranglerVersion": "4.100.0",
+    "prebuilt": true,
+    "noBundle": true,
+    "stagingHasFunctionsSource": false,
+    "existingSecretNamesPreserved": true,
+    "unrelatedWorkersDeployed": false,
+    "smoke": [
+      {
+        "result": "passed",
+        "baseUrl": "https://d1a610f0.researchtoolspy.pages.dev",
+        "readonlyChecksPassed": 21,
+        "mutatingRequests": 0,
+        "receiptSha256": "5aa5c55252c5ec670d111eba22dd47767018b75e42e48c9595cf233200c24b22"
+      },
+      {
+        "result": "passed",
+        "baseUrl": "https://researchtools.net",
+        "readonlyChecksPassed": 21,
+        "mutatingRequests": 0,
+        "receiptSha256": "1ff579580c47aa5e8b7701e62ffd04bc786fc63ea29630ab155a7bc25ec5ad40"
+      }
+    ]
+  },
+  "rollback": {
+    "previousDeploymentId": "58710a88-8e09-4c96-9aed-e7233a6d2d32",
+    "limits": "Previous runtime reads identical snapshots but lacks TimelineJS export. Preserve saved data and immutable revisions; older pre-epistemic codecs remain incompatible with classified snapshots."
+  },
+  "recovery": [
+    "Initial exact-source focused validation passed the main type check, six adapter contracts and eight desktop/mobile checks including private saved history. Owner visual review found mobile download actions below the scroll, prompting a layout refinement rather than a test failure.",
+    "Source86202310b keeps actions visible outside keyboard-scrollable details and simplifies notices. Independent source review accepted the exact delta; viewport checks were added without removing download-byte or preservation assertions.",
+    "Final exact-source focused run passed main type checking, six adapter contracts and eight desktop/mobile flows. Full release run then passed all five type checks,155 API/contract checks,98 browser checks, both builds and compiled production-schema gates in879.53 seconds. No failed test attempts."
+  ],
+  "instructionSha256": {
+    "CLAUDE.md": "3852de6d95104c64f3a35b670f350e1d7a2c6c9ed93d03d53895e7bc8c44ff1b",
+    ".team/project.json": "c87cd27090a1a8ff779dd0d850668ebf0ecb6581cefb2d0b0a66ed63aabbcf78",
+    "docs/plans/2026-09-11-timeline-tranche-charter.md": "367a6bc5c7f7c706ce4f6b368df952fbe5c8a6e34bde3f959b72775e138a0682",
+    "docs/plans/2026-09-12-timeline-timelinejs-charter.md": "68e725257d12111922a0568df28ad6ff8d599159b818f5e9344a87cc2ad064fd"
+  },
+  "limitations": [
+    "TimelineJS presentation export includes selected events with recorded absolute dates only. Unknown, relative and position-only dates are explicitly omitted. Recorded precision is retained; times use unconverted wallclock fields with a timezone label.",
+    "TimelineJS sorts chronologically and may change narrative order. Transitions, chapter claims, most narrative metadata and the evidence/review graph are absent. No eras or media are fabricated. The matching ResearchTools companion contains the complete workspace, including unselected and private records.",
+    "This stage validates the documented JSON adapter and downloaded bytes, not an installed TimelineJS renderer. No renderer dependency, public publishing endpoint, immutable authorized publication or revocation service is implemented. TL-17 remains partial.",
+    "No persisted field, API, migration, auth or size-limit change. Preview includes unsaved edits; stale previews block both downloads. Prior runtime reads identical snapshots.",
+    "Production smoke is anonymous/read-only; authenticated operations use isolated synthetic actual-D1 and compiled-worker fixtures. TL-04 remains partial. Primary checkout untouched. Existing Vite large-chunk warning and representative visual-review limits remain."
+  ],
+  "retrospective": "A native provider supplied a pure presentation adapter while the owner implemented an explicit preview and two matching downloads. Independent source review, isolated browser download-byte checks, private saved-history checks and visual review precede publication. No background publication or third-party transfer is introduced.",
+  "promptManifestSha256": "f35a78ffc4769f41c0ea3d6d4a5856e562147b85b648f9d892b78f1ebe7a93c8",
+  "visual": {
+    "reviewer": "validator_review",
+    "runName": "timelinejs-layout-focused",
+    "visualSource": "86202310b3f9e4b0a95487a88850b14d822346c3",
+    "acceptedSource": "86202310b3f9e4b0a95487a88850b14d822346c3",
+    "themes": [
+      "light",
+      "dark"
+    ],
+    "browsers": [
+      "chromium",
+      "mobile-safari"
+    ],
+    "evidence": {
+      "timeline-timelinejs-browse-d43f8-source-with-explicit-losses-chromium/timelinejs-dark.png": "d1285df0480131cac9bd78101bb365d128832af81f9fc4e04b9a77c4ee985b40",
+      "timeline-timelinejs-browse-d43f8-source-with-explicit-losses-chromium/timelinejs-light.png": "80a21341311fdc0405f234e0e048b7f7208743e544886926372b4e3d944518d2",
+      "timeline-timelinejs-browse-d43f8-source-with-explicit-losses-mobile-safari/timelinejs-dark.png": "5938cbfaaf427ac3266ff27273a25c35fa162172e0a9ba4fa9fbf1f2430ad79b",
+      "timeline-timelinejs-browse-d43f8-source-with-explicit-losses-mobile-safari/timelinejs-light.png": "3aabc8d2a475d0d925d90eece7c5137a3b196d7136d4decc5dee3c028ae355ed"
+    },
+    "limitations": "Representative initial scroll position on desktop/mobile in light/dark. Readable text and distinct visible actions; mobile scrollbar indicates continuing details. Omitted-event details are partly below the intentional scroll boundary. A floating widget touches the lower-right mobile edge without obscuring actions. No measured contrast or exhaustive accessibility audit."
+  },
+  "failedAttempts": [],
+  "focusedValidation": [
+    {
+      "runName": "timelinejs-focused",
+      "source": "366a3558d55cdc720788b2ba146452a63f9de1d1",
+      "seconds": 106.03,
+      "receiptSha256": "ec5ba21f99bf18d8ef1b1e66c9350b1a0599981e8f3db16b5b85da76512a0879",
+      "runLogSha256": "30dccfb5dc66bfb6ffb27801414960a20d1aa467ce2341b042a39bae8bcde911",
+      "result": "passed"
+    },
+    {
+      "runName": "timelinejs-layout-focused",
+      "source": "86202310b3f9e4b0a95487a88850b14d822346c3",
+      "seconds": 103.27,
+      "receiptSha256": "f68f00f515c7ef1d725eb88975688c6a3ec8a4b6d391aaf85281b91e56b2ac90",
+      "runLogSha256": "eeaed6af085f1e5cb0383d065a1dbbee1b9cd2d535abafffa9cfcb70b8d370d6",
+      "result": "passed"
+    }
+  ],
+  "formatReference": {
+    "url": "https://timeline.knightlab.com/docs/json-format.html",
+    "verifiedAt": "2026-09-12",
+    "method": "Official indexed documentation; date, slide, group, unique_id, autolink and text-field contracts. No renderer version or third-party schema validation claimed."
+  }
+}

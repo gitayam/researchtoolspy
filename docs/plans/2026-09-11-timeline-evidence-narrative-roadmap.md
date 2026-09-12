@@ -16,6 +16,8 @@ Likelihood and analytical confidence remain separate; reviews preserve the judgm
 version they addressed. Import verifies stored-text equality, not source truth or
 authenticated historical provenance. TL-04 remains in progress: broader source-store
 support, dedicated judgment services and authenticated peer review are pending.
+TimelineJS selected-narrative export now provides an explicit loss/omission preview and matching complete ResearchTools companion without publishing or changing saved data. Recorded date precision, qualified assessments and escaped text are preserved. **TL-17 is partial:** the adapter is delivered; renderer integration, immutable authorized publication/revocation and richer snapshot types remain pending. See the [TimelineJS release receipt](./2026-09-12-timeline-timelinejs-release-receipt.md).
+
 Compact source coverage now distinguishes linked roles, active support, retractions and withdrawn ancestry in Analyst and Narrative views without changing saved data. Recorded sources do not imply independent confirmation. RSS coverage remains pending. See the [source coverage release receipt](./2026-09-12-timeline-source-coverage-release-receipt.md).
 
 Evidence edits now warn before removing the final active support from a saved corroborated event, including shared ancestry and already-stale assessments. Cancellation preserves data; changed context requires a fresh action. See the [final-support warning release receipt](./2026-09-12-timeline-support-warning-release-receipt.md).

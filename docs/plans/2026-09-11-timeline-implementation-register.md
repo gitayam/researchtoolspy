@@ -28,7 +28,7 @@ their release.
 
 ## Delivery checkpoints
 
-Current delivery state (2026-09-11):
+Current delivery state (2026-09-12):
 
 - **TL-00: released.** Frozen JSON schemas/OpenAPI, generic service client,
   synthetic fixture manifest and scoring rubric are implemented. All 67 focused
@@ -68,13 +68,16 @@ Current delivery state (2026-09-11):
   Content Research extraction in the same workspace. The resolver checks current
   access, retention, full-text hash and unique quote match; the recorded locator
   preserves hashes and UTF-16 offsets. Preview is rechecked before import, and
-  private passages never enter automatic browser drafts. All 149 API/contract
-  checks, 92 browser checks, five type checks and compiled release gates pass.
+  private passages never enter automatic browser drafts. All 155 API/contract
+  checks, 98 browser checks, five type checks and compiled release gates pass.
   No database migration was required. Broader source-store support, dedicated
   judgment services and authenticated peer review remain pending. Stored-text
   equality is not source truth, authenticated historical provenance or append-only
   review permission.
-- **TL-01 and TL-05–TL-18: pending.** No delivery of these checkpoints or cross-app changes is claimed.
+- **TL-17: partial.** Selected-narrative TimelineJS JSON and a matching complete companion are delivered with explicit loss warnings. Renderer integration and immutable authorized publication/revocation remain pending.
+- **TL-01, TL-05–TL-16 and TL-18: pending.** No delivery of these checkpoints or cross-app changes is claimed.
+
+TimelineJS selected-narrative export now provides an explicit loss/omission preview and matching complete ResearchTools companion without publishing or changing saved data. Recorded date precision, qualified assessments and escaped text are preserved. **TL-17 is partial:** the adapter is delivered; renderer integration, immutable authorized publication/revocation and richer snapshot types remain pending. See the [TimelineJS release receipt](./2026-09-12-timeline-timelinejs-release-receipt.md).
 
 Compact source coverage now distinguishes linked roles, active support, retractions and withdrawn ancestry in Analyst and Narrative views without changing saved data. Recorded sources do not imply independent confirmation. RSS coverage remains pending. See the [source coverage release receipt](./2026-09-12-timeline-source-coverage-release-receipt.md).
 
