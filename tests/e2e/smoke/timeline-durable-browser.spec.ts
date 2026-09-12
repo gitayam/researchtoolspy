@@ -132,9 +132,13 @@ test.describe('durable browser with actual D1 routes @smoke', () => {
       for(const theme of ['light','dark']){
         await page.evaluate(dark=>document.documentElement.classList.toggle('dark',dark),theme==='dark')
         expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true)
+        await navigation.getByRole('link',{name:/Event sequence/}).click()
+        const viewportPath=testInfo.outputPath(`workspace-viewport-${theme}.png`)
+        await page.screenshot({path:viewportPath,animations:'disabled'});await testInfo.attach(`Workspace viewport ${theme}`,{path:viewportPath,contentType:'image/png'})
         for(const [name,selector] of [['navigation','.timeline-workspace-nav'],['sequence','#timeline-sequence'],['judgments','#timeline-judgments']] as const){
           const target=page.locator(selector),path=testInfo.outputPath(`${name}-${theme}.png`)
-          await target.screenshot({path,animations:'disabled'});await testInfo.attach(`${name} ${theme}`,{path,contentType:'image/png'})
+          // Component captures omit sticky app chrome; viewport captures above retain it.
+          await target.screenshot({path,animations:'disabled',style:'[role="banner"], .fixed { visibility: hidden !important; }'});await testInfo.attach(`${name} ${theme}`,{path,contentType:'image/png'})
         }
       }
       expect((await exported(page)).analystWorkspace).toEqual(before)

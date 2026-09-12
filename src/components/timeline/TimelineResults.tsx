@@ -911,7 +911,7 @@ function TimelineWorkspace({
         <Button variant="outline" onClick={exportWorkspace}>Export JSON</Button>
       </div>
       {presentation === 'analyst' && <nav aria-label="Workspace navigation" className="timeline-workspace-nav">
-        <a href="#timeline-sequence"><Calendar aria-hidden="true"/><span><strong>Event sequence</strong><small>{events.length} events · {questions.filter(q=>q.status==='open').length} open questions</small></span></a>
+        <a href="#timeline-sequence"><Calendar aria-hidden="true"/><span><strong>Event sequence</strong><small>{events.length} events · {questions.filter(q=>q.status==='open').length} open {questions.filter(q=>q.status==='open').length===1?'question':'questions'}</small></span></a>
         <a href="#timeline-judgments"><Brain aria-hidden="true"/><span><strong>Judgments &amp; dissent</strong><small>Assess claims and competing explanations</small></span></a>
         <a href="#timeline-narrative-editor"><FileSearch aria-hidden="true"/><span><strong>Narrative editor</strong><small>Shape chapters and select key events</small></span></a>
       </nav>}
