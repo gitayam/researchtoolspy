@@ -13,3 +13,7 @@ All 155 staged files were independently compared; inventory SHA256 `52cd03af6c4d
 The [JSON receipt](./2026-09-12-timeline-navigation-release-receipt.json) records source-bound validation, recovery, visual limits and live replay fingerprints. Previous deployment `971c8e13-acd6-4f1c-bc55-5829ac10c2af` reads identical data but lacks these navigation controls. Preserve saved snapshots and history. Primary checkout untouched; representative screenshots are not an exhaustive accessibility audit.
 
 **TL-17 remains partial:** immutable authorized publication/revocation and richer snapshot types remain pending. **TL-04 remains partial:** RSS coverage and broader source stores remain pending.
+
+## Subsequent deployment
+
+The [saved-revision presentation release](./2026-09-12-timeline-saved-presentation-release-receipt.md) adds preview and export of the last successfully saved/opened snapshot. This receipt retains historical navigation validation; the newer receipt records the current deployment.

@@ -16,6 +16,8 @@ Likelihood and analytical confidence remain separate; reviews preserve the judgm
 version they addressed. Import verifies stored-text equality, not source truth or
 authenticated historical provenance. TL-04 remains in progress: broader source-store
 support, dedicated judgment services and authenticated peer review are pending.
+Saved-revision preview now presents and exports the last successfully saved/opened private version separately from unsaved edits. Revision identity is explicit; no public sharing or revision-history browser is added. See the [saved-presentation release receipt](./2026-09-12-timeline-saved-presentation-release-receipt.md).
+
 Presentation search now filters the native event list and jumps to allowed stable event IDs without changing selection, exports or chronology. Query/disclosure survive frame replacement; old jumps do not replay. See the [navigation release receipt](./2026-09-12-timeline-navigation-release-receipt.md).
 
 Optional self-hosted TimelineJS presentation now renders the frozen selected narrative with beginning/latest controls, keyboard navigation, an accessible event list and isolated local assets. The renderer is bounded to 100 eligible events; exports remain available. See the [renderer release receipt](./2026-09-12-timeline-renderer-release-receipt.md).

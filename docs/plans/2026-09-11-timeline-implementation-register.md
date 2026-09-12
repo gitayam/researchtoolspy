@@ -68,13 +68,15 @@ Current delivery state (2026-09-12):
   Content Research extraction in the same workspace. The resolver checks current
   access, retention, full-text hash and unique quote match; the recorded locator
   preserves hashes and UTF-16 offsets. Preview is rechecked before import, and
-  private passages never enter automatic browser drafts. The current navigation source completed five type checks, 163 API/contract checks and all 106 browser cases across a timed-out initial run and an isolated completion run at the same source, followed by fresh build/compiled gates. Exact inventory coverage and both run receipts are recorded; no single full-green run is claimed.
+  private passages never enter automatic browser drafts. The current saved-presentation source passed five type checks, 48 browser cases, 14 renderer/export contract checks and fresh build/compiled gates in planned isolated partitions. These are proportionate regression checks; the full unrelated API suite was not rerun. Historical navigation counts remain in its release receipt.
   No database migration was required. Broader source-store support, dedicated
   judgment services and authenticated peer review remain pending. Stored-text
   equality is not source truth, authenticated historical provenance or append-only
   review permission.
 - **TL-17: partial.** Selected-narrative TimelineJS JSON, matching complete companion and optional self-hosted renderer are delivered with explicit loss warnings. Immutable authorized publication/revocation and richer snapshot types remain pending.
 - **TL-01, TL-05–TL-16 and TL-18: pending.** No delivery of these checkpoints or cross-app changes is claimed.
+
+Saved-revision preview now presents and exports the last successfully saved/opened private version separately from unsaved edits. Revision identity is explicit; no public sharing or revision-history browser is added. See the [saved-presentation release receipt](./2026-09-12-timeline-saved-presentation-release-receipt.md).
 
 Presentation search now filters the native event list and jumps to allowed stable event IDs without changing selection, exports or chronology. Query/disclosure survive frame replacement; old jumps do not replay. See the [navigation release receipt](./2026-09-12-timeline-navigation-release-receipt.md).
 
