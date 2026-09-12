@@ -1,0 +1,143 @@
+{
+  "schemaVersion": "timeline-judgment-release.v1",
+  "recordedAt": "2026-09-12T00:45:16.421266+00:00",
+  "baselineSha": "5951f7a1f5f6de2af97f2eeb109e87162f29d245",
+  "acceptedReleaseSha": "4ff6a092a8923f22910312c49f9f856d24c0707b",
+  "checkpoint": "TL-04 partial: analytic judgments and retained dissent deployed",
+  "states": {
+    "canonicalLanded": true,
+    "mirrorConfirmed": true,
+    "productionDeployed": true,
+    "migrationRequired": false,
+    "integrationCheckoutCleanAtRelease": true,
+    "primaryCheckoutSynced": false
+  },
+  "publication": {
+    "canonical": "origin/main",
+    "mirror": "gitlab/main",
+    "releaseRefSha": "4ff6a092a8923f22910312c49f9f856d24c0707b",
+    "forcePush": false,
+    "documentationFollowup": "This receipt is a documentation-only commit; runtime remains acceptedReleaseSha."
+  },
+  "validation": {
+    "sourceSha": "4ff6a092a8923f22910312c49f9f856d24c0707b",
+    "typeChecksPassed": 5,
+    "apiContractTestsPassed": 109,
+    "browserProjectChecksPassed": 66,
+    "browserProjects": [
+      "chromium",
+      "mobile-safari"
+    ],
+    "build": "passed",
+    "pagesFunctionsBuild": "passed",
+    "schemaRehearsal": "passed",
+    "compiledHttpGate": "passed",
+    "staticGate": "passed",
+    "externalOutboundAttempts": 0,
+    "seconds": 802.69,
+    "archiveSha256": "e10d29cbf960da8087101eccc73394c5d06a2ac66c13b47bfa94c00e047f79d3",
+    "supervisorSha256": "869d61c1e2691530d787992a34caf2e8b1648112e8ce6b02812b7ff1401c048d",
+    "receiptSha256": "77aead522332a80e72c747229fe8fa8e85ad32e97012f70ae561a56cde30b773",
+    "runLogSha256": "f6129968429b1c1f1081518f4897015dee0bb1a332298b33b247e5789eb4d9b8",
+    "schemaManifestSha256": "1746e767a2a4bcdb4721fadb80d757a13b4da31bb69c0db5bfe800921ec54ed7",
+    "runtimeImage": "mcr.microsoft.com/playwright@sha256:9bd26ad900bb5e0f4dee75839e957a89ae89c2b7ab1e76050e559790e946b948",
+    "commands": [
+      "node scripts/verify-timeline.mjs",
+      "node node_modules/wrangler/bin/wrangler.js pages functions build functions --outdir dist/_worker.js --build-output-directory dist --compatibility-date 2025-09-30 --compatibility-flags nodejs_compat",
+      "node scripts/verify-timeline-release.mjs"
+    ],
+    "executionBoundary": "Pinned network-none Docker; readonly source/dependencies/root; no host credentials/socket; only schema SQL and migration names enter rehearsal."
+  },
+  "review": {
+    "modelProvider": "tl00_recon",
+    "uiProvider": "validator_review",
+    "independentReviewer": "dependency_review",
+    "sourceAndRuntimeAcceptedSha": "4ff6a092a8923f22910312c49f9f856d24c0707b",
+    "artifactFilesIndependentlyCompared": 145,
+    "distManifestSha256": "f2995233ec5bca0354d945e7d7060f2a566f43e76c261cb379d030f193233262",
+    "packageManifestFileSha256": "519069d30c8c56f647f87b986eed971f6d7ed5f2b8a179010d226508fedef798",
+    "wranglerConfigSha256": "a58a42371915ceebd779014377cc336df722edae9f6822ca1ab4e329d0755a24"
+  },
+  "database": {
+    "name": "researchtoolspy-prod",
+    "mutationsPerformed": false,
+    "appliedMigrationCount": 13,
+    "pendingMigrations": [],
+    "productionSchemaSha256": "22cb033df9400412f4d83b5f3668b8752ec4126a9c8402b6d502187727bf60bd",
+    "beforeCatalog": {
+      "result": "passed",
+      "tables": 12,
+      "schemaRows": 282,
+      "normalizedSchemaSha256": "beed665d1b3c8004c61d4e54f9b39dfe564e1d68c901ec0f6ddb91ba03b86797"
+    },
+    "afterCatalog": {
+      "result": "passed",
+      "tables": 12,
+      "schemaRows": 282,
+      "normalizedSchemaSha256": "beed665d1b3c8004c61d4e54f9b39dfe564e1d68c901ec0f6ddb91ba03b86797"
+    },
+    "rehearsal": "All 12 table catalogs unchanged before and after compiled human/service routes; exact judgment and dissent snapshots survive private immutable revisions.",
+    "migrationInventoryComparison": {
+      "result": "passed",
+      "appliedMigrationCount": 13,
+      "unchanged": true
+    }
+  },
+  "deployment": {
+    "project": "researchtoolspy",
+    "id": "da6b9380-ba08-485f-bf65-6d5de2eefd6b",
+    "url": "https://da6b9380.researchtoolspy.pages.dev",
+    "productionUrl": "https://researchtools.net",
+    "sourceSha": "4ff6a092a8923f22910312c49f9f856d24c0707b",
+    "wranglerVersion": "4.100.0",
+    "prebuilt": true,
+    "noBundle": true,
+    "stagingHasFunctionsSource": false,
+    "requiredSecretNamesPresent": true,
+    "unrelatedWorkersDeployed": false,
+    "smoke": [
+      {
+        "result": "passed",
+        "baseUrl": "https://da6b9380.researchtoolspy.pages.dev",
+        "readonlyChecksPassed": 17,
+        "mutatingRequests": 0,
+        "receiptSha256": "700c7d94b5bd145eb88bf4b8d463c4f3c4bfcea51341d295f36b497face9901f"
+      },
+      {
+        "result": "passed",
+        "baseUrl": "https://researchtools.net",
+        "readonlyChecksPassed": 17,
+        "mutatingRequests": 0,
+        "receiptSha256": "03cf32da860a1c417aba787f1b4bd7b1a3804544690d3c60a8ae5d92405b2948"
+      }
+    ],
+    "existingSecretNamesPreserved": true
+  },
+  "rollback": {
+    "previousDeploymentId": "a7bc3a1c-44ad-4cbf-bc53-d880fac3fd56",
+    "limits": "Previous application supports evidence but its strict codec rejects analysis. Prefer compatible recovery; preserve judgments, dissent, evidence and immutable history."
+  },
+  "recovery": [
+    "Initial schema export returned Cloudflare authentication error 10000; D1/Pages reads and schema export retry succeeded.",
+    "Focused model/D1: 10 passed at 308c22035. Initial browser: 14 passed, 2 failed only due global alert selectors matching new upstream guest banners; selectors scoped.",
+    "Independent review found open review drafts could attach to a changed judgment version; frozen opening basis, mismatch notice and submit guard added.",
+    "Corrected judgment browser 6 checks passed at 0a4c0006c. Markdown full-event argument is defensive; no filtered-export defect was present.",
+    "First full run stopped on TS2345; the missing basis assertion signature was corrected without a runtime change before the full exact-SHA rerun.",
+    "Next full run passed 109 API and 64 browser checks; two legacy narrative checks matched both the title and new judgment heading. The selector now names the title exactly and requires visibility; complete release gate rerun.",
+    "An attempted rerun reused the 88eb source snapshot; stopped with exit 137 after detecting the unchanged locator. Regenerated the archive and confirmed the 4ff6a092 source and corrected selector before the final complete run."
+  ],
+  "instructionSha256": {
+    "CLAUDE.md": "3852de6d95104c64f3a35b670f350e1d7a2c6c9ed93d03d53895e7bc8c44ff1b",
+    ".team/project.json": "c87cd27090a1a8ff779dd0d850668ebf0ecb6581cefb2d0b0a66ed63aabbcf78",
+    "docs/plans/2026-09-11-timeline-judgment-charter.md": "d917ca64b1a589868c9d5aec0ecdaf0418b83875f75ad5fd8b360007c67db2b0"
+  },
+  "limitations": [
+    "Judgments are analyst-entered, likelihood is a local qualitative vocabulary, and analytical confidence is separate; no calibrated probability or automatic certainty is claimed.",
+    "Review labels are self-attributed, not authenticated peer identity/sign-off. UI-retained reviews do not constitute append-only API permissions; authorized clients can replace complete snapshots, with old saved revisions immutable.",
+    "Verified source-store import, dedicated judgment services, authenticated review and later structured analysis remain separate roadmap work. TL-04 remains in progress.",
+    "Production smoke is anonymous GET/OPTIONS; authenticated mutations use synthetic fixtures in isolated actual D1 and compiled worker.",
+    "Upstream analytics/header changes at baseline 5951f7a1f are preserved. Primary checkout untouched; external authenticated worker lanes remain unqualified.",
+    "Existing Vite large-chunk warnings remain."
+  ],
+  "retrospective": "Disjoint model/UI providers plus independent review caught a real review-draft attribution race. Sequential focused browser validation resolved selectors before the complete exact-SHA gate."
+}

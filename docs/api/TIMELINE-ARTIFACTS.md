@@ -140,6 +140,75 @@ import. No migration, new grant or credential is required. Earlier application
 versions reject the optional evidence field; recovery must use compatible code
 and preserve snapshots rather than strip evidence to satisfy an older codec.
 
+## Analytic judgments and retained dissent (partial TL-04)
+
+The optional `analystWorkspace.analysis` field has discriminator
+`timeline-judgments.v1` and required `judgments` (maximum 50) and `reviews`
+(maximum 100) arrays. These are separate records inside the existing complete
+workspace snapshot, not new standalone routes or object kinds. Legacy absence
+remains absent. Existing private authorization, immutable workspace revisions,
+4 MiB local, 60 KiB canonical durable and 64 KiB request limits still apply.
+
+| Record | Required fields |
+| --- | --- |
+| Judgment | `id`, `claim`, `scope`, `asOf`, `reasoning`, `likelihood`, `analyticConfidence`, `confidenceBasis`, `assumptions`, `alternatives`, `changeIndicators`, `eventRefs`, `evidenceRefs`, `contraryEvidenceRefs`, `status`, `changeReason`, `updatedAt`, `basis` |
+| Review/dissent | `id`, `judgmentId`, `reviewerLabel`, `position`, `rationale`, `alternative`, `createdAt`, `basis` |
+
+Judgment claim, reasoning, confidence basis and change reason are nonblank text
+up to 4000 UTF-16 code units; scope is nonblank up to 1000. `asOf` and `updatedAt`
+are ISO timestamps. Each assumptions/alternatives/change-indicators array holds
+up to ten nonblank strings of at most 1000. Each reference array holds up to 20
+distinct current IDs, with at least one event or assertion reference overall.
+Evidence references identify assertions; supporting and contrary arrays cannot
+overlap. Status is `active` or `withdrawn`. All IDs use the existing 200-character
+local grammar. Unknown fields, invalid references, unsupported values and malformed
+clocks are rejected, including references in withdrawn judgments.
+
+Likelihood is `{vocabulary: "timeline-verbal.v1", value: "unassessed" | "unlikely" |
+"roughly_even" | "likely"}` (the alternatives describe the enum, not literal JSON).
+This is a local qualitative vocabulary, not a numerical probability or institutional
+calibration. Analytical confidence is separately `unassessed`, `low`, `medium` or
+`high`, with its own required rationale. Neither is calculated from source counts.
+
+A judgment's `basis` is canonical JSON text, at most 262144 UTF-16 code units,
+capturing selected event claim/date/placement fields, event-linked evidence, direct
+supporting/contrary assertions and their full ancestry, source metadata, clocks
+and passages. Imported input bases are checked for bounded canonical JSON, not
+independently authenticated historical provenance. A mismatched canonical basis
+remains valid and is displayed as stale. Relevant input changes mark the judgment
+for review. Saving a
+judgment explicitly records the current input basis and a required change reason;
+withdrawal/restoration also requires a reason. Display changes alone do not make
+inputs stale. Existing dated judgment fields do not implement historical cutoff
+queries or automatic world/knowledge-time reconstruction.
+
+A review position is `agree`, `challenge` or `dissent`. Reviewer label is nonblank
+up to 200, rationale nonblank up to 4000, alternative up to 4000 (may be empty),
+and createdAt an ISO timestamp. Its canonical text basis (maximum 262144) contains
+the complete reviewed judgment, including that judgment's recorded input basis.
+The embedded snapshot must be structurally valid and have the same judgment ID;
+its historical references need not resolve against the current workspace.
+
+The browser retains review/dissent records when judgments change or are withdrawn,
+labels earlier-version reviews, and exposes their exact reviewed snapshots. An
+open review draft stays bound to the judgment version opened. If that version or
+its inputs change, submission is blocked; the analyst must revisit the judgment
+and explicitly open a new review. Event deletion is blocked while any judgment
+cites it; references must be edited first. Deleting a no-longer-cited event does
+not erase references embedded in an earlier reviewed snapshot.
+
+Reviewer labels are self-attributed, not authenticated identities or sign-off.
+The UI appends reviews without edit/delete controls, but an authorized generic
+client can replace the complete workspace snapshot. This is not an append-only
+review permission model. Earlier saved revisions remain immutable. Local JSON,
+Markdown, drafts and human/service saved snapshots preserve judgment and dissent
+content; AI assistance remains event-only.
+
+No migration or credential change is required. Older strict codecs reject the
+optional analysis field; recover with compatible code and preserve saved snapshots.
+Verified source-store import, authenticated peer review, dedicated judgment services
+and later structured analysis remain separate roadmap work.
+
 ## Scoped service access
 
 `timeline.read` grants all four GET routes: metadata, object pages, revision pages

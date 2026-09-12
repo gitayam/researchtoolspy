@@ -30,3 +30,7 @@ The team never modified the primary checkout. Another process committed its prev
 Previous deployment: `3b8fd9ff-a400-4858-976b-b33f9315c315`. Its strict workspace codec rejects the new optional evidence field. Prefer compatible application recovery and preserve saved evidence/schema/history; do not strip evidence to satisfy an older codec.
 
 **TL-04 remains in progress.** Separate judgments/dissent and verified source-store import are the next evidence work. TL-01 and TL-05–TL-18 remain pending; no cross-product handoff or later roadmap feature is claimed.
+
+## Subsequent deployment
+
+The [judgment release](./2026-09-11-timeline-judgment-release-receipt.md) adds scoped analytic judgments and retained dissent to this evidence foundation. Its receipt records the current deployment and checks; the results above remain the historical source-assertion release. TL-04 remains partial, with verified source-store import and authenticated peer review still pending.
