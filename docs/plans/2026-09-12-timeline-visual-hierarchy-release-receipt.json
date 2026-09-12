@@ -1,0 +1,172 @@
+{
+  "schemaVersion": "timeline-visual-hierarchy-release.v1",
+  "recordedAt": "2026-09-12T04:49:40.815370+00:00",
+  "baselineSha": "7fdcac02909a62e1603b8bf6a83e69cd7bc3cd1c",
+  "acceptedReleaseSha": "0c64396a39878a79644ead4d412423fdea0ece2a",
+  "checkpoint": "Timeline visual hierarchy and event finder deployed; TL-04 remains partial",
+  "states": {
+    "canonicalLanded": true,
+    "mirrorConfirmed": true,
+    "productionDeployed": true,
+    "migrationRequired": false,
+    "integrationCheckoutCleanAtRelease": true,
+    "primaryCheckoutSynced": false
+  },
+  "publication": {
+    "canonical": "origin/main",
+    "mirror": "gitlab/main",
+    "releaseRefSha": "0c64396a39878a79644ead4d412423fdea0ece2a",
+    "forcePush": false,
+    "documentationFollowup": "Documentation-only commit follows; runtime remains acceptedReleaseSha."
+  },
+  "validation": {
+    "sourceSha": "0c64396a39878a79644ead4d412423fdea0ece2a",
+    "typeChecksPassed": 5,
+    "apiContractTestsPassed": 128,
+    "browserProjectChecksPassed": 80,
+    "build": "passed",
+    "pagesFunctionsBuild": "passed",
+    "schemaRehearsal": "passed",
+    "compiledHttpGate": "passed",
+    "staticGate": "passed",
+    "externalOutboundAttempts": 0,
+    "seconds": 614.44,
+    "archiveSha256": "2abe8474a99a4e49b8feb2ab5a6026f8fda909f203352736e0480f2db0938b14",
+    "supervisorSha256": "869d61c1e2691530d787992a34caf2e8b1648112e8ce6b02812b7ff1401c048d",
+    "receiptSha256": "389a54a222c2767b5f875846876c35bdc485525332cb43a9e231439934118948",
+    "runLogSha256": "81a767a6f5b30920fca208ccfef64e352b06fce134dd2771e9e5ae5d70cb3ffc",
+    "schemaManifestSha256": "229a1b1cf9e639b69fa99f4a3a24fe57ea1ad421d46d7251da992108122811fb",
+    "runtimeImage": "mcr.microsoft.com/playwright@sha256:9bd26ad900bb5e0f4dee75839e957a89ae89c2b7ab1e76050e559790e946b948",
+    "commands": [
+      "node scripts/verify-timeline.mjs",
+      "node node_modules/wrangler/bin/wrangler.js pages functions build functions --outdir dist/_worker.js --build-output-directory dist --compatibility-date 2025-09-30 --compatibility-flags nodejs_compat",
+      "node scripts/verify-timeline-release.mjs"
+    ],
+    "executionBoundary": "Pinned network-none Docker; readonly source/dependencies/root; no host credentials/socket; only schema SQL and migration names enter rehearsal."
+  },
+  "review": {
+    "backendProvider": "not-needed-no-backend-changes",
+    "uiProvider": "tl00_recon and integration-owner",
+    "independentReviewer": "dependency_review",
+    "sourceAndRuntimeAcceptedSha": "0c64396a39878a79644ead4d412423fdea0ece2a",
+    "artifactFilesIndependentlyCompared": 146,
+    "distManifestSha256": "a48cd10003bf651a872ac44cf30ed7d91aaf663b6fcbc29761ffaf1354bf193d",
+    "packageManifestFileSha256": "2a3fd678a8876e339ad4d54c0088297da5ba5d2c4d2784b28071dca78ebcbcae",
+    "wranglerConfigSha256": "a58a42371915ceebd779014377cc336df722edae9f6822ca1ab4e329d0755a24",
+    "acceptanceReceiptSha256": "010362123e49b7f3b3693c05b89391146f8efb179662ea0348fdc58eefd926f4",
+    "visualAcceptanceSha256": "f388bf8adb10ebd407c1521a9a1bcc33813fbe5f71d83657f016a83c57232666"
+  },
+  "database": {
+    "name": "researchtoolspy-prod",
+    "mutationsPerformed": false,
+    "appliedMigrationCount": 13,
+    "pendingMigrations": [],
+    "productionSchemaSha256": "22cb033df9400412f4d83b5f3668b8752ec4126a9c8402b6d502187727bf60bd",
+    "beforeCatalog": {
+      "result": "passed",
+      "tables": 14,
+      "schemaRows": 386,
+      "normalizedSchemaSha256": "ec0d28165382f028c98208a003d8c5ab672a9a0ae7ba44ef2f23e3b2bfa46729"
+    },
+    "afterCatalog": {
+      "result": "passed",
+      "tables": 14,
+      "schemaRows": 386,
+      "normalizedSchemaSha256": "ec0d28165382f028c98208a003d8c5ab672a9a0ae7ba44ef2f23e3b2bfa46729"
+    },
+    "migrationInventoryComparison": {
+      "result": "passed",
+      "appliedMigrationCount": 13,
+      "unchanged": true
+    },
+    "rehearsal": "Unchanged APIs and actual production schema: existing owned source listing/import, chunk validation, human/service immutable snapshots and static routes pass; no backend or migration change in this stage."
+  },
+  "deployment": {
+    "project": "researchtoolspy",
+    "id": "3774773e-7dc2-4dd1-8ca5-5b134119c842",
+    "url": "https://3774773e.researchtoolspy.pages.dev",
+    "productionUrl": "https://researchtools.net",
+    "sourceSha": "0c64396a39878a79644ead4d412423fdea0ece2a",
+    "wranglerVersion": "4.100.0",
+    "prebuilt": true,
+    "noBundle": true,
+    "stagingHasFunctionsSource": false,
+    "existingSecretNamesPreserved": true,
+    "unrelatedWorkersDeployed": false,
+    "smoke": [
+      {
+        "result": "passed",
+        "baseUrl": "https://3774773e.researchtoolspy.pages.dev",
+        "readonlyChecksPassed": 21,
+        "mutatingRequests": 0,
+        "receiptSha256": "d4aa4eb7e45812227becbe2b714d5b9ffe5848c8a88a54d3df162b76813ab29a"
+      },
+      {
+        "result": "passed",
+        "baseUrl": "https://researchtools.net",
+        "readonlyChecksPassed": 21,
+        "mutatingRequests": 0,
+        "receiptSha256": "1298c772a58dab7e4fabdbcfc4342f90abf7bdf67e2291af6e6185b547df2e6b"
+      }
+    ]
+  },
+  "rollback": {
+    "previousDeploymentId": "096a53e4-549a-4750-9c6f-8ac107053a44",
+    "limits": "Previous code retains identical timeline data, source import and APIs but lacks the new hierarchy, section navigation and event finder. Preserve saved snapshots and immutable history."
+  },
+  "recovery": [
+    "Initial focused desktop/mobile behavior check passed at dec38f67b83f5279178179a5bf2c52868d36f106. Tall component screenshots included sticky app navigation across their captures.",
+    "Final candidate adds unmodified viewport captures and explicitly excludes sticky/fixed app chrome only from tall component captures. Both focused browser checks passed again; independent reviewer inspected all 16 light/dark desktop/mobile PNGs and accepted the representative visual states.",
+    "Initial full run at f50910fc0f5a58216118a2e74aa7e11feba7eb6f passed five type checks, 128 API and 40 desktop checks. Existing mobile stored-import screenshot exceeded WebKit 32767 device pixels after save/reopen assertions passed. Owner stopped superseded run with exit 137, narrowed import capture to its panel and changed four legacy full-page captures to CSS pixel scale. Product code and behavioral assertions are unchanged.",
+    "Five targeted mobile capture paths passed after correction, including source import/reopen/sign-out, durable saving, evidence inspection, judgments/dissent and narrative restoration. Visual acceptance extends to final candidate because product code is unchanged; inspected PNGs retain their original visual-source SHA.",
+    "Full run release-visual-accepted at unchanged final source passed five type checks, 128 API checks and 79/80 browser checks. WebKit network process crashed between legacy fixture storage write and reload completion; its Resume control then timed out. No product defect was established by independent review. The original unchanged mobile test passed all three isolated repetitions. Full release validation was repeated without product or assertion changes.",
+    "The unchanged full retry passed all five type checks, 128 API/contract checks and 80 browser checks, followed by frontend/worker builds and production-schema compiled release gates (exit 0)."
+  ],
+  "instructionSha256": {
+    "CLAUDE.md": "3852de6d95104c64f3a35b670f350e1d7a2c6c9ed93d03d53895e7bc8c44ff1b",
+    ".team/project.json": "c87cd27090a1a8ff779dd0d850668ebf0ecb6581cefb2d0b0a66ed63aabbcf78",
+    "docs/plans/2026-09-12-timeline-visual-hierarchy-charter.md": "a33ec02c08555ba3a7b67f47123e9a52ff64898d5f01ee75f3564ca822f82924"
+  },
+  "limitations": [
+    "Visual types are labels/icons/border treatments as well as colors; evidence styling does not certify source truth or corroboration.",
+    "The event finder filters contents links by title/date wording, not the event sequence. It is transient UI state and does not change saved timelines, exports or automatic drafts.",
+    "Advanced editors remain available below the sequence with explicit section links. Existing state, disclosure defaults, stable IDs, auth and payloads remain unchanged.",
+    "Production smoke is read-only and anonymous; authenticated content operations use synthetic isolated actual-D1/compiled-worker fixtures.",
+    "TL-04 remains partial; broader source stores, dedicated judgment services and authenticated peer review remain pending. Primary checkout untouched; external authenticated worker lanes remain unqualified. Existing Vite chunk-size warning remains."
+  ],
+  "retrospective": "Owner established an event-led layout and completed transient event-finding navigation; cooperative provider styled disjoint evidence/judgment/narrative/saving panels. Independent source, visual and exact-artifact reviews supplemented desktop/mobile keyboard, width and private-state preservation checks.",
+  "promptManifestSha256": "b4a09945b411c1f3d4e7e3654155f525585032a1c2ca21e508dd302229223ef2",
+  "visual": {
+    "reviewer": "validator_review",
+    "visualSource": "f50910fc0f5a58216118a2e74aa7e11feba7eb6f",
+    "acceptedSource": "0c64396a39878a79644ead4d412423fdea0ece2a",
+    "themes": [
+      "light",
+      "dark"
+    ],
+    "browsers": [
+      "chromium",
+      "mobile-safari"
+    ],
+    "evidence": {
+      "timeline-durable-browser-d-8a1de-e-complete-private-sequence-chromium/sequence-dark.png": "a7709743a285ecd7f19276d9677e844adb91ec9a29bd2bbab4003c82225e711a",
+      "timeline-durable-browser-d-8a1de-e-complete-private-sequence-chromium/workspace-viewport-dark.png": "857f27ee4a161a8c11184992af42005cd521206783262a00b323117eb06fd6e1",
+      "timeline-durable-browser-d-8a1de-e-complete-private-sequence-chromium/workspace-viewport-light.png": "e986d20e6ec785aca61713d8563476e93b28f2c1a161cb89ad554207fab3c75c",
+      "timeline-durable-browser-d-8a1de-e-complete-private-sequence-chromium/sequence-light.png": "d76ced26a52845c6246a69d1a27be424f479090621d2b815f57a2aeb31c36b19",
+      "timeline-durable-browser-d-8a1de-e-complete-private-sequence-chromium/judgments-light.png": "9a0eabcf9a0372ad136de2dae4511e4bd1d7cc1b617bb30adeba8439c04ce9a1",
+      "timeline-durable-browser-d-8a1de-e-complete-private-sequence-chromium/judgments-dark.png": "76036d10a017e48435ad2c3d22ed414499a7d6d8c1097f9ad95f6f8b31499234",
+      "timeline-durable-browser-d-8a1de-e-complete-private-sequence-chromium/navigation-dark.png": "b894f59dd3c7c44b5f98dc3a28ce95ab53a998456b672cb3039708bae5c6debd",
+      "timeline-durable-browser-d-8a1de-e-complete-private-sequence-chromium/navigation-light.png": "6835b49eb9427b7cae424f19fa33d8ca7742a5ea5e26e2b78af6be763a6a59e2",
+      "timeline-durable-browser-d-8a1de-e-complete-private-sequence-mobile-safari/sequence-dark.png": "1b3ec6cd3cda3da9de0aff70a2da4fe36919dd71fb76c48b0835748faf4a2598",
+      "timeline-durable-browser-d-8a1de-e-complete-private-sequence-mobile-safari/workspace-viewport-dark.png": "c05a7a25b163cb6cfa367f193da2f90c9dfeb3451b7f068822e2b9b214854a78",
+      "timeline-durable-browser-d-8a1de-e-complete-private-sequence-mobile-safari/workspace-viewport-light.png": "c4ad251ed2f40889d6d15720d5efab3396328d2365ff3e9684131aa58e72094a",
+      "timeline-durable-browser-d-8a1de-e-complete-private-sequence-mobile-safari/sequence-light.png": "b23c6baa3a0995ac62de6ee80c1180a6cd5e146ff73a504e75ee5f31a304fc8b",
+      "timeline-durable-browser-d-8a1de-e-complete-private-sequence-mobile-safari/judgments-light.png": "33cd3eb84db5ad63566196ca06525df7c2bdfc7406bf1b6a20bc745e88806fa7",
+      "timeline-durable-browser-d-8a1de-e-complete-private-sequence-mobile-safari/judgments-dark.png": "03ef2fff1b28b7a7f280780fc841ed6070a6aadfe55f4c89680886d8f3bba337",
+      "timeline-durable-browser-d-8a1de-e-complete-private-sequence-mobile-safari/navigation-dark.png": "93fa485d40ed7461f7f306ee22b14ed44b8382010f34c2359bb1fb8760165c9f",
+      "timeline-durable-browser-d-8a1de-e-complete-private-sequence-mobile-safari/navigation-light.png": "dcde10c8770b0b024f6de1c195a613ace5d8dc54516418a10ab8d1314fee98ab"
+    },
+    "reviewLimits": "Representative states only, not all expanded editors or instrumented contrast measurement. Global mobile navigation and floating widget still overlay viewport edges.",
+    "limitations": "Full viewport captures retain normal app chrome. Tall component captures hide sticky/fixed app chrome only during screenshot capture to avoid stitching it across the section; product UI is not altered by this capture rule."
+  }
+}

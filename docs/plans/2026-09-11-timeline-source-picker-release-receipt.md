@@ -13,3 +13,7 @@ Independent review accepted all 145 identical staged files; inventory SHA256 `e2
 The [JSON receipt](./2026-09-11-timeline-source-picker-release-receipt.json) records exact fingerprints and recovery; [Timeline Artifacts](../api/TIMELINE-ARTIFACTS.md) documents the endpoint. The primary checkout was untouched and unqualified external worker lanes were not bypassed. Previous deployment `397e28ca-1e7b-4b37-a361-ecd0fe5019c3` retains manual-ID short/chunk import but lacks this picker. Existing Vite large-chunk warnings remain.
 
 **TL-04 remains partial.** Broader source-store support, dedicated judgment services and authenticated peer review remain pending.
+
+## Subsequent deployment
+
+The [visual hierarchy release](./2026-09-12-timeline-visual-hierarchy-release-receipt.md) improves section distinction and adds transient event-finding navigation. Source picker/import contracts remain unchanged. This receipt retains the historical picker results; the newer receipt records the current deployment.
