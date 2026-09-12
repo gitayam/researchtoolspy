@@ -70,7 +70,7 @@ test.describe('timeline inspectable evidence @smoke', () => {
     expect((await exported(page)).analystWorkspace.evidence).toEqual(saved.analystWorkspace.evidence)
     await page.getByTestId('evidence-event-evidence').locator('summary').first().click()
     await expect(page.getByTestId('evidence-event-evidence')).toContainText('Original quotation: Observer saw opening')
-    await testInfo.attach('evidence-inspector', { body: await page.screenshot({ path: testInfo.outputPath('evidence-inspector.png'), fullPage: true }), contentType: 'image/png' })
+    await testInfo.attach('evidence-inspector', { body: await page.screenshot({ path: testInfo.outputPath('evidence-inspector.png'), fullPage: true, scale: 'css' }), contentType: 'image/png' })
     // Editing source content retains the recorded basis rather than silently renewing it.
     const reopened = page.getByTestId('evidence-event-evidence')
     await reopened.getByText('Add or edit source', { exact: true }).click()

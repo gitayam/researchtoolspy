@@ -139,7 +139,7 @@ test.describe('Timeline narrative and import @smoke', () => {
     await expect(reader.getByRole('heading', { level: 2, name: 'Reviewed account', exact: true })).toBeVisible()
     await expect(reader.locator('ol > li > h3')).toHaveText(['Later event', 'First event'])
     const screenshot = testInfo.outputPath('narrative-reader.png')
-    await page.screenshot({ path: screenshot, fullPage: true, animations: 'disabled' })
+    await page.screenshot({ path: screenshot, fullPage: true, scale: 'css', animations: 'disabled' })
     await testInfo.attach('Narrative reader', { path: screenshot, contentType: 'image/png' })
     await expect(page.getByRole('navigation', { name: 'Narrative outline' }).getByRole('link', { name: 'The change' })).toHaveAttribute('href', '#timeline-chapter-chapter-one')
     const evidenceLink = reader.getByRole('link', { name: 'Inspect evidence for First event' })

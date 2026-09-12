@@ -340,7 +340,7 @@ test.describe('durable browser with actual D1 routes @smoke', () => {
       expect(await page.evaluate(key => localStorage.getItem(key), draftKey)).toBe(raw)
       await page.getByRole('button', { name: 'Save changes', exact: true }).click(); await saved(page)
       expect(b.calls.filter(c => c.method === 'PATCH')).toHaveLength(2)
-      await page.screenshot({ path: info.outputPath('durable-saving.png'), fullPage: true })
+      await page.screenshot({ path: info.outputPath('durable-saving.png'), fullPage: true, scale: 'css' })
       await page.getByLabel('Saving workspace', { exact: true }).selectOption('browser-other')
       await expect(page.getByRole('button', { name: 'Export JSON', exact: true })).toHaveCount(0)
       expect(await page.evaluate(key => localStorage.getItem(key), draftKey)).toBe(raw)

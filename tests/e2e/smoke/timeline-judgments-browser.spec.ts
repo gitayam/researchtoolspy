@@ -89,7 +89,7 @@ test.describe('timeline analytic judgments and dissent @smoke',()=>{
   await expect(narrative).toContainText('Truck restrictions weaken the recovery judgment.')
   await narrative.getByText('Reviewed judgment snapshot',{exact:true}).click()
   await expect(narrative.locator('pre').last()).toContainText('Initial judgment based on recorded source assertions.')
-  await testInfo.attach('judgments-and-dissent',{body:await page.screenshot({path:testInfo.outputPath('judgments-and-dissent.png'),fullPage:true}),contentType:'image/png'})
+  await testInfo.attach('judgments-and-dissent',{body:await page.screenshot({path:testInfo.outputPath('judgments-and-dissent.png'),fullPage:true,scale:'css'}),contentType:'image/png'})
   await page.reload();await page.getByRole('button',{name:'Resume saved timeline'}).click()
   expect((await exported(page)).analystWorkspace.analysis).toEqual(beforeDelete.analystWorkspace.analysis)
  })
