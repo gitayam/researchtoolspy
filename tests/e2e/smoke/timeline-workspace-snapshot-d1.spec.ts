@@ -79,7 +79,15 @@ test.describe('complete workspace snapshot actual D1 @smoke',()=>{
       expect(await state(db)).toEqual(before)
       const oversized = structuredClone(changed)
       for (const key of ['framing','question','intendedUse','scope','title'] as const) oversized.analystWorkspace.narrative[key] = 'é'.repeat(7000)
-      expect((await call(db, 'PATCH', id, commit(put(oversized)), 'evaluation-large-key', second.headers.get('etag')!)).status).toBe(400)
+      expect((await call(db, 'PATCH', id, commit(put(oversized)), 'evaluation-large-key', second.headers.get('etag')!)).status).toBe(413)
+      expect(await state(db)).toEqual(before)
+      for (const key of ['framing','question','intendedUse','scope','title'] as const) oversized.analystWorkspace.narrative[key] = 'x'.repeat(10000)
+      oversized.analystWorkspace.narrative.chapters[0].claim = ''
+      const padding = WORKSPACE_SNAPSHOT_MAX_BYTES + 1 - new TextEncoder().encode(canonicalJson(oversized)).byteLength
+      expect(padding).toBeGreaterThan(0); expect(padding).toBeLessThan(10000)
+      oversized.analystWorkspace.narrative.chapters[0].claim = 'x'.repeat(padding)
+      expect(new TextEncoder().encode(JSON.stringify(commit(put(oversized)))).byteLength).toBeLessThan(65536)
+      expect((await call(db, 'PATCH', id, commit(put(oversized)), 'evaluation-canonical-large', second.headers.get('etag')!)).status).toBe(400)
       expect(await state(db)).toEqual(before)
     } finally { await mf.dispose() }
   })
