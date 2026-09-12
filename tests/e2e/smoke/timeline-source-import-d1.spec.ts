@@ -13,6 +13,7 @@ async function setup() {
       'CREATE TABLE workspaces(id TEXT PRIMARY KEY,owner_id INTEGER,is_public INTEGER)',
       'CREATE TABLE workspace_members(id TEXT PRIMARY KEY,workspace_id TEXT,user_id INTEGER,role TEXT)',
       'CREATE TABLE content_analysis(id INTEGER PRIMARY KEY,user_id INTEGER,workspace_id TEXT,url TEXT,title TEXT,content_hash TEXT,extracted_text TEXT,processing_status TEXT,expires_at TEXT,is_saved INTEGER)',
+      'CREATE TABLE content_chunks(id INTEGER PRIMARY KEY,content_analysis_id INTEGER,chunk_index INTEGER,chunk_size INTEGER,chunk_hash TEXT,chunk_text TEXT)',
       "INSERT INTO users VALUES(1,'source-owner-hash-0001','researcher',1),(2,'source-other-hash-0002','researcher',1),(3,'source-guest-hash-0003','guest',1),(4,'source-service-hash-04','service',1)",
       "INSERT INTO workspaces VALUES('private-a',1,0),('private-b',2,0),('1',1,0),('public',1,1)",
     ]) await db.prepare(sql).run()
