@@ -14,7 +14,7 @@ function fixture(count = 4): TimelineWorkspaceExport {
   } }
 }
 async function start(page: Page, value = fixture()) {
-  await page.route('**/api/**', route => route.fulfill({ status: 200, json: { owned: [], member: [] } }))
+  await page.route('http://127.0.0.1:5189/api/**', route => route.fulfill({ status: 200, json: { owned: [], member: [] } }))
   // Vite does not apply Pages _headers. Exercise the exact shipped inherited policy.
   for (const pattern of ['**/dashboard/tools/timeline', '**/timelinejs/preview.html*']) {
     await page.route(pattern, async route => { const response = await route.fetch(); await route.fulfill({ response, headers: { ...response.headers(), 'content-security-policy': csp, 'x-frame-options': 'SAMEORIGIN', 'x-content-type-options': 'nosniff' } }) })
