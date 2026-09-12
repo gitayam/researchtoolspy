@@ -50,7 +50,7 @@ export function TimelineSourceEvaluation({ evidence, assertion, onSave }: { evid
       {factors.map(factor => <div key={factor.key} className="min-w-0 space-y-2 rounded border bg-background p-3">
         <label className="block font-medium">{factor.label}<select aria-label={factor.label} className="mt-1 min-h-10 w-full rounded border bg-background p-2 text-sm" value={draft[factor.key].value} onChange={event => setDraft({ ...draft, [factor.key]: { ...draft[factor.key], value: event.target.value } } as Evaluation)}>{factor.values.map(value => <option key={value} value={value}>{label(value)}</option>)}</select></label>
         <p className="text-xs text-muted-foreground">{factor.help}</p>
-        <label className="block text-sm">{factor.label} rationale<Textarea maxLength={1000} value={draft[factor.key].rationale} onChange={event => setDraft({ ...draft, [factor.key]: { ...draft[factor.key], rationale: event.target.value } })} /></label>
+        <label className="block text-sm">{factor.label} rationale<Textarea aria-label={`${factor.label} rationale`} maxLength={1000} value={draft[factor.key].rationale} onChange={event => setDraft({ ...draft, [factor.key]: { ...draft[factor.key], rationale: event.target.value } })} /></label>
       </div>)}
       <div className="flex flex-wrap gap-2"><Button size="sm" onClick={save}>Record source evaluation</Button><Button size="sm" variant="outline" onClick={() => { setDraft(null); setError('') }}>Cancel evaluation</Button></div>
     </fieldset>}
