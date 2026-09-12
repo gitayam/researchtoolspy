@@ -20,20 +20,34 @@ function harness(options: { standalone?: boolean; hash?: string; reduced?: boole
   const listeners = new Map<string, (event: any) => void>()
   const parent = { postMessage: (data: any, target: string) => messages.push({ data, target }) }
   const status = { textContent: 'Open a presentation', hidden: false }
-  const document = { getElementById: () => status, documentElement: { dataset: {} as Record<string, string> } }
+  function button() {
+    const callbacks = new Map<string, () => void>()
+    return { disabled: true, addEventListener: (type: string, callback: () => void) => callbacks.set(type, callback), click: () => callbacks.get('click')?.() }
+  }
+  const controls = { hidden: true }, previous = button(), next = button(), position = { textContent: '' }
+  const nodes: Record<string, any> = { 'preview-status': status, 'presentation-controls': controls, 'previous-slide': previous, 'next-slide': next, 'slide-position': position }
+  const document = { getElementById: (id: string) => nodes[id], documentElement: { dataset: {} as Record<string, string> } }
+  let currentId = 'narrative-title'
+  let previousCalls = 0, nextCalls = 0
   class Timeline {
     constructor(target: string, data: any, config: any) {
       if (options.throws) throw new Error('Private content must not escape')
       instances.push({ target, data, options: config })
+      if (config.start_at_end) currentId = data.events[data.events.length - 1].unique_id
     }
     on(type: string, handler: () => void) { handlers.set(type, handler) }
+    getCurrentSlide() { return { data: { unique_id: currentId } } }
+    goToPrev() { previousCalls++ }
+    goToNext() { nextCalls++ }
   }
   const window: any = { parent, TL: { Timeline }, addEventListener: (type: string, handler: (event: any) => void) => listeners.set(type, handler), matchMedia: () => ({ matches: !!options.reduced }) }
   if (options.standalone) window.parent = window
   runInNewContext(bridge, { window, document, location: { hash: options.hash ?? `#${nonce}`, href: `https://research.example/timelinejs/preview.html#${nonce}` }, URL })
   const send = (data: any, source: any = parent) => listeners.get('message')?.({ data, source })
   const render = (timeline: any = projection()) => send({ type: 'timelinejs:render', nonce, timeline, theme: 'dark', startAtEnd: true })
-  return { messages, instances, handlers, status, document, send, render }
+  return { messages, instances, handlers, status, document, send, render, controls, previous, next, position,
+    changeSlide: (id: string) => { currentId = id; handlers.get('change')?.() },
+    navigationCalls: () => ({ previous: previousCalls, next: nextCalls }) }
 }
 
 test.describe('self-hosted TimelineJS renderer contract @smoke', () => {
@@ -67,6 +81,10 @@ test.describe('self-hosted TimelineJS renderer contract @smoke', () => {
     expect([...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(match => match[1])).toEqual(scripts)
     expect(csp.match(/script-src ([^;]+)/)![1]).toBe(scripts.map(value => `'sha256-${createHash('sha256').update(value).digest('base64')}'`).join(' '))
     expect(html).not.toMatch(/<(?:script|link)[^>]+(?:src|href)=/)
+    const embeddedStyles = [...html.matchAll(/<style>([\s\S]*?)<\/style>/g)].map(match => match[1])
+    expect(embeddedStyles[0]).not.toContain('@font-face')
+    expect(embeddedStyles[1]).toContain('base64,')
+    expect(html).toContain('id="presentation-controls" aria-label="Presentation controls" hidden')
     expect(html).toContain('content="no-referrer"')
     const manifest = JSON.parse(read(`${root}manifest.json`)), css = read('public/timelinejs/preview-font.css')
     expect(createHash('sha256').update(css).digest('hex')).toBe(manifest.iconFont.localFileSha256)
@@ -115,6 +133,18 @@ test.describe('self-hosted TimelineJS renderer contract @smoke', () => {
     expect(frame.messages[1]).toEqual({ data: { type: 'timelinejs:loaded', nonce }, target: '*' })
     frame.handlers.get('loaded')!()
     expect(frame.messages).toHaveLength(2)
+    expect(frame.controls.hidden).toBe(false)
+    expect(frame.position.textContent).toBe('Slide 2 of 2')
+    expect(frame.previous.disabled).toBe(false)
+    expect(frame.next.disabled).toBe(true)
+    frame.previous.click(); frame.next.click()
+    expect(frame.navigationCalls()).toEqual({ previous: 1, next: 0 })
+    frame.changeSlide('narrative-title')
+    expect(frame.position.textContent).toBe('Slide 1 of 2')
+    expect(frame.previous.disabled).toBe(true)
+    expect(frame.next.disabled).toBe(false)
+    frame.previous.click(); frame.next.click()
+    expect(frame.navigationCalls()).toEqual({ previous: 1, next: 1 })
     const snapshot = decodeTimelineWorkspace(JSON.stringify({
       schemaVersion: 'timeline-workspace.v1', exportedAt: '2026-09-12T00:00:00Z',
       source: { schemaVersion: 'timeline-manual.v1', title: 'Fixture' },
@@ -181,5 +211,24 @@ test.describe('self-hosted TimelineJS renderer contract @smoke', () => {
     frame.handlers.get('error')!()
     expect(frame.messages[1].data).toEqual({ type: 'timelinejs:error', nonce })
     expect(frame.status.hidden).toBe(false)
+    const ordered = harness(), reordered: any = projection()
+    reordered.events = [
+      { ...reordered.events[0], unique_id: 'event-october', start_date: { year: 2026, month: 10 } },
+      { ...reordered.events[0], unique_id: 'event-year', start_date: { year: 2026 } },
+      { ...reordered.events[0], unique_id: 'event-february', start_date: { year: 2026, month: 2 } },
+    ]
+    ordered.send({ type: 'timelinejs:render', nonce, timeline: reordered, theme: 'light', startAtEnd: false })
+    expect(ordered.controls.hidden).toBe(true)
+    ordered.handlers.get('loaded')!()
+    expect(ordered.position.textContent).toBe('Slide 1 of 4')
+    ordered.changeSlide('event-year')
+    expect(ordered.position.textContent).toBe('Slide 2 of 4')
+    ordered.changeSlide('event-february')
+    expect(ordered.position.textContent).toBe('Slide 3 of 4')
+    expect(ordered.previous.disabled).toBe(false)
+    expect(ordered.next.disabled).toBe(false)
+    ordered.changeSlide('event-october')
+    expect(ordered.position.textContent).toBe('Slide 4 of 4')
+    expect(ordered.next.disabled).toBe(true)
   })
 })

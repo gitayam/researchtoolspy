@@ -64,11 +64,12 @@ test.describe('Self-hosted TimelineJS renderer @smoke', () => {
     await expect(child.locator('.tl-storyslider .tl-slide .tl-headline').filter({ hasText: /^Latest report$/ })).toBeInViewport()
     await page.getByLabel('Open at', { exact: true }).selectOption('beginning')
     await expect(page.getByText('TimelineJS presentation loaded', { exact: true })).toBeAttached()
-    const next = child.getByRole('button', { name: /^next, / })
+    const next = child.getByRole('button', { name: 'Next slide', exact: true })
     await next.focus()
     await page.keyboard.press('Enter')
     await expect(child.locator('.tl-storyslider .tl-slide .tl-headline').filter({ hasText: /^Early <report>$/ })).toBeInViewport()
     const frame = page.frames().find(item => item.url().includes('/timelinejs/preview.html'))!
+    expect(await frame.evaluate(() => document.fonts.load('16px \"tl-icons\"').then(fonts => fonts.some(font => font.status === 'loaded')))).toBe(true)
     const isolation = await frame.evaluate(() => {
       let parentBlocked = false, storageBlocked = false
       try { void window.parent.document } catch { parentBlocked = true }
@@ -89,6 +90,8 @@ test.describe('Self-hosted TimelineJS renderer @smoke', () => {
       await expect(page.getByText('TimelineJS presentation loaded', { exact: true })).toBeAttached()
       const dialog = page.getByRole('dialog', { name: 'TimelineJS export preview' })
       expect(await dialog.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true)
+      await expect(page.getByText('Accessible event list (3)', { exact: true })).toBeInViewport()
+      await expect(child.getByRole('button', { name: 'Next slide', exact: true })).toBeInViewport()
       const path = testInfo.outputPath(`renderer-${theme}.png`)
       await dialog.screenshot({ path, scale: 'css', animations: 'disabled' })
       await testInfo.attach(`Renderer ${theme}`, { path, contentType: 'image/png' })

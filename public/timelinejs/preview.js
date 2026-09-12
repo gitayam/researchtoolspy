@@ -79,6 +79,19 @@
       finished = false;
       document.documentElement.dataset.theme = message.theme;
       status.textContent = 'Loading local TimelineJS presentation…';
+      var controls = document.getElementById('presentation-controls');
+      var previous = document.getElementById('previous-slide');
+      var next = document.getElementById('next-slide');
+      var position = document.getElementById('slide-position');
+      var orderedIds = ['narrative-title'].concat(data.events.slice().sort(function (a, b) {
+        var fields = ['year', 'month', 'day', 'hour', 'minute', 'second'];
+        for (var i = 0; i < fields.length; i++) {
+          var key = fields[i], fallback = key === 'month' || key === 'day' ? 1 : 0;
+          var difference = (a.start_date[key] === undefined ? fallback : a.start_date[key]) - (b.start_date[key] === undefined ? fallback : b.start_date[key]);
+          if (difference) return difference;
+        }
+        return 0;
+      }).map(function (item) { return item.unique_id; }));
       var timeline = new window.TL.Timeline('timeline', data, {
         script_path: new URL('/vendor/timelinejs/3.9.13/', location.href).href,
         font: null, theme: null, language: 'en', ga_measurement_id: null, ga_property_id: null,
@@ -87,10 +100,22 @@
         start_at_end: message.startAtEnd,
         duration: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 1000
       });
+      function updateControls() {
+        var slide = timeline.getCurrentSlide();
+        var index = orderedIds.indexOf(slide && slide.data && slide.data.unique_id);
+        previous.disabled = index <= 0;
+        next.disabled = index < 0 || index === orderedIds.length - 1;
+        position.textContent = index < 0 ? 'Slide position unavailable' : 'Slide ' + (index + 1) + ' of ' + orderedIds.length;
+      }
+      previous.addEventListener('click', function () { if (!previous.disabled) timeline.goToPrev(); });
+      next.addEventListener('click', function () { if (!next.disabled) timeline.goToNext(); });
+      timeline.on('change', updateControls);
       timeline.on('loaded', function () {
         if (finished) return;
         finished = true;
         status.hidden = true;
+        updateControls();
+        controls.hidden = false;
         signal('timelinejs:loaded');
       });
       timeline.on('error', reportError);
