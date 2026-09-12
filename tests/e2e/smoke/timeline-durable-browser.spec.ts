@@ -289,7 +289,7 @@ test.describe('durable browser with actual D1 routes @smoke', () => {
       expect((await exported(page)).analystWorkspace.evidence).toEqual(imported.analystWorkspace.evidence)
       await page.getByTestId('evidence-event:unknown.1').locator('summary').first().click()
       const screenshot = testInfo.outputPath('stored-source-import.png')
-      await page.screenshot({ path: screenshot, fullPage: true, animations: 'disabled' })
+      await page.getByRole('region', { name: 'Import stored passage', exact: true }).screenshot({ path: screenshot, animations: 'disabled', style: '[role="banner"], .fixed { visibility: hidden !important; }' })
       await testInfo.attach('Stored source import', { path: screenshot, contentType: 'image/png' })
       await page.evaluate(async () => { const { useAuthStore } = await import('/src/stores/auth.ts'); useAuthStore.setState({ isAuthenticated: false, user: null }) })
       await expect(page.getByRole('button', { name: 'Export JSON', exact: true })).toHaveCount(0)
