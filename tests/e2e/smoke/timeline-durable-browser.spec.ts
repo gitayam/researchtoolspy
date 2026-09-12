@@ -1,3 +1,4 @@
+import { emptyTimelineSourceEvaluation, timelineSourceEvaluationBasis } from '../../../src/lib/timeline-source-evaluation'
 import { expect, test, type Page } from '@playwright/test'
 import { readFileSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
@@ -152,13 +153,57 @@ test.describe('durable browser with actual D1 routes @smoke', () => {
       const retained = narrative.getByRole('region', { name: 'Source evaluation: A corrected source-specific account.', exact: true })
       await expect(retained).toContainText('The publisher advocates for the project.')
       await expect(retained.getByRole('status')).toContainText('Evaluation needs review')
+      const comparisonToggle = retained.getByText('Compare evaluation inputs', { exact: true })
+      await comparisonToggle.focus(); await page.keyboard.press('Enter')
+      const comparison = retained.getByRole('region', { name: 'Evaluation input comparison', exact: true })
+      const sourceInputs = comparison.getByRole('region', { name: 'Source inputs: source:browser', exact: true })
+      const assertionInputs = comparison.getByRole('region', { name: 'Assertion inputs: assertion:browser', exact: true })
+      await expect(sourceInputs).toContainText('Synthetic desk')
+      await expect(sourceInputs).toContainText('Corrected synthetic desk')
+      await expect(sourceInputs).toContainText('Recorded inputs')
+      await expect(sourceInputs).toContainText('Current inputs')
+      await expect(assertionInputs).toContainText('A preserved source-specific account.')
+      await expect(assertionInputs).toContainText('A corrected source-specific account.')
+      expect((await exported(page)).analystWorkspace.evidence).toEqual(final.analystWorkspace.evidence)
+      expect(await page.evaluate(key => localStorage.getItem(key), draftKey)).toBe(rawDraft)
       for (const theme of ['light', 'dark']) {
         await page.evaluate(theme => document.documentElement.classList.toggle('dark', theme === 'dark'), theme)
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
-        await retained.screenshot({ path: testInfo.outputPath(`source-evaluation-${theme}.png`), scale: 'css', style: '[role="banner"], .fixed { visibility: hidden !important; }' })
+        await sourceInputs.screenshot({ path: testInfo.outputPath(`evaluation-inputs-${theme}.png`), scale: 'css', style: '[role="banner"], [role="banner"] *, .fixed, .fixed * { visibility: hidden !important; }' })
       }
       await importFixture(page, final)
       expect((await exported(page)).analystWorkspace.evidence).toEqual(final.analystWorkspace.evidence)
+    } finally { await b.mf.dispose() }
+  })
+
+  test('evaluation input comparison retains removed ancestry and distinguishes newly selected sources', async ({ page }) => {
+    const b = await bridge(page)
+    try {
+      const value = fixture(), data = value.analystWorkspace.evidence!
+      data.sources.push({ id: 'source:prior', url: 'https://prior.example/report', title: 'Prior ancestor account', publisher: 'Prior desk' })
+      data.assertions.push({ id: 'assertion:prior', sourceId: 'source:prior', claimText: 'Prior ancestor wording', temporalClaim: '', passage: { id: 'passage:prior', quote: 'Old ancestor quote', locator: 'page 2' }, status: 'active', derivesFrom: [] })
+      data.assertions[0].derivesFrom = ['assertion:prior']
+      data.assertions[0].evaluation = emptyTimelineSourceEvaluation(timelineSourceEvaluationBasis(data, 'assertion:browser'), '2026-09-12T00:00:00Z')
+      data.sources.push({ id: 'source:new', url: 'https://new.example/report', title: 'New ancestor account', publisher: 'New desk' })
+      data.assertions.push({ id: 'assertion:new', sourceId: 'source:new', claimText: 'New ancestor wording', temporalClaim: '', passage: { id: 'passage:new', quote: 'New ancestor quote', locator: 'page 3' }, status: 'retracted', derivesFrom: [] })
+      data.assertions[0].derivesFrom = ['assertion:new']
+      await page.goto('/dashboard/tools/timeline'); await importFixture(page, value)
+      const before = (await exported(page)).analystWorkspace
+      const evidence = page.getByTestId('evidence-event:unknown.1')
+      await evidence.locator('summary').first().click()
+      await evidence.getByText('Compare evaluation inputs', { exact: true }).click()
+      const comparison = evidence.getByRole('region', { name: 'Evaluation input comparison', exact: true })
+      const prior = comparison.getByRole('region', { name: 'Assertion inputs: assertion:prior', exact: true })
+      const current = comparison.getByRole('region', { name: 'Assertion inputs: assertion:new', exact: true })
+      await expect(prior).toContainText('Old ancestor quote'); await expect(prior).toContainText(/removed/i)
+      await expect(current).toContainText('New ancestor quote'); await expect(current).toContainText(/added/i)
+      await expect(current).toContainText('retracted')
+      await expect(prior).toContainText('Not recorded')
+      await expect(prior).toContainText('Not in these inputs')
+      await expect(comparison.getByRole('region', { name: 'Source inputs: source:prior', exact: true })).toContainText('Prior ancestor account')
+      await expect(comparison.getByRole('region', { name: 'Source inputs: source:new', exact: true })).toContainText('New ancestor account')
+      await evidence.getByText('Compare evaluation inputs', { exact: true }).click()
+      expect((await exported(page)).analystWorkspace).toEqual(before)
     } finally { await b.mf.dispose() }
   })
 

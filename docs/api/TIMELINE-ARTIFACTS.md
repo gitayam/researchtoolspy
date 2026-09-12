@@ -181,6 +181,13 @@ rejects this optional field: rollback must preserve snapshots and use compatible
 readers rather than stripping evaluations. Authenticated peer review and dedicated
 judgment services remain separate work.
 
+The browser’s **Compare evaluation inputs** disclosure presents the recorded basis
+and current inputs by stable assertion/source IDs, including complete ancestry.
+Added, removed, changed and unchanged records retain separate recorded/current
+values, quotation/locator, derivation and clocks. Missing clocks stay unrecorded.
+This is a read-only comparison of analyst-entered snapshots; opening it does not
+renew an evaluation or alter saved data. It does not establish historical truth.
+
 ## Analytic judgments and retained dissent (partial TL-04)
 
 The optional `analystWorkspace.analysis` field has discriminator

@@ -1,3 +1,4 @@
+import { TimelineSourceEvaluationInputs } from './TimelineSourceEvaluationInputs'
 import { useState } from 'react'
 import { ClipboardCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -42,6 +43,7 @@ export function TimelineSourceEvaluation({ evidence, assertion, onSave }: { evid
     {recorded ? <>
       <p role="status" className={timelineSourceEvaluationNeedsReview(evidence, assertion.id) ? 'font-medium text-amber-800 dark:text-amber-200' : 'text-sm'}>{timelineSourceEvaluationNeedsReview(evidence, assertion.id) ? 'Evaluation needs review — source inputs changed.' : 'Evaluation matches the recorded source inputs.'}</p>
       <p className="text-xs text-muted-foreground">Recorded {recorded.reviewedAt} · Analyst-entered, not an authenticated peer review</p>
+      <TimelineSourceEvaluationInputs evidence={evidence} assertion={assertion} />
       <dl className="grid min-w-0 gap-3 sm:grid-cols-2">{factors.map(factor => <div key={factor.key} className="min-w-0 rounded border bg-background p-3"><dt className="font-medium">{factor.label}: <span className="capitalize">{label(recorded[factor.key].value)}</span></dt><dd className="mt-1 whitespace-pre-wrap break-words text-sm">{recorded[factor.key].rationale || 'No rationale recorded.'}</dd></div>)}</dl>
     </> : <p className="text-sm">No source evaluation recorded.</p>}
     {!draft ? <Button size="sm" variant="outline" onClick={begin}>{recorded ? 'Review source evaluation' : 'Evaluate source'}</Button> : <fieldset className="min-w-0 space-y-4">
