@@ -13,3 +13,7 @@ Independent review compared all 146 staged files; inventory SHA256 `4a34444534bc
 The [JSON receipt](./2026-09-12-timeline-evaluation-inputs-release-receipt.json) records fingerprints and recovery. Previous deployment `5eaf67bd-31a6-440f-80d1-cb54e366b8ac` supports identical evaluation data but lacks this comparison. Preserve saved snapshots and immutable history. Existing size limits and Vite large-chunk warnings remain. Primary checkout untouched.
 
 **TL-04 remains partial.** Broader source-store support, authenticated peer review and dedicated judgment services remain pending.
+
+## Subsequent deployment
+
+The [epistemic types release](./2026-09-12-timeline-epistemic-types-release-receipt.md) separates assertion classification from status and includes classification in recorded/current inputs. This receipt retains historical comparison evidence; the newer receipt records current deployment.

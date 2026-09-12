@@ -1,0 +1,156 @@
+{
+  "schemaVersion": "timeline-epistemic-types-release.v1",
+  "recordedAt": "2026-09-12T14:40:43.066625+00:00",
+  "baselineSha": "da309728c2700833f18c17b5ab3c21eea7d2a42f",
+  "acceptedReleaseSha": "4219e9841a7706794c2c2b2611f4732865aa43a5",
+  "checkpoint": "Assertion epistemic types deployed; TL-04 remains partial",
+  "states": {
+    "canonicalLanded": true,
+    "mirrorConfirmed": true,
+    "productionDeployed": true,
+    "migrationRequired": false,
+    "integrationCheckoutCleanAtRelease": true,
+    "primaryCheckoutSynced": false
+  },
+  "publication": {
+    "canonical": "origin/main",
+    "mirror": "gitlab/main",
+    "releaseRefSha": "4219e9841a7706794c2c2b2611f4732865aa43a5",
+    "forcePush": false,
+    "documentationFollowup": "Documentation-only commit follows; runtime remains acceptedReleaseSha."
+  },
+  "validation": {
+    "sourceSha": "4219e9841a7706794c2c2b2611f4732865aa43a5",
+    "typeChecksPassed": 5,
+    "apiContractTestsPassed": 139,
+    "browserProjectChecksPassed": 84,
+    "build": "passed",
+    "pagesFunctionsBuild": "passed",
+    "schemaRehearsal": "passed",
+    "compiledHttpGate": "passed",
+    "staticGate": "passed",
+    "externalOutboundAttempts": 0,
+    "seconds": 647.39,
+    "archiveSha256": "97cc44b0442d487bafeac4ed83b3654a54724973ecb59d3a0fe4dae20c1da1f0",
+    "supervisorSha256": "869d61c1e2691530d787992a34caf2e8b1648112e8ce6b02812b7ff1401c048d",
+    "receiptSha256": "c1d7273995e0e1e9ac63385462dd97525f61bea900c75e7daf151b2659c13209",
+    "runLogSha256": "a1bb7a79dc9f46d32f83fb3981c33cb528ce9c917fedd86c210dbef697bc7608",
+    "schemaManifestSha256": "2b19c695722983e5fadbe69e64036b420a21838e94a90b09fc6e62693691b641",
+    "runtimeImage": "mcr.microsoft.com/playwright@sha256:9bd26ad900bb5e0f4dee75839e957a89ae89c2b7ab1e76050e559790e946b948",
+    "commands": [
+      "node scripts/verify-timeline.mjs",
+      "node node_modules/wrangler/bin/wrangler.js pages functions build functions --outdir dist/_worker.js --build-output-directory dist --compatibility-date 2025-09-30 --compatibility-flags nodejs_compat",
+      "node scripts/verify-timeline-release.mjs"
+    ],
+    "executionBoundary": "Pinned network-none Docker; readonly source/dependencies/root; no host credentials/socket; only schema SQL and migration names enter rehearsal."
+  },
+  "review": {
+    "backendProvider": "tl00_recon domain types and strict validators",
+    "uiProvider": "integration-owner UI, Markdown and input comparison",
+    "independentReviewer": "dependency_review",
+    "sourceAndRuntimeAcceptedSha": "4219e9841a7706794c2c2b2611f4732865aa43a5",
+    "artifactFilesIndependentlyCompared": 146,
+    "distManifestSha256": "e375b74b40db6d71dded78aa02db941424ceda96836ac30a2b62f42bdd15747d",
+    "packageManifestFileSha256": "83d629c44e2f13eae670b786f1870b38c5287f32d318f9b55f65e9bb42cf6179",
+    "wranglerConfigSha256": "a58a42371915ceebd779014377cc336df722edae9f6822ca1ab4e329d0755a24",
+    "acceptanceReceiptSha256": "7899b7abef13be323b3717573cff93b69d3d6d950b80b39556c5b07ae3ec9854",
+    "visualAcceptanceSha256": "3625e00c9a3b0b3b8019c2b4cccf1cc96285a33c118f594df9d4535b5dd3acf7"
+  },
+  "database": {
+    "name": "researchtoolspy-prod",
+    "mutationsPerformed": false,
+    "appliedMigrationCount": 13,
+    "pendingMigrations": [],
+    "productionSchemaSha256": "22cb033df9400412f4d83b5f3668b8752ec4126a9c8402b6d502187727bf60bd",
+    "beforeCatalog": {
+      "result": "passed",
+      "tables": 14,
+      "schemaRows": 386,
+      "normalizedSchemaSha256": "ec0d28165382f028c98208a003d8c5ab672a9a0ae7ba44ef2f23e3b2bfa46729"
+    },
+    "afterCatalog": {
+      "result": "passed",
+      "tables": 14,
+      "schemaRows": 386,
+      "normalizedSchemaSha256": "ec0d28165382f028c98208a003d8c5ab672a9a0ae7ba44ef2f23e3b2bfa46729"
+    },
+    "migrationInventoryComparison": {
+      "result": "passed",
+      "appliedMigrationCount": 13,
+      "unchanged": true
+    },
+    "rehearsal": "Compiled human/service classified assertion snapshots preserve values, hashes and replay on actual production schema with synthetic fixtures; existing source import and static routes pass. No route or migration added."
+  },
+  "deployment": {
+    "project": "researchtoolspy",
+    "id": "efc6c3f1-700b-4bbc-b63a-d1e91334cd9a",
+    "url": "https://efc6c3f1.researchtoolspy.pages.dev",
+    "productionUrl": "https://researchtools.net",
+    "sourceSha": "4219e9841a7706794c2c2b2611f4732865aa43a5",
+    "wranglerVersion": "4.100.0",
+    "prebuilt": true,
+    "noBundle": true,
+    "stagingHasFunctionsSource": false,
+    "existingSecretNamesPreserved": true,
+    "unrelatedWorkersDeployed": false,
+    "smoke": [
+      {
+        "result": "passed",
+        "baseUrl": "https://efc6c3f1.researchtoolspy.pages.dev",
+        "readonlyChecksPassed": 21,
+        "mutatingRequests": 0,
+        "receiptSha256": "d574fdce528872116c750cba934efb9abbd81d09b97fde50080b321f2c7b2566"
+      },
+      {
+        "result": "passed",
+        "baseUrl": "https://researchtools.net",
+        "readonlyChecksPassed": 21,
+        "mutatingRequests": 0,
+        "receiptSha256": "afd5b1ec351ab8ed71275a84a9ac5b484bd37643fc68e4d705221f73838de43a"
+      }
+    ]
+  },
+  "rollback": {
+    "previousDeploymentId": "05666348-d3b1-44ad-ae6c-e619112ab047",
+    "limits": "Previous runtime rejects epistemicType-bearing snapshots and historical evaluation bases. Preserve all saved data and immutable revisions; use compatible readers or a forward fix rather than strip classifications."
+  },
+  "recovery": [
+    "Focused main type check, 12 contract/database checks and two desktop/mobile browser checks passed at the accepted source. No failed candidate attempt preceded full release validation. Independent review accepted four representative light/dark desktop/mobile assertion comparison captures; fixed chrome and descendants are hidden only during component capture.",
+    "The final exact-source release run passed all five type checks, 139 API/contract checks and 84 browser checks, frontend/worker builds and all compiled production-schema gates without a failed candidate run."
+  ],
+  "instructionSha256": {
+    "CLAUDE.md": "3852de6d95104c64f3a35b670f350e1d7a2c6c9ed93d03d53895e7bc8c44ff1b",
+    ".team/project.json": "c87cd27090a1a8ff779dd0d850668ebf0ecb6581cefb2d0b0a66ed63aabbcf78",
+    "docs/plans/2026-09-12-timeline-epistemic-types-charter.md": "c84ee05a3e45b61c8124f2c72cd4b59cd106220cda72667f8c6de110e9f29bcc"
+  },
+  "limitations": [
+    "Epistemic type is an analyst classification of source wording, not verified truth or authenticated first-hand access. Type remains independent of active/retracted status, support relation and event assessment.",
+    "Legacy absence stays absent and displays Unclassified. Explicit clearing removes the optional field; imported passages are not automatically classified.",
+    "Classification changes and ancestor changes stale relevant evaluation, corroboration and judgment bases. Historical classified bases remain retained when current classification is cleared.",
+    "Older codecs reject classified snapshots; rollback requires preserved data and compatible readers or forward repair.",
+    "Production smoke is anonymous/read-only; authenticated operations use isolated synthetic actual-D1 and compiled-worker fixtures.",
+    "TL-04 remains partial; broader source stores, handling/export policy, dedicated judgment services and authenticated peer review remain separate. Primary checkout untouched; existing Vite large-chunk warning and representative visual-review limits remain."
+  ],
+  "retrospective": "A native domain provider added optional strict assertion types and historical compatibility while the owner integrated explicit editor/display labels, clearing and retraction behavior, Markdown and comparison fields, actual-D1 revision history and compiled human/service fixtures. Independent source, runtime, exact-artifact and representative visual reviews supplemented complete desktop/mobile regressions.",
+  "promptManifestSha256": "72eae3873f8e944de439b2d3a89c992440ffc89b07c69a255391c9f71aada690",
+  "visual": {
+    "reviewer": "validator_review",
+    "visualSource": "4219e9841a7706794c2c2b2611f4732865aa43a5",
+    "acceptedSource": "4219e9841a7706794c2c2b2611f4732865aa43a5",
+    "themes": [
+      "light",
+      "dark"
+    ],
+    "browsers": [
+      "chromium",
+      "mobile-safari"
+    ],
+    "evidence": {
+      "timeline-durable-browser-d-7902c-ve-and-narrative-inspection-chromium/epistemic-type-inputs-dark.png": "49646c0e09610c0d7aa8fe1aa7dd88fa1cb2d38d48ffcb167260f0ea05388872",
+      "timeline-durable-browser-d-7902c-ve-and-narrative-inspection-chromium/epistemic-type-inputs-light.png": "49a1869e24516d86ebdc90b342c63da3c94976fa07d3c3b07542ad25fad491ac",
+      "timeline-durable-browser-d-7902c-ve-and-narrative-inspection-mobile-safari/epistemic-type-inputs-dark.png": "e6cf70b04f0e753fe30b2aeb062d9169edfa6dc83212ab82e286e8019f73afb5",
+      "timeline-durable-browser-d-7902c-ve-and-narrative-inspection-mobile-safari/epistemic-type-inputs-light.png": "a9ebe74373a23d527d04654ce4712f78b2715ffad4d6be9c9513bfcde59dbf54"
+    },
+    "limitations": "Representative comparison crops only; editor states, full-page qualification and measured contrast are outside this visual review. Desktop columns and mobile stacked panels remain readable; changed fields have text and highlighting. Fixed chrome and descendants are hidden only during component capture."
+  }
+}

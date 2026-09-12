@@ -68,13 +68,15 @@ Current delivery state (2026-09-11):
   Content Research extraction in the same workspace. The resolver checks current
   access, retention, full-text hash and unique quote match; the recorded locator
   preserves hashes and UTF-16 offsets. Preview is rechecked before import, and
-  private passages never enter automatic browser drafts. All 134 API/contract
+  private passages never enter automatic browser drafts. All 139 API/contract
   checks, 84 browser checks, five type checks and compiled release gates pass.
   No database migration was required. Broader source-store support, dedicated
   judgment services and authenticated peer review remain pending. Stored-text
   equality is not source truth, authenticated historical provenance or append-only
   review permission.
 - **TL-01 and TL-05–TL-18: pending.** No delivery of these checkpoints or cross-app changes is claimed.
+
+Assertion epistemic type is now explicitly separate from active/retracted status: observation, reported claim, inference or hypothesis. Legacy absence remains Unclassified; classifications persist in snapshots and dependent reviews become stale when inputs change. See the [epistemic types release receipt](./2026-09-12-timeline-epistemic-types-release-receipt.md).
 
 Evaluations now expose a read-only comparison of recorded/current inputs, including changed fields and added/removed source ancestry matched by stable IDs. Opening the comparison does not renew evaluations or modify saved data. See the [evaluation inputs release receipt](./2026-09-12-timeline-evaluation-inputs-release-receipt.md).
 
