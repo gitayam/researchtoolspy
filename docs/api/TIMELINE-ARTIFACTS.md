@@ -294,6 +294,37 @@ the resolver JSON response and does not carry its no-store header. No database m
 Broader source-store import and repair, authenticated peer review,
 dedicated judgment services and later roadmap checkpoints remain separate work.
 
+## Recent stored source candidates
+
+`GET /api/timeline-source-candidates?workspaceId=<private-workspace-id>` lists up
+to 20 owned records by descending positive safe analysis ID. Exactly one workspaceId
+and no other query parameters are accepted; an optional X-Workspace-ID must match.
+Current active-human, private nondefault workspace and write access are rechecked
+in the same final SELECT that restricts record ownership. No guest is provisioned
+and service identities are not supported. Inaccessible workspaces return 404;
+authorized empty workspaces return an empty list.
+
+The exact `timeline-source-candidates.v1` response has `schemaVersion`,
+`workspaceId`, and `items`. Each item contains only `analysisId` and `title`.
+Only processing_status=complete records with the import resolver's canonical
+retention rules qualify. SQL returns at most 200 title codepoints; controls are
+replaced with spaces, malformed Unicode is rejected, and blank/missing titles
+use `Stored analysis <id>`. Titles are at most 400 UTF-16 units and the response
+is at most 65536 bytes. No extraction text, URLs, hashes, timestamps, total count
+or chunks are returned. IDs indicate stored order, not publication chronology.
+
+Candidate listing does not verify extraction integrity. Existing exact-quote
+preview and recheck-before-import still apply, including complete chunk validation.
+The browser loads only after an explicit action, invalidates lists on identity,
+credential or context changes, and does not persist them in automatic drafts.
+Selection fills the ID and clears the old quote/assertion preview; manual ID entry
+remains available. No pagination, search or source-text preview is provided.
+
+JSON/error responses use no-store. Invalid queries return 400, inaccessible workspaces 404,
+existing authentication failures 401/403 and datastore failures 503 through the
+standard artifact error envelope. Shared middleware handles the OPTIONS preflight for GET
+separately. The endpoint does not write source or timeline records.
+
 ## Scoped service access
 
 `timeline.read` grants all four GET routes: metadata, object pages, revision pages

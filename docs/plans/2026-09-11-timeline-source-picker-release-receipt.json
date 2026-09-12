@@ -1,0 +1,137 @@
+{
+  "schemaVersion": "timeline-source-picker-release.v1",
+  "recordedAt": "2026-09-12T03:52:46.983038+00:00",
+  "baselineSha": "52b96353586888d4bc1b3ed08f6986e38d2b119e",
+  "acceptedReleaseSha": "c282fcbb0d9170aa882fee0cd308305a7afd962e",
+  "checkpoint": "TL-04 partial: recent owned stored source selection deployed",
+  "states": {
+    "canonicalLanded": true,
+    "mirrorConfirmed": true,
+    "productionDeployed": true,
+    "migrationRequired": false,
+    "integrationCheckoutCleanAtRelease": true,
+    "primaryCheckoutSynced": false
+  },
+  "publication": {
+    "canonical": "origin/main",
+    "mirror": "gitlab/main",
+    "releaseRefSha": "c282fcbb0d9170aa882fee0cd308305a7afd962e",
+    "forcePush": false,
+    "documentationFollowup": "Documentation-only commit follows; runtime remains acceptedReleaseSha."
+  },
+  "validation": {
+    "sourceSha": "c282fcbb0d9170aa882fee0cd308305a7afd962e",
+    "typeChecksPassed": 5,
+    "apiContractTestsPassed": 128,
+    "browserProjectChecksPassed": 78,
+    "build": "passed",
+    "pagesFunctionsBuild": "passed",
+    "schemaRehearsal": "passed",
+    "compiledHttpGate": "passed",
+    "staticGate": "passed",
+    "externalOutboundAttempts": 0,
+    "seconds": 662.96,
+    "archiveSha256": "b55c89116ef75f7d6a42369717049bfb4069584790751ad6a0e72a5facad8b57",
+    "supervisorSha256": "869d61c1e2691530d787992a34caf2e8b1648112e8ce6b02812b7ff1401c048d",
+    "receiptSha256": "ddcc440c1295eeb807c7d0fcfdb9927dde5bde75e4963398a157e3a1166c59d9",
+    "runLogSha256": "d4a2887e80a951e5df475aa502a97c804be717a135179c3b6750117ece480c2f",
+    "schemaManifestSha256": "04df4a868b5ac7b5d7a6aca0f7b0ca6ef5695a21d97125582236801fb2a025f9",
+    "runtimeImage": "mcr.microsoft.com/playwright@sha256:9bd26ad900bb5e0f4dee75839e957a89ae89c2b7ab1e76050e559790e946b948",
+    "commands": [
+      "node scripts/verify-timeline.mjs",
+      "node node_modules/wrangler/bin/wrangler.js pages functions build functions --outdir dist/_worker.js --build-output-directory dist --compatibility-date 2025-09-30 --compatibility-flags nodejs_compat",
+      "node scripts/verify-timeline-release.mjs"
+    ],
+    "executionBoundary": "Pinned network-none Docker; readonly source/dependencies/root; no host credentials/socket; only schema SQL and migration names enter rehearsal."
+  },
+  "review": {
+    "backendProvider": "tl00_recon",
+    "uiProvider": "integration-owner",
+    "independentReviewer": "dependency_review",
+    "sourceAndRuntimeAcceptedSha": "c282fcbb0d9170aa882fee0cd308305a7afd962e",
+    "artifactFilesIndependentlyCompared": 145,
+    "distManifestSha256": "e28b3a1b02ee98aee651f0d74b2df90473268d32530950fb662e5f933dbd8857",
+    "packageManifestFileSha256": "8890a690cd0f75ec5e50ad56caa1d297157f5a2fdf17823e682af0b777ed2f81",
+    "wranglerConfigSha256": "a58a42371915ceebd779014377cc336df722edae9f6822ca1ab4e329d0755a24",
+    "acceptanceReceiptSha256": "5f4fba5afff8607c355a2b55e21ef5768810419a9bbda32d32d235f61475a604"
+  },
+  "database": {
+    "name": "researchtoolspy-prod",
+    "mutationsPerformed": false,
+    "appliedMigrationCount": 13,
+    "pendingMigrations": [],
+    "productionSchemaSha256": "22cb033df9400412f4d83b5f3668b8752ec4126a9c8402b6d502187727bf60bd",
+    "beforeCatalog": {
+      "result": "passed",
+      "tables": 14,
+      "schemaRows": 386,
+      "normalizedSchemaSha256": "ec0d28165382f028c98208a003d8c5ab672a9a0ae7ba44ef2f23e3b2bfa46729"
+    },
+    "afterCatalog": {
+      "result": "passed",
+      "tables": 14,
+      "schemaRows": 386,
+      "normalizedSchemaSha256": "ec0d28165382f028c98208a003d8c5ab672a9a0ae7ba44ef2f23e3b2bfa46729"
+    },
+    "migrationInventoryComparison": {
+      "result": "passed",
+      "appliedMigrationCount": 13,
+      "unchanged": true
+    },
+    "rehearsal": "Actual production schema with synthetic owned source candidates; compiled metadata-only listing and current private write authorization, existing short/chunk quote resolution and human/service snapshots; all source rows unchanged by listing."
+  },
+  "deployment": {
+    "project": "researchtoolspy",
+    "id": "096a53e4-549a-4750-9c6f-8ac107053a44",
+    "url": "https://096a53e4.researchtoolspy.pages.dev",
+    "productionUrl": "https://researchtools.net",
+    "sourceSha": "c282fcbb0d9170aa882fee0cd308305a7afd962e",
+    "wranglerVersion": "4.100.0",
+    "prebuilt": true,
+    "noBundle": true,
+    "stagingHasFunctionsSource": false,
+    "existingSecretNamesPreserved": true,
+    "unrelatedWorkersDeployed": false,
+    "smoke": [
+      {
+        "result": "passed",
+        "baseUrl": "https://096a53e4.researchtoolspy.pages.dev",
+        "readonlyChecksPassed": 21,
+        "mutatingRequests": 0,
+        "receiptSha256": "ea09b064a8857b8c06a2a1fbc5c3dcb83e8daee74fca61401ecaaf96645f6ae0"
+      },
+      {
+        "result": "passed",
+        "baseUrl": "https://researchtools.net",
+        "readonlyChecksPassed": 21,
+        "mutatingRequests": 0,
+        "receiptSha256": "3c1ee63a5c29d7052b77314111c5f3ab68d4d9ca91f9e8a838c10664ee8b6e94"
+      }
+    ]
+  },
+  "rollback": {
+    "previousDeploymentId": "397e28ca-1e7b-4b37-a361-ecd0fe5019c3",
+    "limits": "Previous code retains unchanged imported evidence snapshots and manual-ID short/chunk source import but has no recent source picker. Preserve all saved snapshots and immutable history."
+  },
+  "recovery": [
+    "Initial focused validator at89611857073726c9572e46dfe73fd34219305180 stopped on a missing brace in the test authority-race wrapper before executing tests. Owner corrected and reformatted it in5e7278ba394686933d41aa843d043da44f500e0c.",
+    "Corrected focused run at5e7278ba394686933d41aa843d043da44f500e0c passed5 actual-D1 checks and6 desktop/mobile checks for selection, delayed sign-out, malformed/oversized responses and manual-ID races. Final candidate adds visual capture for review.",
+    "Initial read-only Cloudflare migration and catalog requests returned7403 while schema export and Pages reads succeeded. Identical read-only retries succeeded without credential or configuration changes; failed receipts are preserved privately.",
+    "Visual review during the initial full run atca6741fd9210a604dbf28e1fb5e228221fcf4a62 found the load button overflowed its narrow mobile panel. The superseded run was stopped with exit137 after five type checks and128 API tests passed. Owner corrected responsive wrapping and added a bounding-box regression in c282fcbb0d9170aa882fee0cd308305a7afd962e.",
+    "Corrected layout passed focused desktop/mobile containment and visual review, then the complete final exact-source run passed five type checks,128 API/contract tests,78 browser checks,frontend/Pages builds and compiled production-schema gates."
+  ],
+  "instructionSha256": {
+    "CLAUDE.md": "3852de6d95104c64f3a35b670f350e1d7a2c6c9ed93d03d53895e7bc8c44ff1b",
+    ".team/project.json": "c87cd27090a1a8ff779dd0d850668ebf0ecb6581cefb2d0b0a66ed63aabbcf78",
+    "docs/plans/2026-09-11-timeline-source-picker-charter.md": "d369abcc7165698fed7d39ad0c490a7723d0de092c81d86f03185e981ba8f895"
+  },
+  "limitations": [
+    "Only up to20 recent positive stored IDs from current human-owned complete retained records in the opened writable private workspace are listed. There is no pagination, search, alternate-store or source-text preview.",
+    "Candidate listing returns a bounded, sanitized title prefix and analysis ID only. It does not verify stored extraction integrity, source truth, publication order or authenticated historical provenance. Existing quote checks remain mandatory.",
+    "Source lists and selected private content stay out of automatic browser drafts. Credentials/context changes invalidate pending lists; listing and selection do not import evidence.",
+    "Production smoke is read-only and anonymous; authenticated content operations use synthetic isolated actual-D1/compiled-worker fixtures.",
+    "TL-04 remains partial; broader source stores, dedicated judgment services and authenticated peer review remain pending. Primary checkout untouched; external authenticated worker lanes remain unqualified. Existing Vite chunk-size warning remains."
+  ],
+  "retrospective": "Backend ownership and independent review preserved final-snapshot authorization and database-side metadata bounds. Actual D1 and browser checks exercise title selection, missing-chunk qualification, malformed/oversized replies and delayed sign-out/manual-ID races.",
+  "promptManifestSha256": "1df14fc50e9569e2ff6db7645ca09106065d17ef84ac5caa19ac1a4742ae4620"
+}

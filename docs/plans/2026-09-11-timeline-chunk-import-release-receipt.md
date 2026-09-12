@@ -13,3 +13,7 @@ Independent review accepted all 145 identical staged files; inventory SHA256 `d0
 The [JSON receipt](./2026-09-11-timeline-chunk-import-release-receipt.json) records exact fingerprints and recovery; [Timeline Artifacts](../api/TIMELINE-ARTIFACTS.md) documents bounds. The primary checkout was untouched and unqualified external worker lanes were not bypassed. Previous deployment `62e1c677-6c3c-434c-9c5f-1ff7ffed6e20` retains the unchanged evidence snapshots but cannot resolve chunked sources. Existing Vite large-chunk warnings remain.
 
 **TL-04 remains partial.** Broader source-store support, dedicated judgment services and authenticated peer review remain pending.
+
+## Subsequent deployment
+
+The [source picker release](./2026-09-11-timeline-source-picker-release-receipt.md) adds explicit recent-title selection before the existing resolver. This receipt retains the historical chunk-import results; the newer receipt records the current deployment. TL-04 remains partial.
