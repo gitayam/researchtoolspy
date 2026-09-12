@@ -1,3 +1,4 @@
+import { TimelineJSExport } from './TimelineJSExport'
 import { TimelineSourceCoverage } from './TimelineSourceCoverage'
 import { timelineSourceEvaluationNeedsReview } from '@/lib/timeline-source-evaluation'
 import './timeline-workspace.css'
@@ -400,15 +401,16 @@ function TimelineWorkspace({
     copyResetRef.current = window.setTimeout(() => setCopyStatus('idle'), 1600)
   }
 
+  const workspaceExport: Omit<TimelineWorkspaceExport, 'exportedAt'> = {
+    schemaVersion: 'timeline-workspace.v1',
+    source: workspaceOrigin === 'manual'
+      ? { schemaVersion: 'timeline-manual.v1', title: result.article.title }
+      : result,
+    analystWorkspace: { mode, events: sortedEvents, questions, hypotheses, narrative, presentation, sortDirection, ...(evidence ? { evidence } : {}), ...(analysis ? { analysis } : {}) },
+  }
+
   const exportWorkspace = () => {
-    const payload: TimelineWorkspaceExport = {
-      schemaVersion: 'timeline-workspace.v1',
-      exportedAt: new Date().toISOString(),
-      source: workspaceOrigin === 'manual'
-        ? { schemaVersion: 'timeline-manual.v1', title: result.article.title }
-        : result,
-      analystWorkspace: { mode, events: sortedEvents, questions, hypotheses, narrative, presentation, sortDirection, ...(evidence ? { evidence } : {}), ...(analysis ? { analysis } : {}) },
-    }
+    const payload: TimelineWorkspaceExport = { ...workspaceExport, exportedAt: new Date().toISOString() }
     const blobUrl = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }))
     const anchor = document.createElement('a')
     anchor.href = blobUrl
@@ -919,6 +921,7 @@ function TimelineWorkspace({
         <Button aria-pressed={presentation === 'analyst'} variant={presentation === 'analyst' ? 'default' : 'outline'} onClick={() => setPresentation('analyst')}>Analyst view</Button>
         <Button aria-pressed={presentation === 'narrative'} variant={presentation === 'narrative' ? 'default' : 'outline'} onClick={() => setPresentation('narrative')}>Narrative view</Button>
         <Button variant="outline" onClick={exportWorkspace}>Export JSON</Button>
+        <TimelineJSExport snapshot={workspaceExport} />
       </div>
       {presentation === 'analyst' && <nav aria-label="Workspace navigation" className="timeline-workspace-nav">
         <a href="#timeline-sequence"><Calendar aria-hidden="true"/><span><strong>Event sequence</strong><small>{events.length} events · {questions.filter(q=>q.status==='open').length} open {questions.filter(q=>q.status==='open').length===1?'question':'questions'}</small></span></a>
