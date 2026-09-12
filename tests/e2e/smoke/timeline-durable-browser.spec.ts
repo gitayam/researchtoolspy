@@ -40,7 +40,7 @@ async function bridge(page: Page, signedIn = true) {
   ]) await db.prepare(query).run()
   await db.batch(sql('0012_timeline_workspace_snapshots.sql').map(s => db.prepare(s)))
   await db.prepare("INSERT INTO content_analysis VALUES(?,1,'browser-private',?,?,?,?,NULL,1,'complete')").bind(storedSource.analysisId, storedSource.url, storedSource.title, storedSource.text, sourceDigest(storedSource.text)).run()
-  const faults = { dropCreate: false, dropCommit: false, malformedRead: false, holdSource: null as Promise<void> | null, sourceReady: false }
+  const faults = { dropCreate: false, dropCommit: false, malformedRead: false, holdSource: null as Promise<void> | null, sourceReady: false, sourceDelivered: false }
   const calls: Array<{ method: string; body: string | null; key?: string; etag?: string; status: number; response: any }> = []
   await page.addInitScript(({ hash, signedIn }) => {
     if (!signedIn) return
@@ -57,7 +57,7 @@ async function bridge(page: Page, signedIn = true) {
       const response = await sourceImport({ request: new Request(url, { method: incoming.method(), headers: incoming.headers(), body: incoming.postData()! }), env: { DB: db } } as never)
       const body = await response.text(); faults.sourceReady = true
       if (faults.holdSource) await faults.holdSource
-      return route.fulfill({ status: response.status, body, headers: Object.fromEntries(response.headers) }).catch(() => {})
+      return route.fulfill({ status: response.status, body, headers: Object.fromEntries(response.headers) }).catch(() => {}).finally(() => { faults.sourceDelivered = true })
     }
     if (!url.pathname.startsWith('/api/timelines')) return route.fulfill({ json: {} })
     const request = new Request(url, { method: incoming.method(), headers: incoming.headers(), ...(incoming.postData() ? { body: incoming.postData()! } : {}) })
@@ -105,6 +105,7 @@ test.describe('durable browser with actual D1 routes @smoke', () => {
       await page.evaluate(async () => { const { useAuthStore } = await import('/src/stores/auth.ts'); useAuthStore.setState({ isAuthenticated: false, user: null }) })
       await expect(page.getByRole('button', { name: 'Export JSON', exact: true })).toHaveCount(0)
       release()
+      await expect.poll(() => b.faults.sourceDelivered).toBe(true)
       await expect(page.getByRole('region', { name: 'Import stored passage' })).toHaveCount(0)
       await expect(page.getByText('Matched to stored extraction', { exact: true })).toHaveCount(0)
       expect(await page.evaluate(key => localStorage.getItem(key), draftKey)).toBe(raw)
