@@ -242,6 +242,19 @@ try {
   await db.prepare('DELETE FROM content_chunks WHERE content_analysis_id=? AND chunk_index=2').bind(chunkFixture.analysisId).run()
   error(await request('/api/timeline-source-import',{method:'POST',body:{...importBody,analysisId:chunkFixture.analysisId,quote:chunkFixture.quote}}),400,'invalid_request')
   receipt.checks.push('compiled complete chunk integrity, quote beyond parent prefix, zero chunk writes and missing-chunk refusal')
+  stage='compiled-recent-source-candidates'
+  const candidatesBefore=(await db.prepare('SELECT * FROM content_analysis ORDER BY id').all()).results
+  const candidatePath='/api/timeline-source-candidates?workspaceId=release-workspace-a'
+  const candidates=await request(candidatePath)
+  assert.equal(candidates.status,200);assert.equal(candidates.headers.get('cache-control'),'no-store')
+  assert.deepEqual(candidates.json,{schemaVersion:'timeline-source-candidates.v1',workspaceId:'release-workspace-a',items:[{analysisId:chunkFixture.analysisId,title:chunkFixture.title},{analysisId:storedSource.analysisId,title:storedSource.title}]})
+  error(await request(candidatePath,{user:null}),401,'authentication_required')
+  error(await request(candidatePath,{user:'viewer'}),404,'not_found')
+  error(await request(candidatePath,{user:'other'}),404,'not_found')
+  error(await request(candidatePath+'&unexpected=1'),400,'invalid_request')
+  assert.deepEqual((await db.prepare('SELECT * FROM content_analysis ORDER BY id').all()).results,candidatesBefore)
+  receipt.checks.push('compiled owned recent metadata-only candidate list, current private write authorization, strict query, no-store and zero source writes; listing does not certify missing chunks')
+
   const createBody = { schemaVersion: 'timeline-artifact-create.v1', workspaceId: 'release-workspace-a', title: 'Production-schema rehearsal' }
   const payload = { schemaVersion: 'timeline-artifact-commit.v1', changes: [{ op: 'put', objectId: 'event:release.001', kind: 'event-candidate.v1', payload: { title: 'Synthetic candidate', description: null, eventDate: '2026-09', datePrecision: 'month' } }] }
   stage = 'compiled-http-create-auth'

@@ -6,6 +6,7 @@ import { Miniflare } from 'miniflare'
 import { onRequestPost } from '../../../functions/api/timelines'
 import { onRequestGet, onRequestPatch } from '../../../functions/api/timelines/[id]'
 import { onRequestGet as objects } from '../../../functions/api/timelines/[id]/objects'
+import { onRequestGet as sourceCandidates } from '../../../functions/api/timeline-source-candidates'
 import { onRequestPost as sourceImport } from '../../../functions/api/timeline-source-import'
 import { snapshotIdentity, prepareTimelineSave } from '../../../src/lib/timeline-durable'
 import { decodeTimelineWorkspace } from '../../../src/lib/timeline-workspace-codec'
@@ -50,7 +51,7 @@ async function bridge(page: Page, signedIn = true, chunked = false) {
       await db.prepare('INSERT INTO content_chunks VALUES(?,?,?,?,?)').bind(chunkedSource.analysisId,start/51200,text.length,sourceDigest(text),text).run()
     }
   }
-  const faults = { dropCreate: false, dropCommit: false, malformedRead: false, holdSource: null as Promise<void> | null, sourceReady: false, sourceDelivered: false }
+  const faults = { holdCandidates: null as Promise<void> | null, candidatesReady: false, candidatesDelivered: false, candidatesCalls: 0, candidatesOverride: null as string | null, dropCreate: false, dropCommit: false, malformedRead: false, holdSource: null as Promise<void> | null, sourceReady: false, sourceDelivered: false }
   const calls: Array<{ method: string; body: string | null; key?: string; etag?: string; status: number; response: any }> = []
   await page.addInitScript(({ hash, signedIn }) => {
     if (!signedIn) return
@@ -63,6 +64,13 @@ async function bridge(page: Page, signedIn = true, chunked = false) {
     const incoming = route.request(), url = new URL(incoming.url())
     if (!url.pathname.startsWith('/api/')) return route.continue()
     if (url.pathname === '/api/workspaces') return route.fulfill({ json: { owned: ['browser-private', 'browser-other'].map(id => ({ id, name: id === 'browser-private' ? 'Private investigation' : 'Other workspace', owner_id: 1, is_public: false, type: 'PERSONAL' })), member: [] } })
+    if (url.pathname === '/api/timeline-source-candidates') {
+      faults.candidatesCalls++
+      const response = await sourceCandidates({request:new Request(url,{headers:incoming.headers()}),env:{DB:db}} as never)
+      const body=faults.candidatesOverride??await response.text();faults.candidatesReady=true
+      if(faults.holdCandidates)await faults.holdCandidates
+      return route.fulfill({status:response.status,body,headers:Object.fromEntries(response.headers)}).catch(()=>{}).finally(()=>{faults.candidatesDelivered=true})
+    }
     if (url.pathname === '/api/timeline-source-import') {
       const response = await sourceImport({ request: new Request(url, { method: incoming.method(), headers: incoming.headers(), body: incoming.postData()! }), env: { DB: db } } as never)
       const body = await response.text(); faults.sourceReady = true
@@ -105,7 +113,10 @@ test.describe('durable browser with actual D1 routes @smoke', () => {
       const raw=await page.evaluate(key=>localStorage.getItem(key),draftKey)
       const panel=page.getByTestId('evidence-event:unknown.1');await panel.locator('summary').first().click()
       const form=panel.getByRole('region',{name:'Import stored passage'})
-      await form.getByLabel('Stored analysis ID',{exact:true}).fill(String(chunkedSource.analysisId))
+      expect(b.faults.candidatesCalls).toBe(0)
+      await form.getByRole('button',{name:'Load recent stored sources',exact:true}).click()
+      await form.getByRole('button',{name:`Use analysis ${chunkedSource.analysisId}: ${chunkedSource.title}`,exact:true}).click()
+      await expect(form.getByLabel('Stored analysis ID',{exact:true})).toHaveValue(String(chunkedSource.analysisId))
       await form.getByLabel('Exact stored quote',{exact:true}).fill(chunkedSource.quote)
       await form.getByRole('button',{name:'Check stored passage',exact:true}).click()
       await expect(form.getByText('Matched to stored extraction',{exact:true})).toBeVisible()
@@ -122,6 +133,54 @@ test.describe('durable browser with actual D1 routes @smoke', () => {
       expect((await exported(page)).analystWorkspace.evidence).toEqual(imported.evidence)
       expect(await page.evaluate(key=>localStorage.getItem(key),draftKey)).toBe(raw)
     }finally{await b.mf.dispose()}
+  })
+  test('a delayed source list cannot restore private titles after sign-out',async({page})=>{
+    test.setTimeout(90_000)
+    const b=await bridge(page);let release=()=>{}
+    try {
+      await page.goto('/dashboard/tools/timeline');await importFixture(page)
+      await page.getByRole('button',{name:'Save timeline',exact:true}).click();await saved(page)
+      await page.reload();await page.getByRole('button',{name:'Open saved timeline',exact:true}).click();await saved(page)
+      const raw=await page.evaluate(key=>localStorage.getItem(key),draftKey)
+      const panel=page.getByTestId('evidence-event:unknown.1');await panel.locator('summary').first().click()
+      b.faults.holdCandidates=new Promise<void>(resolve=>{release=resolve})
+      await panel.getByRole('button',{name:'Load recent stored sources',exact:true}).click()
+      await expect.poll(()=>b.faults.candidatesReady).toBe(true)
+      await page.evaluate(async()=>{const {useAuthStore}=await import('/src/stores/auth.ts');useAuthStore.setState({isAuthenticated:false,user:null})})
+      release();await expect.poll(()=>b.faults.candidatesDelivered).toBe(true)
+      await expect(page.getByRole('region',{name:'Recent stored sources',exact:true})).toHaveCount(0)
+      await expect(page.getByRole('button',{name:`Use analysis ${storedSource.analysisId}: ${storedSource.title}`,exact:true})).toHaveCount(0)
+      expect(await page.evaluate(key=>localStorage.getItem(key),draftKey)).toBe(raw)
+    }finally{release();await b.mf.dispose()}
+  })
+  test('source picker rejects malformed and oversized replies and ignores a list after manual ID editing',async({page})=>{
+    test.setTimeout(120_000)
+    const b=await bridge(page);let release=()=>{}
+    try {
+      await page.goto('/dashboard/tools/timeline');await importFixture(page)
+      await page.getByRole('button',{name:'Save timeline',exact:true}).click();await saved(page)
+      await page.reload();await page.getByRole('button',{name:'Open saved timeline',exact:true}).click();await saved(page)
+      const raw=await page.evaluate(key=>localStorage.getItem(key),draftKey)
+      const panel=page.getByTestId('evidence-event:unknown.1');await panel.locator('summary').first().click()
+      const form=panel.getByRole('region',{name:'Import stored passage'}),picker=form.getByRole('region',{name:'Recent stored sources',exact:true})
+      const valid={schemaVersion:'timeline-source-candidates.v1',workspaceId:'browser-private',items:[{analysisId:storedSource.analysisId,title:storedSource.title}]}
+      for(const body of [JSON.stringify({...valid,workspaceId:'browser-other'}),JSON.stringify({...valid,items:[...valid.items,...valid.items]}),JSON.stringify({...valid,items:[{...valid.items[0],title:'x'.repeat(70000)}]})]){
+        b.faults.candidatesOverride=body
+        await picker.getByRole('button',{name:'Load recent stored sources',exact:true}).click()
+        await expect(picker.getByRole('alert')).toBeVisible()
+        await expect(picker.getByRole('button',{name:/Use analysis/})).toHaveCount(0)
+        await expect(form.getByLabel('Stored analysis ID',{exact:true})).toHaveValue('')
+      }
+      b.faults.candidatesOverride=null;b.faults.candidatesReady=false;b.faults.candidatesDelivered=false
+      b.faults.holdCandidates=new Promise<void>(resolve=>{release=resolve})
+      await picker.getByRole('button',{name:'Load recent stored sources',exact:true}).click()
+      await expect.poll(()=>b.faults.candidatesReady).toBe(true)
+      await form.getByLabel('Stored analysis ID',{exact:true}).fill('999')
+      release();await expect.poll(()=>b.faults.candidatesDelivered).toBe(true)
+      await expect(picker.getByRole('button',{name:/Use analysis/})).toHaveCount(0)
+      await expect(form.getByLabel('Stored analysis ID',{exact:true})).toHaveValue('999')
+      expect(await page.evaluate(key=>localStorage.getItem(key),draftKey)).toBe(raw)
+    }finally{release();await b.mf.dispose()}
   })
   test('a delayed private passage response cannot restore content after sign-out', async ({ page }) => {
     test.setTimeout(90_000)

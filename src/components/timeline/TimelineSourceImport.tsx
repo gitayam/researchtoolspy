@@ -1,3 +1,4 @@
+import { TimelineSourcePicker } from './TimelineSourcePicker'
 import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -104,6 +105,7 @@ export function TimelineSourceImport(props:Props){
   return <section aria-label="Import stored passage" className="space-y-3 rounded border p-3">
     <h4 className="font-semibold">Import a stored Content Research passage</h4>
     <p>Use a complete extraction you own in this private workspace. Complete larger extractions are supported after an integrity check. Matching records stored text at this moment; it does not verify source truth. Exported locators are recorded references, not authenticated receipts. Save the timeline after import to retain the reference in a new immutable revision.</p>
+    <TimelineSourcePicker workspaceId={props.workspaceId} context={JSON.stringify([context,analysisId])} disabled={busy} identity={identity} onSelect={id=>{invalidate();setAnalysisId(String(id));setQuote('');setClaim('')}}/>
     <label className="block">Stored analysis ID<Input aria-label="Stored analysis ID" inputMode="numeric" value={analysisId} onChange={e=>{invalidate();setAnalysisId(e.target.value)}}/></label>
     <label className="block">Exact stored quote<Textarea aria-label="Exact stored quote" maxLength={4000} value={quote} onChange={e=>{invalidate();setQuote(e.target.value)}}/></label>
     <Button disabled={busy} variant="outline" onClick={()=>void resolve(false)}>Check stored passage</Button>
