@@ -41,6 +41,8 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { TimelineEvidence } from './TimelineEvidence'
 import { timelineAssessmentLabel, timelineCorroboration, validateTimelineEvidence } from '@/lib/timeline-evidence'
+import { TimelineJudgments } from './TimelineJudgments'
+import { timelineJudgmentNeedsReview, timelineJudgmentReviewBasis, validateTimelineJudgments } from '@/lib/timeline-judgments'
 import { TimelineNarrative } from './TimelineNarrative'
 import { TIMELINE_IMPORT_MAX_BYTES } from '@/lib/timeline-workspace-codec'
 import { inferTimelineDatePrecision } from '@/lib/timeline-analysis'
@@ -62,6 +64,7 @@ import type {
 import type { TimelineAssistAction, TimelineAssistInput, TimelineAssistSuggestion } from '@/types/timeline-assist'
 import type {
   TimelineEvidence as Evidence,
+  TimelineJudgments as Analysis,
   TimelineEventAssessment,
   TimelineEventPlacement,
   TimelineWorkspaceEvent,
@@ -174,6 +177,7 @@ function timelineMarkdown(
   hypotheses: TimelineWorkspaceHypothesis[],
   workspaceOrigin: 'extracted' | 'manual',
   evidence?: Evidence,
+  analysis?: Analysis,
 ): string {
   const lines = [
     `# ${result.article.title}`,
@@ -210,6 +214,22 @@ function timelineMarkdown(
     for (const hypothesis of hypotheses) {
       lines.push(`- ${hypothesis.hypothesis} _[AI suggested; analyst retained as hypothesis]_`)
       if (hypothesis.rationale) lines.push(`  Test: ${hypothesis.rationale}`)
+    }
+  }
+  if (analysis?.judgments.length) {
+    lines.push('', '## Analytic judgments and retained dissent', '', 'Likelihood uses a local verbal vocabulary. Analytical confidence is separate; reviewer labels are self-attributed, not verified identities.')
+    for (const judgment of analysis.judgments) {
+      lines.push('', `### ${judgment.claim}`, `Status: ${judgment.status}; as of ${judgment.asOf}; updated ${judgment.updatedAt}`, `Scope: ${judgment.scope}`, `Reasoning: ${judgment.reasoning}`, `Likelihood: ${judgment.likelihood.value} (${judgment.likelihood.vocabulary})`, `Analytical confidence: ${judgment.analyticConfidence}`, `Confidence basis: ${judgment.confidenceBasis}`, `Assumptions: ${judgment.assumptions.join('; ')}`, `Alternatives: ${judgment.alternatives.join('; ')}`, `Change indicators: ${judgment.changeIndicators.join('; ')}`, `Change reason: ${judgment.changeReason}`, `Event references: ${judgment.eventRefs.join(', ')}`, `Cited assertions: ${judgment.evidenceRefs.join(', ')}`, `Contrary assertions: ${judgment.contraryEvidenceRefs.join(', ')}`)
+      if (timelineJudgmentNeedsReview(judgment, events, evidence)) lines.push('Judgment inputs changed; review needed.')
+      for (const assertion of evidence?.assertions.filter(item => judgment.evidenceRefs.includes(item.id) || judgment.contraryEvidenceRefs.includes(item.id)) ?? []) {
+        const source = evidence!.sources.find(item => item.id === assertion.sourceId)!
+        lines.push(`Source wording (${judgment.contraryEvidenceRefs.includes(assertion.id) ? 'contrary' : 'cited'}; ${assertion.status}): ${assertion.claimText}`, `Source: ${source.title} — ${source.url}`, `Quote: ${assertion.passage.quote}`, `Locator: ${assertion.passage.locator}`)
+      }
+      for (const review of analysis.reviews.filter(item => item.judgmentId === judgment.id)) {
+        lines.push(`Review: ${review.position} by ${review.reviewerLabel} (self-attributed), ${review.createdAt}`, review.rationale, `Alternative: ${review.alternative}`)
+        if (review.basis !== timelineJudgmentReviewBasis(judgment)) lines.push('Review concerns an earlier judgment version.')
+        lines.push(`Reviewed judgment snapshot: ${review.basis}`)
+      }
     }
   }
   return lines.join('\n')
@@ -270,6 +290,7 @@ function TimelineWorkspace({
   ))
   const [questions, writeQuestions] = useState<TimelineWorkspaceQuestion[]>(() => initialWorkspace?.questions || [])
   const [hypotheses, writeHypotheses] = useState<TimelineWorkspaceHypothesis[]>(() => initialWorkspace?.hypotheses || [])
+  const [analysis, writeAnalysis] = useState<Analysis | undefined>(initialState.analysis)
   const [evidence, writeEvidence] = useState<Evidence | undefined>(initialState.evidence)
   const [workspaceError, setWorkspaceError] = useState<string | null>(null)
   const [eventEditor, setEventEditor] = useState<EventEditorState | null>(null)
@@ -286,7 +307,7 @@ function TimelineWorkspace({
       const payload = {
         schemaVersion: 'timeline-workspace.v1', exportedAt: new Date().toISOString(),
         source: workspaceOrigin === 'manual' ? { schemaVersion: 'timeline-manual.v1', title: result.article.title } : result,
-        analystWorkspace: { mode, events, questions, hypotheses, narrative, presentation, sortDirection, ...(evidence ? { evidence } : {}), [key]: next },
+        analystWorkspace: { mode, events, questions, hypotheses, narrative, presentation, sortDirection, ...(evidence ? { evidence } : {}), ...(analysis ? { analysis } : {}), [key]: next },
       }
       if (new TextEncoder().encode(JSON.stringify(payload, null, 2)).byteLength > TIMELINE_IMPORT_MAX_BYTES) {
         setWorkspaceError('This change exceeds the 4 MiB local timeline limit and was not saved. Shorten the content or remove an item before retrying.')
@@ -298,17 +319,24 @@ function TimelineWorkspace({
   }
   function saveEvidence(next: Evidence): boolean {
     try { validateTimelineEvidence(next, events.map(event => event.id)) } catch { return false }
-    const payload = { schemaVersion: 'timeline-workspace.v1', exportedAt: new Date().toISOString(), source: workspaceOrigin === 'manual' ? { schemaVersion: 'timeline-manual.v1', title: result.article.title } : result, analystWorkspace: { mode, events, questions, hypotheses, narrative, presentation, sortDirection, evidence: next } }
+    const payload = { schemaVersion: 'timeline-workspace.v1', exportedAt: new Date().toISOString(), source: workspaceOrigin === 'manual' ? { schemaVersion: 'timeline-manual.v1', title: result.article.title } : result, analystWorkspace: { mode, events, questions, hypotheses, narrative, presentation, sortDirection, evidence: next, ...(analysis ? { analysis } : {}) } }
     if (new TextEncoder().encode(JSON.stringify(payload, null, 2)).byteLength > TIMELINE_IMPORT_MAX_BYTES) {
       setWorkspaceError('This evidence exceeds the 4 MiB local timeline limit and was not saved.'); return false
     }
     setWorkspaceError(null); writeEvidence(next); return true
   }
+  function saveAnalysis(next: Analysis): boolean {
+    try { validateTimelineJudgments(next, events, evidence) } catch { return false }
+    const payload = { schemaVersion: 'timeline-workspace.v1', exportedAt: new Date().toISOString(), source: workspaceOrigin === 'manual' ? { schemaVersion: 'timeline-manual.v1', title: result.article.title } : result, analystWorkspace: { mode, events, questions, hypotheses, narrative, presentation, sortDirection, ...(evidence ? { evidence } : {}), analysis: next } }
+    if (new TextEncoder().encode(JSON.stringify(payload, null, 2)).byteLength > TIMELINE_IMPORT_MAX_BYTES) { setWorkspaceError('This judgment change exceeds the 4 MiB local timeline limit and was not saved.'); return false }
+    setWorkspaceError(null); writeAnalysis(next); return true
+  }
   const setEvents: Dispatch<SetStateAction<TimelineWorkspaceEvent[]>> = update => {
     const next = typeof update === 'function' ? update(events) : update
     const ids = new Set(next.map(event => event.id))
+    if (analysis?.judgments.some(judgment => judgment.eventRefs.some(id => !ids.has(id)))) { setWorkspaceError('An analytic judgment cites this event. Edit its references before removing the event, including references in withdrawn judgments.'); return }
     const nextEvidence = evidence ? { ...evidence, links: evidence.links.filter(link => ids.has(link.eventId)), reviews: evidence.reviews.filter(review => ids.has(review.eventId)) } : undefined
-    const payload = { schemaVersion: 'timeline-workspace.v1', exportedAt: new Date().toISOString(), source: workspaceOrigin === 'manual' ? { schemaVersion: 'timeline-manual.v1', title: result.article.title } : result, analystWorkspace: { mode, events: next, questions, hypotheses, narrative, presentation, sortDirection, ...(nextEvidence ? { evidence: nextEvidence } : {}) } }
+    const payload = { schemaVersion: 'timeline-workspace.v1', exportedAt: new Date().toISOString(), source: workspaceOrigin === 'manual' ? { schemaVersion: 'timeline-manual.v1', title: result.article.title } : result, analystWorkspace: { mode, events: next, questions, hypotheses, narrative, presentation, sortDirection, ...(nextEvidence ? { evidence: nextEvidence } : {}), ...(analysis ? { analysis } : {}) } }
     if (new TextEncoder().encode(JSON.stringify(payload, null, 2)).byteLength > TIMELINE_IMPORT_MAX_BYTES) { setWorkspaceError('This change exceeds the 4 MiB local timeline limit and was not saved.'); return }
     setWorkspaceError(null); writeEvents(next); writeEvidence(nextEvidence)
   }
@@ -342,14 +370,14 @@ function TimelineWorkspace({
   }, [])
 
   useEffect(() => {
-    onWorkspaceChange?.({ mode, events, questions, hypotheses, narrative, presentation, sortDirection, ...(evidence ? { evidence } : {}) })
-  }, [events, hypotheses, mode, onWorkspaceChange, questions, narrative, presentation, sortDirection, evidence])
+    onWorkspaceChange?.({ mode, events, questions, hypotheses, narrative, presentation, sortDirection, ...(evidence ? { evidence } : {}), ...(analysis ? { analysis } : {}) })
+  }, [events, hypotheses, mode, onWorkspaceChange, questions, narrative, presentation, sortDirection, evidence, analysis])
 
   const copyTimeline = async () => {
     if (copyResetRef.current !== null) window.clearTimeout(copyResetRef.current)
     try {
       if (!navigator.clipboard?.writeText) throw new Error('Clipboard API unavailable')
-      await navigator.clipboard.writeText(timelineMarkdown(result, displayedEvents, questions, hypotheses, workspaceOrigin, evidence))
+      await navigator.clipboard.writeText(timelineMarkdown(result, displayedEvents, questions, hypotheses, workspaceOrigin, evidence, analysis))
       setCopyStatus('copied')
     } catch {
       setCopyStatus('error')
@@ -364,7 +392,7 @@ function TimelineWorkspace({
       source: workspaceOrigin === 'manual'
         ? { schemaVersion: 'timeline-manual.v1', title: result.article.title }
         : result,
-      analystWorkspace: { mode, events: sortedEvents, questions, hypotheses, narrative, presentation, sortDirection, ...(evidence ? { evidence } : {}) },
+      analystWorkspace: { mode, events: sortedEvents, questions, hypotheses, narrative, presentation, sortDirection, ...(evidence ? { evidence } : {}), ...(analysis ? { analysis } : {}) },
     }
     const blobUrl = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }))
     const anchor = document.createElement('a')
@@ -555,6 +583,7 @@ function TimelineWorkspace({
   }
 
   const removeEvent = (eventId: string) => {
+    if (analysis?.judgments.some(judgment => judgment.eventRefs.includes(eventId))) { setWorkspaceError('An analytic judgment cites this event. Edit its references before removing the event, including references in withdrawn judgments.'); return }
     const index = sortedEvents.findIndex(event => event.id === eventId)
     const previousId = index > 0 ? sortedEvents[index - 1].id : undefined
     const nextId = index >= 0 && index < sortedEvents.length - 1 ? sortedEvents[index + 1].id : undefined
@@ -877,7 +906,8 @@ function TimelineWorkspace({
         <Button variant="outline" onClick={exportWorkspace}>Export JSON</Button>
       </div>
       <p className="text-xs text-muted-foreground">Event and chapter links refer to this open timeline or an imported copy; they are not published evidence URLs. Export JSON to keep an offline copy.</p>
-      <TimelineNarrative evidence={evidence} onEvidence={saveEvidence} narrative={narrative} events={events} editing={presentation === 'analyst'} sourceUrl={result.article.url} openGapCount={questions.filter(question => question.status === 'open').length} onNarrative={setNarrative} onEvents={setEvents} onInspect={id => {
+      {presentation === 'analyst' && <TimelineJudgments analysis={analysis} events={events} evidence={evidence} editable onChange={saveAnalysis} />}
+      <TimelineNarrative analysis={analysis} evidence={evidence} onEvidence={saveEvidence} narrative={narrative} events={events} editing={presentation === 'analyst'} sourceUrl={result.article.url} openGapCount={questions.filter(question => question.status === 'open').length} onNarrative={setNarrative} onEvents={setEvents} onInspect={id => {
         setPresentation('analyst')
         window.setTimeout(() => {
           const anchor = timelineEventAnchor(id)

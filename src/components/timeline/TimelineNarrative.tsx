@@ -1,3 +1,4 @@
+import { TimelineJudgments } from './TimelineJudgments'
 import { TimelineEvidence } from './TimelineEvidence'
 import { timelineAssessmentLabel } from '@/lib/timeline-evidence'
 import { useState } from 'react'
@@ -6,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { narrativeTimelineEvents, timelineChapterAnchor, timelineEventAnchor, timelineEventTemporalLabel } from '@/lib/timeline-workspace'
-import type { TimelineEvidence as Evidence, TimelineNarrative as Narrative, TimelineNarrativeRole, TimelineWorkspaceEvent } from '@/types/timeline-workspace'
+import type { TimelineJudgments as Analysis, TimelineEvidence as Evidence, TimelineNarrative as Narrative, TimelineNarrativeRole, TimelineWorkspaceEvent } from '@/types/timeline-workspace'
 
 const roles: TimelineNarrativeRole[] = ['context', 'buildup', 'turning_point', 'response', 'consequence', 'resolution']
 const fields = [
@@ -16,6 +17,7 @@ const fields = [
 const selectStyle = 'h-10 w-full rounded-md border bg-background px-3 text-sm'
 
 interface Props {
+  analysis?: Analysis
   evidence?: Evidence
   onEvidence: (value: Evidence) => boolean
   narrative: Narrative
@@ -28,7 +30,7 @@ interface Props {
   onInspect: (id: string) => void
 }
 
-export function TimelineNarrative({ evidence, onEvidence, narrative, events, editing, sourceUrl, openGapCount, onNarrative, onEvents, onInspect }: Props) {
+export function TimelineNarrative({ analysis, evidence, onEvidence, narrative, events, editing, sourceUrl, openGapCount, onNarrative, onEvents, onInspect }: Props) {
   const [metadataError, setMetadataError] = useState<string | null>(null)
   const selected = narrativeTimelineEvents(events)
   const hasDeparture = selected.some((event, index) => {
@@ -141,5 +143,6 @@ export function TimelineNarrative({ evidence, onEvidence, narrative, events, edi
       <TimelineEvidence event={event} eventIds={events.map(item => item.id)} evidence={evidence} onChange={onEvidence} />
       <a className="mt-3 inline-block text-sm text-blue-600 underline" href={`#${timelineEventAnchor(event.id)}`} onClick={click => { click.preventDefault(); onInspect(event.id) }}>Inspect evidence for {event.title}</a>
     </li>)}</ol>
+    <TimelineJudgments analysis={analysis} events={events} evidence={evidence} />
   </article>
 }

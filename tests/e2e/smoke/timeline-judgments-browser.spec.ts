@@ -1,0 +1,118 @@
+import { test, expect } from '@playwright/test'
+import type { Page } from '@playwright/test'
+import { readFile } from 'node:fs/promises'
+
+function fixture() {
+ return {schemaVersion:'timeline-workspace.v1',exportedAt:'2026-09-11T00:00:00.000Z',source:{schemaVersion:'timeline-manual.v1',title:'Judgment investigation'},analystWorkspace:{
+  mode:'robust',presentation:'analyst',sortDirection:'oldest',questions:[],hypotheses:[],
+  events:[{id:'event-bridge',eventDate:'2026-09-01',datePrecision:'day',title:'Bridge opened',description:'Access reported.',category:'event',importance:'normal',origin:'analyst',assessment:'unreviewed',analystNote:'',modified:false,sequenceOrder:0,placement:{mode:'absolute'},narrativeIncluded:true,narrativeOrder:0,narrativeRole:'context',whyItMatters:'Access matters.',transition:''}],
+  narrative:{title:'Access changed',framing:'Recorded judgments and dissent.',question:'',intendedUse:'',scope:'',timezone:'UTC',dataThrough:'',chapters:[]},
+  evidence:{schemaVersion:'timeline-evidence.v1',sources:[{id:'source-city',url:'https://city.example/report',title:'City report',publisher:'City'},{id:'source-observer',url:'https://observer.example/report',title:'Observer report',publisher:'Observer'}],assertions:[{id:'assertion-city',sourceId:'source-city',claimText:'Access restored',temporalClaim:'September',passage:{id:'passage-city',quote:'The bridge opened for deliveries.',locator:'Paragraph 1'},status:'active',derivesFrom:[]},{id:'assertion-observer',sourceId:'source-observer',claimText:'Heavy trucks still barred',temporalClaim:'September',passage:{id:'passage-observer',quote:'Heavy trucks cannot yet cross.',locator:'Paragraph 3'},status:'active',derivesFrom:[]}],links:[{id:'link-city',eventId:'event-bridge',assertionId:'assertion-city',relation:'supports'}],reviews:[]},
+ }}
+}
+async function upload(page:Page,value:unknown){await page.getByLabel('Import timeline JSON').setInputFiles({name:'judgments.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(value))})}
+async function exported(page:Page){const download=page.waitForEvent('download');await page.getByRole('button',{name:'Export JSON',exact:true}).click();return JSON.parse(await readFile((await(await download).path())!,'utf8'))}
+async function start(page:Page){await page.route('**/api/workspaces',route=>route.fulfill({status:200,json:{owned:[],member:[]}}));await page.goto('/dashboard/tools/timeline');await upload(page,fixture())}
+async function addJudgment(page:Page){
+ const panel=page.getByRole('region',{name:'Analytic judgments',exact:true})
+ await panel.getByRole('button',{name:'Add analytic judgment'}).click()
+ await panel.getByLabel('Judgment claim',{exact:true}).fill('Deliveries are likely to recover')
+ await panel.getByLabel('Judgment scope',{exact:true}).fill('Local deliveries during September')
+ await panel.getByLabel('As of (ISO timestamp)',{exact:true}).fill('2026-09-11T12:00:00.000Z')
+ await panel.getByLabel('Reasoning',{exact:true}).fill('Restored access supports recovery, with remaining vehicle restrictions.')
+ await panel.getByLabel('Likelihood',{exact:true}).selectOption('likely')
+ await panel.getByLabel('Analytical confidence',{exact:true}).selectOption('low')
+ await panel.getByLabel('Confidence basis',{exact:true}).fill('Only limited direct observations; no traffic counts.')
+ await panel.getByLabel('Assumptions',{exact:true}).fill('Access remains open')
+ await panel.getByLabel('Alternatives',{exact:true}).fill('Restrictions may constrain deliveries')
+ await panel.getByLabel('Change indicators',{exact:true}).fill('New closure notice')
+ await panel.getByLabel('Cited events',{exact:true}).selectOption('event-bridge')
+ await panel.getByLabel('Cited assertions',{exact:true}).selectOption('assertion-city')
+ await panel.getByLabel('Contrary assertions',{exact:true}).selectOption('assertion-observer')
+ await panel.getByLabel('Reason for this change',{exact:true}).fill('Initial judgment based on recorded source assertions.')
+ await panel.getByRole('button',{name:'Save judgment',exact:true}).click()
+ await expect(panel.getByRole('heading',{name:'Deliveries are likely to recover',exact:true})).toBeVisible()
+ return panel
+}
+
+test.describe('timeline analytic judgments and dissent @smoke',()=>{
+ test('edit, retain dissent, stale inputs, export/import, Narrative and guarded event deletion',async({page},testInfo)=>{
+  test.setTimeout(120000)
+  await start(page);const panel=await addJudgment(page)
+  await panel.getByText('Inspect judgment references',{exact:true}).click()
+  await expect(panel).toContainText('Heavy trucks cannot yet cross.')
+  await panel.getByRole('button',{name:'Add review or dissent'}).click()
+  await panel.getByLabel('Reviewer label (self-attributed)',{exact:true}).fill('Analyst B')
+  await panel.getByLabel('Review position',{exact:true}).selectOption('dissent')
+  await panel.getByLabel('Review rationale',{exact:true}).fill('Truck restrictions weaken the recovery judgment.')
+  await panel.getByLabel('Review alternative',{exact:true}).fill('Recovery may be delayed.')
+  await panel.getByRole('button',{name:'Record judgment review'}).click()
+  const first=await exported(page)
+  expect(first.analystWorkspace.analysis.judgments[0].likelihood.value).toBe('likely')
+  expect(first.analystWorkspace.analysis.judgments[0].analyticConfidence).toBe('low')
+  expect(first.analystWorkspace.analysis.reviews[0].position).toBe('dissent')
+  const retained=first.analystWorkspace.analysis.reviews
+  await panel.getByRole('button',{name:'Add review or dissent'}).click()
+  await page.getByRole('button',{name:'Actions for Bridge opened'}).click()
+  await page.getByRole('menuitem',{name:'Edit event',exact:true}).click()
+  await page.getByRole('dialog').getByLabel('Title',{exact:true}).fill('Bridge partly opened')
+  await page.getByRole('button',{name:'Save event',exact:true}).click()
+  await expect(panel.getByText('Judgment inputs changed; review and save this judgment before recording another review.',{exact:true})).toBeVisible()
+  await expect(panel.getByRole('button',{name:'Record judgment review'})).toBeDisabled()
+  await panel.getByRole('button',{name:'Cancel review',exact:true}).click()
+  await panel.getByRole('button',{name:'Edit judgment',exact:true}).click()
+  await panel.getByLabel('Reason for this change',{exact:true}).fill('Reconsidered the revised event wording; retain the bounded assessment.')
+  await panel.getByRole('button',{name:'Save judgment',exact:true}).click()
+  await expect(panel.getByText('Review concerns an earlier judgment version.',{exact:true})).toBeVisible()
+  await panel.getByRole('button',{name:'Withdraw judgment',exact:true}).click()
+  await panel.getByLabel('Reason for this change',{exact:true}).fill('Withdraw pending traffic data; preserve dissent.')
+  await panel.getByRole('button',{name:'Save judgment',exact:true}).click()
+  const beforeDelete=await exported(page)
+  expect(beforeDelete.analystWorkspace.analysis.reviews).toEqual(retained)
+  expect(beforeDelete.analystWorkspace.analysis.judgments[0].status).toBe('withdrawn')
+  await page.getByRole('button',{name:'Actions for Bridge partly opened'}).click()
+  await page.getByRole('menuitem',{name:'Remove from timeline',exact:true}).click()
+  await expect(page.getByRole('alert')).toContainText('An analytic judgment cites this event.')
+  expect((await exported(page)).analystWorkspace).toEqual(beforeDelete.analystWorkspace)
+  await upload(page,beforeDelete)
+  expect((await exported(page)).analystWorkspace.analysis).toEqual(beforeDelete.analystWorkspace.analysis)
+  await page.evaluate(() => { Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async (value: string) => { (window as unknown as { judgmentMarkdown: string }).judgmentMarkdown=value } } }) })
+  await page.getByRole('button',{name:'Copy',exact:true}).click()
+  const markdown=await page.evaluate(()=>(window as unknown as { judgmentMarkdown: string }).judgmentMarkdown)
+  expect(markdown).toContain('Analytic judgments and retained dissent')
+  expect(markdown).toContain('Review concerns an earlier judgment version.')
+  expect(markdown).toContain('Truck restrictions weaken the recovery judgment.')
+  await page.getByRole('button',{name:'Narrative view',exact:true}).click()
+  const narrative=page.getByRole('region',{name:'Narrative judgments',exact:true})
+  await expect(narrative).toContainText('Analyst B (self-attributed)')
+  await expect(narrative).toContainText('Truck restrictions weaken the recovery judgment.')
+  await narrative.getByText('Reviewed judgment snapshot',{exact:true}).click()
+  await expect(narrative.locator('pre').last()).toContainText('Initial judgment based on recorded source assertions.')
+  await testInfo.attach('judgments-and-dissent',{body:await page.screenshot({path:testInfo.outputPath('judgments-and-dissent.png'),fullPage:true}),contentType:'image/png'})
+  await page.reload();await page.getByRole('button',{name:'Resume saved timeline'}).click()
+  expect((await exported(page)).analystWorkspace.analysis).toEqual(beforeDelete.analystWorkspace.analysis)
+ })
+
+ test('edit references permits deletion while the earlier complete review snapshot remains retained',async({page})=>{
+  test.setTimeout(120000)
+  await start(page);const panel=await addJudgment(page)
+  await panel.getByRole('button',{name:'Add review or dissent'}).click()
+  await panel.getByLabel('Reviewer label (self-attributed)',{exact:true}).fill('Reader')
+  await panel.getByLabel('Review rationale',{exact:true}).fill('Keep the access limitation visible.')
+  await panel.getByRole('button',{name:'Record judgment review'}).click()
+  const before=await exported(page)
+  await panel.getByRole('button',{name:'Edit judgment',exact:true}).click()
+  await panel.getByLabel('Cited events',{exact:true}).selectOption([])
+  await panel.getByLabel('Reason for this change',{exact:true}).fill('Use source assertions directly rather than the event.')
+  await panel.getByRole('button',{name:'Save judgment',exact:true}).click()
+  await page.getByRole('button',{name:'Actions for Bridge opened'}).click()
+  await page.getByRole('menuitem',{name:'Remove from timeline',exact:true}).click()
+  const after=await exported(page)
+  expect(after.analystWorkspace.events).toEqual([])
+  expect(after.analystWorkspace.analysis.judgments[0].eventRefs).toEqual([])
+  expect(after.analystWorkspace.analysis.reviews).toEqual(before.analystWorkspace.analysis.reviews)
+  expect(after.analystWorkspace.analysis.reviews[0].basis).toContain('event-bridge')
+  await upload(page,after)
+  expect((await exported(page)).analystWorkspace.analysis).toEqual(after.analystWorkspace.analysis)
+ })
+})
