@@ -13,3 +13,7 @@ Independent review compared all 146 staged files; inventory SHA256 `e375b74b40db
 The [JSON receipt](./2026-09-12-timeline-epistemic-types-release-receipt.json) records fingerprints and recovery. Previous deployment `05666348-d3b1-44ad-ae6c-e619112ab047` rejects classified snapshots and historical bases: preserve data and use compatible readers or a forward fix. Existing size limits and Vite large-chunk warnings remain. Primary checkout untouched.
 
 **TL-04 remains partial.** Broader source-store support, handling/export policy, authenticated peer review and dedicated judgment services remain pending.
+
+## Subsequent deployment
+
+The [final-support warning release](./2026-09-12-timeline-support-warning-release-receipt.md) adds cancellable impact warnings with the same snapshot format. This receipt retains historical classification evidence; the newer receipt records current deployment.

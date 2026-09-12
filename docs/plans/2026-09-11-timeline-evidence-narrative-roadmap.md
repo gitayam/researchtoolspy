@@ -16,6 +16,8 @@ Likelihood and analytical confidence remain separate; reviews preserve the judgm
 version they addressed. Import verifies stored-text equality, not source truth or
 authenticated historical provenance. TL-04 remains in progress: broader source-store
 support, dedicated judgment services and authenticated peer review are pending.
+Evidence edits now warn before removing the final active support from a saved corroborated event, including shared ancestry and already-stale assessments. Cancellation preserves data; changed context requires a fresh action. See the [final-support warning release receipt](./2026-09-12-timeline-support-warning-release-receipt.md).
+
 Assertion epistemic type is now explicitly separate from active/retracted status: observation, reported claim, inference or hypothesis. Legacy absence remains Unclassified; classifications persist in snapshots and dependent reviews become stale when inputs change. See the [epistemic types release receipt](./2026-09-12-timeline-epistemic-types-release-receipt.md).
 
 Evaluations now expose a read-only comparison of recorded/current inputs, including changed fields and added/removed source ancestry matched by stable IDs. Opening the comparison does not renew evaluations or modify saved data. See the [evaluation inputs release receipt](./2026-09-12-timeline-evaluation-inputs-release-receipt.md).

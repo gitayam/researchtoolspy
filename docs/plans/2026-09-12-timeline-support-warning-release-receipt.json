@@ -1,0 +1,194 @@
+{
+  "schemaVersion": "timeline-support-warning-release.v1",
+  "recordedAt": "2026-09-12T15:28:23.720622+00:00",
+  "baselineSha": "ad22fb3b1beb0d382471c0c991c89897f32fd3c3",
+  "acceptedReleaseSha": "aeefb10128f58f7cb973638290b0fa53a18e4a16",
+  "checkpoint": "Final active support warnings deployed; TL-04 remains partial",
+  "states": {
+    "canonicalLanded": true,
+    "mirrorConfirmed": true,
+    "productionDeployed": true,
+    "migrationRequired": false,
+    "integrationCheckoutCleanAtRelease": true,
+    "primaryCheckoutSynced": false
+  },
+  "publication": {
+    "canonical": "origin/main",
+    "mirror": "gitlab/main",
+    "releaseRefSha": "aeefb10128f58f7cb973638290b0fa53a18e4a16",
+    "forcePush": false,
+    "documentationFollowup": "Documentation-only commit follows; runtime remains acceptedReleaseSha."
+  },
+  "validation": {
+    "sourceSha": "aeefb10128f58f7cb973638290b0fa53a18e4a16",
+    "typeChecksPassed": 5,
+    "apiContractTestsPassed": 144,
+    "browserProjectChecksPassed": 90,
+    "build": "passed",
+    "pagesFunctionsBuild": "passed",
+    "schemaRehearsal": "passed",
+    "compiledHttpGate": "passed",
+    "staticGate": "passed",
+    "externalOutboundAttempts": 0,
+    "seconds": 861.66,
+    "archiveSha256": "8258c0137fc8642b68bef25c799a8d20da6ee66e045376f8fcd30dd06ae971f9",
+    "supervisorSha256": "869d61c1e2691530d787992a34caf2e8b1648112e8ce6b02812b7ff1401c048d",
+    "receiptSha256": "edfb923081193e945d2c9a62f33969c4b30d6e14142b5be9ebea3acc79c7fc5a",
+    "runLogSha256": "6e3b823d4cb448714c2bc4272805136c19c4a33cc2d9e4bf687dfa7b5dcd06b8",
+    "schemaManifestSha256": "7ecf063125763718b9f28ef7e0ba88045df7ade05236e2f43a5d2a69da3d5402",
+    "runtimeImage": "mcr.microsoft.com/playwright@sha256:9bd26ad900bb5e0f4dee75839e957a89ae89c2b7ab1e76050e559790e946b948",
+    "commands": [
+      "node scripts/verify-timeline.mjs",
+      "node node_modules/wrangler/bin/wrangler.js pages functions build functions --outdir dist/_worker.js --build-output-directory dist --compatibility-date 2025-09-30 --compatibility-flags nodejs_compat",
+      "node scripts/verify-timeline-release.mjs"
+    ],
+    "executionBoundary": "Pinned network-none Docker; readonly source/dependencies/root; no host credentials/socket; only schema SQL and migration names enter rehearsal."
+  },
+  "review": {
+    "backendProvider": "tl00_recon pure support-loss helper and five contract tests",
+    "uiProvider": "integration-owner guarded evidence editor and browser acceptance",
+    "independentReviewer": "dependency_review",
+    "sourceAndRuntimeAcceptedSha": "aeefb10128f58f7cb973638290b0fa53a18e4a16",
+    "artifactFilesIndependentlyCompared": 146,
+    "distManifestSha256": "b8365236594a244f1a3b8064e98a3f05665670770d009384b2f1489fdb60c0de",
+    "packageManifestFileSha256": "4fc3732dee160f5f41a6cc8c73ad7954a703c97b434f4137a41d027db0c387ed",
+    "wranglerConfigSha256": "a58a42371915ceebd779014377cc336df722edae9f6822ca1ab4e329d0755a24",
+    "acceptanceReceiptSha256": "0fa5668b05f8647e959db6b27b304c0dbde82a4c41fc2b709c9c2c0a90161e5b",
+    "visualAcceptanceSha256": "f466375a674742a80191e48fce5727314d66abb5391dd2d32230f95f8f657b1b"
+  },
+  "database": {
+    "name": "researchtoolspy-prod",
+    "mutationsPerformed": false,
+    "appliedMigrationCount": 13,
+    "pendingMigrations": [],
+    "productionSchemaSha256": "22cb033df9400412f4d83b5f3668b8752ec4126a9c8402b6d502187727bf60bd",
+    "beforeCatalog": {
+      "result": "passed",
+      "tables": 14,
+      "schemaRows": 386,
+      "normalizedSchemaSha256": "ec0d28165382f028c98208a003d8c5ab672a9a0ae7ba44ef2f23e3b2bfa46729"
+    },
+    "afterCatalog": {
+      "result": "passed",
+      "tables": 14,
+      "schemaRows": 386,
+      "normalizedSchemaSha256": "ec0d28165382f028c98208a003d8c5ab672a9a0ae7ba44ef2f23e3b2bfa46729"
+    },
+    "migrationInventoryComparison": {
+      "result": "passed",
+      "appliedMigrationCount": 13,
+      "unchanged": true
+    },
+    "rehearsal": "Existing compiled human/service classified snapshots, replay, imports and static routes pass against actual production schema with synthetic fixtures. No API or schema change in this stage."
+  },
+  "deployment": {
+    "project": "researchtoolspy",
+    "id": "9ded586f-b693-44c6-8dee-bb4014ef9170",
+    "url": "https://9ded586f.researchtoolspy.pages.dev",
+    "productionUrl": "https://researchtools.net",
+    "sourceSha": "aeefb10128f58f7cb973638290b0fa53a18e4a16",
+    "wranglerVersion": "4.100.0",
+    "prebuilt": true,
+    "noBundle": true,
+    "stagingHasFunctionsSource": false,
+    "existingSecretNamesPreserved": true,
+    "unrelatedWorkersDeployed": false,
+    "smoke": [
+      {
+        "result": "passed",
+        "baseUrl": "https://9ded586f.researchtoolspy.pages.dev",
+        "readonlyChecksPassed": 21,
+        "mutatingRequests": 0,
+        "receiptSha256": "de6fe9f595c4008f145c9d06c7aae3f38203a79ad7d6d0dc795184823fe67d47"
+      },
+      {
+        "result": "passed",
+        "baseUrl": "https://researchtools.net",
+        "readonlyChecksPassed": 21,
+        "mutatingRequests": 0,
+        "receiptSha256": "bd2188879aa713f95dac80b9fc79706fd8a40d2cab07ed530f70fd621521bba0"
+      }
+    ]
+  },
+  "rollback": {
+    "previousDeploymentId": "efc6c3f1-700b-4bbc-b63a-d1e91334cd9a",
+    "limits": "Previous runtime reads identical snapshots but lacks final-support warnings. Preserve saved data and immutable revisions; older pre-epistemic codecs remain incompatible with classified snapshots."
+  },
+  "recovery": [
+    "Initial focused43d8ff433 passed main type check, five new contract tests and four real-flow desktop/mobile checks; two supplementary stale-context tests failed on a test-harness optimized React export. Test-only correction3bf95744a fixed the import; the same two harness tests then encountered fixed application navigation overlay. Test-only9e817e256 isolates this supplementary harness from app chrome and waits for changed evidence props.",
+    "Independent visual review rejected four warning captures because the existing background token produced a transparent dialog. Product215a7cf96 adds explicit opaque light/dark surfaces and readable buttons; ba4bc05cf adds computed background assertions. Failed runs and rejected captures remain private evidence.",
+    "Corrected focused browser run at215a7cf96 passed all six desktop/mobile checks, including supplementary changed-event/changed-evidence refusal and real private immutable-history/access-loss flows. The next candidate ba4bc05cf added only the opaque-background assertion; later test refinements and final revalidation are recorded below.",
+    "First full run atba4bc05cf stopped after the dark surface assertion exposed browser OKLCH serialization versus expected RGB. Test-only479e0ee75 accepts the two exact equivalent representations and disables animations during captures; product remains215a7cf96. No partial full run was accepted.",
+    "Follow-up color-focused run at479e0ee75 passed three checks but exposed greater OKLCH decimal precision on mobile Safari. Test-onlyaeefb1012 verifies painted RGB within two channel values and alpha255, preserving an opaque light/dark oracle independent of serialization; screenshot animations remain disabled.",
+    "Final exact-source focused run passed all four warning/stale-context desktop/mobile checks, including fully opaque painted color in both themes and settled dialog captures.",
+    "Final exact-source release run passed five type checks, 144 API/contract checks, 90 desktop/mobile browser checks, frontend/worker builds and every compiled production-schema gate. Earlier failed/stopped attempts remain separate and unaccepted."
+  ],
+  "instructionSha256": {
+    "CLAUDE.md": "3852de6d95104c64f3a35b670f350e1d7a2c6c9ed93d03d53895e7bc8c44ff1b",
+    ".team/project.json": "c87cd27090a1a8ff779dd0d850668ebf0ecb6581cefb2d0b0a66ed63aabbcf78",
+    "docs/plans/2026-09-12-timeline-support-warning-charter.md": "10e9fd2dabf4c659d0bdbcbaad23089a7588c379e0053872ee19561d52474e94"
+  },
+  "limitations": [
+    "Warns only when saved corroborated events transition from some active support to none, including already-stale assessments. Remaining support may still require review; warning does not infer truth or renew corroboration.",
+    "Cancelled and stale-context confirmations apply nothing. Confirmed changes preserve saved assessment and historical reviews; existing qualification shows corroboration needs review.",
+    "No persisted field, API, migration, auth or size-limit change. Previous epistemic-compatible runtime reads identical snapshots.",
+    "Production smoke is anonymous/read-only; authenticated operations use isolated synthetic actual-D1 and compiled-worker fixtures.",
+    "TL-04 remains partial; broader source stores, handling/export policy, dedicated judgment services and authenticated peer review remain separate. Primary checkout untouched. Existing Vite large-chunk warning and representative visual-review limits remain."
+  ],
+  "retrospective": "A native provider supplied the pure active-lineage impact helper while the owner guarded Analyst and Narrative evidence saves with complete event context, a cancellable dialog and stale-context refusal. Independent review and real browser/private-D1 acceptance covered cancellation, shared ancestry, relation changes, unlinking, immutable versions and access-loss cleanup. An initial component-test harness used an incorrect optimized React export; the test-only correction was revalidated. A second harness attempt hit application chrome, so the supplementary harness was isolated. Visual review also rejected transparent modal surfaces; explicit opaque surfaces and a computed-style regression check corrected that product issue.",
+  "promptManifestSha256": "e5bce22981b900c230b1c5d477b3a0fde39510dee75be519ea2ab9ac44fda997",
+  "visual": {
+    "reviewer": "validator_review",
+    "visualSource": "aeefb10128f58f7cb973638290b0fa53a18e4a16",
+    "acceptedSource": "aeefb10128f58f7cb973638290b0fa53a18e4a16",
+    "themes": [
+      "light",
+      "dark"
+    ],
+    "browsers": [
+      "chromium",
+      "mobile-safari"
+    ],
+    "evidence": {
+      "timeline-evidence-browser--fd2d1-ation-changes-and-unlinking-chromium/support-warning-dark.png": "7e2e7f1d6a033ed0c3e690452eaad05cec9d3344d4f9cc3f07675df69e73dc88",
+      "timeline-evidence-browser--fd2d1-ation-changes-and-unlinking-chromium/support-warning-light.png": "8714f1d7ae73fc0ce4d3082efc872d7f7536082e08d21c563f41e944e0662417",
+      "timeline-evidence-browser--fd2d1-ation-changes-and-unlinking-mobile-safari/support-warning-dark.png": "f51057d0e6ac7b7f1cb22a8fec65d9f5c1fadfd93466f41d238bd2a5b8af398e",
+      "timeline-evidence-browser--fd2d1-ation-changes-and-unlinking-mobile-safari/support-warning-light.png": "7fd4067df7b75d72466929f3cf33c9444d7099483b2ce707f0e41cc6dcf562d9"
+    },
+    "limitations": "Representative two-event dialog captures in desktop/mobile light/dark, with screenshot animations disabled. Opaque surfaces, text, event list and actions are readable. Long lists, full-page context and measured accessibility contrast are outside this visual review."
+  },
+  "failedAttempts": [
+    {
+      "runName": "support-warning-focused",
+      "source": "43d8ff433a76d52dcb3306cad9eded11f1f277ef",
+      "exitCode": 1,
+      "receiptSha256": "beb36d31668f5a25867899da12a44e4fa91ed05503b7fe59a57b402797e4e293",
+      "runLogSha256": "21157cbd7036c0fa0fc58f1623ae5433d8fb1464d3b7202b3b1937495b20ed3c",
+      "reason": "Supplementary browser harness imported createRoot as a named export from the optimized default-export module."
+    },
+    {
+      "runName": "support-warning-focused-fixed",
+      "source": "3bf95744a5f4a74d49d308873ed896710db7c36c",
+      "exitCode": 1,
+      "receiptSha256": "520623ce47a778abae8d3e97f6490192ff403ae7cb9ee1a9d464b8fc94d296c3",
+      "runLogSha256": "f73c0914ec55a38ca91cd5dddf187fa66e180d599dc4b9bb268b585788e7c11e",
+      "reason": "Supplementary prop-race harness overlapped fixed application navigation; real route and private-save cases passed."
+    },
+    {
+      "runName": "release-support-warning-final",
+      "source": "ba4bc05cfdb1d900beb75b2c4b97f8c93e079062",
+      "exitCode": 137,
+      "receiptSha256": "08a0e16aed0f3b52087a686075ebbc2a00ede9449ae525c2f4aef0aa8e2dfa6c",
+      "runLogSha256": "912cc658b5ca0f83885bdd8ad46e8e84a29c23ec3edd87ef30707bb5d0f8c725",
+      "reason": "Owner stopped after desktop dark background assertion expected RGB but browser serialized the correct opaque color as OKLCH. Five type checks and all144 API checks had passed; browser run incomplete, no build/artifact accepted."
+    },
+    {
+      "runName": "support-warning-color-fixed",
+      "source": "479e0ee753c57e460197f247adf868c0e3e78157",
+      "exitCode": 1,
+      "receiptSha256": "973e47e27c9d889ba8b87dd7f1eb5c057f3443eecd66ea3bb50ea21aa2efbe99",
+      "runLogSha256": "e06be82741ca5a6dee2f85c5003adfd8fe70b7b1f4f5179dab8df954ccaef5d2",
+      "reason": "Mobile Safari serialized OKLCH hue at greater decimal precision; three browser checks passed and only the exact color string assertion failed."
+    }
+  ]
+}
