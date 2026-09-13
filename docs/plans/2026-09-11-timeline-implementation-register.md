@@ -68,7 +68,7 @@ Current delivery state (2026-09-12):
   Content Research extraction in the same workspace. The resolver checks current
   access, retention, full-text hash and unique quote match; the recorded locator
   preserves hashes and UTF-16 offsets. Preview is rechecked before import, and
-  private passages never enter automatic browser drafts. The current saved-presentation source passed five type checks, 48 browser cases, 14 renderer/export contract checks and fresh build/compiled gates in planned isolated partitions. These are proportionate regression checks; the full unrelated API suite was not rerun. Historical navigation counts remain in its release receipt.
+  private passages never enter automatic browser drafts. The current history source passed five type checks, 54 browser cases, 19 history/renderer/export contract checks and fresh build/compiled gates in planned isolated partitions. These are proportionate regression checks; the full unrelated API suite was not rerun. Historical saved-presentation counts remain in its release receipt.
   No database migration was required. Broader source-store support, dedicated
   judgment services and authenticated peer review remain pending. Stored-text
   equality is not source truth, authenticated historical provenance or append-only
@@ -76,7 +76,9 @@ Current delivery state (2026-09-12):
 - **TL-17: partial.** Selected-narrative TimelineJS JSON, matching complete companion and optional self-hosted renderer are delivered with explicit loss warnings. Immutable authorized publication/revocation and richer snapshot types remain pending.
 - **TL-01, TL-05–TL-16 and TL-18: pending.** No delivery of these checkpoints or cross-app changes is claimed.
 
-Saved-revision preview now presents and exports the last successfully saved/opened private version separately from unsaved edits. Revision identity is explicit; no public sharing or revision-history browser is added. See the [saved-presentation release receipt](./2026-09-12-timeline-saved-presentation-release-receipt.md).
+Saved revision history now loads private revisions in pinned pages and validates a selected historical snapshot for preview, presentation and export without replacing current work or changing the save head. Refresh is explicit; no public sharing is added. See the [history release receipt](./2026-09-12-timeline-history-release-receipt.md).
+
+Saved-revision preview now presents and exports the last successfully saved/opened private version separately from unsaved edits. Revision identity is explicit; no public sharing is added. See the [saved-presentation release receipt](./2026-09-12-timeline-saved-presentation-release-receipt.md).
 
 Presentation search now filters the native event list and jumps to allowed stable event IDs without changing selection, exports or chronology. Query/disclosure survive frame replacement; old jumps do not replay. See the [navigation release receipt](./2026-09-12-timeline-navigation-release-receipt.md).
 

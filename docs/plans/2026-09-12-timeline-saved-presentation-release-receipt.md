@@ -13,3 +13,7 @@ The first run was deliberately stopped after 53.18 seconds when a late test-prov
 All 155 staged files were independently compared; inventory SHA256 `5b608dd994f94d3ac9d47da1f9e424b42e111d9461fd964f20b3956ca4d1d18a`. Prebuilt deployment used `--no-bundle`. Thirty read-only checks passed at each deployment/production URL, including exact owned renderer asset bytes. Renderer assets and headers are unchanged, so no new edge-browser replay was performed. All 13 migrations and 386 catalog entries across 14 tables remain unchanged; existing secret names are preserved.
 
 Previous deployment `9d1d77c6-7225-4980-81f0-c24d7c8df0c7` reads identical data but lacks saved-revision presentation. Preserve snapshots and history. Primary checkout untouched; visual coverage is representative, not an exhaustive accessibility audit.
+
+## Subsequent deployment
+
+The [saved revision history release](./2026-09-12-timeline-history-release-receipt.md) adds pinned history browsing and selected historical preview without replacing the working copy or changing the save head. This receipt retains historical saved-presentation validation; the newer receipt records the current deployment.
