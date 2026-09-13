@@ -144,7 +144,15 @@ test.describe('Self-hosted TimelineJS renderer @smoke', () => {
       await dialog.getByLabel('Default presentation date', { exact: true }).scrollIntoViewIfNeeded()
       await dialog.screenshot({ path: info.outputPath(`schedule-form-${theme}.png`), animations: 'disabled', scale: 'css' })
       await groups[0].scrollIntoViewIfNeeded()
-      for (const label of ['Date override', 'Time override', 'Time means']) await expect(groups[0].getByLabel(label, { exact: true })).toBeInViewport()
+      const scheduleControls = [groups[0].locator('legend'), ...['Date override', 'Time override', 'Time means'].map(label => groups[0].getByLabel(label, { exact: true }))]
+      for (const control of scheduleControls) {
+        await expect(control).toBeInViewport()
+        await expect.poll(async () => control.evaluate(element => {
+          const bounds = element.getBoundingClientRect()
+          const viewport = element.closest('[role="region"][aria-label="Export details"]')!.getBoundingClientRect()
+          return bounds.width > 0 && bounds.height > 0 && bounds.top >= viewport.top - 1 && bounds.bottom <= viewport.bottom + 1 && bounds.left >= viewport.left - 1 && bounds.right <= viewport.right + 1
+        }), { message: 'The complete numbered schedule legend and controls must fit inside Export details' }).toBe(true)
+      }
       await dialog.screenshot({ path: info.outputPath(`schedule-event-${theme}.png`), animations: 'disabled', scale: 'css' })
       await dialog.getByRole('button', { name: 'Open presentation', exact: true }).click()
       await expect(page.getByText('TimelineJS presentation loaded', { exact: true })).toBeAttached()
