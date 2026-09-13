@@ -6,6 +6,7 @@ import { createHash } from 'node:crypto'
 import { Miniflare } from 'miniflare'
 import { onRequestPost } from '../../../functions/api/timelines'
 import { onRequestGet, onRequestPatch } from '../../../functions/api/timelines/[id]'
+import { onRequestGet as revisions } from '../../../functions/api/timelines/[id]/revisions'
 import { onRequestGet as objects } from '../../../functions/api/timelines/[id]/objects'
 import { onRequestGet as sourceCandidates } from '../../../functions/api/timeline-source-candidates'
 import { onRequestPost as sourceImport } from '../../../functions/api/timeline-source-import'
@@ -52,8 +53,8 @@ async function bridge(page: Page, signedIn = true, chunked = false) {
       await db.prepare('INSERT INTO content_chunks VALUES(?,?,?,?,?)').bind(chunkedSource.analysisId,start/51200,text.length,sourceDigest(text),text).run()
     }
   }
-  const faults = { holdCandidates: null as Promise<void> | null, candidatesReady: false, candidatesDelivered: false, candidatesCalls: 0, candidatesOverride: null as string | null, dropCreate: false, dropCommit: false, malformedRead: false, holdSource: null as Promise<void> | null, sourceReady: false, sourceDelivered: false }
-  const calls: Array<{ method: string; body: string | null; key?: string; etag?: string; status: number; response: any }> = []
+  const faults = { holdHistory: null as Promise<void> | null, historyReady: false, historyDelivered: false, malformedHistory: false, holdCandidates: null as Promise<void> | null, candidatesReady: false, candidatesDelivered: false, candidatesCalls: 0, candidatesOverride: null as string | null, dropCreate: false, dropCommit: false, malformedRead: false, holdSource: null as Promise<void> | null, sourceReady: false, sourceDelivered: false }
+  const calls: Array<{ path: string; method: string; body: string | null; key?: string; etag?: string; status: number; response: any }> = []
   await page.addInitScript(({ hash, signedIn }) => {
     if (!signedIn) return
     localStorage.setItem('omnicore_user_hash', hash)
@@ -81,10 +82,15 @@ async function bridge(page: Page, signedIn = true, chunked = false) {
     if (!url.pathname.startsWith('/api/timelines')) return route.fulfill({ json: {} })
     const request = new Request(url, { method: incoming.method(), headers: incoming.headers(), ...(incoming.postData() ? { body: incoming.postData()! } : {}) })
     const id = url.pathname.split('/')[3]
-    const handler = incoming.method() === 'POST' ? onRequestPost : incoming.method() === 'PATCH' ? onRequestPatch : url.pathname.endsWith('/objects') ? objects : onRequestGet
+    const handler = incoming.method() === 'POST' ? onRequestPost : incoming.method() === 'PATCH' ? onRequestPatch : url.pathname.endsWith('/objects') ? objects : url.pathname.endsWith('/revisions') ? revisions : onRequestGet
     const response = await handler({ request, env: { DB: db }, params: { id } } as never)
     const text = await response.text()
-    calls.push({ method: request.method, body: incoming.postData(), key: incoming.headers()['idempotency-key'], etag: incoming.headers()['if-match'], status: response.status, response: JSON.parse(text) })
+    calls.push({ path: url.pathname, method: request.method, body: incoming.postData(), key: incoming.headers()['idempotency-key'], etag: incoming.headers()['if-match'], status: response.status, response: JSON.parse(text) })
+    if (url.pathname.endsWith('/revisions')) {
+      faults.historyReady = true
+      if (faults.holdHistory) await faults.holdHistory
+      return route.fulfill({ status: response.status, body: faults.malformedHistory ? JSON.stringify({ schemaVersion: 'wrong' }) : text, headers: Object.fromEntries(response.headers) }).catch(() => {}).finally(() => { faults.historyDelivered = true })
+    }
     if (request.method === 'POST' && faults.dropCreate) { faults.dropCreate = false; return route.abort('failed') }
     if (request.method === 'PATCH' && faults.dropCommit) { faults.dropCommit = false; return route.abort('failed') }
     if (request.method === 'GET' && faults.malformedRead) return route.fulfill({ status: 200, json: { schemaVersion: 'wrong' }, headers: Object.fromEntries(response.headers) })
@@ -516,6 +522,104 @@ test.describe('durable browser with actual D1 routes @smoke', () => {
       await expect(form.getByRole('alert')).toBeVisible()
       expect((await exported(page)).analystWorkspace).toEqual(before)
     } finally { await b.mf.dispose() }
+  })
+  test('revision history inspects old snapshots without replacing edits or save head', async ({ page }, info) => {
+    test.setTimeout(120_000)
+    const b = await bridge(page)
+    try {
+      await page.goto('/dashboard/tools/timeline'); await importFixture(page)
+      await page.getByRole('button', { name: 'Save timeline', exact: true }).click(); await saved(page)
+      const first = b.calls.findLast(c => c.method === 'PATCH')!
+      await page.getByLabel('Narrative title', { exact: true }).fill('Second saved account')
+      await page.getByRole('button', { name: 'Save changes', exact: true }).click(); await saved(page)
+      const second = b.calls.findLast(c => c.method === 'PATCH')!
+      await page.getByLabel('Narrative title', { exact: true }).fill('Unsaved editing account')
+      const editing = await exported(page)
+      expect(b.calls.filter(c => c.path.endsWith('/revisions'))).toHaveLength(0)
+      const history = page.getByRole('region', { name: 'Saved revision history', exact: true })
+      await history.getByRole('button', { name: 'Load revision history', exact: true }).click()
+      await history.getByRole('button', { name: `Inspect revision ${second.response.sequence}`, exact: true }).click()
+      const selected = page.getByRole('region', { name: 'Selected historical revision', exact: true })
+      await expect(selected).toContainText(second.response.revisionId)
+      await history.getByRole('button', { name: `Inspect revision ${first.response.sequence}`, exact: true }).click()
+      await expect(selected).toContainText(first.response.revisionId)
+      const writes = b.calls.filter(c => c.method === 'POST' || c.method === 'PATCH').length
+      await selected.getByRole('button', { name: 'Preview selected revision', exact: true }).click()
+      const dialog = page.getByRole('dialog', { name: 'Selected revision preview', exact: true })
+      await expect(dialog).toContainText(first.response.revisionId)
+      const pending = page.waitForEvent('download')
+      await dialog.getByRole('button', { name: 'Download ResearchTools JSON', exact: true }).click()
+      expect(JSON.parse(await readFile((await (await pending).path())!, 'utf8'))).toEqual(JSON.parse(first.body!).changes[0].payload)
+      await dialog.screenshot({ path: info.outputPath('history-dialog.png'), scale: 'css', animations: 'disabled' })
+      await page.keyboard.press('Escape')
+      expect((await exported(page)).analystWorkspace).toEqual(editing.analystWorkspace)
+      expect(await savedCompanion(page, second.response.revisionId)).toEqual(JSON.parse(second.body!).changes[0].payload)
+      expect(b.calls.filter(c => c.method === 'POST' || c.method === 'PATCH')).toHaveLength(writes)
+      await history.evaluate(element => element.scrollIntoView({ block: 'center' }))
+      await history.getByRole('button', { name: 'Refresh history', exact: true }).click({ trial: true })
+      await history.screenshot({ path: info.outputPath('history-card.png'), scale: 'css', animations: 'disabled' })
+      await page.screenshot({ path: info.outputPath('history-viewport.png'), scale: 'css', animations: 'disabled' })
+      b.faults.malformedHistory = true
+      await history.getByRole('button', { name: 'Refresh history', exact: true }).click()
+      await expect(history.getByRole('alert')).toBeVisible()
+      await expect(selected).toHaveCount(0)
+      b.faults.malformedHistory = false
+      await page.getByRole('button', { name: 'Save changes', exact: true }).click(); await saved(page)
+      expect(b.calls.findLast(c => c.method === 'PATCH')!.etag).toBe(`"${second.response.revisionId}"`)
+    } finally { await b.mf.dispose() }
+  })
+  test('revision history pagination stays pinned while a concurrent save requires refresh', async ({ page }) => {
+    test.setTimeout(120_000)
+    const b = await bridge(page)
+    try {
+      await page.goto('/dashboard/tools/timeline'); await importFixture(page)
+      await page.getByRole('button', { name: 'Save timeline', exact: true }).click(); await saved(page)
+      const original = b.calls.findLast(c => c.method === 'PATCH')!
+      let head = original.response
+      async function externalSave(index: number) {
+        const response = await onRequestPatch({ request: new Request(`https://fixture.test/api/timelines/${head.artifactId}`, { method: 'PATCH', headers: { 'X-User-Hash': hash, 'Content-Type': 'application/json', 'Idempotency-Key': `history-pagination-save-${index}`, 'If-Match': `"${head.revisionId}"` }, body: original.body }), env: { DB: b.db }, params: { id: head.artifactId } } as never)
+        expect(response.status).toBe(200)
+        head = await response.json()
+      }
+      for (let i = 0; i < 20; i++) await externalSave(i)
+      const pinned = head
+      const history = page.getByRole('region', { name: 'Saved revision history', exact: true })
+      const uiWrites = b.calls.filter(c => ['POST', 'PATCH'].includes(c.method)).length
+      await history.getByRole('button', { name: 'Load revision history', exact: true }).click()
+      await expect(history.getByRole('button', { name: /^Inspect revision/ })).toHaveCount(20)
+      await expect(history.getByRole('button', { name: `Inspect revision ${pinned.sequence}`, exact: true })).toBeAttached()
+      await externalSave(20)
+      const newHead = head
+      await history.getByRole('button', { name: 'Load older revisions', exact: true }).click()
+      await expect(history.getByRole('button', { name: /^Inspect revision/ })).toHaveCount(pinned.sequence + 1)
+      await expect(history.getByRole('button', { name: 'Inspect revision 0', exact: true })).toBeDisabled()
+      await expect(history.getByRole('button', { name: `Inspect revision ${newHead.sequence}`, exact: true })).toHaveCount(0)
+      const pages = b.calls.filter(c => c.path.endsWith('/revisions'))
+      expect(pages.map(c => c.response.headRevisionId)).toEqual([pinned.revisionId, pinned.revisionId])
+      await history.getByRole('button', { name: 'Refresh history', exact: true }).click()
+      await expect(history.getByRole('button', { name: `Inspect revision ${newHead.sequence}`, exact: true })).toBeAttached()
+      await expect(history.getByRole('button', { name: /^Inspect revision/ })).toHaveCount(20)
+      expect(b.calls.findLast(c => c.path.endsWith('/revisions'))!.response.headRevisionId).toBe(newHead.revisionId)
+      expect(b.calls.filter(c => ['POST', 'PATCH'].includes(c.method))).toHaveLength(uiWrites)
+      expect(await savedCompanion(page, original.response.revisionId)).toEqual(JSON.parse(original.body!).changes[0].payload)
+    } finally { await b.mf.dispose() }
+  })
+  test('delayed revision history cannot restore private state after sign-out', async ({ page }) => {
+    test.setTimeout(120_000)
+    const b = await bridge(page)
+    let release!: () => void
+    try {
+      await page.goto('/dashboard/tools/timeline'); await importFixture(page)
+      await page.getByRole('button', { name: 'Save timeline', exact: true }).click(); await saved(page)
+      b.faults.holdHistory = new Promise<void>(resolve => { release = resolve })
+      await page.getByRole('button', { name: 'Load revision history', exact: true }).click()
+      await expect.poll(() => b.faults.historyReady).toBe(true)
+      await page.evaluate(async () => { const { useAuthStore } = await import('/src/stores/auth.ts'); useAuthStore.setState({ isAuthenticated: false, user: null }) })
+      release(); await expect.poll(() => b.faults.historyDelivered).toBe(true)
+      await expect(page.getByRole('region', { name: 'Saved revision history', exact: true })).toHaveCount(0)
+      await expect(page.getByRole('button', { name: /^Inspect revision/ })).toHaveCount(0)
+      await expect(page.getByRole('region', { name: 'Selected historical revision', exact: true })).toHaveCount(0)
+    } finally { release?.(); await b.mf.dispose() }
   })
   test('optional editor fields use the same JSON identity as durable saves', () => {
     const value = fixture(); value.analystWorkspace.events[0].chapterId = undefined

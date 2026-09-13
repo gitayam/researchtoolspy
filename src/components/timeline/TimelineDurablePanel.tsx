@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { TimelineJSExport } from './TimelineJSExport'
+import { TimelineRevisionHistory } from './TimelineRevisionHistory'
 import type { TimelineWorkspaceExport } from '@/types/timeline-workspace'
 import { DurableTimelineError, openSavedTimeline, parseSavedTimelineLink, prepareTimelineSave, saveTimelineAttempt, savedTimelineLink, snapshotIdentity, type DurableDocument, type SaveAttempt } from '@/lib/timeline-durable'
 
@@ -124,6 +125,7 @@ function WorkspaceSaving({ snapshot, onOpen, workspaceId, principalId, canWrite 
       <p className="text-sm leading-relaxed">Preview the last successfully saved or opened version. Current unsaved edits are excluded. Someone may have saved a newer version on the server. This version is kept in memory only; previewing does not publish it.</p>
       <TimelineJSExport key={savedRevision.artifact.revisionId} snapshot={savedRevision.snapshot} savedRevision={{ revisionId: savedRevision.artifact.revisionId, sequence: savedRevision.artifact.sequence }} />
     </section>}
+    {artifact && <TimelineRevisionHistory key={artifact.artifactId} artifactId={artifact.artifactId} identity={() => ({ workspaceId, principalId, headers: humanHeaders() })} />}
     <div className="min-w-0 space-y-3 border-t border-slate-200 pt-4 dark:border-slate-700">
       <Label htmlFor="timeline-saved-link">Saved timeline link</Label>
       <Input id="timeline-saved-link" value={linkInput} onChange={event => setLinkInput(event.target.value)} placeholder="Paste a saved timeline link" />

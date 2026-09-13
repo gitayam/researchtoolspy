@@ -1,11 +1,26 @@
 import { decodeTimelineWorkspace } from './timeline-workspace-codec'
 import type { TimelineWorkspaceExport } from '@/types/timeline-workspace'
-import { canonicalJson, hashContent, isObjectId, validArtifactDocument, type ArtifactDocument } from '../../functions/api/_shared/timeline-artifact-contract'
+import { canonicalJson, decodeCursor, hashContent, isObjectId, validArtifactDocument, type ArtifactDocument } from '../../functions/api/_shared/timeline-artifact-contract'
 
 export const SNAPSHOT_BYTES = 60 * 1024
 const OBJECT_ID = 'browser-workspace'
 export type DurableDocument = ArtifactDocument
 export interface DurableIdentity { principalId: number; workspaceId: string; headers: Record<string, string> }
+export interface TimelineRevisionSummary {
+  revisionId: string
+  sequence: number
+  parentRevisionIds: string[]
+  objectCount: number
+  changeCount: number
+  contentHash: string
+  createdBy: number
+  createdAt: string
+}
+export interface TimelineRevisionPage {
+  headRevisionId: string
+  revisions: TimelineRevisionSummary[]
+  nextCursor: string | null
+}
 export interface SaveAttempt {
   snapshot: TimelineWorkspaceExport
   createKey: string
@@ -88,15 +103,79 @@ export async function openSavedTimeline(artifactId: string, identity: DurableIde
   if (!isObjectId(artifactId)) throw new DurableTimelineError('The saved timeline link is invalid.')
   const reply = await request(`/api/timelines/${artifactId}`, identity, signal)
   const artifact = metadata(reply.body, reply.etag, identity.workspaceId, artifactId)
-  if (artifact.objectCount !== 1) throw new DurableTimelineError('This artifact does not contain a complete browser timeline.')
-  const objects = await request(`/api/timelines/${artifactId}/objects?revisionId=${encodeURIComponent(artifact.revisionId)}&limit=1`, identity, signal)
+  const snapshot = await readBrowserSnapshot(artifactId, artifact, identity, signal)
+  return { artifact, snapshot }
+}
+async function readBrowserSnapshot(artifactId: string, revision: { revisionId: string; objectCount: number; contentHash: string }, identity: DurableIdentity, signal: AbortSignal): Promise<TimelineWorkspaceExport> {
+  if (revision.objectCount !== 1) throw new DurableTimelineError('This artifact does not contain a complete browser timeline.')
+  const objects = await request(`/api/timelines/${artifactId}/objects?revisionId=${encodeURIComponent(revision.revisionId)}&limit=1`, identity, signal)
   const page = objects.body as { schemaVersion?: unknown; artifactId?: unknown; revisionId?: unknown; nextCursor?: unknown; objects?: Array<Record<string, unknown>> }
-  if (!page || page.schemaVersion !== 'timeline-object-page.v1' || page.artifactId !== artifactId || page.revisionId !== artifact.revisionId || objects.etag !== `"${artifact.revisionId}"` || page.nextCursor !== null || !Array.isArray(page.objects) || page.objects.length !== 1) throw new DurableTimelineError('The saved timeline returned an incomplete or mismatched revision.')
+  if (!page || !exactKeys(page, ['schemaVersion', 'artifactId', 'revisionId', 'nextCursor', 'objects']) || page.schemaVersion !== 'timeline-object-page.v1' || page.artifactId !== artifactId || page.revisionId !== revision.revisionId || objects.etag !== `"${revision.revisionId}"` || page.nextCursor !== null || !Array.isArray(page.objects) || page.objects.length !== 1) throw new DurableTimelineError('The saved timeline returned an incomplete or mismatched revision.')
   const item = page.objects[0]
   if (!item || item.objectId !== OBJECT_ID || item.kind !== 'timeline-workspace.v1' || item.tombstone !== false || !isObjectId(item.versionId)) throw new DurableTimelineError('This artifact does not contain a supported browser timeline.')
   const snapshot = decodeTimelineWorkspace(JSON.stringify(item.payload))
   if (new TextEncoder().encode(canonicalJson(snapshot)).byteLength > SNAPSHOT_BYTES || await hashContent({ schemaVersion: item.kind, tombstone: false, payload: item.payload }) !== item.contentHash) throw new DurableTimelineError('The saved timeline failed its content check.')
   const { payload: _payload, ...manifest } = item
-  if (Object.keys(manifest).sort().join(',') !== 'contentHash,kind,objectId,tombstone,versionId' || await hashContent([manifest]) !== artifact.contentHash) throw new DurableTimelineError('The saved timeline failed its revision check.')
-  return { artifact, snapshot }
+  if (Object.keys(manifest).sort().join(',') !== 'contentHash,kind,objectId,tombstone,versionId' || await hashContent([manifest]) !== revision.contentHash) throw new DurableTimelineError('The saved timeline failed its revision check.')
+  return snapshot
+}
+
+function exactKeys(value: unknown, keys: readonly string[]): value is Record<string, unknown> {
+  return Boolean(value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === keys.length && keys.every(key => Object.prototype.hasOwnProperty.call(value, key)))
+}
+function invalidHistory(): never { throw new DurableTimelineError('The saved revision history is incomplete or mismatched. Refresh history to try again.') }
+function validSummary(value: unknown): value is TimelineRevisionSummary {
+  if (!exactKeys(value, ['revisionId', 'sequence', 'parentRevisionIds', 'objectCount', 'changeCount', 'contentHash', 'createdBy', 'createdAt'])) return false
+  if (!isObjectId(value.revisionId) || !Number.isSafeInteger(value.sequence) || Number(value.sequence) < 0
+    || !Number.isSafeInteger(value.objectCount) || Number(value.objectCount) < 0 || Number(value.objectCount) > 1000
+    || !Number.isSafeInteger(value.changeCount) || Number(value.changeCount) < 0 || Number(value.changeCount) > 10
+    || !Number.isSafeInteger(value.createdBy) || Number(value.createdBy) <= 0
+    || typeof value.contentHash !== 'string' || !/^[a-f0-9]{64}$/.test(value.contentHash)
+    || !Array.isArray(value.parentRevisionIds) || value.parentRevisionIds.length !== (value.sequence === 0 ? 0 : 1)
+    || value.parentRevisionIds.some(parent => !isObjectId(parent) || parent === value.revisionId)
+    || typeof value.createdAt !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(value.createdAt)) return false
+  const date = new Date(value.createdAt)
+  if (!Number.isFinite(date.getTime()) || date.toISOString() !== value.createdAt) return false
+  return value.sequence === 0 ? value.objectCount === 0 && value.changeCount === 0 : Number(value.changeCount) > 0
+}
+function validateRevisionPage(value: unknown, artifactId: string): asserts value is TimelineRevisionPage {
+  if (!exactKeys(value, ['headRevisionId', 'revisions', 'nextCursor']) || !isObjectId(value.headRevisionId)
+    || !Array.isArray(value.revisions) || value.revisions.length < 1 || value.revisions.length > 20) invalidHistory()
+  const seen = new Set<string>()
+  let previousSequence: number | undefined
+  for (const revision of value.revisions) {
+    if (!validSummary(revision) || seen.has(revision.revisionId) || (previousSequence !== undefined && revision.sequence >= previousSequence)) invalidHistory()
+    seen.add(revision.revisionId); previousSequence = revision.sequence
+  }
+  if (value.nextCursor !== null) {
+    if (typeof value.nextCursor !== 'string') invalidHistory()
+    let cursor: Record<string, unknown>
+    try { cursor = decodeCursor(value.nextCursor) } catch { invalidHistory() }
+    if (!exactKeys(cursor, ['v', 'sort', 'artifactId', 'headRevisionId', 'before']) || cursor.v !== 1 || cursor.sort !== 'sequence-desc'
+      || cursor.artifactId !== artifactId || cursor.headRevisionId !== value.headRevisionId || cursor.before !== previousSequence
+      || !Number.isSafeInteger(cursor.before) || Number(cursor.before) <= 0) invalidHistory()
+  } else if (previousSequence !== 0) invalidHistory()
+}
+export async function loadTimelineRevisions(artifactId: string, identity: DurableIdentity, signal: AbortSignal, previous?: TimelineRevisionPage): Promise<TimelineRevisionPage> {
+  if (!isObjectId(artifactId)) invalidHistory()
+  if (previous !== undefined) {
+    validateRevisionPage(previous, artifactId)
+    if (previous.nextCursor === null) invalidHistory()
+  }
+  const cursor = previous ? `&cursor=${encodeURIComponent(previous.nextCursor!)}` : ''
+  const reply = await request(`/api/timelines/${artifactId}/revisions?limit=20${cursor}`, identity, signal)
+  if (!exactKeys(reply.body, ['schemaVersion', 'artifactId', 'headRevisionId', 'revisions', 'nextCursor']) || reply.body.schemaVersion !== 'timeline-revision-page.v1' || reply.body.artifactId !== artifactId) invalidHistory()
+  const page = { headRevisionId: reply.body.headRevisionId, revisions: reply.body.revisions, nextCursor: reply.body.nextCursor }
+  validateRevisionPage(page, artifactId)
+  if (reply.etag !== `"${page.headRevisionId}"`) invalidHistory()
+  if (previous) {
+    const last = previous.revisions[previous.revisions.length - 1].sequence
+    const seen = new Set(previous.revisions.map(revision => revision.revisionId))
+    if (page.headRevisionId !== previous.headRevisionId || page.nextCursor === previous.nextCursor || page.revisions.some(revision => revision.sequence >= last || seen.has(revision.revisionId))) invalidHistory()
+  } else if (page.revisions[0].revisionId !== page.headRevisionId) invalidHistory()
+  return page
+}
+export async function openTimelineRevision(artifactId: string, revision: TimelineRevisionSummary, identity: DurableIdentity, signal: AbortSignal): Promise<TimelineWorkspaceExport> {
+  if (!isObjectId(artifactId) || !validSummary(revision)) invalidHistory()
+  return readBrowserSnapshot(artifactId, revision, identity, signal)
 }
