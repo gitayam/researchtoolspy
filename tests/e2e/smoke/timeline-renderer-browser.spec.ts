@@ -58,7 +58,6 @@ async function open(page: Page) {
 test.describe('Self-hosted TimelineJS renderer @smoke', () => {
   test('temporary schedule renders equal-date drink steps in order and retimes without rewriting the backup', async ({ page }, info) => {
     test.setTimeout(120_000)
-    await page.clock.setFixedTime(new Date('2028-02-29T12:00:00Z'))
     const value = fixture(4)
     value.analystWorkspace.narrative!.title = 'Four drink purchases'
     value.analystWorkspace.narrative!.chapters = []
