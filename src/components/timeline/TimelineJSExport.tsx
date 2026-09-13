@@ -40,7 +40,7 @@ export function TimelineJSExport({ snapshot, savedRevision, presentationAction =
   }
 
   return <Dialog open={preview !== null} onOpenChange={open => { if (!open) { setPreview(null); setPresenting(false) } }}>
-    {presentationAction && !savedRevision && <DialogTrigger asChild><Button onClick={event => { opener.current = event.currentTarget; capture(true) }}><Play aria-hidden="true" className="mr-2 h-4 w-4" />Present</Button></DialogTrigger>}
+    {presentationAction && !savedRevision && <DialogTrigger asChild><Button className="bg-indigo-700 text-white hover:bg-indigo-800 dark:bg-indigo-400 dark:text-slate-950 dark:hover:bg-indigo-300" onClick={event => { opener.current = event.currentTarget; capture(true) }}><Play aria-hidden="true" className="mr-2 h-4 w-4" />Present</Button></DialogTrigger>}
     <DialogTrigger asChild><Button variant="outline" onClick={event => { opener.current = event.currentTarget; capture() }}><FileJson aria-hidden="true" className="mr-2 h-4 w-4" />{savedRevision?.historical ? 'Preview selected revision' : savedRevision ? 'Preview saved revision' : 'Export TimelineJS'}</Button></DialogTrigger>
     {preview && <DialogContent onCloseAutoFocus={event => { event.preventDefault(); opener.current?.focus() }} className={`flex max-h-[90dvh] w-[calc(100%-1.5rem)] flex-col rounded-xl border-indigo-200 bg-white p-4 text-slate-950 sm:p-6 dark:border-indigo-800 dark:bg-slate-950 dark:text-slate-100 ${presenting && !stale ? 'h-[95dvh] max-h-[95dvh] max-w-6xl' : 'max-w-2xl'}`}>
       <DialogHeader className="shrink-0 pr-6 text-left">
