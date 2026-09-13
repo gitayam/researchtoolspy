@@ -15,3 +15,7 @@ Preserved successful superseded runs: workflow-ui at 27880f5615641483bfeebd7fb5c
 All 155 staged files were independently compared; inventory SHA256 `745a7e76a66805c1c8dbb653660bd9ef9b82bbe7cd4a7567d9aa86b041cc8f33`. Prebuilt deployment used `--no-bundle`. Thirty read-only checks passed at each deployment/production URL, including exact owned renderer asset bytes. Renderer assets and headers are unchanged, so no new edge-browser replay was performed. All 13 migrations and 386 catalog entries across 14 tables remain unchanged; existing secret names are preserved.
 
 Previous deployment `bf86e234-77eb-46a9-8dfe-a382e3c639bf` reads identical data and retains history and preview/export capabilities, but lacks the consolidated layout and direct current-edit Present action. Preserve snapshots and history. Primary checkout untouched; visual coverage is representative, not an exhaustive accessibility audit.
+
+## Subsequent deployment
+
+The [presentation schedule release](./2026-09-13-timeline-schedule-release-receipt.md) adds temporary date/time and Start/action/Arrive settings, plus recorded-date projection for relative/position events. Original backups and saved history remain unchanged. This receipt retains historical workflow-stage validation; the newer receipt records the current deployment.

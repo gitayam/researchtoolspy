@@ -68,13 +68,15 @@ Current delivery state (2026-09-12):
   Content Research extraction in the same workspace. The resolver checks current
   access, retention, full-text hash and unique quote match; the recorded locator
   preserves hashes and UTF-16 offsets. Preview is rechecked before import, and
-  private passages never enter automatic browser drafts. The current workflow source passed five type checks, 114 UI-suite checks (including six pure codec/identity checks), 4 workspace-ordering contract cases across both projects, 19 history/renderer/export contract checks and fresh build/compiled gates in planned isolated partitions. The full unrelated API suite, extraction quality and user testing are not claimed. Historical history-stage counts remain in its release receipt.
+  private passages never enter automatic browser drafts. The current schedule source passed five type checks, 118 UI-suite checks (including six pure codec/identity checks), 4 workspace-ordering contract cases across both projects, 23 history/renderer/export contract checks and fresh build/compiled gates in planned isolated partitions. The full unrelated API suite, extraction quality and user testing are not claimed. Historical workflow-stage counts remain in its release receipt.
   No database migration was required. Broader source-store support, dedicated
   judgment services and authenticated peer review remain pending. Stored-text
   equality is not source truth, authenticated historical provenance or append-only
   review permission.
 - **TL-17: partial.** Selected-narrative TimelineJS JSON, matching complete companion and optional self-hosted renderer are delivered with explicit loss warnings. Immutable authorized publication/revocation and richer snapshot types remain pending.
 - **TL-01, TL-05–TL-16 and TL-18: pending.** No delivery of these checkpoints or cross-app changes is claimed.
+
+TimelineJS export now offers an opt-in presentation schedule with temporary dates, times and Start/action/Arrive meanings. Dated relative/position events export their recorded dates; placement notes remain explicit. The original ResearchTools backup and saved revisions are unchanged. See the [schedule release receipt](./2026-09-13-timeline-schedule-release-receipt.md).
 
 The timeline workflow now places content before setup, keeps private save/state controls compact, and groups saved versions, history and links behind an explicit disclosure. Present opens eligible Current edits directly; saved and historical previews remain separate. No API, schema, permission or public sharing change is added. See the [workflow release receipt](./2026-09-12-timeline-workflow-release-receipt.md).
 

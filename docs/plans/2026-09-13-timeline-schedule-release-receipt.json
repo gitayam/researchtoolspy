@@ -1,0 +1,1236 @@
+{
+  "schemaVersion": "timeline-schedule-release.v1",
+  "recordedAt": "2026-09-13T16:59:56.951599+00:00",
+  "baselineSha": "5fb33532b13c0de03eacdb7e5a4317a3a6e2aa3f",
+  "acceptedReleaseSha": "53eefe8a516df8702b5bfb9639ba05b54b82b3eb",
+  "checkpoint": "Temporary presentation scheduling and dated-relative projection deployed; TL-17 remains partial",
+  "states": {
+    "canonicalLanded": true,
+    "mirrorConfirmed": true,
+    "productionDeployed": true,
+    "migrationRequired": false,
+    "integrationCheckoutCleanAtRelease": true,
+    "primaryCheckoutSynced": false
+  },
+  "validation": {
+    "sourceSha": "53eefe8a516df8702b5bfb9639ba05b54b82b3eb",
+    "executionMode": "Planned proportionate same-source regression partitions; no full unrelated API-suite claim",
+    "runs": [
+      {
+        "runName": "schedule-focus5",
+        "source": "53eefe8a516df8702b5bfb9639ba05b54b82b3eb",
+        "result": "passed",
+        "seconds": 104.57,
+        "completedCases": 4,
+        "receiptSha256": "ac7cd76dd82926a61eefca11157ef4af5a1f948971dca02bb5378cd0c320e561",
+        "runLogSha256": "48b3747d7fdba34a841c7a4328e84522c0631f299fae92526f86ecb7b7c1a4dd",
+        "archiveSha256": "5595a78fd09d5276c2a8ed203ab2f4c6c7edc5a9c9e0de019bfa51a7f543acd0",
+        "supervisorSha256": "951e88d8b3c2c934de367407ce3269bbdebfcebf5a731a64f10a630366d52639",
+        "supervisorFile": "container-run-renderer.py"
+      },
+      {
+        "runName": "schedule-contracts-final",
+        "source": "53eefe8a516df8702b5bfb9639ba05b54b82b3eb",
+        "result": "passed",
+        "seconds": 4.02,
+        "completedCases": 23,
+        "receiptSha256": "f4917165ff88799c2c4abc6965bef9bd508586858c9ce0a9fa193627f9f3759f",
+        "runLogSha256": "36dc0d42a20b151f2e2f09d4429b7f601a9ca9471cfa4932908ceb5704b302cd",
+        "archiveSha256": "5595a78fd09d5276c2a8ed203ab2f4c6c7edc5a9c9e0de019bfa51a7f543acd0",
+        "supervisorSha256": "951e88d8b3c2c934de367407ce3269bbdebfcebf5a731a64f10a630366d52639",
+        "supervisorFile": "container-run-renderer.py"
+      },
+      {
+        "runName": "release-schedule-build-final",
+        "source": "53eefe8a516df8702b5bfb9639ba05b54b82b3eb",
+        "result": "passed",
+        "seconds": 98.13,
+        "completedCases": 0,
+        "receiptSha256": "b86dbb681f3f614575d6457f4ae2f89bde364fd38b83e206925a9cc56dbe7657",
+        "runLogSha256": "5c08cefe413f4cf86a51b091fe344292a5f08346f9d64ccd2d806e20da691562",
+        "archiveSha256": "5595a78fd09d5276c2a8ed203ab2f4c6c7edc5a9c9e0de019bfa51a7f543acd0",
+        "supervisorSha256": "951e88d8b3c2c934de367407ce3269bbdebfcebf5a731a64f10a630366d52639",
+        "supervisorFile": "container-run-renderer.py"
+      },
+      {
+        "runName": "schedule-renderer-final",
+        "source": "53eefe8a516df8702b5bfb9639ba05b54b82b3eb",
+        "result": "passed",
+        "seconds": 305.2,
+        "completedCases": 16,
+        "receiptSha256": "d93776d529b594d83aedf251a336bddbc4797d543aeac3a2635f45c77d26867d",
+        "runLogSha256": "c5fbfbbb416e72ece0d24fc34682ec6fcecfd28c73c6a9cefef0abb5ad5fee6a",
+        "archiveSha256": "5595a78fd09d5276c2a8ed203ab2f4c6c7edc5a9c9e0de019bfa51a7f543acd0",
+        "supervisorSha256": "951e88d8b3c2c934de367407ce3269bbdebfcebf5a731a64f10a630366d52639",
+        "supervisorFile": "container-run-renderer.py"
+      },
+      {
+        "runName": "schedule-ui-final",
+        "source": "53eefe8a516df8702b5bfb9639ba05b54b82b3eb",
+        "result": "passed",
+        "seconds": 473.83,
+        "completedCases": 66,
+        "receiptSha256": "9f451124e2c176696d67179ee5f4260c08c8a5a30b3cf9e62d230fc4c5e1f440",
+        "runLogSha256": "126507707426ad4dba948b577d3da3bd1654f76522e3c672e11cebbd18e5811f",
+        "archiveSha256": "5595a78fd09d5276c2a8ed203ab2f4c6c7edc5a9c9e0de019bfa51a7f543acd0",
+        "supervisorSha256": "951e88d8b3c2c934de367407ce3269bbdebfcebf5a731a64f10a630366d52639",
+        "supervisorFile": "container-run-renderer.py"
+      },
+      {
+        "runName": "schedule-durable-final",
+        "source": "53eefe8a516df8702b5bfb9639ba05b54b82b3eb",
+        "result": "passed",
+        "seconds": 436.85,
+        "completedCases": 40,
+        "receiptSha256": "10191bf8d6e0e571112a611918adaa6d90a6507523a46e46763a134816fa61fa",
+        "runLogSha256": "c037d3bd039ac410f22206e18a996d1a393219a0d47bf917f9091e5abcb97cb5",
+        "archiveSha256": "5595a78fd09d5276c2a8ed203ab2f4c6c7edc5a9c9e0de019bfa51a7f543acd0",
+        "supervisorSha256": "951e88d8b3c2c934de367407ce3269bbdebfcebf5a731a64f10a630366d52639",
+        "supervisorFile": "container-run-renderer.py"
+      }
+    ],
+    "uiSuiteProjectChecksPassed": 118,
+    "pureCodecIdentityProjectChecksIncluded": 6,
+    "contractTestsPassed": 23,
+    "completedCaseKeys": [
+      [
+        "chromium",
+        "timeline-durable-browser.spec.ts",
+        "130",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-durable-browser.spec.ts",
+        "191",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-durable-browser.spec.ts",
+        "284",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-durable-browser.spec.ts",
+        "315",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-durable-browser.spec.ts",
+        "358",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-durable-browser.spec.ts",
+        "396",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-durable-browser.spec.ts",
+        "415",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-durable-browser.spec.ts",
+        "444",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-durable-browser.spec.ts",
+        "470",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-durable-browser.spec.ts",
+        "510",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-durable-browser.spec.ts",
+        "533",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-durable-browser.spec.ts",
+        "594",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-durable-browser.spec.ts",
+        "631",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-durable-browser.spec.ts",
+        "649",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-durable-browser.spec.ts",
+        "653",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-durable-browser.spec.ts",
+        "732",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-durable-browser.spec.ts",
+        "756",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-durable-browser.spec.ts",
+        "791",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-durable-browser.spec.ts",
+        "814",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-durable-browser.spec.ts",
+        "829",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-evidence-browser.spec.ts",
+        "104",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-evidence-browser.spec.ts",
+        "172",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-evidence-browser.spec.ts",
+        "217",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-evidence-browser.spec.ts",
+        "267",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-evidence-browser.spec.ts",
+        "280",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-evidence-browser.spec.ts",
+        "51",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-history-contract.spec.ts",
+        "20",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-history-contract.spec.ts",
+        "33",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-history-contract.spec.ts",
+        "45",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-history-contract.spec.ts",
+        "57",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-history-contract.spec.ts",
+        "66",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-judgments-browser.spec.ts",
+        "103",
+        "2"
+      ],
+      [
+        "chromium",
+        "timeline-judgments-browser.spec.ts",
+        "126",
+        "2"
+      ],
+      [
+        "chromium",
+        "timeline-judgments-browser.spec.ts",
+        "45",
+        "2"
+      ],
+      [
+        "chromium",
+        "timeline-narrative-ui.spec.ts",
+        "128",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-narrative-ui.spec.ts",
+        "173",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-narrative-ui.spec.ts",
+        "198",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-narrative-ui.spec.ts",
+        "221",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-narrative-ui.spec.ts",
+        "251",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-narrative-ui.spec.ts",
+        "272",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-narrative-ui.spec.ts",
+        "49",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-narrative-ui.spec.ts",
+        "64",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-narrative-ui.spec.ts",
+        "86",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-browser.spec.ts",
+        "199",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-browser.spec.ts",
+        "242",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-browser.spec.ts",
+        "312",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-browser.spec.ts",
+        "338",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-browser.spec.ts",
+        "427",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-browser.spec.ts",
+        "488",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-browser.spec.ts",
+        "509",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-browser.spec.ts",
+        "59",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-contract.spec.ts",
+        "115",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-contract.spec.ts",
+        "134",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-contract.spec.ts",
+        "162",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-contract.spec.ts",
+        "177",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-contract.spec.ts",
+        "232",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-contract.spec.ts",
+        "262",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-contract.spec.ts",
+        "61",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-contract.spec.ts",
+        "91",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timelinejs-browser.spec.ts",
+        "40",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timelinejs-browser.spec.ts",
+        "85",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timelinejs-browser.spec.ts",
+        "98",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timelinejs-contract.spec.ts",
+        "11",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timelinejs-contract.spec.ts",
+        "114",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timelinejs-contract.spec.ts",
+        "138",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timelinejs-contract.spec.ts",
+        "161",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timelinejs-contract.spec.ts",
+        "179",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timelinejs-contract.spec.ts",
+        "25",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timelinejs-contract.spec.ts",
+        "45",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timelinejs-contract.spec.ts",
+        "63",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timelinejs-contract.spec.ts",
+        "79",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timelinejs-contract.spec.ts",
+        "97",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-tool-ui.spec.ts",
+        "112",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-tool-ui.spec.ts",
+        "156",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-tool-ui.spec.ts",
+        "273",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-tool-ui.spec.ts",
+        "317",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-tool-ui.spec.ts",
+        "398",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-tool-ui.spec.ts",
+        "412",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-tool-ui.spec.ts",
+        "446",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-tool-ui.spec.ts",
+        "473",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-tool-ui.spec.ts",
+        "497",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-tool-ui.spec.ts",
+        "89",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-workspace-ordering.spec.ts",
+        "27",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-workspace-ordering.spec.ts",
+        "58",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-durable-browser.spec.ts",
+        "130",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-durable-browser.spec.ts",
+        "191",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-durable-browser.spec.ts",
+        "284",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-durable-browser.spec.ts",
+        "315",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-durable-browser.spec.ts",
+        "358",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-durable-browser.spec.ts",
+        "396",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-durable-browser.spec.ts",
+        "415",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-durable-browser.spec.ts",
+        "444",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-durable-browser.spec.ts",
+        "470",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-durable-browser.spec.ts",
+        "510",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-durable-browser.spec.ts",
+        "533",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-durable-browser.spec.ts",
+        "594",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-durable-browser.spec.ts",
+        "631",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-durable-browser.spec.ts",
+        "649",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-durable-browser.spec.ts",
+        "653",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-durable-browser.spec.ts",
+        "732",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-durable-browser.spec.ts",
+        "756",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-durable-browser.spec.ts",
+        "791",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-durable-browser.spec.ts",
+        "814",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-durable-browser.spec.ts",
+        "829",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-evidence-browser.spec.ts",
+        "104",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-evidence-browser.spec.ts",
+        "172",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-evidence-browser.spec.ts",
+        "217",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-evidence-browser.spec.ts",
+        "267",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-evidence-browser.spec.ts",
+        "280",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-evidence-browser.spec.ts",
+        "51",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-judgments-browser.spec.ts",
+        "103",
+        "2"
+      ],
+      [
+        "mobile-safari",
+        "timeline-judgments-browser.spec.ts",
+        "126",
+        "2"
+      ],
+      [
+        "mobile-safari",
+        "timeline-judgments-browser.spec.ts",
+        "45",
+        "2"
+      ],
+      [
+        "mobile-safari",
+        "timeline-narrative-ui.spec.ts",
+        "128",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-narrative-ui.spec.ts",
+        "173",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-narrative-ui.spec.ts",
+        "198",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-narrative-ui.spec.ts",
+        "221",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-narrative-ui.spec.ts",
+        "251",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-narrative-ui.spec.ts",
+        "272",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-narrative-ui.spec.ts",
+        "49",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-narrative-ui.spec.ts",
+        "64",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-narrative-ui.spec.ts",
+        "86",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-renderer-browser.spec.ts",
+        "199",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-renderer-browser.spec.ts",
+        "242",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-renderer-browser.spec.ts",
+        "312",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-renderer-browser.spec.ts",
+        "338",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-renderer-browser.spec.ts",
+        "427",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-renderer-browser.spec.ts",
+        "488",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-renderer-browser.spec.ts",
+        "509",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-renderer-browser.spec.ts",
+        "59",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-timelinejs-browser.spec.ts",
+        "40",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-timelinejs-browser.spec.ts",
+        "85",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-timelinejs-browser.spec.ts",
+        "98",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-tool-ui.spec.ts",
+        "112",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-tool-ui.spec.ts",
+        "156",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-tool-ui.spec.ts",
+        "273",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-tool-ui.spec.ts",
+        "317",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-tool-ui.spec.ts",
+        "398",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-tool-ui.spec.ts",
+        "412",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-tool-ui.spec.ts",
+        "446",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-tool-ui.spec.ts",
+        "473",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-tool-ui.spec.ts",
+        "497",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-tool-ui.spec.ts",
+        "89",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-workspace-ordering.spec.ts",
+        "27",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-workspace-ordering.spec.ts",
+        "58",
+        "3"
+      ]
+    ],
+    "typeChecksPassed": 5,
+    "typeCheckCommands": [
+      "Running: node node_modules/typescript/bin/tsc -b --noEmit",
+      "Running: node node_modules/typescript/bin/tsc -p tsconfig.functions.json --noEmit",
+      "Running: node node_modules/typescript/bin/tsc -p tsconfig.workers.json --noEmit",
+      "Running: node node_modules/typescript/bin/tsc -p tsconfig.scraping-functions.json --noEmit",
+      "Running: node node_modules/typescript/bin/tsc -p tsconfig.timeline-client.json"
+    ],
+    "build": "passed",
+    "pagesFunctionsBuild": "passed",
+    "schemaRehearsal": "passed",
+    "compiledHttpGate": "passed",
+    "staticGate": "passed",
+    "externalOutboundAttempts": 0,
+    "externalOutboundAttemptScope": "Compiled HTTP release gate; browser suites execute with network none",
+    "schemaManifestSha256": "ada4281d0e79907fb645b20e10088770e5b7cf8756dc6fd372c2b2c388f35ca5",
+    "runtimeImage": "mcr.microsoft.com/playwright@sha256:9bd26ad900bb5e0f4dee75839e957a89ae89c2b7ab1e76050e559790e946b948",
+    "expectedCountsByFileProject": {
+      "timeline-tool-ui.spec.ts": {
+        "chromium": 10,
+        "mobile-safari": 10
+      },
+      "timeline-workspace-ordering.spec.ts": {
+        "chromium": 2,
+        "mobile-safari": 2
+      },
+      "timeline-narrative-ui.spec.ts": {
+        "chromium": 9,
+        "mobile-safari": 9
+      },
+      "timeline-durable-browser.spec.ts": {
+        "chromium": 20,
+        "mobile-safari": 20
+      },
+      "timeline-evidence-browser.spec.ts": {
+        "chromium": 6,
+        "mobile-safari": 6
+      },
+      "timeline-judgments-browser.spec.ts": {
+        "chromium": 3,
+        "mobile-safari": 3
+      },
+      "timeline-timelinejs-browser.spec.ts": {
+        "chromium": 3,
+        "mobile-safari": 3
+      },
+      "timeline-renderer-browser.spec.ts": {
+        "chromium": 8,
+        "mobile-safari": 8
+      },
+      "timeline-renderer-contract.spec.ts": {
+        "chromium": 8
+      },
+      "timeline-timelinejs-contract.spec.ts": {
+        "chromium": 10
+      },
+      "timeline-history-contract.spec.ts": {
+        "chromium": 5
+      }
+    },
+    "independentSourceTestInventorySha256": "eae8dd05330bbc434bcd00bc1e54e2fb4ee688caae0d13f1144ac37a6caa885a",
+    "workspaceOrderingContractChecksPassed": 4,
+    "contractCountsByFile": {
+      "timeline-renderer-contract.spec.ts": 8,
+      "timeline-timelinejs-contract.spec.ts": 10,
+      "timeline-history-contract.spec.ts": 5
+    }
+  },
+  "review": {
+    "sourceAndRuntimeAcceptedSha": "53eefe8a516df8702b5bfb9639ba05b54b82b3eb",
+    "artifactFilesIndependentlyCompared": 155,
+    "distManifestSha256": "22907b4c080372c1b4899ee981a9564c416bcd5efe99066f44c73758858f8615",
+    "packageManifestSha256": "6d73076d499094ae4c37aa3f1866c8bbc814efb6bac0cd7c3910c1e5b8a66ac8",
+    "acceptanceReceiptSha256": "f2c936911c4ea57c74bc2a13518db5406e1bfb218a72c448fb3ef2073d04295c",
+    "visualAcceptanceSha256": "83022b8dbf782e9c2ff6916094d017da9f193c5e25953194d245d7e6d97aba4a"
+  },
+  "preflightRecovery": {
+    "initialReceiptSha256": "d56cfdf6e9e271b6878aa6a53f09c3f480dcec5dee33879f703e60ef61136798",
+    "preservedFiles": {
+      "schema-before.json": "b6bad78125fa98139cd3f4bf417bca2b74b11cb9854e642363ef21bcadf7c553",
+      "schema-before.log": "7ef451910c1580ca4c8410b2d8c606072515f6eabf613c94c74f5c27e00e1467"
+    },
+    "successfulRetryReceiptSha256": "ea54236416af2f3ffe0ce5a18f724a770fc7290ba018d1fee655411982e4da85",
+    "successfulRetryLogSha256": "fb0c1676341284a3d30f16258e77245e3f6c3b74a9920876fad19cdb41de8587",
+    "note": "Initial read-only export failed authentication; the owner retained it and retried the unchanged read-only request after checking account identity. No credential rotation or production mutation."
+  },
+  "visual": {
+    "accepted": true,
+    "source": "53eefe8a516df8702b5bfb9639ba05b54b82b3eb",
+    "visualSource": "53eefe8a516df8702b5bfb9639ba05b54b82b3eb",
+    "runName": "schedule-focus5",
+    "evidence": [
+      {
+        "file": "timeline-renderer-browser--3a7d9-ithout-rewriting-the-backup-chromium/schedule-event-dark.png",
+        "sha256": "38ed99eaa733d891eda6f425c6b41af8d587a65f43336beb02e9cb549d4b0856"
+      },
+      {
+        "file": "timeline-renderer-browser--3a7d9-ithout-rewriting-the-backup-chromium/schedule-event-light.png",
+        "sha256": "0ec6768674a0b093fc1a513c1116adccc128583d667be54b7c1f7347c96d7354"
+      },
+      {
+        "file": "timeline-renderer-browser--3a7d9-ithout-rewriting-the-backup-chromium/schedule-form-dark.png",
+        "sha256": "38ed99eaa733d891eda6f425c6b41af8d587a65f43336beb02e9cb549d4b0856"
+      },
+      {
+        "file": "timeline-renderer-browser--3a7d9-ithout-rewriting-the-backup-chromium/schedule-form-light.png",
+        "sha256": "ce680d045f672a6b72dc6ca6173375fd14b13046858b7100027ae2253a3a0130"
+      },
+      {
+        "file": "timeline-renderer-browser--3a7d9-ithout-rewriting-the-backup-chromium/schedule-slide-dark.png",
+        "sha256": "abf4ab75084cfbd6595119bb38d47684795206b2d5e99e05047e93dc3805ef2a"
+      },
+      {
+        "file": "timeline-renderer-browser--3a7d9-ithout-rewriting-the-backup-chromium/schedule-slide-light.png",
+        "sha256": "db033f8bc3c09646ecba38f9fa9b292035fbf75730a502cd95c1e6ba135a2f10"
+      },
+      {
+        "file": "timeline-renderer-browser--3a7d9-ithout-rewriting-the-backup-mobile-safari/schedule-event-dark.png",
+        "sha256": "d06dd8b87f435148ddd4ea086d62afb3dd5c6b754684e0c4b11d9d5a4f823079"
+      },
+      {
+        "file": "timeline-renderer-browser--3a7d9-ithout-rewriting-the-backup-mobile-safari/schedule-event-light.png",
+        "sha256": "c48618e3e5c756c4f95e69f5b10d1c434ddb8c6bd9272f2a1dbadcb527fd497d"
+      },
+      {
+        "file": "timeline-renderer-browser--3a7d9-ithout-rewriting-the-backup-mobile-safari/schedule-form-dark.png",
+        "sha256": "add49771b88bfb29f8444a660045e9b11d9da6ef3d98d430c00aeccf96c1d488"
+      },
+      {
+        "file": "timeline-renderer-browser--3a7d9-ithout-rewriting-the-backup-mobile-safari/schedule-form-light.png",
+        "sha256": "19fe5e892f209666ef114c9b37ae5a53bc9ae269a7eb4101deee5e2dc0068fbb"
+      },
+      {
+        "file": "timeline-renderer-browser--3a7d9-ithout-rewriting-the-backup-mobile-safari/schedule-slide-dark.png",
+        "sha256": "4f2eed7d7fd37a5300e18b0b2212706ecb4ecb38e6fabb20b6272e2d74ecd865"
+      },
+      {
+        "file": "timeline-renderer-browser--3a7d9-ithout-rewriting-the-backup-mobile-safari/schedule-slide-light.png",
+        "sha256": "05bf7e04a8372b394e9005287278644dc2abca18c43ed0e54dc292411da0bcde"
+      }
+    ],
+    "limitations": [
+      "Independently viewed all twelve desktop Chromium/mobile Safari light/dark form, numbered-event and scheduled-slide screenshots. Representative fixtures only; not exhaustive accessibility certification.",
+      "Mobile form/event captures show separate scroll positions: default-date assumption explanation, then complete numbered legend, identifying description and all three override controls. Footer actions remain visible.",
+      "Mobile slide initially shows full scheduled date assumption and heading. Longer provenance paragraphs require scrolling; the successful actual-renderer test checks complete paragraph bounds after scrolling. Initial screenshots do not claim all long-slide text is simultaneously visible.",
+      "Native floating widget remains present; no overlay-hiding instrumentation. Public style correction is reviewed separately; runtime full matrix, package transfer and live owned-byte checks remain pending."
+    ]
+  },
+  "database": {
+    "mutationsPerformed": false,
+    "appliedMigrationCount": 13,
+    "pendingMigrations": [],
+    "beforeCatalog": {
+      "result": "passed",
+      "tables": 14,
+      "schemaRows": 386,
+      "normalizedSchemaSha256": "ec0d28165382f028c98208a003d8c5ab672a9a0ae7ba44ef2f23e3b2bfa46729"
+    },
+    "afterCatalog": {
+      "result": "passed",
+      "tables": 14,
+      "schemaRows": 386,
+      "normalizedSchemaSha256": "ec0d28165382f028c98208a003d8c5ab672a9a0ae7ba44ef2f23e3b2bfa46729"
+    },
+    "productionSchemaSha256": "22cb033df9400412f4d83b5f3668b8752ec4126a9c8402b6d502187727bf60bd"
+  },
+  "deployment": {
+    "project": "researchtoolspy",
+    "id": "bbe5b500-a461-4e93-b230-5dfe6b9f94d2",
+    "url": "https://bbe5b500.researchtoolspy.pages.dev",
+    "productionUrl": "https://researchtools.net",
+    "sourceSha": "53eefe8a516df8702b5bfb9639ba05b54b82b3eb",
+    "prebuilt": true,
+    "noBundle": true,
+    "publishReceiptSha256": "1e7d25d74d17facee9e5ec19f14df29a9119faf8b539d097c720d8bb454f9c97",
+    "existingSecretNamesPreserved": true,
+    "smoke": [
+      {
+        "baseUrl": "https://bbe5b500.researchtoolspy.pages.dev",
+        "checksPassed": 30,
+        "mutatingRequests": 0,
+        "receiptSha256": "f9f294625a7f6e6c09c0351148cf1aa06613ac6cfd67763735ad60c418f7b5b2"
+      },
+      {
+        "baseUrl": "https://researchtools.net",
+        "checksPassed": 30,
+        "mutatingRequests": 0,
+        "receiptSha256": "984bc788d23d06d556bd6fbb58a966841519deb22b5c54234a974967487fe34b"
+      }
+    ]
+  },
+  "renderer": {
+    "ownedAssetsUnchangedFromBaseline": false,
+    "stylesOnlyChanged": true,
+    "changedPublicPaths": [
+      "public/timelinejs/preview.css",
+      "public/timelinejs/preview.html"
+    ],
+    "liveOwnedShellBytesChecked": true,
+    "newOwnedBytesLiveChecked": true,
+    "scriptSecurityUnchanged": true,
+    "freshEdgeReplayPerformed": false,
+    "freshEdgeScriptReplayPerformed": false,
+    "styleReviewReceiptSha256": "bdac9acf349ec25ace0b92089edcfb6ffeeafd681a8e83465618d502b5fb223a",
+    "shellOutsideStyleBlocksSha256": "38f5a8c3b02412f47d91e253059a684eb808a59cd1540716e65b5921bc75705a",
+    "reason": "Only preview.css and generated preview.html style blocks changed to keep mobile headings reachable. Shell bytes outside style blocks, vendor and bridge scripts, embedded font, CSP and headers are unchanged. Independent style review, browser visual checks and exact live owned-byte checks support this CSS-only change; no fresh edge-script replay was performed."
+  },
+  "rollback": {
+    "previousRuntimeSha": "1fccfb3051a6b0144c7ed24ae1327bb385a21352",
+    "previousDeploymentId": "ab6d7fc7-aaa8-4e7c-9b87-28533dccf7a7",
+    "limits": "Previous runtime reads identical saved data and retains workflow/history features, but lacks temporary presentation scheduling and omits relative/position events from TimelineJS even when dated. Preserve saved snapshots and immutable history."
+  },
+  "supersededFocusedRun": null,
+  "supersededRuns": [
+    {
+      "runName": "schedule-focus3",
+      "source": "829a07ec4a34760a6311e9fcce67a1a45ad8b45b",
+      "exitCode": 0,
+      "receiptSha256": "72254c0f768a625a9a4d1d24e5b0adce28443eb187264404a018a3bdd28626f9",
+      "runLogSha256": "b9ce610c63442c2272f491926a5701d4a2bf52b6a9bde7931e1a936e297db2f8"
+    },
+    {
+      "runName": "schedule-focus4",
+      "source": "ae712f110d35713edc1fcc90c2e38ee5a72cced8",
+      "exitCode": 0,
+      "receiptSha256": "42dbe5ce274568140a94c9810099dea245c54e3cb22118a3bcbbc91d2a38e97f",
+      "runLogSha256": "6c525e58945d9857f4ba5417fa5d0528d1cd524ac047fd2458278ccb6aee48b7"
+    }
+  ],
+  "retrospective": "Disjoint native adapter and test providers kept the source snapshot separate from presentation settings. Independent source review found duplicate-title ambiguity; actual browser labels and mobile visual geometry required targeted corrections. Focused source and visual acceptance preceded broad regression. The fixed-clock test stalled the renderer and was replaced with real-clock local-calendar verification; the underlying product did not change for that diagnostic correction. Keep initial mobile heading/control geometry in future presentation acceptance; count exact case identities rather than treating repeated focused cases as extra coverage.",
+  "failedAttempts": [
+    {
+      "runName": "schedule-focus1",
+      "source": "3803df0c600633715fd56a7d19a818bbbbe05c69",
+      "exitCode": 1,
+      "receiptSha256": "6c36ba77c757392c36c4a5d218679f8d6a3560371c06b1afc03d948c6a47539d",
+      "runLogSha256": "b5e21eb536405db1526185930ee5e30d57e00ffc479e35b19a360bd5bd99afdb"
+    },
+    {
+      "runName": "schedule-focus2",
+      "source": "e33894388eebc1b0cc88b0b5a830d75ee322fa8e",
+      "exitCode": 1,
+      "receiptSha256": "56dff71b2902fe3803e503a3f5c0e2f3da06e1d54bdbedd2bd816b03f5179175",
+      "runLogSha256": "b3ef43c000e65bc7125e1f2378cebca4e79d3d6a86d2d498b30bc8d545f54b2f"
+    }
+  ],
+  "abortedAttempts": [],
+  "recovery": "Initial focused checks found an inaccessible Time means label because the label wrapped select option text. The corrected label and numbered event descriptions addressed that failure and duplicate-title ambiguity. A fixed-clock browser test then stalled renderer initialization on both projects; the identical product passed after removing the clock mock while retaining deterministic schedule dates and device-local today assertions. The exact internal clock interaction was not isolated. That successful run exposed a mobile heading clipped by upstream vertical centering. Top-aligning mobile slides restored heading access, with stronger full-bounds checks for heading, date and scrolled provenance. A final compact scheduled footer made the numbered legend and all three event controls fit in the phone viewport. Earlier failed and successful superseded runs remain fingerprinted and excluded from final counts. An initial read-only production schema export returned authentication error10000; account identity was confirmed and the unchanged read-only retry succeeded, without credential rotation or production mutation.\n\nPreserved successful superseded runs: schedule-focus3 at 829a07ec4a34760a6311e9fcce67a1a45ad8b45b, schedule-focus4 at ae712f110d35713edc1fcc90c2e38ee5a72cced8. Their receipt and log fingerprints are retained in the JSON record; none contributes to accepted-source validation counts. Passing test results alone did not establish release acceptance.",
+  "promptManifestSha256": "9641eaea8ea122c7c4602d81059bb38c74a191a41beeabddf892fa681984e05f",
+  "instructionManifestSha256": "817a50b56ad46dec231715a8d4074ad4e45f7c2f9b0026333488ddb0768bfe39",
+  "instructionSha256": {
+    "CLAUDE.md": "3852de6d95104c64f3a35b670f350e1d7a2c6c9ed93d03d53895e7bc8c44ff1b",
+    ".team/project.json": "c87cd27090a1a8ff779dd0d850668ebf0ecb6581cefb2d0b0a66ed63aabbcf78",
+    "docs/plans/2026-09-11-timeline-tranche-charter.md": "367a6bc5c7f7c706ce4f6b368df952fbe5c8a6e34bde3f959b72775e138a0682",
+    "docs/plans/2026-09-13-timeline-schedule-charter.md": "0538dab591e7a40371f0deadbc719637d011d183da080d5b0f8063cdc47b14e3"
+  },
+  "limitations": [
+    "Presentation schedule settings are temporary assumptions, never recorded source facts. They reset on dialog close/refresh and are excluded from the original ResearchTools backup.",
+    "No inferred durations, anchor date copying or before/after arithmetic. Recorded partial dates remain partial unless explicitly overridden; chronology may differ from narrative placement.",
+    "Saved and historical snapshots can be projected but are never rewritten. No new API, schema, permission or persistence. Public renderer changes are restricted to preview.css and generated HTML style blocks; vendor/bridge scripts and security policy are unchanged. Public sharing and planning services remain separate; TL-17 remains partial.",
+    "Regression coverage comprises 118 UI-suite checks (including six pure codec/identity checks), 4 workspace-ordering contract cases across both projects and 23 history/renderer/export contracts plus five type checks; no full unrelated API, extraction-quality or user-testing claim.",
+    "Live checks are read-only; private workflows use synthetic identities in isolated D1 fixtures, not real user data.",
+    "Representative visual review is not exhaustive accessibility certification. Primary checkout untouched."
+  ],
+  "providerPromptSha256": "f2d7662bf5c3a709284ecc93f61cede03a628db6ba71fc319896a04a63dfdedb",
+  "testPromptSha256": "e44b1a1004f87f28ae7172efeb7989303cb0dcc607445b76848f2301e9360317",
+  "finalizerPromptSha256": "aa3d94d056178ce956b53835429b0553d2c09dcdf62010ef7255824f572564a9",
+  "releaseFinalizerSha256": "c2711fdfb01719d1b8e962d9bc3c64e8e8ec22ba08f89af6a2efd6c752ea2a3f",
+  "initialInstructionManifestSha256": "1852858ef83fa11640f44b29970d6549bee10a338c490e1333d2921d56f7c3b6"
+}

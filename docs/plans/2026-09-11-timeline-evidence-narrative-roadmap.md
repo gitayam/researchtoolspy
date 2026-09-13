@@ -16,6 +16,8 @@ Likelihood and analytical confidence remain separate; reviews preserve the judgm
 version they addressed. Import verifies stored-text equality, not source truth or
 authenticated historical provenance. TL-04 remains in progress: broader source-store
 support, dedicated judgment services and authenticated peer review are pending.
+TimelineJS export now offers an opt-in presentation schedule with temporary dates, times and Start/action/Arrive meanings. Dated relative/position events export their recorded dates; placement notes remain explicit. The original ResearchTools backup and saved revisions are unchanged. See the [schedule release receipt](./2026-09-13-timeline-schedule-release-receipt.md).
+
 The timeline workflow now places content before setup, keeps private save/state controls compact, and groups saved versions, history and links behind an explicit disclosure. Present opens eligible Current edits directly; saved and historical previews remain separate. No API, schema, permission or public sharing change is added. See the [workflow release receipt](./2026-09-12-timeline-workflow-release-receipt.md).
 
 Saved revision history now loads private revisions in pinned pages and validates a selected historical snapshot for preview, presentation and export without replacing current work or changing the save head. Refresh is explicit; no public sharing is added. See the [history release receipt](./2026-09-12-timeline-history-release-receipt.md).
