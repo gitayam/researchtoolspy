@@ -41,12 +41,13 @@ export function TimelinePresentationSchedule({ snapshot, enabled, schedule, disa
           const override = schedule.events[event.id]
           const id = `${prefix}-${index}`
           return <fieldset key={event.id} className="min-w-0 space-y-2 rounded-md border border-slate-300 p-3 dark:border-slate-700">
-            <legend className="max-w-full break-words px-1 text-sm font-semibold">{event.title}<span className="sr-only"> presentation schedule</span></legend>
+            <legend className="max-w-full break-words px-1 text-sm font-semibold">{index + 1}. {event.title}<span className="sr-only"> presentation schedule</span></legend>
+            {event.description && <p className="line-clamp-2 break-words text-xs text-slate-700 dark:text-slate-300">{event.description}</p>}
             <p className="text-xs text-slate-600 dark:text-slate-300">Recorded: {event.eventDate || 'date unknown'}{event.eventTime ? ` · ${event.eventTime}` : ''}</p>
             <div className="grid min-w-0 gap-2 sm:grid-cols-3">
               <label htmlFor={`${id}-date`} className="min-w-0 space-y-1 text-xs"><span>Date override</span><input id={`${id}-date`} type="date" min="0001-01-01" max="9999-12-31" value={override?.date || ''} onChange={e => update(event.id, 'date', e.target.value)} className={inputClass} /></label>
               <label htmlFor={`${id}-time`} className="min-w-0 space-y-1 text-xs"><span>Time override</span><input id={`${id}-time`} type="time" step="1" value={override?.time || ''} onChange={e => update(event.id, 'time', e.target.value)} className={inputClass} /></label>
-              <label htmlFor={`${id}-meaning`} className="min-w-0 space-y-1 text-xs"><span>Time means</span><select id={`${id}-meaning`} value={override?.meaning || 'action'} onChange={e => update(event.id, 'meaning', e.target.value)} className={inputClass}><option value="action">Do the action</option><option value="start">Start</option><option value="arrive">Arrive</option></select></label>
+              <div className="min-w-0 space-y-1 text-xs"><label htmlFor={`${id}-meaning`} className="block">Time means</label><select id={`${id}-meaning`} value={override?.meaning || 'action'} onChange={e => update(event.id, 'meaning', e.target.value)} className={inputClass}><option value="action">Do the action</option><option value="start">Start</option><option value="arrive">Arrive</option></select></div>
             </div>
           </fieldset>
         })}</div>

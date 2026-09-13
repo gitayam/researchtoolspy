@@ -78,9 +78,10 @@ test.describe('Self-hosted TimelineJS renderer @smoke', () => {
     const today = await page.evaluate(() => { const now = new Date(); return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}` })
     await expect(dialog.getByLabel('Default presentation date', { exact: true })).toHaveValue(today)
     await dialog.getByLabel('Default presentation date', { exact: true }).fill('2028-02-29')
-    const groups = dialog.getByRole('group', { name: 'Buy a drink presentation schedule', exact: true })
-    await expect(groups).toHaveCount(4)
-    for (const group of await groups.all()) {
+    const groups = steps.map((_, index) => dialog.getByRole('group', { name: `${index + 1}. Buy a drink presentation schedule`, exact: true }))
+    for (const [index, group] of groups.entries()) {
+      await expect(group).toHaveCount(1)
+      await expect(group.getByText(steps[index], { exact: true })).toBeVisible()
       await expect(group.getByLabel('Time override', { exact: true })).toHaveValue('')
       await expect(group.getByLabel('Time means', { exact: true })).toHaveValue('action')
     }
@@ -111,13 +112,13 @@ test.describe('Self-hosted TimelineJS renderer @smoke', () => {
     await dialog.getByRole('button', { name: 'Back to export details', exact: true }).click()
     await expect(dialog.getByLabel('Use presentation schedule', { exact: true })).toBeChecked()
     await expect(dialog.getByLabel('Default presentation date', { exact: true })).toHaveValue('2028-02-29')
-    await groups.nth(0).getByLabel('Time override', { exact: true }).fill('09:00')
-    await groups.nth(0).getByLabel('Time means', { exact: true }).selectOption('start')
-    await groups.nth(1).getByLabel('Time override', { exact: true }).fill('10:00')
-    await groups.nth(1).getByLabel('Time means', { exact: true }).selectOption('arrive')
-    await groups.nth(2).getByLabel('Date override', { exact: true }).fill('2028-03-01')
-    await groups.nth(2).getByLabel('Time override', { exact: true }).fill('00:15:07')
-    await groups.nth(3).getByLabel('Time override', { exact: true }).fill('10:05')
+    await groups[0].getByLabel('Time override', { exact: true }).fill('09:00')
+    await groups[0].getByLabel('Time means', { exact: true }).selectOption('start')
+    await groups[1].getByLabel('Time override', { exact: true }).fill('10:00')
+    await groups[1].getByLabel('Time means', { exact: true }).selectOption('arrive')
+    await groups[2].getByLabel('Date override', { exact: true }).fill('2028-03-01')
+    await groups[2].getByLabel('Time override', { exact: true }).fill('00:15:07')
+    await groups[3].getByLabel('Time override', { exact: true }).fill('10:05')
     const retimed = await download('Download TimelineJS JSON')
     expect(retimed.events.map((event: { start_date: unknown }) => event.start_date)).toEqual([
       { year: 2028, month: 2, day: 29, hour: 9, minute: 0 }, { year: 2028, month: 2, day: 29, hour: 10, minute: 0 },
@@ -159,7 +160,7 @@ test.describe('Self-hosted TimelineJS renderer @smoke', () => {
         await expect(child.locator('.tl-storyslider').getByText(description, { exact: true })).toBeInViewport()
       }
       await dialog.getByRole('button', { name: 'Back to export details', exact: true }).click()
-      await expect(groups.nth(0).getByLabel('Time means', { exact: true })).toHaveValue('start')
+      await expect(groups[0].getByLabel('Time means', { exact: true })).toHaveValue('start')
       expect(await download('Download ResearchTools JSON')).toEqual(companion)
     }
     await page.keyboard.press('Escape')
@@ -168,14 +169,17 @@ test.describe('Self-hosted TimelineJS renderer @smoke', () => {
     await expect(dialog.getByLabel('Use presentation schedule', { exact: true })).not.toBeChecked()
     await dialog.getByLabel('Use presentation schedule', { exact: true }).check()
     await expect(dialog.getByLabel('Default presentation date', { exact: true })).toHaveValue(today)
-    await expect(groups.nth(0).getByLabel('Time override', { exact: true })).toHaveValue('')
-    await expect(groups.nth(0).getByLabel('Time means', { exact: true })).toHaveValue('action')
+    await expect(groups[0].getByLabel('Time override', { exact: true })).toHaveValue('')
+    await expect(groups[0].getByLabel('Time means', { exact: true })).toHaveValue('action')
   })
 
   test('recorded dates on relative and numbered events present without temporary scheduling', async ({ page }) => {
     const value = fixture(2)
     value.analystWorkspace.events[0].placement = { mode: 'position', position: 1 }
     value.analystWorkspace.events[1].placement = { mode: 'relative', relation: 'before', anchorEventId: 'event-0' }
+    value.analystWorkspace.events[1].eventDate = '2025-06-07'
+    value.analystWorkspace.events[1].datePrecision = 'day'
+    value.analystWorkspace.events[1].eventTime = '11:12:13'
     await start(page, value)
     const before = await exported(page)
     await page.getByRole('button', { name: 'Export TimelineJS', exact: true }).click()
@@ -185,7 +189,7 @@ test.describe('Self-hosted TimelineJS renderer @smoke', () => {
     const pending = page.waitForEvent('download')
     await dialog.getByRole('button', { name: 'Download TimelineJS JSON', exact: true }).click()
     const data = JSON.parse(await readFile((await (await pending).path())!, 'utf8'))
-    expect(data.events.map((event: { start_date: unknown }) => event.start_date)).toEqual([{ year: 2025, month: 6 }, { year: 2024 }])
+    expect(data.events.map((event: { start_date: unknown }) => event.start_date)).toEqual([{ year: 2025, month: 6, day: 7, hour: 11, minute: 12, second: 13 }, { year: 2024 }])
     await dialog.getByRole('button', { name: 'Open presentation', exact: true }).click()
     await expect(page.getByText('TimelineJS presentation loaded', { exact: true })).toBeAttached()
     await page.getByText('Accessible event list (2)', { exact: true }).click()
@@ -193,6 +197,21 @@ test.describe('Self-hosted TimelineJS renderer @smoke', () => {
     await expect(list).toContainText('Relative placement: before “Early <report>”')
     await expect(list).toContainText('This relation is not enforced as chronology')
     await expect(list).not.toContainText('presentation assumption')
+    await dialog.getByRole('button', { name: 'Back to export details', exact: true }).click()
+    await dialog.getByLabel('Use presentation schedule', { exact: true }).check()
+    const retimed = dialog.getByRole('group', { name: '1. Monthly update presentation schedule', exact: true })
+    await retimed.getByLabel('Date override', { exact: true }).fill('2028-03-01')
+    await retimed.getByLabel('Time override', { exact: true }).fill('06:30')
+    await retimed.getByLabel('Time means', { exact: true }).selectOption('arrive')
+    await dialog.getByRole('button', { name: 'Open presentation', exact: true }).click()
+    await expect(page.getByText('TimelineJS presentation loaded', { exact: true })).toBeAttached()
+    await page.getByText('Accessible event list (2)', { exact: true }).click()
+    const row = list.locator('li[data-event-id="event-1"]')
+    await expect(row).toContainText('Arrive: 2028-03-01 06:30')
+    await expect(row).toContainText('presentation assumption')
+    const original = row.getByText('Original recorded date/time: 2025-06-07; 11:12:13.', { exact: true })
+    await original.scrollIntoViewIfNeeded()
+    await expect(original).toBeInViewport()
     await page.keyboard.press('Escape')
     expect((await exported(page)).analystWorkspace).toEqual(before.analystWorkspace)
   })
