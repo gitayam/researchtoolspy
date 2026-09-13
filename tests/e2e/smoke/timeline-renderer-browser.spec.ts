@@ -24,7 +24,11 @@ async function start(page: Page, value = fixture()) {
   // localhost-only network-access restriction. All bytes come from isolated Vite.
   await page.route('https://timeline.example/**', async route => {
     const url = new URL(route.request().url())
-    const response = await route.fetch({ url: `http://127.0.0.1:5189${url.pathname}${url.search}` })
+    // The real Vite static proxy can reset a socket during module loading.
+    // Playwright retries only ECONNRESET, never HTTP errors; retain the real bytes
+    // and fail after one retry. API/mutating requests are never retried here.
+    const staticGet = route.request().method() === 'GET' && !url.pathname.startsWith('/api/')
+    const response = await route.fetch({ url: `http://127.0.0.1:5189${url.pathname}${url.search}`, maxRetries: staticGet ? 1 : 0 })
     const headers = { ...response.headers() }
     if (url.pathname === '/dashboard/tools/timeline' || url.pathname === '/timelinejs/preview.html') {
       headers['content-security-policy'] = csp
