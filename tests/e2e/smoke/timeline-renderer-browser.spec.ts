@@ -56,6 +56,147 @@ async function open(page: Page) {
 }
 
 test.describe('Self-hosted TimelineJS renderer @smoke', () => {
+  test('temporary schedule renders equal-date drink steps in order and retimes without rewriting the backup', async ({ page }, info) => {
+    test.setTimeout(120_000)
+    await page.clock.setFixedTime(new Date('2028-02-29T12:00:00Z'))
+    const value = fixture(4)
+    value.analystWorkspace.narrative!.title = 'Four drink purchases'
+    value.analystWorkspace.narrative!.chapters = []
+    const steps = ['First purchase', 'Second purchase', 'Third purchase', 'Fourth purchase']
+    value.analystWorkspace.events = value.analystWorkspace.events.map((event, index) => ({
+      ...event, title: 'Buy a drink', description: steps[index], eventDate: undefined, eventTime: undefined, datePrecision: undefined,
+      chapterId: undefined, narrativeOrder: index,
+      placement: index ? { mode: 'relative' as const, relation: 'after' as const, anchorEventId: `event-${index - 1}` } : { mode: 'position' as const, position: 1 },
+    }))
+    await start(page, value)
+    const before = await exported(page)
+    await page.getByRole('button', { name: 'Export TimelineJS', exact: true }).click()
+    const dialog = page.getByRole('dialog')
+    await expect(dialog.getByLabel('Use presentation schedule', { exact: true })).not.toBeChecked()
+    await expect(dialog.getByRole('button', { name: 'Open presentation', exact: true })).toBeDisabled()
+    await dialog.getByLabel('Use presentation schedule', { exact: true }).check()
+    const today = await page.evaluate(() => { const now = new Date(); return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}` })
+    await expect(dialog.getByLabel('Default presentation date', { exact: true })).toHaveValue(today)
+    await dialog.getByLabel('Default presentation date', { exact: true }).fill('2028-02-29')
+    const groups = dialog.getByRole('group', { name: 'Buy a drink presentation schedule', exact: true })
+    await expect(groups).toHaveCount(4)
+    for (const group of await groups.all()) {
+      await expect(group.getByLabel('Time override', { exact: true })).toHaveValue('')
+      await expect(group.getByLabel('Time means', { exact: true })).toHaveValue('action')
+    }
+    const download = async (name: string) => {
+      const pending = page.waitForEvent('download')
+      await dialog.getByRole('button', { name, exact: true }).click()
+      return JSON.parse(await readFile((await (await pending).path())!, 'utf8'))
+    }
+    const equalDates = await download('Download TimelineJS JSON')
+    expect(equalDates.events.map((event: { unique_id: string }) => event.unique_id)).toEqual(['event-event-0', 'event-event-1', 'event-event-2', 'event-event-3'])
+    expect(equalDates.events.map((event: { start_date: unknown }) => event.start_date)).toEqual(Array(4).fill({ year: 2028, month: 2, day: 29 }))
+    const companion = await download('Download ResearchTools JSON')
+    expect(companion.source).toEqual(before.source)
+    expect(companion.analystWorkspace).toEqual(before.analystWorkspace)
+    await dialog.getByRole('button', { name: 'Open presentation', exact: true }).click()
+    await expect(page.getByText('TimelineJS presentation loaded', { exact: true })).toBeAttached()
+    const child = page.frameLocator('iframe[title="TimelineJS narrative presentation"]')
+    for (const description of steps) {
+      await child.getByRole('button', { name: 'Next slide', exact: true }).click()
+      await expect(child.locator('.tl-storyslider').getByText(description, { exact: true })).toBeInViewport()
+    }
+    await page.getByText('Accessible event list (4)', { exact: true }).click()
+    const accessible = page.getByRole('region', { name: 'TimelineJS presentation', exact: true }).locator('details ol')
+    await expect(accessible.locator('li')).toHaveCount(4)
+    await expect(accessible.locator('li').nth(1)).toContainText('Relative placement: after “Buy a drink”')
+    await expect(accessible.locator('li').first()).toContainText('Sequence position: 1')
+    await expect(accessible.locator('li').first()).toContainText('presentation assumption')
+    await dialog.getByRole('button', { name: 'Back to export details', exact: true }).click()
+    await expect(dialog.getByLabel('Use presentation schedule', { exact: true })).toBeChecked()
+    await expect(dialog.getByLabel('Default presentation date', { exact: true })).toHaveValue('2028-02-29')
+    await groups.nth(0).getByLabel('Time override', { exact: true }).fill('09:00')
+    await groups.nth(0).getByLabel('Time means', { exact: true }).selectOption('start')
+    await groups.nth(1).getByLabel('Time override', { exact: true }).fill('10:00')
+    await groups.nth(1).getByLabel('Time means', { exact: true }).selectOption('arrive')
+    await groups.nth(2).getByLabel('Date override', { exact: true }).fill('2028-03-01')
+    await groups.nth(2).getByLabel('Time override', { exact: true }).fill('00:15:07')
+    await groups.nth(3).getByLabel('Time override', { exact: true }).fill('10:05')
+    const retimed = await download('Download TimelineJS JSON')
+    expect(retimed.events.map((event: { start_date: unknown }) => event.start_date)).toEqual([
+      { year: 2028, month: 2, day: 29, hour: 9, minute: 0 }, { year: 2028, month: 2, day: 29, hour: 10, minute: 0 },
+      { year: 2028, month: 3, day: 1, hour: 0, minute: 15, second: 7 }, { year: 2028, month: 2, day: 29, hour: 10, minute: 5 },
+    ])
+    expect(retimed.events[0].display_date).toMatch(/^Start:/)
+    expect(retimed.events[1].display_date).toMatch(/^Arrive:/)
+    expect(await download('Download ResearchTools JSON')).toEqual(companion)
+    await dialog.getByLabel('Default presentation date', { exact: true }).fill('')
+    await expect(dialog.getByRole('alert')).toContainText('Check the presentation schedule')
+    await expect(dialog.getByRole('button', { name: 'Open presentation', exact: true })).toBeDisabled()
+    await expect(dialog.getByRole('button', { name: 'Download TimelineJS JSON', exact: true })).toBeDisabled()
+    expect(await download('Download ResearchTools JSON')).toEqual(companion)
+    await dialog.getByLabel('Default presentation date', { exact: true }).fill('2028-02-29')
+    for (const theme of ['light', 'dark']) {
+      await page.evaluate(dark => document.documentElement.classList.toggle('dark', dark), theme === 'dark')
+      await dialog.getByLabel('Default presentation date', { exact: true }).scrollIntoViewIfNeeded()
+      await dialog.screenshot({ path: info.outputPath(`schedule-form-${theme}.png`), animations: 'disabled', scale: 'css' })
+      await dialog.getByRole('button', { name: 'Open presentation', exact: true }).click()
+      await expect(page.getByText('TimelineJS presentation loaded', { exact: true })).toBeAttached()
+      await child.getByRole('button', { name: 'Next slide', exact: true }).click()
+      await expect(child.locator('.tl-storyslider').getByText('First purchase', { exact: true })).toBeInViewport()
+      await expect(dialog.getByRole('status').filter({ hasText: /^4 shown · 0 omitted · 4 scheduled$/ })).toBeVisible()
+      await dialog.screenshot({ path: info.outputPath(`schedule-slide-${theme}.png`), animations: 'disabled', scale: 'css' })
+      await child.getByRole('button', { name: 'Next slide', exact: true }).click()
+      await expect(child.locator('.tl-storyslider').getByText('Second purchase', { exact: true })).toBeInViewport()
+      const secondSlide = child.locator('.tl-storyslider .tl-slide').filter({ has: child.getByText('Second purchase', { exact: true }) })
+      // Long scheduled slides may scroll. Each provenance paragraph must remain
+      // reachable in the actual renderer; short-slide full-bounds checks stay intact.
+      for (const phrase of ['Presentation schedule:', 'Original recorded date/time:', 'Relative placement: after']) {
+        const paragraph = secondSlide.locator('.tl-text-content p').filter({ hasText: phrase })
+        await paragraph.scrollIntoViewIfNeeded()
+        await expect(paragraph).toBeInViewport()
+      }
+      await expect(secondSlide).toContainText('presentation assumption')
+      await expect(secondSlide).toContainText('date not recorded; time not recorded')
+      for (const description of ['Fourth purchase', 'Third purchase']) {
+        await child.getByRole('button', { name: 'Next slide', exact: true }).click()
+        await expect(child.locator('.tl-storyslider').getByText(description, { exact: true })).toBeInViewport()
+      }
+      await dialog.getByRole('button', { name: 'Back to export details', exact: true }).click()
+      await expect(groups.nth(0).getByLabel('Time means', { exact: true })).toHaveValue('start')
+      expect(await download('Download ResearchTools JSON')).toEqual(companion)
+    }
+    await page.keyboard.press('Escape')
+    expect((await exported(page)).analystWorkspace).toEqual(before.analystWorkspace)
+    await page.getByRole('button', { name: 'Export TimelineJS', exact: true }).click()
+    await expect(dialog.getByLabel('Use presentation schedule', { exact: true })).not.toBeChecked()
+    await dialog.getByLabel('Use presentation schedule', { exact: true }).check()
+    await expect(dialog.getByLabel('Default presentation date', { exact: true })).toHaveValue(today)
+    await expect(groups.nth(0).getByLabel('Time override', { exact: true })).toHaveValue('')
+    await expect(groups.nth(0).getByLabel('Time means', { exact: true })).toHaveValue('action')
+  })
+
+  test('recorded dates on relative and numbered events present without temporary scheduling', async ({ page }) => {
+    const value = fixture(2)
+    value.analystWorkspace.events[0].placement = { mode: 'position', position: 1 }
+    value.analystWorkspace.events[1].placement = { mode: 'relative', relation: 'before', anchorEventId: 'event-0' }
+    await start(page, value)
+    const before = await exported(page)
+    await page.getByRole('button', { name: 'Export TimelineJS', exact: true }).click()
+    const dialog = page.getByRole('dialog')
+    await expect(dialog.getByLabel('Use presentation schedule', { exact: true })).not.toBeChecked()
+    await expect(dialog).toContainText('2 exportable · 2 selected · 0 omitted')
+    const pending = page.waitForEvent('download')
+    await dialog.getByRole('button', { name: 'Download TimelineJS JSON', exact: true }).click()
+    const data = JSON.parse(await readFile((await (await pending).path())!, 'utf8'))
+    expect(data.events.map((event: { start_date: unknown }) => event.start_date)).toEqual([{ year: 2025, month: 6 }, { year: 2024 }])
+    await dialog.getByRole('button', { name: 'Open presentation', exact: true }).click()
+    await expect(page.getByText('TimelineJS presentation loaded', { exact: true })).toBeAttached()
+    await page.getByText('Accessible event list (2)', { exact: true }).click()
+    const list = page.getByRole('region', { name: 'TimelineJS presentation', exact: true }).locator('details ol')
+    await expect(list).toContainText('Relative placement: before “Early <report>”')
+    await expect(list).toContainText('This relation is not enforced as chronology')
+    await expect(list).not.toContainText('presentation assumption')
+    await page.keyboard.press('Escape')
+    expect((await exported(page)).analystWorkspace).toEqual(before.analystWorkspace)
+  })
+
   test('workflow prioritizes current events and presents a frozen selection with explicit omissions', async ({ page }, info) => {
     test.setTimeout(120_000)
     const requests: string[] = []
@@ -145,7 +286,7 @@ test.describe('Self-hosted TimelineJS renderer @smoke', () => {
     await expect(page.locator('.timeline-setup')).not.toHaveAttribute('open')
     await page.getByRole('button', { name: 'Present', exact: true }).click()
     dialog = page.getByRole('dialog', { name: 'TimelineJS export preview', exact: true })
-    await expect(dialog).toContainText('Select at least one event with a recorded absolute date')
+    await expect(dialog).toContainText('Select at least one event with a recorded date, or enable a presentation schedule')
     await expect(dialog.getByRole('button', { name: 'Download TimelineJS JSON', exact: true })).toBeDisabled()
     await expect(dialog.getByRole('button', { name: 'Download ResearchTools JSON', exact: true })).toBeEnabled()
     await expect(page.locator('iframe')).toHaveCount(0)

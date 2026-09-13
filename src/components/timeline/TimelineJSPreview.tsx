@@ -6,6 +6,7 @@ import type { buildTimelineJSExport } from '@/lib/timeline-timelinejs'
 import type { TimelineWorkspaceExport } from '@/types/timeline-workspace'
 
 type TimelineData = ReturnType<typeof buildTimelineJSExport>['timeline']
+type EventDetails = ReturnType<typeof buildTimelineJSExport>['eventDetails']
 
 type FinderState = {
   query: string
@@ -14,9 +15,10 @@ type FinderState = {
   onListOpenChange: (value: boolean) => void
 }
 
-function PresentationFrame({ timeline, snapshot, theme, startAtEnd, query, onQueryChange, listOpen, onListOpenChange }: {
+function PresentationFrame({ timeline, snapshot, eventDetails, theme, startAtEnd, query, onQueryChange, listOpen, onListOpenChange }: {
   timeline: TimelineData
   snapshot: TimelineWorkspaceExport
+  eventDetails: EventDetails
   theme: 'light' | 'dark'
   startAtEnd: boolean
 } & FinderState) {
@@ -50,7 +52,7 @@ function PresentationFrame({ timeline, snapshot, theme, startAtEnd, query, onQue
   const normalizedQuery = query.trim().toLocaleLowerCase()
   const matching = chronological.filter(slide => {
     const event = originals.get(slide.unique_id)!
-    return [event.title, event.eventDate, event.eventTime, event.description, event.whyItMatters]
+    return [event.title, event.eventDate, event.eventTime, event.description, event.whyItMatters, eventDetails[slide.unique_id]?.dateLabel, eventDetails[slide.unique_id]?.placementLabel]
       .filter(Boolean).join(' ').toLocaleLowerCase().includes(normalizedQuery)
   })
   const jump = (eventId: string) => {
@@ -82,13 +84,13 @@ function PresentationFrame({ timeline, snapshot, theme, startAtEnd, query, onQue
       </div>
       <ol className="mt-3 space-y-3">{matching.map(slide => {
         const event = originals.get(slide.unique_id)!
-        return <li key={slide.unique_id} data-event-id={event.id} className="break-words rounded border border-slate-200 p-3 dark:border-slate-700"><h3 className="font-semibold">{event.title}</h3><p>{event.eventDate}{event.eventTime && event.eventDate?.length === 10 ? ` ${event.eventTime} (${snapshot.analystWorkspace.narrative?.timezone || 'timezone not recorded'})` : ''} · {timelineAssessmentLabel(snapshot.analystWorkspace.evidence, event)}</p><p>{event.description}</p>{event.whyItMatters && <p>Why it matters: {event.whyItMatters}</p>}<Button variant="outline" size="sm" className="mt-2 min-h-10 border-indigo-400 text-indigo-800 dark:text-indigo-200" disabled={status !== 'loaded'} onClick={() => jump(slide.unique_id)}>Show in presentation</Button></li>
+        return <li key={slide.unique_id} data-event-id={event.id} className="break-words rounded border border-slate-200 p-3 dark:border-slate-700"><h3 className="font-semibold">{event.title}</h3><p>{eventDetails[slide.unique_id]?.dateLabel || event.eventDate} · {timelineAssessmentLabel(snapshot.analystWorkspace.evidence, event)}</p>{eventDetails[slide.unique_id]?.scheduled && <p>Original recorded date/time: {event.eventDate || 'date not recorded'}; {event.eventTime || 'time not recorded'}.</p>}<p>{event.description}</p>{eventDetails[slide.unique_id]?.placementLabel && <p>{eventDetails[slide.unique_id].placementLabel}</p>}{event.whyItMatters && <p>Why it matters: {event.whyItMatters}</p>}<Button variant="outline" size="sm" className="mt-2 min-h-10 border-indigo-400 text-indigo-800 dark:text-indigo-200" disabled={status !== 'loaded'} onClick={() => jump(slide.unique_id)}>Show in presentation</Button></li>
       })}</ol>
     </details>
   </>
 }
 
-export function TimelineJSPreview({ timeline, snapshot }: { timeline: TimelineData; snapshot: TimelineWorkspaceExport }) {
+export function TimelineJSPreview({ timeline, snapshot, eventDetails }: { timeline: TimelineData; snapshot: TimelineWorkspaceExport; eventDetails: EventDetails }) {
   const [startAtEnd, setStartAtEnd] = useState(false)
   const [attempt, setAttempt] = useState(0)
   const [query, setQuery] = useState('')
@@ -106,7 +108,7 @@ export function TimelineJSPreview({ timeline, snapshot }: { timeline: TimelineDa
       <Button variant="outline" size="sm" onClick={() => setAttempt(value => value + 1)}>Retry presentation</Button>
       <span className="text-slate-600 dark:text-slate-300">{timeline.events.length} events · Chronological presentation</span>
     </div>
-    <PresentationFrame key={`${theme}:${startAtEnd}:${attempt}`} timeline={timeline} snapshot={snapshot} theme={theme} startAtEnd={startAtEnd} query={query} onQueryChange={setQuery} listOpen={listOpen} onListOpenChange={setListOpen} />
+    <PresentationFrame key={`${theme}:${startAtEnd}:${attempt}`} timeline={timeline} snapshot={snapshot} eventDetails={eventDetails} theme={theme} startAtEnd={startAtEnd} query={query} onQueryChange={setQuery} listOpen={listOpen} onListOpenChange={setListOpen} />
 
   </section>
 }

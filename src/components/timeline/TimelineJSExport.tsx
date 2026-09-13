@@ -1,9 +1,10 @@
 import { useRef, useState } from 'react'
 import { TimelineJSPreview } from './TimelineJSPreview'
+import { TimelinePresentationSchedule, localPresentationDate } from './TimelinePresentationSchedule'
 import { Download, FileJson, Play, TriangleAlert } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { buildTimelineJSExport } from '@/lib/timeline-timelinejs'
+import { buildTimelineJSExport, type TimelinePresentationSchedule as Schedule } from '@/lib/timeline-timelinejs'
 import type { TimelineWorkspaceExport } from '@/types/timeline-workspace'
 
 type SnapshotInput = Omit<TimelineWorkspaceExport, 'exportedAt'>
@@ -21,6 +22,8 @@ export function TimelineJSExport({ snapshot, savedRevision, presentationAction =
   const [preview, setPreview] = useState<{
     snapshot: TimelineWorkspaceExport
     signature: string
+    schedule: Schedule
+    scheduleEnabled: boolean
     result: ReturnType<typeof buildTimelineJSExport>
   } | null>(null)
   const [presenting, setPresenting] = useState(false)
@@ -30,8 +33,11 @@ export function TimelineJSExport({ snapshot, savedRevision, presentationAction =
   const capture = (startPresentation = false) => {
     const captured = { ...structuredClone(snapshot), exportedAt: savedRevision && snapshot.exportedAt ? snapshot.exportedAt : new Date().toISOString() }
     const result = buildTimelineJSExport(captured)
-    setPreview({ snapshot: captured, signature, result })
+    setPreview({ snapshot: captured, signature, result, scheduleEnabled: false, schedule: { defaultDate: localPresentationDate(), events: {} } })
     setPresenting(startPresentation && result.timeline.events.length > 0 && result.timeline.events.length <= 100)
+  }
+  const updateSchedule = (scheduleEnabled: boolean, schedule: Schedule) => {
+    setPreview(current => current && { ...current, scheduleEnabled, schedule, result: buildTimelineJSExport(current.snapshot, scheduleEnabled ? schedule : undefined) })
   }
   const download = (companion: boolean) => {
     if (!preview || stale || (!companion && preview.result.timeline.events.length === 0)) return
@@ -50,14 +56,14 @@ export function TimelineJSExport({ snapshot, savedRevision, presentationAction =
       {presenting && !stale ? <>
         <div className="flex shrink-0 flex-wrap items-center gap-2">
           <Button variant="outline" size="sm" className="w-fit px-2 text-xs" onClick={() => setPresenting(false)}>Back to export details</Button>
-          <p role="status" className="text-xs">{preview.result.timeline.events.length} shown · {preview.result.omitted.length} omitted</p>
+          <p role="status" className="text-xs">{preview.result.timeline.events.length} shown · {preview.result.omitted.length} omitted{preview.result.scheduledCount > 0 ? ` · ${preview.result.scheduledCount} scheduled` : ''}</p>
         </div>
-        <TimelineJSPreview timeline={preview.result.timeline} snapshot={preview.snapshot} />
+        <TimelineJSPreview timeline={preview.result.timeline} snapshot={preview.snapshot} eventDetails={preview.result.eventDetails} />
       </> : <>
       <div className="min-h-0 space-y-4 overflow-y-auto" aria-label="Export details" role="region" tabIndex={0}>
       <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-4 dark:border-indigo-800 dark:bg-indigo-950">
         <h3 className="break-words font-semibold">{preview.snapshot.analystWorkspace.narrative?.title || 'Untitled narrative'}</h3>
-        <p className="mt-1 text-sm">{preview.result.timeline.events.length} exportable · {preview.result.selectedCount} selected · {preview.result.omitted.length} omitted</p>
+        <p className="mt-1 text-sm">{preview.result.timeline.events.length} exportable · {preview.result.selectedCount} selected · {preview.result.omitted.length} omitted{preview.result.scheduledCount > 0 ? ` · ${preview.result.scheduledCount} scheduled` : ''}</p>
         <p className="mt-2 text-xs text-slate-600 dark:text-slate-300">{savedRevision?.historical ? 'Captured from the selected historical revision. Current unsaved edits are excluded. Both files use this same saved snapshot.' : savedRevision ? 'Captured from the last successfully saved or opened revision. Current unsaved edits are excluded. Both files use this same saved snapshot.' : 'Captured from the open workspace, including unsaved edits. Both files use this same snapshot.'}</p>
       </div>
       {savedRevision && <p className="break-all text-xs text-slate-600 dark:text-slate-300">Revision ID: {savedRevision.revisionId}</p>}
@@ -65,6 +71,8 @@ export function TimelineJSExport({ snapshot, savedRevision, presentationAction =
         <p>The workspace changed after this preview. Refresh it before downloading.</p>
         <Button className="mt-2 bg-indigo-700 text-white hover:bg-indigo-800" onClick={() => capture()}>Refresh export preview</Button>
       </div>}
+      <TimelinePresentationSchedule snapshot={preview.snapshot} enabled={preview.scheduleEnabled} schedule={preview.schedule} disabled={stale} onChange={updateSchedule} />
+      {preview.result.errors.length > 0 && <div role="alert" className="rounded-lg border border-amber-500 bg-amber-50 p-3 text-sm text-amber-950 dark:bg-amber-950 dark:text-amber-100"><p className="font-semibold">Check the presentation schedule</p><ul className="mt-1 list-disc pl-5">{preview.result.errors.map((error, index) => <li key={index}>{error}</li>)}</ul></div>}
       <section aria-label="Presentation limitations" className="space-y-2 text-sm">
         <h3 className="flex items-center gap-2 font-semibold"><TriangleAlert aria-hidden="true" className="h-4 w-4 text-amber-700 dark:text-amber-300" />What changes in TimelineJS</h3>
         <ul className="list-disc space-y-1 pl-5 text-slate-700 dark:text-slate-300">{preview.result.notices.map((notice, index) => <li key={index}>{notice}</li>)}</ul>
@@ -73,7 +81,7 @@ export function TimelineJSExport({ snapshot, savedRevision, presentationAction =
         <summary className="cursor-pointer font-semibold">Omitted events ({preview.result.omitted.length})</summary>
         <ul className="mt-2 max-h-40 space-y-2 overflow-y-auto">{preview.result.omitted.map(item => <li key={item.eventId} className="break-words"><strong>{item.title}</strong><span className="block text-slate-700 dark:text-slate-300">{item.reason}</span></li>)}</ul>
       </details>}
-      {preview.result.timeline.events.length === 0 && <p role="status" className="text-sm font-medium">Select at least one event with a recorded absolute date to export TimelineJS.</p>}
+      {preview.result.timeline.events.length === 0 && preview.result.errors.length === 0 && <p role="status" className="text-sm font-medium">Select at least one event with a recorded date, or enable a presentation schedule to include undated events.</p>}
       </div>
       <div className="shrink-0 space-y-1">
         <Button variant="outline" className="w-full border-indigo-400 text-indigo-800 dark:text-indigo-200" disabled={stale || preview.result.timeline.events.length === 0 || preview.result.timeline.events.length > 100} onClick={() => setPresenting(true)}>Open presentation</Button>
