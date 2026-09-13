@@ -49,10 +49,9 @@ export function TimelineJSExport({ snapshot, savedRevision, presentationAction =
       </DialogHeader>
       {presenting && !stale ? <>
         <div className="flex shrink-0 flex-wrap items-center gap-2">
-          <Button variant="outline" className="w-fit" onClick={() => setPresenting(false)}>Back to export details</Button>
-          <p className="text-sm">{preview.result.timeline.events.length} shown · {preview.result.omitted.length} omitted</p>
+          <Button variant="outline" size="sm" className="w-fit px-2 text-xs" onClick={() => setPresenting(false)}>Back to export details</Button>
+          <p role="status" className="text-xs">{preview.result.timeline.events.length} shown · {preview.result.omitted.length} omitted</p>
         </div>
-        {preview.result.omitted.length > 0 && <p role="status" className="shrink-0 text-sm text-amber-800 dark:text-amber-200">Some selected events cannot be presented. Review export details for omitted dates and other presentation limitations.</p>}
         <TimelineJSPreview timeline={preview.result.timeline} snapshot={preview.snapshot} />
       </> : <>
       <div className="min-h-0 space-y-4 overflow-y-auto" aria-label="Export details" role="region" tabIndex={0}>

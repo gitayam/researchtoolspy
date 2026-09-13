@@ -100,7 +100,7 @@ test.describe('Self-hosted TimelineJS renderer @smoke', () => {
     const dialog = page.getByRole('dialog', { name: 'Current timeline presentation', exact: true })
     await expect(dialog).toContainText('Current edits · Selected narrative')
     await expect(dialog).toContainText('3 shown · 1 omitted')
-    await expect(dialog.getByText('Some selected events cannot be presented. Review export details for omitted dates and other presentation limitations.', { exact: true })).toBeVisible()
+    await expect(dialog.getByRole('status').filter({ hasText: /^3 shown · 1 omitted$/ })).toBeVisible()
     await expect(page.getByText('TimelineJS presentation loaded', { exact: true })).toBeAttached()
     const child = page.frameLocator('iframe[title="TimelineJS narrative presentation"]')
     await expect(child.locator('.tl-headline').filter({ hasText: 'Current unsaved account' })).toBeVisible()
@@ -197,6 +197,19 @@ test.describe('Self-hosted TimelineJS renderer @smoke', () => {
       await expect(page.getByText('TimelineJS presentation loaded', { exact: true })).toBeAttached()
       await child.getByRole('button', { name: 'Next slide', exact: true }).click()
       await expect(child.locator('.tl-storyslider .tl-slide .tl-headline').filter({ hasText: /^Early <report>$/ })).toBeInViewport()
+      const activeSlide = child.locator('.tl-storyslider .tl-slide').filter({ has: child.locator('.tl-headline').filter({ hasText: /^Early <report>$/ }) })
+      const headline = activeSlide.locator('.tl-headline')
+      const paragraphs = activeSlide.locator('.tl-text-content p')
+      await expect(paragraphs).toHaveCount(2)
+      // Intersection alone accepts a clipped headline. Require the complete
+      // rendered headline and both fixture paragraphs inside the story viewport.
+      for (const text of [headline, ...await paragraphs.all()]) {
+        await expect.poll(async () => text.evaluate(element => {
+          const bounds = element.getBoundingClientRect()
+          const story = element.closest('.tl-storyslider')!.getBoundingClientRect()
+          return bounds.height > 0 && bounds.top >= story.top - 1 && bounds.bottom <= story.bottom + 1
+        }), { message: 'Active slide text must fit fully inside the story viewport' }).toBe(true)
+      }
       if (theme === 'dark') {
         const marker = child.locator('.tl-timemarker-active .tl-headline')
         await expect(marker).toHaveCSS('color', 'rgb(248, 250, 252)')
