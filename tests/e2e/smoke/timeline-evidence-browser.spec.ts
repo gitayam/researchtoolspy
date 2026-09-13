@@ -2,6 +2,12 @@ import { test, expect } from '@playwright/test'
 import type { Page } from '@playwright/test'
 import { readFile } from 'node:fs/promises'
 
+async function openWorkflowDisclosure(page: Page, label: string) {
+  const summary = page.locator('summary').filter({ hasText: new RegExp(`^${label}$`) })
+  if (await summary.locator('..').getAttribute('open') === null) await summary.click()
+}
+
+
 function fixture(assessment = 'unreviewed', omitPlacement = false) {
   return { schemaVersion: 'timeline-workspace.v1', exportedAt: '2026-09-11T00:00:00.000Z', source: { schemaVersion: 'timeline-manual.v1', title: 'Evidence investigation' }, analystWorkspace: {
     mode: 'robust', presentation: 'analyst', sortDirection: 'oldest', questions: [], hypotheses: [],
@@ -10,7 +16,7 @@ function fixture(assessment = 'unreviewed', omitPlacement = false) {
   } }
 }
 async function upload(page: Page, value: unknown) {
-  await page.getByLabel('Import timeline JSON').setInputFiles({ name: 'evidence.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(value)) })
+  await openWorkflowDisclosure(page, 'Start or import a timeline'); await page.getByLabel('Import timeline JSON').setInputFiles({ name: 'evidence.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(value)) })
 }
 async function exported(page: Page) {
   const download = page.waitForEvent('download')

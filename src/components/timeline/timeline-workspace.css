@@ -10,12 +10,12 @@
   --tl-amber: #fcd34d; --tl-amber-soft: #2c2519;
   --tl-surface: #111827; --tl-ink: #f1f5f9; --tl-muted: #cbd5e1;
 }
-.timeline-page-heading { border-bottom: 1px solid var(--tl-line); padding: 0 0 1.5rem; }
+.timeline-page-heading { border-bottom: 1px solid var(--tl-line); padding: 0 0 1rem; }
 .timeline-page-heading h1 svg { color: var(--tl-blue); flex-shrink: 0; }
 .timeline-results [data-timeline-toolbar] { border-radius: 1rem; background: var(--tl-blue-soft); padding: .75rem; border: 1px solid var(--tl-line); }
 .timeline-results [data-timeline-toolbar] button { min-height: 2.75rem; }
-.timeline-workspace-nav { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: .75rem; }
-.timeline-workspace-nav a { display: flex; align-items: flex-start; gap: .75rem; padding: 1rem; border: 1px solid var(--tl-line); border-radius: .875rem; background: var(--tl-surface); color: var(--tl-ink); }
+.timeline-workspace-nav { display: flex; flex-wrap: wrap; gap: .5rem; }
+.timeline-workspace-nav a { display: flex; align-items: center; gap: .5rem; padding: .5rem .75rem; min-height: 2.75rem; border: 1px solid var(--tl-line); border-radius: .875rem; background: var(--tl-surface); color: var(--tl-ink); }
 .timeline-workspace-nav a:hover { background: var(--tl-blue-soft); border-color: var(--tl-blue); }
 .timeline-workspace-nav svg { width: 1.25rem; height: 1.25rem; flex-shrink: 0; color: var(--tl-blue); margin-top: .125rem; }
 .timeline-workspace-nav strong, .timeline-workspace-nav small { display: block; }
@@ -43,8 +43,7 @@
 .timeline-workspace button, .timeline-results button { max-width: 100%; white-space: normal; height: auto; min-height: 2.25rem; }
 .timeline-workspace :is(a,button,summary,input,textarea,select):focus-visible, .timeline-results :is(a,button,summary,input,textarea,select):focus-visible { outline: 3px solid var(--tl-blue); outline-offset: 3px; }
 @media (max-width: 639px) {
-  .timeline-workspace-nav { grid-template-columns: 1fr; gap: .5rem; }
-  .timeline-workspace-nav a { padding: .75rem; }
+  .timeline-workspace-nav a { padding: .5rem; }
   .timeline-event-card { padding: .875rem; }
   .timeline-sequence > div { padding-left: .75rem; padding-right: .75rem; }
   .timeline-sequence > div > ol { margin-left: .4rem; padding-left: 1.2rem; }

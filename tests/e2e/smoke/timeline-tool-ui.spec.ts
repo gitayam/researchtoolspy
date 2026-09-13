@@ -1,6 +1,12 @@
 import { expect, test } from '@playwright/test'
 import type { Page } from '@playwright/test'
 
+async function openWorkflowDisclosure(page: Page, label: string) {
+  const summary = page.locator('summary').filter({ hasText: new RegExp(`^${label}$`) })
+  if (await summary.locator('..').getAttribute('open') === null) await summary.click()
+}
+
+
 async function openContentTimelineSection(page: Page) {
   const mobileNavigation = page.getByRole('button', { name: 'Open analysis sections' })
   if (await mobileNavigation.isVisible()) {
@@ -120,6 +126,7 @@ test.describe('Timeline research tool @smoke', () => {
     await page.getByLabel('Article URL').fill(articleUrl)
     await page.getByRole('button', { name: 'Build Timeline' }).click()
 
+    await openWorkflowDisclosure(page, 'Find events and contents')
     await expect(page.getByLabel('Timeline sections').getByRole('link')).toHaveText(['Overview', 'Event sequence'])
     await expect(page.getByLabel('Timeline events').getByRole('link')).toHaveText([
       /2026-09-01.*Oldest event/,
@@ -297,6 +304,14 @@ test.describe('Timeline research tool @smoke', () => {
     await page.getByRole('button', { name: 'Resume draft' }).click()
     await expect(page.getByRole('heading', { name: 'Last confirmed public report' })).toBeVisible()
     await expect(page.getByText('What happened during September?')).toBeVisible()
+    await expect(page.locator('.timeline-setup')).not.toHaveAttribute('open')
+    await openWorkflowDisclosure(page, 'Start or import a timeline')
+    await page.getByLabel('Investigation or timeline title').fill('Separate new investigation')
+    page.once('dialog', dialog => dialog.accept())
+    await page.getByRole('button', { name: 'Create timeline' }).click()
+    await expect(page.locator('.timeline-setup')).not.toHaveAttribute('open')
+    await expect(page.getByRole('button', { name: 'Add first event', exact: true })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Last confirmed public report' })).toHaveCount(0)
   })
 
   test('@smoke analyst can place events by date/time, relation, and sequence position', async ({ page }) => {

@@ -2,6 +2,12 @@ import { test, expect, type Page } from '@playwright/test'
 import { readFile } from 'node:fs/promises'
 import type { TimelineWorkspaceExport } from '../../../src/types/timeline-workspace'
 
+async function openWorkflowDisclosure(page: Page, label: string) {
+  const summary = page.locator('summary').filter({ hasText: new RegExp(`^${label}$`) })
+  if (await summary.locator('..').getAttribute('open') === null) await summary.click()
+}
+
+
 function fixture(): TimelineWorkspaceExport {
   return {
     schemaVersion: 'timeline-workspace.v1', exportedAt: '2026-09-12T12:00:00.000Z',
@@ -21,7 +27,7 @@ function fixture(): TimelineWorkspaceExport {
 async function start(page: Page, data = fixture()) {
   await page.route('**/api/workspaces', route => route.fulfill({ status: 200, json: { owned: [], member: [] } }))
   await page.goto('/dashboard/tools/timeline')
-  await page.getByLabel('Import timeline JSON').setInputFiles({ name: 'timeline.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(data)) })
+  await openWorkflowDisclosure(page, 'Start or import a timeline'); await page.getByLabel('Import timeline JSON').setInputFiles({ name: 'timeline.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(data)) })
 }
 async function download(page: Page, name: string) {
   const pending = page.waitForEvent('download')

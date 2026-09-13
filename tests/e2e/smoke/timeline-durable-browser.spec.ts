@@ -14,6 +14,12 @@ import { snapshotIdentity, prepareTimelineSave } from '../../../src/lib/timeline
 import { decodeTimelineWorkspace } from '../../../src/lib/timeline-workspace-codec'
 import type { TimelineWorkspaceExport } from '../../../src/types/timeline-workspace'
 
+async function openWorkflowDisclosure(page: Page, label: string) {
+  const summary = page.locator('summary').filter({ hasText: new RegExp(`^${label}$`) })
+  if (await summary.locator('..').getAttribute('open') === null) await summary.click()
+}
+
+
 const hash = 'browser-snapshot-human-0001'
 const storedSource = JSON.parse(readFileSync(new URL('../../fixtures/timeline-stored-source.json', import.meta.url), 'utf8'))
 const sourceDigest = (text: string) => createHash('sha256').update(text).digest('hex')
@@ -99,7 +105,7 @@ async function bridge(page: Page, signedIn = true, chunked = false) {
   return { mf, db, faults, calls }
 }
 async function importFixture(page: Page, value = fixture()) {
-  await page.getByLabel('Import timeline JSON').setInputFiles({ name: 'snapshot.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(value)) })
+  await openWorkflowDisclosure(page, 'Start or import a timeline'); await page.getByLabel('Import timeline JSON').setInputFiles({ name: 'snapshot.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(value)) })
   await expect(page.getByRole('button', { name: 'Save timeline', exact: true })).toBeEnabled()
 }
 async function exported(page: Page) {
@@ -109,7 +115,7 @@ async function exported(page: Page) {
 }
 async function saved(page: Page) { await expect(page.getByTestId('timeline-save-state')).toHaveText('Saved') }
 async function savedCompanion(page: Page, revisionId: string) {
-  await page.getByRole('button', { name: 'Preview saved revision', exact: true }).click()
+  await openWorkflowDisclosure(page, 'Saved versions and links'); await page.getByRole('button', { name: 'Preview saved revision', exact: true }).click()
   const dialog = page.getByRole('dialog', { name: 'Saved revision preview', exact: true })
   await expect(dialog).toContainText(revisionId)
   const pending = page.waitForEvent('download')
@@ -130,7 +136,7 @@ test.describe('durable browser with actual D1 routes @smoke', () => {
       value.analystWorkspace.evidence!.links[0].relation = 'supports'
       await page.goto('/dashboard/tools/timeline'); await importFixture(page, value)
       await page.getByRole('button', { name: 'Save timeline', exact: true }).click(); await saved(page)
-      await page.reload(); await page.getByRole('button', { name: 'Open saved timeline', exact: true }).click(); await saved(page)
+      await page.reload(); await openWorkflowDisclosure(page, 'Saved versions and links'); await page.getByRole('button', { name: 'Open saved timeline', exact: true }).click(); await saved(page)
       const before = (await exported(page)).analystWorkspace
       const coverage = page.getByRole('region', { name: 'Source coverage for Original uncertain event', exact: true })
       await expect(coverage).toContainText('1 recorded source · 1 linked assertion')
@@ -163,7 +169,7 @@ test.describe('durable browser with actual D1 routes @smoke', () => {
       expect(after.events).toEqual(before.events)
       expect(b.calls.filter(c => c.method === 'PATCH')).toHaveLength(previousWrites)
       await page.getByRole('button', { name: 'Save changes', exact: true }).click(); await saved(page)
-      await page.reload(); await page.getByRole('button', { name: 'Open saved timeline', exact: true }).click(); await saved(page)
+      await page.reload(); await openWorkflowDisclosure(page, 'Saved versions and links'); await page.getByRole('button', { name: 'Open saved timeline', exact: true }).click(); await saved(page)
       expect((await exported(page)).analystWorkspace).toEqual(after)
       await expect(coverage).toContainText('0 recorded sources · 0 linked assertions')
       await expect(coverage).toContainText('No active supporting assertion.')
@@ -188,7 +194,7 @@ test.describe('durable browser with actual D1 routes @smoke', () => {
     try {
       await page.goto('/dashboard/tools/timeline'); await importFixture(page)
       await page.getByRole('button', { name: 'Save timeline', exact: true }).click(); await saved(page)
-      await page.reload(); await page.getByRole('button', { name: 'Open saved timeline', exact: true }).click(); await saved(page)
+      await page.reload(); await openWorkflowDisclosure(page, 'Saved versions and links'); await page.getByRole('button', { name: 'Open saved timeline', exact: true }).click(); await saved(page)
       const rawDraft = await page.evaluate(key => localStorage.getItem(key), draftKey)
       const evidence = page.getByTestId('evidence-event:unknown.1')
       await evidence.locator('summary').first().click()
@@ -240,7 +246,7 @@ test.describe('durable browser with actual D1 routes @smoke', () => {
       expect(final.analystWorkspace.events[0].assessment).toBe(changed.analystWorkspace.events[0].assessment)
       expect(final.analystWorkspace.evidence!.assertions[0].evaluation).toEqual(changed.analystWorkspace.evidence!.assertions[0].evaluation)
       await page.getByRole('button', { name: 'Save changes', exact: true }).click(); await saved(page)
-      await page.reload(); await page.getByRole('button', { name: 'Open saved timeline', exact: true }).click(); await saved(page)
+      await page.reload(); await openWorkflowDisclosure(page, 'Saved versions and links'); await page.getByRole('button', { name: 'Open saved timeline', exact: true }).click(); await saved(page)
       expect((await exported(page)).analystWorkspace.evidence).toEqual(final.analystWorkspace.evidence)
       expect(await page.evaluate(key => localStorage.getItem(key), draftKey)).toBe(rawDraft)
       await page.getByRole('button', { name: 'Narrative view', exact: true }).click()
@@ -314,8 +320,9 @@ test.describe('durable browser with actual D1 routes @smoke', () => {
       value.analystWorkspace.events.push({...value.analystWorkspace.events[0],id:'event:arrival',title:'Supplies arrive at the bridge',eventDate:'2026-09-10',datePrecision:'day',eventTime:'09:00',description:'A dated observation recorded separately from the disputed account.',assessment:'unreviewed',sequenceOrder:1,placement:{mode:'position',position:2}}, {...value.analystWorkspace.events[0],id:'event:reopening',title:'Reopening reported by the local desk',eventDate:'2026-09-11',datePrecision:'day',eventTime:undefined,description:'The report describes deliveries resuming; the underlying claim remains under review.',assessment:'hypothesis',sequenceOrder:2,placement:{mode:'position',position:3}})
       await page.goto('/dashboard/tools/timeline');await importFixture(page,value)
       await page.getByRole('button',{name:'Save timeline',exact:true}).click();await saved(page)
-      await page.reload();await page.getByRole('button',{name:'Open saved timeline',exact:true}).click();await saved(page)
+      await page.reload();await openWorkflowDisclosure(page, 'Saved versions and links'); await page.getByRole('button', { name: 'Open saved timeline', exact: true }).click();await saved(page)
       const before=(await exported(page)).analystWorkspace,raw=await page.evaluate(key=>localStorage.getItem(key),draftKey)
+      await openWorkflowDisclosure(page, 'Find events and contents')
       const finder=page.getByLabel('Find an event',{exact:true}),links=page.getByRole('navigation',{name:'Timeline events',exact:true})
       await finder.fill('supplies')
       await expect(links.getByRole('link')).toHaveCount(1)
@@ -354,7 +361,7 @@ test.describe('durable browser with actual D1 routes @smoke', () => {
     try {
       await page.goto('/dashboard/tools/timeline');await importFixture(page)
       await page.getByRole('button',{name:'Save timeline',exact:true}).click();await saved(page)
-      await page.reload();await page.getByRole('button',{name:'Open saved timeline',exact:true}).click();await saved(page)
+      await page.reload();await openWorkflowDisclosure(page, 'Saved versions and links'); await page.getByRole('button', { name: 'Open saved timeline', exact: true }).click();await saved(page)
       const raw=await page.evaluate(key=>localStorage.getItem(key),draftKey)
       const panel=page.getByTestId('evidence-event:unknown.1');await panel.locator('summary').first().click()
       const form=panel.getByRole('region',{name:'Import stored passage'})
@@ -381,7 +388,7 @@ test.describe('durable browser with actual D1 routes @smoke', () => {
       expect(await page.evaluate(key=>localStorage.getItem(key),draftKey)).toBe(raw)
       const screenshot=testInfo.outputPath('chunk-import.png');await form.screenshot({path:screenshot,animations:'disabled'});await testInfo.attach('Chunk import form',{path:screenshot,contentType:'image/png'})
       await page.getByRole('button',{name:'Save changes',exact:true}).click();await saved(page)
-      await page.reload();await page.getByRole('button',{name:'Open saved timeline',exact:true}).click();await saved(page)
+      await page.reload();await openWorkflowDisclosure(page, 'Saved versions and links'); await page.getByRole('button', { name: 'Open saved timeline', exact: true }).click();await saved(page)
       expect((await exported(page)).analystWorkspace.evidence).toEqual(imported.evidence)
       expect(await page.evaluate(key=>localStorage.getItem(key),draftKey)).toBe(raw)
     }finally{await b.mf.dispose()}
@@ -392,7 +399,7 @@ test.describe('durable browser with actual D1 routes @smoke', () => {
     try {
       await page.goto('/dashboard/tools/timeline');await importFixture(page)
       await page.getByRole('button',{name:'Save timeline',exact:true}).click();await saved(page)
-      await page.reload();await page.getByRole('button',{name:'Open saved timeline',exact:true}).click();await saved(page)
+      await page.reload();await openWorkflowDisclosure(page, 'Saved versions and links'); await page.getByRole('button', { name: 'Open saved timeline', exact: true }).click();await saved(page)
       const raw=await page.evaluate(key=>localStorage.getItem(key),draftKey)
       const panel=page.getByTestId('evidence-event:unknown.1');await panel.locator('summary').first().click()
       b.faults.holdCandidates=new Promise<void>(resolve=>{release=resolve})
@@ -411,7 +418,7 @@ test.describe('durable browser with actual D1 routes @smoke', () => {
     try {
       await page.goto('/dashboard/tools/timeline');await importFixture(page)
       await page.getByRole('button',{name:'Save timeline',exact:true}).click();await saved(page)
-      await page.reload();await page.getByRole('button',{name:'Open saved timeline',exact:true}).click();await saved(page)
+      await page.reload();await openWorkflowDisclosure(page, 'Saved versions and links'); await page.getByRole('button', { name: 'Open saved timeline', exact: true }).click();await saved(page)
       const raw=await page.evaluate(key=>localStorage.getItem(key),draftKey)
       const panel=page.getByTestId('evidence-event:unknown.1');await panel.locator('summary').first().click()
       const form=panel.getByRole('region',{name:'Import stored passage'}),picker=form.getByRole('region',{name:'Recent stored sources',exact:true})
@@ -441,7 +448,7 @@ test.describe('durable browser with actual D1 routes @smoke', () => {
     try {
       await page.goto('/dashboard/tools/timeline'); await importFixture(page)
       await page.getByRole('button', { name: 'Save timeline', exact: true }).click(); await saved(page)
-      await page.reload(); await page.getByRole('button', { name: 'Open saved timeline', exact: true }).click(); await saved(page)
+      await page.reload(); await openWorkflowDisclosure(page, 'Saved versions and links'); await page.getByRole('button', { name: 'Open saved timeline', exact: true }).click(); await saved(page)
       const raw = await page.evaluate(key => localStorage.getItem(key), draftKey)
       const panel = page.getByTestId('evidence-event:unknown.1')
       await panel.locator('summary').first().click()
@@ -466,7 +473,7 @@ test.describe('durable browser with actual D1 routes @smoke', () => {
     try {
       await page.goto('/dashboard/tools/timeline'); await importFixture(page)
       await page.getByRole('button', { name: 'Save timeline', exact: true }).click(); await saved(page)
-      await page.reload(); await page.getByRole('button', { name: 'Open saved timeline', exact: true }).click(); await saved(page)
+      await page.reload(); await openWorkflowDisclosure(page, 'Saved versions and links'); await page.getByRole('button', { name: 'Open saved timeline', exact: true }).click(); await saved(page)
       const raw = await page.evaluate(key => localStorage.getItem(key), draftKey)
       const panel = page.getByTestId('evidence-event:unknown.1')
       await panel.locator('summary').first().click()
@@ -488,7 +495,7 @@ test.describe('durable browser with actual D1 routes @smoke', () => {
       expect(imported.analystWorkspace.events[0].assessment).toBe('disputed')
       expect(await page.evaluate(key => localStorage.getItem(key), draftKey)).toBe(raw)
       await page.getByRole('button', { name: 'Save changes', exact: true }).click(); await saved(page)
-      await page.reload(); await page.getByRole('button', { name: 'Open saved timeline', exact: true }).click(); await saved(page)
+      await page.reload(); await openWorkflowDisclosure(page, 'Saved versions and links'); await page.getByRole('button', { name: 'Open saved timeline', exact: true }).click(); await saved(page)
       expect((await exported(page)).analystWorkspace.evidence).toEqual(imported.analystWorkspace.evidence)
       await page.getByTestId('evidence-event:unknown.1').locator('summary').first().click()
       const screenshot = testInfo.outputPath('stored-source-import.png')
@@ -506,7 +513,7 @@ test.describe('durable browser with actual D1 routes @smoke', () => {
     try {
       await page.goto('/dashboard/tools/timeline'); await importFixture(page)
       await page.getByRole('button', { name: 'Save timeline', exact: true }).click(); await saved(page)
-      await page.reload(); await page.getByRole('button', { name: 'Open saved timeline', exact: true }).click(); await saved(page)
+      await page.reload(); await openWorkflowDisclosure(page, 'Saved versions and links'); await page.getByRole('button', { name: 'Open saved timeline', exact: true }).click(); await saved(page)
       const before = (await exported(page)).analystWorkspace
       const panel = page.getByTestId('evidence-event:unknown.1')
       await panel.locator('summary').first().click()
@@ -538,6 +545,7 @@ test.describe('durable browser with actual D1 routes @smoke', () => {
       await page.getByLabel('Narrative title', { exact: true }).fill('Unsaved editing account')
       const editing = await exported(page)
       expect(b.calls.filter(c => c.path.endsWith('/revisions'))).toHaveLength(0)
+      await openWorkflowDisclosure(page, 'Saved versions and links')
       const history = page.getByRole('region', { name: 'Saved revision history', exact: true })
       await history.getByRole('button', { name: 'Load revision history', exact: true }).click()
       await history.getByRole('button', { name: `Inspect revision ${second.response.sequence}`, exact: true }).click()
@@ -598,6 +606,7 @@ test.describe('durable browser with actual D1 routes @smoke', () => {
       }
       for (let i = 0; i < 20; i++) await externalSave(i)
       const pinned = head
+      await openWorkflowDisclosure(page, 'Saved versions and links')
       const history = page.getByRole('region', { name: 'Saved revision history', exact: true })
       const uiWrites = b.calls.filter(c => ['POST', 'PATCH'].includes(c.method)).length
       await history.getByRole('button', { name: 'Load revision history', exact: true }).click()
@@ -627,6 +636,7 @@ test.describe('durable browser with actual D1 routes @smoke', () => {
       await page.goto('/dashboard/tools/timeline'); await importFixture(page)
       await page.getByRole('button', { name: 'Save timeline', exact: true }).click(); await saved(page)
       b.faults.holdHistory = new Promise<void>(resolve => { release = resolve })
+      await openWorkflowDisclosure(page, 'Saved versions and links')
       await page.getByRole('button', { name: 'Load revision history', exact: true }).click()
       await expect.poll(() => b.faults.historyReady).toBe(true)
       await page.evaluate(async () => { const { useAuthStore } = await import('/src/stores/auth.ts'); useAuthStore.setState({ isAuthenticated: false, user: null }) })
@@ -655,16 +665,49 @@ test.describe('durable browser with actual D1 routes @smoke', () => {
       await page.getByRole('button', { name: 'Save timeline', exact: true }).click(); await saved(page)
       const first = b.calls.findLast(c => c.method === 'PATCH' && c.status === 200)!
       const original = JSON.parse(first.body!).changes[0].payload as TimelineWorkspaceExport
+      const savedDisclosure = page.locator('summary').filter({ hasText: /^Saved versions and links$/ }).locator('..')
+      await expect(savedDisclosure).not.toHaveAttribute('open')
+      await openWorkflowDisclosure(page, 'Saved versions and links')
+      const history = page.getByRole('region', { name: 'Saved revision history', exact: true })
+      await history.getByRole('button', { name: 'Load revision history', exact: true }).click()
+      await expect(history.getByRole('button', { name: /^Inspect revision/ })).toHaveCount(2)
+      const retainedCallCount = b.calls.length
+      await savedDisclosure.locator('summary').first().click()
+      await expect(page.getByTestId('timeline-save-state')).toHaveText('Saved')
+      await openWorkflowDisclosure(page, 'Saved versions and links')
+      await expect(history.getByRole('button', { name: /^Inspect revision/ })).toHaveCount(2)
+      expect(b.calls).toHaveLength(retainedCallCount)
+      for (const theme of ['light', 'dark']) {
+        await page.evaluate(dark => document.documentElement.classList.toggle('dark', dark), theme === 'dark')
+        await savedDisclosure.locator('summary').first().evaluate(element => element.scrollIntoView({ block: 'center' }))
+        await savedDisclosure.locator('summary').first().click({ trial: true })
+        await page.screenshot({ path: info.outputPath(`workflow-saved-${theme}.png`), animations: 'disabled', scale: 'css' })
+      }
       const card = page.getByRole('region', { name: 'Saved revision presentation', exact: true })
       await expect(card).toContainText(first.response.revisionId)
+      const revisionId = card.getByText(`Revision ID: ${first.response.revisionId}`, { exact: true })
+      await expect(revisionId).toBeHidden()
+      await card.locator('summary').filter({ hasText: /^Revision details$/ }).click()
+      await expect(revisionId).toBeVisible()
+      await card.locator('summary').filter({ hasText: /^Revision details$/ }).click()
       await expect(card.getByRole('heading')).toHaveText(`Saved revision ${first.response.sequence}`)
       await card.screenshot({ path: info.outputPath('saved-revision-card.png'), scale: 'css', animations: 'disabled' })
       await page.getByLabel('Narrative title', { exact: true }).fill('Unsaved presentation title')
+      await savedDisclosure.locator('summary').first().click()
+      await page.getByRole('button', { name: 'Present', exact: true }).click()
+      const current = page.getByRole('dialog', { name: 'Current timeline presentation', exact: true })
+      await expect(current).toContainText('Current edits · Selected narrative')
+      await expect(current).toContainText('1 shown · 0 omitted')
+      await expect(page.getByText('TimelineJS presentation loaded', { exact: true })).toBeAttached()
+      await expect(page.frameLocator('iframe[title="TimelineJS narrative presentation"]').locator('.tl-headline').filter({ hasText: 'Unsaved presentation title' })).toBeVisible()
+      await page.keyboard.press('Escape')
+      await expect(page.getByRole('button', { name: 'Present', exact: true })).toBeFocused()
+      await expect(page.getByTestId('timeline-save-state')).toHaveText('Unsaved changes')
       const count = b.calls.length
       expect(await savedCompanion(page, first.response.revisionId)).toEqual(original)
       expect(b.calls).toHaveLength(count)
       expect((await exported(page)).analystWorkspace.narrative?.title).toBe('Unsaved presentation title')
-      await page.getByRole('button', { name: 'Preview saved revision', exact: true }).click()
+      await openWorkflowDisclosure(page, 'Saved versions and links'); await page.getByRole('button', { name: 'Preview saved revision', exact: true }).click()
       const dialog = page.getByRole('dialog', { name: 'Saved revision preview', exact: true })
       await expect(dialog).toContainText(original.analystWorkspace.narrative!.title)
       await expect(dialog).not.toContainText('Unsaved presentation title')
@@ -678,9 +721,9 @@ test.describe('durable browser with actual D1 routes @smoke', () => {
       expect(next.response.sequence).toBe(first.response.sequence + 1)
       const advanced = JSON.parse(next.body!).changes[0].payload as TimelineWorkspaceExport
       expect(await savedCompanion(page, next.response.revisionId)).toEqual(advanced)
-      await page.reload(); await page.getByRole('button', { name: 'Open saved timeline', exact: true }).click(); await saved(page)
+      await page.reload(); await openWorkflowDisclosure(page, 'Saved versions and links'); await page.getByRole('button', { name: 'Open saved timeline', exact: true }).click(); await saved(page)
       expect(await savedCompanion(page, next.response.revisionId)).toEqual(advanced)
-      await page.getByRole('button', { name: 'Preview saved revision', exact: true }).click()
+      await openWorkflowDisclosure(page, 'Saved versions and links'); await page.getByRole('button', { name: 'Preview saved revision', exact: true }).click()
       await page.evaluate(async () => { const { useAuthStore } = await import('/src/stores/auth.ts'); useAuthStore.setState({ isAuthenticated: false, user: null }) })
       await expect(page.getByRole('dialog', { name: 'Saved revision preview', exact: true })).toHaveCount(0)
       await expect(page.getByRole('button', { name: 'Preview saved revision', exact: true })).toHaveCount(0)
@@ -693,7 +736,7 @@ test.describe('durable browser with actual D1 routes @smoke', () => {
       const before = await exported(page)
       await page.getByRole('button', { name: 'Save timeline', exact: true }).click(); await saved(page)
       const raw = await page.evaluate(key => localStorage.getItem(key), draftKey)
-      await page.reload(); await page.getByRole('button', { name: 'Open saved timeline', exact: true }).click()
+      await page.reload(); await openWorkflowDisclosure(page, 'Saved versions and links'); await page.getByRole('button', { name: 'Open saved timeline', exact: true }).click()
       await saved(page)
       const after = await exported(page)
       expect(after.source).toEqual(before.source); expect(after.analystWorkspace).toEqual(before.analystWorkspace)
@@ -726,6 +769,12 @@ test.describe('durable browser with actual D1 routes @smoke', () => {
       await b.db.prepare('UPDATE users SET user_hash=? WHERE id=1').bind(refreshed).run()
       await page.evaluate(token => { localStorage.setItem('omnicore_user_hash', token); localStorage.setItem('omnicore_tokens', JSON.stringify({ access_token: token, issued_at: Date.now(), expires_in: 3600 })) }, refreshed)
       await page.getByLabel('Narrative title', { exact: true }).fill('Edits made after lost response')
+      const pendingCallCount = b.calls.length
+      await openWorkflowDisclosure(page, 'Saved versions and links')
+      await page.locator('summary').filter({ hasText: /^Saved versions and links$/ }).click()
+      await openWorkflowDisclosure(page, 'Start or import a timeline')
+      await page.locator('summary').filter({ hasText: /^Start or import a timeline$/ }).click()
+      expect(b.calls).toHaveLength(pendingCallCount)
       await page.getByRole('button', { name: 'Retry previous save', exact: true }).click()
       await expect(page.getByTestId('timeline-save-state')).toHaveText('Unsaved changes')
       const creates = b.calls.filter(c => c.method === 'POST'), commits = b.calls.filter(c => c.method === 'PATCH')
@@ -753,7 +802,7 @@ test.describe('durable browser with actual D1 routes @smoke', () => {
       await expect(page.getByText(/Someone saved a newer revision/)).toBeVisible()
       expect((await exported(page)).analystWorkspace.narrative?.title).toBe('Local conflict edits')
       b.faults.malformedRead = true; page.once('dialog', dialog => dialog.accept())
-      await page.getByRole('button', { name: 'Open saved timeline', exact: true }).click()
+      await openWorkflowDisclosure(page, 'Saved versions and links'); await page.getByRole('button', { name: 'Open saved timeline', exact: true }).click()
       await expect(page.getByText(/did not match this workspace/)).toBeVisible()
       expect((await exported(page)).analystWorkspace.narrative?.title).toBe('Local conflict edits')
       expect(await savedCompanion(page, last.response.revisionId)).toEqual(JSON.parse(last.body!).changes[0].payload)
@@ -773,7 +822,7 @@ test.describe('durable browser with actual D1 routes @smoke', () => {
       await expect(page.getByText(/Workspace saving supports timelines up to 60 KiB/)).toBeVisible()
       expect(b.calls).toHaveLength(0); expect((await exported(page)).analystWorkspace.questions).toHaveLength(8)
       await page.evaluate(async () => { const { useAuthStore } = await import('/src/stores/auth.ts'); useAuthStore.setState({ isAuthenticated: false, user: null }) })
-      await expect(page.getByText(/Sign in to save complete timelines/)).toBeVisible()
+      await expect(page.getByText(/Sign in to save to a private workspace/)).toBeVisible()
       await expect(page.getByRole('button', { name: 'Save timeline', exact: true })).toHaveCount(0)
     } finally { await b.mf.dispose() }
   })
@@ -782,10 +831,10 @@ test.describe('durable browser with actual D1 routes @smoke', () => {
     try {
       await page.goto('/dashboard/tools/timeline'); await importFixture(page)
       await page.getByRole('button', { name: 'Save timeline', exact: true }).click(); await saved(page)
-      await page.reload(); await page.getByRole('button', { name: 'Open saved timeline', exact: true }).click(); await saved(page)
+      await page.reload(); await openWorkflowDisclosure(page, 'Saved versions and links'); await page.getByRole('button', { name: 'Open saved timeline', exact: true }).click(); await saved(page)
       const raw = await page.evaluate(key => localStorage.getItem(key), draftKey)
       for (const inactive of [false, 0]) {
-        await page.getByRole('button', { name: 'Preview saved revision', exact: true }).click()
+        await openWorkflowDisclosure(page, 'Saved versions and links'); await page.getByRole('button', { name: 'Preview saved revision', exact: true }).click()
         await expect(page.getByRole('dialog', { name: 'Saved revision preview', exact: true })).toBeVisible()
         await page.evaluate(async inactive => { const { useAuthStore } = await import('/src/stores/auth.ts'); useAuthStore.setState({ user: { ...useAuthStore.getState().user!, is_active: inactive } as never }) }, inactive)
         await expect(page.getByRole('button', { name: 'Export JSON', exact: true })).toHaveCount(0)
@@ -794,7 +843,7 @@ test.describe('durable browser with actual D1 routes @smoke', () => {
         expect(await page.evaluate(key => localStorage.getItem(key), draftKey)).toBe(raw)
         if (inactive === false) {
           await page.evaluate(async () => { const { useAuthStore } = await import('/src/stores/auth.ts'); useAuthStore.setState({ user: { ...useAuthStore.getState().user!, is_active: true } }) })
-          await page.getByRole('button', { name: 'Open saved timeline', exact: true }).click(); await saved(page)
+          await openWorkflowDisclosure(page, 'Saved versions and links'); await page.getByRole('button', { name: 'Open saved timeline', exact: true }).click(); await saved(page)
         }
       }
     } finally { await b.mf.dispose() }

@@ -3,6 +3,12 @@ import { readFileSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import type { TimelineWorkspaceExport } from '../../../src/types/timeline-workspace'
 
+async function openWorkflowDisclosure(page: Page, label: string) {
+  const summary = page.locator('summary').filter({ hasText: new RegExp(`^${label}$`) })
+  if (await summary.locator('..').getAttribute('open') === null) await summary.click()
+}
+
+
 const csp = readFileSync('public/_headers', 'utf8').split('\n').find(line => line.trim().startsWith('Content-Security-Policy:'))!.trim().slice('Content-Security-Policy:'.length).trim()
 function fixture(count = 4): TimelineWorkspaceExport {
   return { schemaVersion: 'timeline-workspace.v1', exportedAt: '2026-09-12T12:00:00.000Z', source: { schemaVersion: 'timeline-manual.v1', title: 'Renderer fixture' }, analystWorkspace: {
@@ -29,7 +35,8 @@ async function start(page: Page, value = fixture()) {
   })
   await page.route('https://timeline.example/api/**', route => route.fulfill({ status: 200, json: { owned: [], member: [] } }))
   await page.goto('https://timeline.example/dashboard/tools/timeline')
-  await page.getByLabel('Import timeline JSON').setInputFiles({ name: 'timeline.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(value)) })
+  await expect(page.locator('.timeline-setup')).toHaveAttribute('open', '')
+  await openWorkflowDisclosure(page, 'Start or import a timeline'); await page.getByLabel('Import timeline JSON').setInputFiles({ name: 'timeline.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(value)) })
 }
 
 async function exported(page: Page) {
@@ -45,6 +52,102 @@ async function open(page: Page) {
 }
 
 test.describe('Self-hosted TimelineJS renderer @smoke', () => {
+  test('workflow prioritizes current events and presents a frozen selection with explicit omissions', async ({ page }, info) => {
+    test.setTimeout(120_000)
+    const requests: string[] = []
+    page.on('request', request => { if (/\/api\/|\/timelinejs\/|\/vendor\/timelinejs\//.test(request.url())) requests.push(request.url()) })
+    await start(page)
+    const setup = page.locator('summary').filter({ hasText: /^Start or import a timeline$/ }).locator('..')
+    const contents = page.locator('summary').filter({ hasText: /^Find events and contents$/ }).locator('..')
+    await expect(setup).not.toHaveAttribute('open')
+    await expect(contents).not.toHaveAttribute('open')
+    expect(await page.getByTestId('timeline-results').evaluate(element => Boolean(element.compareDocumentPosition(document.querySelector('.timeline-setup')!) & Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true)
+    await expect(page.getByRole('button', { name: 'Present', exact: true })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Robust analyst', exact: true })).toBeVisible()
+    await expect(page.getByLabel('Sort events', { exact: true })).toBeVisible()
+    await page.getByLabel('Narrative title', { exact: true }).fill('Current unsaved account')
+    const before = await exported(page)
+    const count = requests.length
+    await openWorkflowDisclosure(page, 'Find events and contents')
+    await page.getByLabel('Find an event', { exact: true }).fill('Monthly')
+    await expect(page.getByRole('navigation', { name: 'Timeline events', exact: true }).getByRole('link')).toHaveCount(1)
+    await contents.locator('summary').first().click()
+    await openWorkflowDisclosure(page, 'Find events and contents')
+    await expect(page.getByLabel('Find an event', { exact: true })).toHaveValue('Monthly')
+    await page.getByLabel('Find an event', { exact: true }).fill('')
+    await contents.locator('summary').first().click()
+    await openWorkflowDisclosure(page, 'Start or import a timeline')
+    await setup.locator('summary').first().click()
+    expect(requests).toHaveLength(count)
+    expect((await exported(page)).analystWorkspace).toEqual(before.analystWorkspace)
+    for (const theme of ['light', 'dark']) {
+      await page.evaluate(dark => document.documentElement.classList.toggle('dark', dark), theme === 'dark')
+      await page.getByRole('button', { name: 'Present', exact: true }).evaluate(element => element.scrollIntoView({ block: 'center' }))
+      await page.getByRole('button', { name: 'Present', exact: true }).click({ trial: true })
+      await page.screenshot({ path: info.outputPath(`workflow-primary-${theme}.png`), animations: 'disabled', scale: 'css' })
+      const firstEventAction = page.getByRole('button', { name: 'Actions for Early <report>', exact: true })
+      await firstEventAction.evaluate(element => element.scrollIntoView({ block: 'center' }))
+      await firstEventAction.click({ trial: true })
+      await page.screenshot({ path: info.outputPath(`workflow-event-${theme}.png`), animations: 'disabled', scale: 'css' })
+      await openWorkflowDisclosure(page, 'Find events and contents')
+      await page.getByLabel('Find an event', { exact: true }).evaluate(element => element.scrollIntoView({ block: 'center' }))
+      await page.getByLabel('Find an event', { exact: true }).click({ trial: true })
+      await page.screenshot({ path: info.outputPath(`workflow-contents-${theme}.png`), animations: 'disabled', scale: 'css' })
+      await contents.locator('summary').first().click()
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+    }
+    await page.getByRole('button', { name: 'Present', exact: true }).click()
+    const dialog = page.getByRole('dialog', { name: 'Current timeline presentation', exact: true })
+    await expect(dialog).toContainText('Current edits · Selected narrative')
+    await expect(dialog).toContainText('3 shown · 1 omitted')
+    await expect(dialog.getByText('Some selected events cannot be presented. Review export details for omitted dates and other presentation limitations.', { exact: true })).toBeVisible()
+    await expect(page.getByText('TimelineJS presentation loaded', { exact: true })).toBeAttached()
+    const child = page.frameLocator('iframe[title="TimelineJS narrative presentation"]')
+    await expect(child.locator('.tl-headline').filter({ hasText: 'Current unsaved account' })).toBeVisible()
+    await expect(child.locator('.tl-timemarker')).toHaveCount(3)
+    await dialog.getByRole('button', { name: 'Back to export details', exact: true }).click()
+    const details = page.getByRole('dialog', { name: 'TimelineJS export preview', exact: true })
+    await expect(details).toContainText('Unresolved 3')
+    const pending = page.waitForEvent('download')
+    await details.getByRole('button', { name: 'Download ResearchTools JSON', exact: true }).click()
+    const companion = JSON.parse(await readFile((await (await pending).path())!, 'utf8'))
+    expect(companion.analystWorkspace).toEqual(before.analystWorkspace)
+    expect(companion.source).toEqual(before.source)
+    await page.keyboard.press('Escape')
+    await expect(page.getByRole('button', { name: 'Present', exact: true })).toBeFocused()
+    expect((await exported(page)).analystWorkspace).toEqual(before.analystWorkspace)
+    await page.getByRole('button', { name: 'Export TimelineJS', exact: true }).click()
+    await expect(page.getByRole('dialog', { name: 'TimelineJS export preview', exact: true })).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(page.getByRole('button', { name: 'Export TimelineJS', exact: true })).toBeFocused()
+  })
+
+  test('Present falls back to export details for zero or more than 100 eligible events', async ({ page }) => {
+    test.setTimeout(120_000)
+    const rendererRequests: string[] = []
+    page.on('request', request => { if (/\/timelinejs\/|\/vendor\/timelinejs\//.test(request.url())) rendererRequests.push(request.url()) })
+    await start(page, fixture(101))
+    await page.getByRole('button', { name: 'Present', exact: true }).click()
+    let dialog = page.getByRole('dialog', { name: 'TimelineJS export preview', exact: true })
+    await expect(dialog).toContainText('Presentation supports up to 100 dated events')
+    await expect(dialog.getByRole('button', { name: 'Open presentation', exact: true })).toBeDisabled()
+    const pending = page.waitForEvent('download')
+    await dialog.getByRole('button', { name: 'Download TimelineJS JSON', exact: true }).click()
+    expect(JSON.parse(await readFile((await (await pending).path())!, 'utf8')).events).toHaveLength(101)
+    await page.keyboard.press('Escape')
+    const empty = fixture(); empty.analystWorkspace.events.forEach(event => { event.narrativeIncluded = event.id === 'event-3' })
+    await openWorkflowDisclosure(page, 'Start or import a timeline')
+    await page.getByLabel('Import timeline JSON').setInputFiles({ name: 'zero.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(empty)) })
+    await expect(page.locator('.timeline-setup')).not.toHaveAttribute('open')
+    await page.getByRole('button', { name: 'Present', exact: true }).click()
+    dialog = page.getByRole('dialog', { name: 'TimelineJS export preview', exact: true })
+    await expect(dialog).toContainText('Select at least one event with a recorded absolute date')
+    await expect(dialog.getByRole('button', { name: 'Download TimelineJS JSON', exact: true })).toBeDisabled()
+    await expect(dialog.getByRole('button', { name: 'Download ResearchTools JSON', exact: true })).toBeEnabled()
+    await expect(page.locator('iframe')).toHaveCount(0)
+    expect(rendererRequests).toEqual([])
+  })
+
   test('real pinned renderer is lazy, chronological, isolated and preserves the source', async ({ page }, testInfo) => {
     test.setTimeout(120_000)
     const requests: string[] = []
@@ -104,7 +207,7 @@ test.describe('Self-hosted TimelineJS renderer @smoke', () => {
       expect(toolbar).not.toBeNull()
       expect(story).not.toBeNull()
       expect(toolbar!.y).toBeGreaterThanOrEqual(story!.y + story!.height - 1)
-      const dialog = page.getByRole('dialog', { name: 'TimelineJS export preview' })
+      const dialog = page.getByRole('dialog', { name: 'Current timeline presentation' })
       expect(await dialog.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true)
       await expect(page.getByText('Accessible event list (3)', { exact: true })).toBeInViewport()
       await expect(child.getByRole('button', { name: 'Next slide', exact: true })).toBeInViewport()
@@ -167,7 +270,7 @@ test.describe('Self-hosted TimelineJS renderer @smoke', () => {
       await expect(details).toHaveAttribute('open', '')
       await expect(details.locator('li')).toHaveCount(2)
       await expect(child.locator('#slide-position')).toHaveText('Slide 4 of 4')
-      const dialog = page.getByRole('dialog', { name: 'TimelineJS export preview' })
+      const dialog = page.getByRole('dialog', { name: 'Current timeline presentation' })
       const path = testInfo.outputPath(`finder-${theme}.png`)
       await details.scrollIntoViewIfNeeded()
       await dialog.screenshot({ path, scale: 'css', animations: 'disabled' })
@@ -212,7 +315,7 @@ test.describe('Self-hosted TimelineJS renderer @smoke', () => {
     await expect(page.locator('iframe')).toHaveCount(0)
     await page.keyboard.press('Escape')
     const empty = fixture(); empty.analystWorkspace.events.forEach(event => { event.narrativeIncluded = event.id === 'event-3' })
-    await page.getByLabel('Import timeline JSON').setInputFiles({ name: 'empty.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(empty)) })
+    await openWorkflowDisclosure(page, 'Start or import a timeline'); await page.getByLabel('Import timeline JSON').setInputFiles({ name: 'empty.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(empty)) })
     await page.getByRole('button', { name: 'Export TimelineJS', exact: true }).click()
     await expect(page.getByRole('button', { name: 'Open presentation', exact: true })).toBeDisabled()
     await expect(page.getByRole('button', { name: 'Download ResearchTools JSON', exact: true })).toBeEnabled()

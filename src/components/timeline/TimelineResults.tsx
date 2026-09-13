@@ -915,23 +915,23 @@ function TimelineWorkspace({
   }
 
   return (
-    <div className="timeline-results space-y-6" data-testid="timeline-results">
+    <div className="timeline-results space-y-3" data-testid="timeline-results">
       {workspaceError && <p role="alert" className="rounded border border-red-300 p-3 text-sm text-red-700">{workspaceError}</p>}
       <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Timeline presentation" data-timeline-toolbar="true">
         <Button aria-pressed={presentation === 'analyst'} variant={presentation === 'analyst' ? 'default' : 'outline'} onClick={() => setPresentation('analyst')}>Analyst view</Button>
         <Button aria-pressed={presentation === 'narrative'} variant={presentation === 'narrative' ? 'default' : 'outline'} onClick={() => setPresentation('narrative')}>Narrative view</Button>
         <Button variant="outline" onClick={exportWorkspace}>Export JSON</Button>
-        <TimelineJSExport snapshot={workspaceExport} />
+        <TimelineJSExport snapshot={workspaceExport} presentationAction />
       </div>
       {presentation === 'analyst' && <nav aria-label="Workspace navigation" className="timeline-workspace-nav">
-        <a href="#timeline-sequence"><Calendar aria-hidden="true"/><span><strong>Event sequence</strong><small>{events.length} events · {questions.filter(q=>q.status==='open').length} open {questions.filter(q=>q.status==='open').length===1?'question':'questions'}</small></span></a>
-        <a href="#timeline-judgments"><Brain aria-hidden="true"/><span><strong>Judgments &amp; dissent</strong><small>Assess claims and competing explanations</small></span></a>
-        <a href="#timeline-narrative-editor"><FileSearch aria-hidden="true"/><span><strong>Narrative editor</strong><small>Shape chapters and select key events</small></span></a>
+        <a href="#timeline-sequence"><Calendar aria-hidden="true"/><span><strong>Event sequence</strong></span></a>
+        <a href="#timeline-judgments"><Brain aria-hidden="true"/><span><strong>Judgments &amp; dissent</strong></span></a>
+        <a href="#timeline-narrative-editor"><FileSearch aria-hidden="true"/><span><strong>Narrative editor</strong></span></a>
       </nav>}
       <p className="text-xs text-muted-foreground">Event and chapter links refer to this open timeline or an imported copy; they are not published evidence URLs. Export JSON to keep an offline copy.</p>
       <div hidden={presentation !== 'analyst'} className="space-y-4">
       <Card id="timeline-overview" className="timeline-overview scroll-mt-24">
-        <CardHeader className="gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <CardHeader className="gap-3 p-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0 space-y-2">
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant="secondary">{sortedEvents.length} {sortedEvents.length === 1 ? 'event' : 'events'}</Badge>
@@ -981,8 +981,8 @@ function TimelineWorkspace({
             )}
           </div>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex flex-col gap-3 rounded-lg border bg-muted/20 p-3 sm:flex-row sm:items-center sm:justify-between">
+        <CardContent className="space-y-3 px-4 pb-4">
+          <div className="flex flex-col gap-2 rounded-lg border bg-muted/20 p-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-sm font-medium">Analysis depth</p>
               <p className="text-xs text-muted-foreground">
@@ -1001,7 +1001,9 @@ function TimelineWorkspace({
             </div>
           </div>
           {workspaceOrigin === 'manual' ? (
-            <div className="grid gap-3 text-sm sm:grid-cols-3">
+            <details className="text-sm">
+              <summary className="cursor-pointer py-1 text-muted-foreground">Guidance for building an investigation</summary>
+              <div className="mt-2 grid gap-3 sm:grid-cols-3">
               <div className="rounded-lg border bg-muted/30 p-3">
                 <div className="font-medium">Known events</div>
                 <p className="mt-1 text-muted-foreground">Add only what you currently know; mark uncertainty in the assessment and note.</p>
@@ -1014,7 +1016,8 @@ function TimelineWorkspace({
                 <div className="font-medium">Research findings</div>
                 <p className="mt-1 text-muted-foreground">Record answers here with source URLs, then add supported events separately.</p>
               </div>
-            </div>
+              </div>
+            </details>
           ) : (
             <>
               <div className="grid gap-3 text-sm sm:grid-cols-3">
@@ -1044,10 +1047,9 @@ function TimelineWorkspace({
       </Card>
 
       <Card aria-label="Timeline contents" className="timeline-contents">
-        <CardHeader className="gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <CardHeader className="gap-2 p-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <CardTitle className="text-base">Timeline contents</CardTitle>
-            <p className="mt-1 text-xs text-muted-foreground">Choose the reading order, scan the events, or jump directly to a section.</p>
           </div>
           <div className="w-full space-y-1 sm:w-40">
             <Label htmlFor="timeline-sort-direction" className="text-xs">Sort events</Label>
@@ -1062,7 +1064,10 @@ function TimelineWorkspace({
             </select>
           </div>
         </CardHeader>
-        <CardContent className="grid gap-4 lg:grid-cols-[minmax(0,220px)_minmax(0,1fr)]">
+        <CardContent className="px-3 pb-3">
+          <details>
+            <summary className="cursor-pointer py-1 text-sm font-medium">Find events and contents</summary>
+            <div className="mt-3 grid gap-4 lg:grid-cols-[minmax(0,220px)_minmax(0,1fr)]">
           <nav aria-label="Timeline sections">
             <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">Jump to section</p>
             <ul className="space-y-1 text-sm">
@@ -1095,6 +1100,8 @@ function TimelineWorkspace({
               <p className="text-sm text-muted-foreground">No events yet. Add an event or start with a research question.</p>
             )}
           </nav>
+            </div>
+          </details>
         </CardContent>
       </Card>
 

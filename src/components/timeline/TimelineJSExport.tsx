@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { TimelineJSPreview } from './TimelineJSPreview'
-import { Download, FileJson, TriangleAlert } from 'lucide-react'
+import { Download, FileJson, Play, TriangleAlert } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { buildTimelineJSExport } from '@/lib/timeline-timelinejs'
@@ -17,19 +17,21 @@ function downloadJson(value: unknown, filename: string) {
   window.setTimeout(() => URL.revokeObjectURL(url), 0)
 }
 
-export function TimelineJSExport({ snapshot, savedRevision }: { snapshot: SnapshotInput & { exportedAt?: string }; savedRevision?: { revisionId: string; sequence: number; historical?: boolean } }) {
+export function TimelineJSExport({ snapshot, savedRevision, presentationAction = false }: { presentationAction?: boolean; snapshot: SnapshotInput & { exportedAt?: string }; savedRevision?: { revisionId: string; sequence: number; historical?: boolean } }) {
   const [preview, setPreview] = useState<{
     snapshot: TimelineWorkspaceExport
     signature: string
     result: ReturnType<typeof buildTimelineJSExport>
   } | null>(null)
   const [presenting, setPresenting] = useState(false)
+  const opener = useRef<HTMLButtonElement | null>(null)
   const signature = JSON.stringify(snapshot)
   const stale = preview !== null && signature !== preview.signature
-  const capture = () => {
-    setPresenting(false)
+  const capture = (startPresentation = false) => {
     const captured = { ...structuredClone(snapshot), exportedAt: savedRevision && snapshot.exportedAt ? snapshot.exportedAt : new Date().toISOString() }
-    setPreview({ snapshot: captured, signature, result: buildTimelineJSExport(captured) })
+    const result = buildTimelineJSExport(captured)
+    setPreview({ snapshot: captured, signature, result })
+    setPresenting(startPresentation && result.timeline.events.length > 0 && result.timeline.events.length <= 100)
   }
   const download = (companion: boolean) => {
     if (!preview || stale || (!companion && preview.result.timeline.events.length === 0)) return
@@ -37,15 +39,20 @@ export function TimelineJSExport({ snapshot, savedRevision }: { snapshot: Snapsh
     downloadJson(companion ? preview.snapshot : preview.result.timeline, `timeline-${companion ? 'researchtools' : 'timelinejs'}-${suffix}.json`)
   }
 
-  return <Dialog open={preview !== null} onOpenChange={open => { if (open) capture(); else { setPreview(null); setPresenting(false) } }}>
-    <DialogTrigger asChild><Button variant="outline"><FileJson aria-hidden="true" className="mr-2 h-4 w-4" />{savedRevision?.historical ? 'Preview selected revision' : savedRevision ? 'Preview saved revision' : 'Export TimelineJS'}</Button></DialogTrigger>
-    {preview && <DialogContent className={`flex max-h-[90dvh] w-[calc(100%-1.5rem)] flex-col rounded-xl border-indigo-200 bg-white p-4 text-slate-950 sm:p-6 dark:border-indigo-800 dark:bg-slate-950 dark:text-slate-100 ${presenting && !stale ? 'h-[95dvh] max-h-[95dvh] max-w-6xl' : 'max-w-2xl'}`}>
+  return <Dialog open={preview !== null} onOpenChange={open => { if (!open) { setPreview(null); setPresenting(false) } }}>
+    {presentationAction && !savedRevision && <DialogTrigger asChild><Button onClick={event => { opener.current = event.currentTarget; capture(true) }}><Play aria-hidden="true" className="mr-2 h-4 w-4" />Present</Button></DialogTrigger>}
+    <DialogTrigger asChild><Button variant="outline" onClick={event => { opener.current = event.currentTarget; capture() }}><FileJson aria-hidden="true" className="mr-2 h-4 w-4" />{savedRevision?.historical ? 'Preview selected revision' : savedRevision ? 'Preview saved revision' : 'Export TimelineJS'}</Button></DialogTrigger>
+    {preview && <DialogContent onCloseAutoFocus={event => { event.preventDefault(); opener.current?.focus() }} className={`flex max-h-[90dvh] w-[calc(100%-1.5rem)] flex-col rounded-xl border-indigo-200 bg-white p-4 text-slate-950 sm:p-6 dark:border-indigo-800 dark:bg-slate-950 dark:text-slate-100 ${presenting && !stale ? 'h-[95dvh] max-h-[95dvh] max-w-6xl' : 'max-w-2xl'}`}>
       <DialogHeader className="shrink-0 pr-6 text-left">
-        <DialogTitle className="flex items-center gap-2 text-xl"><FileJson aria-hidden="true" className="h-5 w-5 text-indigo-600 dark:text-indigo-300" />{savedRevision?.historical ? 'Selected revision preview' : savedRevision ? 'Saved revision preview' : 'TimelineJS export preview'}</DialogTitle>
-        <DialogDescription className="text-slate-600 dark:text-slate-300">{savedRevision ? `${savedRevision.historical ? 'Selected revision' : 'Saved revision'} ${savedRevision.sequence} · Selected narrative. This does not publish a timeline.` : presenting && !stale ? 'Selected narrative · This does not publish a timeline.' : 'A presentation file of your selected narrative. Downloads stay on this device; this does not publish a timeline.'}</DialogDescription>
+        <DialogTitle className="flex items-center gap-2 text-xl"><FileJson aria-hidden="true" className="h-5 w-5 text-indigo-600 dark:text-indigo-300" />{savedRevision?.historical ? 'Selected revision preview' : savedRevision ? 'Saved revision preview' : presenting && !stale ? 'Current timeline presentation' : 'TimelineJS export preview'}</DialogTitle>
+        <DialogDescription className="text-slate-600 dark:text-slate-300">{savedRevision ? `${savedRevision.historical ? 'Selected revision' : 'Saved revision'} ${savedRevision.sequence} · Selected narrative. This does not publish a timeline.` : presenting && !stale ? 'Current edits · Selected narrative · This does not publish a timeline.' : 'A presentation file of your selected narrative. Downloads stay on this device; this does not publish a timeline.'}</DialogDescription>
       </DialogHeader>
       {presenting && !stale ? <>
-        <Button variant="outline" className="w-fit shrink-0" onClick={() => setPresenting(false)}>Back to export details</Button>
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          <Button variant="outline" className="w-fit" onClick={() => setPresenting(false)}>Back to export details</Button>
+          <p className="text-sm">{preview.result.timeline.events.length} shown · {preview.result.omitted.length} omitted</p>
+        </div>
+        {preview.result.omitted.length > 0 && <p role="status" className="shrink-0 text-sm text-amber-800 dark:text-amber-200">Some selected events cannot be presented. Review export details for omitted dates and other presentation limitations.</p>}
         <TimelineJSPreview timeline={preview.result.timeline} snapshot={preview.snapshot} />
       </> : <>
       <div className="min-h-0 space-y-4 overflow-y-auto" aria-label="Export details" role="region" tabIndex={0}>
@@ -57,7 +64,7 @@ export function TimelineJSExport({ snapshot, savedRevision }: { snapshot: Snapsh
       {savedRevision && <p className="break-all text-xs text-slate-600 dark:text-slate-300">Revision ID: {savedRevision.revisionId}</p>}
       {stale && <div role="alert" className="rounded-lg border border-amber-500 bg-amber-50 p-3 text-sm text-amber-950 dark:bg-amber-950 dark:text-amber-100">
         <p>The workspace changed after this preview. Refresh it before downloading.</p>
-        <Button className="mt-2 bg-indigo-700 text-white hover:bg-indigo-800" onClick={capture}>Refresh export preview</Button>
+        <Button className="mt-2 bg-indigo-700 text-white hover:bg-indigo-800" onClick={() => capture()}>Refresh export preview</Button>
       </div>}
       <section aria-label="Presentation limitations" className="space-y-2 text-sm">
         <h3 className="flex items-center gap-2 font-semibold"><TriangleAlert aria-hidden="true" className="h-4 w-4 text-amber-700 dark:text-amber-300" />What changes in TimelineJS</h3>

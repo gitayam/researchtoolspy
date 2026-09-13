@@ -2,6 +2,12 @@ import { test, expect } from '@playwright/test'
 import type { Page } from '@playwright/test'
 import { readFile } from 'node:fs/promises'
 
+async function openWorkflowDisclosure(page: Page, label: string) {
+  const summary = page.locator('summary').filter({ hasText: new RegExp(`^${label}$`) })
+  if (await summary.locator('..').getAttribute('open') === null) await summary.click()
+}
+
+
 function fixture() {
  return {schemaVersion:'timeline-workspace.v1',exportedAt:'2026-09-11T00:00:00.000Z',source:{schemaVersion:'timeline-manual.v1',title:'Judgment investigation'},analystWorkspace:{
   mode:'robust',presentation:'analyst',sortDirection:'oldest',questions:[],hypotheses:[],
@@ -10,7 +16,7 @@ function fixture() {
   evidence:{schemaVersion:'timeline-evidence.v1',sources:[{id:'source-city',url:'https://city.example/report',title:'City report',publisher:'City'},{id:'source-observer',url:'https://observer.example/report',title:'Observer report',publisher:'Observer'}],assertions:[{id:'assertion-city',sourceId:'source-city',claimText:'Access restored',temporalClaim:'September',passage:{id:'passage-city',quote:'The bridge opened for deliveries.',locator:'Paragraph 1'},status:'active',derivesFrom:[]},{id:'assertion-observer',sourceId:'source-observer',claimText:'Heavy trucks still barred',temporalClaim:'September',passage:{id:'passage-observer',quote:'Heavy trucks cannot yet cross.',locator:'Paragraph 3'},status:'active',derivesFrom:[]}],links:[{id:'link-city',eventId:'event-bridge',assertionId:'assertion-city',relation:'supports'}],reviews:[]},
  }}
 }
-async function upload(page:Page,value:unknown){await page.getByLabel('Import timeline JSON').setInputFiles({name:'judgments.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(value))})}
+async function upload(page:Page,value:unknown){await openWorkflowDisclosure(page, 'Start or import a timeline'); await page.getByLabel('Import timeline JSON').setInputFiles({name:'judgments.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(value))})}
 async function exported(page:Page){const download=page.waitForEvent('download');await page.getByRole('button',{name:'Export JSON',exact:true}).click();return JSON.parse(await readFile((await(await download).path())!,'utf8'))}
 async function start(page:Page){await page.route('**/api/workspaces',route=>route.fulfill({status:200,json:{owned:[],member:[]}}));await page.goto('/dashboard/tools/timeline');await upload(page,fixture())}
 async function addJudgment(page:Page){

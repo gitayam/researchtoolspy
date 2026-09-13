@@ -37,14 +37,16 @@ export function TimelineDurablePanel(props: Props) {
   const eligible = signedIn && Boolean(user) && (user?.is_active === undefined || user?.is_active === true || Number(user?.is_active) === 1) && Boolean(role) && !['guest', 'service'].includes(role)
   const scope = `${eligible ? user?.id : 'guest'}:${selected?.id || ''}`
   useEffect(() => () => props.onForgetRemote(), [scope, props.onForgetRemote])
-  if (!eligible || !user) return <section aria-label="Workspace saving" className="timeline-saving min-w-0 rounded-xl border border-slate-200 bg-slate-50/60 p-4 text-sm leading-relaxed dark:border-slate-700 dark:bg-slate-900/40"><FolderLock aria-hidden="true" className="mr-2 inline-block h-4 w-4 align-text-bottom text-slate-600 dark:text-slate-300" />Sign in to save complete timelines to a private workspace. Local drafts and JSON export remain available.</section>
-  return <section aria-label="Workspace saving" className="timeline-saving min-w-0 space-y-4 rounded-xl border border-slate-200 border-l-4 border-l-slate-400 bg-slate-50/60 p-4 sm:p-5 dark:border-slate-700 dark:border-l-slate-500 dark:bg-slate-900/40">
-    <h2 className="flex items-start gap-2 font-semibold text-slate-900 dark:text-slate-100"><FolderLock aria-hidden="true" className="h-5 w-5 shrink-0" />Save to a private workspace</h2>
-    <Label htmlFor="timeline-save-workspace">Saving workspace</Label>
-    <select id="timeline-save-workspace" className="w-full rounded-md border bg-background p-2" value={selected?.id || ''} onChange={event => setChoice(event.target.value)}>
+  if (!eligible || !user) return <section aria-label="Workspace saving" className="timeline-saving min-w-0 rounded-lg border border-slate-200 bg-slate-50/60 p-3 text-sm dark:border-slate-700 dark:bg-slate-900/40"><FolderLock aria-hidden="true" className="mr-2 inline-block h-4 w-4 align-text-bottom text-slate-600 dark:text-slate-300" />Local draft · Sign in to save to a private workspace.</section>
+  return <section aria-label="Workspace saving" className="timeline-saving grid min-w-0 items-start gap-3 rounded-lg border border-slate-200 bg-slate-50/60 p-3 dark:border-slate-700 dark:bg-slate-900/40 sm:grid-cols-[minmax(12rem,1fr)_minmax(0,2fr)]">
+    <h2 className="sr-only">Save to a private workspace</h2>
+    <div className="min-w-0 space-y-1">
+    <Label htmlFor="timeline-save-workspace" className="flex items-center gap-2 text-xs"><FolderLock aria-hidden="true" className="h-4 w-4" />Saving workspace</Label>
+    <select id="timeline-save-workspace" className="min-h-10 w-full min-w-0 rounded-md border bg-background p-2 text-sm" value={selected?.id || ''} onChange={event => setChoice(event.target.value)}>
       <option value="">Choose a private workspace</option>
       {available.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
     </select>
+    </div>
     {!available.length && <p className="text-sm text-muted-foreground">Create or join a private workspace before saving. You can keep working locally.</p>}
     {selected && <WorkspaceSaving key={scope} {...props} workspaceId={selected.id} principalId={user.id} canWrite={selected.owner_id === user.id || ['EDITOR', 'ADMIN'].includes(selected.role || '')} />}
   </section>
@@ -110,18 +112,24 @@ function WorkspaceSaving({ snapshot, onOpen, workspaceId, principalId, canWrite 
       } finally { if (!abort.signal.aborted) setBusy(false) }
     } catch (error) { if (!controller.current?.signal.aborted) setMessage(error instanceof Error ? error.message : 'Unable to open this timeline. Your current timeline is unchanged.') }
   }
-  return <div className="min-w-0 space-y-4">
-    <p className="text-sm text-muted-foreground">Saves include the narrative, notes, source extraction and event IDs. Each save supports up to 60 KiB. Opened private timelines are kept in memory; export JSON to keep an offline copy.</p>
-    <div className="flex flex-wrap gap-2">
+  const titleSnapshot = savedRevision?.snapshot ?? snapshot
+  const title = titleSnapshot?.analystWorkspace.narrative?.title || (titleSnapshot?.source.schemaVersion === 'timeline-manual.v1' ? titleSnapshot.source.title : titleSnapshot?.source.article.title)
+  return <div className="min-w-0 space-y-2">
+    {title && <p className="truncate text-sm font-medium" title={title}>{title}</p>}
+    <div className="flex flex-wrap items-center gap-2">
       <Button disabled={!snapshot || !canWrite || busy || conflict || Boolean(artifact && !dirty && !pending)} onClick={() => void save()}>{pending ? 'Retry previous save' : artifact ? 'Save changes' : 'Save timeline'}</Button>
-      {artifact && !pending && <Button variant="outline" disabled={!snapshot || !canWrite || busy} onClick={() => void save(true)}>Save a separate copy</Button>}
       {artifact && <span className="self-center rounded-full border border-slate-300 bg-background px-3 py-1 text-xs font-medium dark:border-slate-600" data-testid="timeline-save-state">{dirty ? 'Unsaved changes' : 'Saved'}</span>}
     </div>
     {!canWrite && <p className="text-sm">You have read-only access to this workspace.</p>}
-    {savedRevision && <section aria-label="Saved revision presentation" className="min-w-0 space-y-3 rounded-lg border border-indigo-200 bg-background p-4 dark:border-indigo-900">
+    <details className="min-w-0 rounded-md border bg-background p-3">
+      <summary className="cursor-pointer text-sm font-medium">Saved versions and links</summary>
+      <div className="mt-3 min-w-0 space-y-3">
+    <p className="text-sm text-muted-foreground">Saves include the narrative, notes, source extraction and event IDs. Each save supports up to 60 KiB. Opened private timelines are kept in memory; export JSON to keep an offline copy.</p>
+    {artifact && !pending && <Button variant="outline" disabled={!snapshot || !canWrite || busy} onClick={() => void save(true)}>Save a separate copy</Button>}
+    {savedRevision && <section aria-label="Saved revision presentation" className="min-w-0 space-y-3 rounded-lg border border-indigo-200 bg-background p-3 dark:border-indigo-900">
       <h3 className="font-semibold text-indigo-900 dark:text-indigo-200">Saved revision {savedRevision.artifact.sequence}</h3>
       <p className="break-words text-sm font-medium">{savedRevision.snapshot.analystWorkspace.narrative?.title || 'Untitled narrative'}</p>
-      <p className="break-all text-xs text-muted-foreground">Revision ID: {savedRevision.artifact.revisionId}</p>
+      <details className="text-xs text-muted-foreground"><summary className="cursor-pointer font-medium">Revision details</summary><p className="mt-1 break-all">Revision ID: {savedRevision.artifact.revisionId}</p></details>
       <p className="text-sm leading-relaxed">Preview the last successfully saved or opened version. Current unsaved edits are excluded. Someone may have saved a newer version on the server. This version is kept in memory only; previewing does not publish it.</p>
       <TimelineJSExport key={savedRevision.artifact.revisionId} snapshot={savedRevision.snapshot} savedRevision={{ revisionId: savedRevision.artifact.revisionId, sequence: savedRevision.artifact.sequence }} />
     </section>}
@@ -131,6 +139,8 @@ function WorkspaceSaving({ snapshot, onOpen, workspaceId, principalId, canWrite 
       <Input id="timeline-saved-link" value={linkInput} onChange={event => setLinkInput(event.target.value)} placeholder="Paste a saved timeline link" />
       <Button variant="outline" disabled={busy || Boolean(pending) || !linkInput.trim()} onClick={() => void open()}>Open saved timeline</Button>
     </div>
+      </div>
+    </details>
     {message && <p role="status" className="rounded-lg border bg-background p-3 text-sm leading-relaxed">{message}</p>}
   </div>
 }

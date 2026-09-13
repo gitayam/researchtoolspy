@@ -4,6 +4,12 @@ import type { Page } from '@playwright/test'
 import { decodeTimelineWorkspace, TIMELINE_IMPORT_MAX_BYTES } from '../../../src/lib/timeline-workspace-codec'
 import type { TimelineWorkspaceExport, TimelineWorkspaceEvent } from '../../../src/types/timeline-workspace'
 
+async function openWorkflowDisclosure(page: Page, label: string) {
+  const summary = page.locator('summary').filter({ hasText: new RegExp(`^${label}$`) })
+  if (await summary.locator('..').getAttribute('open') === null) await summary.click()
+}
+
+
 const source = {
   schemaVersion: 'timeline-analysis.v1' as const,
   requestId: 'narrative-fixture', outcome: 'events' as const,
@@ -31,7 +37,7 @@ function fixture(): TimelineWorkspaceExport {
   }
 }
 async function importFile(page: Page, value: unknown) {
-  await page.getByLabel('Import timeline JSON').setInputFiles({ name: 'timeline.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(value)) })
+  await openWorkflowDisclosure(page, 'Start or import a timeline'); await page.getByLabel('Import timeline JSON').setInputFiles({ name: 'timeline.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(value)) })
 }
 async function exported(page: Page): Promise<TimelineWorkspaceExport> {
   const download = page.waitForEvent('download')
@@ -193,6 +199,7 @@ test.describe('Timeline narrative and import @smoke', () => {
     await page.route('**/api/workspaces', route => route.fulfill({ status: 200, json: { owned: [], member: [] } }))
     await page.goto('/dashboard/tools/timeline')
     await importFile(page, fixture())
+    await openWorkflowDisclosure(page, 'Find events and contents')
     const link = page.getByLabel('Timeline events').getByRole('link', { name: /Later event/ })
     const href = await link.getAttribute('href')
     await page.getByRole('button', { name: 'Add event', exact: true }).click()
@@ -280,6 +287,7 @@ test.describe('Timeline narrative and import @smoke', () => {
     await outline.getByRole('link', { name: 'First event', exact: true }).click()
     await expect(page.locator(':target')).toHaveAttribute('id', 'narrative-timeline-event-source%3Aimported%3Aone')
     await page.getByRole('button', { name: 'Analyst view', exact: true }).click()
+    await openWorkflowDisclosure(page, 'Find events and contents')
     await page.getByLabel('Timeline events').getByRole('link', { name: /First event/ }).click()
     await expect(page.locator(':target')).toHaveAttribute('id', 'timeline-event-source%3Aimported%3Aone')
   })

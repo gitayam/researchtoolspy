@@ -128,6 +128,8 @@ export function TimelineAnalysisPage() {
   const [manualDraft, setManualDraft] = useState<ManualTimelineDraft | null>(() => readManualDraft())
   const [manualTitle, setManualTitle] = useState(() => readManualDraft()?.result.article.title || '')
   const [result, setResult] = useState<TimelineAnalysisResult | null>(null)
+  const setupRef = useRef<HTMLDetailsElement>(null)
+  useEffect(() => { if (setupRef.current) setupRef.current.open = !result }, [result])
   const [resultOrigin, setResultOrigin] = useState<'manual' | 'extracted' | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -307,7 +309,7 @@ export function TimelineAnalysisPage() {
   }
 
   return (
-    <div className="timeline-workspace mx-auto w-full max-w-6xl space-y-6 py-6 sm:py-8">
+    <div className="timeline-workspace mx-auto w-full max-w-6xl space-y-4 py-4 sm:py-6">
       <div className="timeline-page-heading flex items-start gap-4">
         <Button variant="outline" size="icon" asChild aria-label="Back to research tools">
           <Link to="/dashboard/tools"><ArrowLeft className="h-4 w-4" /></Link>
@@ -318,11 +320,6 @@ export function TimelineAnalysisPage() {
           <p className="mt-1 text-muted-foreground">Build what you know, expose what is missing, and turn those gaps into evidence-backed research.</p>
         </div>
       </div>
-
-      <Alert className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/40">
-        <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-        <AlertDescription>No login is required. One local draft stays in this browser for 7 days. Creating, extracting or importing another timeline replaces that draft. Signed-in users can save complete timelines up to 60 KiB in a private workspace. Export JSON to keep an offline copy or larger timelines.</AlertDescription>
-      </Alert>
 
       <TimelineDurablePanel key={durableGeneration} snapshot={durableSnapshot} onOpen={openDurable} onForgetRemote={forgetRemote} />
 
@@ -339,6 +336,34 @@ export function TimelineAnalysisPage() {
           }}>Download recovery JSON{recovery.length > 1 ? ` ${index + 1}` : ''}</Button>)}
         </AlertDescription>
       </Alert>}
+
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {result && resultOrigin && (
+        <TimelineResults
+          key={`${result.requestId}-${workspaceGeneration}`}
+          result={result}
+          workspaceOrigin={resultOrigin}
+          initialWorkspace={initialWorkspace}
+          onWorkspaceChange={handleManualWorkspaceChange}
+          sourceImportWorkspaceId={sourceImportWorkspaceId}
+          onRegenerate={resultOrigin === 'extracted' ? () => void runAnalysis() : undefined}
+          regenerating={loading}
+        />
+      )}
+
+      <details ref={setupRef} className="timeline-setup rounded-xl border bg-muted/20 p-3" open={!result}>
+        <summary className="cursor-pointer py-1 text-sm font-semibold">Start or import a timeline</summary>
+        <div className="mt-4 space-y-4">
+      <Alert className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/40">
+        <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+        <AlertDescription>No login is required. One local draft stays in this browser for 7 days. Creating, extracting or importing another timeline replaces that draft. Signed-in users can save complete timelines up to 60 KiB in a private workspace. Export JSON to keep an offline copy or larger timelines.</AlertDescription>
+      </Alert>
 
       <div className="timeline-import-panel space-y-2 rounded-lg border p-4">
         <Label htmlFor="timeline-import">Import timeline JSON</Label>
@@ -360,7 +385,7 @@ export function TimelineAnalysisPage() {
         </Button>
       </div>
 
-      {entryMode === 'manual' ? (resultOrigin === 'manual' ? null : (
+      {entryMode === 'manual' ? (
         <Card>
           <CardHeader>
             <CardTitle>Create an investigation timeline</CardTitle>
@@ -392,7 +417,7 @@ export function TimelineAnalysisPage() {
             <p className="text-xs text-muted-foreground">You can begin with a known event or an unanswered question. Unknown transitions remain visible research gaps.</p>
           </CardContent>
         </Card>
-      )) : (
+      ) : (
         <Card>
           <CardHeader>
             <CardTitle>Build a timeline from an article</CardTitle>
@@ -419,25 +444,8 @@ export function TimelineAnalysisPage() {
         </Card>
       )}
 
-      {error && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
-      {result && resultOrigin && (
-        <TimelineResults
-          key={`${result.requestId}-${workspaceGeneration}`}
-          result={result}
-          workspaceOrigin={resultOrigin}
-          initialWorkspace={initialWorkspace}
-          onWorkspaceChange={handleManualWorkspaceChange}
-          sourceImportWorkspaceId={sourceImportWorkspaceId}
-          onRegenerate={resultOrigin === 'extracted' ? () => void runAnalysis() : undefined}
-          regenerating={loading}
-        />
-      )}
+        </div>
+      </details>
 
       {result && resultOrigin === 'extracted' && (
         <div className="flex justify-end">
