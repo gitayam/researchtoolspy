@@ -37,7 +37,7 @@ export function TimelinePresentationSchedule({ snapshot, enabled, schedule, disa
       </div>
       <details className="rounded-md border border-indigo-200 bg-white p-3 dark:border-indigo-800 dark:bg-slate-950" open>
         <summary className="cursor-pointer text-sm font-medium">Event dates and times ({events.length})</summary>
-        <div className="mt-3 max-h-80 space-y-3 overflow-y-auto pr-1">{events.map((event, index) => {
+        <div className="mt-3 space-y-3">{events.map((event, index) => {
           const override = schedule.events[event.id]
           const id = `${prefix}-${index}`
           return <fieldset key={event.id} className="min-w-0 space-y-2 rounded-md border border-slate-300 p-3 dark:border-slate-700">

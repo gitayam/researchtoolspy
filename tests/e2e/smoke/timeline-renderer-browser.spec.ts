@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test'
+import { test, expect, type Page, type Locator } from '@playwright/test'
 import { readFileSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import type { TimelineWorkspaceExport } from '../../../src/types/timeline-workspace'
@@ -98,6 +98,13 @@ test.describe('Self-hosted TimelineJS renderer @smoke', () => {
     await dialog.getByRole('button', { name: 'Open presentation', exact: true }).click()
     await expect(page.getByText('TimelineJS presentation loaded', { exact: true })).toBeAttached()
     const child = page.frameLocator('iframe[title="TimelineJS narrative presentation"]')
+    const expectCompleteStoryText = async (text: Locator) => {
+      await expect.poll(async () => text.evaluate(element => {
+        const bounds = element.getBoundingClientRect()
+        const viewport = element.closest('.tl-storyslider')!.getBoundingClientRect()
+        return bounds.height > 0 && bounds.top >= viewport.top - 1 && bounds.bottom <= viewport.bottom + 1
+      }), { message: 'Scheduled slide text must fit completely within its story viewport' }).toBe(true)
+    }
     for (const description of steps) {
       await child.getByRole('button', { name: 'Next slide', exact: true }).click()
       await expect(child.locator('.tl-storyslider').getByText(description, { exact: true })).toBeInViewport()
@@ -136,21 +143,30 @@ test.describe('Self-hosted TimelineJS renderer @smoke', () => {
       await page.evaluate(dark => document.documentElement.classList.toggle('dark', dark), theme === 'dark')
       await dialog.getByLabel('Default presentation date', { exact: true }).scrollIntoViewIfNeeded()
       await dialog.screenshot({ path: info.outputPath(`schedule-form-${theme}.png`), animations: 'disabled', scale: 'css' })
+      await groups[0].scrollIntoViewIfNeeded()
+      for (const label of ['Date override', 'Time override', 'Time means']) await expect(groups[0].getByLabel(label, { exact: true })).toBeInViewport()
+      await dialog.screenshot({ path: info.outputPath(`schedule-event-${theme}.png`), animations: 'disabled', scale: 'css' })
       await dialog.getByRole('button', { name: 'Open presentation', exact: true }).click()
       await expect(page.getByText('TimelineJS presentation loaded', { exact: true })).toBeAttached()
       await child.getByRole('button', { name: 'Next slide', exact: true }).click()
       await expect(child.locator('.tl-storyslider').getByText('First purchase', { exact: true })).toBeInViewport()
+      const firstSlide = child.locator('.tl-storyslider .tl-slide').filter({ has: child.getByText('First purchase', { exact: true }) })
+      await expectCompleteStoryText(firstSlide.locator('.tl-headline'))
+      await expectCompleteStoryText(firstSlide.locator('.tl-headline-date'))
       await expect(dialog.getByRole('status').filter({ hasText: /^4 shown · 0 omitted · 4 scheduled$/ })).toBeVisible()
       await dialog.screenshot({ path: info.outputPath(`schedule-slide-${theme}.png`), animations: 'disabled', scale: 'css' })
       await child.getByRole('button', { name: 'Next slide', exact: true }).click()
       await expect(child.locator('.tl-storyslider').getByText('Second purchase', { exact: true })).toBeInViewport()
       const secondSlide = child.locator('.tl-storyslider .tl-slide').filter({ has: child.getByText('Second purchase', { exact: true }) })
+      await expectCompleteStoryText(secondSlide.locator('.tl-headline'))
+      await expectCompleteStoryText(secondSlide.locator('.tl-headline-date'))
       // Long scheduled slides may scroll. Each provenance paragraph must remain
       // reachable in the actual renderer; short-slide full-bounds checks stay intact.
       for (const phrase of ['Presentation schedule:', 'Original recorded date/time:', 'Relative placement: after']) {
         const paragraph = secondSlide.locator('.tl-text-content p').filter({ hasText: phrase })
         await paragraph.scrollIntoViewIfNeeded()
         await expect(paragraph).toBeInViewport()
+        await expectCompleteStoryText(paragraph)
       }
       await expect(secondSlide).toContainText('presentation assumption')
       await expect(secondSlide).toContainText('date not recorded; time not recorded')
