@@ -13,3 +13,7 @@ The first candidate passed focused checks. Visual review found that mobile captu
 All 155 staged files were independently compared; inventory SHA256 `9ed304f065bdd6022f8e6759fa8eed73409477f2c94b42cef946f3cba298b31b`. Prebuilt deployment used `--no-bundle`. Thirty read-only checks passed at each deployment/production URL, including exact owned renderer asset bytes. Renderer assets and headers are unchanged, so no new edge-browser replay was performed. All 13 migrations and 386 catalog entries across 14 tables remain unchanged; existing secret names are preserved.
 
 Previous deployment `928c14a5-d9e7-4621-aa2f-76b7ac04fee7` reads identical data and previews the last saved/opened revision but lacks this history browser. Preserve snapshots and history. Primary checkout untouched; visual coverage is representative, not an exhaustive accessibility audit.
+
+## Subsequent deployment
+
+The [workflow consolidation release](./2026-09-12-timeline-workflow-release-receipt.md) places timeline content before setup, consolidates saved versions and links, and adds direct presentation of eligible Current edits. Existing saved history and export semantics remain intact. This receipt retains historical history-stage validation; the newer receipt records the current deployment.
