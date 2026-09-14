@@ -255,11 +255,11 @@ export function buildTimelineJSExport(snapshot: TimelineWorkspaceExport, schedul
       placementLabel = `Sequence position: ${event.placement.position}. This position is not enforced as chronology.`
     }
     const paragraphs: string[] = []
-    if (event.recordedEnd !== undefined) paragraphs.push(`<p><strong>Recorded range:</strong> ${escapeHTML(display)}. Inclusive recorded units describe uncertain extent, not a measured duration.</p>`)
-    if (intervalNotice) paragraphs.push(`<p>${escapeHTML(intervalNotice)}</p>`)
     if (event.description) paragraphs.push(`<p>${escapeHTML(event.description)}</p>`)
     if (event.whyItMatters) paragraphs.push(`<p><strong>Why it matters:</strong> ${escapeHTML(event.whyItMatters)}</p>`)
     paragraphs.push(`<p><strong>Assessment:</strong> ${escapeHTML(timelineAssessmentLabel(workspace.evidence, event))}</p>`)
+    if (event.recordedEnd !== undefined) paragraphs.push(`<p><strong>Recorded range:</strong> ${escapeHTML(display)}. Inclusive recorded units describe uncertain extent, not a measured duration.</p>`)
+    if (intervalNotice) paragraphs.push(`<p>${escapeHTML(intervalNotice)}</p>`)
     if (scheduled) {
       paragraphs.push(`<p><strong>Presentation schedule:</strong> ${escapeHTML(display)}. This does not change the recorded event.</p>`)
       paragraphs.push(`<p><strong>Original recorded date/time:</strong> ${escapeHTML(event.eventDate || 'date not recorded')}; ${escapeHTML(event.eventTime || 'time not recorded')}.</p>`)

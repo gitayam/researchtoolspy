@@ -79,6 +79,7 @@ test.describe('Recorded interval presentations @smoke', () => {
       await expect(child.locator('#slide-position')).toHaveText('Slide 2 of 3')
       const slide = child.locator('.tl-storyslider .tl-slide').filter({ has: child.locator('.tl-headline').filter({ hasText: /^Library repair session$/ }) })
       await expect(slide.locator('.tl-headline')).toBeInViewport()
+      await expect(slide.getByText('A synthetic library record.', { exact: true })).toBeInViewport()
       await expect(slide.locator('.tl-headline-date')).toContainText('09:00:05')
       await expect(slide.locator('.tl-headline-date')).toContainText('17:30:59')
       for (const selector of ['.tl-headline-date', '.tl-headline']) {
