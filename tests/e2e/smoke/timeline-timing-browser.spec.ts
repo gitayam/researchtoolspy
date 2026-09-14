@@ -26,6 +26,7 @@ async function importWorkspace(page: Page, value: TimelineWorkspaceExport) {
   const summary = page.locator('summary').filter({ hasText: /^Start or import a timeline$/ })
   if (await summary.locator('..').getAttribute('open') === null) await summary.click()
   await page.getByLabel('Import timeline JSON').setInputFiles({ name: 'timing.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(value)) })
+  await expect(summary.locator('..')).not.toHaveAttribute('open', '')
 }
 async function start(page: Page, value = fixture()) {
   await page.route('http://127.0.0.1:5189/api/**', route => route.fulfill({ status: 200, json: { owned: [], member: [] } }))
@@ -89,6 +90,7 @@ test.describe('Recorded timeline timing review @smoke', () => {
     expect(changed.analystWorkspace.events.filter(event => event.id !== 'repairs')).toEqual(original.analystWorkspace.events.filter(event => event.id !== 'repairs'))
     await importWorkspace(page, changed)
     if (await panel.getAttribute('open') === null) await summary.click()
+    await expect(panel).toHaveAttribute('open', '')
     await expect(row('Repairs recorded later')).toContainText('Dates agree')
     await expect(row('Monthly preparation account')).toContainText('Order unresolved')
     expect((await exportWorkspace(page)).analystWorkspace).toEqual(changed.analystWorkspace)

@@ -17,6 +17,7 @@ async function imported(page: Page, value: TimelineWorkspaceExport) {
   const summary = page.locator('summary').filter({ hasText: /^Start or import a timeline$/ })
   if (await summary.locator('..').getAttribute('open') === null) await summary.click()
   await page.getByLabel('Import timeline JSON').setInputFiles({ name: 'overlap.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(value)) })
+  await expect(summary.locator('..')).not.toHaveAttribute('open', '')
   await expect(page.getByRole('button', { name: 'Export JSON', exact: true })).toBeVisible()
 }
 async function start(page: Page, value: TimelineWorkspaceExport) {
