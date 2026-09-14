@@ -28,6 +28,7 @@ const migrationNames = [
   '0012_timeline_workspace_snapshots.sql',
   '0013_timeline_service_scopes.sql',
   '0014_timeline_presentations.sql',
+  '0015_timeline_workspace_intervals.sql',
 ] as const
 const migrations = migrationNames.map(name => {
   const bytes = readFileSync(new URL(`../../../schema/managed-migrations/${name}`, import.meta.url))
@@ -150,7 +151,7 @@ async function execute(db: D1Database, sql: string) {
 async function apply(db: D1Database, start: number, end: number) {
   for (const migration of migrations.slice(start, end)) {
     try {
-      if (['0012_timeline_workspace_snapshots.sql', '0013_timeline_service_scopes.sql', '0014_timeline_presentations.sql'].includes(migration.name)) await db.batch(statements(migration.sql).map(sql => db.prepare(sql)))
+      if (['0012_timeline_workspace_snapshots.sql', '0013_timeline_service_scopes.sql', '0014_timeline_presentations.sql', '0015_timeline_workspace_intervals.sql'].includes(migration.name)) await db.batch(statements(migration.sql).map(sql => db.prepare(sql)))
       else await execute(db, migration.sql)
     }
     catch (error) { throw new Error(`Managed migration ${migration.name} failed: ${error instanceof Error ? error.message : String(error)}`) }
@@ -223,7 +224,7 @@ test.describe('timeline full managed-chain migration rehearsal @smoke', () => {
       expect((await db.prepare("SELECT name FROM sqlite_schema WHERE type='table' AND name LIKE 'timeline_%'").all()).results).toHaveLength(10)
       expect(await db.prepare("SELECT name FROM sqlite_schema WHERE type='table' AND name='timeline_presentations'").first()).toEqual({ name: 'timeline_presentations' })
       expect((await db.prepare('PRAGMA foreign_key_check').all()).results).toEqual([])
-      await attachReceipt(testInfo, 'fresh-synthetic-prerequisites-through-0014')
+      await attachReceipt(testInfo, 'fresh-synthetic-prerequisites-through-0015')
     } finally { await mf.dispose() }
   })
 
@@ -264,7 +265,7 @@ test.describe('timeline full managed-chain migration rehearsal @smoke', () => {
       expect((await db.prepare('PRAGMA foreign_key_check').all()).results).toEqual([])
       await expect(db.prepare("UPDATE users SET email='changed@example.test' WHERE id=73").run()).rejects.toThrow(/invalid integration service principal update/)
       await expect(db.prepare("INSERT INTO workspace_members VALUES ('invalid-service-member','human-workspace',73,'VIEWER')").run()).rejects.toThrow(/cannot be a workspace member/)
-      await attachReceipt(testInfo, 'seeded-synthetic-0010-prefix-to-0014')
+      await attachReceipt(testInfo, 'seeded-synthetic-0010-prefix-to-0015')
     } finally { await mf.dispose() }
   })
 })

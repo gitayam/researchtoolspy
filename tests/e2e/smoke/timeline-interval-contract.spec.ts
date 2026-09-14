@@ -56,14 +56,14 @@ test.describe('Local recorded interval contracts @smoke', () => {
     expect(reviewTimelineTiming([{ ...ranged, recordedEnd: { date: '2026-09-11' } }, anchor])[0]).toMatchObject({ status: 'consistent' })
   })
 
-  test('private preparation and server v1 kind reject local v2 without making requests', () => {
+  test('private preparation supports v2 while rejecting a mismatched v1 kind without making requests', () => {
     const local = snapshot([event('ranged', { recordedEnd: { date: '2026-09-12' } })])
     const originalFetch = globalThis.fetch; let calls = 0
     globalThis.fetch = (async () => { calls++; throw new Error('Unexpected network') }) as typeof fetch
     try {
-      expect(() => prepareTimelineSave(local)).toThrow()
+      expect(JSON.parse(prepareTimelineSave(local).body).changes[0]).toMatchObject({ kind: 'timeline-workspace.v2', payload: local })
       expect(validArtifactPayload('timeline-workspace.v1', local)).toBe(false)
-      expect(validArtifactPayload('timeline-workspace.v2', local)).toBe(false)
+      expect(validArtifactPayload('timeline-workspace.v2', local)).toBe(true)
       expect(validArtifactPayload('timeline-workspace.v1', snapshot())).toBe(true)
       expect(calls).toBe(0)
     } finally { globalThis.fetch = originalFetch }

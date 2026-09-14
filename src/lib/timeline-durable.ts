@@ -37,9 +37,8 @@ export const snapshotIdentity = (snapshot: TimelineWorkspaceExport) => canonical
 
 export function prepareTimelineSave(snapshot: TimelineWorkspaceExport, artifact?: DurableDocument): SaveAttempt {
   const decoded = decodeTimelineWorkspace(JSON.stringify(snapshot))
-  if (decoded.schemaVersion !== 'timeline-workspace.v1') throw new DurableTimelineError('Recorded intervals are supported in local drafts and JSON backups. Export JSON to keep them; private workspace saving does not yet support intervals. Nothing has been uploaded.')
   if (new TextEncoder().encode(canonicalJson(decoded)).byteLength > SNAPSHOT_BYTES) throw new DurableTimelineError('Workspace saving supports timelines up to 60 KiB. Keep editing locally or export JSON; nothing has been uploaded.')
-  const body = JSON.stringify({ schemaVersion: 'timeline-artifact-commit.v1', changes: [{ op: 'put', objectId: OBJECT_ID, kind: 'timeline-workspace.v1', payload: decoded }] })
+  const body = JSON.stringify({ schemaVersion: 'timeline-artifact-commit.v1', changes: [{ op: 'put', objectId: OBJECT_ID, kind: decoded.schemaVersion, payload: decoded }] })
   if (new TextEncoder().encode(body).byteLength > 65536) throw new DurableTimelineError('This timeline is too large to save. Export JSON to keep the complete workspace.')
   const title = decoded.analystWorkspace.narrative?.title || (decoded.source.schemaVersion === 'timeline-manual.v1' ? decoded.source.title : decoded.source.article.title)
   if (!title?.trim() || title.length > 200) throw new DurableTimelineError('Use a timeline title of 1–200 characters before saving.')
@@ -113,7 +112,7 @@ async function readBrowserSnapshot(artifactId: string, revision: { revisionId: s
   const page = objects.body as { schemaVersion?: unknown; artifactId?: unknown; revisionId?: unknown; nextCursor?: unknown; objects?: Array<Record<string, unknown>> }
   if (!page || !exactKeys(page, ['schemaVersion', 'artifactId', 'revisionId', 'nextCursor', 'objects']) || page.schemaVersion !== 'timeline-object-page.v1' || page.artifactId !== artifactId || page.revisionId !== revision.revisionId || objects.etag !== `"${revision.revisionId}"` || page.nextCursor !== null || !Array.isArray(page.objects) || page.objects.length !== 1) throw new DurableTimelineError('The saved timeline returned an incomplete or mismatched revision.')
   const item = page.objects[0]
-  if (!item || item.objectId !== OBJECT_ID || item.kind !== 'timeline-workspace.v1' || item.tombstone !== false || !isObjectId(item.versionId)) throw new DurableTimelineError('This artifact does not contain a supported browser timeline.')
+  if (!item || item.objectId !== OBJECT_ID || (item.kind !== 'timeline-workspace.v1' && item.kind !== 'timeline-workspace.v2') || item.tombstone !== false || !isObjectId(item.versionId)) throw new DurableTimelineError('This artifact does not contain a supported browser timeline.')
   const snapshot = decodeTimelineWorkspace(JSON.stringify(item.payload))
   if (snapshot.schemaVersion !== item.kind) throw new DurableTimelineError('The saved timeline format does not match its recorded object kind.')
   if (new TextEncoder().encode(canonicalJson(snapshot)).byteLength > SNAPSHOT_BYTES || await hashContent({ schemaVersion: item.kind, tombstone: false, payload: item.payload }) !== item.contentHash) throw new DurableTimelineError('The saved timeline failed its content check.')

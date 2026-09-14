@@ -1508,7 +1508,7 @@ function TimelineWorkspace({
                       <Input id="timeline-event-end-time" type="time" step={1} value={eventEditor.endTime} onChange={event => setEventEditor({ ...eventEditor, endTime: event.target.value })} />
                     </div>
                   </div>
-                  <p className="text-xs leading-relaxed text-muted-foreground">End dates include their entire recorded unit. Overlapping endpoint precision is allowed as an uncertain extent, not a certain duration. Local drafts and JSON backups retain intervals; TimelineJS presentations show recorded endpoints. Private workspace saving is not yet supported for intervals.</p>
+                  <p className="text-xs leading-relaxed text-muted-foreground">End dates include their entire recorded unit. Overlapping endpoint precision is allowed as an uncertain extent, not a certain duration. Local drafts, JSON backups and saved private revisions retain intervals; TimelineJS presentations show recorded endpoints.</p>
                 </>}
               </div>
               <div className="space-y-2">

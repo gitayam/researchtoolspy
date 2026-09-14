@@ -89,19 +89,34 @@ async function collectManifest(db, tableNames) {
 async function catalog(db) {
   return (await db.prepare("SELECT type,name,tbl_name,sql FROM sqlite_schema WHERE name NOT LIKE 'sqlite_%' ORDER BY type,name").all()).results
 }
-async function rehearseMigration(db, migrationStatements, migrationName) {
+async function preservedRows(db, tableNames) {
+  const result = {}
+  for (const table of tableNames) result[table] = (await db.prepare(`SELECT * FROM ${quote(table)}`).all()).results.sort((a, b) => canonical(a).localeCompare(canonical(b)))
+  return result
+}
+async function rehearseMigration(db, migrationStatements, migrationName, tableNames) {
   const before = await catalog(db)
   const trackerBefore = (await db.prepare('SELECT * FROM d1_migrations ORDER BY id').all()).results
-  const usersBefore = (await db.prepare('SELECT * FROM users ORDER BY id').all()).results
+  const rowsBefore = await preservedRows(db, tableNames)
   const batch = () => [...migrationStatements.map(({ sql }) => db.prepare(sql)), db.prepare('INSERT INTO d1_migrations(name) VALUES (?)').bind(migrationName)]
   // Fail after all DDL and tracker insertion, proving their shared transaction rolls back.
   await assert.rejects(db.batch([...batch(), db.prepare("SELECT json('deliberately invalid migration rehearsal JSON')")]), /malformed JSON/i)
   assert.deepEqual(await catalog(db), before, 'Failed migration retained catalog objects')
   assert.deepEqual((await db.prepare('SELECT * FROM d1_migrations ORDER BY id').all()).results, trackerBefore, 'Failed migration retained tracker row')
-  assert.deepEqual((await db.prepare('SELECT * FROM users ORDER BY id').all()).results, usersBefore, 'Failed migration changed synthetic users')
+  assert.deepEqual(await preservedRows(db, tableNames), rowsBefore, 'Failed migration changed immutable history or synthetic rows')
   await db.batch(batch())
-  assert.deepEqual((await db.prepare('SELECT * FROM users ORDER BY id').all()).results, usersBefore, 'Migration changed synthetic users')
+  assert.deepEqual(await preservedRows(db, tableNames), rowsBefore, 'Migration rewrote immutable history or synthetic rows')
   assert.deepEqual((await db.prepare('PRAGMA foreign_key_check').all()).results, [])
+}
+async function request(path, { method = 'GET', body, key, etag, user = 'owner', extraHeaders = {}, worker = mf } = {}) {
+  const response = await worker.dispatchFetch(`https://researchtools.example${path}`, {
+    method, headers: { ...(user ? { 'X-User-Hash': token[user] } : {}), 'Content-Type': 'application/json', ...(key ? { 'Idempotency-Key': key } : {}), ...(etag ? { 'If-Match': etag } : {}), ...extraHeaders },
+    ...(body === undefined ? {} : { body: JSON.stringify(body) }), redirect: 'manual',
+  })
+  const text = await response.text()
+  let json
+  try { json = JSON.parse(text) } catch { /* Caller checks status and representation. */ }
+  return { status: response.status, headers: response.headers, text, json }
 }
 async function seedRow(db, table, values) {
   const columns = (await db.prepare(`PRAGMA table_info(${quote(table)})`).all()).results
@@ -137,7 +152,7 @@ function assertArtifact(body) {
 }
 async function save(receipt) { await writeFile(manifestPath, `${JSON.stringify(receipt, null, 2)}\n`, { mode: 0o600 }) }
 
-let mf, receipt, stage = 'read-inputs', outboundAttempts = 0
+let mf, referenceMf, receipt, stage = 'read-inputs', outboundAttempts = 0
 try {
   await mkdir(outputDirectory, { recursive: true, mode: 0o700 })
   const schemaBytes = await inputFile('TIMELINE_RELEASE_SCHEMA', 32 * 1024 * 1024)
@@ -148,31 +163,36 @@ try {
   const localNames = (await readdir(migrationDirectory)).filter(name => /^\d+.*\.sql$/.test(name)).sort()
   assert(applied.every(name => localNames.includes(name)), 'Production inventory has unknown migration names')
   const pending = localNames.filter(name => !applied.includes(name))
-  const migrationName = '0014_timeline_presentations.sql'
-  assert.equal(localNames.length, 14, 'Release must contain exactly the managed 0001–0014 chain')
+  const migrationName = '0015_timeline_workspace_intervals.sql'
+  assert.equal(localNames.length, 15, 'Release must contain exactly the managed 0001–0015 chain')
   assert(localNames.every((name, index) => name.startsWith(`${String(index + 1).padStart(4, '0')}_`)), 'Managed migration prefix is not contiguous')
   assert.equal(localNames.at(-1), migrationName)
   const alreadyApplied = applied.includes(migrationName)
-  assert.deepEqual(applied.slice().sort(), alreadyApplied ? localNames : localNames.slice(0, -1), 'Production inventory must be the exact 0013 or 0014 prefix')
-  assert.deepEqual(pending, alreadyApplied ? [] : [migrationName], 'Only the presentation migration may be pending')
+  assert.deepEqual(applied.slice().sort(), alreadyApplied ? localNames : localNames.slice(0, -1), 'Production inventory must be the exact 0014 or 0015 prefix')
+  assert.deepEqual(pending, alreadyApplied ? [] : [migrationName], 'Only the durable interval migration may be pending')
   const migrationBytes = await readFile(resolve(migrationDirectory, migrationName))
   const migrationStatements = statements(migrationBytes.toString('utf8'))
-  assert.equal(migrationStatements.length, 5, '0014 must contain one table, one index and three triggers')
+  assert.equal(migrationStatements.length, 19, '0015 must retain the reviewed atomic two-table reconstruction and eight guards')
+  const previousMigrationBytes = await readFile(resolve(migrationDirectory, '0012_timeline_workspace_snapshots.sql'))
+  const changedDefinitions = new Set(['timeline_objects', 'timeline_object_versions', 'timeline_version_kind'])
+  const definitionName = sql => /\bCREATE\s+(?:TABLE|TRIGGER)\s+(timeline_[a-z_]+)\b/i.exec(sql)?.[1]
+  const priorDefinitions = new Map(statements(previousMigrationBytes.toString('utf8')).filter(item => changedDefinitions.has(definitionName(item.sql))).map(item => [definitionName(item.sql), item.sql]))
+  assert.equal(priorDefinitions.size, 3)
   const workerBytes = await readFile(workerPath)
   const indexBytes = await readFile(resolve(dist, 'index.html'))
   const expectedTables = [...(await readFile(resolve(migrationDirectory, '0011_timeline_foundation.sql'), 'utf8')).matchAll(/CREATE TABLE (timeline_[a-z_]+)/g)].map(match => match[1]).sort()
-  expectedTables.push('integration_clients', 'integration_client_tokens', 'integration_client_token_scopes', 'content_analysis', 'content_chunks'); expectedTables.sort()
-  assert.equal(expectedTables.length, 14, 'Unexpected affected table inventory')
+  expectedTables.push('integration_clients', 'integration_client_tokens', 'integration_client_token_scopes', 'content_analysis', 'content_chunks', 'timeline_presentations'); expectedTables.sort()
+  assert.equal(expectedTables.length, 15, 'Unexpected affected table inventory')
   receipt = {
     schemaVersion: 'timeline-release-schema-manifest.v1',
     schemaOnly: true,
     schemaSha256: sha256(schemaBytes), appliedInventorySha256: sha256(inventoryBytes),
     appliedMigrationNames: applied.slice().sort(), pendingMigrations: pending,
-    migration: { name: migrationName, sha256: sha256(migrationBytes), bytes: migrationBytes.length, mode: alreadyApplied ? 'already-applied' : 'production-prefix-upgrade', appliedDuringRehearsal: [], rollback: 'pending' },
+    migration: { name: migrationName, sha256: sha256(migrationBytes), bytes: migrationBytes.length, mode: alreadyApplied ? 'already-applied' : 'production-prefix-upgrade', appliedDuringRehearsal: [], rollback: 'pending', referencePriorDefinitions: { migration: '0012_timeline_workspace_snapshots.sql', sha256: sha256(previousMigrationBytes), names: [...changedDefinitions] } },
     compiledWorker: { entrypoint: 'dist/_worker.js/index.js', sha256: sha256(workerBytes) },
     staticIndexSha256: sha256(indexBytes), compatibilityDate: '2025-09-30', compatibilityFlags: ['nodejs_compat'],
     importedStatements: 0, skippedSchemaDirectives: [], tables: [],
-    schemaRehearsal: 'pending', compiledHttpGate: 'pending', sharingHttpGate: 'pending', staticGate: 'pending', checks: [],
+    schemaRehearsal: 'pending', compiledHttpGate: 'pending', sharingHttpGate: 'pending', durableIntervalHttpGate: 'pending', staticGate: 'pending', checks: [],
     limitation: 'Production schema only, seeded synthetic principals; no production rows, credentials, network, application deployment, or production mutation. ASSETS is a confined local filesystem stand-in, not the Cloudflare edge asset service.',
   }
   const staticRoot = await realpath(dist)
@@ -190,80 +210,157 @@ try {
     return new MFResponse(request.method === 'HEAD' ? null : data, { headers: { 'Content-Type': mime } })
   }
   stage = 'start-compiled-worker'
-  mf = new Miniflare({
+  const workerOptions = {
     modules: true, scriptPath: workerPath, modulesRoot: dirname(workerPath),
     compatibilityDate: receipt.compatibilityDate, compatibilityFlags: receipt.compatibilityFlags,
-    d1Databases: { DB: 'timeline-production-schema-rehearsal', MIGRATION_REFERENCE: 'timeline-migration-reference' },
     serviceBindings: { ASSETS: staticService },
     outboundService: async () => { outboundAttempts++; return new MFResponse('External network disabled in release rehearsal', { status: 502 }) },
     bindings: { ENVIRONMENT: 'production', COMMUNITY_INTEGRATIONS_ENABLED: 'true', INTEGRATION_TOKEN_HASH_KEY: 'synthetic-release-hmac-key-not-production-0001', ENABLE_AI_FEATURES: 'false' },
-  })
+  }
+  mf = new Miniflare({ ...workerOptions, d1Databases: { DB: 'timeline-production-schema-rehearsal' } })
+  referenceMf = new Miniflare({ ...workerOptions, d1Databases: { DB: 'timeline-migration-reference' } })
   const db = await mf.getD1Database('DB')
+  const reference = await referenceMf.getD1Database('DB')
   stage = 'import-production-schema'
-  for (const statement of statements(schemaBytes.toString('utf8'))) {
+  const importSchema = async (target, restorePriorDefinitions) => {
+   const restored = new Set()
+   for (const statement of statements(schemaBytes.toString('utf8'))) {
     const [first, second] = statement.words
-    if (['BEGIN', 'COMMIT', 'END'].includes(first)) { receipt.skippedSchemaDirectives.push(first); continue }
-    if (first === 'PRAGMA' && ['FOREIGN_KEYS', 'DEFER_FOREIGN_KEYS'].includes(second)) { receipt.skippedSchemaDirectives.push(`${first} ${second}`); continue }
+    if (['BEGIN', 'COMMIT', 'END'].includes(first)) { if (!restorePriorDefinitions) receipt.skippedSchemaDirectives.push(first); continue }
+    if (first === 'PRAGMA' && ['FOREIGN_KEYS', 'DEFER_FOREIGN_KEYS'].includes(second)) { if (!restorePriorDefinitions) receipt.skippedSchemaDirectives.push(`${first} ${second}`); continue }
     // Cloudflare's schema-only export resets empty AUTOINCREMENT metadata.
     // Skip only this exact directive; never admit arbitrary top-level DML.
-    if (/^DELETE FROM sqlite_sequence;?$/.test(statement.sql)) { receipt.skippedSchemaDirectives.push('DELETE FROM sqlite_sequence'); continue }
+    if (/^DELETE FROM sqlite_sequence;?$/.test(statement.sql)) { if (!restorePriorDefinitions) receipt.skippedSchemaDirectives.push('DELETE FROM sqlite_sequence'); continue }
     // A schema export must not contain rows, DELETEs or arbitrary executable SQL.
     assert(first === 'CREATE' && ['TABLE', 'INDEX', 'UNIQUE', 'TRIGGER', 'VIEW', 'VIRTUAL'].includes(second), `Schema-only input contains unsupported ${first} ${second ?? ''}`)
-    await db.prepare(statement.sql).run()
-    receipt.importedStatements++
+    const name = definitionName(statement.sql)
+    const replace = restorePriorDefinitions && priorDefinitions.has(name)
+    if (replace) restored.add(name)
+    await target.prepare(replace ? priorDefinitions.get(name) : statement.sql).run()
+    if (!restorePriorDefinitions) receipt.importedStatements++
+   }
+   if (restorePriorDefinitions) assert.equal(restored.size, 3, 'Export is missing one of the exact reconstruction seams')
   }
-  assert.equal((await db.prepare("SELECT count(*) AS n FROM sqlite_schema WHERE type='table' AND name LIKE 'timeline_%'").first()).n, alreadyApplied ? 10 : 9, 'Export and applied migration inventory disagree')
-  const legacyTables = await collectManifest(db, expectedTables)
-  const allTableNames = [...expectedTables, 'timeline_presentations'].sort()
-  const priorTables = await collectManifest(db, alreadyApplied ? allTableNames : expectedTables)
+  await importSchema(db, false)
+  // An isolated copy of the actual export substitutes ONLY the two old table
+  // definitions and old kind trigger from actual 0012 bytes. This supplies a
+  // 0014 reference even when the provided inventory already contains 0015.
+  await importSchema(reference, true)
+  assert.equal((await db.prepare("SELECT count(*) AS n FROM sqlite_schema WHERE type='table' AND name LIKE 'timeline_%'").first()).n, 10, 'Export must contain exactly the ten deployed timeline tables')
+  const allTableNames = expectedTables
+  const priorTables = await collectManifest(db, allTableNames)
   receipt.priorCatalogSha256 = sha256(canonical(priorTables))
   receipt.priorTables = priorTables
-  stage = 'rehearse-presentation-migration'
+  stage = 'rehearse-workspace-interval-migration'
   assert.deepEqual((await db.prepare('PRAGMA foreign_key_check').all()).results, [], 'Imported schema has foreign-key violations')
   // Schema-only exports have no tracker data: seed only the separately captured inventory.
   assert.equal((await db.prepare('SELECT count(*) AS n FROM d1_migrations').first()).n, 0)
   await db.batch(applied.slice().sort().map(name => db.prepare('INSERT INTO d1_migrations(name) VALUES (?)').bind(name)))
   await seed(db)
+  await seed(reference)
+  await reference.batch(localNames.slice(0, -1).map(name => reference.prepare('INSERT INTO d1_migrations(name) VALUES (?)').bind(name)))
+  const migrationSnapshot = { schemaVersion: 'timeline-workspace.v1', exportedAt: '2026-09-14T00:00:00.000Z', source: { schemaVersion: 'timeline-manual.v1', title: 'Retained before reconstruction' }, analystWorkspace: { mode: 'robust', events: [{ id: 'migration:event.1', title: 'Original single date', description: 'Preserve complete prior payload', eventDate: '2026-09-14', datePrecision: 'day', eventTime: '10:15', category: 'event', importance: 'normal', origin: 'analyst', assessment: 'unreviewed', analystNote: '', modified: false }], questions: [], hypotheses: [], narrative: { title: 'Migration history', framing: '', question: '', intendedUse: '', scope: '', timezone: '', dataThrough: '', chapters: [] } } }
+  const migrationCreate = await request('/api/timelines', { method: 'POST', key: 'migration-history-create01', body: { schemaVersion: 'timeline-artifact-create.v1', workspaceId: 'release-workspace-a', title: 'Immutable pre-migration history' } })
+  assert.equal(migrationCreate.status, 201)
+  const migrationPath = `/api/timelines/${migrationCreate.json.artifactId}`
+  const migrationCommit = { method: 'PATCH', key: 'migration-history-commit01', etag: migrationCreate.headers.get('etag'), body: { schemaVersion: 'timeline-artifact-commit.v1', changes: [{ op: 'put', objectId: 'browser-workspace', kind: 'timeline-workspace.v1', payload: migrationSnapshot }] } }
+  const migrationSaved = await request(migrationPath, migrationCommit)
+  assert.equal(migrationSaved.status, 200)
+  const migrationPinnedPath = `${migrationPath}/objects?revisionId=${migrationSaved.json.revisionId}`
+  const migrationPinned = await request(migrationPinnedPath)
+  const migrationRevision = await request(`${migrationPath}/revisions/${migrationSaved.json.revisionId}`)
+  assert.equal(migrationPinned.status, 200); assert.equal(migrationRevision.status, 200)
+  assert.deepEqual(migrationPinned.json.objects[0].payload, migrationSnapshot)
+  assert.equal(migrationPinned.json.objects[0].contentHash, sha256(canonical({ schemaVersion: 'timeline-workspace.v1', tombstone: false, payload: migrationSnapshot })))
+  assert.equal(sha256(canonical(migrationRevision.json.manifest)), migrationSaved.json.contentHash)
+  const rowTables = [...allTableNames, 'users', 'workspaces', 'workspace_members']
+  const originalRows = await preservedRows(db, rowTables)
+  // Seed the isolated prefix through the compiled API too: directly copying
+  // published rows would bypass the history triggers' insertion-order contract.
+  const referenceCreate = await request('/api/timelines', { worker: referenceMf, method: 'POST', key: 'migration-history-create01', body: { schemaVersion: 'timeline-artifact-create.v1', workspaceId: 'release-workspace-a', title: 'Immutable pre-migration history' } })
+  assert.equal(referenceCreate.status, 201)
+  const referenceSaved = await request(`/api/timelines/${referenceCreate.json.artifactId}`, { ...migrationCommit, worker: referenceMf, etag: referenceCreate.headers.get('etag') })
+  assert.equal(referenceSaved.status, 200)
   const catalogBefore = await catalog(db)
-  const reference = await mf.getD1Database('MIGRATION_REFERENCE')
-  await reference.prepare('CREATE TABLE users(id INTEGER PRIMARY KEY, is_active INTEGER, role TEXT)').run()
-  await reference.prepare('CREATE TABLE d1_migrations(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT UNIQUE,applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL)').run()
-  await rehearseMigration(reference, migrationStatements, migrationName)
-  const expectedPresentation = (await collectManifest(reference, ['timeline_presentations']))[0]
-  assert.deepEqual(expectedPresentation.columns.map(column => column.name), ['token','owner_id','request_key','payload_hash','payload','created_at','revoked_at'])
-  assert.deepEqual(expectedPresentation.triggers.map(trigger => trigger.name), ['timeline_presentations_delete_guard','timeline_presentations_insert_guard','timeline_presentations_update_guard'])
-  assert.deepEqual(expectedPresentation.indexes.map(index => index.name), ['sqlite_autoindex_timeline_presentations_1','sqlite_autoindex_timeline_presentations_2','timeline_presentations_owner_active'])
+  const referenceBefore = await catalog(reference)
+  const allowedChange = row => (row.type === 'table' && ['timeline_objects','timeline_object_versions'].includes(row.name)) || (row.type === 'trigger' && row.name === 'timeline_version_kind')
+  assert.deepEqual(catalogBefore.filter(row => !allowedChange(row)), referenceBefore.filter(row => !allowedChange(row)), 'Reference import changed unrelated production catalog')
+  if (!alreadyApplied) assert.deepEqual(catalogBefore, referenceBefore, 'Provided 0014 schema differs from accepted prior kind definitions')
+  await rehearseMigration(reference, migrationStatements, migrationName, rowTables)
   if (!alreadyApplied) {
-    await rehearseMigration(db, migrationStatements, migrationName)
+    await rehearseMigration(db, migrationStatements, migrationName, rowTables)
     receipt.migration.appliedDuringRehearsal = [migrationName]
   }
   receipt.migration.rollback = alreadyApplied ? 'passed-on-isolated-reference; production-schema-already-applied' : 'passed-on-production-schema-prefix-and-isolated-reference'
-  assert.deepEqual((await collectManifest(db, ['timeline_presentations']))[0], expectedPresentation, 'Presentation schema differs from actual 0014 bytes')
   const catalogAfter = await catalog(db)
-  assert.deepEqual(catalogAfter.filter(row => row.tbl_name !== 'timeline_presentations'), catalogBefore.filter(row => row.tbl_name !== 'timeline_presentations'), '0014 changed an unrelated catalog object')
-  assert.deepEqual(catalogAfter.filter(row => row.tbl_name === 'timeline_presentations'), (await catalog(reference)).filter(row => row.tbl_name === 'timeline_presentations'), 'Unexpected presentation catalog object')
-  assert.deepEqual(await collectManifest(db, expectedTables), legacyTables, '0014 changed the existing 14-table catalog')
+  assert.deepEqual(catalogAfter.filter(row => !allowedChange(row)), catalogBefore.filter(row => !allowedChange(row)), '0015 changed an unrelated catalog definition')
+  assert.deepEqual(catalogAfter, await catalog(reference), '0015 result differs from actual SQL reference; unexpected objects or backups remain')
+  assert.deepEqual(await preservedRows(db, rowTables), originalRows, '0015 changed original rows or immutable history bytes')
   receipt.tables = await collectManifest(db, allTableNames)
+  for (const table of receipt.tables) {
+    const before = priorTables.find(item => item.name === table.name)
+    assert.deepEqual(table.columns, before.columns); assert.deepEqual(table.foreignKeys, before.foreignKeys); assert.deepEqual(table.indexes, before.indexes)
+  }
+  assert.equal((await request(migrationPinnedPath)).text, migrationPinned.text)
+  assert.equal((await request(`${migrationPath}/revisions/${migrationSaved.json.revisionId}`)).text, migrationRevision.text)
+  assert.equal((await request(migrationPath, migrationCommit)).text, migrationSaved.text, '0015 changed persisted idempotent replay')
+  receipt.migration.preservedRowsSha256 = sha256(canonical(originalRows))
+  receipt.migration.preservedPinnedResponseSha256 = sha256(migrationPinned.text)
+  receipt.migration.preservedReplayResponseSha256 = sha256(migrationSaved.text)
   receipt.migration.postRehearsalAppliedNames = (await db.prepare('SELECT name FROM d1_migrations ORDER BY name').all()).results.map(row => row.name)
   assert.deepEqual(receipt.migration.postRehearsalAppliedNames, localNames)
   receipt.catalogPreservation = 'passed'
   assert(receipt.tables.every(table => table.columns.length && table.foreignKeys.length), 'Incomplete affected-schema manifest')
   receipt.schemaRehearsal = 'passed'
-  receipt.checks.push('schema-only export imported; captured migration inventory seeded separately', 'actual 0014 bytes and tracker atomic rollback/retry rehearsed; exact already-applied mode supported', 'existing 14 table catalogs preserved; only exact presentation table/index/three triggers added', 'foreign_key_check clean', 'all 15 affected columns/foreign keys/indexes/triggers recorded')
+  receipt.checks.push('schema-only export imported; captured migration inventory seeded separately', alreadyApplied ? 'actual 0015 bytes and tracker atomic rollback/retry on populated isolated 0014 reference; provided already-applied schema matched without reapplying' : 'actual 0015 bytes and tracker atomic rollback/retry on populated production-prefix and isolated actual-schema reference', 'only two kind CHECK definitions and workspace-family trigger may change; all 15 table columns/foreign keys/indexes and unrelated catalog preserved', 'preexisting v1 payload/revision/manifest/replay bytes preserved', 'foreign_key_check clean', 'all 15 affected columns/foreign keys/indexes/triggers recorded')
   await save(receipt)
 
   stage = 'seed-synthetic-humans'
-  const request = async (path, { method = 'GET', body, key, etag, user = 'owner', extraHeaders = {} } = {}) => {
-    const response = await mf.dispatchFetch(`https://researchtools.example${path}`, {
-      method, headers: { ...(user ? { 'X-User-Hash': token[user] } : {}), 'Content-Type': 'application/json', ...(key ? { 'Idempotency-Key': key } : {}), ...(etag ? { 'If-Match': etag } : {}), ...extraHeaders },
-      ...(body === undefined ? {} : { body: JSON.stringify(body) }), redirect: 'manual',
-    })
-    const text = await response.text()
-    let json
-    try { json = JSON.parse(text) } catch { /* Static or incorrectly routed response; caller asserts. */ }
-    return { status: response.status, headers: response.headers, text, json }
-  }
   const error = (result, status, code) => { assert.equal(result.status, status); assert.equal(result.json?.schemaVersion, 'timeline-artifact-error.v1'); assert.equal(result.json.error.code, code); assert.equal(typeof result.json.error.retryable, 'boolean'); assert(!/INSERT|SELECT|SQLITE|D1_ERROR/.test(result.text), 'Internal SQL leaked') }
+  const exerciseWorkspaceFamily = async (path, initial, original, send, keyPrefix) => {
+    const interval = structuredClone(original)
+    interval.schemaVersion = 'timeline-workspace.v2'
+    Object.assign(interval.analystWorkspace.events[0], { eventDate: '2026-09-14', datePrecision: 'day', eventTime: '10:15:30', recordedEnd: { date: '2026-09-14', precision: 'day', time: '11:45:59' } })
+    const bodyFor = value => ({ schemaVersion: 'timeline-artifact-commit.v1', changes: [{ op: 'put', objectId: 'browser-workspace', kind: value.schemaVersion, payload: value }] })
+    const options = { method: 'PATCH', key: `${keyPrefix}-v2`, etag: initial.headers.get('etag'), body: bodyFor(interval) }
+    const saved = await send(path, options)
+    assert.equal(saved.status, 200); assert.equal(saved.json.sequence, initial.json.sequence + 1)
+    const single = await send(path, { method: 'PATCH', key: `${keyPrefix}-v1`, etag: saved.headers.get('etag'), body: bodyFor(original) })
+    assert.equal(single.status, 200); assert.equal(single.json.sequence, saved.json.sequence + 1)
+    const rows = []
+    for (const [version, payload, parent] of [[initial, original, null], [saved, interval, initial], [single, original, saved]]) {
+      const objects = await send(`${path}/objects?revisionId=${version.json.revisionId}`)
+      const revision = await send(`${path}/revisions/${version.json.revisionId}`)
+      assert.equal(objects.status, 200); assert.equal(revision.status, 200)
+      assert.equal(objects.json.objects.length, 1)
+      const object = objects.json.objects[0]
+      assert.equal(object.objectId, 'browser-workspace'); assert.equal(object.kind, payload.schemaVersion)
+      assert.deepEqual(object.payload, payload)
+      assert.equal(object.contentHash, sha256(canonical({ schemaVersion: payload.schemaVersion, tombstone: false, payload })))
+      assert.equal(revision.json.manifest[0].kind, payload.schemaVersion)
+      assert.equal(sha256(canonical(revision.json.manifest)), version.json.contentHash)
+      if (parent) assert.deepEqual(revision.json.parentRevisionIds, [parent.json.revisionId])
+      rows.push({ revisionId: version.json.revisionId, kind: object.kind, objectHash: object.contentHash, revisionHash: version.json.contentHash })
+    }
+    assert.equal(rows[0].objectHash, rows[2].objectHash, 'Returning to v1 must preserve its exact payload hash')
+    assert.equal((await send(path, options)).text, saved.text, 'A v2 retry after a later v1 must return its original response')
+    const artifactId = initial.json.artifactId
+    assert.equal((await db.prepare("SELECT kind FROM timeline_objects WHERE artifact_id=? AND id='browser-workspace'").bind(artifactId).first()).kind, 'timeline-workspace.v1', 'Creation kind must remain immutable')
+    const count = (await db.prepare('SELECT count(*) AS n FROM timeline_revisions WHERE artifact_id=?').bind(artifactId).first()).n
+    error(await send(path, { ...options, key: `${keyPrefix}-mismatch`, etag: single.headers.get('etag'), body: { ...bodyFor(interval), changes: [{ ...bodyFor(interval).changes[0], kind: 'timeline-workspace.v1' }] } }), 400, 'invalid_request')
+    error(await send(path, { ...options, key: `${keyPrefix}-unknown`, etag: single.headers.get('etag'), body: { ...bodyFor(interval), changes: [{ ...bodyFor(interval).changes[0], kind: 'timeline-workspace.v3' }] } }), 400, 'invalid_request')
+    error(await send(path, { ...options, key: `${keyPrefix}-candidate`, etag: single.headers.get('etag'), body: { schemaVersion: 'timeline-artifact-commit.v1', changes: [{ op: 'put', objectId: 'browser-workspace', kind: 'event-candidate.v1', payload: { title: 'Different family', description: null, eventDate: '2026-09-14', datePrecision: 'day' } }] } }), 409, 'object_conflict')
+    assert.equal((await db.prepare('SELECT count(*) AS n FROM timeline_revisions WHERE artifact_id=?').bind(artifactId).first()).n, count)
+    return { interval, saved, single, rows, options }
+  }
+  stage = 'compiled-human-workspace-intervals'
+  const humanFamily = await exerciseWorkspaceFamily(migrationPath, migrationSaved, migrationSnapshot, request, 'release-human-family')
+  receipt.durableIntervalHistory = { human: humanFamily.rows }
+  assert.equal((await request(migrationPinnedPath)).text, migrationPinned.text)
+  assert.equal((await request(migrationPath, migrationCommit)).text, migrationSaved.text)
+  error(await request(migrationPath, { ...humanFamily.options, key: 'release-family-viewer', user: 'viewer', etag: humanFamily.single.headers.get('etag') }), 404, 'not_found')
+  error(await request(migrationPath, { ...humanFamily.options, key: 'release-family-other', user: 'other', etag: humanFamily.single.headers.get('etag') }), 404, 'not_found')
+  receipt.checks.push('compiled human v1→v2→v1 full snapshot roundtrip, seconds-bearing recorded end, pinned kind/hash/parent history, stale-head exact replay, immutable creation kind and fail-closed mismatched/unknown/candidate kinds')
   stage = 'compiled-sharing'
   const sharingHeaders = result => {
     assert.equal(result.headers.get('cache-control'), 'no-store')
@@ -421,7 +518,7 @@ try {
   const historyNext = await request(`${artifactPath}/revisions?cursor=${history.json.nextCursor}`)
   assert.equal(historyNext.status, 200); assert.equal(historyNext.json.headRevisionId, next.json.revisionId)
   assert.deepEqual(historyNext.json.revisions.map(row => row.sequence), [1, 0])
-  assert.equal((await db.prepare('SELECT count(*) AS n FROM timeline_revisions').first()).n, 3)
+  assert.equal((await db.prepare('SELECT count(*) AS n FROM timeline_revisions WHERE artifact_id=?').bind(create.json.artifactId).first()).n, 3)
 
   stage = 'production-schema-atomic-rollback'
   const countBefore = (await db.prepare('SELECT count(*) AS n FROM timeline_revisions').first()).n
@@ -507,11 +604,17 @@ try {
   for (const suffix of ['', `/objects?revisionId=${serviceSave.json.revisionId}`, '/revisions', `/revisions/${serviceSave.json.revisionId}`]) assert.equal((await serviceRequest(servicePath + suffix)).status, 200)
   assert.equal((await serviceRequest(artifactPath)).status, 404)
   assert.equal((await request(servicePath)).status, 404)
+  const serviceFamily = await exerciseWorkspaceFamily(servicePath, serviceSave, snapshot, serviceRequest, 'release-service-family')
+  receipt.durableIntervalHistory.service = serviceFamily.rows
   await db.prepare('DELETE FROM integration_client_token_scopes WHERE token_id=? AND scope=?').bind(serviceTokenId, 'timeline.write').run()
   assert.equal((await serviceRequest(servicePath, serviceCommitOptions)).status, 403)
+  assert.equal((await serviceRequest(servicePath, serviceFamily.options)).status, 403)
   assert.equal((await serviceRequest(servicePath)).status, 200)
   await db.prepare('UPDATE integration_client_tokens SET revoked_at=unixepoch() WHERE id=?').bind(serviceTokenId).run()
   assert.equal((await serviceRequest(servicePath)).status, 401)
+  assert.equal((await serviceRequest(servicePath, serviceFamily.options)).status, 401)
+  receipt.durableIntervalHttpGate = 'passed'
+  receipt.checks.push('compiled scoped service v1→v2→v1 snapshot history/replay and exact payload/manifest hashes; write-scope removal and token revocation reject original v2 retries')
   receipt.checks.push('compiled scoped service classified source assertion/evaluation/judgment/dissent snapshot create/read/replay and discovery', 'independent write scope and fresh replay revocation', 'human/service workspace isolation')
   receipt.compiledHttpGate = 'passed'
   receipt.checks.push('compiled Pages create/commit routes', 'human/service/viewer/cross-workspace authorization', 'exact replay after later revision', 'idempotency conflict and stale head', 'pinned object/history reads and manifest hash', 'real D1 partial-batch rollback', 'immutable replacement rejected', 'privacy change reauthorizes read/replay')
@@ -541,4 +644,4 @@ try {
   if (receipt) { receipt.failure = { stage, message: String(error?.message ?? error).slice(0, 1000) }; await save(receipt) }
   console.error(`Timeline release verification failed at ${stage}: ${String(error?.message ?? error).slice(0, 500)}`)
   process.exitCode = 1
-} finally { if (mf) await mf.dispose() }
+} finally { if (referenceMf) await referenceMf.dispose(); if (mf) await mf.dispose() }

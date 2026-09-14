@@ -1,3 +1,4 @@
+import { isWorkspaceArtifactKind } from './timeline-artifact-contract'
 import { requireTimelinePrincipal, timelineWriteAssertions, requireTimelineWorkspace, type HumanPrincipal, type TimelineArtifactEnv } from './timeline-artifact-auth'
 import { ARTIFACT_LIMITS, ArtifactError, artifactResponse, boundedBody, canonicalJson, decodeCursor, encodeCursor, expectedHead, hashContent, idempotencyKey, isObjectId, isStableObjectId, pageQuery, parseCommit, parseCreate, validArtifactPayload, validArtifactDocument, type ArtifactDocument, type ManifestEntry, type ArtifactKind } from './timeline-artifact-contract'
 
@@ -116,7 +117,7 @@ export async function commitTimelineArtifact(request: Request, env: TimelineArti
   for (const change of input.changes) {
     const before = manifest.get(change.objectId)
     if (before?.tombstone || (change.op === 'delete' && !before)) throw new ArtifactError('object_conflict',409)
-    if (before && change.op === 'put' && before.kind !== change.kind) throw new ArtifactError('object_conflict',409)
+    if (before && change.op === 'put' && before.kind !== change.kind && !(isWorkspaceArtifactKind(before.kind) && isWorkspaceArtifactKind(change.kind))) throw new ArtifactError('object_conflict',409)
     const kind = change.op === 'put' ? change.kind : before!.kind
     if (!before) versionStatements.push(env.DB.prepare('INSERT INTO timeline_objects VALUES (?,?,?,?,?,?)').bind(artifact.workspace_id,artifactId,change.objectId,kind,user.userId,now))
     const tombstone = change.op === 'delete'
@@ -163,7 +164,7 @@ export async function readTimelineArtifact(request: Request, env: TimelineArtifa
   return artifactResponse(document(artifact,rev),200,rev.id)
 }
 async function objectDocument(row: VersionRow) {
-  if (!['event-candidate.v1','timeline-workspace.v1'].includes(row.schema_version) || ![0,1].includes(row.tombstone) || (row.tombstone === 1 && row.payload_json !== null)) throw new ArtifactError('datastore_unavailable',503)
+  if (!['event-candidate.v1','timeline-workspace.v1','timeline-workspace.v2'].includes(row.schema_version) || ![0,1].includes(row.tombstone) || (row.tombstone === 1 && row.payload_json !== null)) throw new ArtifactError('datastore_unavailable',503)
   let payload: unknown = null
   if (row.tombstone !== 1) {
     try { payload = JSON.parse(row.payload_json ?? '') } catch { throw new ArtifactError('datastore_unavailable',503) }

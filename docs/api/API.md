@@ -313,7 +313,7 @@ analyst** mode additionally exposes provenance, review status
 (`unreviewed`, `corroborated`, `disputed`, or `hypothesis`), analyst notes, and
 dated information-gap questions such as “What happened here?” Questions remain
 distinct from events and become answered only when the analyst records an
-answer. JSON export uses `timeline-workspace.v1` and includes either the untouched
+answer. JSON export uses `timeline-workspace.v1` (or `timeline-workspace.v2` for recorded intervals) and includes either the untouched
 `timeline-analysis.v1` extraction result or a `timeline-manual.v1` descriptor,
 plus the analyst event/question overlay;
 `timeline-workspace.v1` also retains explicitly accepted AI working hypotheses,
@@ -338,9 +338,9 @@ remain follow-on work.
 Production provides human-authenticated create/read/revision routes at
 `/api/timelines`. Writes require idempotency keys; revision commits also require a
 strong `If-Match` head-revision ETag. History and event-candidate object versions are
-immutable and workspace-scoped. Complete browser workspaces can be saved as `timeline-workspace.v1` objects
-(up to 60 KiB) and reopened from a private saved link. Migration 0012 adds this
-snapshot kind without changing candidate history. Browser saving, lost-response
+immutable and workspace-scoped. Complete browser workspaces can be saved as `timeline-workspace.v1` or `timeline-workspace.v2` objects
+(up to 60 KiB) and reopened from a private saved link. Migration 0012 introduced v1;
+migration 0015 adds v2 and workspace-family transitions without changing candidate history. Browser saving, lost-response
 retries and stale-edit protection are deployed. Migration 0013 adds independent
 `timeline.read` and `timeline.write` service scopes, bound to the credential’s private
 workspace and advertised through capability discovery. Existing credentials are
