@@ -11,3 +11,7 @@ Dense 20-event desktop/mobile and light/dark evidence was reviewed alongside exi
 Prebuilt publication used `--no-bundle`. Thirty read-only checks passed at each deployment and production URL. All 14 tables, 386 catalog rows, 13 migrations and secret names are unchanged. Public changes are limited to preview.css and generated HTML style blocks. All HTML outside those blocks, scripts, fonts, vendor assets, CSP and headers match the baseline; independent style review and exact live owned-byte checks support omitting a fresh edge-script replay. No API or schema changes were introduced.
 
 Previous deployment `0c6011ec-377f-40be-ac09-0de0b7e195a8` retains automatic scheduling and reads the same saved data, but lacks these presentation readability repairs. Visual review is representative, not exhaustive accessibility certification or user testing; the full unrelated API suite is not claimed. Primary checkout untouched.
+
+## Subsequent deployment
+
+The [timing review release](./2026-09-14-timeline-timing-review-release-receipt.md) adds transient recorded calendar-placement diagnostics while preserving presentation, automatic scheduling, backups and saved data. This receipt retains historical presentation-readability validation.
