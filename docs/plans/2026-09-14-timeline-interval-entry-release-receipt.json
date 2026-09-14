@@ -1,0 +1,1103 @@
+{
+  "schemaVersion": "timeline-interval-entry-release.v1",
+  "recordedAt": "2026-09-14T14:05:32.195327+00:00",
+  "finalizerSha256": "1ae52d85513815f34c67e07044da52563b2d5b7f150f863acc8f223b8eafc1db",
+  "baselineSha": "5a3a629e1f416be8198262e785b0445c5a0c618c",
+  "acceptedReleaseSha": "034eea94506cc434a967942218a76c64bf95dc9a",
+  "states": {
+    "canonicalLanded": true,
+    "mirrorConfirmed": true,
+    "productionDeployed": true,
+    "migrationRequired": false,
+    "integrationCheckoutCleanAtRelease": true,
+    "primaryCheckoutSynced": false
+  },
+  "validation": {
+    "distinctCases": 141,
+    "browserProjectChecks": 82,
+    "contractChecks": 59,
+    "typeChecksPassed": 5,
+    "typeCheckCommands": [
+      "Running: node node_modules/typescript/bin/tsc -b --noEmit",
+      "Running: node node_modules/typescript/bin/tsc -p tsconfig.functions.json --noEmit",
+      "Running: node node_modules/typescript/bin/tsc -p tsconfig.workers.json --noEmit",
+      "Running: node node_modules/typescript/bin/tsc -p tsconfig.scraping-functions.json --noEmit",
+      "Running: node node_modules/typescript/bin/tsc -p tsconfig.timeline-client.json"
+    ],
+    "runs": [
+      {
+        "name": "interval-entry-draft-final5",
+        "source": "034eea94506cc434a967942218a76c64bf95dc9a",
+        "exitCode": 0,
+        "completedCases": 4,
+        "seconds": 49.68,
+        "receiptSha256": "e6d6f2d0e8e4c534770ddb082705712a211b8eb06be13f5049ee4a90b1fb4fd4",
+        "logSha256": "007fe86d4a2bc9351d9655af8522a297ad663ba9ae461370ad5e9eba906490a0",
+        "supervisorSha256": "951e88d8b3c2c934de367407ce3269bbdebfcebf5a731a64f10a630366d52639",
+        "archiveSha256": "d2a773386417a75ea9de1e1613dea6ce9968bb98a892e4c018466d74602bc7a5",
+        "commandSha256": "0daf4e575fa6b644029b92fab14c3df372f618a8db65a5439e07d0edc1e0ed5f"
+      },
+      {
+        "name": "release-interval-entry-build-final5",
+        "source": "034eea94506cc434a967942218a76c64bf95dc9a",
+        "exitCode": 0,
+        "completedCases": 0,
+        "seconds": 107.84,
+        "receiptSha256": "68fbda15ff30daf0a20313fb8ca03e42251ef213572fe0c9ee0999173bccaa2d",
+        "logSha256": "dcd23868acf193e33cfd5c9f5f87824d4f1439d1a8cc76ff40aaf480d62d65d1",
+        "supervisorSha256": "951e88d8b3c2c934de367407ce3269bbdebfcebf5a731a64f10a630366d52639",
+        "archiveSha256": "d2a773386417a75ea9de1e1613dea6ce9968bb98a892e4c018466d74602bc7a5",
+        "commandSha256": "c8f1351ee11848da8a020a1e9aac187c4f5a750110144eb05e931e9cde148e82"
+      },
+      {
+        "name": "interval-entry-contracts-final5",
+        "source": "034eea94506cc434a967942218a76c64bf95dc9a",
+        "exitCode": 0,
+        "completedCases": 59,
+        "seconds": 7.06,
+        "receiptSha256": "ecb0d3cca3b2e03eb236e42fca2c8050067eb479a46b1fa3f56f7db981a4ffae",
+        "logSha256": "46b9aa54c4f49d1a3bb5a1df24c1f3234e5dde48def80a2fd3000112eb3346a7",
+        "supervisorSha256": "951e88d8b3c2c934de367407ce3269bbdebfcebf5a731a64f10a630366d52639",
+        "archiveSha256": "d2a773386417a75ea9de1e1613dea6ce9968bb98a892e4c018466d74602bc7a5",
+        "commandSha256": "9a85045cfac3f690ff2316c9a04608107d562b3882460cc25bd39e6587502735"
+      },
+      {
+        "name": "interval-entry-focus5",
+        "source": "034eea94506cc434a967942218a76c64bf95dc9a",
+        "exitCode": 0,
+        "completedCases": 8,
+        "seconds": 134.76,
+        "receiptSha256": "531caae57215354079567ceb0172fbd4c0449e7af60d5040692b442ce679b401",
+        "logSha256": "be16a6fba344a5ef9d370796212cb529e36896885f40112d2b7f8068503ea86e",
+        "supervisorSha256": "951e88d8b3c2c934de367407ce3269bbdebfcebf5a731a64f10a630366d52639",
+        "archiveSha256": "d2a773386417a75ea9de1e1613dea6ce9968bb98a892e4c018466d74602bc7a5",
+        "commandSha256": "a9f349fb0eec3b9950ffdfad9fd92f2af43ff4790210b165a99257786566fad6"
+      },
+      {
+        "name": "interval-entry-browser-final5",
+        "source": "034eea94506cc434a967942218a76c64bf95dc9a",
+        "exitCode": 0,
+        "completedCases": 30,
+        "seconds": 909.21,
+        "receiptSha256": "3341a7e837cadbe42b85fc1f58c3e508954ec6b14d7d663b3b0906032f53750a",
+        "logSha256": "f8deaf7b2a97daba15ab971abffcca2adfdec28dbe87d6463d4eb92a97aea5bd",
+        "supervisorSha256": "951e88d8b3c2c934de367407ce3269bbdebfcebf5a731a64f10a630366d52639",
+        "archiveSha256": "d2a773386417a75ea9de1e1613dea6ce9968bb98a892e4c018466d74602bc7a5",
+        "commandSha256": "5f47f3165a00f5b54fe72e820a06feefd009bf9ec8b46195127abcf6130d547a"
+      },
+      {
+        "name": "interval-entry-durable-final5",
+        "source": "034eea94506cc434a967942218a76c64bf95dc9a",
+        "exitCode": 0,
+        "completedCases": 40,
+        "seconds": 2124.39,
+        "receiptSha256": "9a78509f57b44f5b6d5ccd8692230aa5c33cdfd5541325b661ee06cbf5fdd53b",
+        "logSha256": "a259d6953deba159647f769994f1e114617fbe2070261ba6652c7fe621347372",
+        "supervisorSha256": "951e88d8b3c2c934de367407ce3269bbdebfcebf5a731a64f10a630366d52639",
+        "archiveSha256": "d2a773386417a75ea9de1e1613dea6ce9968bb98a892e4c018466d74602bc7a5",
+        "commandSha256": "c718c7943e969f654a2d8435ed9d8918c1a8c88c8add62a24a4ec75d521f5dc3"
+      }
+    ],
+    "completedCaseKeys": [
+      [
+        "chromium",
+        "timeline-artifact-contract.spec.ts",
+        "17",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-artifact-contract.spec.ts",
+        "24",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-artifact-contract.spec.ts",
+        "34",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-artifact-contract.spec.ts",
+        "7",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-date-entry-browser.spec.ts",
+        "110",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-date-entry-browser.spec.ts",
+        "36",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-durable-browser.spec.ts",
+        "130",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-durable-browser.spec.ts",
+        "191",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-durable-browser.spec.ts",
+        "284",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-durable-browser.spec.ts",
+        "315",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-durable-browser.spec.ts",
+        "358",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-durable-browser.spec.ts",
+        "396",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-durable-browser.spec.ts",
+        "415",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-durable-browser.spec.ts",
+        "444",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-durable-browser.spec.ts",
+        "470",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-durable-browser.spec.ts",
+        "510",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-durable-browser.spec.ts",
+        "533",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-durable-browser.spec.ts",
+        "594",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-durable-browser.spec.ts",
+        "631",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-durable-browser.spec.ts",
+        "649",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-durable-browser.spec.ts",
+        "653",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-durable-browser.spec.ts",
+        "732",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-durable-browser.spec.ts",
+        "756",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-durable-browser.spec.ts",
+        "791",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-durable-browser.spec.ts",
+        "814",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-durable-browser.spec.ts",
+        "829",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-evidence-contract.spec.ts",
+        "112",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-evidence-contract.spec.ts",
+        "24",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-evidence-contract.spec.ts",
+        "35",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-evidence-contract.spec.ts",
+        "49",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-evidence-contract.spec.ts",
+        "63",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-evidence-contract.spec.ts",
+        "88",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-history-contract.spec.ts",
+        "20",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-history-contract.spec.ts",
+        "33",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-history-contract.spec.ts",
+        "45",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-history-contract.spec.ts",
+        "57",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-history-contract.spec.ts",
+        "66",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-interval-browser.spec.ts",
+        "35",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-interval-browser.spec.ts",
+        "81",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-interval-contract.spec.ts",
+        "19",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-interval-contract.spec.ts",
+        "34",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-interval-contract.spec.ts",
+        "46",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-interval-contract.spec.ts",
+        "59",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-interval-contract.spec.ts",
+        "72",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-interval-contract.spec.ts",
+        "85",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-browser.spec.ts",
+        "176",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-browser.spec.ts",
+        "273",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-browser.spec.ts",
+        "416",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-browser.spec.ts",
+        "466",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-browser.spec.ts",
+        "536",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-browser.spec.ts",
+        "562",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-browser.spec.ts",
+        "59",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-browser.spec.ts",
+        "651",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-browser.spec.ts",
+        "712",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-browser.spec.ts",
+        "733",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-contract.spec.ts",
+        "115",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-contract.spec.ts",
+        "134",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-contract.spec.ts",
+        "162",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-contract.spec.ts",
+        "177",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-contract.spec.ts",
+        "232",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-contract.spec.ts",
+        "262",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-contract.spec.ts",
+        "61",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-contract.spec.ts",
+        "91",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-temporal-contract.spec.ts",
+        "100",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-temporal-contract.spec.ts",
+        "118",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-temporal-contract.spec.ts",
+        "19",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-temporal-contract.spec.ts",
+        "38",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-temporal-contract.spec.ts",
+        "57",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-temporal-contract.spec.ts",
+        "74",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-temporal-contract.spec.ts",
+        "89",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timelinejs-browser.spec.ts",
+        "40",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timelinejs-browser.spec.ts",
+        "85",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timelinejs-browser.spec.ts",
+        "98",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timelinejs-contract.spec.ts",
+        "11",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timelinejs-contract.spec.ts",
+        "114",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timelinejs-contract.spec.ts",
+        "138",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timelinejs-contract.spec.ts",
+        "161",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timelinejs-contract.spec.ts",
+        "179",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timelinejs-contract.spec.ts",
+        "190",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timelinejs-contract.spec.ts",
+        "212",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timelinejs-contract.spec.ts",
+        "231",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timelinejs-contract.spec.ts",
+        "25",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timelinejs-contract.spec.ts",
+        "257",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timelinejs-contract.spec.ts",
+        "45",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timelinejs-contract.spec.ts",
+        "63",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timelinejs-contract.spec.ts",
+        "79",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timelinejs-contract.spec.ts",
+        "97",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timing-browser.spec.ts",
+        "43",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timing-browser.spec.ts",
+        "97",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timing-contract.spec.ts",
+        "16",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timing-contract.spec.ts",
+        "24",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timing-contract.spec.ts",
+        "33",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timing-contract.spec.ts",
+        "41",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timing-contract.spec.ts",
+        "50",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timing-contract.spec.ts",
+        "60",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timing-contract.spec.ts",
+        "70",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-tool-ui.spec.ts",
+        "273",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-tool-ui.spec.ts",
+        "398",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-workspace-ordering.spec.ts",
+        "27",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-workspace-ordering.spec.ts",
+        "58",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-date-entry-browser.spec.ts",
+        "110",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-date-entry-browser.spec.ts",
+        "36",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-durable-browser.spec.ts",
+        "130",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-durable-browser.spec.ts",
+        "191",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-durable-browser.spec.ts",
+        "284",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-durable-browser.spec.ts",
+        "315",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-durable-browser.spec.ts",
+        "358",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-durable-browser.spec.ts",
+        "396",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-durable-browser.spec.ts",
+        "415",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-durable-browser.spec.ts",
+        "444",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-durable-browser.spec.ts",
+        "470",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-durable-browser.spec.ts",
+        "510",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-durable-browser.spec.ts",
+        "533",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-durable-browser.spec.ts",
+        "594",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-durable-browser.spec.ts",
+        "631",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-durable-browser.spec.ts",
+        "649",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-durable-browser.spec.ts",
+        "653",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-durable-browser.spec.ts",
+        "732",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-durable-browser.spec.ts",
+        "756",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-durable-browser.spec.ts",
+        "791",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-durable-browser.spec.ts",
+        "814",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-durable-browser.spec.ts",
+        "829",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-interval-browser.spec.ts",
+        "35",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-interval-browser.spec.ts",
+        "81",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-renderer-browser.spec.ts",
+        "176",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-renderer-browser.spec.ts",
+        "273",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-renderer-browser.spec.ts",
+        "416",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-renderer-browser.spec.ts",
+        "466",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-renderer-browser.spec.ts",
+        "536",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-renderer-browser.spec.ts",
+        "562",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-renderer-browser.spec.ts",
+        "59",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-renderer-browser.spec.ts",
+        "651",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-renderer-browser.spec.ts",
+        "712",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-renderer-browser.spec.ts",
+        "733",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-timelinejs-browser.spec.ts",
+        "40",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-timelinejs-browser.spec.ts",
+        "85",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-timelinejs-browser.spec.ts",
+        "98",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-timing-browser.spec.ts",
+        "43",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-timing-browser.spec.ts",
+        "97",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-tool-ui.spec.ts",
+        "273",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-tool-ui.spec.ts",
+        "398",
+        "3"
+      ]
+    ],
+    "inventorySha256": "e083027f21e7909147a0038767fb8118bf2bdc0a4322d04bfc7576d43be34eb2",
+    "planSha256": "b7ee9a8803ae9924369bd017b9936707e364fc0bcacc3cf18f45190ad0e4da25",
+    "acceptedReceiptSha256": "427e9b561de9267ee7fe54f71d7a2922b0afd5990bdd795dcf081878526ea784",
+    "build": "passed",
+    "compiledSchemaGate": "passed",
+    "schemaManifestSha256": "d1d2cb3f242d54cfbb1204c4d51a25f6a1687c3c03c627a7c5f5d22cf3452b9f",
+    "runtimeImage": "mcr.microsoft.com/playwright@sha256:9bd26ad900bb5e0f4dee75839e957a89ae89c2b7ab1e76050e559790e946b948"
+  },
+  "review": {
+    "source-review.json": "a41ba24d84b637b5b074a682a486a3a906f0c945c36ef1747892661069a7b564",
+    "artifact-review.json": "9532240488a0769f1befc9d5da950d9a0f0e1a60a67ffa9b1f9eaa137accf8d9",
+    "review-acceptance.json": "14da305c97c0b96eb95184e15464d3359673bb49aff133490146ecab706f2023",
+    "visual-acceptance.json": "8f788a3c69e28c5aad4d45752b7a7e53177a1018d9d85bdf6f0230dac87290a5",
+    "renderer-style-review.json": "ffda555af2f27642fcf4b67a10f49f0435085a36ea70f5191a1d0e95dc9ad0f1"
+  },
+  "visualEvidence": [
+    {
+      "runName": "interval-entry-focus5",
+      "file": "timeline-interval-browser--d0e69--import-and-complete-backup-chromium/interval-entry-dark.png",
+      "sha256": "a27560d2b674b851fddba9474073260053dd65fcd1597ff90b33cb26808bc68c"
+    },
+    {
+      "runName": "interval-entry-focus5",
+      "file": "timeline-interval-browser--d0e69--import-and-complete-backup-chromium/interval-entry-light.png",
+      "sha256": "42c9a81a04804ad5c6b7ea9139d6c8ea3b26943dcea00df950f19afe533eee29"
+    },
+    {
+      "runName": "interval-entry-focus5",
+      "file": "timeline-interval-browser--d0e69--import-and-complete-backup-mobile-safari/interval-entry-dark.png",
+      "sha256": "2c8954a1f6b45b26bb191a40ec1f51b08487b324ba5f5e0a7ad2e83ca4587403"
+    },
+    {
+      "runName": "interval-entry-focus5",
+      "file": "timeline-interval-browser--d0e69--import-and-complete-backup-mobile-safari/interval-entry-light.png",
+      "sha256": "dafb148bb0ae6330d2c72874e080f11eadf960158c4ea3df3469884657202eea"
+    }
+  ],
+  "artifact": {
+    "filesIndependentlyCompared": 155,
+    "distManifestSha256": "eb2f00fc83ca93ee4efd913545356653d50d6245c75b0c3d28708492165478e7",
+    "packageManifestSha256": "87ed826b0c50c061f08e043a32784f30b5862b3593ce96b102adb2a43401a3bf"
+  },
+  "deployment": {
+    "id": "84e522ce-2881-49f4-af39-40150328ef03",
+    "url": "https://84e522ce.researchtoolspy.pages.dev",
+    "productionUrl": "https://researchtools.net",
+    "sourceSha": "034eea94506cc434a967942218a76c64bf95dc9a",
+    "noBundle": true,
+    "publishReceiptSha256": "424c5dd9beefb7521cab385fafa4ff91a5c8f91ad4737896974c3aaed331b364",
+    "sourceSyncReceiptSha256": "cc7b0e3b9d8cb1d50297453f23665ce2b5d43a35d4262176f731365c75e47f37",
+    "smoke": [
+      {
+        "baseUrl": "https://84e522ce.researchtoolspy.pages.dev",
+        "checksPassed": 30,
+        "mutatingRequests": 0,
+        "receiptSha256": "0870055447ebc99352528b8a9e6c10c81016630e6ac52b3ad980eeff6301fb27"
+      },
+      {
+        "baseUrl": "https://researchtools.net",
+        "checksPassed": 30,
+        "mutatingRequests": 0,
+        "receiptSha256": "e2776756a73ec5b8f5c35e7ac854dc3c618f08a593c0cb4862f760d2556f83e8"
+      }
+    ]
+  },
+  "database": {
+    "mutationsPerformed": false,
+    "catalog": {
+      "result": "passed",
+      "tables": 14,
+      "schemaRows": 386,
+      "normalizedSchemaSha256": "ec0d28165382f028c98208a003d8c5ab672a9a0ae7ba44ef2f23e3b2bfa46729"
+    },
+    "appliedMigrationCount": 13,
+    "pendingMigrations": [],
+    "secretNamesUnchanged": true
+  },
+  "renderer": {
+    "publicTreeUnchangedFromBaseline": true,
+    "liveOwnedBytesChecked": true,
+    "scriptSecurityUnchanged": true,
+    "freshEdgeReplayPerformed": false,
+    "reason": "The entire public tree, including renderer, scripts, font, vendor, CSP and headers, is unchanged. Independent review and live owned-byte checks retain the existing edge-script replay exemption."
+  },
+  "failedAttempts": [
+    {
+      "name": "interval-entry-draft-final4",
+      "source": "5fdbdf0bdaf20e4820a80c04ac273b6aa01a7168",
+      "exitCode": 1,
+      "receiptSha256": "2106af09b9eb2e8bf0c230abe0cabf359e9b85eb318dc1a670c586691647f788",
+      "logSha256": "9483a1665dec450d17cf1697a20725f1e2852573968571f01c0c6c56c0301055"
+    },
+    {
+      "name": "interval-entry-focus1",
+      "source": "869342514cd6ecac111304f6d3f19497278c7af2",
+      "exitCode": 1,
+      "receiptSha256": "c0ebcec4e3cd9108998e8c9ff160c1d41f3577de2a9994de97f921137ade1563",
+      "logSha256": "0bcb32416c12e324f91a0695fa043ea2fc1175ec92ed6a02e8f90b4d202b70b9"
+    },
+    {
+      "name": "release-interval-entry-build-final2",
+      "source": "37701ded3d02784d7e7cbe148d19778e466e8192",
+      "exitCode": 125,
+      "receiptSha256": "3dffa5ee7e20ad2302faa98e43fad320ec163f60c1d9062accc141ebc88731d2",
+      "logSha256": "b6c9c158026982f15277bd7331c868899e044610d038ac8bca62a61b66482007"
+    },
+    {
+      "name": "release-interval-entry-build-final3",
+      "source": "37701ded3d02784d7e7cbe148d19778e466e8192",
+      "exitCode": 2,
+      "receiptSha256": "f9755e2910b4df0a6327fcf83271bf7322daea297d6606502d5a4498d3ff1212",
+      "logSha256": "f09b367d317b0889a08f2ee5334059b844d8c53b3dd2cb3456bf079a5a724bc8"
+    }
+  ],
+  "recovery": "The initial focused browser run at 869342514 failed in both projects because its generic text locator selected a hidden sequence-gap label; correction 37701ded3 targets the visible event time without weakening date, source, backup or reimport assertions. Documentation was corrected to distinguish legacy imported starts from the end-entry minimum year. A build launch at 37701ded3 exited 125 before candidate execution because the fresh migration inventory was not yet ready; it was retried only after preflight completed. The next build caught a browser-only analysis import in the shared decoder; correction 5fdbdf0bd removes that dependency and reuses existing date validation with the same endpoint constraints. All accepted runs use the final corrected source. The first read-only schema export received Cloudflare authentication error 10000; its receipt and logs were preserved privately and one bounded retry succeeded. No production data or migration writes occurred. Preserved initial schema-export receipt SHA256: 1b65200be35603272ec743337617df77834d8515648ec8ca7733945a609d1a25. The broader legacy draft regression also used an ambiguous Date label; correction 034eea945 adds exact matching without changing behavior or assertions. Final acceptance reruns all planned checks at this test-corrected commit.",
+  "instructionSha256": {
+    "/Users/sac/AgentWorkspaces/researchtoolspy-timeline-foundation-20260911/CLAUDE.md": "3852de6d95104c64f3a35b670f350e1d7a2c6c9ed93d03d53895e7bc8c44ff1b",
+    "/Users/sac/AgentWorkspaces/researchtoolspy-timeline-foundation-20260911/.team/project.json": "c87cd27090a1a8ff779dd0d850668ebf0ecb6581cefb2d0b0a66ed63aabbcf78",
+    "/Users/sac/AgentWorkspaces/researchtoolspy-timeline-foundation-20260911/docs/plans/2026-09-11-timeline-tranche-charter.md": "367a6bc5c7f7c706ce4f6b368df952fbe5c8a6e34bde3f959b72775e138a0682",
+    "/Users/sac/AgentWorkspaces/researchtoolspy-timeline-foundation-20260911/docs/plans/2026-09-14-timeline-interval-entry-charter.md": "593279ffcabc22495dd92d7e80cfb2d98c3db72f6de24beaafd5690ca492859b",
+    "/Users/sac/.codex/skills/team-orchestrator/SKILL.md": "f431896dbd1fa3fc8af377f8f192cacaba43704d56314e3f0e1e5c74798339b6"
+  },
+  "promptSha256": {
+    "review-prompt.txt": "ad6b6518e20dfb52d924a01c7965a3365736ca25ba8641bfe9696a9ec9080b98",
+    "provider-prompt.txt": "bcc8bb8d6800955cdc33833c31f8c407185ec422a492a712a436179df111af18",
+    "tests-prompt.txt": "599ad81de91da0c0951721a99f8e9c48242bdaa7ba7b9cacfaddf8cf4e8cb2df",
+    "source-review-prompt.txt": "074eba59694fafb94749403ce822180a2a0eac0cd8e2b4f6ca738a1c0d67d2df",
+    "finalizer-prompt.txt": "f96ca1468ae73a1700cb6973de1ba75fededb7e5f08efecba8395b5a2dc93811",
+    "correction-review-prompt.txt": "a7020785ae4d31925b17a841c7e7a9a1f9c6ff746effe6255572ce7c29731fe9",
+    "finalizer-review-prompt.txt": "d829f92b883fcd73a0c3fcbae6f3f633148183d2f9355a64b4e1b364230b6410",
+    "visual-review-prompt.txt": "ae901421dd1c38c82cf6231ceee9c75822ce83e441e446a2a243c2f75dd1a0de",
+    "integration-correction-review-prompt.txt": "19887ad119b4beb5eba0fd6919f82b94e432d1efcbec791246c1b3a0a5e633c4",
+    "artifact-review-prompt.txt": "e37685252619f079f5b907109c665c150d1ce12830c5f96b1e239880940ea5a0",
+    "visual-final-review-prompt.txt": "bd82ca50f436c5ff3780a3d5e88346a820bb326821536ce9e9af14cf70ae63a2",
+    "runtime-review-prompt.txt": "8df6c0d281472ed61af2aa2af782a0aa9d337323e72a759655209e7230559025",
+    "draft-correction-review-prompt.txt": "ca220ab288c210be76a758a353c206b466350f1a0c323e40bb55fea4a0b8195c",
+    "artifact-final-review-prompt.txt": "ceef86474e9485c6b698202c77ce8e5bf17fd312bf2df29ea46e006f458d7294",
+    "visual-publication-review-prompt.txt": "a820e91f0e7e02604bda2b5e1b754d513cfbe0491b565d9762031e1dce8dc290",
+    "runtime-publication-review-prompt.txt": "2204a1197469395430e20082d8dc33e3d56bfc65efb1ca943dac60085134dde2",
+    "docs-review-prompt.txt": "5bbf4c91d6c82f263b705210489cb87b70eb03d7c352138f3a8572500829fcdc"
+  },
+  "rollback": {
+    "runtimeSha": "726efc7dece526ac254f3350c0c741a87f03c55e",
+    "deploymentId": "2e00f37d-c550-47d1-ba55-9d6147d1d3be",
+    "limits": "The prior runtime cannot import interval workspace/draft v2. Preserve complete v2 JSON backups before rollback; interval reopening would be unavailable. Existing interval-free v1 history remains supported."
+  },
+  "retrospective": "Bounded native providers separated versioned local authoring, consumer boundaries and independent tests. Endpoints reuse the strict calendar core; absent endpoints retain v1. Explicit durable rejection and TimelineJS omission prevent unsupported interval data from being silently flattened. Exact-source focused and regression partitions are deduplicated by case identity.",
+  "limitations": [
+    "Local workspace and browser-draft v2 are real versioned format changes for recorded intervals. Extraction/original source remains v1; interval-free exports remain v1. No server API, storage schema, migration or discovery change.",
+    "Private workspace interval saves are disabled and rejected before requests. Existing v1 history remains readable; previously prepared retries still refer to the previous save, not current intervals.",
+    "TimelineJS omits interval events explicitly, even with a presentation schedule; other eligible selected events may render and the complete JSON backup retains intervals. No interval rendering capability is claimed.",
+    "Inclusive recorded endpoint units and overlapping precision describe a conservative uncertain extent, not an invented duration. No timezone, circa or clock inference. TL-06 remains in progress; durable v2 and renderer endpoint support are next, followed by circa/clocks/extraction v2. TL-17 remains partial; TL-13 planning is not delivered.",
+    "Representative device captures are not exhaustive accessibility certification or user testing. No full unrelated API-suite claim. Public renderer/security bytes unchanged; primary checkout untouched."
+  ]
+}

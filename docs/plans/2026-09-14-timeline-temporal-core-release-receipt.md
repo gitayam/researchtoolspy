@@ -11,3 +11,7 @@ Seven new temporal contract tests accompany the existing timing, ordering, prese
 Prebuilt publication used `--no-bundle`. Thirty read-only checks passed at each deployment and production URL. All 14 tables, 386 catalog rows, 13 migrations and secret names are unchanged. The entire public renderer tree, scripts, fonts, vendor assets, CSP and headers match the baseline; independent review and exact live owned-byte checks support omitting a fresh edge-script replay. No API or schema changes were introduced.
 
 Previous deployment `f8accda7-42c2-4490-9aff-2a9906f3bc4b` reads the same saved formats and retains date entry, timing review, presentation and scheduling, but lacks the reusable calendar core. Visual review is representative, not exhaustive accessibility certification or user testing; the full unrelated API suite is not claimed. Primary checkout untouched.
+
+## Subsequent deployment
+
+The [local interval authoring release](./2026-09-14-timeline-interval-entry-release-receipt.md) adds recorded endpoints and local workspace/draft v2. Private interval saving and TimelineJS interval rendering remain unavailable. This receipt retains historical temporal-core validation.

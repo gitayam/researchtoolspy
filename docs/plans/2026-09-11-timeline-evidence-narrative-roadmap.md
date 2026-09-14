@@ -16,7 +16,9 @@ Likelihood and analytical confidence remain separate; reviews preserve the judgm
 version they addressed. Import verifies stored-text equality, not source truth or
 authenticated historical provenance. TL-04 remains in progress: broader source-store
 support, dedicated judgment services and authenticated peer review are pending.
-The internal calendar temporal core now validates claims and conservative extents for existing timing review, preserving its behavior without new UI or persisted interval fields. TL-06 remains in progress; versioned interval authoring is next. See the [temporal-core receipt](./2026-09-14-timeline-temporal-core-release-receipt.md).
+Analyst Add/Edit event now records inclusive end dates/times with local workspace/draft v2 round trips; interval-free exports remain v1. Private interval saves are rejected and TimelineJS explicitly omits intervals while the complete backup retains them. TL-06 remains in progress; durable v2 and renderer endpoints are next. See the [local interval receipt](./2026-09-14-timeline-interval-entry-release-receipt.md).
+
+The preceding temporal-core stage added internal calendar claim validation and conservative extents without UI or persisted interval fields. Its historical validation is recorded in the [temporal-core receipt](./2026-09-14-timeline-temporal-core-release-receipt.md); local interval authoring is delivered in the subsequent release above.
 
 Add/Edit event now offers optional recorded day/month/year pickers alongside typed date entry, with explicit precision guidance and no automatic date components. Mode changes and incomplete picker input retain the draft; explicit Save follows existing validation. TL-06 remains in progress. See the [date-entry receipt](./2026-09-14-timeline-date-entry-release-receipt.md).
 
