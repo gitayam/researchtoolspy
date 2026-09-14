@@ -16,6 +16,8 @@ Likelihood and analytical confidence remain separate; reviews preserve the judgm
 version they addressed. Import verifies stored-text equality, not source truth or
 authenticated historical provenance. TL-04 remains in progress: broader source-store
 support, dedicated judgment services and authenticated peer review are pending.
+Timeline presentation now uses a top-aligned reading column, clear date/title/body hierarchy, compact marker labels and 44-pixel navigation controls within a bounded dialog. Full details, schedules and backups remain available. See the [presentation readability receipt](./2026-09-14-timeline-presentation-ui-release-receipt.md).
+
 Automatic presentation scheduling now propagates times through narrative selection with explicit overrides, reset, adjustable spacing and Today/Tomorrow controls. Recorded timestamps remain intact and backward anchors warn about chronological reordering. See the [automatic schedule receipt](./2026-09-13-timeline-schedule-flow-release-receipt.md).
 
 TimelineJS export now offers an opt-in presentation schedule with temporary dates, times and Start/action/Arrive meanings. Dated relative/position events export their recorded dates; placement notes remain explicit. The original ResearchTools backup and saved revisions are unchanged. See the [schedule release receipt](./2026-09-13-timeline-schedule-release-receipt.md).

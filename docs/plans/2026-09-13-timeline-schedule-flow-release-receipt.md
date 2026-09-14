@@ -11,3 +11,7 @@ The first focused run had two iframe-Escape test timeouts after product assertio
 Prebuilt publication used `--no-bundle`. Thirty read-only checks passed at each deployment and production URL. All 14 tables, 386 catalog rows, 13 migrations and secret names are unchanged. Public renderer and security bytes match the baseline, so no new edge-script replay was needed. No API or schema changes were introduced.
 
 Previous deployment `bbe5b500-a461-4e93-b230-5dfe6b9f94d2` retains independent schedule overrides and reads the same saved data, but lacks automatic propagation. Visual review is representative, not exhaustive accessibility certification or user testing; the full unrelated API suite is not claimed. Primary checkout untouched.
+
+## Subsequent deployment
+
+The [presentation readability release](./2026-09-14-timeline-presentation-ui-release-receipt.md) improves story typography, navigation and dense labels while preserving automatic scheduling, backups and saved data. This receipt retains historical automatic-schedule validation.

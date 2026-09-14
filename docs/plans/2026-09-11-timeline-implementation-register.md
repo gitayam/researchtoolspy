@@ -68,13 +68,15 @@ Current delivery state (2026-09-12):
   Content Research extraction in the same workspace. The resolver checks current
   access, retention, full-text hash and unique quote match; the recorded locator
   preserves hashes and UTF-16 offsets. Preview is rechecked before import, and
-  private passages never enter automatic browser drafts. The current automatic schedule source passed 51 distinct checks (24 browser-project and 27 contract checks), five type checks and fresh build/compiled gates. See the [current receipt](./2026-09-13-timeline-schedule-flow-release-receipt.md). Previous stage counts remain historical; no full unrelated API-suite claim.
+  private passages never enter automatic browser drafts. The current presentation readability source passed 53 distinct checks (26 browser-project and 27 contract checks), five type checks and fresh build/compiled gates. See the [current receipt](./2026-09-14-timeline-presentation-ui-release-receipt.md). Previous stage counts remain historical; no full unrelated API-suite claim.
   No database migration was required. Broader source-store support, dedicated
   judgment services and authenticated peer review remain pending. Stored-text
   equality is not source truth, authenticated historical provenance or append-only
   review permission.
 - **TL-17: partial.** Selected-narrative TimelineJS JSON, matching complete companion and optional self-hosted renderer are delivered with explicit loss warnings. Immutable authorized publication/revocation and richer snapshot types remain pending.
 - **TL-01, TL-05–TL-16 and TL-18: pending.** No delivery of these checkpoints or cross-app changes is claimed.
+
+Timeline presentation now uses a top-aligned reading column, clear date/title/body hierarchy, compact marker labels and 44-pixel navigation controls within a bounded dialog. Full details, schedules and backups remain available. See the [presentation readability receipt](./2026-09-14-timeline-presentation-ui-release-receipt.md).
 
 Automatic presentation scheduling now propagates times through narrative selection with explicit overrides, reset, adjustable spacing and Today/Tomorrow controls. Recorded timestamps remain intact and backward anchors warn about chronological reordering. See the [automatic schedule receipt](./2026-09-13-timeline-schedule-flow-release-receipt.md).
 

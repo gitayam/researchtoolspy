@@ -1,0 +1,527 @@
+{
+  "schemaVersion": "timeline-presentation-ui-release.v1",
+  "recordedAt": "2026-09-14T03:00:22.070106+00:00",
+  "finalizerSha256": "cab33440111e7450df77e433fb52e25e5d470254a713fd7ec1b685dd1c507bbf",
+  "baselineSha": "0ecf8d552f48c0edfb51ce185f196c87f4414bde",
+  "acceptedReleaseSha": "0bdb3590887d054cd2f5e2737c42cc34e5e63122",
+  "states": {
+    "canonicalLanded": true,
+    "mirrorConfirmed": true,
+    "productionDeployed": true,
+    "migrationRequired": false,
+    "integrationCheckoutCleanAtRelease": true,
+    "primaryCheckoutSynced": false
+  },
+  "validation": {
+    "distinctCases": 53,
+    "browserProjectChecks": 26,
+    "contractChecks": 27,
+    "typeChecksPassed": 5,
+    "typeCheckCommands": [
+      "Running: node node_modules/typescript/bin/tsc -b --noEmit",
+      "Running: node node_modules/typescript/bin/tsc -p tsconfig.functions.json --noEmit",
+      "Running: node node_modules/typescript/bin/tsc -p tsconfig.workers.json --noEmit",
+      "Running: node node_modules/typescript/bin/tsc -p tsconfig.scraping-functions.json --noEmit",
+      "Running: node node_modules/typescript/bin/tsc -p tsconfig.timeline-client.json"
+    ],
+    "runs": [
+      {
+        "name": "reader-focus3",
+        "source": "0bdb3590887d054cd2f5e2737c42cc34e5e63122",
+        "exitCode": 0,
+        "completedCases": 4,
+        "seconds": 77.32,
+        "receiptSha256": "65a7482fdc54d353b9f62cb4100f63112efc399a6c370ac5e90f9d8b74e44840",
+        "logSha256": "abc129dd68c6af503dbc7363e4412144e9382c8a3fe4b4fce4e761dd7e864021",
+        "supervisorSha256": "951e88d8b3c2c934de367407ce3269bbdebfcebf5a731a64f10a630366d52639",
+        "archiveSha256": "afbba6e86bd9c9c10d045273d16f8102f8d626bd1288f9c4dea2d5c74d11cbd4",
+        "commandSha256": "0a799bcbb5b4953329cdebf841b3ab545f0bf27993113a670697becd4e9a1006"
+      },
+      {
+        "name": "reader-contracts-final2",
+        "source": "0bdb3590887d054cd2f5e2737c42cc34e5e63122",
+        "exitCode": 0,
+        "completedCases": 27,
+        "seconds": 3.83,
+        "receiptSha256": "985c7229260a44d4c379f5c734d1275d82f4125e7824cae5ce6e9e13dd523cd7",
+        "logSha256": "05ea2919ca8ea50827881f29d777ae13a96e25414b24fa0bf1aaac3156596eee",
+        "supervisorSha256": "951e88d8b3c2c934de367407ce3269bbdebfcebf5a731a64f10a630366d52639",
+        "archiveSha256": "afbba6e86bd9c9c10d045273d16f8102f8d626bd1288f9c4dea2d5c74d11cbd4",
+        "commandSha256": "484306718fc2570fe1fdaceb8f3acf6fe747838b558c1596e33f09b473e85752"
+      },
+      {
+        "name": "release-reader-build-final2",
+        "source": "0bdb3590887d054cd2f5e2737c42cc34e5e63122",
+        "exitCode": 0,
+        "completedCases": 0,
+        "seconds": 101.5,
+        "receiptSha256": "ceecd9a823a9236804ebb44b198a54a0bb0ec87bae14ef6530633bbec1f13b62",
+        "logSha256": "7f5377f5eaaaa3327504533048350d3bc7f0bfaf9ed346b6e43871320b615d9a",
+        "supervisorSha256": "951e88d8b3c2c934de367407ce3269bbdebfcebf5a731a64f10a630366d52639",
+        "archiveSha256": "afbba6e86bd9c9c10d045273d16f8102f8d626bd1288f9c4dea2d5c74d11cbd4",
+        "commandSha256": "c8f1351ee11848da8a020a1e9aac187c4f5a750110144eb05e931e9cde148e82"
+      },
+      {
+        "name": "reader-browser-final2",
+        "source": "0bdb3590887d054cd2f5e2737c42cc34e5e63122",
+        "exitCode": 0,
+        "completedCases": 22,
+        "seconds": 338.75,
+        "receiptSha256": "23a030c0993f804cbc7e15fb38e817a9b263741efc436bb2a6f1c33bbfabd814",
+        "logSha256": "5b944152c9e724dc0569a2827669a78cce7f84a5d7f9fd87844aa053eaf3c38e",
+        "supervisorSha256": "951e88d8b3c2c934de367407ce3269bbdebfcebf5a731a64f10a630366d52639",
+        "archiveSha256": "afbba6e86bd9c9c10d045273d16f8102f8d626bd1288f9c4dea2d5c74d11cbd4",
+        "commandSha256": "6281820cb6382bb1c052e35e0fdf544b86391ce2805f7b865ead5bfd929e4a35"
+      }
+    ],
+    "completedCaseKeys": [
+      [
+        "chromium",
+        "timeline-history-contract.spec.ts",
+        "20",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-history-contract.spec.ts",
+        "33",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-history-contract.spec.ts",
+        "45",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-history-contract.spec.ts",
+        "57",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-history-contract.spec.ts",
+        "66",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-browser.spec.ts",
+        "176",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-browser.spec.ts",
+        "273",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-browser.spec.ts",
+        "416",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-browser.spec.ts",
+        "466",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-browser.spec.ts",
+        "536",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-browser.spec.ts",
+        "562",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-browser.spec.ts",
+        "59",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-browser.spec.ts",
+        "651",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-browser.spec.ts",
+        "712",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-browser.spec.ts",
+        "733",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-contract.spec.ts",
+        "115",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-contract.spec.ts",
+        "134",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-contract.spec.ts",
+        "162",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-contract.spec.ts",
+        "177",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-contract.spec.ts",
+        "232",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-contract.spec.ts",
+        "262",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-contract.spec.ts",
+        "61",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-contract.spec.ts",
+        "91",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timelinejs-browser.spec.ts",
+        "40",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timelinejs-browser.spec.ts",
+        "85",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timelinejs-browser.spec.ts",
+        "98",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timelinejs-contract.spec.ts",
+        "11",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timelinejs-contract.spec.ts",
+        "114",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timelinejs-contract.spec.ts",
+        "138",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timelinejs-contract.spec.ts",
+        "161",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timelinejs-contract.spec.ts",
+        "179",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timelinejs-contract.spec.ts",
+        "190",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timelinejs-contract.spec.ts",
+        "212",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timelinejs-contract.spec.ts",
+        "231",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timelinejs-contract.spec.ts",
+        "25",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timelinejs-contract.spec.ts",
+        "257",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timelinejs-contract.spec.ts",
+        "45",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timelinejs-contract.spec.ts",
+        "63",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timelinejs-contract.spec.ts",
+        "79",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timelinejs-contract.spec.ts",
+        "97",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-renderer-browser.spec.ts",
+        "176",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-renderer-browser.spec.ts",
+        "273",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-renderer-browser.spec.ts",
+        "416",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-renderer-browser.spec.ts",
+        "466",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-renderer-browser.spec.ts",
+        "536",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-renderer-browser.spec.ts",
+        "562",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-renderer-browser.spec.ts",
+        "59",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-renderer-browser.spec.ts",
+        "651",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-renderer-browser.spec.ts",
+        "712",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-renderer-browser.spec.ts",
+        "733",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-timelinejs-browser.spec.ts",
+        "40",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-timelinejs-browser.spec.ts",
+        "85",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-timelinejs-browser.spec.ts",
+        "98",
+        "3"
+      ]
+    ],
+    "inventorySha256": "0cb8e555fe7502edac72d294149b978aee078a6fff8d0678b875b2c086a33705",
+    "planSha256": "14c4816a2ff3614bf89665307b666950d8d0687b31fa8bbfd3df41d162b66bd7",
+    "acceptedReceiptSha256": "66a96d33200f19c5813e10ee68c236335936f970a5309b63f165ddc8c52b4390",
+    "build": "passed",
+    "compiledSchemaGate": "passed",
+    "schemaManifestSha256": "ef458c24015aa6296480b7f76a721095ed5166967d21daa58269aa2d881fcb8f",
+    "runtimeImage": "mcr.microsoft.com/playwright@sha256:9bd26ad900bb5e0f4dee75839e957a89ae89c2b7ab1e76050e559790e946b948"
+  },
+  "review": {
+    "source-review.json": "678c5763f177f6cc84e384194fcca1d149caac5a13cad3e1efd0f941f92160be",
+    "artifact-review.json": "913b196f567f0b58e3e8f746d721c5cc04a2107fbb84f5a285f52569c2a0c881",
+    "review-acceptance.json": "bea51eca856406bdd08d12bb07362ee4d614adf5868782fbc510ca2af2a0e64c",
+    "visual-acceptance.json": "51dc0a3dbb2b1f006bab34b2eebd130597ba5e44a741b7babc811658b32853df",
+    "renderer-style-review.json": "4dbec79b30f12ce60fc3be009d096c18c7b54b4f6affb6581fe723b6df69be95"
+  },
+  "visualEvidence": [
+    {
+      "runName": "reader-focus3",
+      "file": "timeline-renderer-browser--5ddbc-ustered-navigation-readable-chromium/dense-reader-dark.png",
+      "sha256": "f8e95068c3a5da763c2bf516d21cce55b3c3b899934b691c33666b8350f6a873"
+    },
+    {
+      "runName": "reader-focus3",
+      "file": "timeline-renderer-browser--5ddbc-ustered-navigation-readable-chromium/dense-reader-light.png",
+      "sha256": "e3a3a6ec0a155a9495db51f04c32ab6e69ea6a8cdd70ec5fbd9308ed746c9144"
+    },
+    {
+      "runName": "reader-focus3",
+      "file": "timeline-renderer-browser--5ddbc-ustered-navigation-readable-mobile-safari/dense-reader-dark.png",
+      "sha256": "143141cf6c09afb119a121594b3a3010fc49345012f190079ce035905f3b4397"
+    },
+    {
+      "runName": "reader-focus3",
+      "file": "timeline-renderer-browser--5ddbc-ustered-navigation-readable-mobile-safari/dense-reader-light.png",
+      "sha256": "05cf6f5f78a6a7f1f97ad6637c5b8823b5d9feca45abd5a41a0ffd3ac38b9ae4"
+    }
+  ],
+  "artifact": {
+    "filesIndependentlyCompared": 155,
+    "distManifestSha256": "d6da4dd42b9906706cb15bb6eea7fff9349990c1f6ee72a7970b652898236ea7",
+    "packageManifestSha256": "93b8679d7196312117360c2394805bc6fcc1910a1396e604ab17ee75dccbac6d"
+  },
+  "deployment": {
+    "id": "11685fa7-7411-4ba2-895b-1dd4e8d6e3d3",
+    "url": "https://11685fa7.researchtoolspy.pages.dev",
+    "productionUrl": "https://researchtools.net",
+    "sourceSha": "0bdb3590887d054cd2f5e2737c42cc34e5e63122",
+    "noBundle": true,
+    "publishReceiptSha256": "906b4627db7f00150fbec3d07b41bb54c9567880e494df47bd2803802f08e54c",
+    "sourceSyncReceiptSha256": "28a204000b3e5260b47e7d92aab45c9694eb6aca21417573ff4d07374a8deee7",
+    "smoke": [
+      {
+        "baseUrl": "https://11685fa7.researchtoolspy.pages.dev",
+        "checksPassed": 30,
+        "mutatingRequests": 0,
+        "receiptSha256": "f63c9680cd5b254738c752e9e51eb653c66f888176b4c7be76380332346b2cb6"
+      },
+      {
+        "baseUrl": "https://researchtools.net",
+        "checksPassed": 30,
+        "mutatingRequests": 0,
+        "receiptSha256": "b844bddc2af9d280bf23f2d0eb21a9d3569acf0f73b79307d8e887619fdc6bbe"
+      }
+    ]
+  },
+  "database": {
+    "mutationsPerformed": false,
+    "catalog": {
+      "result": "passed",
+      "tables": 14,
+      "schemaRows": 386,
+      "normalizedSchemaSha256": "ec0d28165382f028c98208a003d8c5ab672a9a0ae7ba44ef2f23e3b2bfa46729"
+    },
+    "appliedMigrationCount": 13,
+    "pendingMigrations": [],
+    "secretNamesUnchanged": true
+  },
+  "renderer": {
+    "publicTreeUnchangedFromBaseline": false,
+    "stylesOnlyChanged": true,
+    "changedPublicPaths": [
+      "public/timelinejs/preview.css",
+      "public/timelinejs/preview.html"
+    ],
+    "liveOwnedBytesChecked": true,
+    "scriptSecurityUnchanged": true,
+    "freshEdgeReplayPerformed": false,
+    "shellOutsideStylesSha256": "38f5a8c3b02412f47d91e253059a684eb808a59cd1540716e65b5921bc75705a",
+    "reason": "Only preview.css and generated HTML style blocks changed; executable, font, vendor, CSP and header bytes are unchanged. Independent style/device review and live owned-byte checks support the CSS-only edge-script replay exemption."
+  },
+  "failedAttempts": [
+    {
+      "name": "reader-browser-final",
+      "source": "fb6827445a1bc38e9e3b094d27abd3ee616abd25",
+      "exitCode": 1,
+      "receiptSha256": "2181cc73ad5b1502a4fb75547a6fbd551f5dcf7552d77dcee8895790438a6920",
+      "logSha256": "a64edf3fee0885af7861a4c51d1bcae3666098b42fbb3345a89d045f98dc4144"
+    },
+    {
+      "name": "reader-focus2",
+      "source": "eee9af8faa552148a1e54b3b9a50e4cb1e49142e",
+      "exitCode": 1,
+      "receiptSha256": "61c6517577986784101eced7021c8f934ea17602b741006cc9e0e60c52dde7e3",
+      "logSha256": "e2a6c07ed6178df2609a728bc37594262d6954b292d5e8bfc65a52d98681a332"
+    }
+  ],
+  "recovery": "The first visual pass missed an upstream desktop next-arrow offset; zeroed icon margins and explicit desktop bounds/hover checks corrected it. An initial mobile short-story viewport regression was repaired by tightening header and typography spacing without weakening the existing full-text oracle. A subsequent focused test incorrectly required upstream-hidden mobile side arrows; the test now verifies that responsive behavior alongside the native 44-pixel controls. Both failed runs are preserved; all 53 accepted checks and four reviewed captures use the final source.",
+  "instructionSha256": {
+    ".team/project.json": "c87cd27090a1a8ff779dd0d850668ebf0ecb6581cefb2d0b0a66ed63aabbcf78",
+    "CLAUDE.md": "3852de6d95104c64f3a35b670f350e1d7a2c6c9ed93d03d53895e7bc8c44ff1b",
+    "docs/plans/2026-09-11-timeline-tranche-charter.md": "367a6bc5c7f7c706ce4f6b368df952fbe5c8a6e34bde3f959b72775e138a0682",
+    "docs/plans/2026-09-14-timeline-presentation-ui-charter.md": "4c1c0a13ad9289e38294da59c40d4fc8c2d34d21399f6fa68e889ea5f826ddaa"
+  },
+  "promptSha256": {
+    "css": "03b3dfaa980b52bf055d38e87b1283f44ba9afd8badb2a1dee343a4723e47763",
+    "tests": "348a0a91dc327bc24fd2e8897bbd78ae19ff8f703dd094170939317727d71e38",
+    "review": "1a07a05dc198c8a971a7dea4d6316f0b9c0d3aaa8ce4d226559a5eca2db9e6ba",
+    "finalizer": "052468341db0116d1a9c89f76bc4360033cc30a308f6701f15fcb483a5e648bf"
+  },
+  "rollback": {
+    "runtimeSha": "89c33f1e9b00b1072d0253657b29a3add0195d77",
+    "deploymentId": "0c6011ec-377f-40be-ac09-0de0b7e195a8",
+    "limits": "Same saved data, automatic scheduling and backups remain supported; the prior presentation layout lacks these readability repairs."
+  },
+  "retrospective": "Bounded native providers separated renderer CSS, parent layout and dense-device tests. The final-source dense 20-event fixture, existing provenance reachability and navigation oracles support visual review. Focused and remaining partitions are deduplicated by exact case identity; passing counts alone do not establish visual acceptance.",
+  "limitations": [
+    "Presentation readability repair only; scheduling, original backup, persisted snapshots and chronological geometry remain unchanged.",
+    "TL-17 remains partial; TL-13 planning is not delivered. No new API, schema, vendor/script/font or security-policy changes.",
+    "Representative dense-event device visuals are not exhaustive accessibility certification or user testing. No full unrelated API-suite claim. Primary checkout untouched."
+  ]
+}
