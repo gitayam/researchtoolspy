@@ -148,7 +148,8 @@ test.describe('Self-hosted TimelineJS renderer @smoke', () => {
       await expect(slide.locator('.tl-headline')).toBeInViewport()
       await expect(slide.locator('.tl-headline-date')).toContainText(index === 0 ? '2028-02-29 23:50' : `2028-03-01 00:${['', '05', '20', '35'][index]}`)
     }
-    await page.keyboard.press('Escape')
+    await dialog.getByRole('button', { name: 'Close', exact: true }).click()
+    await expect(dialog).toBeHidden()
     expect((await exported(page)).analystWorkspace).toEqual(before.analystWorkspace)
   })
 
