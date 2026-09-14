@@ -9,7 +9,7 @@ export interface TimelineTimingReviewRow {
   reason: 'ordered' | 'reversed' | 'overlap' | 'missing-date' | 'invalid-date' | 'missing-anchor'
 }
 
-function recordedBounds(event: TimelineWorkspaceEvent): ReturnType<typeof calendarLabelBounds> {
+export function recordedBounds(event: TimelineWorkspaceEvent): ReturnType<typeof calendarLabelBounds> {
   const start = { date: event.eventDate === undefined ? '' : event.eventDate, ...(event.datePrecision !== undefined ? { precision: event.datePrecision } : {}), ...(event.eventTime !== undefined ? { time: event.eventTime } : {}) }
   if (event.recordedEnd === undefined) return calendarLabelBounds(start)
   const bounds = temporalClaimBounds({ schema: 'timeline-calendar-claim.v1', kind: 'interval', displayText: '', start, end: event.recordedEnd })

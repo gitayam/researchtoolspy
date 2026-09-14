@@ -1,5 +1,6 @@
 import { TimelineJSExport } from './TimelineJSExport'
 import { TimelineTimingReview } from './TimelineTimingReview'
+import { TimelineOverlapReview } from './TimelineOverlapReview'
 import { TimelineRecordedDate } from './TimelineRecordedDate'
 import { TimelineSourceCoverage } from './TimelineSourceCoverage'
 import { timelineSourceEvaluationNeedsReview } from '@/lib/timeline-source-evaluation'
@@ -1145,6 +1146,7 @@ function TimelineWorkspace({
       </Card>
 
       <TimelineTimingReview events={events} />
+      <TimelineOverlapReview events={displayedEvents} />
       {sortedEvents.length === 0 ? (
         <Card id="timeline-sequence" tabIndex={-1} className="timeline-sequence scroll-mt-24 border-dashed">
           <CardContent className="py-12 text-center">
