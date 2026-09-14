@@ -36,6 +36,21 @@ export const onRequest: PagesFunction<Env> = async ({ request, env }) => {
     }
     const asset = await env.ASSETS.fetch(new Request(new URL('/index.html', url.origin), { method: 'GET' }))
     if (!asset.ok || !/^text\/html(?:\s*;|$)/i.test(asset.headers.get('Content-Type') || '')) return unavailable(503, head)
+    // ASSETS is the trusted built index, not arbitrary HTML. A service binding
+    // can surface an interrupted stream as EOF; HTMLRewriter alone tolerates
+    // that truncation. Require the explicit shell structure before injecting
+    // presentation metadata. This is a completeness check, not an HTML sanitizer.
+    const shell = await asset.text()
+    const exactlyOne = (pattern: RegExp) => (shell.match(pattern) || []).length === 1
+    const shellComplete = /^\s*<!doctype html>/i.test(shell)
+      && exactlyOne(/<html(?:\s[^>]*)?>/gi) && /<\/html>\s*$/i.test(shell)
+      && exactlyOne(/<head(?:\s[^>]*)?>/gi) && exactlyOne(/<\/head\s*>/gi)
+      && exactlyOne(/<body(?:\s[^>]*)?>/gi) && exactlyOne(/<\/body\s*>/gi)
+      && exactlyOne(/<title(?:\s[^>]*)?>/gi) && exactlyOne(/<\/title\s*>/gi)
+      && /<head(?:\s[^>]*)?>[\s\S]*<title(?:\s[^>]*)?>[\s\S]*<\/title\s*>[\s\S]*<\/head\s*>\s*<body(?:\s[^>]*)?>[\s\S]*<\/body\s*>\s*<\/html>\s*$/i.test(shell)
+      && /<div\b[^>]*\bid=["']root["'][^>]*>\s*<\/div\s*>/i.test(shell)
+      && /<script\b(?=[^>]*\btype=["']module["'])(?=[^>]*\bsrc=["']\/assets\/[A-Za-z0-9_.-]+\.js["'])[^>]*>\s*<\/script\s*>/i.test(shell)
+    if (!shellComplete) return unavailable(503, head)
     const title = preview?.title || 'Timeline presentation unavailable'
     const description = preview?.description || 'This shared timeline presentation is unavailable.'
     const canonical = url.origin + (preview ? url.pathname : '/present')
@@ -69,7 +84,7 @@ export const onRequest: PagesFunction<Env> = async ({ request, env }) => {
       .on('link', { element(element) { if ((element.getAttribute('rel') || '').toLowerCase().split(/\s+/).includes('canonical')) element.remove() } })
       .on('head', { element(element) { element.append(tags, { html: true }) } })
       .on('body', { element(element) { element.prepend(`<noscript><h1>${escape(title)}</h1><p>${escape(description)}</p></noscript>`, { html: true }) } })
-      .transform(asset)
+      .transform(new Response(shell, { headers: { 'Content-Type': 'text/html; charset=utf-8' } }))
     // Complete rewriting before returning so asset/rewriter failures cannot leak
     // a partial success document; never log token, metadata or exceptions.
     const html = await rewritten.text()

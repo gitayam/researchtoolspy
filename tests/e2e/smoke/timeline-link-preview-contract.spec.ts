@@ -89,4 +89,38 @@ test.describe('shared presentation link preview @smoke', () => {
       expect([...request.headers]).toEqual([])
     }
   })
+
+  test('rejects incomplete successful asset bodies before metadata rewriting', async () => {
+    const shells = [
+      '<!doctype html><html><head><title>Partial asset</title>',
+      '<!doctype html><html><head><title>Partial asset</title></head><body><div id="root"></div></body></html>',
+      '<!doctype html><html><head><title>Partial asset</title></head><body><script type="module" src="/assets/index.js"></script></body></html>',
+      '<!doctype html><html><head><title>Partial asset</title></head><body><div id="root"></div><script type="module" src="https://untrusted.example/index.js"></script></body></html>',
+    ]
+    const descriptor = Object.getOwnPropertyDescriptor(globalThis, 'HTMLRewriter')
+    let rewriterAccesses = 0
+    // Observe forbidden access only; supply no fake HTMLRewriter implementation.
+    Object.defineProperty(globalThis, 'HTMLRewriter', { configurable: true, get() { rewriterAccesses++; throw new Error('Rewriter must not be reached') } })
+    try {
+    for (const shell of shells) {
+      const env = { ASSETS: { async fetch() { return new Response(shell, { headers: { 'Content-Type': 'text/html' } }) } } }
+      for (const method of ['GET', 'HEAD']) {
+        // Invalid token avoids D1; rejection must happen before HTMLRewriter.
+        // No fake parser or rewriter is installed in the Node contract runner.
+        const response = await invoke(new Request('https://reader.example/present/invalid', { method }), env)
+        expect(response.status).toBe(503)
+        expect(response.headers.get('Cache-Control')).toBe('no-store')
+        const body = await response.text()
+        if (method === 'HEAD') expect(body).toBe('')
+        else expect(body).toContain('Timeline presentation unavailable')
+        expect(body).not.toMatch(/Partial asset|untrusted|og:title/)
+      }
+    }
+    expect(rewriterAccesses).toBe(0)
+    } finally {
+      if (descriptor) Object.defineProperty(globalThis, 'HTMLRewriter', descriptor)
+      else Reflect.deleteProperty(globalThis, 'HTMLRewriter')
+    }
+  })
+
 })

@@ -197,7 +197,10 @@ try {
   }
   const staticRoot = await realpath(dist)
   let assetFailure = ''
+  const assetObservations = []
   const staticService = async request => {
+    assetObservations.push({ mode: assetFailure, path: new URL(request.url).pathname })
+    if (assetFailure === 'truncated') return new MFResponse('<!doctype html><html><head><title>Partial asset</title>', { headers: { 'Content-Type': 'text/html' } })
     if (assetFailure === 'status') return new MFResponse('Synthetic asset failure', { status: 503 })
     if (assetFailure === 'stream') {
       let sent = false
@@ -453,14 +456,18 @@ try {
     const bot = await request(publicPagePath, { user: null, extraHeaders: { 'User-Agent': agent, 'X-Forwarded-Host': 'untrusted.example', 'X-Forwarded-Proto': 'http' } })
     assert.equal(bot.status, 200); assert.equal(bot.text, publicPage.text); previewHeaders(bot)
   }
-  for (const failure of ['status', 'stream']) {
+  for (const failure of ['status', 'stream', 'truncated']) {
     assetFailure = failure
+    stage = 'compiled-preview-asset-' + failure
+    const readsBefore = assetObservations.length
     try {
       const broken = await request(publicPagePath, { user: null })
-      assert.equal(broken.status, 503); previewHeaders(broken)
+      assert(assetObservations.slice(readsBefore).some(item => item.mode === failure && item.path === '/index.html'), 'Fault did not reach ASSETS binding: '+failure)
+      assert.equal(broken.status, 503, `Asset ${failure} returned ${broken.status}, body length ${broken.text.length}`); previewHeaders(broken)
       assert(!broken.text.includes('Synthetic &amp; shared account') && !broken.text.includes('Explicit public projection only.') && !broken.text.includes('Partial asset'))
     } finally { assetFailure = '' }
   }
+  stage = 'compiled-preview-lifecycle'
   const headPage = await request(publicPagePath, { method: 'HEAD', user: null })
   assert.equal(headPage.status, 200); assert.equal(headPage.text, ''); previewHeaders(headPage)
   const noPreview = async (path, status = 404, options = {}) => {
