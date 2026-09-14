@@ -48,8 +48,10 @@ export function TimelinePresentationSchedule({ snapshot, enabled, schedule, disa
             <label htmlFor={`${prefix}-default`} className="block text-sm font-medium">Default presentation date</label>
             <input id={`${prefix}-default`} type="date" min="0001-01-01" max="9999-12-31" value={schedule.defaultDate} onChange={event => onChange(enabled, { ...schedule, defaultDate: event.target.value })} className={inputClass} />
           </div>
-          <button type="button" className={shortcutClass} onClick={() => chooseDay(0)}>Today</button>
-          <button type="button" className={shortcutClass} onClick={() => chooseDay(1)}>Tomorrow</button>
+          <div className="flex shrink-0 gap-2">
+            <button type="button" className={shortcutClass} onClick={() => chooseDay(0)}>Today</button>
+            <button type="button" className={shortcutClass} onClick={() => chooseDay(1)}>Tomorrow</button>
+          </div>
         </div>
         <label className="flex cursor-pointer items-center gap-2 text-sm font-medium">
           <input type="checkbox" checked={Boolean(schedule.automatic)} onChange={event => onChange(enabled, { ...schedule, automatic: event.target.checked ? { startTime: '09:00', intervalMinutes: 15 } : undefined })} className="h-4 w-4 accent-indigo-700" />Adjust following events
