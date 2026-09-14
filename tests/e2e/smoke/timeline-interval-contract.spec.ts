@@ -4,7 +4,7 @@ import { reviewTimelineTiming } from '../../../src/lib/timeline-timing'
 import { emptyTimelineEvidence, timelineEvidenceBasis } from '../../../src/lib/timeline-evidence'
 import { prepareTimelineSave, openTimelineRevision, type TimelineRevisionSummary } from '../../../src/lib/timeline-durable'
 import { validArtifactPayload, hashContent } from '../../../functions/api/_shared/timeline-artifact-contract'
-import { buildTimelineJSExport } from '../../../src/lib/timeline-timelinejs'
+import { buildTimelineJSExport, resolveTimelinePresentationSchedule } from '../../../src/lib/timeline-timelinejs'
 import type { TimelineWorkspaceEvent, TimelineWorkspaceExport } from '../../../src/types/timeline-workspace'
 
 function event(id: string, extra: Partial<TimelineWorkspaceEvent> = {}): TimelineWorkspaceEvent {
@@ -82,17 +82,74 @@ test.describe('Local recorded interval contracts @smoke', () => {
     } finally { globalThis.fetch = originalFetch }
   })
 
-  test('TimelineJS explicitly omits intervals even with scheduling while complete JSON retains them', () => {
-    const value = snapshot([event('range', { recordedEnd: { date: '2026-09-12' } }), event('single', { eventDate: '2026-09-15', sequenceOrder: 1, narrativeOrder: 1 })])
+  test('TimelineJS preserves day clock month and year endpoints without inventing components', () => {
+    const examples = [
+      { start: '2026-09-10', precision: 'day' as const, end: { date: '2026-09-12', precision: 'day' as const }, expected: { year: 2026, month: 9, day: 12 } },
+      { start: '2026-09-10', precision: 'day' as const, end: { date: '2026-09-10', time: '17:30:59' }, expected: { year: 2026, month: 9, day: 10, hour: 17, minute: 30, second: 59 } },
+      { start: '2026-09', precision: 'month' as const, end: { date: '2026-11', precision: 'month' as const }, expected: { year: 2026, month: 11 } },
+      { start: '2026', precision: 'year' as const, end: { date: '2028', precision: 'year' as const }, expected: { year: 2028 } },
+      { start: '2026-09-10', precision: 'day' as const, end: { date: '2026-09-10' }, expected: { year: 2026, month: 9, day: 10 } },
+    ]
+    for (const example of examples) {
+      const value = snapshot([event('range', { eventDate: example.start, datePrecision: example.precision, recordedEnd: example.end })])
+      const original = JSON.stringify(value), result = buildTimelineJSExport(value)
+      expect(result.omitted).toEqual([])
+      expect(result.timeline.events).toHaveLength(1)
+      expect(result.timeline.events[0].end_date).toEqual(example.expected)
+      expect(result.timeline.events[0].display_date).toContain(example.start)
+      expect(result.timeline.events[0].display_date).toContain(example.end.date)
+      expect(JSON.stringify(value)).toBe(original)
+      expect(decode(value)).toEqual(value)
+    }
+  })
+
+  test('overlapping precision keeps the slide and full range while declining misleading geometry', () => {
+    const value = snapshot([event('range', { eventDate: '2026-09-14', recordedEnd: { date: '2026', precision: 'year' } })])
+    const result = buildTimelineJSExport(value)
+    expect(result.omitted).toEqual([])
+    expect(result.timeline.events).toHaveLength(1)
+    expect(result.timeline.events[0]).not.toHaveProperty('end_date')
+    expect(result.timeline.events[0].display_date).toContain('2026-09-14')
+    expect(result.timeline.events[0].display_date).toContain('2026')
+    expect(result.notices.join(' ')).toMatch(/overlap|precision|geometry/i)
+    expect(decode(value).analystWorkspace.events[0].recordedEnd).toEqual({ date: '2026', precision: 'year' })
+  })
+
+  test('presentation scheduling rejects interval overrides and preserves recorded endpoints and backup', () => {
+    const value = snapshot([event('range', { eventTime: '09:00', recordedEnd: { date: '2026-09-12', time: '17:30' } })])
     const original = JSON.stringify(value)
-    for (const schedule of [undefined, { defaultDate: '2028-02-29', events: { range: { date: '2028-03-01', time: '10:00', meaning: 'arrive' as const } } }]) {
-      const result = buildTimelineJSExport(value, schedule)
-      expect(result.timeline.events.map(item => item.unique_id)).toEqual(['event-single'])
-      expect(result.omitted).toHaveLength(1)
-      expect(result.omitted[0]).toMatchObject({ eventId: 'range' })
-      expect(result.omitted[0].reason).toMatch(/interval/i)
+    const basic = { defaultDate: '2028-02-29', events: {} }
+    const unscheduled = buildTimelineJSExport(value)
+    for (const settings of [{}, { date: '', time: '', meaning: 'action' as const }]) {
+      const result = buildTimelineJSExport(value, { ...basic, events: { range: settings } })
+      expect(result.errors).toEqual([])
+      expect(result.timeline.events).toEqual(unscheduled.timeline.events)
+    }
+    for (const settings of [{ date: '2028-03-01' }, { time: '10:00' }, { meaning: 'start' as const }, { meaning: 'arrive' as const }]) {
+      const result = buildTimelineJSExport(value, { ...basic, events: { range: settings } })
+      expect(result.errors.length).toBeGreaterThan(0)
+      expect(result.errors.join(' ')).toMatch(/interval|recorded range/i)
+      expect(result.timeline.events).toEqual([])
     }
     expect(JSON.stringify(value)).toBe(original)
-    expect(decode(value).analystWorkspace.events[0].recordedEnd).toEqual({ date: '2026-09-12' })
+  })
+
+  test('automatic steps anchor only to a complete timed interval end and warn otherwise', () => {
+    const untimed = event('next', { eventDate: undefined, datePrecision: undefined, placement: { mode: 'position', position: 2 }, sequenceOrder: 1, narrativeOrder: 1 })
+    const timed = event('range', { eventTime: '09:00', recordedEnd: { date: '2026-09-10', time: '23:50:07' } })
+    const schedule = { defaultDate: '2028-02-29', events: {}, automatic: { startTime: '08:00', intervalMinutes: 15 } }
+    const resolved = resolveTimelinePresentationSchedule(snapshot([timed, untimed]), schedule)
+    expect(resolved.errors).toEqual([])
+    expect(resolved.events.next).toMatchObject({ date: '2026-09-11', time: '00:05:07', source: 'automatic' })
+    const preceding = event('anchor', { eventDate: '2026-09-09', eventTime: '14:00', narrativeOrder: 0 })
+    for (const end of [{ date: '2026-09-12' }, { date: '2026-09' }, { date: '2026' }]) {
+      const range = { ...timed, narrativeOrder: 1, recordedEnd: end }
+      const result = resolveTimelinePresentationSchedule(snapshot([preceding, range, { ...untimed, narrativeOrder: 2 }]), schedule)
+      expect(result.errors).toEqual([])
+      expect(result.events.next).toMatchObject({ date: '2026-09-09', time: '14:15' })
+      expect(result.warnings.join(' ')).toMatch(/interval|end/i)
+      const noPrior = resolveTimelinePresentationSchedule(snapshot([range, { ...untimed, narrativeOrder: 2 }]), schedule)
+      expect(noPrior.events.next).toMatchObject({ date: '2028-02-29', time: '08:00' })
+    }
   })
 })

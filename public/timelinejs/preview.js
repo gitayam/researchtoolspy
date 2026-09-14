@@ -52,12 +52,25 @@
       scale: 'human',
       title: { text: textBlock(value.title.text, 60000), unique_id: 'narrative-title', autolink: false },
       events: value.events.map(function (item) {
-        record(item, ['start_date', 'text', 'unique_id', 'display_date', 'autolink'], ['group']);
+        record(item, ['start_date', 'text', 'unique_id', 'display_date', 'autolink'], ['group', 'end_date']);
         if (item.autolink !== false || typeof item.unique_id !== 'string' || item.unique_id.length > 606 || !item.unique_id.startsWith('event-') || ids.has(item.unique_id)) fail();
         var decoded = decodeURIComponent(item.unique_id.slice(6));
         if (!/^[A-Za-z0-9][A-Za-z0-9_.:-]{0,199}$/.test(decoded) || 'event-' + encodeURIComponent(decoded) !== item.unique_id) fail();
         ids.add(item.unique_id);
         var copy = { start_date: date(item.start_date), text: textBlock(item.text, 6000), unique_id: item.unique_id, display_date: text(item.display_date, 1000, false), autolink: false };
+        if (item.end_date !== undefined) {
+          copy.end_date = date(item.end_date);
+          // TimelineJS positions partial dates at their first represented component.
+          // The adapter leaves overlapping precision as a labeled slide without a span.
+          var fields = ['year', 'month', 'day', 'hour', 'minute', 'second'];
+          for (var index = 0; index < fields.length; index++) {
+            var field = fields[index], fallback = field === 'month' || field === 'day' ? 1 : 0;
+            var start = copy.start_date[field] === undefined ? fallback : copy.start_date[field];
+            var end = copy.end_date[field] === undefined ? fallback : copy.end_date[field];
+            if (end < start) fail();
+            if (end > start) break;
+          }
+        }
         if (item.group !== undefined) copy.group = text(item.group, 8000, false);
         return copy;
       })

@@ -229,6 +229,35 @@ test.describe('self-hosted TimelineJS renderer contract @smoke', () => {
     expect(rejectedEvent.instances).toHaveLength(0)
   })
 
+  test('clones optional interval endpoints and rejects unsafe or reversed renderer geometry', () => {
+    for (const endpoint of [{ year: 2027 }, { year: 2026, month: 10 }, { year: 2026, month: 9, day: 12 }, { year: 2026, month: 9, day: 12, hour: 10, minute: 30, second: 5 }]) {
+      const data: any = projection()
+      data.events[0].end_date = endpoint
+      const original = JSON.stringify(data), frame = harness()
+      frame.render(data)
+      expect(frame.instances).toHaveLength(1)
+      expect(JSON.parse(JSON.stringify(frame.instances[0].data.events[0].end_date))).toEqual(endpoint)
+      expect(frame.instances[0].data.events[0].end_date).not.toBe(endpoint)
+      expect(JSON.stringify(data)).toBe(original)
+    }
+    const invalid = [null, [], '2027', {}, { year: 2026 }, { year: 2026, month: 9 },
+      { year: 2026, month: 9, day: 11 }, { year: 2026, month: 2, day: 30 },
+      { year: 2027, month: 1, hour: 10, minute: 30 }, { year: 2027, month: 1, day: 1, hour: 24, minute: 0 },
+      { year: 2027, month: 1, day: 1, minute: 10 }, { year: 2027, url: 'https://attacker.invalid/' }, { year: 2027, day: 1 }, { year: 10000 }]
+    for (const endpoint of invalid) {
+      const data: any = projection(), frame = harness()
+      data.events[0].end_date = endpoint
+      frame.render(data)
+      expect(frame.instances).toHaveLength(0)
+      expect(frame.messages.at(-1)?.data.type).toBe('timelinejs:error')
+    }
+    const timed: any = projection(), frame = harness()
+    timed.events[0].start_date = { year: 2026, month: 9, day: 12, hour: 10, minute: 30 }
+    timed.events[0].end_date = { year: 2026, month: 9, day: 12, hour: 10, minute: 29 }
+    frame.render(timed)
+    expect(frame.instances).toHaveLength(0)
+  })
+
   test('rejects URLs, extra payload structures, invalid dates/IDs, unsafe markup and oversized event sets', () => {
     const changes: Array<(value: any) => void> = [
       value => { value.media = { url: 'https://external.example/' } },

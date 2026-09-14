@@ -1,6 +1,7 @@
-import type { TimelineWorkspaceExport } from '../types/timeline-workspace'
-import { narrativeTimelineEvents } from './timeline-workspace'
+import type { TimelineWorkspaceEvent, TimelineWorkspaceExport } from '../types/timeline-workspace'
+import { narrativeTimelineEvents, timelineEventTemporalLabel } from './timeline-workspace'
 import { timelineAssessmentLabel } from './timeline-evidence'
+import { calendarLabelBounds, parseCalendarTemporalClaim, type CalendarLabel } from './timeline-temporal'
 
 interface TimelineJSDate {
   year: number
@@ -12,6 +13,7 @@ interface TimelineJSDate {
 }
 interface TimelineJSEvent {
   start_date: TimelineJSDate
+  end_date?: TimelineJSDate
   text: { headline: string; text: string }
   unique_id: string
   display_date: string
@@ -75,6 +77,7 @@ function scheduleErrors(value: unknown, snapshot: TimelineWorkspaceExport): stri
     if (settings.date !== undefined && settings.date !== '' && !fullDate(settings.date)) return [`Presentation date for “${event.title}” must be a complete valid date (YYYY-MM-DD).`]
     if (settings.time !== undefined && settings.time !== '' && !validTime(settings.time)) return [`Presentation time for “${event.title}” must be HH:mm or HH:mm:ss.`]
     if (settings.meaning !== undefined && !['start', 'action', 'arrive'].includes(settings.meaning as string)) return ['Presentation meaning must be Start, Do the action, or Arrive.']
+    if (event.recordedEnd !== undefined && (settings.date || settings.time || (settings.meaning && settings.meaning !== 'action'))) return [`Recorded interval endpoints for “${event.title}” cannot use presentation date, time or meaning overrides.`]
     if (settings.time && event.eventDate && !fullDate(event.eventDate) && !settings.date) return [`A time override for “${event.title}” requires an explicit complete presentation date.`]
   }
   return []
@@ -106,6 +109,22 @@ export function resolveTimelinePresentationSchedule(snapshot: TimelineWorkspaceE
   const warnings = new Set<string>()
   let anchor: { date: string; time: string } | undefined
   for (const event of narrativeTimelineEvents(snapshot.analystWorkspace.events)) {
+    if (event.recordedEnd !== undefined) {
+      const interval = recordedInterval(event)
+      if (interval.ok === false) return { events: {}, errors: [`Invalid recorded interval for “${event.title}”: ${interval.reason}.`], warnings: [] }
+      events[event.id] = { date: event.eventDate, ...(event.eventTime ? { time: event.eventTime } : {}), source: 'recorded', scheduled: false }
+      if (schedule.automatic) {
+        const end = event.recordedEnd
+        if (fullDate(end.date) && end.time) {
+          const stamp = end.date + 'T' + (end.time.length === 5 ? end.time + ':00' : end.time)
+          if (anchor && stamp < anchor.date + 'T' + (anchor.time.length === 5 ? anchor.time + ':00' : anchor.time)) warnings.add('A manual or recorded anchor precedes the previous timed event. TimelineJS reorders events chronologically; original dates and overrides are retained.')
+          anchor = { date: end.date, time: end.time }
+        } else {
+          warnings.add('A recorded interval without a complete end date and explicit end clock does not anchor automatic timing. Following undated steps use the previous usable timed anchor or the default presentation date and start time, not the interval start.')
+        }
+      }
+      continue
+    }
     const settings = Object.prototype.hasOwnProperty.call(schedule.events, event.id) ? schedule.events[event.id] : undefined
     const explicitDate = settings?.date || undefined
     const explicitTime = settings?.time || undefined
@@ -143,6 +162,21 @@ function escapeHTML(value: string): string {
   return value.replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]!)
 }
 
+function recordedInterval(event: TimelineWorkspaceEvent) {
+  return parseCalendarTemporalClaim({
+    schema: 'timeline-calendar-claim.v1', kind: 'interval', displayText: '',
+    start: { date: event.eventDate, ...(event.datePrecision !== undefined ? { precision: event.datePrecision } : {}), ...(event.eventTime ? { time: event.eventTime } : {}) },
+    end: event.recordedEnd,
+  })
+}
+
+function recordedDate(label: CalendarLabel): TimelineJSDate {
+  const parts = label.date.split('-').map(Number)
+  const clock = label.time?.split(':').map(Number)
+  return { year: parts[0], ...(parts.length >= 2 ? { month: parts[1] } : {}), ...(parts.length === 3 ? { day: parts[2] } : {}),
+    ...(clock ? { hour: clock[0], minute: clock[1], ...(clock.length === 3 ? { second: clock[2] } : {}) } : {}) }
+}
+
 /** Pure presentation adapter for an already validated workspace; never applies import defaults. */
 export function buildTimelineJSExport(snapshot: TimelineWorkspaceExport, schedule?: TimelinePresentationSchedule): TimelineJSExport {
   const workspace = snapshot.analystWorkspace
@@ -157,15 +191,14 @@ export function buildTimelineJSExport(snapshot: TimelineWorkspaceExport, schedul
   const events: TimelineJSEvent[] = []
   const resolved = schedule === undefined ? undefined : resolveTimelinePresentationSchedule(snapshot, schedule)
   const errors = resolved?.errors || []
+  for (const event of selected) {
+    if (event.recordedEnd !== undefined && recordedInterval(event).ok === false) errors.push(`Invalid recorded interval for “${event.title}”. Both recorded endpoints must form a valid calendar claim.`)
+  }
   notices.push(...(resolved?.warnings || []))
   const eventDetails: TimelineJSExport['eventDetails'] = {}
   let scheduledCount = 0
   let hasTimes = false, omittedTimes = false
   for (const event of errors.length ? [] : selected) {
-    if (event.recordedEnd !== undefined) {
-      omitted.push({ eventId: event.id, title: event.title, reason: 'Recorded interval rendering is not yet supported in this presentation. The ResearchTools JSON backup preserves both endpoints.' })
-      continue
-    }
     const settings = schedule && Object.prototype.hasOwnProperty.call(schedule.events, event.id) ? schedule.events[event.id] : undefined
     const effective = resolved?.events[event.id]
     const date = effective?.date || event.eventDate
@@ -194,6 +227,25 @@ export function buildTimelineJSExport(snapshot: TimelineWorkspaceExport, schedul
       display = `${meaning}: ${display} (presentation assumption; temporary)`
       scheduledCount += 1
     }
+    let end_date: TimelineJSDate | undefined
+    let intervalNotice: string | undefined
+    if (event.recordedEnd !== undefined) {
+      const interval = recordedInterval(event)
+      if (interval.ok === true && interval.claim.kind === 'interval') {
+        const start = calendarLabelBounds(interval.claim.start)
+        const end = calendarLabelBounds(interval.claim.end)
+        if (!('reason' in start) && !('reason' in end) && end.start >= start.start) end_date = recordedDate(interval.claim.end)
+        else {
+          intervalNotice = 'Overlapping recorded endpoint precision would reverse TimelineJS\'s default-component geometry. The slide retains the complete recorded range label; its geometric end date is omitted. No endpoint or duration is inferred.'
+          notices.push(`“${event.title}”: ${intervalNotice}`)
+        }
+        display = timelineEventTemporalLabel(event)
+        if (event.eventTime || event.recordedEnd.time) {
+          display += ` (${narrative?.timezone || 'timezone not recorded'})`
+          hasTimes = true
+        }
+      }
+    }
     let placementLabel: string | undefined
     if (event.placement?.mode === 'relative') {
       const anchorEventId = event.placement.anchorEventId
@@ -203,6 +255,8 @@ export function buildTimelineJSExport(snapshot: TimelineWorkspaceExport, schedul
       placementLabel = `Sequence position: ${event.placement.position}. This position is not enforced as chronology.`
     }
     const paragraphs: string[] = []
+    if (event.recordedEnd !== undefined) paragraphs.push(`<p><strong>Recorded range:</strong> ${escapeHTML(display)}. Inclusive recorded units describe uncertain extent, not a measured duration.</p>`)
+    if (intervalNotice) paragraphs.push(`<p>${escapeHTML(intervalNotice)}</p>`)
     if (event.description) paragraphs.push(`<p>${escapeHTML(event.description)}</p>`)
     if (event.whyItMatters) paragraphs.push(`<p><strong>Why it matters:</strong> ${escapeHTML(event.whyItMatters)}</p>`)
     paragraphs.push(`<p><strong>Assessment:</strong> ${escapeHTML(timelineAssessmentLabel(workspace.evidence, event))}</p>`)
@@ -217,6 +271,7 @@ export function buildTimelineJSExport(snapshot: TimelineWorkspaceExport, schedul
     eventDetails[unique_id] = { dateLabel: display, ...(placementLabel ? { placementLabel } : {}), scheduled }
     events.push({
       start_date,
+      ...(end_date ? { end_date } : {}),
       text: { headline: escapeHTML(event.title), text: paragraphs.join('') },
       unique_id,
       display_date: escapeHTML(display),

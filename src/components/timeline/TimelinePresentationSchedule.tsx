@@ -1,6 +1,6 @@
 import { useId } from 'react'
 import { CalendarClock } from 'lucide-react'
-import { narrativeTimelineEvents } from '@/lib/timeline-workspace'
+import { narrativeTimelineEvents, timelineEventTemporalLabel } from '@/lib/timeline-workspace'
 import { resolveTimelinePresentationSchedule, type TimelinePresentationSchedule as Schedule } from '@/lib/timeline-timelinejs'
 import type { TimelineWorkspaceExport } from '@/types/timeline-workspace'
 
@@ -78,6 +78,10 @@ export function TimelinePresentationSchedule({ snapshot, enabled, schedule, disa
           return <fieldset key={event.id} className={`min-w-0 space-y-2 rounded-md border border-l-4 p-3 ${custom ? 'border-amber-300 border-l-amber-500 bg-amber-50/40 dark:border-amber-800 dark:border-l-amber-500 dark:bg-amber-950/20' : automatic ? 'border-indigo-200 border-l-indigo-500 dark:border-indigo-900 dark:border-l-indigo-400' : 'border-slate-300 border-l-slate-500 dark:border-slate-700 dark:border-l-slate-400'}`}>
             <legend className="max-w-full break-words px-1 text-sm font-semibold">{index + 1}. {event.title}<span className="sr-only"> presentation schedule</span></legend>
             {event.description && <p className="line-clamp-2 break-words text-xs text-slate-700 dark:text-slate-300">{event.description}</p>}
+            {event.recordedEnd !== undefined ? <>
+              <p className="break-words text-sm font-medium text-slate-800 dark:text-slate-100">{timelineEventTemporalLabel(event)}</p>
+              <p className="text-xs text-slate-600 dark:text-slate-300">Recorded endpoints stay unchanged. Presentation date, time and meaning overrides are unavailable for intervals.</p>
+            </> : <>
             <p className="text-xs text-slate-600 dark:text-slate-300"><span className={`font-semibold ${custom ? 'text-amber-900 dark:text-amber-200' : automatic ? 'text-indigo-800 dark:text-indigo-200' : ''}`}>{custom ? 'Custom' : automatic ? 'Automatic' : event.eventDate ? 'Recorded' : 'Presentation date'}</span>{' · '}{date}{automatic && index > 0 ? ` · ${schedule.automatic!.intervalMinutes} min spacing` : ''}</p>
             <div className="grid min-w-0 grid-cols-2 gap-2">
               <div className="min-w-0 space-y-1"><label htmlFor={`${id}-time`} className="block text-xs">Presentation time</label><input id={`${id}-time`} type="time" step={clock.split(':').length === 3 ? '1' : '60'} value={clock} onChange={e => update(event.id, 'time', e.target.value)} className={inputClass} /></div>
@@ -89,6 +93,7 @@ export function TimelinePresentationSchedule({ snapshot, enabled, schedule, disa
             </details>
             {custom && <button type="button" className={shortcutClass} onClick={() => reset(event.id)}>{event.eventDate ? 'Use recorded date and time' : schedule.automatic ? 'Use automatic time' : 'Clear date and time overrides'}</button>}
             {event.eventDate && custom && <p className="text-xs text-slate-600 dark:text-slate-300">Recorded: {event.eventDate}{event.eventTime ? ` · ${event.eventTime}` : ''}</p>}
+            </>}
           </fieldset>
         })}</div>
       </details>
