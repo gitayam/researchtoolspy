@@ -68,16 +68,18 @@ Current delivery state (2026-09-12):
   Content Research extraction in the same workspace. The resolver checks current
   access, retention, full-text hash and unique quote match; the recorded locator
   preserves hashes and UTF-16 offsets. Preview is rechecked before import, and
-  private passages never enter automatic browser drafts. The current interval-entry source passed 141 distinct checks (82 browser-project and 59 contract checks), five type checks and fresh build/compiled gates. See the [current receipt](./2026-09-14-timeline-interval-entry-release-receipt.md). Previous stage counts remain historical; no full unrelated API-suite claim.
+  private passages never enter automatic browser drafts. The current interval-presentation source passed 73 distinct checks (34 browser-project and 39 contract checks), five type checks and fresh build/compiled gates. See the [current receipt](./2026-09-14-timeline-interval-presentation-release-receipt.md). Previous stage counts remain historical; no full unrelated API-suite claim.
   No database migration was required. Broader source-store support, dedicated
   judgment services and authenticated peer review remain pending. Stored-text
   equality is not source truth, authenticated historical provenance or append-only
   review permission.
 - **TL-17: partial.** Selected-narrative TimelineJS JSON, matching complete companion and optional self-hosted renderer are delivered with explicit loss warnings. Immutable authorized publication/revocation and richer snapshot types remain pending.
-- **TL-06: in progress.** Calendar diagnostics, precision-preserving date entry, calendar extents and local interval authoring with workspace/draft v2 are delivered. Durable interval history and renderer endpoint support are next; circa dates, clock mappings and extraction v2 remain pending.
+- **TL-06: in progress.** Calendar diagnostics, precision-preserving date entry, calendar extents and local interval authoring with workspace/draft v2 are delivered. Interval presentations are delivered. Durable interval history is next; circa dates, clock mappings and extraction v2 remain pending.
 - **TL-01, TL-05, TL-07–TL-16 and TL-18: pending.** No delivery of these checkpoints or cross-app changes is claimed.
 
-Analyst Add/Edit event now records inclusive end dates/times with local workspace/draft v2 round trips; interval-free exports remain v1. Private interval saves are rejected and TimelineJS explicitly omits intervals while the complete backup retains them. TL-06 remains in progress; durable v2 and renderer endpoints are next. See the [local interval receipt](./2026-09-14-timeline-interval-entry-release-receipt.md).
+Recorded intervals now appear in TimelineJS slides, accessible lists and JSON with precision-preserving endpoint labels and supported spans. Scheduling retains recorded ranges; private v2 saving remains next. See the [interval presentation receipt](./2026-09-14-timeline-interval-presentation-release-receipt.md).
+
+Analyst Add/Edit event now records inclusive end dates/times with local workspace/draft v2 round trips; interval-free exports remain v1. Private interval saves remain unavailable. The complete backup retains intervals; the presentation stage above adds renderer endpoints. TL-06 remains in progress; durable v2 is next. See the [local interval receipt](./2026-09-14-timeline-interval-entry-release-receipt.md).
 
 The preceding temporal-core stage added internal calendar claim validation and conservative extents without UI or persisted interval fields. Its historical validation is recorded in the [temporal-core receipt](./2026-09-14-timeline-temporal-core-release-receipt.md); local interval authoring is delivered in the subsequent release above.
 

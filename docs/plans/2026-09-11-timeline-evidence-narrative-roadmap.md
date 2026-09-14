@@ -16,7 +16,9 @@ Likelihood and analytical confidence remain separate; reviews preserve the judgm
 version they addressed. Import verifies stored-text equality, not source truth or
 authenticated historical provenance. TL-04 remains in progress: broader source-store
 support, dedicated judgment services and authenticated peer review are pending.
-Analyst Add/Edit event now records inclusive end dates/times with local workspace/draft v2 round trips; interval-free exports remain v1. Private interval saves are rejected and TimelineJS explicitly omits intervals while the complete backup retains them. TL-06 remains in progress; durable v2 and renderer endpoints are next. See the [local interval receipt](./2026-09-14-timeline-interval-entry-release-receipt.md).
+Recorded intervals now appear in TimelineJS slides, accessible lists and JSON with precision-preserving endpoint labels and supported spans. Scheduling retains recorded ranges; private v2 saving remains next. See the [interval presentation receipt](./2026-09-14-timeline-interval-presentation-release-receipt.md).
+
+Analyst Add/Edit event now records inclusive end dates/times with local workspace/draft v2 round trips; interval-free exports remain v1. Private interval saves remain unavailable. The complete backup retains intervals; the presentation stage above adds renderer endpoints. TL-06 remains in progress; durable v2 is next. See the [local interval receipt](./2026-09-14-timeline-interval-entry-release-receipt.md).
 
 The preceding temporal-core stage added internal calendar claim validation and conservative extents without UI or persisted interval fields. Its historical validation is recorded in the [temporal-core receipt](./2026-09-14-timeline-temporal-core-release-receipt.md); local interval authoring is delivered in the subsequent release above.
 
