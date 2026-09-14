@@ -56,6 +56,111 @@ async function open(page: Page) {
 }
 
 test.describe('Self-hosted TimelineJS renderer @smoke', () => {
+  test('dense long-title presentation keeps story text and clustered navigation readable', async ({ page }, info) => {
+    test.setTimeout(120_000)
+    if (info.project.name === 'chromium') await page.setViewportSize({ width: 1280, height: 1100 })
+    const value = fixture(20)
+    value.analystWorkspace.narrative!.title = 'A neighborhood library renovation account'
+    value.analystWorkspace.narrative!.chapters = []
+    value.analystWorkspace.events = value.analystWorkspace.events.map((event, index) => ({
+      ...event,
+      title: `Library update ${index + 1}: volunteers document reading-room repairs and discuss the next community opening`,
+      description: `Record ${index + 1} describes shelving repairs, access checks and a discussion of the next public opening. The date records this update, not completion of the project.`,
+      eventDate: `2026-09-${String(10 + Math.floor(index / 5)).padStart(2, '0')}`,
+      eventTime: `09:${String((index % 5) * 10).padStart(2, '0')}`,
+      datePrecision: 'day', placement: { mode: 'absolute' }, narrativeOrder: index, chapterId: undefined,
+    }))
+    await start(page, value)
+    const before = await exported(page)
+    await page.getByRole('button', { name: 'Export TimelineJS', exact: true }).click()
+    const dialog = page.getByRole('dialog')
+    const download = async (name: string) => {
+      const pending = page.waitForEvent('download')
+      await dialog.getByRole('button', { name, exact: true }).click()
+      return JSON.parse(await readFile((await (await pending).path())!, 'utf8'))
+    }
+    const projection = await download('Download TimelineJS JSON')
+    expect(projection.events.map((event: { unique_id: string; start_date: unknown }) => [event.unique_id, event.start_date])).toEqual(
+      value.analystWorkspace.events.map((event, index) => [`event-${event.id}`, { year: 2026, month: 9, day: 10 + Math.floor(index / 5), hour: 9, minute: (index % 5) * 10 }]),
+    )
+    const companion = await download('Download ResearchTools JSON')
+    expect(companion.analystWorkspace).toEqual(before.analystWorkspace)
+    await dialog.getByRole('button', { name: 'Open presentation', exact: true }).click()
+    await expect(page.getByText('TimelineJS presentation loaded', { exact: true })).toBeAttached()
+    const child = page.frameLocator('iframe[title="TimelineJS narrative presentation"]')
+    await child.getByRole('button', { name: 'Next slide', exact: true }).click()
+    await expect(child.locator('#slide-position')).toHaveText('Slide 2 of 21')
+    const slide = child.locator('.tl-storyslider .tl-slide').filter({ has: child.locator('.tl-headline').filter({ hasText: value.analystWorkspace.events[0].title }) })
+    const fullyReadable = async (element: Locator) => {
+      await expect.poll(async () => element.evaluate(node => {
+        const bounds = node.getBoundingClientRect(), story = node.closest('.tl-storyslider')!.getBoundingClientRect()
+        return bounds.height > 0 && bounds.top >= story.top - 1 && bounds.bottom <= story.bottom + 1 && bounds.left >= story.left - 1 && bounds.right <= story.right + 1
+      }), { message: 'Complete story text must be reachable inside the story viewport' }).toBe(true)
+    }
+    for (const theme of ['light', 'dark']) {
+      await page.evaluate(dark => document.documentElement.classList.toggle('dark', dark), theme === 'dark')
+      await expect(child.locator('html')).toHaveAttribute('data-theme', theme)
+      await expect(page.getByText('TimelineJS presentation loaded', { exact: true })).toBeAttached()
+      // A theme change remounts the frame at the narrative title.
+      if (theme === 'dark') {
+        await child.getByRole('button', { name: 'Next slide', exact: true }).click()
+        await expect(child.locator('#slide-position')).toHaveText('Slide 2 of 21')
+      }
+      const date = slide.locator('.tl-headline-date')
+      await fullyReadable(date)
+      await fullyReadable(slide.locator('.tl-headline'))
+      await expect.poll(async () => date.evaluate(node => {
+        const bounds = node.getBoundingClientRect(), story = node.closest('.tl-storyslider')!.getBoundingClientRect()
+        return bounds.top - story.top
+      }), { message: 'The reader starts near the top, including tall desktop viewports' }).toBeLessThanOrEqual(64)
+      for (const name of ['Previous slide', 'Next slide']) {
+        const button = child.getByRole('button', { name, exact: true })
+        await expect(button).toBeInViewport()
+        const bounds = await button.boundingBox()
+        expect(bounds!.width).toBeGreaterThanOrEqual(44)
+        expect(bounds!.height).toBeGreaterThanOrEqual(44)
+      }
+      const adjacent = child.locator('.tl-slidenav-title, .tl-slidenav-description')
+      expect(await adjacent.count()).toBeGreaterThan(0)
+      for (const label of await adjacent.all()) await expect(label).toBeHidden()
+      await expect(child.locator('.tl-timemarker')).toHaveCount(20)
+      expect(await child.locator('.tl-timemarker .tl-headline').evaluateAll(nodes => nodes.every(node => {
+        const css = getComputedStyle(node), bounds = node.getBoundingClientRect()
+        const line = parseFloat(css.lineHeight), font = parseFloat(css.fontSize)
+        return line >= font && bounds.height > 0 && bounds.height <= line * 2 + 1 && (css.overflow === 'hidden' || css.overflow === 'clip')
+      }))).toBe(true)
+      const axis = await child.locator('.tl-timeaxis-tick-text').evaluateAll(nodes => nodes.filter(node => {
+        const box = node.getBoundingClientRect(), axis = node.closest('.tl-timeaxis')!.getBoundingClientRect()
+        return box.width > 0 && box.height > 0 && box.right > axis.left && box.left < axis.right
+      }).map(node => {
+        const css = getComputedStyle(node), box = node.getBoundingClientRect()
+        return { whitespace: css.whiteSpace, height: box.height, line: parseFloat(css.lineHeight), font: parseFloat(css.fontSize) }
+      }))
+      expect(axis.length).toBeGreaterThan(0)
+      for (const tick of axis) {
+        expect(tick.whitespace).toBe('nowrap')
+        expect(tick.line).toBeGreaterThanOrEqual(tick.font)
+        expect(tick.height).toBeLessThanOrEqual(tick.line + 1)
+      }
+      await dialog.screenshot({ path: info.outputPath(`dense-reader-${theme}.png`), animations: 'disabled', scale: 'css' })
+      const paragraphs = slide.locator('.tl-text-content p')
+      await expect(paragraphs.filter({ hasText: 'The date records this update' })).toHaveCount(1)
+      for (const paragraph of await paragraphs.all()) {
+        await paragraph.scrollIntoViewIfNeeded()
+        await fullyReadable(paragraph)
+      }
+    }
+    await child.getByRole('button', { name: 'Next slide', exact: true }).click()
+    await expect(child.locator('#slide-position')).toHaveText('Slide 3 of 21')
+    await expect(child.locator('.tl-storyslider .tl-headline').filter({ hasText: value.analystWorkspace.events[1].title })).toBeInViewport()
+    await dialog.getByRole('button', { name: 'Back to export details', exact: true }).click()
+    expect(await download('Download TimelineJS JSON')).toEqual(projection)
+    expect(await download('Download ResearchTools JSON')).toEqual(companion)
+    await dialog.getByRole('button', { name: 'Close', exact: true }).click()
+    await expect(dialog).toBeHidden()
+    expect((await exported(page)).analystWorkspace).toEqual(before.analystWorkspace)
+  })
+
   test('automatic schedule propagates arrival anchors, reset and midnight rollover without changing the original', async ({ page }, info) => {
     test.setTimeout(120_000)
     const titles = ['Go downtown', 'Find parking', 'Park', 'Go to cafe']

@@ -3270,8 +3270,141 @@ body { display: flex; flex-direction: column; }
 :root[data-theme="dark"] #timeline .tl-timemarker .tl-headline,
 :root[data-theme="dark"] #timeline .tl-timemarker .tl-headline p { color: #f8fafc; }
 
-/* Long mobile slides start at the top instead of centering above the scroll area. */
-.tl-timeline.tl-skinny .tl-slide .tl-slide-content-container { align-items: flex-start; }
+/* A reading column, not a vertically centered slide. The slide itself remains
+   the scroll owner so long provenance stays reachable at every viewport size. */
+#timeline .tl-slide .tl-slide-scrollable-container {
+  display: block;
+  width: 100%;
+  min-height: 100%;
+  height: auto;
+}
+#timeline .tl-slide .tl-slide-content-container {
+  display: block;
+  height: auto;
+  min-height: 100%;
+  vertical-align: top;
+  align-items: flex-start;
+  overflow: visible;
+}
+#timeline .tl-slide .tl-slide-content-container .tl-slide-content {
+  display: block;
+  box-sizing: border-box;
+  width: 100% !important;
+  max-width: 100%;
+  padding: clamp(20px, 3vw, 36px) 60px 32px !important;
+  margin: 0;
+  direction: ltr;
+  text-align: left;
+}
+#timeline .tl-slide .tl-slide-content .tl-text {
+  display: block;
+  width: 100%;
+  max-width: 68ch;
+  min-width: 0;
+  margin: 0 auto;
+  padding: 0;
+  color: #334155;
+  font-size: 1rem;
+  line-height: 1.6;
+  text-align: left;
+}
+#timeline .tl-slide .tl-text h2.tl-headline {
+  margin: 0 0 1rem;
+  font-size: clamp(1.4rem, 2.6vw, 2rem);
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -.02em;
+  color: #172033;
+  overflow-wrap: anywhere;
+}
+#timeline .tl-slide .tl-text .tl-headline-date,
+#timeline .tl-slide .tl-text .tl-headline-date small {
+  font-size: .875rem;
+  font-weight: 600;
+  line-height: 1.5;
+  color: #475569;
+  overflow-wrap: anywhere;
+}
+#timeline .tl-slide .tl-text .tl-headline-date { margin: 0 0 .65rem; }
+#timeline .tl-slide .tl-text-content,
+#timeline .tl-slide .tl-text-content p {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: inherit;
+}
+#timeline .tl-slide .tl-text-content p { margin: 0 0 1rem; }
+#timeline .tl-slide .tl-text-content p:last-child { margin-bottom: 0; }
+#timeline .tl-slide .tl-text-content strong { font-weight: 650; }
+
+/* Adjacent titles compete with the current story in narrow side gutters.
+   Keep the arrow buttons and the named native navigation below the timeline. */
+#timeline .tl-slidenav-title,
+#timeline .tl-slidenav-description { display: none !important; }
+#timeline .tl-slidenav-next,
+#timeline .tl-slidenav-previous { min-width: 44px; min-height: 44px; }
+#timeline .tl-slidenav-content-container {
+  width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#timeline .tl-slidenav-icon { line-height: 1; }
+
+/* Keep the upstream positions, row heights and hit regions. Only the text
+   inside each marker is shortened; the complete title stays in the story/list. */
+#timeline .tl-timemarker .tl-timemarker-content {
+  padding: 4px 6px;
+  display: flex;
+  align-items: center;
+}
+#timeline .tl-timemarker .tl-timemarker-text { min-width: 0; width: 100%; }
+#timeline .tl-timemarker .tl-timemarker-text h2.tl-headline,
+#timeline .tl-timemarker .tl-timemarker-text h2.tl-headline p {
+  display: block;
+  height: auto;
+  max-width: 100%;
+  margin: 0;
+  font-size: .8125rem;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: normal;
+  color: #334155;
+  white-space: nowrap;
+  overflow-wrap: normal;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  -webkit-line-clamp: unset;
+}
+#timeline .tl-timemarker .tl-headline-fadeout::after { display: none; }
+#timeline .tl-timemarker-active .tl-timemarker-content-container { border-color: #6366f1; }
+#timeline .tl-timeaxis .tl-timeaxis-tick-text,
+#timeline .tl-timeaxis .tl-timeaxis-tick-text span {
+  font-size: .75rem;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow-wrap: normal;
+}
+#timeline .tl-timeaxis .tl-timeaxis-tick-text {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#timeline .tl-timeaxis .tl-timeaxis-tick-text span { display: inline; }
+
+#presentation-controls { min-height: 54px; font-size: .8125rem; line-height: 1.4; }
+#presentation-controls button { min-width: 44px; min-height: 44px; padding: .5rem .65rem; line-height: 1.3; }
+#slide-position { text-align: center; font-variant-numeric: tabular-nums; }
+#timeline { margin-bottom: 46px; }
+#timeline .tl-menubar { bottom: -46px !important; height: 46px; }
+#timeline .tl-menubar-button { height: 44px; }
+:root[data-theme="dark"] #timeline .tl-slide .tl-text { color: #dbe4f0; }
+:root[data-theme="dark"] #timeline .tl-slide .tl-text h2.tl-headline { color: #f8fafc; }
+:root[data-theme="dark"] #timeline .tl-slide .tl-text .tl-headline-date,
+:root[data-theme="dark"] #timeline .tl-slide .tl-text .tl-headline-date small { color: #bac8dc; }
+@media (max-width: 600px) {
+  #timeline .tl-slide .tl-slide-content-container .tl-slide-content { padding: 20px 24px 28px !important; }
+}
 </style>
 </head>
 <body>

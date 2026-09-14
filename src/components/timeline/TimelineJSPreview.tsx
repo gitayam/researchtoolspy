@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { RotateCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { timelineAssessmentLabel } from '@/lib/timeline-evidence'
@@ -102,11 +103,11 @@ export function TimelineJSPreview({ timeline, snapshot, eventDetails }: { timeli
     return () => observer.disconnect()
   }, [])
   return <section aria-label="TimelineJS presentation" className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto">
-    <div className="flex shrink-0 flex-wrap items-center gap-2 text-sm">
+    <div className="flex shrink-0 flex-wrap items-center gap-2 rounded-lg bg-slate-100 px-3 py-2 text-sm dark:bg-slate-900">
       <Label htmlFor="timelinejs-start">Open at</Label>
-      <select id="timelinejs-start" className="rounded border border-slate-400 bg-white p-2 text-slate-950 dark:bg-slate-900 dark:text-slate-100" value={startAtEnd ? 'latest' : 'beginning'} onChange={event => setStartAtEnd(event.target.value === 'latest')}><option value="beginning">Beginning</option><option value="latest">Latest event</option></select>
-      <Button variant="outline" size="sm" onClick={() => setAttempt(value => value + 1)}>Retry presentation</Button>
-      <span className="text-slate-600 dark:text-slate-300">{timeline.events.length} events · Chronological presentation</span>
+      <select id="timelinejs-start" className="min-h-11 rounded-md border border-slate-300 bg-white px-2 text-slate-950 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100" value={startAtEnd ? 'latest' : 'beginning'} onChange={event => setStartAtEnd(event.target.value === 'latest')}><option value="beginning">Beginning</option><option value="latest">Latest event</option></select>
+      <span className="hidden text-xs text-slate-600 sm:inline dark:text-slate-300">Chronological order</span>
+      <Button variant="ghost" size="sm" aria-label="Retry presentation" title="Retry presentation" className="ml-auto min-h-11 min-w-11 gap-2" onClick={() => setAttempt(value => value + 1)}><RotateCcw aria-hidden="true" className="h-4 w-4" /><span className="hidden sm:inline">Retry presentation</span></Button>
     </div>
     <PresentationFrame key={`${theme}:${startAtEnd}:${attempt}`} timeline={timeline} snapshot={snapshot} eventDetails={eventDetails} theme={theme} startAtEnd={startAtEnd} query={query} onQueryChange={setQuery} listOpen={listOpen} onListOpenChange={setListOpen} />
 
