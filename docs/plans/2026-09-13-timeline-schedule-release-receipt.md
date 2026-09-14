@@ -15,3 +15,7 @@ Preserved successful superseded runs: schedule-focus3 at 829a07ec4a34760a6311e9f
 All 155 staged files were independently compared; inventory SHA256 `22907b4c080372c1b4899ee981a9564c416bcd5efe99066f44c73758858f8615`. Prebuilt deployment used `--no-bundle`. Thirty read-only checks passed at each deployment/production URL, including the new owned renderer bytes. Mobile renderer content now aligns at the top so long scheduled headings remain reachable. Public changes are limited to preview.css and generated HTML style blocks; all shell bytes outside those blocks, vendor/bridge scripts, embedded font, CSP and headers are unchanged. Independent style review and browser visual checks support this CSS-only adjustment; no fresh edge-script replay was performed. All 13 migrations and 386 catalog entries across 14 tables remain unchanged; existing secret names are preserved.
 
 Previous deployment `ab6d7fc7-aaa8-4e7c-9b87-28533dccf7a7` reads identical data and retains the consolidated workflow and history, but lacks temporary scheduling and omits dated relative/position events from TimelineJS. Preserve snapshots and history. Primary checkout untouched; visual coverage is representative, not an exhaustive accessibility audit.
+
+## Subsequent deployment
+
+The [automatic schedule release](./2026-09-13-timeline-schedule-flow-release-receipt.md) adds propagated times and compact override controls while preserving original backups and saved data. This receipt retains historical independent-schedule validation.
