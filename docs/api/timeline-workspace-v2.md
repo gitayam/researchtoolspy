@@ -10,7 +10,7 @@
 }
 ```
 
-This fragment describes inclusive recorded months, not exact midnight timestamps. It belongs inside an otherwise complete v2 workspace event. End labels require `date` and may include matching `precision` (`year`, `month`, or `day`) and `time` (`HH:mm` or `HH:mm:ss`). A clock requires a complete day at either endpoint. Both dates must be real Gregorian dates in years 1000–9999. Unknown start dates, empty ends, unsupported fields, and definitely reversed intervals are rejected. Overlapping endpoint precision remains uncertain; the calendar core retains a conservative possible extent without claiming a duration.
+This fragment describes inclusive recorded months, not exact midnight timestamps. It belongs inside an otherwise complete v2 workspace event. End labels require `date` and may include matching `precision` (`year`, `month`, or `day`) and `time` (`HH:mm` or `HH:mm:ss`). A clock requires a complete day at either endpoint. New endpoint entry uses real Gregorian dates in years 1000–9999. Import retains the existing start-date validator, including valid legacy starts before year 1000; recorded ends require years 1000–9999. Unknown start dates, empty ends, unsupported fields, and definitely reversed intervals are rejected. Overlapping endpoint precision remains uncertain; the calendar core retains a conservative possible extent without claiming a duration.
 
 The editor offers **Record an end date**. Fields start empty; no current date is substituted. Save validates the whole interval before applying it. Cancel preserves the event. Clearing the checkbox removes the end only when saved. End edits participate in evidence-review freshness checks, while retained review history and source extraction remain unchanged.
 

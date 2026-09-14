@@ -50,7 +50,7 @@ test.describe('Local recorded intervals @smoke', () => {
     }
     await editor.getByRole('button', { name: 'Save event', exact: true }).click()
     await expect(editor).toBeHidden()
-    await expect(page.getByText(/Recorded interval/).first()).toBeVisible()
+    await expect(page.locator('time').filter({ hasText: 'Recorded interval: 2026-09-10 through 2026-09-12 17:30:59 (inclusive recorded units)' })).toBeVisible()
     const saved = await download(page)
     expect(saved.schemaVersion).toBe('timeline-workspace.v2')
     expect(saved.analystWorkspace.events[0].recordedEnd).toEqual({ date: '2026-09-12', precision: 'day', time: '17:30:59' })
