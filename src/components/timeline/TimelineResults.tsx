@@ -1,4 +1,5 @@
 import { TimelineJSExport } from './TimelineJSExport'
+import { TimelineTimingReview } from './TimelineTimingReview'
 import { TimelineSourceCoverage } from './TimelineSourceCoverage'
 import { timelineSourceEvaluationNeedsReview } from '@/lib/timeline-source-evaluation'
 import './timeline-workspace.css'
@@ -1105,6 +1106,7 @@ function TimelineWorkspace({
         </CardContent>
       </Card>
 
+      <TimelineTimingReview events={events} />
       {sortedEvents.length === 0 ? (
         <Card id="timeline-sequence" tabIndex={-1} className="timeline-sequence scroll-mt-24 border-dashed">
           <CardContent className="py-12 text-center">
