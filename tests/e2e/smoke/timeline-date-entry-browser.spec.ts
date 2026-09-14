@@ -2,7 +2,7 @@ import { test, expect, type Page } from '@playwright/test'
 import { readFile } from 'node:fs/promises'
 import type { TimelineWorkspaceExport } from '../../../src/types/timeline-workspace'
 
-const source = {
+const source: TimelineWorkspaceExport['source'] = {
   schemaVersion: 'timeline-analysis.v1', requestId: 'date-entry-fixture', outcome: 'events',
   article: { url: 'https://publisher.example/library', title: 'Library update', domain: 'publisher.example', publishedAt: '2026-09-14' },
   events: [{ eventDate: '2026-09-10', datePrecision: 'day', title: 'Library repairs recorded', description: 'A synthetic source account.', category: 'event', importance: 'normal' }],
@@ -19,6 +19,7 @@ async function start(page: Page, data: unknown) {
   await page.goto('/dashboard/tools/timeline')
   await expect(page.locator('.timeline-setup')).toHaveAttribute('open', '')
   await importData(page, data)
+  await expect(page.getByRole('button', { name: 'Export JSON', exact: true })).toBeVisible()
 }
 async function downloaded(page: Page): Promise<TimelineWorkspaceExport> {
   const pending = page.waitForEvent('download')
@@ -34,7 +35,21 @@ async function edit(page: Page, title: string) {
 test.describe('Recorded date entry @smoke', () => {
   test('explicit day month and year choices preserve precision and the original extraction', async ({ page }, info) => {
     test.setTimeout(120_000)
-    await start(page, source)
+    const workspace: TimelineWorkspaceExport = {
+      schemaVersion: 'timeline-workspace.v1', exportedAt: '2026-09-14T12:00:00.000Z',
+      source,
+      analystWorkspace: {
+        mode: 'robust', presentation: 'analyst', sortDirection: 'oldest', questions: [], hypotheses: [],
+        events: [{
+          id: 'source-date-entry-fixture-0', title: 'Library repairs recorded', description: 'A synthetic source account.',
+          eventDate: '2026-09-10', datePrecision: 'day', category: 'event', importance: 'normal',
+          origin: 'source', assessment: 'unreviewed', analystNote: '', modified: false,
+          placement: { mode: 'absolute' }, sequenceOrder: 0, narrativeIncluded: true, narrativeOrder: 0,
+          whyItMatters: '', transition: '',
+        }],
+      },
+    }
+    await start(page, workspace)
     const initial = await downloaded(page)
     let dialog = await edit(page, 'Library repairs recorded')
     await dialog.locator('summary').filter({ hasText: /^Date picker$/ }).click()
