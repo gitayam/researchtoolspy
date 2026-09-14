@@ -42,7 +42,7 @@ async function request(path: string, method: string, signal: AbortSignal, attemp
   }
   return response
 }
-export function preparePresentation(timeline: TimelinePresentation['timeline']): PresentationAttempt {
+export function preparePresentation(timeline: unknown): PresentationAttempt {
   const presentation = decodeTimelinePresentation({ schemaVersion: 'timeline-presentation.v1', timeline })
   return { key: crypto.randomUUID(), body: JSON.stringify(presentation) }
 }

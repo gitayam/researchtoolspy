@@ -111,6 +111,7 @@ test.describe('Direct presentation sharing @smoke', () => {
       await expect(page.getByText('TimelineJS presentation loaded', { exact: true })).toBeAttached()
       await child.getByRole('button', { name: 'Next slide', exact: true }).click()
       await expect(child.locator('#slide-position')).toHaveText('Slide 2 of 3')
+      await expect(child.locator('.tl-storyslider .tl-headline').filter({ hasText: /^Repair session$/ })).toBeInViewport()
       await expect(child.locator('.tl-storyslider .tl-headline-date')).toContainText(['Recorded interval: 2026-09-10 09:00 through 2026-09-10 17:00 (inclusive recorded units)'])
       await page.screenshot({ path: info.outputPath(`shared-presentation-${theme}.png`), scale: 'css', animations: 'disabled' })
     }
