@@ -1,5 +1,6 @@
 import { TimelineJSExport } from './TimelineJSExport'
 import { TimelineTimingReview } from './TimelineTimingReview'
+import { TimelineRecordedDate } from './TimelineRecordedDate'
 import { TimelineSourceCoverage } from './TimelineSourceCoverage'
 import { timelineSourceEvaluationNeedsReview } from '@/lib/timeline-source-evaluation'
 import './timeline-workspace.css'
@@ -1451,10 +1452,7 @@ function TimelineWorkspace({
                 </div>
               )}
               <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="timeline-event-date">Date{eventEditor.placementMode === 'absolute' ? '' : ' (optional)'}</Label>
-                  <Input id="timeline-event-date" value={eventEditor.eventDate} onChange={event => setEventEditor({ ...eventEditor, eventDate: event.target.value })} placeholder="YYYY, YYYY-MM, or YYYY-MM-DD" />
-                </div>
+                <TimelineRecordedDate value={eventEditor.eventDate} time={eventEditor.eventTime} optional={eventEditor.placementMode !== 'absolute'} onChange={value => setEventEditor({ ...eventEditor, eventDate: value })} />
                 <div className="space-y-2">
                   <Label htmlFor="timeline-event-time">Time{eventEditor.placementMode === 'absolute' ? '' : ' (optional)'}</Label>
                   <Input id="timeline-event-time" type="time" step={1} value={eventEditor.eventTime} onChange={event => setEventEditor({ ...eventEditor, eventTime: event.target.value })} />
