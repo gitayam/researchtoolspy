@@ -28,8 +28,9 @@ async function importWorkspace(page: Page, value: TimelineWorkspaceExport) {
   await page.getByLabel('Import timeline JSON').setInputFiles({ name: 'timing.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(value)) })
 }
 async function start(page: Page, value = fixture()) {
-  await page.route('**/api/**', route => route.fulfill({ status: 200, json: { owned: [], member: [] } }))
+  await page.route('http://127.0.0.1:5189/api/**', route => route.fulfill({ status: 200, json: { owned: [], member: [] } }))
   await page.goto('/dashboard/tools/timeline')
+  await expect(page.locator('.timeline-setup')).toHaveAttribute('open', '')
   await importWorkspace(page, value)
 }
 async function exportWorkspace(page: Page): Promise<TimelineWorkspaceExport> {
