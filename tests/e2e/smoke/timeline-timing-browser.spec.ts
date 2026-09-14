@@ -5,7 +5,7 @@ import type { TimelineWorkspaceExport, TimelineWorkspaceEvent } from '../../../s
 function fixture(): TimelineWorkspaceExport {
   const event = (id: string, title: string, sequenceOrder: number, extra: Partial<TimelineWorkspaceEvent>): TimelineWorkspaceEvent => ({
     id, title, description: 'Synthetic library scheduling record.', category: 'event', importance: 'normal', origin: 'analyst', assessment: 'unreviewed', analystNote: '', modified: false,
-    sequenceOrder, narrativeIncluded: true, narrativeOrder: sequenceOrder, ...extra,
+    sequenceOrder, narrativeIncluded: true, narrativeOrder: sequenceOrder, whyItMatters: '', transition: '', ...extra,
   })
   return {
     schemaVersion: 'timeline-workspace.v1', exportedAt: '2026-09-14T12:00:00.000Z',
@@ -68,10 +68,10 @@ test.describe('Recorded timeline timing review @smoke', () => {
     expect((await exportWorkspace(page)).analystWorkspace).toEqual(original.analystWorkspace)
     for (const theme of ['light', 'dark']) {
       await page.evaluate(dark => document.documentElement.classList.toggle('dark', dark), theme === 'dark')
-      await summary.evaluate(node => node.scrollIntoView({ block: 'center' }))
+      await summary.evaluate(node => window.scrollBy({ top: node.getBoundingClientRect().top - 110, behavior: 'instant' }))
       await expect(panel).toHaveAttribute('open', '')
       expect(await panel.evaluate(node => node.scrollWidth <= node.clientWidth + 1)).toBe(true)
-      await panel.screenshot({ path: info.outputPath(`timing-review-${theme}.png`), animations: 'disabled', scale: 'css' })
+      await page.screenshot({ path: info.outputPath(`timing-review-${theme}.png`), animations: 'disabled', scale: 'css' })
     }
     await page.getByRole('button', { name: 'Actions for Repairs recorded later', exact: true }).click()
     await page.getByRole('menuitem', { name: 'Edit event', exact: true }).click()
