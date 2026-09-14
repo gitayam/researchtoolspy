@@ -1,0 +1,457 @@
+{
+  "schemaVersion": "timeline-link-preview-release.v1",
+  "recordedAt": "2026-09-14T20:15:21.661557+00:00",
+  "baselineSha": "caf12140e84924633415a48f879d3e0bb3133c70",
+  "acceptedReleaseSha": "1cf5520c7fffc136925f427207591a30c0f0118b",
+  "states": {
+    "canonicalLanded": true,
+    "mirrorConfirmed": true,
+    "productionDeployed": true,
+    "integrationCleanAtRelease": true,
+    "primaryCheckoutSynced": false
+  },
+  "validation": {
+    "distinctCases": 29,
+    "completedCaseKeys": [
+      [
+        "chromium",
+        "timeline-link-preview-browser.spec.ts",
+        "34",
+        "1"
+      ],
+      [
+        "chromium",
+        "timeline-link-preview-contract.spec.ts",
+        "17",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-link-preview-contract.spec.ts",
+        "24",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-link-preview-contract.spec.ts",
+        "33",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-link-preview-contract.spec.ts",
+        "44",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-link-preview-contract.spec.ts",
+        "56",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-link-preview-contract.spec.ts",
+        "68",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-link-preview-contract.spec.ts",
+        "93",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-sharing-browser.spec.ts",
+        "138",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-sharing-browser.spec.ts",
+        "44",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-sharing-browser.spec.ts",
+        "91",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-sharing-contract.spec.ts",
+        "12",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-sharing-contract.spec.ts",
+        "28",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-sharing-contract.spec.ts",
+        "41",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-sharing-contract.spec.ts",
+        "51",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-sharing-contract.spec.ts",
+        "65",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-sharing-d1.spec.ts",
+        "113",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-sharing-d1.spec.ts",
+        "131",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-sharing-d1.spec.ts",
+        "153",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-sharing-d1.spec.ts",
+        "172",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-sharing-d1.spec.ts",
+        "193",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-sharing-d1.spec.ts",
+        "217",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-sharing-d1.spec.ts",
+        "237",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-sharing-d1.spec.ts",
+        "67",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-sharing-d1.spec.ts",
+        "92",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-link-preview-browser.spec.ts",
+        "34",
+        "1"
+      ],
+      [
+        "mobile-safari",
+        "timeline-sharing-browser.spec.ts",
+        "138",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-sharing-browser.spec.ts",
+        "44",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-sharing-browser.spec.ts",
+        "91",
+        "3"
+      ]
+    ],
+    "typeChecks": 5,
+    "runs": [
+      {
+        "name": "release-link-preview-build5",
+        "receiptSha256": "0cedf8efc346ee01d618170499169756be533436418b12fb0eed4729c45757eb",
+        "logSha256": "9810768367ce0c933b7c2dd74602d0223e6ca6ce6dbf3e2e1b7b0267d3762626",
+        "inspectSha256": "7eb5127767b726790f3ccb490c82811c44f2ac7469c018a2443ddce03e6db5a7",
+        "seconds": 113.33
+      },
+      {
+        "name": "link-preview-contracts5",
+        "receiptSha256": "92f5d3b8a192f53830bc1991e46ecc6aad4ee4acac42558d68ccfad2e84866a8",
+        "logSha256": "5fab9d3ac781e2e2cb605179aa0c404897dca4b9dfd9d8c7b06e45d3066b0ef4",
+        "inspectSha256": "689aaad286b7a16d4f0883348c517c3047f452f1a4f74c5b2a21a576cac96bac",
+        "seconds": 12.08
+      },
+      {
+        "name": "link-preview-browser5",
+        "receiptSha256": "0423690c7f554d173284c0a37e9cd1ddd817971a29e1d5024aaef0857ce2aa31",
+        "logSha256": "9eec14cc40b42eecb6ed158b1c10adec74af8a352b02990c76355990ded10f28",
+        "inspectSha256": "2bc34395984d8749c74cf8c04459247a6be3fe8291c47524c2bb9301f3ede358",
+        "seconds": 28.75
+      },
+      {
+        "name": "link-preview-regression5",
+        "receiptSha256": "7e784701c8dff65d0b382178c03329f75224dc1426c90df642b711918ac6a55f",
+        "logSha256": "3fb74f3a66db3f89b690de38e5d2deeef6b9d8ea775fd3950f5eb6d03a5e3738",
+        "inspectSha256": "5ab82e05d9e390f5057d453ec463dcacc8b71e3b7b108606298329d8b285597d",
+        "seconds": 51.4
+      }
+    ],
+    "expectedInventorySha256": "fd97d4c2e30885dfd7b31c37b053e8c1a1850463686111e8461dac4f85716ffa",
+    "schemaManifestSha256": "e5809006809cc85eb96617e949974c990f945dc78098390b181f256c1f83fc7f",
+    "databaseMode": "Existing 0015 already applied; no production migration. The compiled verifier additionally rehearses rollback on an isolated synthetic reference."
+  },
+  "artifact": {
+    "fileCount": 159,
+    "manifestSha256": "b705696978240c15d81a1196e89f51314f623518dd39b105cb2e9589a0fb31b2"
+  },
+  "database": {
+    "appliedMigrationCount": 15,
+    "added": [],
+    "before": {
+      "result": "passed",
+      "tables": 15,
+      "schemaRows": 410,
+      "normalizedSchemaSha256": "8969897745957ae6aa78dd56539c6d5b87d26e7c4e1bbde92207c14954c90612"
+    },
+    "postdeployment": {
+      "result": "passed",
+      "tables": 15,
+      "schemaRows": 410,
+      "normalizedSchemaSha256": "8969897745957ae6aa78dd56539c6d5b87d26e7c4e1bbde92207c14954c90612"
+    },
+    "postflight": {
+      "result": "passed",
+      "source": "1cf5520c7fffc136925f427207591a30c0f0118b",
+      "schemaComparisonSha256": "1dab980ec6141ca41464cf73617436040d37a9defafda9e41859ebc297f8ea62",
+      "migrationComparisonSha256": "368d27ede2e66ef146ecda8f7e2c49a88beb6b7042fb1eb43782a5a01f1b9f2e",
+      "secretNamesUnchanged": true,
+      "schemaManifestSha256": "e5809006809cc85eb96617e949974c990f945dc78098390b181f256c1f83fc7f",
+      "helperSha256": "526dc63d3138d4aff09d217314d11eaf0f02e3708c0b09429e74c740c7edc848",
+      "commands": [
+        {
+          "name": "migrations-after",
+          "receiptSha256": "8227f7d895ad3ee13f4ae009ed3dca82c6b4e8f57e2d2c49bb512eaaf96594aa",
+          "logSha256": "e83b482837235d0a2fc940ed23e57ca1feff610a902f5a2e1b5a6c0b9c679335"
+        },
+        {
+          "name": "timeline-schema-after",
+          "receiptSha256": "8a48b14c6dd15a137e864c563b9979093a8ed88213716b1e6d805f8b5caaad77",
+          "logSha256": "7d5685af6500704ad910ddca8132b05031b847c6243ca975405905767ed6c82f"
+        },
+        {
+          "name": "secrets-after",
+          "receiptSha256": "d27ebd733690f21bc6d0ce19efbde59c3d756ac0c6aec9c25b0db757a7b465e9",
+          "logSha256": "e3074ce810a36790073a4d1eb5cd33b0bc57c246d1b61ba3308cab80c2e637f2"
+        },
+        {
+          "name": "deployments-after",
+          "receiptSha256": "a7b493d7970cd903d1558f5b7e7f318b5d26b2b69cc6764ad81f4575214ed5b4",
+          "logSha256": "dbe25a74ec80b59df8e8f8dff8a101642c1aec7bb138900653cb42e879d8214e"
+        }
+      ]
+    },
+    "secretNamesUnchanged": true,
+    "privateEvidenceSha256": {
+      "preflight-workflow-receipt.json": "6408d13a034a4ef55767d8ae5269042f0be18de78d90739c133fbf0dceb441dd",
+      "schema-comparison-before.json": "1dab980ec6141ca41464cf73617436040d37a9defafda9e41859ebc297f8ea62",
+      "schema-comparison-after.json": "1dab980ec6141ca41464cf73617436040d37a9defafda9e41859ebc297f8ea62",
+      "migration-comparison.json": "368d27ede2e66ef146ecda8f7e2c49a88beb6b7042fb1eb43782a5a01f1b9f2e",
+      "migrations-before.log": "d196dcc1ccd43bf0c7713f3d4bc8a6935587803393a649d6c52d721e1111bc3e",
+      "migrations-after.log": "e83b482837235d0a2fc940ed23e57ca1feff610a902f5a2e1b5a6c0b9c679335",
+      "timeline-schema-before.log": "8cb9532ace1fe6c4a05deb721e4549bafe87f13b308425ee6bed5c6b3f9f493e",
+      "timeline-schema-after.log": "7d5685af6500704ad910ddca8132b05031b847c6243ca975405905767ed6c82f",
+      "postflight-accepted.json": "da6358e34697ed2aefde15859d8b97d77b41c685007b60a584055dee9fa01ddd"
+    }
+  },
+  "image": {
+    "accepted": true,
+    "source": "1cf5520c7fffc136925f427207591a30c0f0118b",
+    "file": "public/timeline-share-card.png",
+    "sha256": "a1cc0410b0439280e1f324f23cb81745823ff7506c047ea29c03c3ae1afd2134",
+    "width": 1200,
+    "height": 630,
+    "observations": [
+      "Owner personally viewed the complete PNG: clear ResearchTools branding, large Timeline presentation title and decorative connected event cards, no clipping or research data."
+    ],
+    "rasterSource": "a18d1aadd1aeaf08ea61d4ca5e2589406d9e5f6c",
+    "rasterRunName": "link-preview-artwork",
+    "rasterOutput": "test-results/timeline-link-preview-brow-bdfca-imeline-share-artwork-smoke-chromium/timeline-share-card.png",
+    "rasterReceiptSha256": "e5411eab514e8278ff50dff9991e9fd2687b5a94b37505a1e7e70d7f4d373534",
+    "rasterLogSha256": "7312309bc3984b709190cccc049854a18debd1482aaff081c9875a086d709acf",
+    "rasterInspectSha256": "d4f2e6478955147b87575c19257a36c5a8ded38ce9d637ac010bedf9af446aee",
+    "svgSha256": "81bf37b9f2b2289edbb25460f1c2f388d9d11b648b6f2c742e1bbe9028a35f38"
+  },
+  "deployment": {
+    "source": "1cf5520c7fffc136925f427207591a30c0f0118b",
+    "deploymentId": "aacd67a1-bc41-434f-8e7a-e0434d4eb705",
+    "deploymentUrl": "https://aacd67a1.researchtoolspy.pages.dev",
+    "productionUrl": "https://researchtools.net"
+  },
+  "publicationEvidence": {
+    "receiptSha256": "e91ee14725636cea23e80f2e05d536ab4fe8f348156d7e547a1a46cf8fd8c0d5",
+    "logSha256": "89a38f248fb627ab599d628dcdc1ae2308f257cd74cb2d1c15d51c53bafe0785"
+  },
+  "smokes": [
+    {
+      "url": "https://aacd67a1.researchtoolspy.pages.dev",
+      "checks": 45,
+      "sha256": "0c972e73bacbedea2530bf14cbef22939ad03d564d45b72f64197cfed8187ce2"
+    },
+    {
+      "url": "https://researchtools.net",
+      "checks": 45,
+      "sha256": "a8098eb5d2bdc5078a032bc2655b71638fffcc07295e1bef088e3201bedd1851"
+    }
+  ],
+  "visual": {
+    "source": "1cf5520c7fffc136925f427207591a30c0f0118b",
+    "visualSource": "1cf5520c7fffc136925f427207591a30c0f0118b",
+    "accepted": true,
+    "observations": [
+      "Personally viewed all four fresh link-preview-browser5 desktop/mobile light and dark card captures; no inherited captures. Complete image, bounded title and description are present without clipped borders or text.",
+      "Navy timeline illustration and static Timeline presentation label remain distinct from the user-specific caption. Long title wraps on mobile with visible ellipsis, literal <planning> text is readable, and event count/framing are legible in both themes.",
+      "These are full-card crops, not whole-dialog screenshots. Publication controls, cache caveat and surrounding scroll layout are outside these images; their visibility is not claimed by visual acceptance.",
+      "Small decorative brand/tagline text within the artwork is reduced on mobile, while the main artwork title and actual caption remain readable. Representative browser card review does not certify third-party chat rendering or exhaustive accessibility."
+    ],
+    "evidence": [
+      {
+        "runName": "link-preview-browser5",
+        "file": "test-results/timeline-link-preview-brow-c14f6--publication-and-copy-smoke-chromium/share-link-preview-dark.png",
+        "sha256": "f258e096ad656e1b9ab1f74bf1128f0286b3ea8c974e0944863f8666821ee2c1",
+        "accepted": true
+      },
+      {
+        "runName": "link-preview-browser5",
+        "file": "test-results/timeline-link-preview-brow-c14f6--publication-and-copy-smoke-chromium/share-link-preview-light.png",
+        "sha256": "e2d71e229b1dc2792deb2f1ce97304a8416a1d38b25796f06cc1b786ea4f9053",
+        "accepted": true
+      },
+      {
+        "runName": "link-preview-browser5",
+        "file": "test-results/timeline-link-preview-brow-c14f6--publication-and-copy-smoke-mobile-safari/share-link-preview-dark.png",
+        "sha256": "f79b219b667d12bff37827a4a2ac0819daf1bcf52d9375eaac6bfc06242aadd3",
+        "accepted": true
+      },
+      {
+        "runName": "link-preview-browser5",
+        "file": "test-results/timeline-link-preview-brow-c14f6--publication-and-copy-smoke-mobile-safari/share-link-preview-light.png",
+        "sha256": "4cf76e88d5e3b2b4d9fc2b477ac20e2d0b5ea192d785132ef79695b064a837da",
+        "accepted": true
+      }
+    ]
+  },
+  "reviews": {
+    "source-backend-review.json": "e4faa53032381df06662313a0a8631173dfe5d5114cd26ec695b86246e5919ee",
+    "source-frontend-review.json": "4f8da86bf73117f05a28c9e2fcb1e8838d4bd8a21a6bc0b2a007a6269a4197c7",
+    "artifact-review.json": "eb11f70d5e8c54df22424c399c090e2df531d30c141df0d2b2da9d9533c25d3a",
+    "review-acceptance.json": "69a51457a717712fe13b68613713ee0aa1dd40d4b1e78ad8a226a942ece9aec6",
+    "visual-acceptance.json": "31553a66b9cc6175190ffeb99e3c8790316d6f55c30fd7217d11d44b43e6f459",
+    "image-review.json": "1f349be7624cae91dc4a2cb2f968e81f3098a23d73205fde45111e450e7f1833",
+    "release-helper-review.json": "38ec32f7d18e4f3f94ae42b5a753f1bd84e5d9fc8a8a6c1e35f1a6871a37cc84",
+    "finalizer-review.json": "9051c1133429971a4df5cdeb1369a1250eaf961932355b03593fd6a1b92acdd0"
+  },
+  "failedAttempts": [
+    {
+      "name": "link-preview-browser",
+      "source": "5d9cb2544c4bf016e9ec8788004413e93e753738",
+      "exitCode": 1,
+      "receiptSha256": "b70b2802dab4fbed790f193a0597dd0d5922946ccfcee27f5283d005edc00ace"
+    },
+    {
+      "name": "link-preview-browser2",
+      "source": "9858fec100a36e205d7b6ae97a91c2aefa710bef",
+      "exitCode": 1,
+      "receiptSha256": "d9892c0abcdedb0d3f64771959ff31d66777fc6022b5b88221bde66e8032fa86"
+    },
+    {
+      "name": "release-link-preview-build3",
+      "source": "9858fec100a36e205d7b6ae97a91c2aefa710bef",
+      "exitCode": 1,
+      "receiptSha256": "33cdf3062cc5341eb2587079109eb8a7807f873cfaefc9a8dea079689d466506"
+    },
+    {
+      "name": "release-link-preview-build4",
+      "source": "01d8474d18184ab8912fa56defc4efb5abfcf06e",
+      "exitCode": 1,
+      "receiptSha256": "066fd8b4f8237e811e9055838a28188e0b9a9472b24967e03f9edb5512113658"
+    }
+  ],
+  "recovery": {
+    "failures": [
+      {
+        "run": "link-preview-browser",
+        "source": "5d9cb2544c4bf016e9ec8788004413e93e753738",
+        "cause": "Full-card visual gate detected subpixel border clipping at scroll-region edge (.99827 desktop/.99920 mobile).",
+        "correction": "Test scrolls card to native center; full ratio1 card/title/description and stable geometry assertions retained. No product or timeout change.",
+        "evidence": "Original failed snapshots/logs retained; full planned verification rerun at corrected source."
+      },
+      {
+        "run": "link-preview-browser2",
+        "source": "9858fec100a36e205d7b6ae97a91c2aefa710bef",
+        "cause": "Chromium initial page remained in Loading during cold Vite startup; mobile subsequently passed including full centered card capture. Concurrent discovery containers were active.",
+        "correction": "Preserve failure; rerun same source with discovery completed serially before runtime. No assertion/timeout or product changes."
+      },
+      {
+        "run": "release-link-preview-build3",
+        "source": "9858fec100a36e205d7b6ae97a91c2aefa710bef",
+        "cause": "Asset failure loop observed200wheregeneric503 required; original uninstrumented loop did not distinguish failing status versus stream branch. HTMLRewriter tolerated incomplete HTML; precise transport cause not yet established.",
+        "correction": "Buffer and validate complete trusted SPA index before injecting presentation metadata. Add cleantruncated fixture and explicit ASSETS fault-observation/branch instrumentation; retain original status/stream fault checks."
+      },
+      {
+        "run": "release-link-preview-build4",
+        "source": "01d8474d18184ab8912fa56defc4efb5abfcf06e",
+        "cause": "Synthetic fixture attempted changing existing human principal into service, rejected by existing service provisioning trigger. Asset status/stream/truncated gates already passed.",
+        "correction": "Exercise allowed guest/blank role losses; assert human\u2192service mutation fails and role remains human. Existing valid service credential refusal test unchanged."
+      }
+    ],
+    "notes": [
+      "Pre-execution source review added metadata MIME and secureURL; finalizer independently verifies isolated PNG provenance."
+    ]
+  },
+  "instructionSha256": {
+    "/Users/sac/AgentWorkspaces/researchtoolspy-timeline-foundation-20260911/CLAUDE.md": "3852de6d95104c64f3a35b670f350e1d7a2c6c9ed93d03d53895e7bc8c44ff1b",
+    "/Users/sac/AgentWorkspaces/researchtoolspy-timeline-foundation-20260911/.team/project.json": "c87cd27090a1a8ff779dd0d850668ebf0ecb6581cefb2d0b0a66ed63aabbcf78",
+    "/Users/sac/AgentWorkspaces/researchtoolspy-timeline-foundation-20260911/docs/plans/2026-09-14-timeline-link-preview-charter.md": "9f62bb555fddb78599a932edc8936a67924435fb35e36bca269f8b1207d2fb80",
+    "/Users/sac/.codex/skills/team-orchestrator/SKILL.md": "f431896dbd1fa3fc8af377f8f192cacaba43704d56314e3f0e1e5c74798339b6"
+  },
+  "promptSha256": {
+    "server-prompt.txt": "ab874d114fbb1c0f753649c5cc3d2fd6ade154830d77442b7583704183d31c4c",
+    "ui-prompt.txt": "e98ef3e248460f15711406dde3266648a643f79b0aa3cf06790dbd6e59670d51"
+  },
+  "finalizerSha256": "cb53a2e7534235aa618ec3767af3f1e726093f2e9adb3f27c1bcdc73d7d70733",
+  "rollback": {
+    "runtimeSha": "a27dbdb14e8cbbbbfcf4324a56b27350bf644b30",
+    "deploymentId": "eb084968-896b-4051-aa5f-ea0f90edb529",
+    "limits": "Prior runtime retains sharing and overlap support but serves generic shared-link metadata. Chat applications may retain cached previews. No database rollback or migration is required."
+  },
+  "limitations": [
+    "Preview metadata derives only from the existing frozen presentation and contains bounded plain-text title/framing/event count, not private workspace fields or assessments.",
+    "Unavailable, revoked or invalid links return generic unavailable metadata. Chat applications may retain cached previews after revocation; revocation cannot retract third-party copies.",
+    "The 1200x630 image is static artwork with no user content. No production research or public presentation was created by the agent.",
+    "Only the frozen planned checks are claimed; no unrelated full-suite coverage, direct third-party chat posting or new captured-edge browser replay.",
+    "Representative sharing review screenshots and PNG inspection do not certify exhaustive accessibility or every chat client. TL-17 remains partial."
+  ]
+}
