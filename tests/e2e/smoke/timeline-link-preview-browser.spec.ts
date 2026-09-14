@@ -61,7 +61,7 @@ test('reviews bounded plain-text link cards before explicit publication and copy
   await expect(review.getByText(/Chat apps may retain cached/)).toBeAttached()
   for (const theme of ['light', 'dark']) {
     await page.evaluate(dark => document.documentElement.classList.toggle('dark', dark), theme === 'dark')
-    await card.scrollIntoViewIfNeeded()
+    await card.evaluate(node => node.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'instant' }))
     await expect(card).toBeInViewport({ ratio: 1 })
     await expect(headline).toBeInViewport({ ratio: 1 })
     await expect(description).toBeInViewport({ ratio: 1 })
