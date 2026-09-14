@@ -377,7 +377,7 @@ export function TimelineAnalysisPage() {
           event.target.value = ''
           if (file) void importWorkspace(file)
         }} />
-        <p className="text-xs text-muted-foreground">Restore a timeline-workspace.v1 or v2 export (up to 4 MiB). Interval v2 supports local drafts and JSON backup; private workspace saving and TimelineJS interval rendering are not yet supported. Import reads the file locally and does not extract or fetch its sources. Export the current workspace first to keep both.</p>
+        <p className="text-xs text-muted-foreground">Restore a timeline-workspace.v1 or v2 export (up to 4 MiB). Interval v2 supports local drafts and JSON backup; TimelineJS presentations show recorded endpoints. Private workspace saving is not yet supported for intervals. Import reads the file locally and does not extract or fetch its sources. Export the current workspace first to keep both.</p>
         {manualDraft && !result && <Button variant="outline" onClick={resumeManualTimeline}>Resume saved timeline</Button>}
       </div>
 
