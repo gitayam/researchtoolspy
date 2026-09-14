@@ -86,6 +86,23 @@ async function collectManifest(db, tableNames) {
   }
   return tables
 }
+async function catalog(db) {
+  return (await db.prepare("SELECT type,name,tbl_name,sql FROM sqlite_schema WHERE name NOT LIKE 'sqlite_%' ORDER BY type,name").all()).results
+}
+async function rehearseMigration(db, migrationStatements, migrationName) {
+  const before = await catalog(db)
+  const trackerBefore = (await db.prepare('SELECT * FROM d1_migrations ORDER BY id').all()).results
+  const usersBefore = (await db.prepare('SELECT * FROM users ORDER BY id').all()).results
+  const batch = () => [...migrationStatements.map(({ sql }) => db.prepare(sql)), db.prepare('INSERT INTO d1_migrations(name) VALUES (?)').bind(migrationName)]
+  // Fail after all DDL and tracker insertion, proving their shared transaction rolls back.
+  await assert.rejects(db.batch([...batch(), db.prepare("SELECT json('deliberately invalid migration rehearsal JSON')")]), /malformed JSON/i)
+  assert.deepEqual(await catalog(db), before, 'Failed migration retained catalog objects')
+  assert.deepEqual((await db.prepare('SELECT * FROM d1_migrations ORDER BY id').all()).results, trackerBefore, 'Failed migration retained tracker row')
+  assert.deepEqual((await db.prepare('SELECT * FROM users ORDER BY id').all()).results, usersBefore, 'Failed migration changed synthetic users')
+  await db.batch(batch())
+  assert.deepEqual((await db.prepare('SELECT * FROM users ORDER BY id').all()).results, usersBefore, 'Migration changed synthetic users')
+  assert.deepEqual((await db.prepare('PRAGMA foreign_key_check').all()).results, [])
+}
 async function seedRow(db, table, values) {
   const columns = (await db.prepare(`PRAGMA table_info(${quote(table)})`).all()).results
   assert(columns.length, `Production schema is missing ${table}`)
@@ -131,8 +148,16 @@ try {
   const localNames = (await readdir(migrationDirectory)).filter(name => /^\d+.*\.sql$/.test(name)).sort()
   assert(applied.every(name => localNames.includes(name)), 'Production inventory has unknown migration names')
   const pending = localNames.filter(name => !applied.includes(name))
-  assert.deepEqual(pending, [], 'Evidence snapshot release must have no pending migrations')
-  assert(applied.includes('0013_timeline_service_scopes.sql'), 'Production must contain the accepted service prefix')
+  const migrationName = '0014_timeline_presentations.sql'
+  assert.equal(localNames.length, 14, 'Release must contain exactly the managed 0001–0014 chain')
+  assert(localNames.every((name, index) => name.startsWith(`${String(index + 1).padStart(4, '0')}_`)), 'Managed migration prefix is not contiguous')
+  assert.equal(localNames.at(-1), migrationName)
+  const alreadyApplied = applied.includes(migrationName)
+  assert.deepEqual(applied.slice().sort(), alreadyApplied ? localNames : localNames.slice(0, -1), 'Production inventory must be the exact 0013 or 0014 prefix')
+  assert.deepEqual(pending, alreadyApplied ? [] : [migrationName], 'Only the presentation migration may be pending')
+  const migrationBytes = await readFile(resolve(migrationDirectory, migrationName))
+  const migrationStatements = statements(migrationBytes.toString('utf8'))
+  assert.equal(migrationStatements.length, 5, '0014 must contain one table, one index and three triggers')
   const workerBytes = await readFile(workerPath)
   const indexBytes = await readFile(resolve(dist, 'index.html'))
   const expectedTables = [...(await readFile(resolve(migrationDirectory, '0011_timeline_foundation.sql'), 'utf8')).matchAll(/CREATE TABLE (timeline_[a-z_]+)/g)].map(match => match[1]).sort()
@@ -142,11 +167,12 @@ try {
     schemaVersion: 'timeline-release-schema-manifest.v1',
     schemaOnly: true,
     schemaSha256: sha256(schemaBytes), appliedInventorySha256: sha256(inventoryBytes),
-    appliedMigrationNames: applied.slice().sort(), pendingMigrations: [],
+    appliedMigrationNames: applied.slice().sort(), pendingMigrations: pending,
+    migration: { name: migrationName, sha256: sha256(migrationBytes), bytes: migrationBytes.length, mode: alreadyApplied ? 'already-applied' : 'production-prefix-upgrade', appliedDuringRehearsal: [], rollback: 'pending' },
     compiledWorker: { entrypoint: 'dist/_worker.js/index.js', sha256: sha256(workerBytes) },
     staticIndexSha256: sha256(indexBytes), compatibilityDate: '2025-09-30', compatibilityFlags: ['nodejs_compat'],
     importedStatements: 0, skippedSchemaDirectives: [], tables: [],
-    schemaRehearsal: 'pending', compiledHttpGate: 'pending', staticGate: 'pending', checks: [],
+    schemaRehearsal: 'pending', compiledHttpGate: 'pending', sharingHttpGate: 'pending', staticGate: 'pending', checks: [],
     limitation: 'Production schema only, seeded synthetic principals; no production rows, credentials, network, application deployment, or production mutation. ASSETS is a confined local filesystem stand-in, not the Cloudflare edge asset service.',
   }
   const staticRoot = await realpath(dist)
@@ -167,7 +193,7 @@ try {
   mf = new Miniflare({
     modules: true, scriptPath: workerPath, modulesRoot: dirname(workerPath),
     compatibilityDate: receipt.compatibilityDate, compatibilityFlags: receipt.compatibilityFlags,
-    d1Databases: { DB: 'timeline-production-schema-rehearsal' },
+    d1Databases: { DB: 'timeline-production-schema-rehearsal', MIGRATION_REFERENCE: 'timeline-migration-reference' },
     serviceBindings: { ASSETS: staticService },
     outboundService: async () => { outboundAttempts++; return new MFResponse('External network disabled in release rehearsal', { status: 502 }) },
     bindings: { ENVIRONMENT: 'production', COMMUNITY_INTEGRATIONS_ENABLED: 'true', INTEGRATION_TOKEN_HASH_KEY: 'synthetic-release-hmac-key-not-production-0001', ENABLE_AI_FEATURES: 'false' },
@@ -186,22 +212,47 @@ try {
     await db.prepare(statement.sql).run()
     receipt.importedStatements++
   }
-  assert.equal((await db.prepare("SELECT count(*) AS n FROM sqlite_schema WHERE type='table' AND name LIKE 'timeline_%'").first()).n, 9, 'Production export must contain the deployed0011 prefix')
-  const priorTables = await collectManifest(db, expectedTables)
+  assert.equal((await db.prepare("SELECT count(*) AS n FROM sqlite_schema WHERE type='table' AND name LIKE 'timeline_%'").first()).n, alreadyApplied ? 10 : 9, 'Export and applied migration inventory disagree')
+  const legacyTables = await collectManifest(db, expectedTables)
+  const allTableNames = [...expectedTables, 'timeline_presentations'].sort()
+  const priorTables = await collectManifest(db, alreadyApplied ? allTableNames : expectedTables)
   receipt.priorCatalogSha256 = sha256(canonical(priorTables))
   receipt.priorTables = priorTables
-  stage = 'verify-unchanged-schema'
+  stage = 'rehearse-presentation-migration'
   assert.deepEqual((await db.prepare('PRAGMA foreign_key_check').all()).results, [], 'Imported schema has foreign-key violations')
-  receipt.tables = await collectManifest(db, expectedTables)
-  assert.deepEqual(receipt.tables, priorTables, 'Application-only release must preserve every catalog object')
+  // Schema-only exports have no tracker data: seed only the separately captured inventory.
+  assert.equal((await db.prepare('SELECT count(*) AS n FROM d1_migrations').first()).n, 0)
+  await db.batch(applied.slice().sort().map(name => db.prepare('INSERT INTO d1_migrations(name) VALUES (?)').bind(name)))
+  await seed(db)
+  const catalogBefore = await catalog(db)
+  const reference = await mf.getD1Database('MIGRATION_REFERENCE')
+  await reference.prepare('CREATE TABLE users(id INTEGER PRIMARY KEY, is_active INTEGER, role TEXT)').run()
+  await reference.prepare('CREATE TABLE d1_migrations(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT UNIQUE,applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL)').run()
+  await rehearseMigration(reference, migrationStatements, migrationName)
+  const expectedPresentation = (await collectManifest(reference, ['timeline_presentations']))[0]
+  assert.deepEqual(expectedPresentation.columns.map(column => column.name), ['token','owner_id','request_key','payload_hash','payload','created_at','revoked_at'])
+  assert.deepEqual(expectedPresentation.triggers.map(trigger => trigger.name), ['timeline_presentations_delete_guard','timeline_presentations_insert_guard','timeline_presentations_update_guard'])
+  assert.deepEqual(expectedPresentation.indexes.map(index => index.name), ['sqlite_autoindex_timeline_presentations_1','sqlite_autoindex_timeline_presentations_2','timeline_presentations_owner_active'])
+  if (!alreadyApplied) {
+    await rehearseMigration(db, migrationStatements, migrationName)
+    receipt.migration.appliedDuringRehearsal = [migrationName]
+  }
+  receipt.migration.rollback = alreadyApplied ? 'passed-on-isolated-reference; production-schema-already-applied' : 'passed-on-production-schema-prefix-and-isolated-reference'
+  assert.deepEqual((await collectManifest(db, ['timeline_presentations']))[0], expectedPresentation, 'Presentation schema differs from actual 0014 bytes')
+  const catalogAfter = await catalog(db)
+  assert.deepEqual(catalogAfter.filter(row => row.tbl_name !== 'timeline_presentations'), catalogBefore.filter(row => row.tbl_name !== 'timeline_presentations'), '0014 changed an unrelated catalog object')
+  assert.deepEqual(catalogAfter.filter(row => row.tbl_name === 'timeline_presentations'), (await catalog(reference)).filter(row => row.tbl_name === 'timeline_presentations'), 'Unexpected presentation catalog object')
+  assert.deepEqual(await collectManifest(db, expectedTables), legacyTables, '0014 changed the existing 14-table catalog')
+  receipt.tables = await collectManifest(db, allTableNames)
+  receipt.migration.postRehearsalAppliedNames = (await db.prepare('SELECT name FROM d1_migrations ORDER BY name').all()).results.map(row => row.name)
+  assert.deepEqual(receipt.migration.postRehearsalAppliedNames, localNames)
   receipt.catalogPreservation = 'passed'
   assert(receipt.tables.every(table => table.columns.length && table.foreignKeys.length), 'Incomplete affected-schema manifest')
   receipt.schemaRehearsal = 'passed'
-  receipt.checks.push('schema-only export imported', 'no pending migration; schema unchanged', 'foreign_key_check clean', 'affected columns/foreign keys/indexes/triggers recorded')
+  receipt.checks.push('schema-only export imported; captured migration inventory seeded separately', 'actual 0014 bytes and tracker atomic rollback/retry rehearsed; exact already-applied mode supported', 'existing 14 table catalogs preserved; only exact presentation table/index/three triggers added', 'foreign_key_check clean', 'all 15 affected columns/foreign keys/indexes/triggers recorded')
   await save(receipt)
 
   stage = 'seed-synthetic-humans'
-  await seed(db)
   const request = async (path, { method = 'GET', body, key, etag, user = 'owner', extraHeaders = {} } = {}) => {
     const response = await mf.dispatchFetch(`https://researchtools.example${path}`, {
       method, headers: { ...(user ? { 'X-User-Hash': token[user] } : {}), 'Content-Type': 'application/json', ...(key ? { 'Idempotency-Key': key } : {}), ...(etag ? { 'If-Match': etag } : {}), ...extraHeaders },
@@ -213,6 +264,84 @@ try {
     return { status: response.status, headers: response.headers, text, json }
   }
   const error = (result, status, code) => { assert.equal(result.status, status); assert.equal(result.json?.schemaVersion, 'timeline-artifact-error.v1'); assert.equal(result.json.error.code, code); assert.equal(typeof result.json.error.retryable, 'boolean'); assert(!/INSERT|SELECT|SQLITE|D1_ERROR/.test(result.text), 'Internal SQL leaked') }
+  stage = 'compiled-sharing'
+  const sharingHeaders = result => {
+    assert.equal(result.headers.get('cache-control'), 'no-store')
+    assert.equal(result.headers.get('referrer-policy'), 'no-referrer')
+    assert.equal(result.headers.get('x-robots-tag'), 'noindex,nofollow')
+    assert.equal(result.headers.get('x-content-type-options'), 'nosniff')
+    for (const header of ['access-control-allow-origin','access-control-allow-credentials','access-control-allow-methods','access-control-allow-headers']) assert.equal(result.headers.get(header), null)
+  }
+  const sharingError = (result, status, code) => {
+    assert.equal(result.status, status)
+    assert.deepEqual(result.json, { schemaVersion: 'timeline-presentation-error.v1', error: { code } })
+    sharingHeaders(result)
+  }
+  // Independent projection fixture includes a real interval, escaped text and no workspace.
+  const presentation = {
+    schemaVersion: 'timeline-presentation.v1', timeline: {
+      scale: 'human', title: { text: { headline: 'Synthetic &amp; shared account', text: '<p>Explicit public projection only.</p>' }, unique_id: 'narrative-title', autolink: false },
+      events: [{ start_date: { year: 2026, month: 9, day: 14, hour: 10, minute: 0 }, end_date: { year: 2026, month: 9, day: 14, hour: 11, minute: 30 }, text: { headline: 'Synthetic interval', text: '<p>Recorded range; &lt;untrusted&gt; remains text.</p>' }, unique_id: 'event-release%3Ainterval', display_date: '2026-09-14 10:00 – 2026-09-14 11:30', autolink: false }],
+    },
+  }
+  const sharingPath = '/api/timeline-presentations'
+  const sharingKey = '00000000-0000-4000-8000-000000000001'
+  const publishOptions = { method: 'POST', body: presentation, key: sharingKey }
+  sharingError(await request(sharingPath, { ...publishOptions, user: null }), 401, 'authentication_required')
+  sharingError(await request(sharingPath, { user: null }), 401, 'authentication_required')
+  sharingError(await request(sharingPath, { ...publishOptions, user: null, extraHeaders: { 'X-User-Hash': 'guest-session:synthetic-release-guest' } }), 401, 'authentication_required')
+  for (const method of ['GET','POST','DELETE','OPTIONS']) sharingError(await request(sharingPath, { method, ...(method === 'POST' ? { body: presentation, key: sharingKey } : {}), extraHeaders: { Origin: 'https://untrusted.example' } }), 403, 'access_denied')
+  const options = await request(sharingPath, { method: 'OPTIONS', user: null, extraHeaders: { Origin: 'https://researchtools.example' } })
+  assert.equal(options.status, 204); sharingHeaders(options)
+  assert.equal(options.headers.get('content-type'), null)
+  sharingError(await request(sharingPath, { method: 'PUT' }), 405, 'method_not_allowed')
+  sharingError(await request(sharingPath, { method: 'DELETE' }), 405, 'method_not_allowed')
+  sharingError(await request(`${sharingPath}/${'a'.repeat(64)}`, publishOptions), 405, 'method_not_allowed')
+  sharingError(await request(`${sharingPath}/invalid/nested`, { user: null }), 404, 'unavailable')
+  sharingError(await request(sharingPath, { ...publishOptions, body: { ...presentation, analystWorkspace: { secret: 'must-not-publish' } } }), 400, 'invalid_request')
+  sharingError(await request(sharingPath, { ...publishOptions, body: { ...presentation, timeline: { ...presentation.timeline, events: [{ ...presentation.timeline.events[0], text: { headline: '<img src=x onerror=alert(1)>', text: '' } }] } } }), 400, 'invalid_request')
+  const published = await request(sharingPath, { ...publishOptions, extraHeaders: { Origin: 'https://researchtools.example' } })
+  assert.equal(published.status, 201); sharingHeaders(published)
+  assert.deepEqual(Object.keys(published.json).sort(), ['createdAt','revoked','schemaVersion','token'])
+  assert.equal(published.json.schemaVersion, 'timeline-presentation-link.v1'); assert.equal(published.json.revoked, false)
+  assert.match(published.json.token, /^[a-f0-9]{64}$/)
+  assert.equal(new Date(published.json.createdAt).toISOString(), published.json.createdAt)
+  const publicPresentationPath = `${sharingPath}/${published.json.token}`
+  const publishedRows = (await db.prepare('SELECT * FROM timeline_presentations ORDER BY token').all()).results
+  const publicRead = await request(publicPresentationPath, { user: null })
+  assert.equal(publicRead.status, 200); sharingHeaders(publicRead); assert.deepEqual(publicRead.json, presentation)
+  assert.equal(sha256(publicRead.text), publishedRows[0].payload_hash)
+  assert.deepEqual((await db.prepare('SELECT * FROM timeline_presentations ORDER BY token').all()).results, publishedRows, 'Anonymous read mutated publication')
+  const replay = await request(sharingPath, publishOptions)
+  assert.equal(replay.status, 200); sharingHeaders(replay); assert.deepEqual(replay.json, published.json)
+  sharingError(await request(sharingPath, { ...publishOptions, body: { ...presentation, timeline: { ...presentation.timeline, title: { ...presentation.timeline.title, text: { headline: 'Changed', text: '' } } } } }), 409, 'idempotency_conflict')
+  const links = await request(sharingPath)
+  assert.equal(links.status, 200); sharingHeaders(links)
+  assert.deepEqual(links.json, { schemaVersion: 'timeline-presentation-links.v1', links: [{ token: published.json.token, createdAt: published.json.createdAt, title: 'Synthetic & shared account' }] })
+  assert.deepEqual((await request(sharingPath, { user: 'other' })).json.links, [])
+  sharingError(await request(publicPresentationPath, { method: 'DELETE', user: 'other' }), 404, 'unavailable')
+  sharingError(await request(`${sharingPath}/not-a-token`, { user: null }), 404, 'unavailable')
+  sharingError(await request(`${sharingPath}/${'0'.repeat(64)}`, { user: null }), 404, 'unavailable')
+  await db.prepare('UPDATE users SET is_active=0 WHERE id=880001').run()
+  sharingError(await request(publicPresentationPath, { user: null }), 404, 'unavailable')
+  await db.prepare('UPDATE users SET is_active=1 WHERE id=880001').run()
+  assert.equal((await request(publicPresentationPath, { user: null })).status, 200)
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const revoked = await request(publicPresentationPath, { method: 'DELETE' })
+    assert.equal(revoked.status, 204); assert.equal(revoked.text, ''); sharingHeaders(revoked)
+  }
+  sharingError(await request(publicPresentationPath, { user: null }), 404, 'unavailable')
+  sharingError(await request(sharingPath, publishOptions), 409, 'idempotency_conflict')
+  const revokedRow = await db.prepare('SELECT payload,revoked_at FROM timeline_presentations WHERE token=?').bind(published.json.token).first()
+  assert.equal(revokedRow.payload, null); assert.equal(typeof revokedRow.revoked_at, 'string')
+  assert.deepEqual((await request(sharingPath)).json.links, [])
+  for (let index = 1; index <= 20; index++) {
+    const result = await request(sharingPath, { ...publishOptions, user: 'other', key: `00000000-0000-4000-8001-${String(index).padStart(12, '0')}` })
+    assert.equal(result.status, 201)
+  }
+  sharingError(await request(sharingPath, { ...publishOptions, user: 'other', key: '00000000-0000-4000-8001-000000000021' }), 409, 'active_link_limit')
+  assert.equal((await request(sharingPath, { user: 'other' })).json.links.length, 20)
+  receipt.checks.push('compiled sharing strict projection/interval/escaped text, anonymous exact read, owner-only bounded list and revoke, replay/conflict, inactive-owner refusal, tombstone payload clearing, 20 active links, no-store and no CORS grants')
   stage = 'compiled-stored-source-import'
   const storedSource = JSON.parse(await readFile(resolve(root, 'tests/fixtures/timeline-stored-source.json'), 'utf8'))
   await seedRow(db, 'content_analysis', { id: storedSource.analysisId, user_id: 880001, workspace_id: 'release-workspace-a', url: storedSource.url, title: storedSource.title, extracted_text: storedSource.text, content_hash: sha256(storedSource.text), is_saved: 1, expires_at: null, processing_status: 'complete', created_at: '2026-09-11T00:00:00Z', updated_at: '2026-09-11T00:00:00Z' })
@@ -359,6 +488,10 @@ try {
   await seedRow(db, 'integration_client_tokens', { id: serviceTokenId, client_id: serviceClient, slot: 'current', secret_hash: serviceHash, created_at: 1, not_before: 1, expires_at: 4000000000 })
   for (const scope of ['timeline.read', 'timeline.write']) await seedRow(db, 'integration_client_token_scopes', { token_id: serviceTokenId, scope })
   const serviceRequest = (path, options = {}) => request(path, { ...options, user: null, extraHeaders: { Authorization: `Bearer rt_svc_${serviceClient}.${serviceSecret}` } })
+  sharingError(await serviceRequest(sharingPath, publishOptions), 403, 'human_identity_required')
+  sharingError(await serviceRequest(sharingPath), 403, 'human_identity_required')
+  receipt.sharingHttpGate = 'passed'
+  receipt.checks.push('compiled sharing refuses a valid live scoped service credential')
   const discovery = await serviceRequest('/api/integrations/capabilities')
   assert.equal(discovery.status, 200); assert.equal(discovery.json.capabilities.timelineRead, true); assert.equal(discovery.json.capabilities.timelineWrite, true); assert.equal(discovery.json.contractVersions.timelineArtifact, 'timeline-artifact.v1')
   const serviceCreateBody = { ...createBody, workspaceId: 'release-service-workspace' }
@@ -389,6 +522,9 @@ try {
   assert.equal(home.status, 200); assert.equal(sha256(home.text), sha256(indexBytes))
   const timeline = await request('/dashboard/tools/timeline', { user: null })
   assert.equal(timeline.status, 200); assert.equal(sha256(timeline.text), sha256(indexBytes))
+  const publicFallback = await request(`/present/${published.json.token}`, { user: null })
+  assert.equal(publicFallback.status, 200); assert.equal(sha256(publicFallback.text), sha256(indexBytes))
+  receipt.checks.push('anonymous public presentation shell uses compiled static fallback; browser rendering and revoked-state UI verified separately')
   const assetPath = /(?:src|href)=["'](\/assets\/[^"']+\.(?:js|css))["']/.exec(indexBytes.toString('utf8'))?.[1]
   assert(assetPath, 'Built index did not reference a testable asset')
   const asset = await request(assetPath, { user: null })
@@ -397,7 +533,8 @@ try {
   receipt.staticGate = 'passed'; receipt.externalOutboundAttempts = outboundAttempts
   receipt.checks.push('compiled Pages ASSETS fallback matches built index and referenced static asset')
   assert.deepEqual(await collectManifest(db, receipt.tables.map(table => table.name)), receipt.tables, 'Compiled route rehearsal changed the database catalog')
-  receipt.checks.push('all 14 source/chunk/timeline/credential table catalogs remain unchanged after compiled human/service and static routes')
+  assert.deepEqual(await catalog(db), catalogAfter, 'Compiled route rehearsal added or changed an unrelated catalog object')
+  receipt.checks.push('all 15 source/chunk/timeline/credential/presentation table catalogs remain unchanged after compiled human/service/sharing and static routes')
   await save(receipt)
   console.log(JSON.stringify({ result: 'passed', schemaRehearsal: receipt.schemaRehearsal, compiledHttpGate: receipt.compiledHttpGate, staticGate: receipt.staticGate, affectedTables: receipt.tables.length, manifest: manifestPath }))
 } catch (error) {

@@ -95,6 +95,7 @@ const URLProcessingPage = lazy(() => import('@/pages/tools/URLProcessingPage').t
 const BatchProcessingPage = lazy(() => import('@/pages/tools/BatchProcessingPage').then(m => ({ default: m.BatchProcessingPage })))
 const ContentIntelligencePage = lazy(() => import('@/pages/tools/ContentIntelligencePage'))
 const TimelineAnalysisPage = lazy(() => import('@/pages/tools/TimelineAnalysisPage').then(m => ({ default: m.TimelineAnalysisPage })))
+const PublicTimelinePresentationPage = lazy(() => import('@/pages/PublicTimelinePresentationPage').then(m => ({ default: m.PublicTimelinePresentationPage })))
 const ResearchQuestionGeneratorPage = lazy(() => import('@/pages/ResearchQuestionGeneratorPage'))
 const BehaviorAnalysisToolPage = lazy(() => import('@/pages/BehaviorAnalysisToolPage'))
 const ResearchWorkspacePage = lazy(() => import('@/pages/ResearchWorkspacePage'))
@@ -188,6 +189,11 @@ export const router = createBrowserRouter([
   {
     path: '/invite/:inviteToken',
     element: <LazyPage Component={InviteAcceptPage} />,
+    errorElement: <RouteErrorBoundary />,
+  },
+  {
+    path: '/present/:token',
+    element: <LazyPage Component={PublicTimelinePresentationPage} />,
     errorElement: <RouteErrorBoundary />,
   },
   {

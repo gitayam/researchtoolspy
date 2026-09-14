@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useSyncExternalStore } from 'react'
 import { RouterProvider } from 'react-router-dom'
 import { I18nextProvider } from 'react-i18next'
 import { QueryProvider } from '@/components/providers/QueryProvider'
@@ -13,6 +13,15 @@ import { getAuthIdentifier } from '@/lib/auth-utils'
 import { startProductAnalytics } from '@/lib/product-analytics'
 
 function App() {
+  const presentation = useSyncExternalStore(
+    listener => router.subscribe(listener),
+    () => router.state.location.pathname.startsWith('/present/'),
+  )
+  if (presentation) return <ErrorBoundary><I18nextProvider i18n={i18n}><RouterProvider router={router} /></I18nextProvider></ErrorBoundary>
+  return <WorkspaceApp />
+}
+
+function WorkspaceApp() {
   const checkAuth = useAuthStore((state) => state.checkAuth)
 
   // Check authentication state on app load

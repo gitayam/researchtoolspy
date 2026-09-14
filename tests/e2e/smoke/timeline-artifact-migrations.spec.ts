@@ -27,6 +27,7 @@ const migrationNames = [
   '0011_timeline_foundation.sql',
   '0012_timeline_workspace_snapshots.sql',
   '0013_timeline_service_scopes.sql',
+  '0014_timeline_presentations.sql',
 ] as const
 const migrations = migrationNames.map(name => {
   const bytes = readFileSync(new URL(`../../../schema/managed-migrations/${name}`, import.meta.url))
@@ -149,7 +150,7 @@ async function execute(db: D1Database, sql: string) {
 async function apply(db: D1Database, start: number, end: number) {
   for (const migration of migrations.slice(start, end)) {
     try {
-      if (['0012_timeline_workspace_snapshots.sql', '0013_timeline_service_scopes.sql'].includes(migration.name)) await db.batch(statements(migration.sql).map(sql => db.prepare(sql)))
+      if (['0012_timeline_workspace_snapshots.sql', '0013_timeline_service_scopes.sql', '0014_timeline_presentations.sql'].includes(migration.name)) await db.batch(statements(migration.sql).map(sql => db.prepare(sql)))
       else await execute(db, migration.sql)
     }
     catch (error) { throw new Error(`Managed migration ${migration.name} failed: ${error instanceof Error ? error.message : String(error)}`) }
@@ -219,9 +220,30 @@ test.describe('timeline full managed-chain migration rehearsal @smoke', () => {
       expect(indexes).not.toContain('idx_content_analysis_hash')
       expect(indexes).not.toContain('idx_content_analysis_user')
       expect(indexes).toEqual(expect.arrayContaining(['idx_content_analysis_hash_workspace','idx_content_analysis_user_workspace','idx_cop_collaborators_session_user','idx_workspace_members_user_workspace','idx_guest_conversions_identity']))
-      expect((await db.prepare("SELECT name FROM sqlite_schema WHERE type='table' AND name LIKE 'timeline_%'").all()).results.length).toBeGreaterThanOrEqual(8)
+      expect((await db.prepare("SELECT name FROM sqlite_schema WHERE type='table' AND name LIKE 'timeline_%'").all()).results).toHaveLength(10)
+      expect(await db.prepare("SELECT name FROM sqlite_schema WHERE type='table' AND name='timeline_presentations'").first()).toEqual({ name: 'timeline_presentations' })
       expect((await db.prepare('PRAGMA foreign_key_check').all()).results).toEqual([])
-      await attachReceipt(testInfo, 'fresh-synthetic-prerequisites-through-0013')
+      await attachReceipt(testInfo, 'fresh-synthetic-prerequisites-through-0014')
+    } finally { await mf.dispose() }
+  })
+
+  test('0013 prefix upgrades with all existing catalog objects and rows preserved', async ({}, testInfo) => {
+    const { mf, db } = await prepare()
+    try {
+      await apply(db, 0, 13)
+      const catalog = (await db.prepare("SELECT type,name,tbl_name,sql FROM sqlite_schema WHERE name NOT LIKE 'sqlite_%' ORDER BY name").all()).results
+      const before: Record<string, unknown> = {}
+      for (const object of catalog.filter(row => row.type === 'table')) before[String(object.name)] = (await db.prepare(`SELECT * FROM "${object.name}" ORDER BY rowid`).all()).results
+      const upgrade = statements(migrations[13].sql).map(sql => db.prepare(sql))
+      await expect(db.batch([...upgrade.slice(0, 2), db.prepare("SELECT json('injected migration failure')"), ...upgrade.slice(2)])).rejects.toThrow()
+      expect((await db.prepare("SELECT type,name,tbl_name,sql FROM sqlite_schema WHERE name NOT LIKE 'sqlite_%' ORDER BY name").all()).results).toEqual(catalog)
+      await apply(db, 13, 14)
+      const after = (await db.prepare("SELECT type,name,tbl_name,sql FROM sqlite_schema WHERE name NOT LIKE 'sqlite_%' ORDER BY name").all()).results
+      expect(after.filter(row => row.tbl_name !== 'timeline_presentations')).toEqual(catalog)
+      expect(after.filter(row => row.type === 'table' && row.name === 'timeline_presentations')).toHaveLength(1)
+      for (const [name, rows] of Object.entries(before)) expect((await db.prepare(`SELECT * FROM "${name}" ORDER BY rowid`).all()).results).toEqual(rows)
+      expect((await db.prepare('PRAGMA foreign_key_check').all()).results).toEqual([])
+      await attachReceipt(testInfo, 'synthetic-0013-prefix-to-0014')
     } finally { await mf.dispose() }
   })
 
@@ -236,12 +258,12 @@ test.describe('timeline full managed-chain migration rehearsal @smoke', () => {
       await db.prepare("UPDATE evidence_items SET eve_assessment='preserved-fixture-json' WHERE id=11").run()
       await db.prepare('UPDATE framework_sessions SET view_count=9,clone_count=3 WHERE id=12').run()
       const before = await legacySnapshot(db)
-      await apply(db, 10, 11)
+      await apply(db, 10, migrations.length)
       expect(await legacySnapshot(db)).toEqual(before)
       expect((await db.prepare('PRAGMA foreign_key_check').all()).results).toEqual([])
       await expect(db.prepare("UPDATE users SET email='changed@example.test' WHERE id=73").run()).rejects.toThrow(/invalid integration service principal update/)
       await expect(db.prepare("INSERT INTO workspace_members VALUES ('invalid-service-member','human-workspace',73,'VIEWER')").run()).rejects.toThrow(/cannot be a workspace member/)
-      await attachReceipt(testInfo, 'seeded-synthetic-0010-prefix-to-0013')
+      await attachReceipt(testInfo, 'seeded-synthetic-0010-prefix-to-0014')
     } finally { await mf.dispose() }
   })
 })

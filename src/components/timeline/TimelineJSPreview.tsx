@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { RotateCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
+import { presentationPlainText } from '@/lib/timeline-presentation-contract'
 import { timelineAssessmentLabel } from '@/lib/timeline-evidence'
 import type { buildTimelineJSExport } from '@/lib/timeline-timelinejs'
 import type { TimelineWorkspaceExport } from '@/types/timeline-workspace'
@@ -18,7 +19,7 @@ type FinderState = {
 
 function PresentationFrame({ timeline, snapshot, eventDetails, theme, startAtEnd, query, onQueryChange, listOpen, onListOpenChange }: {
   timeline: TimelineData
-  snapshot: TimelineWorkspaceExport
+  snapshot?: TimelineWorkspaceExport
   eventDetails: EventDetails
   theme: 'light' | 'dark'
   startAtEnd: boolean
@@ -49,10 +50,15 @@ function PresentationFrame({ timeline, snapshot, eventDetails, theme, startAtEnd
     }
     return 0
   })
-  const originals = new Map(snapshot.analystWorkspace.events.map(event => [`event-${encodeURIComponent(event.id)}`, event]))
+  const originals = new Map(snapshot?.analystWorkspace.events.map(event => [`event-${encodeURIComponent(event.id)}`, event]) || [])
+  const visibleEvent = (slide: TimelineData['events'][number]) => originals.get(slide.unique_id) || {
+    id: decodeURIComponent(slide.unique_id.slice(6)), title: presentationPlainText(slide.text.headline),
+    eventDate: presentationPlainText(slide.display_date), eventTime: undefined,
+    description: presentationPlainText(slide.text.text), whyItMatters: undefined,
+  }
   const normalizedQuery = query.trim().toLocaleLowerCase()
   const matching = chronological.filter(slide => {
-    const event = originals.get(slide.unique_id)!
+    const event = visibleEvent(slide)
     return [event.title, event.eventDate, event.eventTime, event.description, event.whyItMatters, eventDetails[slide.unique_id]?.dateLabel, eventDetails[slide.unique_id]?.placementLabel]
       .filter(Boolean).join(' ').toLocaleLowerCase().includes(normalizedQuery)
   })
@@ -84,14 +90,14 @@ function PresentationFrame({ timeline, snapshot, eventDetails, theme, startAtEnd
         {matching.length === 0 && <p className="rounded border border-slate-300 p-3 dark:border-slate-700">No events match this search. Clear it to see all presentation events.</p>}
       </div>
       <ol className="mt-3 space-y-3">{matching.map(slide => {
-        const event = originals.get(slide.unique_id)!
-        return <li key={slide.unique_id} data-event-id={event.id} className="break-words rounded border border-slate-200 p-3 dark:border-slate-700"><h3 className="font-semibold">{event.title}</h3><p>{eventDetails[slide.unique_id]?.dateLabel || event.eventDate} · {timelineAssessmentLabel(snapshot.analystWorkspace.evidence, event)}</p>{eventDetails[slide.unique_id]?.scheduled && <p>Original recorded date/time: {event.eventDate || 'date not recorded'}; {event.eventTime || 'time not recorded'}.</p>}<p>{event.description}</p>{eventDetails[slide.unique_id]?.placementLabel && <p>{eventDetails[slide.unique_id].placementLabel}</p>}{event.whyItMatters && <p>Why it matters: {event.whyItMatters}</p>}<Button variant="outline" size="sm" className="mt-2 min-h-10 border-indigo-400 text-indigo-800 dark:text-indigo-200" disabled={status !== 'loaded'} onClick={() => jump(slide.unique_id)}>Show in presentation</Button></li>
+        const event = visibleEvent(slide)
+        return <li key={slide.unique_id} data-event-id={event.id} className="break-words rounded border border-slate-200 p-3 dark:border-slate-700"><h3 className="font-semibold">{event.title}</h3><p>{eventDetails[slide.unique_id]?.dateLabel || event.eventDate}{snapshot && originals.has(slide.unique_id) && <> · {timelineAssessmentLabel(snapshot.analystWorkspace.evidence, originals.get(slide.unique_id)!)}</>}</p>{eventDetails[slide.unique_id]?.scheduled && <p>Original recorded date/time: {event.eventDate || 'date not recorded'}; {event.eventTime || 'time not recorded'}.</p>}<p>{event.description}</p>{eventDetails[slide.unique_id]?.placementLabel && <p>{eventDetails[slide.unique_id].placementLabel}</p>}{event.whyItMatters && <p>Why it matters: {event.whyItMatters}</p>}<Button variant="outline" size="sm" className="mt-2 min-h-10 border-indigo-400 text-indigo-800 dark:text-indigo-200" disabled={status !== 'loaded'} onClick={() => jump(slide.unique_id)}>Show in presentation</Button></li>
       })}</ol>
     </details>
   </>
 }
 
-export function TimelineJSPreview({ timeline, snapshot, eventDetails }: { timeline: TimelineData; snapshot: TimelineWorkspaceExport; eventDetails: EventDetails }) {
+export function TimelineJSPreview({ timeline, snapshot, eventDetails = {} }: { timeline: TimelineData; snapshot?: TimelineWorkspaceExport; eventDetails?: EventDetails }) {
   const [startAtEnd, setStartAtEnd] = useState(false)
   const [attempt, setAttempt] = useState(0)
   const [query, setQuery] = useState('')

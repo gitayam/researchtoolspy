@@ -1,3 +1,4 @@
+import { TimelinePresentationShare } from './TimelinePresentationShare'
 import { useRef, useState } from 'react'
 import { TimelineJSPreview } from './TimelineJSPreview'
 import { TimelinePresentationSchedule, localPresentationDate } from './TimelinePresentationSchedule'
@@ -51,8 +52,9 @@ export function TimelineJSExport({ snapshot, savedRevision, presentationAction =
     {preview && <DialogContent onCloseAutoFocus={event => { event.preventDefault(); opener.current?.focus() }} className={`flex max-h-[90dvh] w-[calc(100%-1.5rem)] flex-col rounded-xl border-indigo-200 bg-white p-4 text-slate-950 sm:p-6 dark:border-indigo-800 dark:bg-slate-950 dark:text-slate-100 ${presenting && !stale ? 'h-[min(900px,95dvh)] max-h-[95dvh] max-w-6xl gap-2' : preview.scheduleEnabled ? 'h-[95dvh] max-h-[95dvh] max-w-3xl' : 'max-w-2xl'}`}>
       <DialogHeader className="shrink-0 pr-6 text-left">
         <DialogTitle className="flex items-center gap-2 text-xl"><FileJson aria-hidden="true" className="h-5 w-5 text-indigo-600 dark:text-indigo-300" />{savedRevision?.historical ? 'Selected revision preview' : savedRevision ? 'Saved revision preview' : presenting && !stale ? 'Current timeline presentation' : 'TimelineJS export preview'}</DialogTitle>
-        <DialogDescription className={`text-slate-600 dark:text-slate-300 ${presenting && !stale && !savedRevision ? 'sr-only sm:not-sr-only' : ''}`}>{savedRevision ? `${savedRevision.historical ? 'Selected revision' : 'Saved revision'} ${savedRevision.sequence} · Selected narrative. This does not publish a timeline.` : presenting && !stale ? 'Current edits · Selected narrative' : preview.scheduleEnabled ? 'Current edits · Temporary presentation schedule' : 'A presentation file of your selected narrative. Downloads stay on this device; this does not publish a timeline.'}</DialogDescription>
+        <DialogDescription className={`text-slate-600 dark:text-slate-300 ${presenting && !stale && !savedRevision ? 'sr-only sm:not-sr-only' : ''}`}>{savedRevision ? `${savedRevision.historical ? 'Selected revision' : 'Saved revision'} ${savedRevision.sequence} · Selected narrative. Sharing requires explicit publication.` : presenting && !stale ? 'Current edits · Selected narrative' : preview.scheduleEnabled ? 'Current edits · Temporary presentation schedule' : 'A presentation file of your selected narrative. Downloads stay on this device. Sharing requires explicit publication.'}</DialogDescription>
       </DialogHeader>
+      <TimelinePresentationShare timeline={preview.result.timeline} disabled={stale || preview.result.errors.length > 0 || preview.result.timeline.events.length === 0 || preview.result.timeline.events.length > 100} />
       {presenting && !stale ? <>
         <div className="flex shrink-0 flex-wrap items-center gap-2">
           <Button variant="outline" size="sm" className="w-fit px-2 text-xs" onClick={() => setPresenting(false)}>Back to export details</Button>
