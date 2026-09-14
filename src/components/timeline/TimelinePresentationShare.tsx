@@ -48,7 +48,7 @@ function ShareReview({ timeline, disabled, eligible }: Props & { eligible: boole
     catch { setError(false); setMessage('Copy is unavailable. Select the link text below and copy it.') }
   }
   return <section className="min-w-0 space-y-2 text-sm">
-    <Button type="button" variant="outline" onClick={() => setOpen(value => !value)} aria-expanded={open}>Share presentation</Button>
+    <Button type="button" variant="outline" size="sm" className="px-2 text-xs" aria-label="Share presentation" onClick={() => setOpen(value => !value)} aria-expanded={open}><span className="sm:hidden">Share</span><span className="hidden sm:inline">Share presentation</span></Button>
     {open && <section aria-label="Share presentation review" className="max-h-[60dvh] min-w-0 max-w-xl space-y-3 overflow-y-auto rounded-lg border p-3">
       <h3 className="break-words font-semibold">{presentationPlainText(timeline.title.text.headline)}</h3>
       <p>{timeline.events.length} selected presentation events</p>

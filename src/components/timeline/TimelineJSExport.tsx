@@ -54,12 +54,14 @@ export function TimelineJSExport({ snapshot, savedRevision, presentationAction =
         <DialogTitle className="flex items-center gap-2 text-xl"><FileJson aria-hidden="true" className="h-5 w-5 text-indigo-600 dark:text-indigo-300" />{savedRevision?.historical ? 'Selected revision preview' : savedRevision ? 'Saved revision preview' : presenting && !stale ? 'Current timeline presentation' : 'TimelineJS export preview'}</DialogTitle>
         <DialogDescription className={`text-slate-600 dark:text-slate-300 ${presenting && !stale && !savedRevision ? 'sr-only sm:not-sr-only' : ''}`}>{savedRevision ? `${savedRevision.historical ? 'Selected revision' : 'Saved revision'} ${savedRevision.sequence} · Selected narrative. Sharing requires explicit publication.` : presenting && !stale ? 'Current edits · Selected narrative' : preview.scheduleEnabled ? 'Current edits · Temporary presentation schedule' : 'A presentation file of your selected narrative. Downloads stay on this device. Sharing requires explicit publication.'}</DialogDescription>
       </DialogHeader>
-      <TimelinePresentationShare timeline={preview.result.timeline} disabled={stale || preview.result.errors.length > 0 || preview.result.timeline.events.length === 0 || preview.result.timeline.events.length > 100} />
-      {presenting && !stale ? <>
-        <div className="flex shrink-0 flex-wrap items-center gap-2">
+      <div className="flex shrink-0 flex-wrap items-start gap-2">
+        <TimelinePresentationShare timeline={preview.result.timeline} disabled={stale || preview.result.errors.length > 0 || preview.result.timeline.events.length === 0 || preview.result.timeline.events.length > 100} />
+        {presenting && !stale && <>
           <Button variant="outline" size="sm" className="w-fit px-2 text-xs" onClick={() => setPresenting(false)}>Back to export details</Button>
-          <p role="status" className="text-xs">{preview.result.timeline.events.length} shown · {preview.result.omitted.length} omitted{preview.result.scheduledCount > 0 ? ` · ${preview.result.scheduledCount} scheduled` : ''}</p>
-        </div>
+          <p role="status" className="self-center text-xs">{preview.result.timeline.events.length} shown · {preview.result.omitted.length} omitted{preview.result.scheduledCount > 0 ? ` · ${preview.result.scheduledCount} scheduled` : ''}</p>
+        </>}
+      </div>
+      {presenting && !stale ? <>
         <TimelineJSPreview timeline={preview.result.timeline} snapshot={preview.snapshot} eventDetails={preview.result.eventDetails} />
       </> : <>
       <div className="min-h-0 space-y-4 overflow-y-auto" aria-label="Export details" role="region" tabIndex={0}>
