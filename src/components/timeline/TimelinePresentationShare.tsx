@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAuthStore } from '@/stores/auth'
 import { Button } from '@/components/ui/button'
-import { decodeTimelinePresentation, presentationPlainText } from '@/lib/timeline-presentation-contract'
+import { timelineLinkPreview } from '@/lib/timeline-link-preview'
+import { decodeTimelinePresentation } from '@/lib/timeline-presentation-contract'
 import { listPresentations, preparePresentation, presentationLinkUrl, publishPresentation, revokePresentation, type ListedPresentation, type PresentationAttempt } from '@/lib/timeline-presentation-client'
 import type { buildTimelineJSExport } from '@/lib/timeline-timelinejs'
 
@@ -21,8 +22,9 @@ function ShareReview({ timeline, disabled, eligible }: Props & { eligible: boole
   const [token, setToken] = useState(''), [links, setLinks] = useState<ListedPresentation[] | null>(null)
   const attempt = useRef<PresentationAttempt | null>(null), controller = useRef<AbortController | null>(null)
   useEffect(() => () => controller.current?.abort(), [])
+  let preview: ReturnType<typeof timelineLinkPreview> | null = null
   let valid = true
-  try { decodeTimelinePresentation({ schemaVersion: 'timeline-presentation.v1', timeline }) } catch { valid = false }
+  try { const decoded = decodeTimelinePresentation({ schemaVersion: 'timeline-presentation.v1', timeline }); preview = timelineLinkPreview(decoded.timeline) } catch { valid = false }
   const run = async (work: (signal: AbortSignal) => Promise<void>) => {
     if (busy || !eligible) return
     const abort = new AbortController(); controller.current = abort; setBusy(true); setMessage(''); setError(false)
@@ -50,8 +52,17 @@ function ShareReview({ timeline, disabled, eligible }: Props & { eligible: boole
   return <section className="min-w-0 space-y-2 text-sm">
     <Button type="button" variant="outline" size="sm" className="px-2 text-xs" aria-label="Share presentation" onClick={() => setOpen(value => !value)} aria-expanded={open}><span className="sm:hidden">Share</span><span className="hidden sm:inline">Share presentation</span></Button>
     {open && <section aria-label="Share presentation review" className="max-h-[60dvh] min-w-0 max-w-xl space-y-3 overflow-y-auto rounded-lg border p-3">
-      <h3 className="break-words font-semibold">{presentationPlainText(timeline.title.text.headline)}</h3>
+      <h3 className="font-semibold">Share this presentation</h3>
       <p>{timeline.events.length} selected presentation events</p>
+      {preview && <figure aria-label="Link card preview" className="min-w-0 overflow-hidden rounded-lg border bg-background">
+        <img src={preview.imagePath} alt={preview.imageAlt} width={1200} height={630} className="block h-auto w-full" />
+        <figcaption className="space-y-1 p-3">
+          <p className="text-xs uppercase tracking-wide text-muted-foreground">Link preview · ResearchTools</p>
+          <p className="break-words font-semibold" data-testid="link-preview-title">{preview.title}</p>
+          <p className="break-words text-sm text-muted-foreground" data-testid="link-preview-description">{preview.description}</p>
+        </figcaption>
+      </figure>}
+      <p className="text-xs text-muted-foreground">Preview appearance varies by app. Chat apps may retain cached titles, descriptions and images after revocation.</p>
       <p>Anyone with the link can read everything in this frozen presentation, including framing, assessments and presentation schedules. The full workspace, evidence records, source and complete backup are excluded. Publish only what you intend to share.</p>
       <p>Revocation prevents future reads. Copies already downloaded cannot be recalled.</p>
       {!eligible && <p role="status">Sign in with an active account to publish or manage links.</p>}

@@ -192,11 +192,20 @@ try {
     compiledWorker: { entrypoint: 'dist/_worker.js/index.js', sha256: sha256(workerBytes) },
     staticIndexSha256: sha256(indexBytes), compatibilityDate: '2025-09-30', compatibilityFlags: ['nodejs_compat'],
     importedStatements: 0, skippedSchemaDirectives: [], tables: [],
-    schemaRehearsal: 'pending', compiledHttpGate: 'pending', sharingHttpGate: 'pending', durableIntervalHttpGate: 'pending', staticGate: 'pending', checks: [],
+    schemaRehearsal: 'pending', compiledHttpGate: 'pending', sharingHttpGate: 'pending', linkPreviewHttpGate: 'pending', durableIntervalHttpGate: 'pending', staticGate: 'pending', checks: [],
     limitation: 'Production schema only, seeded synthetic principals; no production rows, credentials, network, application deployment, or production mutation. ASSETS is a confined local filesystem stand-in, not the Cloudflare edge asset service.',
   }
   const staticRoot = await realpath(dist)
+  let assetFailure = ''
   const staticService = async request => {
+    if (assetFailure === 'status') return new MFResponse('Synthetic asset failure', { status: 503 })
+    if (assetFailure === 'stream') {
+      let sent = false
+      return new MFResponse(new ReadableStream({ pull(controller) {
+        if (!sent) { sent = true; controller.enqueue(new TextEncoder().encode('<!doctype html><html><head><title>Partial asset</title>')) }
+        else controller.error(new Error('Synthetic asset stream failure'))
+      } }), { headers: { 'Content-Type': 'text/html' } })
+    }
     if (!['GET', 'HEAD'].includes(request.method)) return new MFResponse('Method not allowed', { status: 405 })
     const pathname = decodeURIComponent(new URL(request.url).pathname)
     if (/^\/(?:api(?:\/|$)|_worker\.js(?:\/|$)|_routes\.json|_headers|_redirects)/.test(pathname)) return new MFResponse('Not found', { status: 404 })
@@ -206,7 +215,7 @@ try {
     const resolved = await realpath(path)
     if (!resolved.startsWith(`${staticRoot}${sep}`)) return new MFResponse('Not found', { status: 404 })
     const data = await readFile(resolved)
-    const mime = ({ '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml' })[extname(path)] ?? 'application/octet-stream'
+    const mime = ({ '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png' })[extname(path)] ?? 'application/octet-stream'
     return new MFResponse(request.method === 'HEAD' ? null : data, { headers: { 'Content-Type': mime } })
   }
   stage = 'start-compiled-worker'
@@ -409,6 +418,67 @@ try {
   assert.equal(publicRead.status, 200); sharingHeaders(publicRead); assert.deepEqual(publicRead.json, presentation)
   assert.equal(sha256(publicRead.text), publishedRows[0].payload_hash)
   assert.deepEqual((await db.prepare('SELECT * FROM timeline_presentations ORDER BY token').all()).results, publishedRows, 'Anonymous read mutated publication')
+  // Exercise the actual compiled Pages route and HTMLRewriter, not a browser-only head mutation.
+  const publicPagePath = `/present/${published.json.token}`
+  const previewHeaders = result => {
+    sharingHeaders(result)
+    assert.match(result.headers.get('content-type'), /^text\/html/)
+    for (const directive of ["script-src 'self';", "connect-src 'self';", "base-uri 'none'", "frame-src 'self'"]) assert(result.headers.get('content-security-policy').includes(directive))
+  }
+  const previewMeta = (html, attribute, key) => {
+    const tags = [...html.matchAll(/<meta\b[^>]*>/gi)].map(match => match[0]).filter(tag => tag.includes(`${attribute}="${key}"`))
+    assert.equal(tags.length, 1, `Expected one ${key} metadata tag`)
+    const content = /\bcontent="([^"]*)"/.exec(tags[0]); assert(content)
+    return content[1]
+  }
+  const publicPage = await request(publicPagePath, { user: null })
+  assert.equal(publicPage.status, 200); previewHeaders(publicPage)
+  assert.equal(previewMeta(publicPage.text, 'property', 'og:title'), 'Synthetic &amp; shared account')
+  assert.match(previewMeta(publicPage.text, 'property', 'og:description'), /^1 event.*Explicit public projection only\./)
+  assert.equal(previewMeta(publicPage.text, 'property', 'og:url'), `https://researchtools.example${publicPagePath}`)
+  assert.equal(previewMeta(publicPage.text, 'property', 'og:image'), 'https://researchtools.example/timeline-share-card.png')
+  assert.equal(previewMeta(publicPage.text, 'property', 'og:image:width'), '1200')
+  assert.equal(previewMeta(publicPage.text, 'property', 'og:image:height'), '630')
+  assert.equal(previewMeta(publicPage.text, 'property', 'og:image:type'), 'image/png')
+  assert(previewMeta(publicPage.text, 'property', 'og:image:alt'))
+  assert.equal(previewMeta(publicPage.text, 'name', 'twitter:card'), 'summary_large_image')
+  assert.equal(previewMeta(publicPage.text, 'name', 'twitter:title'), previewMeta(publicPage.text, 'property', 'og:title'))
+  assert.equal(previewMeta(publicPage.text, 'name', 'twitter:description'), previewMeta(publicPage.text, 'property', 'og:description'))
+  assert.equal((publicPage.text.match(/<title>/g) || []).length, 1)
+  assert.equal((publicPage.text.match(/rel="canonical"/g) || []).length, 1)
+  assert(!publicPage.text.includes('og-default.png') && !publicPage.text.includes('Survey Drops'))
+  assert(!publicPage.text.includes('Synthetic interval') && !publicPage.text.includes('Recorded range;'))
+  assert.match(publicPage.text, /<noscript[\s>]/)
+  for (const agent of ['Twitterbot/1.0', 'facebookexternalhit/1.1', 'Slackbot-LinkExpanding 1.0', 'Discordbot/2.0', 'WhatsApp/2.0']) {
+    const bot = await request(publicPagePath, { user: null, extraHeaders: { 'User-Agent': agent, 'X-Forwarded-Host': 'untrusted.example', 'X-Forwarded-Proto': 'http' } })
+    assert.equal(bot.status, 200); assert.equal(bot.text, publicPage.text); previewHeaders(bot)
+  }
+  for (const failure of ['status', 'stream']) {
+    assetFailure = failure
+    try {
+      const broken = await request(publicPagePath, { user: null })
+      assert.equal(broken.status, 503); previewHeaders(broken)
+      assert(!broken.text.includes('Synthetic &amp; shared account') && !broken.text.includes('Explicit public projection only.') && !broken.text.includes('Partial asset'))
+    } finally { assetFailure = '' }
+  }
+  const headPage = await request(publicPagePath, { method: 'HEAD', user: null })
+  assert.equal(headPage.status, 200); assert.equal(headPage.text, ''); previewHeaders(headPage)
+  const noPreview = async (path, status = 404, options = {}) => {
+    const result = await request(path, { user: null, ...options }); assert.equal(result.status, status); previewHeaders(result)
+    assert(!result.text.includes('Synthetic &amp; shared account') && !result.text.includes('Explicit public projection only.'))
+    assert(!result.text.includes('og-default.png') && !result.text.includes('Survey Drops'))
+    return result
+  }
+  for (const path of ['/present/invalid', `/present/${'0'.repeat(64)}`, publicPagePath+'?tracking=1', publicPagePath+'/extra', publicPagePath+'/']) await noPreview(path)
+  await noPreview(publicPagePath, 405, { method: 'POST' })
+  const previewImageBytes = await readFile(resolve(dist, 'timeline-share-card.png'))
+  assert.equal(previewImageBytes.subarray(0, 8).toString('hex'), '89504e470d0a1a0a')
+  assert.equal(previewImageBytes.readUInt32BE(16), 1200); assert.equal(previewImageBytes.readUInt32BE(20), 630)
+  assert(previewImageBytes.length < 1000000)
+  const previewImageResponse = await mf.dispatchFetch('https://researchtools.example/timeline-share-card.png')
+  assert.equal(previewImageResponse.status, 200); assert.equal(previewImageResponse.headers.get('content-type'), 'image/png')
+  assert.equal(sha256(Buffer.from(await previewImageResponse.arrayBuffer())), sha256(previewImageBytes))
+  assert.deepEqual((await db.prepare('SELECT * FROM timeline_presentations ORDER BY token').all()).results, publishedRows, 'Metadata requests mutated publication')
   const replay = await request(sharingPath, publishOptions)
   assert.equal(replay.status, 200); sharingHeaders(replay); assert.deepEqual(replay.json, published.json)
   sharingError(await request(sharingPath, { ...publishOptions, body: { ...presentation, timeline: { ...presentation.timeline, title: { ...presentation.timeline.title, text: { headline: 'Changed', text: '' } } } } }), 409, 'idempotency_conflict')
@@ -421,6 +491,7 @@ try {
   sharingError(await request(`${sharingPath}/${'0'.repeat(64)}`, { user: null }), 404, 'unavailable')
   await db.prepare('UPDATE users SET is_active=0 WHERE id=880001').run()
   sharingError(await request(publicPresentationPath, { user: null }), 404, 'unavailable')
+  await noPreview(publicPagePath)
   await db.prepare('UPDATE users SET is_active=1 WHERE id=880001').run()
   assert.equal((await request(publicPresentationPath, { user: null })).status, 200)
   for (let attempt = 0; attempt < 2; attempt++) {
@@ -428,6 +499,8 @@ try {
     assert.equal(revoked.status, 204); assert.equal(revoked.text, ''); sharingHeaders(revoked)
   }
   sharingError(await request(publicPresentationPath, { user: null }), 404, 'unavailable')
+  await noPreview(publicPagePath)
+  assert.equal((await noPreview(publicPagePath, 404, { method: 'HEAD' })).text, '')
   sharingError(await request(sharingPath, publishOptions), 409, 'idempotency_conflict')
   const revokedRow = await db.prepare('SELECT payload,revoked_at FROM timeline_presentations WHERE token=?').bind(published.json.token).first()
   assert.equal(revokedRow.payload, null); assert.equal(typeof revokedRow.revoked_at, 'string')
@@ -438,6 +511,29 @@ try {
   }
   sharingError(await request(sharingPath, { ...publishOptions, user: 'other', key: '00000000-0000-4000-8001-000000000021' }), 409, 'active_link_limit')
   assert.equal((await request(sharingPath, { user: 'other' })).json.links.length, 20)
+  const originalRole = (await db.prepare('SELECT role FROM users WHERE id=880001').first()).role
+  const safeProjection = structuredClone(presentation)
+  safeProjection.timeline.title.text = { headline: '&lt;img src=x onerror=alert(1)&gt; &quot;quoted&quot;', text: '<p>&lt;/noscript&gt;&lt;script&gt;private-injection&lt;/script&gt;</p>' }
+  const escapedLink = await request(sharingPath, { ...publishOptions, body: safeProjection, key: '00000000-0000-4000-8002-000000000001' })
+  assert.equal(escapedLink.status, 201)
+  const escapedPath = `/present/${escapedLink.json.token}`
+  const escapedPage = await request(escapedPath, { user: null })
+  assert.equal(escapedPage.status, 200); previewHeaders(escapedPage)
+  assert.equal(previewMeta(escapedPage.text, 'property', 'og:title'), '&lt;img src=x onerror=alert(1)&gt; &quot;quoted&quot;')
+  assert(!escapedPage.text.includes('<img src=x') && !escapedPage.text.includes('<script>private-injection') && !escapedPage.text.includes('</noscript><script>'))
+  for (const role of ['guest', 'service', '   ']) {
+    await db.prepare('UPDATE users SET role=? WHERE id=880001').bind(role).run()
+    const denied = await noPreview(escapedPath)
+    assert(!denied.text.includes('private-injection'))
+  }
+  await db.prepare('UPDATE users SET role=? WHERE id=880001').bind(originalRole).run()
+  assert.equal((await request(escapedPath, { user: null })).status, 200)
+  // Only synthetic isolated rows: prove a stored hash failure cannot populate HTML metadata.
+  const corruptToken = 'c'.repeat(64)
+  await db.prepare('INSERT INTO timeline_presentations(token,owner_id,request_key,payload_hash,payload,created_at) VALUES (?,880001,?,?,?,?)')
+    .bind(corruptToken, 'synthetic-corrupt-preview', '0'.repeat(64), JSON.stringify(presentation), '2026-09-14T00:00:00.000Z').run()
+  await noPreview(`/present/${corruptToken}`)
+  receipt.checks.push('compiled preview encoded-markup injection, owner role loss, corrupt stored hash and failing/partial asset streams stay generic without published metadata')
   receipt.checks.push('compiled sharing strict projection/interval/escaped text, anonymous exact read, owner-only bounded list and revoke, replay/conflict, inactive-owner refusal, tombstone payload clearing, 20 active links, no-store and no CORS grants')
   stage = 'compiled-stored-source-import'
   const storedSource = JSON.parse(await readFile(resolve(root, 'tests/fixtures/timeline-stored-source.json'), 'utf8'))
@@ -626,8 +722,12 @@ try {
   const timeline = await request('/dashboard/tools/timeline', { user: null })
   assert.equal(timeline.status, 200); assert.equal(sha256(timeline.text), sha256(indexBytes))
   const publicFallback = await request(`/present/${published.json.token}`, { user: null })
-  assert.equal(publicFallback.status, 200); assert.equal(sha256(publicFallback.text), sha256(indexBytes))
-  receipt.checks.push('anonymous public presentation shell uses compiled static fallback; browser rendering and revoked-state UI verified separately')
+  assert.equal(publicFallback.status, 404); previewHeaders(publicFallback)
+  assert(!publicFallback.text.includes('Synthetic &amp; shared account'))
+  const mainAsset = /src="(\/assets\/[^"]+\.js)"/.exec(indexBytes.toString('utf8'))?.[1]
+  assert(mainAsset && publicFallback.text.includes(mainAsset) && publicPage.text.includes(mainAsset), 'Metadata shell lost the SPA entry')
+  receipt.linkPreviewHttpGate = 'passed'
+  receipt.checks.push('compiled initial HTML preview metadata, crawler parity, escaping, exact GET/HEAD paths, origin binding, revoked/inactive refusal, privacy headers, noscript summary, preserved SPA entry and 1200x630 PNG bytes')
   const assetPath = /(?:src|href)=["'](\/assets\/[^"']+\.(?:js|css))["']/.exec(indexBytes.toString('utf8'))?.[1]
   assert(assetPath, 'Built index did not reference a testable asset')
   const asset = await request(assetPath, { user: null })

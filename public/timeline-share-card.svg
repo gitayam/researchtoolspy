@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
+<title id="title">ResearchTools timeline presentation</title><desc id="desc">A stylized timeline connecting recorded moments, on a navy background. Decorative illustration with no research data.</desc>
+<defs><linearGradient id="bg" x2="1" y2="1"><stop stop-color="#0b1228"/><stop offset="1" stop-color="#192756"/></linearGradient><linearGradient id="line"><stop stop-color="#6366f1"/><stop offset="1" stop-color="#67e8f9"/></linearGradient></defs>
+<rect width="1200" height="630" fill="url(#bg)"/>
+<circle cx="1065" cy="30" r="260" fill="#4338ca" opacity=".12"/><circle cx="1130" cy="610" r="260" fill="#0891b2" opacity=".08"/>
+<path d="M64 59h36v36H64z" fill="none" stroke="#67e8f9" stroke-width="2" rx="4"/><path d="M72 83h7v-9h7v-7h7" fill="none" stroke="#67e8f9" stroke-width="3"/>
+<text x="118" y="86" fill="#e2e8f0" font-family="Arial, sans-serif" font-size="28" font-weight="700" letter-spacing=".2">ResearchTools</text>
+<text x="64" y="212" fill="#ffffff" font-family="Arial, sans-serif" font-size="60" font-weight="700" letter-spacing="-1.5">Timeline presentation</text>
+<text x="67" y="259" fill="#b8c6e7" font-family="Arial, sans-serif" font-size="25">Explore the sequence. See the context.</text>
+<path d="M88 453H1112" stroke="#33446d" stroke-width="2"/>
+<path d="M112 453H1088" stroke="url(#line)" stroke-width="5" stroke-linecap="round"/>
+<g stroke="#6879b0" stroke-width="2"><path d="M190 453v-51M472 453v47M755 453v-51M1036 453v47"/></g>
+<g fill="#182344" stroke="#445882"><rect x="112" y="330" width="210" height="73" rx="12"/><rect x="390" y="500" width="210" height="72" rx="12"/><rect x="675" y="330" width="210" height="73" rx="12"/><rect x="922" y="500" width="210" height="72" rx="12"/></g>
+<g stroke-linecap="round" stroke-width="6"><path d="M136 354h92M136 376h150M414 524h116M414 547h150M699 354h90M699 376h150M946 524h115M946 547h150" stroke="#798cbf"/></g>
+<g fill="#0d1732" stroke="#96a6ff" stroke-width="4"><circle cx="190" cy="453" r="11"/><circle cx="472" cy="453" r="11"/></g><g fill="#0d1732" stroke="#67e8f9" stroke-width="4"><circle cx="755" cy="453" r="11"/><circle cx="1036" cy="453" r="11"/></g>
+</svg>

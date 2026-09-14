@@ -1,5 +1,12 @@
 {
   "version": 1,
-  "include": ["/api/*", "/drop/*", "/survey/*", "/public/intake/*", "/dashboard/*"],
+  "include": [
+    "/api/*",
+    "/drop/*",
+    "/survey/*",
+    "/public/intake/*",
+    "/dashboard/*",
+    "/present/*"
+  ],
   "exclude": []
 }
