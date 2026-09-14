@@ -33,7 +33,7 @@ export function TimelineJSExport({ snapshot, savedRevision, presentationAction =
   const capture = (startPresentation = false) => {
     const captured = { ...structuredClone(snapshot), exportedAt: savedRevision && snapshot.exportedAt ? snapshot.exportedAt : new Date().toISOString() }
     const result = buildTimelineJSExport(captured)
-    setPreview({ snapshot: captured, signature, result, scheduleEnabled: false, schedule: { defaultDate: localPresentationDate(), events: {} } })
+    setPreview({ snapshot: captured, signature, result, scheduleEnabled: false, schedule: { defaultDate: localPresentationDate(), automatic: { startTime: '09:00', intervalMinutes: 15 }, events: {} } })
     setPresenting(startPresentation && result.timeline.events.length > 0 && result.timeline.events.length <= 100)
   }
   const updateSchedule = (scheduleEnabled: boolean, schedule: Schedule) => {

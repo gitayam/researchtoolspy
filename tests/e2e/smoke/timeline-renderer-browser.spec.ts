@@ -56,6 +56,102 @@ async function open(page: Page) {
 }
 
 test.describe('Self-hosted TimelineJS renderer @smoke', () => {
+  test('automatic schedule propagates arrival anchors, reset and midnight rollover without changing the original', async ({ page }, info) => {
+    test.setTimeout(120_000)
+    const titles = ['Go downtown', 'Find parking', 'Park', 'Go to cafe']
+    const value = fixture(4)
+    value.analystWorkspace.narrative!.title = 'An afternoon downtown'
+    value.analystWorkspace.narrative!.chapters = []
+    value.analystWorkspace.events = value.analystWorkspace.events.map((event, index) => ({ ...event, title: titles[index], description: `Planned step ${index + 1}`, eventDate: undefined, eventTime: undefined, datePrecision: undefined, chapterId: undefined, narrativeOrder: index, placement: { mode: 'position', position: index + 1 } }))
+    await start(page, value)
+    const before = await exported(page)
+    await page.getByRole('button', { name: 'Export TimelineJS', exact: true }).click()
+    const dialog = page.getByRole('dialog')
+    await dialog.getByLabel('Use presentation schedule', { exact: true }).check()
+    await expect(dialog.getByLabel('Adjust following events', { exact: true })).toBeChecked()
+    await expect(dialog.getByLabel('Start time', { exact: true })).toHaveValue('09:00')
+    await expect(dialog.getByLabel('Minutes between events', { exact: true })).toHaveValue('15')
+    const groups = titles.map((title, index) => dialog.getByRole('group', { name: `${index + 1}. ${title} presentation schedule`, exact: true }))
+    const expectTimes = async (times: string[]) => {
+      for (const [index, time] of times.entries()) await expect(groups[index].getByLabel('Presentation time', { exact: true })).toHaveValue(time)
+    }
+    const download = async (name: string) => {
+      const pending = page.waitForEvent('download')
+      await dialog.getByRole('button', { name, exact: true }).click()
+      return JSON.parse(await readFile((await (await pending).path())!, 'utf8'))
+    }
+    const fit = async (control: Locator) => {
+      await expect.poll(async () => control.evaluate(element => {
+        const bounds = element.getBoundingClientRect(), viewport = element.closest('[role="region"][aria-label="Export details"]')!.getBoundingClientRect()
+        return bounds.width > 0 && bounds.height > 0 && bounds.top >= viewport.top - 1 && bounds.bottom <= viewport.bottom + 1 && bounds.left >= viewport.left - 1 && bounds.right <= viewport.right + 1
+      }), { message: 'Automatic schedule controls must fit completely inside Export details' }).toBe(true)
+    }
+    await expectTimes(['09:00', '09:15', '09:30', '09:45'])
+    const localDay = async (offset: number) => page.evaluate(offset => { const day = new Date(); day.setDate(day.getDate() + offset); return `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}` }, offset)
+    await dialog.getByRole('button', { name: 'Tomorrow', exact: true }).click()
+    await expect(dialog.getByLabel('Default presentation date', { exact: true })).toHaveValue(await localDay(1))
+    await dialog.getByRole('button', { name: 'Today', exact: true }).click()
+    await expect(dialog.getByLabel('Default presentation date', { exact: true })).toHaveValue(await localDay(0))
+    await dialog.getByLabel('Default presentation date', { exact: true }).fill('2028-02-29')
+    await groups[0].getByLabel('Presentation time', { exact: true }).fill('14:00')
+    await groups[0].getByLabel('Time means', { exact: true }).selectOption('arrive')
+    await expectTimes(['14:00', '14:15', '14:30', '14:45'])
+    await expect(groups[0].getByText('Custom', { exact: true })).toBeVisible()
+    await expect(groups[1].getByText('Automatic', { exact: true })).toBeVisible()
+    await dialog.getByLabel('Minutes between events', { exact: true }).fill('30')
+    await expectTimes(['14:00', '14:30', '15:00', '15:30'])
+    await groups[2].getByLabel('Presentation time', { exact: true }).fill('16:00')
+    await expectTimes(['14:00', '14:30', '16:00', '16:30'])
+    await groups[2].getByRole('button', { name: 'Use automatic time', exact: true }).click()
+    await expectTimes(['14:00', '14:30', '15:00', '15:30'])
+    await groups[2].getByLabel('Presentation time', { exact: true }).fill('17:00')
+    await groups[2].getByLabel('Presentation time', { exact: true }).fill('')
+    await expectTimes(['14:00', '14:30', '15:00', '15:30'])
+    await dialog.getByLabel('Minutes between events', { exact: true }).fill('15')
+    await groups[1].locator('summary').filter({ hasText: /^Change date$/ }).click()
+    await groups[1].getByLabel('Date override', { exact: true }).fill('2028-03-01')
+    await fit(groups[1].getByLabel('Date override', { exact: true }))
+    const movedDay = await download('Download TimelineJS JSON')
+    expect(movedDay.events.map((event: { start_date: { day: number } }) => event.start_date.day)).toEqual([29, 1, 1, 1])
+    await groups[1].getByRole('button', { name: 'Use automatic time', exact: true }).click()
+    await groups[1].locator('summary').filter({ hasText: /^Change date$/ }).click()
+    await expectTimes(['14:00', '14:15', '14:30', '14:45'])
+    const companion = await download('Download ResearchTools JSON')
+    expect(companion.analystWorkspace).toEqual(before.analystWorkspace)
+    expect(companion.source).toEqual(before.source)
+    for (const theme of ['light', 'dark']) {
+      await page.evaluate(dark => document.documentElement.classList.toggle('dark', dark), theme === 'dark')
+      await dialog.getByLabel('Start time', { exact: true }).scrollIntoViewIfNeeded()
+      await fit(dialog.getByLabel('Start time', { exact: true }))
+      await fit(dialog.getByLabel('Minutes between events', { exact: true }))
+      await dialog.screenshot({ path: info.outputPath(`automatic-global-${theme}.png`), animations: 'disabled', scale: 'css' })
+      await groups[0].scrollIntoViewIfNeeded()
+      for (const control of [groups[0].locator('legend'), groups[0].getByLabel('Presentation time', { exact: true }), groups[0].getByLabel('Time means', { exact: true })]) await fit(control)
+      await dialog.screenshot({ path: info.outputPath(`automatic-event-${theme}.png`), animations: 'disabled', scale: 'css' })
+    }
+    await groups[0].getByRole('button', { name: 'Use automatic time', exact: true }).click()
+    await expectTimes(['09:00', '09:15', '09:30', '09:45'])
+    await dialog.getByLabel('Start time', { exact: true }).fill('23:50')
+    await expectTimes(['23:50', '00:05', '00:20', '00:35'])
+    const midnight = await download('Download TimelineJS JSON')
+    expect(midnight.events.map((event: { start_date: unknown }) => event.start_date)).toEqual([
+      { year: 2028, month: 2, day: 29, hour: 23, minute: 50 },
+      ...[5, 20, 35].map(minute => ({ year: 2028, month: 3, day: 1, hour: 0, minute })),
+    ])
+    expect(await download('Download ResearchTools JSON')).toEqual(companion)
+    await dialog.getByRole('button', { name: 'Open presentation', exact: true }).click()
+    await expect(page.getByText('TimelineJS presentation loaded', { exact: true })).toBeAttached()
+    const child = page.frameLocator('iframe[title="TimelineJS narrative presentation"]')
+    for (const [index, title] of titles.entries()) {
+      await child.getByRole('button', { name: 'Next slide', exact: true }).click()
+      const slide = child.locator('.tl-storyslider .tl-slide').filter({ has: child.locator('.tl-headline').filter({ hasText: new RegExp(`^${title}$`) }) })
+      await expect(slide.locator('.tl-headline')).toBeInViewport()
+      await expect(slide.locator('.tl-headline-date')).toContainText(index === 0 ? '2028-02-29 23:50' : `2028-03-01 00:${['', '05', '20', '35'][index]}`)
+    }
+    await page.keyboard.press('Escape')
+    expect((await exported(page)).analystWorkspace).toEqual(before.analystWorkspace)
+  })
+
   test('temporary schedule renders equal-date drink steps in order and retimes without rewriting the backup', async ({ page }, info) => {
     test.setTimeout(120_000)
     const value = fixture(4)
@@ -74,6 +170,7 @@ test.describe('Self-hosted TimelineJS renderer @smoke', () => {
     await expect(dialog.getByLabel('Use presentation schedule', { exact: true })).not.toBeChecked()
     await expect(dialog.getByRole('button', { name: 'Open presentation', exact: true })).toBeDisabled()
     await dialog.getByLabel('Use presentation schedule', { exact: true }).check()
+    await dialog.getByLabel('Adjust following events', { exact: true }).uncheck()
     const today = await page.evaluate(() => { const now = new Date(); return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}` })
     await expect(dialog.getByLabel('Default presentation date', { exact: true })).toHaveValue(today)
     await dialog.getByLabel('Default presentation date', { exact: true }).fill('2028-02-29')
@@ -81,7 +178,7 @@ test.describe('Self-hosted TimelineJS renderer @smoke', () => {
     for (const [index, group] of groups.entries()) {
       await expect(group).toHaveCount(1)
       await expect(group.getByText(steps[index], { exact: true })).toBeVisible()
-      await expect(group.getByLabel('Time override', { exact: true })).toHaveValue('')
+      await expect(group.getByLabel('Presentation time', { exact: true })).toHaveValue('')
       await expect(group.getByLabel('Time means', { exact: true })).toHaveValue('action')
     }
     const download = async (name: string) => {
@@ -118,13 +215,14 @@ test.describe('Self-hosted TimelineJS renderer @smoke', () => {
     await dialog.getByRole('button', { name: 'Back to export details', exact: true }).click()
     await expect(dialog.getByLabel('Use presentation schedule', { exact: true })).toBeChecked()
     await expect(dialog.getByLabel('Default presentation date', { exact: true })).toHaveValue('2028-02-29')
-    await groups[0].getByLabel('Time override', { exact: true }).fill('09:00')
+    await groups[0].getByLabel('Presentation time', { exact: true }).fill('09:00')
     await groups[0].getByLabel('Time means', { exact: true }).selectOption('start')
-    await groups[1].getByLabel('Time override', { exact: true }).fill('10:00')
+    await groups[1].getByLabel('Presentation time', { exact: true }).fill('10:00')
     await groups[1].getByLabel('Time means', { exact: true }).selectOption('arrive')
+    await groups[2].locator('summary').filter({ hasText: /^Change date$/ }).click()
     await groups[2].getByLabel('Date override', { exact: true }).fill('2028-03-01')
-    await groups[2].getByLabel('Time override', { exact: true }).fill('00:15:07')
-    await groups[3].getByLabel('Time override', { exact: true }).fill('10:05')
+    await groups[2].getByLabel('Presentation time', { exact: true }).fill('00:15:07')
+    await groups[3].getByLabel('Presentation time', { exact: true }).fill('10:05')
     const retimed = await download('Download TimelineJS JSON')
     expect(retimed.events.map((event: { start_date: unknown }) => event.start_date)).toEqual([
       { year: 2028, month: 2, day: 29, hour: 9, minute: 0 }, { year: 2028, month: 2, day: 29, hour: 10, minute: 0 },
@@ -144,14 +242,14 @@ test.describe('Self-hosted TimelineJS renderer @smoke', () => {
       await dialog.getByLabel('Default presentation date', { exact: true }).scrollIntoViewIfNeeded()
       await dialog.screenshot({ path: info.outputPath(`schedule-form-${theme}.png`), animations: 'disabled', scale: 'css' })
       await groups[0].scrollIntoViewIfNeeded()
-      const scheduleControls = [groups[0].locator('legend'), ...['Date override', 'Time override', 'Time means'].map(label => groups[0].getByLabel(label, { exact: true }))]
+      const scheduleControls = [groups[0].locator('legend'), ...['Presentation time', 'Time means'].map(label => groups[0].getByLabel(label, { exact: true }))]
       for (const control of scheduleControls) {
         await expect(control).toBeInViewport()
         await expect.poll(async () => control.evaluate(element => {
           const bounds = element.getBoundingClientRect()
           const viewport = element.closest('[role="region"][aria-label="Export details"]')!.getBoundingClientRect()
           return bounds.width > 0 && bounds.height > 0 && bounds.top >= viewport.top - 1 && bounds.bottom <= viewport.bottom + 1 && bounds.left >= viewport.left - 1 && bounds.right <= viewport.right + 1
-        }), { message: 'The complete numbered schedule legend and controls must fit inside Export details' }).toBe(true)
+        }), { message: 'The complete numbered schedule legend, effective time and meaning must fit inside Export details' }).toBe(true)
       }
       await dialog.screenshot({ path: info.outputPath(`schedule-event-${theme}.png`), animations: 'disabled', scale: 'css' })
       await dialog.getByRole('button', { name: 'Open presentation', exact: true }).click()
@@ -191,8 +289,9 @@ test.describe('Self-hosted TimelineJS renderer @smoke', () => {
     await page.getByRole('button', { name: 'Export TimelineJS', exact: true }).click()
     await expect(dialog.getByLabel('Use presentation schedule', { exact: true })).not.toBeChecked()
     await dialog.getByLabel('Use presentation schedule', { exact: true }).check()
+    await dialog.getByLabel('Adjust following events', { exact: true }).uncheck()
     await expect(dialog.getByLabel('Default presentation date', { exact: true })).toHaveValue(today)
-    await expect(groups[0].getByLabel('Time override', { exact: true })).toHaveValue('')
+    await expect(groups[0].getByLabel('Presentation time', { exact: true })).toHaveValue('')
     await expect(groups[0].getByLabel('Time means', { exact: true })).toHaveValue('action')
   })
 
@@ -222,9 +321,11 @@ test.describe('Self-hosted TimelineJS renderer @smoke', () => {
     await expect(list).not.toContainText('presentation assumption')
     await dialog.getByRole('button', { name: 'Back to export details', exact: true }).click()
     await dialog.getByLabel('Use presentation schedule', { exact: true }).check()
+    await dialog.getByLabel('Adjust following events', { exact: true }).uncheck()
     const retimed = dialog.getByRole('group', { name: '1. Monthly update presentation schedule', exact: true })
+    await retimed.locator('summary').filter({ hasText: /^Change date$/ }).click()
     await retimed.getByLabel('Date override', { exact: true }).fill('2028-03-01')
-    await retimed.getByLabel('Time override', { exact: true }).fill('06:30')
+    await retimed.getByLabel('Presentation time', { exact: true }).fill('06:30')
     await retimed.getByLabel('Time means', { exact: true }).selectOption('arrive')
     await dialog.getByRole('button', { name: 'Open presentation', exact: true }).click()
     await expect(page.getByText('TimelineJS presentation loaded', { exact: true })).toBeAttached()
@@ -235,6 +336,11 @@ test.describe('Self-hosted TimelineJS renderer @smoke', () => {
     const original = row.getByText('Original recorded date/time: 2025-06-07; 11:12:13.', { exact: true })
     await original.scrollIntoViewIfNeeded()
     await expect(original).toBeInViewport()
+    await dialog.getByRole('button', { name: 'Back to export details', exact: true }).click()
+    await retimed.getByRole('button', { name: 'Use recorded date and time', exact: true }).click()
+    await expect(retimed.getByLabel('Presentation time', { exact: true })).toHaveValue('11:12:13')
+    await expect(retimed.getByText('Recorded', { exact: true })).toBeVisible()
+    await expect(retimed.getByLabel('Date override', { exact: true })).toHaveValue('2025-06-07')
     await page.keyboard.press('Escape')
     expect((await exported(page)).analystWorkspace).toEqual(before.analystWorkspace)
   })

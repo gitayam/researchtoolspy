@@ -35,6 +35,17 @@ interface TimelineJSExport {
 export interface TimelinePresentationSchedule {
   defaultDate: string
   events: Record<string, { date?: string; time?: string; meaning?: 'start' | 'action' | 'arrive' }>
+  automatic?: { startTime: string; intervalMinutes: number }
+}
+
+interface ResolvedPresentationSchedule {
+  events: Record<string, { date?: string; time?: string; source: 'automatic' | 'override' | 'recorded' | 'default'; scheduled: boolean }>
+  errors: string[]
+  warnings: string[]
+}
+
+function validTime(value: unknown): value is string {
+  return typeof value === 'string' && /^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/.test(value)
 }
 
 function fullDate(value: unknown): value is string {
@@ -50,19 +61,82 @@ function record(value: unknown): value is Record<string, unknown> {
 }
 
 function scheduleErrors(value: unknown, snapshot: TimelineWorkspaceExport): string[] {
-  if (!record(value) || Object.keys(value).some(key => !['defaultDate', 'events'].includes(key)) || !fullDate(value.defaultDate) || !record(value.events)) {
+  if (!record(value) || Object.keys(value).some(key => !['defaultDate', 'events', 'automatic'].includes(key)) || !fullDate(value.defaultDate) || !record(value.events)) {
     return ['Presentation schedule requires a complete valid default date (YYYY-MM-DD) and event settings.']
+  }
+  if (value.automatic !== undefined) {
+    const automatic = value.automatic
+    if (!record(automatic) || Object.keys(automatic).some(key => !['startTime', 'intervalMinutes'].includes(key)) || !validTime(automatic.startTime) || typeof automatic.intervalMinutes !== 'number' || !Number.isInteger(automatic.intervalMinutes) || automatic.intervalMinutes < 1 || automatic.intervalMinutes > 1440) return ['Automatic scheduling requires a valid start time and an integer interval of 1–1440 minutes.']
   }
   const events = new Map(snapshot.analystWorkspace.events.map(event => [event.id, event]))
   for (const [id, settings] of Object.entries(value.events)) {
     const event = events.get(id)
     if (!event || !record(settings) || Object.keys(settings).some(key => !['date', 'time', 'meaning'].includes(key))) return ['Presentation schedule contains invalid event settings.']
     if (settings.date !== undefined && settings.date !== '' && !fullDate(settings.date)) return [`Presentation date for “${event.title}” must be a complete valid date (YYYY-MM-DD).`]
-    if (settings.time !== undefined && settings.time !== '' && (typeof settings.time !== 'string' || !/^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/.test(settings.time))) return [`Presentation time for “${event.title}” must be HH:mm or HH:mm:ss.`]
+    if (settings.time !== undefined && settings.time !== '' && !validTime(settings.time)) return [`Presentation time for “${event.title}” must be HH:mm or HH:mm:ss.`]
     if (settings.meaning !== undefined && !['start', 'action', 'arrive'].includes(settings.meaning as string)) return ['Presentation meaning must be Start, Do the action, or Arrive.']
     if (settings.time && event.eventDate && !fullDate(event.eventDate) && !settings.date) return [`A time override for “${event.title}” requires an explicit complete presentation date.`]
   }
   return []
+}
+
+/** Calendar wall-clock arithmetic, without host timezone or DST interpretation. */
+function advanceClock(date: string, time: string, minutes: number): { date?: string; time: string } {
+  let [year, month, day] = date.split('-').map(Number)
+  const parts = time.split(':').map(Number)
+  const total = parts[0] * 60 + parts[1] + minutes
+  if (total >= 1440) {
+    day += 1
+    const candidate = `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+    if (!fullDate(candidate)) {
+      day = 1
+      month += 1
+      if (month > 12) { month = 1; year += 1 }
+    }
+  }
+  const clock = `${String(Math.floor(total % 1440 / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}${parts.length === 3 ? ':' + String(parts[2]).padStart(2, '0') : ''}`
+  return { ...(year <= 9999 ? { date: `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}` } : {}), time: clock }
+}
+
+/** Resolve only selected narrative events; the source workspace is never rewritten. */
+export function resolveTimelinePresentationSchedule(snapshot: TimelineWorkspaceExport, schedule: TimelinePresentationSchedule): ResolvedPresentationSchedule {
+  const errors = scheduleErrors(schedule, snapshot)
+  const events: ResolvedPresentationSchedule['events'] = Object.create(null)
+  if (errors.length) return { events, errors, warnings: [] }
+  const warnings = new Set<string>()
+  let anchor: { date: string; time: string } | undefined
+  for (const event of narrativeTimelineEvents(snapshot.analystWorkspace.events)) {
+    const settings = Object.prototype.hasOwnProperty.call(schedule.events, event.id) ? schedule.events[event.id] : undefined
+    const explicitDate = settings?.date || undefined
+    const explicitTime = settings?.time || undefined
+    let date = explicitDate || event.eventDate || schedule.defaultDate
+    let time = explicitTime || event.eventTime
+    let source: ResolvedPresentationSchedule['events'][string]['source'] = explicitDate || explicitTime ? 'override' : event.eventDate || event.eventTime ? 'recorded' : 'default'
+    if (schedule.automatic && !event.eventDate) {
+      // A fully explicit timestamp does not need an automatic candidate.
+      const candidate = explicitDate && (explicitTime || event.eventTime)
+        ? { date: explicitDate, time: explicitTime || event.eventTime! }
+        : anchor ? advanceClock(anchor.date, anchor.time, schedule.automatic.intervalMinutes)
+          : { date: schedule.defaultDate, time: schedule.automatic.startTime }
+      const candidateDate = explicitDate || candidate.date
+      if (!candidateDate) return { events: {}, errors: ['Automatic presentation schedule exceeds Gregorian year 9999. Change an anchor or interval.'], warnings: [] }
+      date = candidateDate
+      time = explicitTime || event.eventTime || candidate.time
+      if (source === 'default') source = 'automatic'
+    }
+    const scheduled = Boolean(!event.eventDate || explicitDate || explicitTime || (settings?.meaning && settings.meaning !== 'action'))
+    events[event.id] = { date, ...(time ? { time } : {}), source, scheduled }
+    if (schedule.automatic) {
+      if (fullDate(date) && time) {
+        const stamp = date + 'T' + (time.length === 5 ? time + ':00' : time)
+        if (anchor && stamp < anchor.date + 'T' + (anchor.time.length === 5 ? anchor.time + ':00' : anchor.time)) warnings.add('A manual or recorded anchor precedes the previous timed event. TimelineJS reorders events chronologically; original dates and overrides are retained.')
+        anchor = { date, time }
+      } else if (anchor) {
+        warnings.add('An untimed or partial-date recorded event does not anchor an automatic clock. Following automatic events continue from the previous usable timed anchor, not from that event.')
+      }
+    }
+  }
+  return { events, errors: [], warnings: [...warnings] }
 }
 
 function escapeHTML(value: string): string {
@@ -81,15 +155,18 @@ export function buildTimelineJSExport(snapshot: TimelineWorkspaceExport, schedul
     'Title, framing, chapter labels and the displayed timezone are included. Other narrative metadata and chapter claims stay in the backup.',
   ]
   const events: TimelineJSEvent[] = []
-  const errors = schedule === undefined ? [] : scheduleErrors(schedule, snapshot)
+  const resolved = schedule === undefined ? undefined : resolveTimelinePresentationSchedule(snapshot, schedule)
+  const errors = resolved?.errors || []
+  notices.push(...(resolved?.warnings || []))
   const eventDetails: TimelineJSExport['eventDetails'] = {}
   let scheduledCount = 0
   let hasTimes = false, omittedTimes = false
   for (const event of errors.length ? [] : selected) {
     const settings = schedule && Object.prototype.hasOwnProperty.call(schedule.events, event.id) ? schedule.events[event.id] : undefined
-    const date = settings?.date || event.eventDate || schedule?.defaultDate
-    const clock = settings?.time || event.eventTime
-    const scheduled = Boolean(schedule && (!event.eventDate || settings?.date || settings?.time || (settings?.meaning && settings.meaning !== 'action')))
+    const effective = resolved?.events[event.id]
+    const date = effective?.date || event.eventDate
+    const clock = effective?.time || event.eventTime
+    const scheduled = effective?.scheduled || false
     if (!date) {
       omitted.push({ eventId: event.id, title: event.title, reason: 'No recorded absolute date; unknown dates are not invented.' })
       continue
@@ -128,6 +205,7 @@ export function buildTimelineJSExport(snapshot: TimelineWorkspaceExport, schedul
     if (scheduled) {
       paragraphs.push(`<p><strong>Presentation schedule:</strong> ${escapeHTML(display)}. This does not change the recorded event.</p>`)
       paragraphs.push(`<p><strong>Original recorded date/time:</strong> ${escapeHTML(event.eventDate || 'date not recorded')}; ${escapeHTML(event.eventTime || 'time not recorded')}.</p>`)
+      if (schedule?.automatic) paragraphs.push(`<p><strong>Automatic presentation assumption:</strong> Effective timing source: ${escapeHTML(effective?.source || 'automatic')}. Undated events follow narrative selection order at a ${schedule.automatic.intervalMinutes}-minute interval from the previous usable timed anchor, unless overridden. This is not an inferred duration or an enforced before/after relationship.</p>`)
     }
     if (placementLabel) paragraphs.push(`<p>${escapeHTML(placementLabel)}</p>`)
     const chapter = narrative?.chapters.find(item => item.id === event.chapterId)
@@ -144,9 +222,11 @@ export function buildTimelineJSExport(snapshot: TimelineWorkspaceExport, schedul
   }
   if (hasTimes) notices.push(schedule === undefined
     ? 'Times keep their recorded clock values and show the narrative timezone, or “timezone not recorded”. TimelineJS does not encode a timezone or convert these times.'
-    : 'Times use explicit presentation overrides or their recorded clock values and show the narrative timezone, or “timezone not recorded”. TimelineJS does not encode a timezone or convert these times.')
+    : 'Times use presentation settings or their recorded clock values and show the narrative timezone, or “timezone not recorded”. TimelineJS does not encode a timezone or convert these times.')
   if (omittedTimes) notices.push('Recorded times on year- or month-precision events are omitted because a complete day was not recorded.')
-  if (schedule !== undefined) notices.push('Presentation schedule dates and times are temporary assumptions, not recorded facts. No durations or relative timing are inferred; chronology can differ from narrative placement. The ResearchTools backup excludes these temporary settings.')
+  if (schedule !== undefined) notices.push(schedule?.automatic
+    ? 'Automatic presentation spacing follows narrative selection order using calendar wall-clock arithmetic, without timezone or DST conversion. Dates and times are temporary assumptions, not recorded facts or inferred travel durations; before/after relationships are descriptive. Chronology can differ from narrative placement. The ResearchTools backup excludes these temporary settings.'
+    : 'Presentation schedule dates and times are temporary assumptions, not recorded facts. No durations or relative timing are inferred; chronology can differ from narrative placement. The ResearchTools backup excludes these temporary settings.')
   return {
     timeline: {
       title: { text: { headline: escapeHTML(narrative?.title || 'Untitled narrative'), text: narrative?.framing ? `<p>${escapeHTML(narrative.framing)}</p>` : '' }, unique_id: 'narrative-title', autolink: false },

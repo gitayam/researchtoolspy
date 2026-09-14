@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { buildTimelineJSExport, type TimelinePresentationSchedule } from '../../../src/lib/timeline-timelinejs'
+import { buildTimelineJSExport, resolveTimelinePresentationSchedule, type TimelinePresentationSchedule } from '../../../src/lib/timeline-timelinejs'
 import type { TimelineWorkspaceEvent, TimelineWorkspaceExport } from '../../../src/types/timeline-workspace'
 
 const event = (id: string, extra: Partial<TimelineWorkspaceEvent> = {}): TimelineWorkspaceEvent => ({ id, title: `Event ${id}`, description: 'Description', category: 'event', importance: 'normal', origin: 'analyst', assessment: 'unreviewed', analystNote: '', modified: false, eventDate: '2026-09-12', datePrecision: 'day', narrativeIncluded: true, whyItMatters: 'Consequence', transition: 'Transition excluded', ...extra })
@@ -185,6 +185,89 @@ test.describe('TimelineJS selected narrative adapter @smoke', () => {
     expect(result.timeline.events[1].text.text).toContain('&lt;img')
     expect(result.timeline.events[1].text.text).not.toContain('<img')
     expect(result.timeline.events[1].autolink).toBe(false)
+  })
+
+  test('automatic flow follows explicit anchors and reconnects when an override is removed', () => {
+    const snapshot = fixture(Array.from({ length: 4 }, (_, index) => event(`step-${index}`, { eventDate: undefined, datePrecision: undefined, narrativeOrder: index })))
+    const schedule: TimelinePresentationSchedule = { defaultDate: '2028-02-29', automatic: { startTime: '09:00', intervalMinutes: 15 }, events: {} }
+    const before = JSON.stringify(snapshot)
+    const times = (input: TimelinePresentationSchedule) => Object.values(resolveTimelinePresentationSchedule(snapshot, input).events).map(item => item.time)
+    expect(times(schedule)).toEqual(['09:00', '09:15', '09:30', '09:45'])
+    const anchored = { ...schedule, events: { 'step-0': { time: '14:00', meaning: 'arrive' as const } } }
+    expect(times(anchored)).toEqual(['14:00', '14:15', '14:30', '14:45'])
+    expect(times({ ...anchored, automatic: { startTime: '09:00', intervalMinutes: 30 } })).toEqual(['14:00', '14:30', '15:00', '15:30'])
+    const middle = { ...anchored, events: { ...anchored.events, 'step-2': { time: '16:00' } } }
+    expect(times(middle)).toEqual(['14:00', '14:15', '16:00', '16:15'])
+    expect(times({ ...middle, events: { ...middle.events, 'step-2': {} } })).toEqual(['14:00', '14:15', '14:30', '14:45'])
+    expect(times({ ...middle, events: { ...middle.events, 'step-2': { time: '' } } })).toEqual(['14:00', '14:15', '14:30', '14:45'])
+    const resolved = resolveTimelinePresentationSchedule(snapshot, anchored)
+    expect(resolved.errors).toEqual([])
+    expect(Object.values(resolved.events).map(item => item.source)).toEqual(['override', 'automatic', 'automatic', 'automatic'])
+    expect(Object.values(resolved.events).every(item => item.scheduled)).toBe(true)
+    expect(buildTimelineJSExport(snapshot, anchored).timeline.events.map(item => item.start_date)).toEqual([0, 15, 30, 45].map(minute => ({ year: 2028, month: 2, day: 29, hour: 14, minute })))
+    expect(JSON.stringify(snapshot)).toBe(before)
+    expect(schedule.events).toEqual({})
+  })
+
+  test('automatic arithmetic preserves wall-clock seconds across leap, year and DST calendar boundaries', () => {
+    const snapshot = fixture([event('one', { eventDate: undefined, datePrecision: undefined, narrativeOrder: 0 }), event('two', { eventDate: undefined, datePrecision: undefined, narrativeOrder: 1 })])
+    const cases = [
+      ['2028-02-28', '23:50:07', 15, '2028-02-29', '00:05:07'],
+      ['2028-02-29', '23:50', 15, '2028-03-01', '00:05'],
+      ['0099-12-31', '23:50', 15, '0100-01-01', '00:05'],
+      ['2026-03-08', '01:50', 15, '2026-03-08', '02:05'],
+      ['2026-11-01', '01:50', 15, '2026-11-01', '02:05'],
+      ['0001-01-01', '09:00', 1440, '0001-01-02', '09:00'],
+    ] as const
+    for (const [defaultDate, startTime, intervalMinutes, date, time] of cases) {
+      const result = resolveTimelinePresentationSchedule(snapshot, { defaultDate, automatic: { startTime, intervalMinutes }, events: {} })
+      expect(result.errors).toEqual([])
+      expect(result.events.two).toMatchObject({ date, time, source: 'automatic', scheduled: true })
+    }
+    const dateOnly = resolveTimelinePresentationSchedule(snapshot, { defaultDate: '2028-02-29', automatic: { startTime: '23:50:07', intervalMinutes: 15 }, events: { two: { date: '2028-03-05' } } })
+    expect(dateOnly.events.two).toMatchObject({ date: '2028-03-05', time: '00:05:07', source: 'override' })
+  })
+
+  test('recorded precision stays pinned while timed anchors and untimed gaps disclose chronological differences', () => {
+    const snapshot = fixture([
+      event('first', { eventDate: undefined, datePrecision: undefined, narrativeOrder: 0 }),
+      event('partial', { eventDate: '2026-09', datePrecision: 'month', narrativeOrder: 1 }),
+      event('following', { eventDate: undefined, datePrecision: undefined, narrativeOrder: 2 }),
+      event('past', { eventDate: '2025-01-01', eventTime: '08:00', narrativeOrder: 3 }),
+      event('after-past', { eventDate: undefined, datePrecision: undefined, narrativeOrder: 4 }),
+      event('clock-only', { eventDate: undefined, datePrecision: undefined, eventTime: '17:30:05', narrativeOrder: 5 }),
+      event('last', { eventDate: undefined, datePrecision: undefined, narrativeOrder: 6 }),
+    ])
+    const bytes = JSON.stringify(snapshot)
+    const schedule: TimelinePresentationSchedule = { defaultDate: '2028-02-29', automatic: { startTime: '09:00', intervalMinutes: 15 }, events: {} }
+    const result = resolveTimelinePresentationSchedule(snapshot, schedule)
+    expect(result.errors).toEqual([])
+    expect(result.events.partial).toMatchObject({ date: '2026-09', source: 'recorded', scheduled: false })
+    expect(result.events.partial.time).toBeUndefined()
+    expect(result.events.following).toMatchObject({ date: '2028-02-29', time: '09:15' })
+    expect(result.events.past).toMatchObject({ date: '2025-01-01', time: '08:00', source: 'recorded', scheduled: false })
+    expect(result.events['after-past']).toMatchObject({ date: '2025-01-01', time: '08:15' })
+    expect(result.events['clock-only']).toMatchObject({ date: '2025-01-01', time: '17:30:05', source: 'recorded', scheduled: true })
+    expect(result.events.last).toMatchObject({ date: '2025-01-01', time: '17:45:05' })
+    expect(result.warnings.length).toBeGreaterThanOrEqual(2)
+    expect(result.warnings.join(' ')).toMatch(/chronolog|earlier|before/i)
+    expect(JSON.stringify(snapshot)).toBe(bytes)
+  })
+
+  test('malformed automatic configuration and calendar overflow fail closed without changing source or settings', () => {
+    const snapshot = fixture([event('one', { eventDate: undefined, datePrecision: undefined, narrativeOrder: 0 }), event('two', { eventDate: undefined, datePrecision: undefined, narrativeOrder: 1 })])
+    const invalid = [null, {}, { startTime: '24:00', intervalMinutes: 15 }, { startTime: '9:00', intervalMinutes: 15 }, ...[0, -1, 1.5, 1441, '15', null].map(intervalMinutes => ({ startTime: '09:00', intervalMinutes }))]
+    for (const automatic of invalid) {
+      const schedule = { defaultDate: '2028-02-29', events: {}, automatic } as unknown as TimelinePresentationSchedule
+      const before = JSON.stringify({ snapshot, schedule })
+      expect(resolveTimelinePresentationSchedule(snapshot, schedule).errors.length).toBeGreaterThan(0)
+      expect(resolveTimelinePresentationSchedule(snapshot, schedule).events).toEqual({})
+      expect(buildTimelineJSExport(snapshot, schedule).timeline.events).toEqual([])
+      expect(JSON.stringify({ snapshot, schedule })).toBe(before)
+    }
+    const overflow: TimelinePresentationSchedule = { defaultDate: '9999-12-31', automatic: { startTime: '23:59', intervalMinutes: 1 }, events: {} }
+    expect(resolveTimelinePresentationSchedule(snapshot, overflow).errors.length).toBeGreaterThan(0)
+    expect(buildTimelineJSExport(snapshot, overflow).timeline.events).toEqual([])
   })
 
 })
