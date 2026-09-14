@@ -1,5 +1,7 @@
 # Timeline implementation register
 
+Direct presentation sharing is delivered: explicit publish/copy, standalone anonymous reader and creator revocation, with immutable selected snapshots. See the [sharing release receipt](./2026-09-14-timeline-sharing-release-receipt.md). Private interval workspace saving remains pending.
+
 Date: 2026-09-11
 
 Status: TL-00, TL-02 and TL-03 released. Human APIs, complete browser snapshots and scoped service read/write are deployed. Both main refs contain the accepted release; production migrations 0011–0013 are applied. Existing service credentials and grants are unchanged. TL-04 source assertions, corroboration review, analytic judgments, retained dissent and owned stored-passage import are also deployed; TL-04 remains in progress.
@@ -73,7 +75,7 @@ Current delivery state (2026-09-12):
   judgment services and authenticated peer review remain pending. Stored-text
   equality is not source truth, authenticated historical provenance or append-only
   review permission.
-- **TL-17: partial.** Selected-narrative TimelineJS JSON, matching complete companion and optional self-hosted renderer are delivered with explicit loss warnings. Immutable authorized publication/revocation and richer snapshot types remain pending.
+- **TL-17: partial.** Selected-narrative TimelineJS JSON, matching complete companion, optional self-hosted renderer, explicit frozen public presentation links and creator revocation are delivered. Composite, plan and comparison snapshots and dependency manifests remain pending.
 - **TL-06: in progress.** Calendar diagnostics, precision-preserving date entry, calendar extents and local interval authoring with workspace/draft v2 are delivered. Interval presentations are delivered. Durable interval history is next; circa dates, clock mappings and extraction v2 remain pending.
 - **TL-01, TL-05, TL-07–TL-16 and TL-18: pending.** No delivery of these checkpoints or cross-app changes is claimed.
 

@@ -1,5 +1,7 @@
 # Evidence-First Timeline Platform Roadmap
 
+Direct presentation sharing is delivered: explicit publish/copy, standalone anonymous reader and creator revocation, with immutable selected snapshots. See the [sharing release receipt](./2026-09-14-timeline-sharing-release-receipt.md). Private interval workspace saving remains pending.
+
 **Status:** Proposed implementation roadmap
 
 **Date:** 2026-09-11
