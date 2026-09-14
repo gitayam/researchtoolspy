@@ -233,7 +233,8 @@ test.describe('timeline full managed-chain migration rehearsal @smoke', () => {
       await apply(db, 0, 13)
       const catalog = (await db.prepare("SELECT type,name,tbl_name,sql FROM sqlite_schema WHERE name NOT LIKE 'sqlite_%' ORDER BY name").all()).results
       const before: Record<string, unknown> = {}
-      for (const object of catalog.filter(row => row.type === 'table')) before[String(object.name)] = (await db.prepare(`SELECT * FROM "${object.name}" ORDER BY rowid`).all()).results
+      // D1's protected internal metadata is catalog-visible but cannot be read.
+      for (const object of catalog.filter(row => row.type === 'table' && row.name !== '_cf_METADATA')) before[String(object.name)] = (await db.prepare(`SELECT * FROM "${object.name}" ORDER BY rowid`).all()).results
       const upgrade = statements(migrations[13].sql).map(sql => db.prepare(sql))
       await expect(db.batch([...upgrade.slice(0, 2), db.prepare("SELECT json('injected migration failure')"), ...upgrade.slice(2)])).rejects.toThrow()
       expect((await db.prepare("SELECT type,name,tbl_name,sql FROM sqlite_schema WHERE name NOT LIKE 'sqlite_%' ORDER BY name").all()).results).toEqual(catalog)
