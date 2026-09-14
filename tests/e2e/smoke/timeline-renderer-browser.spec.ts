@@ -120,6 +120,13 @@ test.describe('Self-hosted TimelineJS renderer @smoke', () => {
         expect(bounds!.width).toBeGreaterThanOrEqual(44)
         expect(bounds!.height).toBeGreaterThanOrEqual(44)
       }
+      for (const side of ['previous', 'next']) {
+        const arrow = child.locator(`.tl-slidenav-${side}`)
+        const icon = arrow.locator('.tl-slidenav-icon')
+        await fullyReadable(icon)
+        await arrow.hover()
+        await fullyReadable(icon)
+      }
       const adjacent = child.locator('.tl-slidenav-title, .tl-slidenav-description')
       expect(await adjacent.count()).toBeGreaterThan(0)
       for (const label of await adjacent.all()) await expect(label).toBeHidden()

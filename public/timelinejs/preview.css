@@ -168,7 +168,7 @@ body { display: flex; flex-direction: column; }
 #timeline .tl-slidenav-title,
 #timeline .tl-slidenav-description { display: none !important; }
 #timeline .tl-slidenav-next,
-#timeline .tl-slidenav-previous { min-width: 44px; min-height: 44px; }
+#timeline .tl-slidenav-previous { min-width: 44px; min-height: 44px; margin: 0; }
 #timeline .tl-slidenav-content-container {
   width: 44px;
   min-height: 44px;
@@ -176,7 +176,7 @@ body { display: flex; flex-direction: column; }
   align-items: center;
   justify-content: center;
 }
-#timeline .tl-slidenav-icon { line-height: 1; }
+#timeline .tl-slidenav-icon { margin: 0; font-size: 24px; line-height: 1; }
 
 /* Keep the upstream positions, row heights and hit regions. Only the text
    inside each marker is shortened; the complete title stays in the story/list. */
