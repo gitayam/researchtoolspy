@@ -11,3 +11,7 @@ Device checks exercise actual date input, precision switching, cancellation, inc
 Prebuilt publication used `--no-bundle`. Thirty read-only checks passed at each deployment and production URL. All 14 tables, 386 catalog rows, 13 migrations and secret names are unchanged. The entire public renderer tree, scripts, fonts, vendor assets, CSP and headers match the baseline; independent review and exact live owned-byte checks support omitting a fresh edge-script replay. No API or schema changes were introduced.
 
 Previous deployment `2aa9093a-4ddf-4fdc-8e21-f22417d80b3d` reads the same saved formats and retains timing review, presentation and scheduling, but lacks these optional date pickers. Visual review is representative, not exhaustive accessibility certification or user testing; the full unrelated API suite is not claimed. Primary checkout untouched.
+
+## Subsequent deployment
+
+The [calendar temporal core release](./2026-09-14-timeline-temporal-core-release-receipt.md) adds reusable internal validation and conservative extents consumed by timing review, with no new UI or persisted interval format. This receipt retains historical date-entry validation.
