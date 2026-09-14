@@ -1,5 +1,7 @@
 # Evidence-First Timeline Platform Roadmap
 
+Recorded-date overlap finding is delivered: choose an event, compare conservative calendar windows and navigate to existing cards without changing the sequence or saved data. Results mean potential overlap only. See the [overlap receipt](./2026-09-14-timeline-overlap-release-receipt.md). TL-06 remains in progress.
+
 Durable recorded intervals are delivered: private save/reopen, exact pending retry and historical v1/v2 preview preserve identity and existing history. See the [durable interval receipt](./2026-09-14-timeline-durable-interval-release-receipt.md). TL-06 remains in progress.
 
 Direct presentation sharing is delivered: explicit publish/copy, standalone anonymous reader and creator revocation, with immutable selected snapshots. See the [sharing release receipt](./2026-09-14-timeline-sharing-release-receipt.md). Private interval workspace saving is delivered in the linked durable interval release.

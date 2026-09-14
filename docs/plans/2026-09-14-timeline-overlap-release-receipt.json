@@ -1,0 +1,581 @@
+{
+  "schemaVersion": "timeline-overlap-release.v1",
+  "recordedAt": "2026-09-14T19:26:18.641682+00:00",
+  "baselineSha": "30edf633a51a54c87f40d12f9f2a7e62ab5d6be9",
+  "acceptedReleaseSha": "a27dbdb14e8cbbbbfcf4324a56b27350bf644b30",
+  "states": {
+    "canonicalLanded": true,
+    "mirrorConfirmed": true,
+    "productionDeployed": true,
+    "integrationCleanAtRelease": true,
+    "primaryCheckoutSynced": false
+  },
+  "validation": {
+    "distinctCases": 55,
+    "completedCaseKeys": [
+      [
+        "chromium",
+        "timeline-durable-interval-browser.spec.ts",
+        "159",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-durable-interval-browser.spec.ts",
+        "90",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-durable-interval-contract.spec.ts",
+        "20",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-durable-interval-contract.spec.ts",
+        "33",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-durable-interval-contract.spec.ts",
+        "48",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-interval-browser.spec.ts",
+        "35",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-interval-browser.spec.ts",
+        "82",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-interval-contract.spec.ts",
+        "106",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-interval-contract.spec.ts",
+        "118",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-interval-contract.spec.ts",
+        "137",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-interval-contract.spec.ts",
+        "19",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-interval-contract.spec.ts",
+        "34",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-interval-contract.spec.ts",
+        "46",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-interval-contract.spec.ts",
+        "59",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-interval-contract.spec.ts",
+        "72",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-interval-contract.spec.ts",
+        "85",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-overlap-browser.spec.ts",
+        "43",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-overlap-browser.spec.ts",
+        "98",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-overlap-contract.spec.ts",
+        "13",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-overlap-contract.spec.ts",
+        "29",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-overlap-contract.spec.ts",
+        "43",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-overlap-contract.spec.ts",
+        "54",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-overlap-contract.spec.ts",
+        "64",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-overlap-contract.spec.ts",
+        "78",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-overlap-contract.spec.ts",
+        "88",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-sharing-browser.spec.ts",
+        "138",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-sharing-browser.spec.ts",
+        "44",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-sharing-browser.spec.ts",
+        "91",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-temporal-contract.spec.ts",
+        "100",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-temporal-contract.spec.ts",
+        "118",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-temporal-contract.spec.ts",
+        "19",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-temporal-contract.spec.ts",
+        "38",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-temporal-contract.spec.ts",
+        "57",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-temporal-contract.spec.ts",
+        "74",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-temporal-contract.spec.ts",
+        "89",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timing-browser.spec.ts",
+        "44",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timing-browser.spec.ts",
+        "99",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timing-contract.spec.ts",
+        "16",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timing-contract.spec.ts",
+        "24",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timing-contract.spec.ts",
+        "33",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timing-contract.spec.ts",
+        "41",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timing-contract.spec.ts",
+        "50",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timing-contract.spec.ts",
+        "60",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timing-contract.spec.ts",
+        "70",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-durable-interval-browser.spec.ts",
+        "159",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-durable-interval-browser.spec.ts",
+        "90",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-interval-browser.spec.ts",
+        "35",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-interval-browser.spec.ts",
+        "82",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-overlap-browser.spec.ts",
+        "43",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-overlap-browser.spec.ts",
+        "98",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-sharing-browser.spec.ts",
+        "138",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-sharing-browser.spec.ts",
+        "44",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-sharing-browser.spec.ts",
+        "91",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-timing-browser.spec.ts",
+        "44",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-timing-browser.spec.ts",
+        "99",
+        "3"
+      ]
+    ],
+    "typeChecks": 5,
+    "runs": [
+      {
+        "name": "overlap-browser2",
+        "receiptSha256": "8707e33b79a9148396078cbdd2d91678056c977027714738945e34e9bf9c74fa",
+        "logSha256": "0b0295c4a91be631a0e22441436eb5fa4532054344ee1717568951a6f3be0d4f",
+        "inspectSha256": "045e6b50e40011b41474439cf85a875c7e9ac7fcfdcaf389b47da47a86e5217e",
+        "seconds": 275.16
+      },
+      {
+        "name": "release-overlap-build2",
+        "receiptSha256": "86e71ef959cc7128466d1be03f26e7d347ffc43cf9266eeb0947a4f6b9142fa6",
+        "logSha256": "3327d263e70b5b9602e72526d831cb08d905a4923da245558b9e3e0b8eeb1267",
+        "inspectSha256": "fb51a703dcb53dfc589d9169bcd88e6f55813209d6e246e526f6a9eab5f3c2b3",
+        "seconds": 99.94
+      },
+      {
+        "name": "overlap-contracts2",
+        "receiptSha256": "a02092a0dc176394b75e41c1c60f21206a36080b872e4f9caa31b7c51b9c1895",
+        "logSha256": "5c6f0e8fd40c2feb77ce7aab34dd7d30a80c6ad0345f0a47a9381af947933019",
+        "inspectSha256": "4547f28b01f6bf987c957b3c733498838fedc75423d8518845124a393deffa2c",
+        "seconds": 3.29
+      },
+      {
+        "name": "overlap-regression2",
+        "receiptSha256": "1f61c120cc7d90dbd228aff6b0ad27e969b6b2cdc525e609c4f759b13aecd677",
+        "logSha256": "21c3d9018fe5bce5483575608ed79593342f1a12e35201ceb561e2ecaee8fd68",
+        "inspectSha256": "81fe3261bc33c14a02db078857a85ee9849e8b0c16300c3af53967ab66859480",
+        "seconds": 158.74
+      }
+    ],
+    "expectedInventorySha256": "3a650cd55b852458358698b1ef214d21d3d45597327e4413adedd8a86b50cde8",
+    "schemaManifestSha256": "1f4ff7489c019b08b7f7a1631a95018b251621917b61e4ecfda566ee11c72cb2",
+    "databaseMode": "Existing 0015 already applied; no production migration. The compiled verifier additionally rehearses rollback on an isolated synthetic reference."
+  },
+  "artifact": {
+    "fileCount": 157,
+    "manifestSha256": "40c7552d8e343462691586b4563bd7208fe04373c61641a69cc7de8e6d5da4b2"
+  },
+  "database": {
+    "appliedMigrationCount": 15,
+    "added": [],
+    "before": {
+      "result": "passed",
+      "tables": 15,
+      "schemaRows": 410,
+      "normalizedSchemaSha256": "8969897745957ae6aa78dd56539c6d5b87d26e7c4e1bbde92207c14954c90612"
+    },
+    "postdeployment": {
+      "result": "passed",
+      "tables": 15,
+      "schemaRows": 410,
+      "normalizedSchemaSha256": "8969897745957ae6aa78dd56539c6d5b87d26e7c4e1bbde92207c14954c90612"
+    },
+    "postflight": {
+      "result": "passed",
+      "source": "a27dbdb14e8cbbbbfcf4324a56b27350bf644b30",
+      "schemaComparisonSha256": "1dab980ec6141ca41464cf73617436040d37a9defafda9e41859ebc297f8ea62",
+      "migrationComparisonSha256": "368d27ede2e66ef146ecda8f7e2c49a88beb6b7042fb1eb43782a5a01f1b9f2e",
+      "secretNamesUnchanged": true,
+      "schemaManifestSha256": "1f4ff7489c019b08b7f7a1631a95018b251621917b61e4ecfda566ee11c72cb2",
+      "helperSha256": "83d259eeafea55e6536de8a83c3ce53f98303516d250607f403f57f272064718",
+      "commands": [
+        {
+          "name": "migrations-after",
+          "receiptSha256": "ce60675ea3179e974dc5328fe800e569cef08b68577eb178ba8266c8d0fc0cd0",
+          "logSha256": "0fc39cd9350b35759c51afb0c286faf3770708bb70ef0a05c5c237384fe6f274"
+        },
+        {
+          "name": "timeline-schema-after",
+          "receiptSha256": "e6b10f90c782a6e9ca49a7c264d1abf52937956cdd5c24b33e12fbbfa4ce1526",
+          "logSha256": "59f3579d661810f9342293475d6223beb7efd2a1e6afefefe57db4a1e365c00a"
+        },
+        {
+          "name": "secrets-after",
+          "receiptSha256": "bc1e9c088907df524a2d5580ff823ae54d770060f04f0c7265be4b251e87f5fa",
+          "logSha256": "e3074ce810a36790073a4d1eb5cd33b0bc57c246d1b61ba3308cab80c2e637f2"
+        },
+        {
+          "name": "deployments-after",
+          "receiptSha256": "ad0c5a5fa534a727b46721a178dee7bd48224cacd04b93331d48a0c45f51e960",
+          "logSha256": "8b0fb42727e73e468aa078181eee5b9bceb24d88ce4141c7e341d09cb9ad8283"
+        }
+      ]
+    },
+    "secretNamesUnchanged": true,
+    "privateEvidenceSha256": {
+      "preflight-workflow-receipt.json": "ec52a7e7110642294d686e3bf7e646fa5d78c54f79e63fb0afe8d02471b77ab9",
+      "schema-comparison-before.json": "1dab980ec6141ca41464cf73617436040d37a9defafda9e41859ebc297f8ea62",
+      "schema-comparison-after.json": "1dab980ec6141ca41464cf73617436040d37a9defafda9e41859ebc297f8ea62",
+      "migration-comparison.json": "368d27ede2e66ef146ecda8f7e2c49a88beb6b7042fb1eb43782a5a01f1b9f2e",
+      "migrations-before.log": "581629fc4a44c0c91fc1f57bca2cbc58bf3db6e257ea2ceae1e271d122d68a7c",
+      "migrations-after.log": "0fc39cd9350b35759c51afb0c286faf3770708bb70ef0a05c5c237384fe6f274",
+      "timeline-schema-before.log": "218a14c1a5b9c91655b1f3e18a93bda1077ef4f7a1cab305000ea5c5a3ea102e",
+      "timeline-schema-after.log": "59f3579d661810f9342293475d6223beb7efd2a1e6afefefe57db4a1e365c00a",
+      "postflight-accepted.json": "2c420eca9f2095f0ed4ff46166b02388ca49354769d4300da1231a29fe412214"
+    }
+  },
+  "deployment": {
+    "source": "a27dbdb14e8cbbbbfcf4324a56b27350bf644b30",
+    "deploymentId": "eb084968-896b-4051-aa5f-ea0f90edb529",
+    "deploymentUrl": "https://eb084968.researchtoolspy.pages.dev",
+    "productionUrl": "https://researchtools.net"
+  },
+  "publicationEvidence": {
+    "receiptSha256": "8c018241f32b8de45f497165b35b30b73ce7524dd54f51ffeb5ee4b90aa32e06",
+    "logSha256": "c858c4a74004a00371f7482c9dbe9782092374dce9d4c74f1dfa3eece8d3cc89"
+  },
+  "smokes": [
+    {
+      "url": "https://eb084968.researchtoolspy.pages.dev",
+      "checks": 37,
+      "sha256": "b4e13556b62e070120709a0bbfc0c77397a1b0ab22168e6be45132ecb1ac42f7"
+    },
+    {
+      "url": "https://researchtools.net",
+      "checks": 37,
+      "sha256": "23b4a635566743aa7e33eaceba63beaafbf7400b4b15462ace2bfaf96ae618b9"
+    }
+  ],
+  "visual": {
+    "source": "a27dbdb14e8cbbbbfcf4324a56b27350bf644b30",
+    "visualSource": "a27dbdb14e8cbbbbfcf4324a56b27350bf644b30",
+    "accepted": true,
+    "observations": [
+      "Personally viewed all eight fresh overlap-browser2 captures in desktop/mobile light and dark; no inherited capture used. Anchor and Clear query controls, conservative qualification and filter labels are readable.",
+      "Settled result captures show both complete rows, long title wrapping and inclusive recorded interval labels without horizontal clipping; text and potential-match badges remain distinguishable in both themes.",
+      "Mobile full-panel capture requires normal scrolling: the first result is partly under existing bottom navigation. Separate result captures show complete rows; no claim that the entire panel fits simultaneously. Sticky header clips upper filter in intentionally scrolled result captures.",
+      "Representative potential-match state only; amber unresolved and separate-date badge appearance are not shown, and this is not exhaustive accessibility or runtime acceptance."
+    ],
+    "evidence": [
+      {
+        "runName": "overlap-browser2",
+        "file": "test-results/timeline-overlap-browser-R-9927b--preserves-complete-exports-chromium/overlap-dark.png",
+        "sha256": "7716a4162b21fa3914e78f86239dc7cad176bab511aff46a8cb25c44026081d9",
+        "accepted": true
+      },
+      {
+        "runName": "overlap-browser2",
+        "file": "test-results/timeline-overlap-browser-R-9927b--preserves-complete-exports-chromium/overlap-light.png",
+        "sha256": "7a1084d736317021f952a0cfc6cfe6758d483d17175def7ed214cd3314d6e0f6",
+        "accepted": true
+      },
+      {
+        "runName": "overlap-browser2",
+        "file": "test-results/timeline-overlap-browser-R-9927b--preserves-complete-exports-chromium/overlap-result-dark.png",
+        "sha256": "36ebbfb0d29a0db6a424ad70ea70d73ab857b467112072afcf9509f5822bc66a",
+        "accepted": true
+      },
+      {
+        "runName": "overlap-browser2",
+        "file": "test-results/timeline-overlap-browser-R-9927b--preserves-complete-exports-chromium/overlap-result-light.png",
+        "sha256": "973d5b57cbbad1c6231ffcd788c7635c575843a02fa3ed66f8e2419f3ad815c9",
+        "accepted": true
+      },
+      {
+        "runName": "overlap-browser2",
+        "file": "test-results/timeline-overlap-browser-R-9927b--preserves-complete-exports-mobile-safari/overlap-dark.png",
+        "sha256": "341d087926a663a8fc2ee37860ca9e00c2a1a95d34ef4c9d73748263cd6704be",
+        "accepted": true
+      },
+      {
+        "runName": "overlap-browser2",
+        "file": "test-results/timeline-overlap-browser-R-9927b--preserves-complete-exports-mobile-safari/overlap-light.png",
+        "sha256": "09e9bacc3c5d0bc5f377fa8fb890322b047de314f4c542a6f8652e1b50abcf7d",
+        "accepted": true
+      },
+      {
+        "runName": "overlap-browser2",
+        "file": "test-results/timeline-overlap-browser-R-9927b--preserves-complete-exports-mobile-safari/overlap-result-dark.png",
+        "sha256": "3abef572a0e350eb3f98df168c011030aeeb3215b4de6a872ecf4c0eb6190ec9",
+        "accepted": true
+      },
+      {
+        "runName": "overlap-browser2",
+        "file": "test-results/timeline-overlap-browser-R-9927b--preserves-complete-exports-mobile-safari/overlap-result-light.png",
+        "sha256": "dc2fd5dd569972248a766a7243385a9d930f8682c70af2dfdb806796300f1295",
+        "accepted": true
+      }
+    ]
+  },
+  "reviews": {
+    "source-backend-review.json": "5601fdcaaaf7226ee385c1acf37b3d959512c9bb11fcc481d37e2470367623b7",
+    "source-frontend-review.json": "6fdde3e986448f47592aa836e6959b6ea13ac5838d6d76a2c7f54f873c31e0e7",
+    "artifact-review.json": "8c79634b682ec451f6c01420506565fac16fabf5aee6ae092d2332239a2dab19",
+    "review-acceptance.json": "788738e7403ea2793548ba677fd14e5d886ef6ed4a9d55b76a5a293567cb7430",
+    "visual-acceptance.json": "3363eea731a5d2eea674ba9661c02e189dd4e4e3f793fcfd53514ded5d5aaeca",
+    "release-helper-review.json": "f2e7c5d81d4df8958b8f84dee12a19f468ef33bd9e24ebed2d1df77340db8f40",
+    "finalizer-review.json": "d4a16a3ee33cf209754aa7cdef4ea00667dfa732da4533f8bdfeb841f57f6877"
+  },
+  "failedAttempts": [
+    {
+      "name": "overlap-regression",
+      "source": "44c187e0e7813a754db58d89a2e65adfeeabb05f",
+      "exitCode": 1,
+      "receiptSha256": "3cb2fc0950d6b6759cc7b64101011d25b3fb67abb9cc005224e3ac95023ca5ee"
+    }
+  ],
+  "recovery": {
+    "failures": [
+      {
+        "run": "overlap-regression",
+        "source": "44c187e0e7813a754db58d89a2e65adfeeabb05f",
+        "case": "mobile-safari timing review replacement import",
+        "cause": "Test read prior open panel before asynchronous file import remounted collapsed workspace. Date-edit diagnostic passed before replacement; failure snapshot preserved correct counts in collapsed new panel.",
+        "correction": "Await setup disclosure close driven by new result effect, then assert reopened timing panel. Same completion wait added to new overlap suite; no product change, no reduced assertions or increased timeouts.",
+        "revalidation": "All planned cases and fresh build required at final corrected source; original run/artifact evidence retained in attempt1 and validator output."
+      }
+    ]
+  },
+  "instructionSha256": {
+    "/Users/sac/AgentWorkspaces/researchtoolspy-timeline-foundation-20260911/CLAUDE.md": "3852de6d95104c64f3a35b670f350e1d7a2c6c9ed93d03d53895e7bc8c44ff1b",
+    "/Users/sac/AgentWorkspaces/researchtoolspy-timeline-foundation-20260911/.team/project.json": "c87cd27090a1a8ff779dd0d850668ebf0ecb6581cefb2d0b0a66ed63aabbcf78",
+    "/Users/sac/AgentWorkspaces/researchtoolspy-timeline-foundation-20260911/docs/plans/2026-09-11-timeline-tranche-charter.md": "367a6bc5c7f7c706ce4f6b368df952fbe5c8a6e34bde3f959b72775e138a0682",
+    "/Users/sac/AgentWorkspaces/researchtoolspy-timeline-foundation-20260911/docs/plans/2026-09-14-timeline-overlap-charter.md": "050976a24868ea5e2b92bb58b860d5b80bae5396f87333f6b5e52141da968091",
+    "/Users/sac/.codex/skills/team-orchestrator/SKILL.md": "f431896dbd1fa3fc8af377f8f192cacaba43704d56314e3f0e1e5c74798339b6"
+  },
+  "promptSha256": {
+    "logic-prompt.txt": "7d8dbdee01d3a2e91d811a88ee777f9364622d5c4e2d2193a62a47435523a351",
+    "ui-prompt.txt": "118c687bfc5fc3774e52b4c630c6e591b840a3c9c03f5f7dfefe3a5eafb637d9"
+  },
+  "finalizerSha256": "2e2d6f7b77841b48ce588b923463e7846e66c366e5c6161ec9486d5e4da44277",
+  "rollback": {
+    "runtimeSha": "240252f08a210a59993dcd24cabfc947681ae131",
+    "deploymentId": "355ab8b0-6ad0-48fa-8998-822f0ffa73a0",
+    "limits": "Prior runtime retains durable interval support but lacks this client-only overlap finder. No database rollback or migration is required."
+  },
+  "limitations": [
+    "Intersecting outer calendar extents indicate potential overlap, not confirmed concurrency, causality or evidence agreement.",
+    "Unknown, invalid or ambiguous dates remain unresolved; recorded clocks are not timezone/DST-normalized. Placement and temporary schedules are not used to infer recorded times.",
+    "Complete sequences, workspace JSON and saved/narrative/presentation selections remain unchanged by queries.",
+    "Only the frozen planned checks are claimed; no unrelated full-suite coverage or new captured-edge replay. Renderer, sharing and public assets are unchanged.",
+    "No production research or public presentation was created by the agent. Representative overlap screenshots do not certify exhaustive accessibility. TL-06 remains partial."
+  ]
+}
