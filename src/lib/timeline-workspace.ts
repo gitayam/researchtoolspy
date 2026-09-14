@@ -146,6 +146,7 @@ export function removeTimelineEvent(
 }
 
 export function timelineEventTemporalLabel(event: TimelineWorkspaceEvent): string {
+  if (event.recordedEnd) return `Recorded interval: ${event.eventDate || 'start unknown'}${event.eventTime ? ` ${event.eventTime}` : ''} through ${event.recordedEnd.date}${event.recordedEnd.time ? ` ${event.recordedEnd.time}` : ''} (inclusive recorded units)`
   if (event.eventDate && event.eventTime) return `${event.eventDate} ${event.eventTime}`
   if (event.eventDate) return event.eventDate
   if (event.eventTime) return `${event.eventTime} (date unknown)`

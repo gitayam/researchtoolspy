@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label'
 import { TimelineDurablePanel } from '@/components/timeline/TimelineDurablePanel'
 import { TimelineResults } from '@/components/timeline/TimelineResults'
 import { analyzeTimeline, TimelineAnalysisError } from '@/lib/timeline-analysis'
-import { decodeTimelineWorkspace, TIMELINE_IMPORT_MAX_BYTES } from '@/lib/timeline-workspace-codec'
+import { decodeTimelineWorkspace, TIMELINE_IMPORT_MAX_BYTES, workspaceVersionForEvents } from '@/lib/timeline-workspace-codec'
 import type { TimelineAnalysisResult } from '@/types/timeline-analysis'
 import type { TimelineWorkspaceExport, TimelineWorkspaceState } from '@/types/timeline-workspace'
 
@@ -39,11 +39,15 @@ function preserveUnreadableDraft(raw: string): boolean {
 }
 
 interface ManualTimelineDraft {
-  schemaVersion: 'timeline-browser-draft.v1'
+  schemaVersion: 'timeline-browser-draft.v1' | 'timeline-browser-draft.v2'
   expiresAt: string
   result: TimelineAnalysisResult
   workspace: TimelineWorkspaceState
   origin?: 'manual' | 'extracted'
+}
+
+function browserDraftVersion(workspace: TimelineWorkspaceState): ManualTimelineDraft['schemaVersion'] {
+  return workspaceVersionForEvents(workspace.events) === 'timeline-workspace.v2' ? 'timeline-browser-draft.v2' : 'timeline-browser-draft.v1'
 }
 
 function createRequestId(): string {
@@ -87,7 +91,7 @@ function readManualDraft(): ManualTimelineDraft | null {
       window.localStorage.removeItem(MANUAL_DRAFT_KEY)
       return null
     }
-    const valid = candidate?.schemaVersion === 'timeline-browser-draft.v1'
+    const valid = (candidate?.schemaVersion === 'timeline-browser-draft.v1' || candidate?.schemaVersion === 'timeline-browser-draft.v2')
       && Date.parse(candidate.expiresAt) > Date.now()
       && candidate.result?.schemaVersion === 'timeline-analysis.v1'
       && typeof candidate.result.article?.title === 'string'
@@ -96,8 +100,9 @@ function readManualDraft(): ManualTimelineDraft | null {
       && Array.isArray(candidate.workspace.questions)
       && Array.isArray(candidate.workspace.hypotheses)
     if (valid && (candidate.origin === undefined || candidate.origin === 'manual' || candidate.origin === 'extracted')) {
+      if (candidate.schemaVersion !== browserDraftVersion(candidate.workspace)) throw new Error('Browser draft version does not match recorded intervals.')
       const decoded = decodeTimelineWorkspace(JSON.stringify({
-        schemaVersion: 'timeline-workspace.v1', exportedAt: new Date().toISOString(),
+        schemaVersion: workspaceVersionForEvents(candidate.workspace.events), exportedAt: new Date().toISOString(),
         source: candidate.origin === 'extracted' ? candidate.result : { schemaVersion: 'timeline-manual.v1', title: candidate.result.article.title },
         analystWorkspace: candidate.workspace,
       }))
@@ -159,7 +164,7 @@ export function TimelineAnalysisPage() {
     setDurableGeneration(value => value + 1)
   }
   const durableSnapshot = useMemo<TimelineWorkspaceExport | null>(() => result && resultOrigin && liveWorkspace ? {
-    schemaVersion: 'timeline-workspace.v1', exportedAt: new Date().toISOString(),
+    schemaVersion: workspaceVersionForEvents(liveWorkspace.events), exportedAt: new Date().toISOString(),
     source: resultOrigin === 'manual' ? { schemaVersion: 'timeline-manual.v1', title: result.article.title } : result,
     analystWorkspace: liveWorkspace,
   } : null, [result, resultOrigin, liveWorkspace])
@@ -244,7 +249,7 @@ export function TimelineAnalysisPage() {
     detachDurable()
     const nextResult = manualTimelineResult(title)
     const nextDraft: ManualTimelineDraft = {
-      schemaVersion: 'timeline-browser-draft.v1',
+      schemaVersion: browserDraftVersion(emptyManualWorkspace()),
       expiresAt: new Date(Date.now() + MANUAL_DRAFT_TTL_MS).toISOString(),
       result: nextResult,
       workspace: emptyManualWorkspace(),
@@ -273,7 +278,7 @@ export function TimelineAnalysisPage() {
     setLiveWorkspace(workspace)
     if (remoteOpened.current) return
     const next: ManualTimelineDraft = {
-      schemaVersion: 'timeline-browser-draft.v1', result, origin: resultOrigin,
+      schemaVersion: browserDraftVersion(workspace), result, origin: resultOrigin,
       expiresAt: new Date(Date.now() + MANUAL_DRAFT_TTL_MS).toISOString(), workspace,
     }
     setManualDraft(next)
@@ -291,7 +296,7 @@ export function TimelineAnalysisPage() {
       const origin = imported.source.schemaVersion === 'timeline-manual.v1' ? 'manual' : 'extracted'
       const nextResult = imported.source.schemaVersion === 'timeline-manual.v1' ? manualTimelineResult(imported.source.title) : imported.source
       const draft: ManualTimelineDraft = {
-        schemaVersion: 'timeline-browser-draft.v1', expiresAt: new Date(Date.now() + MANUAL_DRAFT_TTL_MS).toISOString(),
+        schemaVersion: browserDraftVersion(imported.analystWorkspace), expiresAt: new Date(Date.now() + MANUAL_DRAFT_TTL_MS).toISOString(),
         result: nextResult, origin, workspace: imported.analystWorkspace,
       }
       const saved = writeManualDraft(draft)
@@ -372,7 +377,7 @@ export function TimelineAnalysisPage() {
           event.target.value = ''
           if (file) void importWorkspace(file)
         }} />
-        <p className="text-xs text-muted-foreground">Restore a timeline-workspace.v1 export (up to 4 MiB). Import reads the file locally and does not extract or fetch its sources. Export the current workspace first to keep both.</p>
+        <p className="text-xs text-muted-foreground">Restore a timeline-workspace.v1 or v2 export (up to 4 MiB). Interval v2 supports local drafts and JSON backup; private workspace saving and TimelineJS interval rendering are not yet supported. Import reads the file locally and does not extract or fetch its sources. Export the current workspace first to keep both.</p>
         {manualDraft && !result && <Button variant="outline" onClick={resumeManualTimeline}>Resume saved timeline</Button>}
       </div>
 

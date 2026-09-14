@@ -63,6 +63,7 @@ function WorkspaceSaving({ snapshot, onOpen, workspaceId, principalId, canWrite 
   const controller = useRef<AbortController | null>(null)
   const currentIdentity = snapshot ? snapshotIdentity(snapshot) : ''
   const dirty = Boolean(snapshot && currentIdentity !== savedIdentity)
+  const intervalWorkspace = snapshot?.schemaVersion === 'timeline-workspace.v2'
   useEffect(() => () => controller.current?.abort(), [])
   useEffect(() => {
     const warn = (event: BeforeUnloadEvent) => { if (pending || (artifact && dirty)) { event.preventDefault(); event.returnValue = '' } }
@@ -70,7 +71,7 @@ function WorkspaceSaving({ snapshot, onOpen, workspaceId, principalId, canWrite 
     return () => window.removeEventListener('beforeunload', warn)
   }, [pending, artifact, dirty])
   const save = async (copy = false) => {
-    if (!snapshot || busy || !canWrite) return
+    if (!snapshot || busy || !canWrite || (intervalWorkspace && !pending)) return
     let attempt: SaveAttempt
     try { attempt = pending || prepareTimelineSave(snapshot, copy ? undefined : artifact) }
     catch (error) { setMessage(error instanceof Error ? error.message : 'Unable to prepare this save.'); return }
@@ -117,15 +118,16 @@ function WorkspaceSaving({ snapshot, onOpen, workspaceId, principalId, canWrite 
   return <div className="min-w-0 space-y-2">
     {title && <p className="truncate text-sm font-medium" title={title}>{title}</p>}
     <div className="flex flex-wrap items-center gap-2">
-      <Button disabled={!snapshot || !canWrite || busy || conflict || Boolean(artifact && !dirty && !pending)} onClick={() => void save()}>{pending ? 'Retry previous save' : artifact ? 'Save changes' : 'Save timeline'}</Button>
+      <Button disabled={!snapshot || !canWrite || busy || (intervalWorkspace && !pending) || conflict || Boolean(artifact && !dirty && !pending)} onClick={() => void save()}>{pending ? 'Retry previous save' : artifact ? 'Save changes' : 'Save timeline'}</Button>
       {artifact && <span className="self-center rounded-full border border-slate-300 bg-background px-3 py-1 text-xs font-medium dark:border-slate-600" data-testid="timeline-save-state">{dirty ? 'Unsaved changes' : 'Saved'}</span>}
     </div>
+    {intervalWorkspace && <p className="text-sm">Recorded intervals are kept in local drafts and JSON backups. Export JSON to keep them; private workspace saving does not yet support intervals.{pending ? ' Retry previous save sends only the earlier prepared snapshot, not these interval edits.' : ''}</p>}
     {!canWrite && <p className="text-sm">You have read-only access to this workspace.</p>}
     <details className="min-w-0 rounded-md border bg-background p-3">
       <summary className="cursor-pointer text-sm font-medium">Saved versions and links</summary>
       <div className="mt-3 min-w-0 space-y-3">
     <p className="text-sm text-muted-foreground">Saves include the narrative, notes, source extraction and event IDs. Each save supports up to 60 KiB. Opened private timelines are kept in memory; export JSON to keep an offline copy.</p>
-    {artifact && !pending && <Button variant="outline" disabled={!snapshot || !canWrite || busy} onClick={() => void save(true)}>Save a separate copy</Button>}
+    {artifact && !pending && <Button variant="outline" disabled={!snapshot || !canWrite || busy || intervalWorkspace} onClick={() => void save(true)}>Save a separate copy</Button>}
     {savedRevision && <section aria-label="Saved revision presentation" className="min-w-0 space-y-3 rounded-lg border border-indigo-200 bg-background p-3 dark:border-indigo-900">
       <h3 className="font-semibold text-indigo-900 dark:text-indigo-200">Saved revision {savedRevision.artifact.sequence}</h3>
       <p className="break-words text-sm font-medium">{savedRevision.snapshot.analystWorkspace.narrative?.title || 'Untitled narrative'}</p>

@@ -162,6 +162,10 @@ export function buildTimelineJSExport(snapshot: TimelineWorkspaceExport, schedul
   let scheduledCount = 0
   let hasTimes = false, omittedTimes = false
   for (const event of errors.length ? [] : selected) {
+    if (event.recordedEnd !== undefined) {
+      omitted.push({ eventId: event.id, title: event.title, reason: 'Recorded interval rendering is not yet supported in this presentation. The ResearchTools JSON backup preserves both endpoints.' })
+      continue
+    }
     const settings = schedule && Object.prototype.hasOwnProperty.call(schedule.events, event.id) ? schedule.events[event.id] : undefined
     const effective = resolved?.events[event.id]
     const date = effective?.date || event.eventDate

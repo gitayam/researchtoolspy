@@ -90,7 +90,7 @@ export function timelineEvidenceBasis(evidence:TimelineEvidence,event:TimelineWo
   const sourceIds=new Set([...selected.values()].map(assertion=>assertion.sourceId))
   const sort=<T extends {id:string}>(values:T[])=>values.slice().sort((a,b)=>a.id<b.id?-1:a.id>b.id?1:0)
   const claim:RecordValue={id:event.id,title:event.title,description:event.description}
-  for(const key of ['eventDate','eventTime','datePrecision','placement'] as const) if(event[key]!==undefined) claim[key]=event[key]
+  for(const key of ['eventDate','eventTime','datePrecision','placement','recordedEnd'] as const) if(event[key]!==undefined) claim[key]=event[key]
   return canonical({event:claim,links:sort(links),assertions:sort([...selected.values()].map(assertion=>({...assertion,derivesFrom:assertion.derivesFrom.slice().sort()}))),sources:sort(evidence.sources.filter(source=>sourceIds.has(source.id)))})
 }
 

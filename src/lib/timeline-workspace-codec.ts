@@ -1,9 +1,14 @@
-import type { TimelineWorkspaceExport } from '../types/timeline-workspace'
+import type { TimelineWorkspaceEvent, TimelineWorkspaceExport } from '../types/timeline-workspace'
+import { parseCalendarTemporalClaim } from './timeline-temporal'
+import { inferTimelineDatePrecision } from './timeline-analysis'
 import { withTimelineNarrativeDefaults } from './timeline-workspace'
 import { validateTimelineEvidence } from './timeline-evidence'
 import { validateTimelineJudgments } from './timeline-judgments'
 
 export const TIMELINE_IMPORT_MAX_BYTES = 4 * 1024 * 1024
+export function workspaceVersionForEvents(events: readonly TimelineWorkspaceEvent[]): TimelineWorkspaceExport['schemaVersion'] {
+  return events.some(event => event.recordedEnd !== undefined) ? 'timeline-workspace.v2' : 'timeline-workspace.v1'
+}
 const categories = ['event', 'meeting', 'communication', 'financial', 'legal', 'travel', 'publication', 'military', 'political']
 const importance = ['low', 'normal', 'high', 'critical']
 const roles = ['context', 'buildup', 'turning_point', 'response', 'consequence', 'resolution']
@@ -73,13 +78,13 @@ function extractedEvent(value: unknown, path: string) {
   eventFields(record, path, true)
 }
 
-/** Import is local, bounded and lossless for the supported v1 shape. Unknown fields fail closed. */
+/** Import is local and bounded; interval endpoints require explicit workspace v2. */
 export function decodeTimelineWorkspace(text: string): TimelineWorkspaceExport {
   if (new TextEncoder().encode(text).byteLength > TIMELINE_IMPORT_MAX_BYTES) throw new Error('Timeline JSON must be 4 MiB or smaller.')
   let parsed: unknown
   try { parsed = JSON.parse(text) } catch { throw new Error('The selected file is not valid JSON.') }
   const root = object(parsed, 'document', ['schemaVersion', 'exportedAt', 'source', 'analystWorkspace'])
-  enumValue(root.schemaVersion, ['timeline-workspace.v1'], 'schemaVersion')
+  enumValue(root.schemaVersion, ['timeline-workspace.v1', 'timeline-workspace.v2'], 'schemaVersion')
   timestamp(root.exportedAt, 'exportedAt')
   const source = object(root.source, 'source', ['schemaVersion', 'title', 'requestId', 'outcome', 'article', 'events', 'extraction', 'model'])
   enumValue(source.schemaVersion, ['timeline-manual.v1', 'timeline-analysis.v1'], 'source.schemaVersion')
@@ -143,12 +148,19 @@ export function decodeTimelineWorkspace(text: string): TimelineWorkspaceExport {
   const workspaceEvents = list(workspace.events, 'workspace.events')
   workspaceEvents.forEach((value, index) => {
     const path = `workspace.events[${index}]`
-    const event = object(value, path, ['id', 'eventDate', 'eventTime', 'datePrecision', 'title', 'description', 'category', 'importance', 'origin', 'assessment', 'analystNote', 'modified', 'sequenceOrder', 'placement', 'original', 'narrativeIncluded', 'narrativeRole', 'whyItMatters', 'transition', 'chapterId', 'narrativeOrder'])
+    const event = object(value, path, ['id', 'eventDate', 'eventTime', 'datePrecision', 'title', 'description', 'category', 'importance', 'origin', 'assessment', 'analystNote', 'modified', 'sequenceOrder', 'placement', 'original', 'narrativeIncluded', 'narrativeRole', 'whyItMatters', 'transition', 'chapterId', 'narrativeOrder', ...(root.schemaVersion === 'timeline-workspace.v2' ? ['recordedEnd'] : [])])
     const eventId = id(event.id, `${path}.id`)
     if (ids.has(eventId)) fail('duplicate event ID')
     ids.add(eventId)
     eventFields(event, path, false)
     if (event.eventTime !== undefined && (typeof event.eventTime !== 'string' || !/^([01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/.test(event.eventTime))) fail(`${path}.eventTime`)
+    if (Object.prototype.hasOwnProperty.call(event, 'recordedEnd')) {
+      const end = object(event.recordedEnd, `${path}.recordedEnd`, ['date', 'precision', 'time'])
+      if (typeof end.date !== 'string' || !inferTimelineDatePrecision(end.date) || end.date !== end.date.trim()) fail(`${path}.recordedEnd.date must be a recorded date in years 1000–9999`)
+      const interval = parseCalendarTemporalClaim({ schema: 'timeline-calendar-claim.v1', kind: 'interval', displayText: '',
+        start: { date: event.eventDate, ...(event.datePrecision !== undefined ? { precision: event.datePrecision } : {}), ...(event.eventTime !== undefined ? { time: event.eventTime } : {}) }, end })
+      if (interval.ok === false) fail(`${path}.recordedEnd ${interval.reason}`)
+    }
     enumValue(event.origin, ['source', 'analyst'], `${path}.origin`)
     enumValue(event.assessment, ['unreviewed', 'corroborated', 'disputed', 'hypothesis'], `${path}.assessment`)
     string(event.analystNote, `${path}.analystNote`)

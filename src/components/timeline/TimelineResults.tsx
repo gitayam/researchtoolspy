@@ -50,8 +50,9 @@ import { timelineAssessmentLabel, timelineCorroboration, validateTimelineEvidenc
 import { TimelineJudgments } from './TimelineJudgments'
 import { timelineJudgmentNeedsReview, timelineJudgmentReviewBasis, validateTimelineJudgments } from '@/lib/timeline-judgments'
 import { TimelineNarrative } from './TimelineNarrative'
-import { TIMELINE_IMPORT_MAX_BYTES } from '@/lib/timeline-workspace-codec'
+import { TIMELINE_IMPORT_MAX_BYTES, workspaceVersionForEvents } from '@/lib/timeline-workspace-codec'
 import { inferTimelineDatePrecision } from '@/lib/timeline-analysis'
+import { parseCalendarTemporalClaim } from '@/lib/timeline-temporal'
 import { assistTimeline, TimelineAssistError } from '@/lib/timeline-assist'
 import {
   normalizeTimelineEventOrder,
@@ -97,6 +98,9 @@ interface EventEditorState {
   eventId?: string
   eventDate: string
   eventTime: string
+  recordEnd: boolean
+  endDate: string
+  endTime: string
   placementMode: TimelineEventPlacement['mode']
   relativeRelation: 'before' | 'after'
   anchorEventId: string
@@ -323,7 +327,7 @@ function TimelineWorkspace({
     return update => {
       const next = typeof update === 'function' ? (update as (value: T) => T)(current) : update
       const payload = {
-        schemaVersion: 'timeline-workspace.v1', exportedAt: new Date().toISOString(),
+        schemaVersion: workspaceVersionForEvents(events), exportedAt: new Date().toISOString(),
         source: workspaceOrigin === 'manual' ? { schemaVersion: 'timeline-manual.v1', title: result.article.title } : result,
         analystWorkspace: { mode, events, questions, hypotheses, narrative, presentation, sortDirection, ...(evidence ? { evidence } : {}), ...(analysis ? { analysis } : {}), [key]: next },
       }
@@ -337,7 +341,7 @@ function TimelineWorkspace({
   }
   function saveEvidence(next: Evidence): boolean {
     try { validateTimelineEvidence(next, events.map(event => event.id)) } catch { return false }
-    const payload = { schemaVersion: 'timeline-workspace.v1', exportedAt: new Date().toISOString(), source: workspaceOrigin === 'manual' ? { schemaVersion: 'timeline-manual.v1', title: result.article.title } : result, analystWorkspace: { mode, events, questions, hypotheses, narrative, presentation, sortDirection, evidence: next, ...(analysis ? { analysis } : {}) } }
+    const payload = { schemaVersion: workspaceVersionForEvents(events), exportedAt: new Date().toISOString(), source: workspaceOrigin === 'manual' ? { schemaVersion: 'timeline-manual.v1', title: result.article.title } : result, analystWorkspace: { mode, events, questions, hypotheses, narrative, presentation, sortDirection, evidence: next, ...(analysis ? { analysis } : {}) } }
     if (new TextEncoder().encode(JSON.stringify(payload, null, 2)).byteLength > TIMELINE_IMPORT_MAX_BYTES) {
       setWorkspaceError('This evidence exceeds the 4 MiB local timeline limit and was not saved.'); return false
     }
@@ -345,7 +349,7 @@ function TimelineWorkspace({
   }
   function saveAnalysis(next: Analysis): boolean {
     try { validateTimelineJudgments(next, events, evidence) } catch { return false }
-    const payload = { schemaVersion: 'timeline-workspace.v1', exportedAt: new Date().toISOString(), source: workspaceOrigin === 'manual' ? { schemaVersion: 'timeline-manual.v1', title: result.article.title } : result, analystWorkspace: { mode, events, questions, hypotheses, narrative, presentation, sortDirection, ...(evidence ? { evidence } : {}), analysis: next } }
+    const payload = { schemaVersion: workspaceVersionForEvents(events), exportedAt: new Date().toISOString(), source: workspaceOrigin === 'manual' ? { schemaVersion: 'timeline-manual.v1', title: result.article.title } : result, analystWorkspace: { mode, events, questions, hypotheses, narrative, presentation, sortDirection, ...(evidence ? { evidence } : {}), analysis: next } }
     if (new TextEncoder().encode(JSON.stringify(payload, null, 2)).byteLength > TIMELINE_IMPORT_MAX_BYTES) { setWorkspaceError('This judgment change exceeds the 4 MiB local timeline limit and was not saved.'); return false }
     setWorkspaceError(null); writeAnalysis(next); return true
   }
@@ -354,7 +358,7 @@ function TimelineWorkspace({
     const ids = new Set(next.map(event => event.id))
     if (analysis?.judgments.some(judgment => judgment.eventRefs.some(id => !ids.has(id)))) { setWorkspaceError('An analytic judgment cites this event. Edit its references before removing the event, including references in withdrawn judgments.'); return }
     const nextEvidence = evidence ? { ...evidence, links: evidence.links.filter(link => ids.has(link.eventId)), reviews: evidence.reviews.filter(review => ids.has(review.eventId)) } : undefined
-    const payload = { schemaVersion: 'timeline-workspace.v1', exportedAt: new Date().toISOString(), source: workspaceOrigin === 'manual' ? { schemaVersion: 'timeline-manual.v1', title: result.article.title } : result, analystWorkspace: { mode, events: next, questions, hypotheses, narrative, presentation, sortDirection, ...(nextEvidence ? { evidence: nextEvidence } : {}), ...(analysis ? { analysis } : {}) } }
+    const payload = { schemaVersion: workspaceVersionForEvents(next), exportedAt: new Date().toISOString(), source: workspaceOrigin === 'manual' ? { schemaVersion: 'timeline-manual.v1', title: result.article.title } : result, analystWorkspace: { mode, events: next, questions, hypotheses, narrative, presentation, sortDirection, ...(nextEvidence ? { evidence: nextEvidence } : {}), ...(analysis ? { analysis } : {}) } }
     if (new TextEncoder().encode(JSON.stringify(payload, null, 2)).byteLength > TIMELINE_IMPORT_MAX_BYTES) { setWorkspaceError('This change exceeds the 4 MiB local timeline limit and was not saved.'); return }
     setWorkspaceError(null); writeEvents(next); writeEvidence(nextEvidence)
   }
@@ -404,7 +408,7 @@ function TimelineWorkspace({
   }
 
   const workspaceExport: Omit<TimelineWorkspaceExport, 'exportedAt'> = {
-    schemaVersion: 'timeline-workspace.v1',
+    schemaVersion: workspaceVersionForEvents(events),
     source: workspaceOrigin === 'manual'
       ? { schemaVersion: 'timeline-manual.v1', title: result.article.title }
       : result,
@@ -428,6 +432,9 @@ function TimelineWorkspace({
     setEventEditor({
       eventDate: '',
       eventTime: '',
+      recordEnd: false,
+      endDate: '',
+      endTime: '',
       placementMode: placement ? 'relative' : 'absolute',
       relativeRelation: placement?.relation || 'after',
       anchorEventId: placement?.anchorEventId || sortedEvents[0]?.id || '',
@@ -450,6 +457,9 @@ function TimelineWorkspace({
       eventId: event.id,
       eventDate: event.eventDate || '',
       eventTime: event.eventTime || '',
+      recordEnd: event.recordedEnd !== undefined,
+      endDate: event.recordedEnd?.date || '',
+      endTime: event.recordedEnd?.time || '',
       placementMode: placement.mode,
       relativeRelation: placement.mode === 'relative' ? placement.relation : 'after',
       anchorEventId: placement.mode === 'relative'
@@ -488,6 +498,25 @@ function TimelineWorkspace({
     if (eventTime && !/^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/.test(eventTime)) {
       setEditorError('Use a real time in 24-hour HH:MM or HH:MM:SS format.')
       return
+    }
+    let recordedEnd: TimelineWorkspaceEvent['recordedEnd']
+    if (eventEditor.recordEnd) {
+      const endDate = eventEditor.endDate.trim()
+      const endTime = eventEditor.endTime.trim()
+      const endPrecision = inferTimelineDatePrecision(endDate)
+      if (!eventDate || !endDate || !endPrecision) {
+        setEditorError('Recorded intervals require a start date and a valid end date in YYYY, YYYY-MM, or YYYY-MM-DD format (years 1000–9999).')
+        return
+      }
+      const interval = parseCalendarTemporalClaim({ schema: 'timeline-calendar-claim.v1', kind: 'interval', displayText: '',
+        start: { date: eventDate, ...(datePrecision ? { precision: datePrecision } : {}), ...(eventTime ? { time: eventTime } : {}) },
+        end: { date: endDate, precision: endPrecision, ...(endTime ? { time: endTime } : {}) } })
+      if (interval.ok === false || interval.claim.kind !== 'interval') {
+        setEditorError('Use valid interval endpoints: an end cannot be definitely before the start, and a clock requires a complete day at that endpoint.')
+        return
+      }
+      const existing = events.find(event => event.id === eventEditor.eventId)?.recordedEnd
+      recordedEnd = existing?.date === endDate && (existing.time || '') === endTime ? existing : interval.claim.end
     }
     if (eventEditor.placementMode === 'absolute' && !eventDate && !eventTime) {
       setEditorError('Add a date or time, or choose a relative or sequence placement.')
@@ -529,6 +558,10 @@ function TimelineWorkspace({
     const preserveAbsentPlacement = !!prior && prior.placement === undefined && placement.mode === 'absolute'
     if (eventEditor.assessment === 'corroborated') {
       const candidate = prior ? { ...prior, title, description: description || null, eventDate: eventDate || undefined, eventTime: eventTime || undefined, datePrecision, placement: preserveAbsentPlacement ? undefined : placement } : undefined
+      if (candidate) {
+        if (recordedEnd) candidate.recordedEnd = recordedEnd
+        else delete candidate.recordedEnd
+      }
       if (!candidate || !timelineCorroboration(evidence, candidate).eligible) {
         setEditorError('Corroboration needs a current independence and compatibility review of this event and its supporting assertions.'); return
       }
@@ -540,6 +573,7 @@ function TimelineWorkspace({
         if (!event) return current
         const contentChanged = (event.eventDate || '') !== eventDate
           || (event.eventTime || '') !== eventTime
+          || JSON.stringify(event.recordedEnd) !== JSON.stringify(recordedEnd)
           || event.title !== title
           || (event.description || '') !== description
           || event.category !== eventEditor.category
@@ -568,6 +602,8 @@ function TimelineWorkspace({
                 }
             : undefined),
         }
+        if (recordedEnd) nextEvent.recordedEnd = recordedEnd
+        else delete nextEvent.recordedEnd
         const placed = placeTimelineEvent(current, nextEvent, placement)
         // Legacy absolute placement can be implicit. Preserve its wire shape so
         // an assessment-only edit does not invalidate the recorded review basis.
@@ -590,6 +626,7 @@ function TimelineWorkspace({
         modified: false,
         eventDate: eventDate || undefined,
         eventTime: eventTime || undefined,
+        ...(recordedEnd ? { recordedEnd } : {}),
         datePrecision,
         title,
         description: description || null,
@@ -1457,6 +1494,22 @@ function TimelineWorkspace({
                   <Label htmlFor="timeline-event-time">Time{eventEditor.placementMode === 'absolute' ? '' : ' (optional)'}</Label>
                   <Input id="timeline-event-time" type="time" step={1} value={eventEditor.eventTime} onChange={event => setEventEditor({ ...eventEditor, eventTime: event.target.value })} />
                 </div>
+              </div>
+              <div className="space-y-3 rounded-md border p-3">
+                <label className="flex cursor-pointer items-center gap-2 text-sm font-medium">
+                  <input type="checkbox" checked={eventEditor.recordEnd} onChange={event => setEventEditor({ ...eventEditor, recordEnd: event.target.checked })} />
+                  Record an end date
+                </label>
+                {eventEditor.recordEnd && <>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <TimelineRecordedDate endpoint="end" value={eventEditor.endDate} time={eventEditor.endTime} optional={false} onChange={value => setEventEditor({ ...eventEditor, endDate: value })} />
+                    <div className="space-y-2">
+                      <Label htmlFor="timeline-event-end-time">End time (optional)</Label>
+                      <Input id="timeline-event-end-time" type="time" step={1} value={eventEditor.endTime} onChange={event => setEventEditor({ ...eventEditor, endTime: event.target.value })} />
+                    </div>
+                  </div>
+                  <p className="text-xs leading-relaxed text-muted-foreground">End dates include their entire recorded unit. Overlapping endpoint precision is allowed as an uncertain extent, not a certain duration. Local drafts and JSON backups retain intervals; private workspace saving and TimelineJS interval rendering are not yet supported.</p>
+                </>}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="timeline-event-title">Title</Label>

@@ -1,3 +1,4 @@
+import type { CalendarLabel } from '../lib/timeline-temporal'
 import type {
   TimelineAnalysisResult,
   TimelineDatePrecision,
@@ -41,6 +42,7 @@ export interface TimelineWorkspaceEvent {
   eventDate?: string
   eventTime?: string
   datePrecision?: TimelineDatePrecision
+  recordedEnd?: CalendarLabel
   title: string
   description: string | null
   category: TimelineEventCategory
@@ -193,7 +195,7 @@ export interface TimelineManualSource {
 }
 
 export interface TimelineWorkspaceExport {
-  schemaVersion: 'timeline-workspace.v1'
+  schemaVersion: 'timeline-workspace.v1' | 'timeline-workspace.v2'
   exportedAt: string
   source: TimelineAnalysisResult | TimelineManualSource
   analystWorkspace: TimelineWorkspaceState

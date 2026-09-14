@@ -44,7 +44,7 @@ export function validCandidate(v: unknown): v is CandidatePayload {
 /** Validate with the same codec as local import; retain the submitted shape and hash. */
 export function validArtifactPayload(kind: unknown, payload: unknown): boolean {
   if (kind === 'event-candidate.v1') return validCandidate(payload)
-  if (kind !== 'timeline-workspace.v1') return false
+  if (kind !== 'timeline-workspace.v1' || !isRecord(payload) || payload.schemaVersion !== kind) return false
   try {
     const serialized = canonicalJson(payload)
     if (new TextEncoder().encode(serialized).byteLength > WORKSPACE_SNAPSHOT_MAX_BYTES) return false
