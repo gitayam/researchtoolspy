@@ -122,10 +122,15 @@ test.describe('Self-hosted TimelineJS renderer @smoke', () => {
       }
       for (const side of ['previous', 'next']) {
         const arrow = child.locator(`.tl-slidenav-${side}`)
-        const icon = arrow.locator('.tl-slidenav-icon')
-        await fullyReadable(icon)
-        await arrow.hover()
-        await fullyReadable(icon)
+        if (info.project.name === 'mobile-safari') {
+          // Upstream touch layout uses the native controls checked above.
+          await expect(arrow).toBeHidden()
+        } else {
+          const icon = arrow.locator('.tl-slidenav-icon')
+          await fullyReadable(icon)
+          await arrow.hover()
+          await fullyReadable(icon)
+        }
       }
       const adjacent = child.locator('.tl-slidenav-title, .tl-slidenav-description')
       expect(await adjacent.count()).toBeGreaterThan(0)
