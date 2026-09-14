@@ -15,6 +15,7 @@ async function setup(page: Page, signedIn = true) {
   if (signedIn) await page.addInitScript(user => {
     localStorage.setItem('auth-storage', JSON.stringify({ state: { user, isAuthenticated: true }, version: 0 }))
     localStorage.setItem('omnicore_user_hash', 'synthetic-sharing-human')
+    localStorage.setItem('omnicore_tokens', JSON.stringify({ access_token: 'synthetic-sharing-human', token_type: 'bearer' }))
   }, user)
   await page.route('https://timeline.example/**', async route => {
     const url = new URL(route.request().url())
@@ -25,7 +26,7 @@ async function setup(page: Page, signedIn = true) {
   })
   await page.route('https://timeline.example/api/**', route => {
     const path = new URL(route.request().url()).pathname
-    return route.fulfill({ json: path === '/api/auth/me' ? { user } : { owned: [], member: [] } })
+    return route.fulfill({ json: path === '/api/auth/me' ? user : { owned: [], member: [] } })
   })
 }
 async function editor(page: Page) {
@@ -59,6 +60,7 @@ test.describe('Direct presentation sharing @smoke', () => {
     const review = page.getByRole('region', { name: 'Share presentation review' })
     await expect(review).toContainText('Anyone with the link')
     expect(posts).toHaveLength(0); expect(lists).toBe(0)
+    await expect(review.getByRole('button', { name: 'Publish presentation', exact: true })).toBeEnabled()
     await review.getByRole('button', { name: 'Publish presentation', exact: true }).click()
     await expect(review.getByRole('alert')).toBeVisible()
     await page.getByRole('button', { name: 'Open presentation', exact: true }).click()
@@ -139,6 +141,7 @@ test.describe('Direct presentation sharing @smoke', () => {
     await page.route('https://timeline.example/api/timeline-presentations', async route => { started = true; await held; await route.fulfill({ status: 201, json: { schemaVersion: 'timeline-presentation-link.v1', token, createdAt, revoked: false } }) })
     await editor(page)
     await page.getByRole('button', { name: 'Share presentation', exact: true }).click()
+    await expect(page.getByRole('button', { name: 'Publish presentation', exact: true })).toBeEnabled()
     await page.getByRole('button', { name: 'Publish presentation', exact: true }).click()
     await expect.poll(() => started).toBe(true)
     await page.evaluate(async () => { const { useAuthStore } = await import('/src/stores/auth.ts'); useAuthStore.setState({ isAuthenticated: false, user: null }) })
