@@ -3403,7 +3403,16 @@ body { display: flex; flex-direction: column; }
 :root[data-theme="dark"] #timeline .tl-slide .tl-text .tl-headline-date,
 :root[data-theme="dark"] #timeline .tl-slide .tl-text .tl-headline-date small { color: #bac8dc; }
 @media (max-width: 600px) {
-  #timeline .tl-slide .tl-slide-content-container .tl-slide-content { padding: 20px 24px 28px !important; }
+  #timeline .tl-slide .tl-slide-content-container .tl-slide-content { padding: 12px 24px 24px !important; }
+}
+
+/* Keep a compact reading rhythm on phones without shrinking body text. */
+@media (max-width: 600px) {
+  #timeline .tl-slide .tl-text h2.tl-headline { font-size: 1.25rem; margin-bottom: .6rem; }
+  #timeline .tl-slide .tl-text .tl-headline-date { margin-bottom: .4rem; }
+  #timeline .tl-slide .tl-text-content,
+  #timeline .tl-slide .tl-text-content p { line-height: 1.5; }
+  #timeline .tl-slide .tl-text-content p { margin-bottom: .6rem; }
 }
 </style>
 </head>

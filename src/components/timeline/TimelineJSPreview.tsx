@@ -102,8 +102,8 @@ export function TimelineJSPreview({ timeline, snapshot, eventDetails }: { timeli
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
     return () => observer.disconnect()
   }, [])
-  return <section aria-label="TimelineJS presentation" className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto">
-    <div className="flex shrink-0 flex-wrap items-center gap-2 rounded-lg bg-slate-100 px-3 py-2 text-sm dark:bg-slate-900">
+  return <section aria-label="TimelineJS presentation" className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto">
+    <div className="flex shrink-0 flex-wrap items-center gap-2 rounded-lg bg-slate-100 px-3 py-1 text-sm dark:bg-slate-900">
       <Label htmlFor="timelinejs-start">Open at</Label>
       <select id="timelinejs-start" className="min-h-11 rounded-md border border-slate-300 bg-white px-2 text-slate-950 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100" value={startAtEnd ? 'latest' : 'beginning'} onChange={event => setStartAtEnd(event.target.value === 'latest')}><option value="beginning">Beginning</option><option value="latest">Latest event</option></select>
       <span className="hidden text-xs text-slate-600 sm:inline dark:text-slate-300">Chronological order</span>
