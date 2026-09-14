@@ -1,6 +1,5 @@
 import type { TimelineWorkspaceEvent, TimelineWorkspaceExport } from '../types/timeline-workspace'
 import { parseCalendarTemporalClaim } from './timeline-temporal'
-import { inferTimelineDatePrecision } from './timeline-analysis'
 import { withTimelineNarrativeDefaults } from './timeline-workspace'
 import { validateTimelineEvidence } from './timeline-evidence'
 import { validateTimelineJudgments } from './timeline-judgments'
@@ -156,7 +155,8 @@ export function decodeTimelineWorkspace(text: string): TimelineWorkspaceExport {
     if (event.eventTime !== undefined && (typeof event.eventTime !== 'string' || !/^([01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/.test(event.eventTime))) fail(`${path}.eventTime`)
     if (Object.prototype.hasOwnProperty.call(event, 'recordedEnd')) {
       const end = object(event.recordedEnd, `${path}.recordedEnd`, ['date', 'precision', 'time'])
-      if (typeof end.date !== 'string' || !inferTimelineDatePrecision(end.date) || end.date !== end.date.trim()) fail(`${path}.recordedEnd.date must be a recorded date in years 1000–9999`)
+      date(end.date, `${path}.recordedEnd.date`)
+      if (Number((end.date as string).slice(0, 4)) < 1000) fail(`${path}.recordedEnd.date must be a recorded date in years 1000–9999`)
       const interval = parseCalendarTemporalClaim({ schema: 'timeline-calendar-claim.v1', kind: 'interval', displayText: '',
         start: { date: event.eventDate, ...(event.datePrecision !== undefined ? { precision: event.datePrecision } : {}), ...(event.eventTime !== undefined ? { time: event.eventTime } : {}) }, end })
       if (interval.ok === false) fail(`${path}.recordedEnd ${interval.reason}`)
