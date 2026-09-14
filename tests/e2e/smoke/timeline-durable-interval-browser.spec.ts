@@ -131,7 +131,18 @@ test.describe('Durable recorded interval browser @smoke', () => {
           const frame = page.frameLocator('iframe[title="TimelineJS narrative presentation"]')
           await frame.getByRole('button', { name: 'Next slide', exact: true }).click()
           await expect(frame.locator('#slide-position')).toHaveText('Slide 2 of 2')
-          await expect(frame.locator('.tl-storyslider .tl-headline').filter({ hasText: /^Repairs documented$/ })).toBeInViewport()
+          const headline = frame.locator('.tl-storyslider .tl-headline').filter({ hasText: /^Repairs documented$/ })
+          await expect(headline).toBeInViewport({ ratio: 1 })
+          await expect.poll(() => headline.evaluate(async element => {
+            const bounds = () => element.getBoundingClientRect()
+            const first = bounds()
+            await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())))
+            const last = bounds()
+            const story = element.closest('.tl-storyslider')!.getBoundingClientRect()
+            return Math.abs(first.x - last.x) < 0.5 && Math.abs(first.y - last.y) < 0.5
+              && last.left >= story.left && last.right <= story.right
+              && last.top >= story.top && last.bottom <= story.bottom
+          })).toBe(true)
           await page.screenshot({ path: info.outputPath('durable-interval-history.png'), animations: 'disabled', scale: 'css' })
         }
         await dialog.getByRole('button', { name: 'Close', exact: true }).click()
