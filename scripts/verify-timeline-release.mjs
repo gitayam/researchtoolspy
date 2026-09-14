@@ -528,12 +528,14 @@ try {
   assert.equal(escapedPage.status, 200); previewHeaders(escapedPage)
   assert.equal(previewMeta(escapedPage.text, 'property', 'og:title'), '&lt;img src=x onerror=alert(1)&gt; &quot;quoted&quot;')
   assert(!escapedPage.text.includes('<img src=x') && !escapedPage.text.includes('<script>private-injection') && !escapedPage.text.includes('</noscript><script>'))
-  for (const role of ['guest', 'service', '   ']) {
+  for (const role of ['guest', '   ']) {
     await db.prepare('UPDATE users SET role=? WHERE id=880001').bind(role).run()
     const denied = await noPreview(escapedPath)
     assert(!denied.text.includes('private-injection'))
   }
   await db.prepare('UPDATE users SET role=? WHERE id=880001').bind(originalRole).run()
+  await assert.rejects(db.prepare("UPDATE users SET role='service' WHERE id=880001").run(), /service principals must be provisioned as new users/)
+  assert.equal((await db.prepare('SELECT role FROM users WHERE id=880001').first()).role, originalRole)
   assert.equal((await request(escapedPath, { user: null })).status, 200)
   // Only synthetic isolated rows: prove a stored hash failure cannot populate HTML metadata.
   const corruptToken = 'c'.repeat(64)
