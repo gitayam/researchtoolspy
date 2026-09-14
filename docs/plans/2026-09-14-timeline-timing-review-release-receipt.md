@@ -11,3 +11,7 @@ Calendar boundary, precision, ambiguous identity and immutability contracts acco
 Prebuilt publication used `--no-bundle`. Thirty read-only checks passed at each deployment and production URL. All 14 tables, 386 catalog rows, 13 migrations and secret names are unchanged. The entire public renderer tree, scripts, fonts, vendor assets, CSP and headers match the baseline; independent review and exact live owned-byte checks support omitting a fresh edge-script replay. No API or schema changes were introduced.
 
 Previous deployment `11685fa7-7411-4ba2-895b-1dd4e8d6e3d3` retains presentation, automatic scheduling and the same saved data, but lacks this transient timing review. Visual review is representative, not exhaustive accessibility certification or user testing; the full unrelated API suite is not claimed. Primary checkout untouched.
+
+## Subsequent deployment
+
+The [recorded-date entry release](./2026-09-14-timeline-date-entry-release-receipt.md) adds optional precision-preserving pickers beside the typed field, retaining existing save formats and timing diagnostics. This receipt retains historical timing-review validation.

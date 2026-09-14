@@ -68,14 +68,16 @@ Current delivery state (2026-09-12):
   Content Research extraction in the same workspace. The resolver checks current
   access, retention, full-text hash and unique quote match; the recorded locator
   preserves hashes and UTF-16 offsets. Preview is rechecked before import, and
-  private passages never enter automatic browser drafts. The current timing review source passed 66 distinct checks (30 browser-project and 36 contract checks), five type checks and fresh build/compiled gates. See the [current receipt](./2026-09-14-timeline-timing-review-release-receipt.md). Previous stage counts remain historical; no full unrelated API-suite claim.
+  private passages never enter automatic browser drafts. The current date-entry source passed 70 distinct checks (34 browser-project and 36 contract checks), five type checks and fresh build/compiled gates. See the [current receipt](./2026-09-14-timeline-date-entry-release-receipt.md). Previous stage counts remain historical; no full unrelated API-suite claim.
   No database migration was required. Broader source-store support, dedicated
   judgment services and authenticated peer review remain pending. Stored-text
   equality is not source truth, authenticated historical provenance or append-only
   review permission.
 - **TL-17: partial.** Selected-narrative TimelineJS JSON, matching complete companion and optional self-hosted renderer are delivered with explicit loss warnings. Immutable authorized publication/revocation and richer snapshot types remain pending.
-- **TL-06: in progress.** Read-only recorded calendar-placement diagnostics are delivered; structured intervals, circa dates, clock mappings and extraction v2 remain pending.
+- **TL-06: in progress.** Read-only recorded calendar-placement diagnostics and precision-preserving day/month/year date entry are delivered; structured intervals, circa dates, clock mappings and extraction v2 remain pending.
 - **TL-01, TL-05, TL-07–TL-16 and TL-18: pending.** No delivery of these checkpoints or cross-app changes is claimed.
+
+Add/Edit event now offers optional recorded day/month/year pickers alongside typed date entry, with explicit precision guidance and no automatic date components. Mode changes and incomplete picker input retain the draft; explicit Save follows existing validation. TL-06 remains in progress. See the [date-entry receipt](./2026-09-14-timeline-date-entry-release-receipt.md).
 
 Analyst view now offers Timing review for relative before/after placements, comparing recorded calendar bounds and linking to the event and anchor without changing data. Uncertain results remain unresolved; this is placement consistency, not evidence verification. TL-06 remains in progress. See the [timing review receipt](./2026-09-14-timeline-timing-review-release-receipt.md).
 

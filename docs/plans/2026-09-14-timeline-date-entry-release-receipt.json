@@ -1,0 +1,617 @@
+{
+  "schemaVersion": "timeline-date-entry-release.v1",
+  "recordedAt": "2026-09-14T04:04:32.034267+00:00",
+  "finalizerSha256": "8048831f23b71514f3315ab0116d4e1ffc588cfed8f56cbebf88f8838b9a4f56",
+  "baselineSha": "142c21f6a809159a8d74662c7d7593650e8da1e0",
+  "acceptedReleaseSha": "2ec12a17e4738f89f37fea5c2c428ca0f1b4f442",
+  "states": {
+    "canonicalLanded": true,
+    "mirrorConfirmed": true,
+    "productionDeployed": true,
+    "migrationRequired": false,
+    "integrationCheckoutCleanAtRelease": true,
+    "primaryCheckoutSynced": false
+  },
+  "validation": {
+    "distinctCases": 70,
+    "browserProjectChecks": 34,
+    "contractChecks": 36,
+    "typeChecksPassed": 5,
+    "typeCheckCommands": [
+      "Running: node node_modules/typescript/bin/tsc -b --noEmit",
+      "Running: node node_modules/typescript/bin/tsc -p tsconfig.functions.json --noEmit",
+      "Running: node node_modules/typescript/bin/tsc -p tsconfig.workers.json --noEmit",
+      "Running: node node_modules/typescript/bin/tsc -p tsconfig.scraping-functions.json --noEmit",
+      "Running: node node_modules/typescript/bin/tsc -p tsconfig.timeline-client.json"
+    ],
+    "runs": [
+      {
+        "name": "date-entry-contracts-final2",
+        "source": "2ec12a17e4738f89f37fea5c2c428ca0f1b4f442",
+        "exitCode": 0,
+        "completedCases": 36,
+        "seconds": 3.87,
+        "receiptSha256": "b0de1caea6a6291fc6e25612cdfd373c174609238934f748a683f0c31aaeeb69",
+        "logSha256": "73e2affd7b886bc84ab13795f1085b3114a084e5b09d6a013dcb10a154cd30c5",
+        "supervisorSha256": "951e88d8b3c2c934de367407ce3269bbdebfcebf5a731a64f10a630366d52639",
+        "archiveSha256": "143b130181cf7bd105b4bb648bb31397246065aff037e578589a0b8f61e0ac96",
+        "commandSha256": "5a25548374bc0d14109a88c9b009b21cf5493e48169347ba51299f2efdb3e5cc"
+      },
+      {
+        "name": "date-entry-focus2",
+        "source": "2ec12a17e4738f89f37fea5c2c428ca0f1b4f442",
+        "exitCode": 0,
+        "completedCases": 4,
+        "seconds": 71.1,
+        "receiptSha256": "c99f07b6db4c45f5c94d2377acfa6c2841201ac8cc63b889e2aac43746793d9a",
+        "logSha256": "d210353e221b0b2a8b64e6e9dab1e4f40421c0ad4e22e74a8120df14d3f920b8",
+        "supervisorSha256": "951e88d8b3c2c934de367407ce3269bbdebfcebf5a731a64f10a630366d52639",
+        "archiveSha256": "143b130181cf7bd105b4bb648bb31397246065aff037e578589a0b8f61e0ac96",
+        "commandSha256": "474194eb5190056dc9d0e3e6517b7e8be50e7fafbec9d8ef6514b738224cb93a"
+      },
+      {
+        "name": "release-date-entry-build-final2",
+        "source": "2ec12a17e4738f89f37fea5c2c428ca0f1b4f442",
+        "exitCode": 0,
+        "completedCases": 0,
+        "seconds": 97.98,
+        "receiptSha256": "5972f87cbbe15797d5a80cf6876da40503abb51cf7c67b9bf961712ef0bdba62",
+        "logSha256": "4e60819bcc5346ebbf43172d2e61e0f58dbef386f8942d7394728cd8c2234ffc",
+        "supervisorSha256": "951e88d8b3c2c934de367407ce3269bbdebfcebf5a731a64f10a630366d52639",
+        "archiveSha256": "143b130181cf7bd105b4bb648bb31397246065aff037e578589a0b8f61e0ac96",
+        "commandSha256": "c8f1351ee11848da8a020a1e9aac187c4f5a750110144eb05e931e9cde148e82"
+      },
+      {
+        "name": "date-entry-browser-final2",
+        "source": "2ec12a17e4738f89f37fea5c2c428ca0f1b4f442",
+        "exitCode": 0,
+        "completedCases": 30,
+        "seconds": 399.43,
+        "receiptSha256": "e4ca705eff176d43398a0d5d3e4bb0159ba6e6d47d2c324b15f18779331c4c1d",
+        "logSha256": "bd9db5ead47a547a976b25b102f935450545ceaf1f207ba36c6afa2dbffb45d0",
+        "supervisorSha256": "951e88d8b3c2c934de367407ce3269bbdebfcebf5a731a64f10a630366d52639",
+        "archiveSha256": "143b130181cf7bd105b4bb648bb31397246065aff037e578589a0b8f61e0ac96",
+        "commandSha256": "5f47f3165a00f5b54fe72e820a06feefd009bf9ec8b46195127abcf6130d547a"
+      }
+    ],
+    "completedCaseKeys": [
+      [
+        "chromium",
+        "timeline-date-entry-browser.spec.ts",
+        "110",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-date-entry-browser.spec.ts",
+        "36",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-history-contract.spec.ts",
+        "20",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-history-contract.spec.ts",
+        "33",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-history-contract.spec.ts",
+        "45",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-history-contract.spec.ts",
+        "57",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-history-contract.spec.ts",
+        "66",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-browser.spec.ts",
+        "176",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-browser.spec.ts",
+        "273",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-browser.spec.ts",
+        "416",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-browser.spec.ts",
+        "466",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-browser.spec.ts",
+        "536",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-browser.spec.ts",
+        "562",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-browser.spec.ts",
+        "59",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-browser.spec.ts",
+        "651",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-browser.spec.ts",
+        "712",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-browser.spec.ts",
+        "733",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-contract.spec.ts",
+        "115",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-contract.spec.ts",
+        "134",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-contract.spec.ts",
+        "162",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-contract.spec.ts",
+        "177",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-contract.spec.ts",
+        "232",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-contract.spec.ts",
+        "262",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-contract.spec.ts",
+        "61",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-renderer-contract.spec.ts",
+        "91",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timelinejs-browser.spec.ts",
+        "40",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timelinejs-browser.spec.ts",
+        "85",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timelinejs-browser.spec.ts",
+        "98",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timelinejs-contract.spec.ts",
+        "11",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timelinejs-contract.spec.ts",
+        "114",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timelinejs-contract.spec.ts",
+        "138",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timelinejs-contract.spec.ts",
+        "161",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timelinejs-contract.spec.ts",
+        "179",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timelinejs-contract.spec.ts",
+        "190",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timelinejs-contract.spec.ts",
+        "212",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timelinejs-contract.spec.ts",
+        "231",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timelinejs-contract.spec.ts",
+        "25",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timelinejs-contract.spec.ts",
+        "257",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timelinejs-contract.spec.ts",
+        "45",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timelinejs-contract.spec.ts",
+        "63",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timelinejs-contract.spec.ts",
+        "79",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timelinejs-contract.spec.ts",
+        "97",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timing-browser.spec.ts",
+        "43",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timing-browser.spec.ts",
+        "97",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timing-contract.spec.ts",
+        "16",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timing-contract.spec.ts",
+        "24",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timing-contract.spec.ts",
+        "33",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timing-contract.spec.ts",
+        "41",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timing-contract.spec.ts",
+        "50",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timing-contract.spec.ts",
+        "60",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-timing-contract.spec.ts",
+        "70",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-workspace-ordering.spec.ts",
+        "27",
+        "3"
+      ],
+      [
+        "chromium",
+        "timeline-workspace-ordering.spec.ts",
+        "58",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-date-entry-browser.spec.ts",
+        "110",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-date-entry-browser.spec.ts",
+        "36",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-renderer-browser.spec.ts",
+        "176",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-renderer-browser.spec.ts",
+        "273",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-renderer-browser.spec.ts",
+        "416",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-renderer-browser.spec.ts",
+        "466",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-renderer-browser.spec.ts",
+        "536",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-renderer-browser.spec.ts",
+        "562",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-renderer-browser.spec.ts",
+        "59",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-renderer-browser.spec.ts",
+        "651",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-renderer-browser.spec.ts",
+        "712",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-renderer-browser.spec.ts",
+        "733",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-timelinejs-browser.spec.ts",
+        "40",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-timelinejs-browser.spec.ts",
+        "85",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-timelinejs-browser.spec.ts",
+        "98",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-timing-browser.spec.ts",
+        "43",
+        "3"
+      ],
+      [
+        "mobile-safari",
+        "timeline-timing-browser.spec.ts",
+        "97",
+        "3"
+      ]
+    ],
+    "inventorySha256": "77f99392a08c6ef532c389c900f17a6f39e5419be97f29609a774427d0bdaef4",
+    "planSha256": "edbc720689a92f1d0de242b77ccdc8ef7fda0ff1710335e7f06e23bbe2551bee",
+    "acceptedReceiptSha256": "7328ff8cf73b3aa1960c69d36e681829063eede7c9ae9c0cf3707d6b89e5ef2c",
+    "build": "passed",
+    "compiledSchemaGate": "passed",
+    "schemaManifestSha256": "da1c3b1b92a7641616b636bd97b3a0c16ea8b6b04d8956d8f4e9a5c5dc27b984",
+    "runtimeImage": "mcr.microsoft.com/playwright@sha256:9bd26ad900bb5e0f4dee75839e957a89ae89c2b7ab1e76050e559790e946b948"
+  },
+  "review": {
+    "source-review.json": "44389d7d93e84d62d2aa8790d84b68ee299ff894c109f5c001ea3bf114b67def",
+    "artifact-review.json": "46334ca0349e276ecdb3e939042ae76dadab3f5932837a1bc0b1f7074eee6678",
+    "review-acceptance.json": "47f6d3a476c5b25913c7cfa943a636c2c9c1318cad63fd0bcf23e65da6d868ad",
+    "visual-acceptance.json": "5321cb361c0ee8c646681baa6e3c780515589fb5057e795a5d0eb44d915ead2d",
+    "renderer-style-review.json": "fbd21a74618815967f32222515866add61149bf2fc3005732afcc4a3c6f2af59"
+  },
+  "visualEvidence": [
+    {
+      "runName": "date-entry-focus2",
+      "file": "timeline-date-entry-browse-38bbc-and-the-original-extraction-chromium/date-entry-dark.png",
+      "sha256": "9600a15f365a52f34e62a044956ab8cf46645133000c5fe587a9b088a4f76293"
+    },
+    {
+      "runName": "date-entry-focus2",
+      "file": "timeline-date-entry-browse-38bbc-and-the-original-extraction-chromium/date-entry-light.png",
+      "sha256": "73e28c9a2222e1a08d8f4f12e3396d32832c9899dd191526acb2c84db6230b4a"
+    },
+    {
+      "runName": "date-entry-focus2",
+      "file": "timeline-date-entry-browse-38bbc-and-the-original-extraction-mobile-safari/date-entry-dark.png",
+      "sha256": "2a51adefea71567f1d6c5b1422cca53ed1d4e6c7ee5df0e37b03b2b56b63aef7"
+    },
+    {
+      "runName": "date-entry-focus2",
+      "file": "timeline-date-entry-browse-38bbc-and-the-original-extraction-mobile-safari/date-entry-light.png",
+      "sha256": "ca1cc3c0fbedea00241586f4e0ebdf76d58e9d063b9e1487b03669493e4d2de7"
+    }
+  ],
+  "artifact": {
+    "filesIndependentlyCompared": 155,
+    "distManifestSha256": "81d72cac2595033ea863d6b815c8b1178022d44a23bb27c71fbfaa53bd843744",
+    "packageManifestSha256": "c96edeea1006d75d22782f4dac9f531cadcc6ea4818b9433df662d4f4efe86f8"
+  },
+  "deployment": {
+    "id": "f8accda7-42c2-4490-9aff-2a9906f3bc4b",
+    "url": "https://f8accda7.researchtoolspy.pages.dev",
+    "productionUrl": "https://researchtools.net",
+    "sourceSha": "2ec12a17e4738f89f37fea5c2c428ca0f1b4f442",
+    "noBundle": true,
+    "publishReceiptSha256": "357f100cf8d1ab59739278b99be6e5e1ecf2529b6314b6c79ec5b584283657e2",
+    "sourceSyncReceiptSha256": "36665675e41df886311cd3c1fd272b8a4c6be38ad82baa867d11920156152bad",
+    "smoke": [
+      {
+        "baseUrl": "https://f8accda7.researchtoolspy.pages.dev",
+        "checksPassed": 30,
+        "mutatingRequests": 0,
+        "receiptSha256": "411bbfb94c258cf3b5191c6258b8eae4e2447d2ffdaa178356efde4ec9a618e4"
+      },
+      {
+        "baseUrl": "https://researchtools.net",
+        "checksPassed": 30,
+        "mutatingRequests": 0,
+        "receiptSha256": "46b32ea1c75eecf5547450954e8b5b3f70d27ed35debec130ee5e6e4cbf03216"
+      }
+    ]
+  },
+  "database": {
+    "mutationsPerformed": false,
+    "catalog": {
+      "result": "passed",
+      "tables": 14,
+      "schemaRows": 386,
+      "normalizedSchemaSha256": "ec0d28165382f028c98208a003d8c5ab672a9a0ae7ba44ef2f23e3b2bfa46729"
+    },
+    "appliedMigrationCount": 13,
+    "pendingMigrations": [],
+    "secretNamesUnchanged": true
+  },
+  "renderer": {
+    "publicTreeUnchangedFromBaseline": true,
+    "liveOwnedBytesChecked": true,
+    "scriptSecurityUnchanged": true,
+    "freshEdgeReplayPerformed": false,
+    "reason": "The entire public tree, including renderer, scripts, font, vendor, CSP and headers, is unchanged. Independent review and live owned-byte checks retain the existing edge-script replay exemption."
+  },
+  "failedAttempts": [
+    {
+      "name": "date-entry-focus1",
+      "source": "9666d25a80ab697b335e34821fe4227f7aeb92a6",
+      "exitCode": 1,
+      "receiptSha256": "98f57794258d42d4453d7345224b5312885bef2bb11ad73b34b449393ec251dd",
+      "logSha256": "a6854df075b2e1a12aafee175b4662963b35bc8824b03b75ee77a79c750c256d"
+    }
+  ],
+  "recovery": "The first focused run is preserved and excluded from acceptance. Its first case supplied a raw extraction to a workspace-only import control and timed out before editing. The fixture now wraps the unchanged extraction in a typed workspace backup with a source-origin event and verifies import readiness. Original-source assertions were retained. Both earlier partial-date cases passed, but all 70 accepted checks and four reviewed captures use the final source.",
+  "instructionSha256": {
+    ".team/project.json": "c87cd27090a1a8ff779dd0d850668ebf0ecb6581cefb2d0b0a66ed63aabbcf78",
+    "CLAUDE.md": "3852de6d95104c64f3a35b670f350e1d7a2c6c9ed93d03d53895e7bc8c44ff1b",
+    "docs/plans/2026-09-11-timeline-tranche-charter.md": "367a6bc5c7f7c706ce4f6b368df952fbe5c8a6e34bde3f959b72775e138a0682",
+    "docs/plans/2026-09-14-timeline-date-entry-charter.md": "398aff47bf84282b64c4d5979e4327fd9e3c05d584421cf84135899faa3a55da"
+  },
+  "promptSha256": {
+    "provider": "b1fda1dad5d3f637577e77d28f36451eaacd505cd40f266e319e813f768aecab",
+    "browser": "8ba6f54a1258e2282d2c9157739104015ae44d520fcddf34093b7b5b5bc904d1",
+    "review": "cdccfaf5a2706127a6dbab24b1a505cd0f7c31eda509c63ffa7c517a7385755a",
+    "finalizer": "196c762a95d42ba05c93b2cc9b7bd6d785e677b15f1dc19bbd02fdec444a7be5"
+  },
+  "rollback": {
+    "runtimeSha": "2dc43486dbdc0ccf0d85a6967ba4edb0a98b4190",
+    "deploymentId": "2aa9093a-4ddf-4fdc-8e21-f22417d80b3d",
+    "limits": "Same saved date formats, timing review, scheduling and backups remain supported; the prior runtime lacks the optional recorded-date pickers."
+  },
+  "retrospective": "Bounded native providers separated recorded-date controls from device tests. The typed field and existing save validation remain authoritative; transient picker candidates permit incomplete entry without erasing the draft. Exact case identities deduplicate focused and remaining partitions.",
+  "limitations": [
+    "Native day/month and bounded year pickers supplement the existing typed date field. No automatic today or fabricated date components. Valid picker changes update the editor draft; explicit Save uses the existing edit flow and can change the recorded event.",
+    "Precision mode changes, cancellation and incomplete picker input preserve the existing recorded date. Explicit clear removes only the date; a retained clock receives partial-date guidance. No API, schema, save-format or extraction change.",
+    "TL-06 remains in progress with timing diagnostics and precision-preserving date entry; structured intervals, circa dates, clock mappings and extraction v2 remain pending. TL-17 remains partial and TL-13 planning is not delivered.",
+    "Representative device visuals are not exhaustive accessibility certification or user testing. No full unrelated API-suite claim. Public renderer/security bytes unchanged; primary checkout untouched."
+  ]
+}

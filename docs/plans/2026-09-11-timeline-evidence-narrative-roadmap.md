@@ -16,6 +16,8 @@ Likelihood and analytical confidence remain separate; reviews preserve the judgm
 version they addressed. Import verifies stored-text equality, not source truth or
 authenticated historical provenance. TL-04 remains in progress: broader source-store
 support, dedicated judgment services and authenticated peer review are pending.
+Add/Edit event now offers optional recorded day/month/year pickers alongside typed date entry, with explicit precision guidance and no automatic date components. Mode changes and incomplete picker input retain the draft; explicit Save follows existing validation. TL-06 remains in progress. See the [date-entry receipt](./2026-09-14-timeline-date-entry-release-receipt.md).
+
 Analyst view now offers Timing review for relative before/after placements, comparing recorded calendar bounds and linking to the event and anchor without changing data. Uncertain results remain unresolved; this is placement consistency, not evidence verification. TL-06 remains in progress. See the [timing review receipt](./2026-09-14-timeline-timing-review-release-receipt.md).
 
 Timeline presentation now uses a top-aligned reading column, clear date/title/body hierarchy, compact marker labels and 44-pixel navigation controls within a bounded dialog. Full details, schedules and backups remain available. See the [presentation readability receipt](./2026-09-14-timeline-presentation-ui-release-receipt.md).
