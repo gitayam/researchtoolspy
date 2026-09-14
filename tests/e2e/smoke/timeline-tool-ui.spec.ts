@@ -281,7 +281,7 @@ test.describe('Timeline research tool @smoke', () => {
     await expect(page.getByText('Analyst-created', { exact: true })).toBeVisible()
     await page.getByRole('button', { name: 'Add first event' }).click()
     const eventDialog = page.getByRole('dialog')
-    await eventDialog.getByLabel('Date').fill('2026-09-01')
+    await eventDialog.getByLabel('Date', { exact: true }).fill('2026-09-01')
     await eventDialog.getByLabel('Title', { exact: true }).fill('Last confirmed public report')
     await page.getByRole('button', { name: 'Save event' }).click()
 
