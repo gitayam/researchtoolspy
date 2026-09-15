@@ -6,6 +6,8 @@ import { validateTimelineJudgments } from './timeline-judgments'
 
 export const TIMELINE_IMPORT_MAX_BYTES = 4 * 1024 * 1024
 export function workspaceVersionForEvents(events: readonly TimelineWorkspaceEvent[]): TimelineWorkspaceExport['schemaVersion'] {
+  // Version follows content, so a timeline that uses neither feature still exports v1 byte-for-byte.
+  if (events.some(event => event.dateApproximate !== undefined)) return 'timeline-workspace.v3'
   return events.some(event => event.recordedEnd !== undefined) ? 'timeline-workspace.v2' : 'timeline-workspace.v1'
 }
 const categories = ['event', 'meeting', 'communication', 'financial', 'legal', 'travel', 'publication', 'military', 'political']
@@ -83,7 +85,7 @@ export function decodeTimelineWorkspace(text: string): TimelineWorkspaceExport {
   let parsed: unknown
   try { parsed = JSON.parse(text) } catch { throw new Error('The selected file is not valid JSON.') }
   const root = object(parsed, 'document', ['schemaVersion', 'exportedAt', 'source', 'analystWorkspace'])
-  enumValue(root.schemaVersion, ['timeline-workspace.v1', 'timeline-workspace.v2'], 'schemaVersion')
+  enumValue(root.schemaVersion, ['timeline-workspace.v1', 'timeline-workspace.v2', 'timeline-workspace.v3'], 'schemaVersion')
   timestamp(root.exportedAt, 'exportedAt')
   const source = object(root.source, 'source', ['schemaVersion', 'title', 'requestId', 'outcome', 'article', 'events', 'extraction', 'model'])
   enumValue(source.schemaVersion, ['timeline-manual.v1', 'timeline-analysis.v1'], 'source.schemaVersion')
@@ -147,12 +149,17 @@ export function decodeTimelineWorkspace(text: string): TimelineWorkspaceExport {
   const workspaceEvents = list(workspace.events, 'workspace.events')
   workspaceEvents.forEach((value, index) => {
     const path = `workspace.events[${index}]`
-    const event = object(value, path, ['id', 'eventDate', 'eventTime', 'datePrecision', 'title', 'description', 'category', 'importance', 'origin', 'assessment', 'analystNote', 'modified', 'sequenceOrder', 'placement', 'original', 'narrativeIncluded', 'narrativeRole', 'whyItMatters', 'transition', 'chapterId', 'narrativeOrder', ...(root.schemaVersion === 'timeline-workspace.v2' ? ['recordedEnd'] : [])])
+    const event = object(value, path, ['id', 'eventDate', 'eventTime', 'datePrecision', 'title', 'description', 'category', 'importance', 'origin', 'assessment', 'analystNote', 'modified', 'sequenceOrder', 'placement', 'original', 'narrativeIncluded', 'narrativeRole', 'whyItMatters', 'transition', 'chapterId', 'narrativeOrder', ...(root.schemaVersion === 'timeline-workspace.v2' || root.schemaVersion === 'timeline-workspace.v3' ? ['recordedEnd'] : []), ...(root.schemaVersion === 'timeline-workspace.v3' ? ['dateApproximate'] : [])])
     const eventId = id(event.id, `${path}.id`)
     if (ids.has(eventId)) fail('duplicate event ID')
     ids.add(eventId)
     eventFields(event, path, false)
     if (event.eventTime !== undefined && (typeof event.eventTime !== 'string' || !/^([01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/.test(event.eventTime))) fail(`${path}.eventTime`)
+    if (Object.prototype.hasOwnProperty.call(event, 'dateApproximate')) {
+      bool(event.dateApproximate, `${path}.dateApproximate`)
+      // circa qualifies a recorded date; without one there is nothing for it to qualify.
+      if (event.eventDate === undefined) fail(`${path}.dateApproximate requires a recorded date`)
+    }
     if (Object.prototype.hasOwnProperty.call(event, 'recordedEnd')) {
       const end = object(event.recordedEnd, `${path}.recordedEnd`, ['date', 'precision', 'time'])
       date(end.date, `${path}.recordedEnd.date`)

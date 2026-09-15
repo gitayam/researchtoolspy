@@ -146,9 +146,12 @@ export function removeTimelineEvent(
 }
 
 export function timelineEventTemporalLabel(event: TimelineWorkspaceEvent): string {
-  if (event.recordedEnd) return `Recorded interval: ${event.eventDate || 'start unknown'}${event.eventTime ? ` ${event.eventTime}` : ''} through ${event.recordedEnd.date}${event.recordedEnd.time ? ` ${event.recordedEnd.time}` : ''} (inclusive recorded units)`
-  if (event.eventDate && event.eventTime) return `${event.eventDate} ${event.eventTime}`
-  if (event.eventDate) return event.eventDate
+  // An approximate date is labelled, never silently shown as exact. It qualifies the recorded
+  // start only, so an interval keeps its own endpoint wording.
+  const circa = event.dateApproximate === true && event.eventDate ? 'circa ' : ''
+  if (event.recordedEnd) return `Recorded interval: ${circa}${event.eventDate || 'start unknown'}${event.eventTime ? ` ${event.eventTime}` : ''} through ${event.recordedEnd.date}${event.recordedEnd.time ? ` ${event.recordedEnd.time}` : ''} (inclusive recorded units)`
+  if (event.eventDate && event.eventTime) return `${circa}${event.eventDate} ${event.eventTime}`
+  if (event.eventDate) return `${circa}${event.eventDate}`
   if (event.eventTime) return `${event.eventTime} (date unknown)`
   return `Position ${(event.sequenceOrder ?? 0) + 1} (date unknown)`
 }

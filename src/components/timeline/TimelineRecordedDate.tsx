@@ -10,6 +10,8 @@ interface TimelineRecordedDateProps {
   onChange: (value: string) => void
   optional: boolean
   endpoint?: 'end'
+  approximate?: boolean
+  onApproximateChange?: (next: boolean) => void
 }
 
 type Precision = 'day' | 'month' | 'year'
@@ -23,7 +25,7 @@ function matchingValue(value: string, precision: Precision): string {
   return shapes[precision].test(value) && inferTimelineDatePrecision(value) === precision ? value : ''
 }
 
-export function TimelineRecordedDate({ value, time, onChange, optional, endpoint }: TimelineRecordedDateProps) {
+export function TimelineRecordedDate({ value, time, onChange, optional, endpoint, approximate, onApproximateChange }: TimelineRecordedDateProps) {
   const id = useId()
   const recordedPrecision = inferTimelineDatePrecision(value)
   const [precision, setPrecision] = useState<Precision>(() => recordedPrecision || 'day')
@@ -49,6 +51,26 @@ export function TimelineRecordedDate({ value, time, onChange, optional, endpoint
     <p id={`${id}-guidance`} className="text-xs leading-relaxed text-muted-foreground">
       {guidance}.{time && recordedPrecision !== 'day' ? ' Clock retained; day unknown. Choose a complete recorded day only if known.' : ''}
     </p>
+    {onApproximateChange && !end && (
+      <div className="space-y-1">
+        <label className="flex items-start gap-2 text-sm">
+          <input
+            type="checkbox"
+            className="mt-1"
+            checked={approximate === true && value.trim() !== ''}
+            disabled={value.trim() === ''}
+            onChange={changed => onApproximateChange(changed.target.checked)}
+            aria-describedby={`${id}-approximate-guidance`}
+          />
+          <span>Recorded date is approximate (circa)</span>
+        </label>
+        <p id={`${id}-approximate-guidance`} className="text-xs leading-relaxed text-muted-foreground">
+          {value.trim() === ''
+            ? 'Record a date before marking it approximate.'
+            : 'Marks the recorded value as approximate. It does not change the date, its precision, or how the event is ordered.'}
+        </p>
+      </div>
+    )}
     <details className="rounded-md border p-2 text-sm">
       <summary className="cursor-pointer font-medium">{end ? 'End date picker' : 'Date picker'}</summary>
       <div className="mt-3 min-w-0 space-y-3">

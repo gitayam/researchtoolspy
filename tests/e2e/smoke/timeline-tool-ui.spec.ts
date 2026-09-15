@@ -201,11 +201,11 @@ test.describe('Timeline research tool @smoke', () => {
     await expect(page.getByLabel('Placement')).toHaveValue('relative')
     await expect(page.getByRole('dialog').getByLabel('Relation', { exact: true })).toHaveValue('before')
     await expect(page.getByLabel('Reference event')).toHaveValue('source-req-ui-smoke-0')
-    await page.getByLabel('Date').fill('2026-02-31')
+    await page.locator('#timeline-event-date').fill('2026-02-31')
     await page.getByRole('dialog').getByLabel('Title', { exact: true }).fill('Analyst supplied precursor')
     await page.getByRole('button', { name: 'Save event' }).click()
     await expect(page.getByRole('dialog').getByRole('alert')).toContainText('Use a real date')
-    await page.getByLabel('Date').fill('2026-09-01')
+    await page.locator('#timeline-event-date').fill('2026-09-01')
     await page.getByLabel('Description').fill('Added manually to test the suspected lead-up.')
     await page.getByRole('button', { name: 'Save event' }).click()
 
@@ -321,12 +321,12 @@ test.describe('Timeline research tool @smoke', () => {
     await page.getByRole('button', { name: 'Create timeline' }).click()
 
     await page.getByRole('button', { name: 'Add first event' }).click()
-    await page.getByLabel('Date').fill('2026-09-01')
+    await page.locator('#timeline-event-date').fill('2026-09-01')
     await page.getByRole('dialog').getByLabel('Title', { exact: true }).fill('Known first event')
     await page.getByRole('button', { name: 'Save event' }).click()
 
     await page.getByRole('button', { name: 'Add event', exact: true }).click()
-    await page.getByLabel('Date').fill('2026-09-10')
+    await page.locator('#timeline-event-date').fill('2026-09-10')
     await page.getByRole('dialog').getByLabel('Time', { exact: true }).fill('18:15')
     await page.getByRole('dialog').getByLabel('Title', { exact: true }).fill('Known later event')
     await page.getByRole('button', { name: 'Save event' }).click()

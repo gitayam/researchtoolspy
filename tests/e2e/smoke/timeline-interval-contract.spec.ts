@@ -28,7 +28,8 @@ test.describe('Local recorded interval contracts @smoke', () => {
       expect(() => decode({ ...interval, schemaVersion: 'timeline-workspace.v1' })).toThrow()
     }
     expect(JSON.stringify(legacy)).toBe(before)
-    expect(() => decode({ ...legacy, schemaVersion: 'timeline-workspace.v3' })).toThrow()
+    // Unknown-version probe: tracks the frontier, which moved to v4 when circa introduced v3.
+    expect(() => decode({ ...legacy, schemaVersion: 'timeline-workspace.v4' })).toThrow()
   })
 
   test('invalid missing or reversed endpoints reject while inclusive overlapping ranges survive', () => {

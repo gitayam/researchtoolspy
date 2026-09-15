@@ -99,6 +99,7 @@ interface EventEditorState {
   eventId?: string
   eventDate: string
   eventTime: string
+  dateApproximate: boolean
   recordEnd: boolean
   endDate: string
   endTime: string
@@ -433,6 +434,7 @@ function TimelineWorkspace({
     setEventEditor({
       eventDate: '',
       eventTime: '',
+      dateApproximate: false,
       recordEnd: false,
       endDate: '',
       endTime: '',
@@ -458,6 +460,7 @@ function TimelineWorkspace({
       eventId: event.id,
       eventDate: event.eventDate || '',
       eventTime: event.eventTime || '',
+      dateApproximate: event.dateApproximate === true,
       recordEnd: event.recordedEnd !== undefined,
       endDate: event.recordedEnd?.date || '',
       endTime: event.recordedEnd?.time || '',
@@ -488,6 +491,8 @@ function TimelineWorkspace({
     }
     const eventDate = eventEditor.eventDate.trim()
     const eventTime = eventEditor.eventTime.trim()
+    // circa qualifies a recorded date; with no date recorded there is nothing to qualify.
+    const dateApproximate = eventEditor.dateApproximate && eventDate !== ''
     const title = eventEditor.title.trim()
     const description = eventEditor.description.trim()
     const analystNote = eventEditor.analystNote.trim()
@@ -575,6 +580,7 @@ function TimelineWorkspace({
         const contentChanged = (event.eventDate || '') !== eventDate
           || (event.eventTime || '') !== eventTime
           || JSON.stringify(event.recordedEnd) !== JSON.stringify(recordedEnd)
+          || (event.dateApproximate === true) !== dateApproximate
           || event.title !== title
           || (event.description || '') !== description
           || event.category !== eventEditor.category
@@ -605,6 +611,8 @@ function TimelineWorkspace({
         }
         if (recordedEnd) nextEvent.recordedEnd = recordedEnd
         else delete nextEvent.recordedEnd
+        if (dateApproximate) nextEvent.dateApproximate = true
+        else delete nextEvent.dateApproximate
         const placed = placeTimelineEvent(current, nextEvent, placement)
         // Legacy absolute placement can be implicit. Preserve its wire shape so
         // an assessment-only edit does not invalidate the recorded review basis.
@@ -628,6 +636,7 @@ function TimelineWorkspace({
         eventDate: eventDate || undefined,
         eventTime: eventTime || undefined,
         ...(recordedEnd ? { recordedEnd } : {}),
+        ...(dateApproximate ? { dateApproximate: true } : {}),
         datePrecision,
         title,
         description: description || null,
@@ -1491,7 +1500,7 @@ function TimelineWorkspace({
                 </div>
               )}
               <div className="grid gap-4 sm:grid-cols-2">
-                <TimelineRecordedDate value={eventEditor.eventDate} time={eventEditor.eventTime} optional={eventEditor.placementMode !== 'absolute'} onChange={value => setEventEditor({ ...eventEditor, eventDate: value })} />
+                <TimelineRecordedDate value={eventEditor.eventDate} time={eventEditor.eventTime} optional={eventEditor.placementMode !== 'absolute'} onChange={value => setEventEditor({ ...eventEditor, eventDate: value })} approximate={eventEditor.dateApproximate} onApproximateChange={next => setEventEditor({ ...eventEditor, dateApproximate: next })} />
                 <div className="space-y-2">
                   <Label htmlFor="timeline-event-time">Time{eventEditor.placementMode === 'absolute' ? '' : ' (optional)'}</Label>
                   <Input id="timeline-event-time" type="time" step={1} value={eventEditor.eventTime} onChange={event => setEventEditor({ ...eventEditor, eventTime: event.target.value })} />

@@ -42,6 +42,9 @@ export interface TimelineWorkspaceEvent {
   eventDate?: string
   eventTime?: string
   datePrecision?: TimelineDatePrecision
+  /** Recorded date is approximate (circa). A qualifier on the recorded value; it never
+   *  widens computed bounds or upgrades precision. Presence promotes the export to v3. */
+  dateApproximate?: boolean
   recordedEnd?: CalendarLabel
   title: string
   description: string | null
@@ -195,7 +198,7 @@ export interface TimelineManualSource {
 }
 
 export interface TimelineWorkspaceExport {
-  schemaVersion: 'timeline-workspace.v1' | 'timeline-workspace.v2'
+  schemaVersion: 'timeline-workspace.v1' | 'timeline-workspace.v2' | 'timeline-workspace.v3'
   exportedAt: string
   source: TimelineAnalysisResult | TimelineManualSource
   analystWorkspace: TimelineWorkspaceState

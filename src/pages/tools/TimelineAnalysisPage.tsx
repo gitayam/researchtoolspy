@@ -41,7 +41,7 @@ function preserveUnreadableDraft(raw: string): boolean {
 }
 
 interface ManualTimelineDraft {
-  schemaVersion: 'timeline-browser-draft.v1' | 'timeline-browser-draft.v2'
+  schemaVersion: 'timeline-browser-draft.v1' | 'timeline-browser-draft.v2' | 'timeline-browser-draft.v3'
   expiresAt: string
   result: TimelineAnalysisResult
   workspace: TimelineWorkspaceState
@@ -49,7 +49,9 @@ interface ManualTimelineDraft {
 }
 
 function browserDraftVersion(workspace: TimelineWorkspaceState): ManualTimelineDraft['schemaVersion'] {
-  return workspaceVersionForEvents(workspace.events) === 'timeline-workspace.v2' ? 'timeline-browser-draft.v2' : 'timeline-browser-draft.v1'
+  const version = workspaceVersionForEvents(workspace.events)
+  if (version === 'timeline-workspace.v3') return 'timeline-browser-draft.v3'
+  return version === 'timeline-workspace.v2' ? 'timeline-browser-draft.v2' : 'timeline-browser-draft.v1'
 }
 
 function createRequestId(): string {
