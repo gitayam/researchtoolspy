@@ -8,10 +8,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { TimelineDurablePanel } from '@/components/timeline/TimelineDurablePanel'
+import { TimelineHandoffPanel } from '@/components/timeline/TimelineHandoffPanel'
 import { TimelineResults } from '@/components/timeline/TimelineResults'
 import { timelineExamples } from '@/config/timeline-examples'
 import type { TimelineExample } from '@/config/timeline-examples'
 import { analyzeTimeline, TimelineAnalysisError } from '@/lib/timeline-analysis'
+import { captureTimelineHandoff, forgetTimelineHandoff } from '@/lib/timeline-handoff'
 import { decodeTimelineWorkspace, TIMELINE_IMPORT_MAX_BYTES, workspaceVersionForEvents } from '@/lib/timeline-workspace-codec'
 import type { TimelineAnalysisResult } from '@/types/timeline-analysis'
 import type { TimelineWorkspaceExport, TimelineWorkspaceState } from '@/types/timeline-workspace'
@@ -132,6 +134,9 @@ function writeManualDraft(draft: ManualTimelineDraft): boolean {
 export function TimelineAnalysisPage() {
   const [searchParams] = useSearchParams()
   const queryUrl = searchParams.get('url') || ''
+  // Read and cleared before anything can fetch, so the token never reaches a request log or a
+  // Referer. Nothing is redeemed here: redemption is an explicit press inside the panel.
+  const [handoffToken, setHandoffToken] = useState<string | null>(() => captureTimelineHandoff())
   const [entryMode, setEntryMode] = useState<'manual' | 'article'>(() => queryUrl ? 'article' : 'manual')
   const [url, setUrl] = useState(() => queryUrl)
   const [manualDraft, setManualDraft] = useState<ManualTimelineDraft | null>(() => readManualDraft())
@@ -298,30 +303,34 @@ export function TimelineAnalysisPage() {
     if (!writeManualDraft(next)) setError('The timeline is open, but this browser could not save the local draft. Export JSON before leaving.')
   }, [result, resultOrigin])
 
+  /** Opens an already-decoded workspace as the working timeline. Returns whether the local draft was written. */
+  const adoptWorkspace = (imported: TimelineWorkspaceExport): boolean => {
+    detachDurable()
+    requestRef.current?.abort()
+    requestRef.current = null
+    setLoading(false)
+    const origin = imported.source.schemaVersion === 'timeline-manual.v1' ? 'manual' : 'extracted'
+    const nextResult = imported.source.schemaVersion === 'timeline-manual.v1' ? manualTimelineResult(imported.source.title) : imported.source
+    const draft: ManualTimelineDraft = {
+      // eslint-disable-next-line react-hooks/purity -- runs in an event handler, not render.
+      schemaVersion: browserDraftVersion(imported.analystWorkspace), expiresAt: new Date(Date.now() + MANUAL_DRAFT_TTL_MS).toISOString(),
+      result: nextResult, origin, workspace: imported.analystWorkspace,
+    }
+    const saved = writeManualDraft(draft)
+    setManualDraft(draft)
+    setResult(nextResult)
+    setResultOrigin(origin)
+    setInitialWorkspace(imported.analystWorkspace)
+    setWorkspaceGeneration(current => current + 1)
+    setEntryMode(origin === 'manual' ? 'manual' : 'article')
+    setUrl(nextResult.article.url)
+    return saved
+  }
+
   const importWorkspace = async (file: File) => {
     try {
       if (file.size > TIMELINE_IMPORT_MAX_BYTES) throw new Error('Timeline JSON must be 4 MiB or smaller.')
-      const imported = decodeTimelineWorkspace(await file.text())
-      detachDurable()
-      requestRef.current?.abort()
-      requestRef.current = null
-      setLoading(false)
-      const origin = imported.source.schemaVersion === 'timeline-manual.v1' ? 'manual' : 'extracted'
-      const nextResult = imported.source.schemaVersion === 'timeline-manual.v1' ? manualTimelineResult(imported.source.title) : imported.source
-      const draft: ManualTimelineDraft = {
-        // eslint-disable-next-line react-hooks/purity -- runs in an event handler, not render.
-        schemaVersion: browserDraftVersion(imported.analystWorkspace), expiresAt: new Date(Date.now() + MANUAL_DRAFT_TTL_MS).toISOString(),
-        result: nextResult, origin, workspace: imported.analystWorkspace,
-      }
-      const saved = writeManualDraft(draft)
-      setManualDraft(draft)
-      setResult(nextResult)
-      setResultOrigin(origin)
-      setInitialWorkspace(imported.analystWorkspace)
-      setWorkspaceGeneration(current => current + 1)
-      setEntryMode(origin === 'manual' ? 'manual' : 'article')
-      setUrl(nextResult.article.url)
-      setError(saved ? null : 'Imported timeline is open, but local saving failed. Export JSON before leaving.')
+      setError(adoptWorkspace(decodeTimelineWorkspace(await file.text())) ? null : 'Imported timeline is open, but local saving failed. Export JSON before leaving.')
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Unable to import this timeline.')
     }
@@ -339,6 +348,12 @@ export function TimelineAnalysisPage() {
           <p className="mt-1 text-muted-foreground">Build what you know, expose what is missing, and turn those gaps into evidence-backed research.</p>
         </div>
       </div>
+
+      {handoffToken && <TimelineHandoffPanel
+        token={handoffToken}
+        onSeeded={snapshot => setError(adoptWorkspace(snapshot) ? null : 'The handed-off timeline is open, but this browser could not save the local draft. Export JSON before leaving.')}
+        onDismiss={() => { forgetTimelineHandoff(); setHandoffToken(null) }}
+      />}
 
       <TimelineDurablePanel key={durableGeneration} snapshot={durableSnapshot} onOpen={openDurable} onForgetRemote={forgetRemote} />
 

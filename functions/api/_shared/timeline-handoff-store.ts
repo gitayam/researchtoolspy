@@ -87,9 +87,14 @@ export async function mintTimelineHandoff(request: Request, env: TimelineHandoff
   }
   const row = results[1].results[0]
   if (!row) throw new HandoffError('handoff_quota', 409)
-  if (row.payload_hash !== payloadHash) throw new HandoffError('idempotency_conflict', 409)
   // Round-trip the replayed row through the same strict codec before ever trusting it again.
-  await decodeStoredPayload(row.payload, row.payload_hash)
+  const stored = await decodeStoredPayload(row.payload, row.payload_hash)
+  // A replay is stamped with a fresh mintedAt, so hashing THIS request's document could
+  // never match the stored one and every idempotent retry answered 409. Compare against
+  // the document this request would have produced at the stored mint time instead, so
+  // only a genuinely different body is a conflict.
+  const expected = row.token === issued ? payloadHash : await hashContent(buildHandoffDocument(body, stored.mintedAt))
+  if (row.payload_hash !== expected) throw new HandoffError('idempotency_conflict', 409)
   return handoffResponse(mintLink(row), row.token === issued ? 201 : 200)
 }
 
@@ -99,13 +104,22 @@ export async function revokeTimelineHandoff(request: Request, env: TimelineHando
   let rows: { token: string }[]
   try {
     const results = await env.DB.batch<{ token: string }>([
-      env.DB.prepare(`UPDATE timeline_handoffs SET payload=NULL,revoked_at=unixepoch() WHERE token=? AND client_id=? AND revoked_at IS NULL`).bind(id, clientId),
-      env.DB.prepare(`SELECT token FROM timeline_handoffs WHERE token=? AND client_id=?`).bind(id, clientId),
+      // RETURNING reports what this statement actually changed, so an already-revoked
+      // token answers 404 like an unknown one. The previous SELECT had no revoked_at
+      // filter, so it still found the row and a second revoke wrongly answered 204.
+      // Collapsing both cases also avoids confirming a token's existence to a caller
+      // that does not own it.
+      env.DB.prepare(`UPDATE timeline_handoffs SET payload=NULL,revoked_at=unixepoch()
+        WHERE token=? AND client_id=? AND revoked_at IS NULL
+        RETURNING token`).bind(id, clientId),
     ])
-    rows = results[1].results
+    rows = results[0].results
   } catch { throw new HandoffError('datastore_unavailable', 503) }
   if (!rows.length) throw new HandoffError('handoff_not_found', 404)
-  const headers = new Headers(handoffResponse(null, 204).headers)
+  // handoffResponse() serialises its body, and a 204 may not carry one — constructing
+  // it throws, which handoffRoute then reports as datastore_unavailable, so revoke
+  // could never succeed. Harvest the standard header set from a status that may.
+  const headers = new Headers(handoffResponse(null, 200).headers)
   headers.delete('Content-Type')
   return new Response(null, { status: 204, headers })
 }
