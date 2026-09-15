@@ -1,0 +1,22 @@
+{
+  "checkpoint": "TL-06",
+  "date": "2026-09-15",
+  "title": "Temporal coverage summary",
+  "scope": "Timeline analyst workspace UI",
+  "changes": [
+    "Show recorded day/month/year precision and interval counts",
+    "Show relative, position-only and date-unknown counts",
+    "Explain that presentation scheduling does not create recorded dates"
+  ],
+  "persistenceOrApi": "none",
+  "validation": [
+    "pnpm run type-check",
+    "pnpm run build",
+    "git diff --check"
+  ],
+  "remaining": [
+    "circa dates",
+    "clock mappings",
+    "extraction v2"
+  ]
+}

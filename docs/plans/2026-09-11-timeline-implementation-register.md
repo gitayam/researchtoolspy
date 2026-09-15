@@ -6,6 +6,10 @@ Approximate recorded dates are delivered: an explicit circa qualifier on a recor
 
 Shared-link previews are delivered: frozen presentation title, description and a dedicated static timeline image appear in initial HTML and prepublication review. Revoked or unavailable links use generic metadata; third-party caches may persist. See the [link-preview receipt](./2026-09-14-timeline-link-preview-release-receipt.md). TL-17 remains in progress.
 
+Temporal coverage is now visible in the analyst workspace: recorded precision,
+intervals, placement-only events and date-unknown events are summarized without
+changing saved data. See the [temporal coverage receipt](./2026-09-15-timeline-temporal-coverage-release-receipt.md). TL-06 remains in progress.
+
 Recorded-date overlap finding is delivered: choose an event, compare conservative calendar windows and navigate to existing cards without changing the sequence or saved data. Results mean potential overlap only. See the [overlap receipt](./2026-09-14-timeline-overlap-release-receipt.md). TL-06 remains in progress.
 
 Durable recorded intervals are delivered: private save/reopen, exact pending retry and historical v1/v2 preview preserve identity and existing history. See the [durable interval receipt](./2026-09-14-timeline-durable-interval-release-receipt.md). TL-06 remains in progress.

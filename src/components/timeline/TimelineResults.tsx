@@ -387,6 +387,20 @@ function TimelineWorkspace({
     })
     return sortDirection === 'latest' ? sequence.reverse() : sequence
   }, [sortDirection, sortedEvents])
+  const temporalCoverage = useMemo(() => {
+    const counts = { day: 0, month: 0, year: 0, interval: 0, relative: 0, position: 0, unknown: 0 }
+    for (const event of events) {
+      if (event.recordedEnd !== undefined) counts.interval += 1
+      if (event.placement?.mode === 'relative') counts.relative += 1
+      if (event.placement?.mode === 'position') counts.position += 1
+      if (!event.eventDate) counts.unknown += 1
+      else if (event.datePrecision === 'day') counts.day += 1
+      else if (event.datePrecision === 'month') counts.month += 1
+      else if (event.datePrecision === 'year') counts.year += 1
+      else counts.unknown += 1
+    }
+    return counts
+  }, [events])
   const firstOpenQuestion = questions.find(question => question.status === 'open')
 
   useEffect(() => () => {
@@ -1152,6 +1166,29 @@ function TimelineWorkspace({
           </nav>
             </div>
           </details>
+        </CardContent>
+      </Card>
+
+      <Card aria-label="Temporal coverage" className="timeline-temporal-coverage">
+        <CardHeader className="p-3 pb-2">
+          <CardTitle className="flex items-center gap-2 text-base"><Clock3 className="h-4 w-4" />Temporal coverage</CardTitle>
+          <p className="text-xs leading-relaxed text-muted-foreground">Recorded precision only; categories can overlap. Relative placement and presentation scheduling do not create dates.</p>
+        </CardHeader>
+        <CardContent className="grid grid-cols-2 gap-2 px-3 pb-3 sm:grid-cols-4 lg:grid-cols-7">
+          {([
+            ['Day', temporalCoverage.day],
+            ['Month', temporalCoverage.month],
+            ['Year', temporalCoverage.year],
+            ['Intervals', temporalCoverage.interval],
+            ['Relative', temporalCoverage.relative],
+            ['Position-only', temporalCoverage.position],
+            ['Date unknown', temporalCoverage.unknown],
+          ] as const).map(([label, count]) => (
+            <div key={label} className="rounded-md border bg-muted/20 px-2 py-2 text-center">
+              <div className="font-mono text-lg font-semibold tabular-nums">{count}</div>
+              <div className="text-[11px] leading-tight text-muted-foreground">{label}</div>
+            </div>
+          ))}
         </CardContent>
       </Card>
 
