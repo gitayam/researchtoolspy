@@ -1,0 +1,135 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://researchtools.net/contracts/timeline-analysis.v2.schema.json",
+  "title": "Timeline analysis v2 success response",
+  "description": "NOT YET SERVED. Gated on review of this schema, the v1 compatibility behaviour, evidence-locator semantics and the migration guide. v2 replaces v1's single eventDate/datePrecision pair with a temporal claim that can express sub-day instants, named timezones, bounded intervals, approximate (circa) dates, relative placement and explicit unknown time, and retains competing source assertions instead of collapsing them. Recorded precision is never upgraded: a point's text must match the precision it declares. Calendar validity, UTF-8 byte budgets and outbound URL policy still require application checks. Additive response fields are allowed.",
+  "$ref": "#/definitions/response",
+  "definitions": {
+    "timePoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "precision"],
+      "description": "A calendar position at exactly the precision stated. The value is never padded out to a finer shape, and an absent timezone means the source did not state one - which is not the same as UTC.",
+      "properties": {
+        "value": { "type": "string" },
+        "precision": { "enum": ["year", "month", "day", "hour", "minute", "second", "millisecond"] },
+        "timezone": { "type": "string", "minLength": 1, "description": "IANA zone name, only when the source stated one. Never inferred." },
+        "displayText": { "type": "string", "maxLength": 500, "description": "The source's own wording, preserved verbatim for display." },
+        "approximate": { "type": "boolean", "description": "The source qualified this as approximate (circa). v1 has no equivalent field." }
+      },
+      "allOf": [
+        { "if": { "properties": { "precision": { "const": "year" } } }, "then": { "properties": { "value": { "pattern": "^[1-9][0-9]{3}$" } } } },
+        { "if": { "properties": { "precision": { "const": "month" } } }, "then": { "properties": { "value": { "pattern": "^[1-9][0-9]{3}-(0[1-9]|1[0-2])$" } } } },
+        { "if": { "properties": { "precision": { "const": "day" } } }, "then": { "properties": { "value": { "pattern": "^[1-9][0-9]{3}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$" } } } },
+        { "if": { "properties": { "precision": { "const": "hour" } } }, "then": { "properties": { "value": { "pattern": "^[1-9][0-9]{3}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3])$" } } } },
+        { "if": { "properties": { "precision": { "const": "minute" } } }, "then": { "properties": { "value": { "pattern": "^[1-9][0-9]{3}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]$" } } } },
+        { "if": { "properties": { "precision": { "const": "second" } } }, "then": { "properties": { "value": { "pattern": "^[1-9][0-9]{3}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$" } } } },
+        { "if": { "properties": { "precision": { "const": "millisecond" } } }, "then": { "properties": { "value": { "pattern": "^[1-9][0-9]{3}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]\\.[0-9]{3}$" } } } }
+      ]
+    },
+    "temporalClaim": {
+      "description": "Exactly one kind. A relative or unknown claim has no calendar position and has no v1 representation; consumers must not substitute one.",
+      "oneOf": [
+        {
+          "type": "object", "additionalProperties": false, "required": ["kind", "at"],
+          "properties": { "kind": { "const": "instant" }, "at": { "$ref": "#/definitions/timePoint" } }
+        },
+        {
+          "type": "object", "additionalProperties": false, "required": ["kind", "start", "end"],
+          "description": "Inclusive bounded interval. Endpoints keep their own precision; the interval does not imply a finer one.",
+          "properties": { "kind": { "const": "interval" }, "start": { "$ref": "#/definitions/timePoint" }, "end": { "$ref": "#/definitions/timePoint" } }
+        },
+        {
+          "type": "object", "additionalProperties": false, "required": ["kind", "relation", "anchorRef"],
+          "properties": {
+            "kind": { "const": "relative" },
+            "relation": { "enum": ["before", "after", "during"] },
+            "anchorRef": { "type": "string", "minLength": 1, "description": "Event id this claim is placed against." },
+            "displayText": { "type": "string", "maxLength": 500 }
+          }
+        },
+        {
+          "type": "object", "additionalProperties": false, "required": ["kind"],
+          "properties": {
+            "kind": { "const": "unknown" },
+            "displayText": { "type": "string", "maxLength": 500 },
+            "reason": { "type": "string", "maxLength": 500, "description": "Why the time is unknown. An unknown time is recorded explicitly rather than omitted." }
+          }
+        }
+      ]
+    },
+    "evidenceLocator": {
+      "description": "Where in the retrieved source a claim came from. text-quote is preferred because it survives reformatting; text-position offsets are only meaningful against the exact retrieved content they were computed from.",
+      "oneOf": [
+        {
+          "type": "object", "additionalProperties": false, "required": ["kind", "exact"],
+          "properties": { "kind": { "const": "text-quote" }, "exact": { "type": "string", "minLength": 1, "maxLength": 1000 }, "prefix": { "type": "string", "maxLength": 200 }, "suffix": { "type": "string", "maxLength": 200 } }
+        },
+        {
+          "type": "object", "additionalProperties": false, "required": ["kind", "start", "end"],
+          "properties": { "kind": { "const": "text-position" }, "start": { "type": "integer", "minimum": 0 }, "end": { "type": "integer", "minimum": 0 } }
+        },
+        {
+          "type": "object", "additionalProperties": false, "required": ["kind", "page"],
+          "properties": { "kind": { "const": "page" }, "page": { "type": "integer", "minimum": 1 } }
+        },
+        {
+          "type": "object", "additionalProperties": false, "required": ["kind", "at"],
+          "properties": { "kind": { "const": "media-timestamp" }, "at": { "type": "string", "pattern": "^([0-9]{1,3}:)?[0-5]?[0-9]:[0-5][0-9](\\.[0-9]{1,3})?$" } }
+        }
+      ]
+    },
+    "sourceAssertion": {
+      "type": "object", "additionalProperties": false, "required": ["id", "claim"],
+      "description": "What one source claimed about an event's time, retained as stated. Two assertions about the same event may disagree; both stand.",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "sourceRef": { "type": "string", "maxLength": 200, "description": "Which source said it. Absent for the analysed article itself." },
+        "claim": { "$ref": "#/definitions/temporalClaim" },
+        "locator": { "$ref": "#/definitions/evidenceLocator" }
+      }
+    },
+    "event": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "title", "description", "category", "importance", "assertions"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "title": { "type": "string", "minLength": 1, "maxLength": 200, "x-maxUtf16CodeUnits": 200 },
+        "description": { "type": ["string", "null"], "maxLength": 500, "x-maxUtf16CodeUnits": 500 },
+        "category": { "enum": ["event", "meeting", "communication", "financial", "legal", "travel", "publication", "military", "political"] },
+        "importance": { "enum": ["low", "normal", "high", "critical"] },
+        "assertions": { "type": "array", "minItems": 1, "maxItems": 50, "items": { "$ref": "#/definitions/sourceAssertion" } },
+        "workingTime": {
+          "type": "object", "additionalProperties": false, "required": ["claim", "citesAssertionIds"],
+          "description": "The analyst's chosen time. It cites the assertions it rests on and never edits them, so the disagreement it was selected from stays inspectable. Absent means no analyst has chosen, which is the correct state for machine extraction.",
+          "properties": {
+            "claim": { "$ref": "#/definitions/temporalClaim" },
+            "citesAssertionIds": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+            "rationale": { "type": "string", "maxLength": 1000 }
+          }
+        }
+      }
+    },
+    "response": {
+      "type": "object",
+      "required": ["schemaVersion", "requestId", "outcome", "article", "events", "extraction", "model"],
+      "properties": {
+        "schemaVersion": { "const": "timeline-analysis.v2" },
+        "requestId": { "type": "string", "minLength": 1 },
+        "outcome": { "enum": ["events", "no_events"] },
+        "article": {
+          "type": "object", "required": ["url", "title", "domain"],
+          "properties": {
+            "url": { "type": "string", "format": "uri", "pattern": "^https?://" },
+            "title": { "type": "string" },
+            "domain": { "type": "string" },
+            "publishedAt": { "type": "string" }
+          }
+        },
+        "events": { "type": "array", "maxItems": 500, "items": { "$ref": "#/definitions/event" } },
+        "extraction": { "type": "object" },
+        "model": { "type": "object" }
+      }
+    }
+  }
+}
