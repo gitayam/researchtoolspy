@@ -9,6 +9,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { TimelineDurablePanel } from '@/components/timeline/TimelineDurablePanel'
 import { TimelineResults } from '@/components/timeline/TimelineResults'
+import { timelineExamples } from '@/config/timeline-examples'
+import type { TimelineExample } from '@/config/timeline-examples'
 import { analyzeTimeline, TimelineAnalysisError } from '@/lib/timeline-analysis'
 import { decodeTimelineWorkspace, TIMELINE_IMPORT_MAX_BYTES, workspaceVersionForEvents } from '@/lib/timeline-workspace-codec'
 import type { TimelineAnalysisResult } from '@/types/timeline-analysis'
@@ -196,9 +198,11 @@ export function TimelineAnalysisPage() {
 
   useEffect(() => () => requestRef.current?.abort(), [])
 
-  const runAnalysis = async (event?: FormEvent) => {
+  const runAnalysis = async (event?: FormEvent, overrideUrl?: string) => {
     event?.preventDefault()
-    const target = url.trim()
+    // `overrideUrl` exists because setUrl() does not apply before this runs:
+    // an example click must pass its own URL rather than read stale state.
+    const target = (overrideUrl ?? url).trim()
     if (!target) {
       setError('Enter an article URL to build a timeline.')
       return
@@ -234,6 +238,12 @@ export function TimelineAnalysisPage() {
     }
   }
 
+  const runExample = (example: TimelineExample) => {
+    setEntryMode('article')
+    setUrl(example.url)
+    void runAnalysis(undefined, example.url)
+  }
+
   const startManualTimeline = () => {
     const title = manualTitle.trim()
     if (!title) {
@@ -250,6 +260,7 @@ export function TimelineAnalysisPage() {
     const nextResult = manualTimelineResult(title)
     const nextDraft: ManualTimelineDraft = {
       schemaVersion: browserDraftVersion(emptyManualWorkspace()),
+      // eslint-disable-next-line react-hooks/purity -- runs in an event handler, not render.
       expiresAt: new Date(Date.now() + MANUAL_DRAFT_TTL_MS).toISOString(),
       result: nextResult,
       workspace: emptyManualWorkspace(),
@@ -296,6 +307,7 @@ export function TimelineAnalysisPage() {
       const origin = imported.source.schemaVersion === 'timeline-manual.v1' ? 'manual' : 'extracted'
       const nextResult = imported.source.schemaVersion === 'timeline-manual.v1' ? manualTimelineResult(imported.source.title) : imported.source
       const draft: ManualTimelineDraft = {
+        // eslint-disable-next-line react-hooks/purity -- runs in an event handler, not render.
         schemaVersion: browserDraftVersion(imported.analystWorkspace), expiresAt: new Date(Date.now() + MANUAL_DRAFT_TTL_MS).toISOString(),
         result: nextResult, origin, workspace: imported.analystWorkspace,
       }
@@ -448,6 +460,34 @@ export function TimelineAnalysisPage() {
           </CardContent>
         </Card>
       )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Or start from an example</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-xs text-muted-foreground">
+            Published chronologies, each chosen to exercise a different kind of sequence. Selecting one builds its
+            timeline from the publisher&rsquo;s page, so results reflect what that page serves today.
+          </p>
+          <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+            {timelineExamples.map(example => (
+              <li key={example.id}>
+                <button
+                  type="button"
+                  onClick={() => runExample(example)}
+                  disabled={loading}
+                  className="flex h-full w-full flex-col items-start gap-1 rounded-md border border-border p-3 text-left transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <span className="text-sm font-medium leading-snug">{example.title}</span>
+                  <span className="text-xs text-muted-foreground">{example.publisher}</span>
+                  <span className="text-xs leading-snug text-muted-foreground">{example.demonstrates}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </CardContent>
+      </Card>
 
         </div>
       </details>
