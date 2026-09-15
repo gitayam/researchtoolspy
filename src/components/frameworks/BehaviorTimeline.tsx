@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import type { TimelineEvent as BehaviorTimelineEvent, BehaviorMetadata } from '@/types/behavior'
 import { BehaviorSearchDialog } from './BehaviorSearchDialog'
+import { isBehaviorOffsetError, parseBehaviorOffset, resolveBehaviorTimelineToInstants, reviewBehaviorTimelineTiming, type BehaviorTimeDomain } from '@/lib/behavior-timeline-time'
 import { BehaviorTimelineEventDetails, BehaviorTimelineEventSummary } from './BehaviorTimelineEventDetails'
 
 // Re-export the type from behavior for external use
@@ -22,9 +23,18 @@ interface BehaviorTimelineProps {
   events: BehaviorTimelineEvent[]
   onChange: (events: BehaviorTimelineEvent[]) => void
   readOnly?: boolean
+  /** The declared time domain. Callers that persist it should pass both props. */
+  timeDomain?: BehaviorTimeDomain
+  onTimeDomainChange?: (next: BehaviorTimeDomain) => void
 }
 
-export function BehaviorTimeline({ events, onChange, readOnly = false }: BehaviorTimelineProps) {
+export function BehaviorTimeline({ events, onChange, readOnly = false, timeDomain, onTimeDomainChange }: BehaviorTimelineProps) {
+  // Relative offsets are what the generator emits and what the field was documented for,
+  // so an undeclared timeline is read that way rather than guessed at per event.
+  const [localDomain, setLocalDomain] = useState<BehaviorTimeDomain>(timeDomain ?? 'anchor_relative')
+  const domain = timeDomain ?? localDomain
+  const setDomain = (next: BehaviorTimeDomain) => { setLocalDomain(next); onTimeDomainChange?.(next) }
+  const [anchor, setAnchor] = useState('')
   const timelineInstanceId = useId().replace(/[^a-zA-Z0-9_-]/g, '')
   const nextEventSequence = useRef(events.length)
   const [expandedEvents, setExpandedEvents] = useState<Set<string>>(new Set())
@@ -35,6 +45,9 @@ export function BehaviorTimeline({ events, onChange, readOnly = false }: Behavio
 
   // Convert to UI format
   const uiEvents: TimelineEventUI[] = events.map((e, i) => ({ ...e, order: i }))
+  const timingFindings = reviewBehaviorTimelineTiming(uiEvents.map(item => ({ id: item.id, label: item.label, time: item.time })), domain)
+  const mapping = anchor ? resolveBehaviorTimelineToInstants(uiEvents.map(item => ({ id: item.id, label: item.label, time: item.time })), new Date(anchor).toISOString(), domain) : null
+  const mappedInstants = mapping && mapping.ok ? mapping.resolved : null
 
   const toExternal = (uiEvents: TimelineEventUI[]): BehaviorTimelineEvent[] => {
     return uiEvents.map((event) => {
@@ -208,11 +221,20 @@ export function BehaviorTimeline({ events, onChange, readOnly = false }: Behavio
                         rows={2}
                       />
                       <div className="grid grid-cols-2 gap-2">
-                        <Input
-                          value={event.time || ''}
-                          onChange={(e) => updateEvent(event.id, { time: e.target.value })}
-                          placeholder="Time (e.g., 'Day 1', '9:00 AM')"
-                        />
+                        <div className="min-w-0 space-y-1">
+                          <Input
+                            value={event.time || ''}
+                            onChange={(e) => updateEvent(event.id, { time: e.target.value })}
+                            placeholder={domain === 'anchor_relative' ? 'Offset from start (e.g. T+30min)' : 'Sequence only — no elapsed time'}
+                            disabled={domain === 'ordinal'}
+                            aria-invalid={isBehaviorOffsetError(parseBehaviorOffset(event.time)) || undefined}
+                          />
+                          {domain === 'anchor_relative' && isBehaviorOffsetError(parseBehaviorOffset(event.time)) && (
+                            <p className="text-xs leading-relaxed text-amber-700 dark:text-amber-400">
+                              {(parseBehaviorOffset(event.time) as { reason: string }).reason}
+                            </p>
+                          )}
+                        </div>
                         <Input
                           value={event.location || ''}
                           onChange={(e) => updateEvent(event.id, { location: e.target.value })}
@@ -423,6 +445,69 @@ export function BehaviorTimeline({ events, onChange, readOnly = false }: Behavio
             <Plus className="h-4 w-4 mr-2" />
             Add Event
           </Button>
+        )}
+      </div>
+
+      <div className="rounded-lg border bg-muted/20 p-3 text-sm">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <label htmlFor={`${timelineInstanceId}-domain`} className="font-medium">Time domain</label>
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              A behaviour timeline is a reusable pattern, so it records sequence or elapsed offsets — not calendar dates.
+            </p>
+          </div>
+          <select
+            id={`${timelineInstanceId}-domain`}
+            value={domain}
+            disabled={readOnly}
+            onChange={e => setDomain(e.target.value as BehaviorTimeDomain)}
+            className="h-10 w-full min-w-0 rounded-md border border-input bg-background px-3 text-sm sm:w-64"
+          >
+            <option value="anchor_relative">Relative to start (T±)</option>
+            <option value="ordinal">Sequence only (no elapsed time)</option>
+          </select>
+        </div>
+
+        {timingFindings.length > 0 && (
+          <div className="mt-3 border-t pt-3">
+            <p className="font-medium">Timing review</p>
+            <ul className="mt-1 space-y-1">
+              {timingFindings.map(finding => (
+                <li key={`${finding.eventId}-${finding.kind}`} className="text-xs leading-relaxed text-amber-700 dark:text-amber-400">
+                  <span className="font-medium">{finding.label || 'Untitled step'}:</span> {finding.detail}
+                </li>
+              ))}
+            </ul>
+            <p className="mt-1 text-xs text-muted-foreground">Review only — nothing is reordered or rewritten.</p>
+          </div>
+        )}
+
+        {domain === 'anchor_relative' && uiEvents.length > 0 && (
+          <details className="mt-3 border-t pt-3">
+            <summary className="cursor-pointer font-medium">Place on a clock</summary>
+            <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+              Map T+0 to a real instant to see when each step would fall. This produces a projection; the template is not changed.
+            </p>
+            <input
+              type="datetime-local"
+              value={anchor}
+              onChange={e => setAnchor(e.target.value)}
+              aria-label="Instant that T+0 maps to"
+              className="mt-2 h-10 w-full min-w-0 rounded-md border border-input bg-background px-3 text-sm sm:w-64"
+            />
+            {anchor && mappedInstants && (
+              <ul className="mt-2 space-y-1">
+                {mappedInstants.map(item => (
+                  <li key={item.eventId} className="text-xs leading-relaxed">
+                    <span className="font-medium">{item.label || 'Untitled step'}:</span>{' '}
+                    {item.instant
+                      ? <span className="font-mono">{item.instant.replace('.000Z', 'Z')}</span>
+                      : <span className="text-muted-foreground">{item.omitted}</span>}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </details>
         )}
       </div>
 

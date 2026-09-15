@@ -1,3 +1,4 @@
+import type { BehaviorTimeDomain } from '@/lib/behavior-timeline-time'
 /**
  * Behavior Analysis Types
  *
@@ -171,7 +172,13 @@ export interface CopingBranch {
 export interface TimelineEvent {
   id: string
   label: string
-  time?: string // HH:MM or relative like "T+30min"
+  /**
+   * Offset from the behaviour start when the timeline's domain is `anchor_relative`
+   * (`T+30min`, `T-2h`, `T+1d 6h`), parsed by `parseBehaviorOffset`. A behaviour
+   * timeline is a reusable pattern, so this is never a calendar date; map it to an
+   * anchor instant with `resolveBehaviorTimelineToInstants` to place it on a clock.
+   */
+  time?: string
   description?: string
   location?: string // Where this step occurs
 
@@ -274,6 +281,10 @@ export interface BehaviorAnalysis {
 
   // Timeline with enhanced features
   timeline?: TimelineEvent[]
+  /** The one time domain this behaviour timeline declares. Defaults to `anchor_relative`. */
+  timeline_time_domain?: BehaviorTimeDomain
+  /** ISO instant that T+0 maps to, when this template has been placed on a real clock. */
+  timeline_anchor?: string
 
   // Framework sections (arrays of items)
   environmental_factors?: any[]
