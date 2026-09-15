@@ -776,6 +776,7 @@ export function GenericFrameworkView({
           // Special handling for behavior timeline in read-only mode
           if (frameworkType === 'behavior' && section.key === 'timeline') {
             const timelineEvents: TimelineEvent[] = (data[section.key] || []) as any[]
+            const savedDomain = data[`${section.key}_time_domain`]
             return (
               <Card key={section.key}>
                 <CardContent className="pt-6">
@@ -783,6 +784,7 @@ export function GenericFrameworkView({
                     events={timelineEvents}
                     onChange={() => {}} // Read-only, no changes allowed
                     readOnly={true}
+                    timeDomain={savedDomain === 'ordinal' || savedDomain === 'anchor_relative' ? savedDomain : undefined}
                   />
                 </CardContent>
               </Card>

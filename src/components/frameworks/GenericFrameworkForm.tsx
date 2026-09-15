@@ -17,6 +17,7 @@ import { AIFieldAssistant, AIUrlScraper } from '@/components/ai'
 import { EvidenceLinker, EvidenceItemBadge, type LinkedEvidence } from '@/components/evidence'
 import { ExportButton } from '@/components/reports/ExportButton'
 import { BehaviorTimeline, type TimelineEvent } from '@/components/frameworks/BehaviorTimeline'
+import type { BehaviorTimeDomain } from '@/lib/behavior-timeline-time'
 import { BCWRecommendations } from '@/components/frameworks/BCWRecommendations'
 import { BehaviourChangeWheel } from '@/components/frameworks/BehaviourChangeWheel'
 import { BehaviorSelector } from '@/components/frameworks/BehaviorSelector'
@@ -748,6 +749,15 @@ export function GenericFrameworkForm({
     }, {} as { [key: string]: LinkedActor[] })
   )
   const [actorLinkerOpen, setActorLinkerOpen] = useState(false)
+  // A behaviour timeline declares one time domain; persisted per section alongside its
+  // events using the same `${section.key}_*` convention as linked actors.
+  const [timelineTimeDomain, setTimelineTimeDomain] = useState<{ [key: string]: BehaviorTimeDomain }>(
+    sections.reduce((acc, section) => {
+      const saved = initialData?.[`${section.key}_time_domain`]
+      if (saved === 'ordinal' || saved === 'anchor_relative') acc[section.key] = saved
+      return acc
+    }, {} as { [key: string]: BehaviorTimeDomain })
+  )
 
   // Entity linking state (for Starbursting Q&A items)
   const [activeQuestionId, setActiveQuestionId] = useState<string | null>(null)
@@ -1784,6 +1794,11 @@ export function GenericFrameworkForm({
         }),
       }
 
+      // Persist each behaviour timeline's declared time domain next to its events.
+      Object.entries(timelineTimeDomain).forEach(([key, value]) => {
+        if (value) data[`${key}_time_domain`] = value
+      })
+
       // Add linked actors for PMESII-PT (store per section)
       if (frameworkType === 'pmesii-pt') {
         sections.forEach(section => {
@@ -2163,6 +2178,10 @@ export function GenericFrameworkForm({
                     events={timelineEvents}
                     onChange={(events) => {
                       setSectionData(prev => ({ ...prev, [section.key]: events as any[] }))
+                    }}
+                    timeDomain={timelineTimeDomain[section.key] ?? 'anchor_relative'}
+                    onTimeDomainChange={(next) => {
+                      setTimelineTimeDomain(prev => ({ ...prev, [section.key]: next }))
                     }}
                   />
                 </CardContent>
