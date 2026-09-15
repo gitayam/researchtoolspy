@@ -57,6 +57,7 @@ export const INTEGRATION_CAPABILITY_NAMES = [
   'timelineAnalysis',
   'timelineRead',
   'timelineWrite',
+  'timelineHandoffMint',
   'communityIngest',
   'jobStatus',
   'artifactRead',
@@ -73,13 +74,14 @@ export const INTEGRATION_CAPABILITY_NAMES = [
 export type IntegrationCapabilityName = typeof INTEGRATION_CAPABILITY_NAMES[number]
 export type IntegrationCapabilities = Record<IntegrationCapabilityName, boolean>
 export type AdvertisedIntegrationCapabilities =
-  Omit<IntegrationCapabilities, 'timelineAnalysis' | 'timelineRead' | 'timelineWrite'>
-  & Partial<Pick<IntegrationCapabilities, 'timelineAnalysis' | 'timelineRead' | 'timelineWrite'>>
+  Omit<IntegrationCapabilities, 'timelineAnalysis' | 'timelineRead' | 'timelineWrite' | 'timelineHandoffMint'>
+  & Partial<Pick<IntegrationCapabilities, 'timelineAnalysis' | 'timelineRead' | 'timelineWrite' | 'timelineHandoffMint'>>
 
 const REQUIRED_SCOPE: Partial<Record<IntegrationCapabilityName, IntegrationScope>> = {
   timelineAnalysis: 'community.research.execute',
   timelineRead: 'timeline.read',
   timelineWrite: 'timeline.write',
+  timelineHandoffMint: 'timeline.write',
   communityIngest: 'community.events.write',
   jobStatus: 'community.jobs.read',
   artifactRead: 'community.artifacts.read',
@@ -99,6 +101,7 @@ export const TRANCHE_A_SERVER_SUPPORT: Readonly<IntegrationCapabilities> = Objec
   timelineAnalysis: true,
   timelineRead: true,
   timelineWrite: true,
+  timelineHandoffMint: true,
   communityIngest: false,
   jobStatus: false,
   artifactRead: false,
@@ -183,6 +186,7 @@ export function buildIntegrationCapabilitiesDocument(
     timelineAnalysis: scoped('timelineAnalysis'),
     timelineRead: scoped('timelineRead'),
     timelineWrite: scoped('timelineWrite'),
+    timelineHandoffMint: scoped('timelineHandoffMint'),
     communityIngest: scoped('communityIngest') && batchLimit !== null,
     jobStatus: scoped('jobStatus'),
     artifactRead: scoped('artifactRead'),
@@ -219,7 +223,7 @@ export function buildIntegrationCapabilitiesDocument(
     },
     scopes: principal ? [...principal.scopes] : [],
     capabilities: Object.fromEntries(
-      Object.entries(capabilities).filter(([name, enabled]) => enabled || !['timelineAnalysis','timelineRead','timelineWrite'].includes(name)),
+      Object.entries(capabilities).filter(([name, enabled]) => enabled || !['timelineAnalysis','timelineRead','timelineWrite','timelineHandoffMint'].includes(name)),
     ) as AdvertisedIntegrationCapabilities,
     limits: {
       ...(capabilities.claimMatch && claimLimit !== null ? { claimMatchCandidates: claimLimit } : {}),

@@ -201,6 +201,23 @@ export async function onRequest(context: MiddlewareContext) {
     if (!(collection ? ['GET', 'POST'] : ['GET', 'DELETE']).includes(request.method)) return reject('method_not_allowed', 405)
     try { return await next() } catch { return reject('datastore_unavailable', 503) }
   }
+  // Staged single-use lineage material must not enter general telemetry or receive broad CORS grants.
+  if (url.pathname === '/api/timeline-handoffs' || url.pathname.startsWith('/api/timeline-handoffs/')) {
+    const headers = { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer', 'X-Robots-Tag': 'noindex,nofollow', 'X-Content-Type-Options': 'nosniff' }
+    const reject = (code: string, status: number) => new Response(JSON.stringify({ schemaVersion: 'timeline-handoff-error.v1', error: { code } }), { status, headers })
+    const origin = request.headers.get('Origin')
+    if (origin !== null && origin !== url.origin) return reject('access_denied', 403)
+    const collection = url.pathname === '/api/timeline-handoffs'
+    const redeem = /^\/api\/timeline-handoffs\/[^/]+\/redeem$/.test(url.pathname)
+    const item = !collection && !redeem && /^\/api\/timeline-handoffs\/[^/]+$/.test(url.pathname)
+    if (!collection && !redeem && !item) return reject('handoff_not_found', 404)
+    if (request.method === 'OPTIONS') {
+      const emptyHeaders = new Headers(headers); emptyHeaders.delete('Content-Type')
+      return new Response(null, { status: 204, headers: emptyHeaders })
+    }
+    if (!(collection ? ['POST'] : redeem ? ['POST'] : ['DELETE']).includes(request.method)) return reject('method_not_allowed', 405)
+    try { return await next() } catch { return reject('datastore_unavailable', 503) }
+  }
   const requestStartedAt = Date.now()
   const serviceIdentity = trustedServiceKey(request, env)
 

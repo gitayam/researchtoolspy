@@ -115,6 +115,10 @@ only while the operation is enabled. The additive `timelineAnalysis` capability
 key is omitted while false so pre-extension strict v1 clients remain compatible;
 new clients normalize an omitted key to false. Durable timeline operations use
 the separate optional `timelineRead` and `timelineWrite` capabilities described below.
+The cross-product timeline handoff (TL-05, see
+[`timeline-handoff-design.md`](./timeline-handoff-design.md)) adds one more additive,
+omit-when-false capability, `timelineHandoffMint`, gated on the same `timeline.write`
+scope — see "Timeline handoff (TL-05)" below.
 Other unimplemented service-consuming capabilities remain false. A route file, URL, configured token, or scope alone
 is never proof of executable support.
 
@@ -133,12 +137,15 @@ is never proof of executable support.
 | `community.feeds.manage` | `feedJobs` |
 | `community.webhooks.manage` | `webhookManagement` |
 | `timeline.read` | `timelineRead` |
-| `timeline.write` | `timelineWrite` |
+| `timeline.write` | `timelineWrite`, `timelineHandoffMint` |
 
 No wildcard scope exists. `persistentWorkspace` is binding readiness rather than
 an independent permission. Its broader capability remains false in this release;
 durable timeline support is advertised specifically through `timelineRead` and
-`timelineWrite`, without expanding unrelated workspace operations.
+`timelineWrite`, without expanding unrelated workspace operations. Minting a
+handoff is a strictly smaller act than what `timeline.write` already permits — a
+mint creates a staged payload attached to no workspace at all, never a durable
+artifact — so it intentionally uses no new scope.
 
 ## Content-analysis bridge
 
@@ -290,3 +297,40 @@ compatible code is deployed: older code rejects unknown scopes, even on existing
 extraction/discovery routes. For rollback, retain compatible code or obtain
 separate authorization for credential remediation; never silently strip scopes,
 restore the entire database or destroy timeline history.
+
+## Timeline handoff (TL-05)
+
+**Not part of the deployed rollout state above.** The store and discovery slices
+land in this release; the RSS reader button and the Signal bot line ship
+separately. Full authorization contract: [`timeline-handoff-design.md`](./timeline-handoff-design.md).
+
+A service credential holding `timeline.write` may stage a bounded lineage
+payload (`timeline-handoff-request.v1`, capped at 65536 bytes, the same
+`timelineRequestBytes` limit already advertised) and receive an opaque 64-hex
+single-use token:
+
+```http
+POST /api/timeline-handoffs
+Authorization: Bearer rt_svc_<client-id>.<secret>
+Idempotency-Key: <opaque-key>
+Content-Type: application/json
+
+{ "schemaVersion": "timeline-handoff-request.v1", "audience": "researchtools-community.v1",
+  "kind": "article", "title": "…", "origin": { "product": "irregulars-rss", "returnUrl": "…", "returnLabel": "…" },
+  "items": [...], "events": [...] }
+```
+
+The token confers exactly one thing: reading one staged payload, once, within
+30 minutes. It authorizes no read or write of `timeline_artifacts`, selects no
+workspace, and is never accepted by the durable timeline routes above. A signed-in
+human (never a guest, a service principal, or an anonymous caller) redeems it
+with `POST /api/timeline-handoffs/{token}/redeem`, which returns the
+`timeline-handoff.v1` document exactly once and destroys the stored payload in
+the same atomic batch. The minting client may revoke an unspent token early
+with `DELETE /api/timeline-handoffs/{token}`.
+
+Discovery advertises `timelineHandoffMint` — additive, omitted while false —
+gated on `timeline.write`, `COMMUNITY_INTEGRATIONS_ENABLED=true` and D1
+runtime readiness, exactly like `timelineRead`/`timelineWrite`. It adds no new
+scope, no new contract-version key, and no new limit: minting is a strictly
+smaller act than what `timeline.write` already permits.
