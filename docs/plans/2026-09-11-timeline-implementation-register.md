@@ -1,5 +1,7 @@
 # Timeline implementation register
 
+Approximate recorded dates are delivered: an explicit circa qualifier on a recorded date, carried through workspace v3 without moving events, changing precision or inventing a window. Behaviour timelines now declare one time domain (ordinal or relative T±) with parsed offsets, read-only timing review, and clock mapping onto an analyst-supplied anchor. See the [circa receipt](./2026-09-14-timeline-circa-release-receipt.md). TL-06 remains in progress; evidence-timeline clock mappings and extraction v2 remain pending.
+
 Shared-link previews are delivered: frozen presentation title, description and a dedicated static timeline image appear in initial HTML and prepublication review. Revoked or unavailable links use generic metadata; third-party caches may persist. See the [link-preview receipt](./2026-09-14-timeline-link-preview-release-receipt.md). TL-17 remains in progress.
 
 Recorded-date overlap finding is delivered: choose an event, compare conservative calendar windows and navigate to existing cards without changing the sequence or saved data. Results mean potential overlap only. See the [overlap receipt](./2026-09-14-timeline-overlap-release-receipt.md). TL-06 remains in progress.
@@ -82,7 +84,7 @@ Current delivery state (2026-09-12):
   equality is not source truth, authenticated historical provenance or append-only
   review permission.
 - **TL-17: partial.** Selected-narrative TimelineJS JSON, matching complete companion, optional self-hosted renderer, explicit frozen public presentation links and creator revocation are delivered. Composite, plan and comparison snapshots and dependency manifests remain pending.
-- **TL-06: in progress.** Calendar diagnostics, precision-preserving date entry, calendar extents and local interval authoring with workspace/draft v2 are delivered. Interval presentations are delivered. Durable interval save/reopen and immutable v1/v2 history are delivered; circa dates, clock mappings and extraction v2 remain pending.
+- **TL-06: in progress.** Calendar diagnostics, precision-preserving date entry, calendar extents and local interval authoring with workspace/draft v2 are delivered. Interval presentations are delivered. Durable interval save/reopen and immutable v1/v2 history are delivered. Approximate (circa) recorded dates are delivered as workspace v3, and behaviour timelines declare a time domain with parsed relative offsets and clock mapping onto a supplied anchor; evidence-timeline clock mappings and extraction v2 remain pending.
 - **TL-01, TL-05, TL-07–TL-16 and TL-18: pending.** No delivery of these checkpoints or cross-app changes is claimed.
 
 Recorded intervals now appear in TimelineJS slides, accessible lists and JSON with precision-preserving endpoint labels and supported spans. Scheduling retains recorded ranges; private v2 saving was pending at that stage and is delivered in the linked durable interval release. See the [interval presentation receipt](./2026-09-14-timeline-interval-presentation-release-receipt.md).
