@@ -1,5 +1,7 @@
 # Evidence-First Timeline Platform Roadmap
 
+Clock mapping and extraction v2 are delivered, completing TL-06. Analysts can map a relative sequence onto host anchors and read resolved windows, with disagreement surfaced as a named conflict and approximation carried through; `timeline-analysis.v2` is defined with its JSON Schema, v1 compatibility layer and migration guide, and is not served. See the [clock mapping and extraction v2 receipt](./2026-09-15-timeline-clock-mapping-and-extraction-v2-receipt.md). **TL-06 is delivered.**
+
 Approximate recorded dates are delivered: an explicit circa qualifier on a recorded date, carried through workspace v3 without moving events, changing precision or inventing a window. Behaviour timelines now declare one time domain (ordinal or relative T±) with parsed offsets, read-only timing review, and clock mapping onto an analyst-supplied anchor. See the [circa receipt](./2026-09-14-timeline-circa-release-receipt.md). TL-06 remains in progress; evidence-timeline clock mappings and extraction v2 remain pending.
 
 Shared-link previews are delivered: frozen presentation title, description and a dedicated static timeline image appear in initial HTML and prepublication review. Revoked or unavailable links use generic metadata; third-party caches may persist. See the [link-preview receipt](./2026-09-14-timeline-link-preview-release-receipt.md). TL-17 remains in progress.
