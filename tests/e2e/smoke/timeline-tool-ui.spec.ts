@@ -149,7 +149,7 @@ test.describe('Timeline research tool @smoke', () => {
       'Overview',
       'AI review',
       'Event sequence',
-      'Continue investigation',
+      'Continue the investigation',
     ])
   })
 

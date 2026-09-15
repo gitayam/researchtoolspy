@@ -1124,7 +1124,7 @@ function TimelineWorkspace({
               <li><a className="text-blue-600 hover:underline dark:text-blue-400" href="#timeline-overview">Overview</a></li>
               {mode === 'robust' && <li><a className="text-blue-600 hover:underline dark:text-blue-400" href="#timeline-ai-review">AI review</a></li>}
               <li><a className="text-blue-600 hover:underline dark:text-blue-400" href="#timeline-sequence">Event sequence</a></li>
-              {mode === 'robust' && <li><a className="text-blue-600 hover:underline dark:text-blue-400" href="#timeline-next-steps">Continue investigation</a></li>}
+              {mode === 'robust' && <li><a className="text-blue-600 hover:underline dark:text-blue-400" href="#timeline-next-steps">Continue the investigation</a></li>}
             </ul>
           </nav>
           <nav aria-label="Timeline events">

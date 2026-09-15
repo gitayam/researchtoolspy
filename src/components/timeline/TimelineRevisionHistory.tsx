@@ -42,7 +42,7 @@ export function TimelineRevisionHistory({ artifactId, identity }: { artifactId: 
     {busy && <p role="status" className="text-sm">Reading saved revision…</p>}
     {error && <p role="alert" className="rounded-md border border-amber-400 bg-amber-50 p-3 text-sm text-amber-950 dark:bg-amber-950 dark:text-amber-100">{error}</p>}
     {page && <>
-      <p className="text-xs text-muted-foreground">{revisions.length} revisions loaded · Newest first · Times in UTC</p>
+      <p className="text-xs text-muted-foreground">{revisions.length} revisions loaded · Latest first · Times in UTC</p>
       <ol className="max-h-80 space-y-2 overflow-y-auto rounded-md" aria-label="Saved revisions" tabIndex={0}>
         {revisions.map(revision => <li key={revision.revisionId} className="min-w-0 rounded-md border bg-background p-3">
           <div className="flex flex-wrap items-center gap-2"><strong className="text-sm">Revision {revision.sequence}</strong>{revision.revisionId === page.headRevisionId && <span className="rounded-full bg-violet-100 px-2 py-0.5 text-xs text-violet-950 dark:bg-violet-900 dark:text-violet-100">Head when loaded</span>}</div>
