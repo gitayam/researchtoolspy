@@ -14,6 +14,13 @@
     "pnpm run build",
     "git diff --check"
   ],
+  "deployment": {
+    "previewUrl": "https://9d961bd1.researchtoolspy.pages.dev",
+    "customDomain": "https://researchtools.net",
+    "httpStatus": 200,
+    "secretPreflight": "passed",
+    "anonymousMetering": "public"
+  },
   "remaining": [
     "circa dates",
     "clock mappings",

@@ -13,3 +13,8 @@ sharing behavior. Circa dates, clock mappings and extraction v2 remain pending.
 
 Validation: full workspace TypeScript checks, production build and `git diff
 --check` passed in the integration workspace.
+
+Deployment: Cloudflare Pages deployment `9d961bd1.researchtoolspy.pages.dev`
+completed from the accepted main source. The custom domain and deployment
+preview both returned HTTP 200 with bundled assets; the existing runtime
+secret and anonymous metering assertions passed.
