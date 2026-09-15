@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url'
 import {
   eventSortKey,
   hasTemporalDisagreement,
+  unknownIsInformative,
   validateTimePoint,
   workingOrEarliestPoint,
   type TemporalClaimV2,
@@ -89,7 +90,7 @@ test.describe('timeline-analysis.v2 contracts @smoke', () => {
     const precise = event('precise', [instant('2026-09-14T12:30:00.123', 'millisecond', { timezone: 'America/New_York' })])
     const disputed = event('disputed', [instant('2026-09-14', 'day'), instant('2026-09-15', 'day')])
     const relative = event('relative', [{ kind: 'relative', relation: 'after', anchorRef: 'circa' }])
-    const unknown = event('unknown', [{ kind: 'unknown', reason: 'source gave no date' }])
+    const unknown = event('unknown', [{ kind: 'unknown', basis: 'not_recorded' as const }])
 
     const projection = projectV2ToV1(response([approximate, precise, disputed, relative, unknown]))
 
@@ -122,7 +123,7 @@ test.describe('timeline-analysis.v2 contracts @smoke', () => {
   test('sorting is deterministic and never drops an undatable event', () => {
     const year = event('year', [instant('1979', 'year')])
     const day = event('day', [instant('1979-04-02', 'day')])
-    const unknown = event('unknown', [{ kind: 'unknown' }])
+    const unknown = event('unknown', [{ kind: 'unknown', basis: 'not_recorded' as const }])
 
     // A year sorts at the start of its year; it is ordering, not a claim about the time.
     expect(eventSortKey(year)).toBe('1979-01-01T00:00:00.000')
@@ -140,7 +141,7 @@ test.describe('timeline-analysis.v2 contracts @smoke', () => {
       event('circa', [instant('1979', 'year', { approximate: true })]),
       event('interval', [{ kind: 'interval', start: { value: '2026-09', precision: 'month' }, end: { value: '2026-10', precision: 'month' } }]),
       event('relative', [{ kind: 'relative', relation: 'after', anchorRef: 'instant' }]),
-      event('unknown', [{ kind: 'unknown', reason: 'source gave no date' }]),
+      event('unknown', [{ kind: 'unknown', basis: 'not_recorded' as const }]),
       {
         ...event('decided', [instant('2026-09-14', 'day'), instant('2026-09-15', 'day')]),
         workingTime: { claim: instant('2026-09-14', 'day'), citesAssertionIds: ['decided-a1'], rationale: 'Primary source' },
@@ -165,5 +166,38 @@ test.describe('timeline-analysis.v2 contracts @smoke', () => {
 
     // A v1 response is not a v2 response.
     expect(validate({ ...valid, schemaVersion: 'timeline-analysis.v1' })).toBe(false)
+  })
+
+  test('an unknown time says WHY, because the reasons are not interchangeable', () => {
+    // The distinction this exists for: nobody asked, versus they refused, versus they
+    // said they could not remember. v1 flattens all three into absence.
+    for (const basis of ['not_asked', 'declined', 'not_recalled', 'not_recorded'] as const) {
+      const doc = response([event('e', [{ kind: 'unknown', basis }])])
+      expect(validate(doc), `${basis}: ${JSON.stringify(validate.errors)}`).toBe(true)
+    }
+    // An untyped unknown is exactly the ambiguity being removed.
+    expect(validate(response([event('e', [{ kind: 'unknown' } as never])]))).toBe(false)
+    expect(validate(response([event('e', [{ kind: 'unknown', basis: 'shrugged' } as never])]))).toBe(false)
+  })
+
+  test('declining and failing to recall are evidence; nobody asking is not', () => {
+    // A refusal and a stated memory failure are positive acts by the person. An unasked
+    // question and a gap in our own record tell us nothing about them.
+    expect(unknownIsInformative('declined')).toBe(true)
+    expect(unknownIsInformative('not_recalled')).toBe(true)
+    expect(unknownIsInformative('not_asked')).toBe(false)
+    expect(unknownIsInformative('not_recorded')).toBe(false)
+  })
+
+  test('projecting an unknown to v1 names which unknown it was', () => {
+    const declined = projectV2ToV1(response([event('silent', [{ kind: 'unknown', basis: 'declined' }])]))
+    expect(declined.events).toHaveLength(0)
+    expect(declined.losses[0].kind).toBe('omitted-no-date')
+    // Without this, a v1 consumer cannot tell a refusal from an unasked question.
+    expect(declined.losses[0].detail).toContain('declined')
+
+    const unasked = projectV2ToV1(response([event('untouched', [{ kind: 'unknown', basis: 'not_asked' }])]))
+    expect(unasked.losses[0].detail).toContain('not_asked')
+    expect(unasked.losses[0].detail).not.toContain('declined')
   })
 })

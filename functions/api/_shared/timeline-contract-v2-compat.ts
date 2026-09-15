@@ -71,10 +71,15 @@ export function projectV2ToV1(response: TimelineAnalysisResponseV2): V1Projectio
   for (const event of response.events) {
     const point = workingOrEarliestPoint(event)
     if (!point) {
+      // Name the basis. v1 flattens every unknown into absence, but "nobody asked" and
+      // "they declined to say" are not the same fact, and a caller deciding what to do
+      // with the omission needs to know which it was.
+      const claim = event.workingTime?.claim ?? event.assertions[0]?.claim
+      const basis = claim && claim.kind === 'unknown' ? ` Basis: ${claim.basis}.` : ''
       losses.push({
         eventId: event.id,
         kind: 'omitted-no-date',
-        detail: 'Relative or unknown time has no v1 representation; the event is omitted rather than given an invented date.',
+        detail: `Relative or unknown time has no v1 representation; the event is omitted rather than given an invented date.${basis}`,
       })
       continue
     }

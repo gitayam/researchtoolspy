@@ -53,11 +53,28 @@ export interface TimePointV2 {
   approximate?: boolean
 }
 
+/**
+ * Why a time is unknown. Required, because an untyped unknown collapses distinctions the
+ * record depends on: the roadmap's rule that "not observed" must stay different from
+ * "observed absent" and "not collected" applies with particular force to testimony.
+ *
+ * - `not_asked`    — the question was never put. Silence is not an answer, and an account
+ *                    that never covered a topic must never read as one that omitted it.
+ * - `declined`     — asked, and the answer was withheld. This is a positive act with its
+ *                    own legal weight and must never be recorded as ignorance.
+ * - `not_recalled` — asked, and the person stated they do not know or remember. This is a
+ *                    claim ABOUT memory, and it is evidence in its own right.
+ * - `not_recorded` — an answer may have been given, but the source document does not
+ *                    capture it. This separates a gap in our record from a gap in theirs.
+ */
+export const UNKNOWN_BASES = ['not_asked', 'declined', 'not_recalled', 'not_recorded'] as const
+export type UnknownBasis = typeof UNKNOWN_BASES[number]
+
 export type TemporalClaimV2 =
   | { kind: 'instant'; at: TimePointV2 }
   | { kind: 'interval'; start: TimePointV2; end: TimePointV2 }
   | { kind: 'relative'; relation: 'before' | 'after' | 'during'; anchorRef: string; displayText?: string }
-  | { kind: 'unknown'; displayText?: string; reason?: string }
+  | { kind: 'unknown'; basis: UnknownBasis; displayText?: string; note?: string }
 
 /**
  * Where in the source a claim came from. `text-quote` is preferred because it survives
@@ -101,6 +118,17 @@ export interface TimelineAnalysisResponseV2 {
   events: TimelineEventV2[]
   extraction: unknown
   model: unknown
+}
+
+export function isUnknownBasis(value: unknown): value is UnknownBasis {
+  return typeof value === 'string' && (UNKNOWN_BASES as readonly string[]).includes(value)
+}
+
+/** True when an unknown time carries information rather than merely lacking it. */
+export function unknownIsInformative(basis: UnknownBasis): boolean {
+  // Someone declining, or stating they cannot recall, told us something. Nobody asking,
+  // or our own record failing to capture it, did not.
+  return basis === 'declined' || basis === 'not_recalled'
 }
 
 export function isTimePrecision(value: unknown): value is TimePrecision {

@@ -32,6 +32,33 @@ v2 replaces the pair with a temporal claim and a list of source assertions. Two 
 
 A claim is one of `instant`, `interval`, `relative` or `unknown`. An absent `timezone` means the source did not state one, which is **not** the same as UTC — v2 never infers a zone. `approximate: true` marks a circa date. `displayText` preserves the source's own wording for display while the `value` carries the normalised form used for sorting.
 
+### Why an unknown time must say which unknown it is
+
+`unknown` carries a required `basis`, because the reasons are not interchangeable and
+flattening them loses the fact worth keeping:
+
+| `basis` | Means | Why it is not the others |
+|---|---|---|
+| `not_asked` | The question was never put | Silence is not an answer. An account that never covered a topic must never read as one that omitted it. |
+| `declined` | Asked, and the answer was withheld | A positive act with its own weight. Recording it as ignorance misstates what happened. |
+| `not_recalled` | Asked, and the person stated they do not know | A claim *about memory*, and evidence in its own right. |
+| `not_recorded` | An answer may exist; our source does not capture it | Separates a gap in our record from a gap in theirs. |
+
+This is the roadmap's own rule — *"Not observed" must remain different from "observed
+absent" and "not collected"* — applied to accounts rather than collection. It matters most
+where a timeline is assembled from testimony: *"he never mentioned the weapon"* means
+nothing if nobody asked him about the weapon.
+
+`unknownIsInformative(basis)` distinguishes the two that tell you something about the
+person (`declined`, `not_recalled`) from the two that tell you something about the process
+(`not_asked`, `not_recorded`). Projection to v1 omits the event either way — v1 has no
+representation for any of them — but the reported loss names the basis, so a v1 consumer
+can tell a refusal from an unasked question rather than seeing an undifferentiated gap.
+
+A caveat that belongs in the contract rather than a UI guideline: none of these is a
+credibility signal. Inconsistency and gaps are ordinary features of truthful accounts, and
+any consumer that scores or ranks people on them is misusing the field.
+
 ### Evidence locators
 
 A locator says where in the retrieved source a claim came from. Prefer `text-quote`: it survives reformatting. `text-position` offsets are only meaningful against the exact retrieved content they were computed from, so they should not be stored against content that may be re-fetched. `page` and `media-timestamp` cover paginated and time-based sources.
