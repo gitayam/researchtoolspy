@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { CreatedNotice } from '@/components/ui/created-notice'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
@@ -15,7 +16,8 @@ import {
   Clock,
   AlertCircle,
   Trash2,
-  Archive
+  Archive,
+  X
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -41,6 +43,15 @@ export function BatchProcessingPage() {
   const [urlsText, setUrlsText] = useState('')
   const [processing, setProcessing] = useState(false)
   const [result, setResult] = useState<BatchJob | null>(null)
+  /** One transient status line for the page's actions. Every one of these was
+   *  an alert(), which blocks the results the reader is acting on. */
+  const [notice, setNotice] = useState<{ kind: 'info' | 'error'; text: string } | null>(null)
+  /** A dataset that was just created, so the page can link to it without
+   *  navigating the reader away from results they cannot get back. */
+  const [createdDataset, setCreatedDataset] = useState<{ id: string | number } | null>(null)
+  /** The generated summary, kept here when the clipboard refuses it, so the
+   *  reader can select it themselves instead of reading it inside a dialog. */
+  const [summaryFallback, setSummaryFallback] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   // Options
@@ -67,7 +78,7 @@ export function BatchProcessingPage() {
       setTimeout(() => setCopied(false), 2000)
     } catch (error) {
       console.error('Failed to copy:', error)
-      alert('Failed to copy to clipboard')
+      setNotice({ kind: 'error', text: 'Your browser would not let the page copy that. Select it and copy manually.' })
     }
   }
 
@@ -182,7 +193,7 @@ export function BatchProcessingPage() {
 
     const successfulItems = result.items.filter(item => item.status === 'success' && item.result)
     if (successfulItems.length === 0) {
-      alert('No successful results to create citations from')
+      setNotice({ kind: 'error', text: 'Nothing succeeded, so there is nothing to make citations from.' })
       return
     }
 
@@ -234,9 +245,9 @@ export function BatchProcessingPage() {
     if (createdCitations.length > 0) {
       setGeneratedCitations(createdCitations)
       setShowCitations(true)
-      alert(`${createdCitations.length} citation(s) created and displayed below!`)
+      setNotice({ kind: 'info', text: `${createdCitations.length} citation${createdCitations.length === 1 ? '' : 's'} created — they are listed below.` })
     } else {
-      alert('Could not create citations from these results. Try using URLs with better metadata.')
+      setNotice({ kind: 'error', text: 'None of these results carried enough metadata to cite — a citation needs at least a title.' })
     }
   }
 
@@ -245,7 +256,7 @@ export function BatchProcessingPage() {
 
     const successfulItems = result.items.filter(item => item.status === 'success')
     if (successfulItems.length === 0) {
-      alert('No successful results to save')
+      setNotice({ kind: 'error', text: 'Nothing succeeded, so there is nothing to save.' })
       return
     }
 
@@ -280,21 +291,20 @@ export function BatchProcessingPage() {
 
       if (response.ok) {
         const { dataset: created } = await response.json()
-        if (confirm(`Dataset created successfully! ID: ${created.id}\n\nGo to Dataset Library?`)) {
-          navigate('/dashboard/datasets')
-        }
+        // Was a confirm() whose "OK" navigated to the Dataset Library — off a
+        // page whose results are held in memory and cannot be recovered by
+        // coming back. The notice links there in a new tab instead.
+        setCreatedDataset({ id: created.id })
       } else {
         throw new Error('Failed to create dataset')
       }
     } catch (error) {
       console.error('Dataset creation error:', error)
-      alert('Failed to save as dataset. Please try again.')
+      setNotice({ kind: 'error', text: 'Could not save these results as a dataset. Your results are still here — try again.' })
     }
   }
 
-  const addToEvidence = () => {
-    alert('Add to Evidence feature coming in Phase 3!\n\nThis will allow you to convert batch results into evidence items with claims.')
-  }
+
 
   const generateSummary = () => {
     if (!result) return
@@ -302,7 +312,7 @@ export function BatchProcessingPage() {
     const successful = result.items.filter(i => i.status === 'success' && i.result)
 
     if (successful.length === 0) {
-      alert('No successful results to summarize')
+      setNotice({ kind: 'error', text: 'Nothing succeeded, so there is nothing to summarise.' })
       return
     }
 
@@ -398,11 +408,15 @@ export function BatchProcessingPage() {
     summary += `  Duration: ${((result.duration || 0) / 1000).toFixed(1)}s\n`
 
     // Copy to clipboard
+    setSummaryFallback(null)
     navigator.clipboard.writeText(summary).then(() => {
-      alert('Content summary copied to clipboard!')
+      setNotice({ kind: 'info', text: 'Content summary copied to your clipboard.' })
     }).catch(() => {
-      // Fallback: show in alert
-      alert(summary)
+      // Was alert(summary) — a whole report rendered inside a browser dialog,
+      // where it cannot be scrolled usefully, selected in part, or kept. Put it
+      // on the page so the reader can take it themselves.
+      setNotice({ kind: 'error', text: 'Your browser would not let the page copy that. The summary is below — select it and copy.' })
+      setSummaryFallback(summary)
     })
   }
 
@@ -442,6 +456,65 @@ export function BatchProcessingPage() {
           <p className="text-gray-600 dark:text-gray-400">{t('batchProcessingTool.subtitle')}</p>
         </div>
       </div>
+
+      {notice && (
+        <div
+          className={
+            notice.kind === 'error'
+              ? 'flex items-start justify-between gap-3 rounded-lg border border-red-200 bg-red-50 p-3 dark:border-red-800 dark:bg-red-900/20'
+              : 'flex items-start justify-between gap-3 rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-900/20'
+          }
+          role="status"
+          aria-live="polite"
+        >
+          <p
+            className={
+              notice.kind === 'error'
+                ? 'text-sm text-red-800 dark:text-red-200'
+                : 'text-sm text-blue-900 dark:text-blue-100'
+            }
+          >
+            {notice.text}
+          </p>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="shrink-0"
+            onClick={() => setNotice(null)}
+            aria-label="Dismiss"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
+
+      {createdDataset && (
+        <CreatedNotice
+          title="Saved these results as a dataset"
+          detail={`Dataset ${createdDataset.id}. Your batch results are still on this page.`}
+          href="/dashboard/datasets"
+          linkLabel="Open the Dataset Library"
+          onDismiss={() => setCreatedDataset(null)}
+        />
+      )}
+
+      {summaryFallback && (
+        <div className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm font-medium">Content summary</p>
+            <Button type="button" variant="ghost" size="sm" onClick={() => setSummaryFallback(null)} aria-label="Dismiss">
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          <textarea
+            readOnly
+            value={summaryFallback}
+            onFocus={(e) => e.currentTarget.select()}
+            className="mt-2 h-64 w-full rounded border border-gray-200 bg-gray-50 p-2 font-mono text-xs dark:border-gray-700 dark:bg-gray-900"
+          />
+        </div>
+      )}
 
       {/* Configuration Card */}
       <Card>
@@ -662,11 +735,13 @@ export function BatchProcessingPage() {
                     <Download className="h-4 w-4 mr-2" />
                     {t('batchProcessingTool.saveAsDataset')}
                   </Button>
+                  {/* Not built. A button whose only behaviour is to announce
+                      that it has no behaviour should not open a dialog to do it. */}
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={addToEvidence}
-                    disabled={result.succeeded === 0}
+                    disabled
+                    title="Not built yet. Save as a dataset, or create citations, and work from those."
                   >
                     <Archive className="h-4 w-4 mr-2" />
                     {t('batchProcessingTool.addToEvidence')}

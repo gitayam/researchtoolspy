@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { ArrowLeft, Edit, Trash2, Link2, Plus, ExternalLink, MoreVertical, BookOpen, Trash, Network } from 'lucide-react'
+import { ArrowLeft, Edit, Trash2, Link2, Plus, ExternalLink, MoreVertical, BookOpen, Trash, Network, X} from 'lucide-react'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
 import { getCopHeaders } from '@/lib/cop-auth'
 import { createLogger } from '@/lib/logger'
@@ -85,15 +86,6 @@ export function GenericFrameworkView({
   // saving and deleting silently no-op. Same defect as the ACH page.
   const frameworkWorkspaceId = data?.workspace_id ?? currentWorkspaceId
 
-  // Guard against undefined data (e.g. analysis deleted or not yet loaded)
-  if (!data || !data.id) {
-    return (
-      <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">
-        Analysis not found or still loading...
-      </div>
-    )
-  }
-
   // Determine framework type
   const frameworkType = frameworkTitle.toLowerCase().includes('cog') ? 'cog' :
                         frameworkTitle.toLowerCase().includes('pmesii') ? 'pmesii-pt' :
@@ -109,6 +101,12 @@ export function GenericFrameworkView({
 
   // Evidence linking state
   const [linkedEvidence, setLinkedEvidence] = useState<LinkedEvidence[]>([])
+  /** Something the reader asked for did not work. These were alert() calls,
+   *  which block the analysis the message is about. */
+  const [actionError, setActionError] = useState<string | null>(null)
+  /** A citation removal awaiting confirmation. Was a confirm(), whose Escape
+   *  and Cancel are indistinguishable and which blocks the item it names. */
+  const [pendingCitationRemoval, setPendingCitationRemoval] = useState<{ sectionKey: string; itemId: string } | null>(null)
   const [showEvidenceLinker, setShowEvidenceLinker] = useState(false)
   const [showEvidencePanel, setShowEvidencePanel] = useState(false)
   const [showEntityCreate, setShowEntityCreate] = useState(false)
@@ -131,7 +129,7 @@ export function GenericFrameworkView({
   // Load linked evidence on mount
   useEffect(() => {
     const loadLinkedEvidence = async () => {
-      if (!data.id) return
+      if (!data?.id) return
 
       try {
         const response = await fetch(`/api/framework-evidence?framework_id=${data.id}&workspace_id=${frameworkWorkspaceId}`, {
@@ -167,11 +165,11 @@ export function GenericFrameworkView({
     }
 
     loadLinkedEvidence()
-  }, [data.id])
+  }, [data?.id])
 
   // Generate relationships based on framework type and linked evidence
   useEffect(() => {
-    if (!frameworkTypeForRelationships || linkedEvidence.length === 0) {
+    if (!data || !frameworkTypeForRelationships || linkedEvidence.length === 0) {
       setGeneratedRelationships([])
       return
     }
@@ -206,6 +204,20 @@ export function GenericFrameworkView({
     setGeneratedRelationships(relationships)
   }, [linkedEvidence, frameworkTypeForRelationships, data])
 
+  // Every hook above runs unconditionally, and this guard sits below them on
+  // purpose. It used to be the first thing in the component, which meant the
+  // loading render called no hooks and the loaded render called twelve — the
+  // exact shape React's rules-of-hooks rule exists to catch, and a real fault:
+  // hook state is positional, so a component that changes how many it calls
+  // between renders reads the wrong slots or throws outright.
+  if (!data || !data.id) {
+    return (
+      <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">
+        Analysis not found or still loading...
+      </div>
+    )
+  }
+
   const handleLinkEvidence = async (selected: LinkedEvidence[]) => {
     if (!data.id) return
 
@@ -227,13 +239,13 @@ export function GenericFrameworkView({
         setLinkedEvidence(prev => [...prev, ...selected])
         logger.info('Evidence linked successfully')
       } else {
-        const error = await response.json().catch((e) => { console.error('[GenericFrameworkView] JSON parse error:', e); return { error: 'Unknown error' } })
+        const error = await response.json().catch((e) => { console.error('[GenericFrameworkView] JSON parse error:', e); return { error: null } })
         logger.error('Failed to link evidence:', error)
-        alert('Failed to link evidence. Please try again.')
+        setActionError(error?.error || 'Could not link that evidence. Your analysis is unchanged.')
       }
     } catch (error) {
       console.error('Error linking evidence:', error)
-      alert('An error occurred while linking evidence.')
+      setActionError('Could not link that evidence. Check your connection and try again.')
     }
   }
 
@@ -255,13 +267,13 @@ export function GenericFrameworkView({
         )
         logger.info('Evidence unlinked successfully')
       } else {
-        const error = await response.json().catch((e) => { console.error('[GenericFrameworkView] JSON parse error:', e); return { error: 'Unknown error' } })
+        const error = await response.json().catch((e) => { console.error('[GenericFrameworkView] JSON parse error:', e); return { error: null } })
         logger.error('Failed to unlink evidence:', error)
-        alert('Failed to unlink evidence. Please try again.')
+        setActionError(error?.error || 'Could not unlink that evidence. Your analysis is unchanged.')
       }
     } catch (error) {
       console.error('Error unlinking evidence:', error)
-      alert('An error occurred while unlinking evidence.')
+      setActionError('Could not unlink that evidence. Check your connection and try again.')
     }
   }
 
@@ -338,7 +350,7 @@ export function GenericFrameworkView({
 
     } catch (error) {
       console.error('Error saving citation:', error)
-      alert('Failed to save citation. Please try again.')
+      setActionError('Could not save that citation. Your analysis is unchanged — try again.')
     } finally {
       setShowCitationPicker(false)
       setSelectedItemForCitation(null)
@@ -346,7 +358,7 @@ export function GenericFrameworkView({
   }
 
   const handleRemoveCitation = async (sectionKey: string, itemId: string) => {
-    if (!confirm('Remove citation from this item?') || !data.id) return
+    if (!data.id) return
 
     try {
       // Clone the framework data
@@ -387,7 +399,7 @@ export function GenericFrameworkView({
 
     } catch (error) {
       console.error('Error removing citation:', error)
-      alert('Failed to remove citation. Please try again.')
+      setActionError('Could not remove that citation. It is still attached — try again.')
     }
   }
 
@@ -486,7 +498,7 @@ export function GenericFrameworkView({
                                   Change Citation
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
-                                  onClick={() => handleRemoveCitation(sectionKey, item.id)}
+                                  onClick={() => setPendingCitationRemoval({ sectionKey, itemId: item.id })}
                                   className="text-red-600 dark:text-red-400"
                                 >
                                   <Trash className="h-4 w-4 mr-2" />
@@ -1052,6 +1064,47 @@ export function GenericFrameworkView({
           window.open('/dashboard/tools/citations-generator', '_blank')
         }}
       />
+
+      {actionError && (
+        <div
+          className="flex items-start justify-between gap-3 rounded-lg border border-red-200 bg-red-50 p-3 dark:border-red-800 dark:bg-red-900/20"
+          role="alert"
+        >
+          <p className="text-sm text-red-800 dark:text-red-200">{actionError}</p>
+          <Button type="button" variant="ghost" size="sm" className="shrink-0" onClick={() => setActionError(null)} aria-label="Dismiss">
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
+
+      <AlertDialog
+        open={pendingCitationRemoval !== null}
+        onOpenChange={(open) => { if (!open) setPendingCitationRemoval(null) }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove this citation?</AlertDialogTitle>
+            <AlertDialogDescription>
+              The citation is detached from this item. The source itself stays in your
+              citation library, so you can attach it again.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep it</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(event) => {
+                event.preventDefault()
+                const target = pendingCitationRemoval
+                setPendingCitationRemoval(null)
+                if (target) void handleRemoveCitation(target.sectionKey, target.itemId)
+              }}
+            >
+              Remove citation
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </div>
   )
 }
