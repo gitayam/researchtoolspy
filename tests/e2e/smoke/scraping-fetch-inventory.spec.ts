@@ -47,7 +47,7 @@ const entries: InventoryEntry[] = [
   { id: 'INV-004', file: 'functions/api/tools/extract.ts', status: 'safe-document', evidence: /safeFetchDocument\(body\.url,/, typecheck: 'root' },
   { id: 'INV-005', file: 'functions/api/tools/extract-claims.ts', status: 'safe-multi-source', evidence: /fetchArchivePhSource\(url,/, forbidden: [/enhancedFetch\(/, /await fetch\(/, /cdn\.ampproject\.org/, /webcache\.googleusercontent\.com/], typecheck: 'root' },
   { id: 'INV-006', file: 'functions/api/tools/extract-timeline.ts', status: 'safe-multi-source', evidence: /scrapeUrl\(url, undefined, \{ purpose: 'timeline', allowArchives: true \}\)/, forbidden: [/enhancedFetch\(/, /renderArticleFallback/, /BROWSER_RENDERER/], typecheck: 'root' },
-  { id: 'INV-007', file: 'functions/api/ai/scrape-url.ts', status: 'safe-multi-source', evidence: /safeFetchText\(normalizedUrl,/, forbidden: [/fetch\(url[,)]/], typecheck: 'root' },
+  { id: 'INV-007', file: 'functions/api/ai/scrape-url.ts', status: 'safe-multi-source', evidence: /scrapeUrl\(normalizedUrl, context\.env\.APIFY_API_KEY, \{\s*purpose: 'framework',\s*allowArchives: false,\s*\}\)/, forbidden: [/fetch\(url[,)]/, /function extractTextFromHTML/, /allowArchives: true/], typecheck: 'root' },
   { id: 'INV-008', file: 'functions/api/content-intelligence/analyze-url.ts', status: 'safe-multi-source', evidence: /safeFetchText\(resolvedUrl,/, typecheck: 'root' },
   { id: 'INV-009', file: 'functions/api/content-intelligence/saved-links.ts', status: 'safe-text', evidence: /safeFetchText\(url,/, typecheck: 'root' },
   { id: 'INV-010', file: 'functions/api/content-intelligence/twitter-image-proxy.ts', status: 'safe-image', evidence: /reserveArchiveWrite\(env\.CACHE, clientId\)/, typecheck: 'root' },

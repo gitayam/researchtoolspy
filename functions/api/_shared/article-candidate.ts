@@ -6,6 +6,7 @@ export type ArticleAnalysisPurpose =
   | 'claims'
   | 'timeline'
   | 'rage-check'
+  | 'framework'
   | 'enrichment'
 
 export const ARTICLE_CANDIDATE_POLICY_VERSION = 'analysis-candidate.v1' as const
@@ -39,6 +40,15 @@ export const ARTICLE_CANDIDATE_POLICIES: Record<ArticleAnalysisPurpose, ArticleC
   },
   'rage-check': {
     version: ARTICLE_CANDIDATE_POLICY_VERSION, purpose: 'rage-check',
+    minimumWords: 80, minimumStructuredWords: 40, minimumSocialWords: 8,
+  },
+  // Framework auto-population reads the same mixed corpus rage-check does — news
+  // articles and social posts alike — so it takes the same thresholds rather than
+  // inventing different ones without evidence to set them by. It is a separate
+  // purpose because the assessment travels back to the caller in `quality.policy`,
+  // and a gate labelled for another feature would misreport which rule was applied.
+  framework: {
+    version: ARTICLE_CANDIDATE_POLICY_VERSION, purpose: 'framework',
     minimumWords: 80, minimumStructuredWords: 40, minimumSocialWords: 8,
   },
   enrichment: {

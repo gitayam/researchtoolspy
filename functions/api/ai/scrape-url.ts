@@ -8,8 +8,9 @@ import { callOpenAIViaGateway, getOptimalCacheTTL, wrapUntrustedContent } from '
 import { stripModelFence } from '../_shared/ai-gateway'
 import { JSON_HEADERS } from '../_shared/api-utils'
 import { getUserFromRequest } from '../_shared/auth-helpers'
-import { fetchSocialViaApify, isApifySupportedUrl } from '../_shared/apify-social'
-import { parseSafeOutboundUrl, SafeFetchError, safeFetchText } from '../_shared/safe-fetch'
+import type { ArticleCandidateRejectionReason } from '../_shared/article-candidate'
+import { parseSafeOutboundUrl } from '../_shared/safe-fetch'
+import { scrapeUrl } from '../_shared/scraper-utils'
 
 interface Env {
   DB: D1Database
@@ -84,79 +85,112 @@ interface ScrapeResponse {
   }
 }
 
-interface TwitterOEmbed {
-  html?: string
-  author_name?: string
-}
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-function safeFetchFailureResponse(error: SafeFetchError): Response {
-  if (error.code === 'timeout') {
+/**
+ * Turn the shared scraper's verdict into this route's long-standing error envelope.
+ *
+ * The distinction worth preserving is between "we could not get the page" and "we
+ * got a page and it was not an article". The second case used to be invisible here:
+ * a paywall interstitial or a cookie wall is a 200 with a body, so it was scraped,
+ * summarised and extracted as though it were the story. Saying so costs the reader
+ * one honest failure instead of a framework quietly populated from a login screen.
+ */
+function scrapeRejectionResponse(
+  reason: ArticleCandidateRejectionReason | undefined,
+  errorCode: string | undefined,
+): Response {
+  if (reason === 'login_or_paywall') {
+    return new Response(JSON.stringify({
+      error: 'The page is behind a login or paywall',
+      errorType: 'blocked',
+      suggestions: [
+        'Open the URL in your browser and paste the article text instead',
+        'Try a syndicated copy of the same story from an open source',
+        'The publisher may offer the piece without a wall on a different path',
+      ],
+      technicalDetails: 'Retrieved content did not pass the article quality gate: login_or_paywall',
+    }), { status: 403, headers: JSON_HEADERS })
+  }
+
+  if (reason === 'too_short' || reason === 'empty' || reason === 'placeholder' || reason === 'extractor_rejected') {
+    return new Response(JSON.stringify({
+      error: 'There was not enough article text on that page to analyse',
+      errorType: 'insufficient_content',
+      suggestions: [
+        'Link to the article itself rather than a section or index page',
+        'Pages that assemble their text in the browser cannot be read here',
+        'Paste the content directly if the page will not yield it',
+      ],
+      technicalDetails: `Retrieved content did not pass the article quality gate: ${reason}`,
+    }), { status: 422, headers: JSON_HEADERS })
+  }
+
+  if (errorCode === 'timeout') {
     return new Response(JSON.stringify({
       error: 'The website took too long to respond',
       errorType: 'timeout',
       suggestions: [
         'Try again - the site might be temporarily slow',
         'Check if the URL is accessible in your browser',
-        'The website might have anti-bot protection'
+        'The website might have anti-bot protection',
       ],
-      technicalDetails: 'Request timeout after 15 seconds'
+      technicalDetails: 'Request timed out',
     }), { status: 504, headers: JSON_HEADERS })
   }
 
-  if (error.code === 'network_error') {
+  // Everything the outbound policy refuses keeps the 400 the adapter always
+  // returned: an address, a redirect chain, a response size or a content type
+  // that this route will not fetch is a problem with the request, not the site.
+  if (
+    errorCode === 'policy_denied'
+    || errorCode === 'dns_denied'
+    || errorCode === 'redirect_limit'
+    || errorCode === 'response_too_large'
+    || errorCode === 'unsupported_content_type'
+  ) {
     return new Response(JSON.stringify({
-      error: 'Unable to connect to the website',
-      errorType: 'network',
-      suggestions: ['Verify the URL is correct and accessible', 'Try again later']
-    }), { status: 502, headers: JSON_HEADERS })
+      error: 'The website response could not be safely processed',
+      errorType: 'invalid_url',
+      suggestions: ['Use a public HTTP or HTTPS page with a bounded HTML response'],
+      technicalDetails: `Outbound policy refused the request: ${errorCode}`,
+    }), { status: 400, headers: JSON_HEADERS })
   }
 
-  const configurationError = error.code === 'unsafe_method'
-    || error.code === 'unsafe_headers'
-    || error.code === 'invalid_options'
+  if (errorCode === 'rate_limited') {
+    return new Response(JSON.stringify({
+      error: 'The website is rate-limiting automated access',
+      errorType: 'rate_limited',
+      suggestions: ['Wait a few minutes and try again'],
+      technicalDetails: 'Upstream returned HTTP 429',
+    }), { status: 429, headers: JSON_HEADERS })
+  }
+
+  if (errorCode === 'upstream_4xx') {
+    return new Response(JSON.stringify({
+      error: 'The page was not found or is not available',
+      errorType: 'http_error',
+      suggestions: [
+        'Check if the URL is correct',
+        'The page might have been moved or deleted',
+        'Try searching for the content on the website',
+      ],
+      technicalDetails: 'Upstream returned a 4xx response',
+    }), { status: 404, headers: JSON_HEADERS })
+  }
+
   return new Response(JSON.stringify({
-    error: configurationError
-      ? 'The scraper request policy is misconfigured'
-      : 'The website response could not be safely processed',
-    errorType: configurationError ? 'configuration' : 'invalid_url',
-    suggestions: configurationError
-      ? ['Contact support if this problem continues']
-      : ['Use a public HTTP or HTTPS page with a bounded HTML response']
-  }), { status: configurationError ? 500 : 400, headers: JSON_HEADERS })
-}
-
-// Simple HTML to text extraction
-function extractTextFromHTML(html: string): { title: string; content: string } {
-  // Remove script and style tags
-  let text = html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-  text = text.replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
-
-  // Extract title
-  const titleMatch = text.match(/<title[^>]*>([^<]+)<\/title>/i)
-  const title = titleMatch ? titleMatch[1].trim() : 'Untitled'
-
-  // Remove HTML tags
-  text = text.replace(/<[^>]+>/g, ' ')
-
-  // Decode HTML entities
-  text = text.replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-
-  // Clean up whitespace
-  text = text.replace(/\s+/g, ' ').trim()
-
-  // Limit length to 100KB
-  const content = text.substring(0, 100000)
-
-  return { title, content }
+    error: 'Unable to connect to the website',
+    errorType: 'network',
+    suggestions: [
+      'Verify the URL is correct and accessible in your browser',
+      'The website server might be having issues',
+      'Try again later',
+    ],
+    ...(errorCode ? { technicalDetails: `Scrape failed: ${errorCode}` } : {}),
+  }), { status: 502, headers: JSON_HEADERS })
 }
 
 // Framework-specific extraction prompts
@@ -387,7 +421,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
     const normalizedUrl = parsedUrl.href
-    const socialPlatform = isApifySupportedUrl(normalizedUrl)
 
     // KV Cache Check - save costs by caching AI responses
     // Include language in cache key so different languages are cached separately
@@ -401,133 +434,27 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
 
 
-    let content = ''
-    let title = ''
-    let html = ''
+    // One scraper, one quality gate. This route used to carry its own
+    // Apify -> oEmbed -> fetch -> regex-extract chain: a second implementation of
+    // the shared one, minus the archive fallbacks and minus any check that what
+    // came back was an article at all. A login wall is a 200 with a body, so the
+    // old path handed "Subscribe to continue reading" to three separate model
+    // calls and populated a framework from the result.
+    // Archives stay off. They are the shared scraper's opt-in because reaching one
+    // discloses the reader's URL to a third party, and this route has never done
+    // that — widening its outbound surface is a policy decision, not a side effect
+    // of sharing an implementation. The quality gate is the part that was missing.
+    const scraped = await scrapeUrl(normalizedUrl, context.env.APIFY_API_KEY, {
+      purpose: 'framework',
+      allowArchives: false,
+    })
 
-    // 1. Try Apify for Twitter/X and TikTok (richer content with engagement data)
-    if (context.env.APIFY_API_KEY && socialPlatform) {
-      try {
-        const socialResult = await fetchSocialViaApify(normalizedUrl, context.env.APIFY_API_KEY)
-        if (socialResult?.success && socialResult.text.length > 20) {
-          content = socialResult.text
-          title = socialResult.title || `${socialResult.platform} post`
-        }
-      } catch (e) {
-        console.error('[Scrape] Apify social extraction failed:', e)
-      }
+    if (scraped.error || !scraped.content.trim()) {
+      return scrapeRejectionResponse(scraped.quality?.reason, scraped.quality?.errorCode)
     }
 
-    // 2. Fallback: Twitter/X oEmbed (no API key needed, limited content)
-    if (!content) {
-      if (socialPlatform === 'twitter') {
-        try {
-          const twitterUrl = normalizedUrl.replace('https://x.com/', 'https://twitter.com/')
-          const oembedUrl = `https://publish.twitter.com/oembed?url=${encodeURIComponent(twitterUrl)}`
-          const oembed = await safeFetchText(oembedUrl, {
-            timeoutMs: 10_000,
-            maxRedirects: 2,
-            maxResponseBytes: 128 * 1024,
-            allowedHostnames: ['publish.twitter.com'],
-            allowedContentTypes: ['application/json'],
-          })
-          const twitterResponse = oembed.response
-
-          if (twitterResponse.ok) {
-            const data = JSON.parse(oembed.text) as TwitterOEmbed
-            html = data.html || ''
-
-            // Extract text from blockquote
-            const pMatch = html.match(/<p[^>]*>(.*?)<\/p>/)
-            if (pMatch && pMatch[1]) {
-              content = pMatch[1]
-                .replace(/<br\s*\/?>/g, '\n')
-                .replace(/<[^>]+>/g, '')
-                .replace(/&amp;/g, '&')
-                .replace(/&lt;/g, '<')
-                .replace(/&gt;/g, '>')
-                .replace(/&quot;/g, '"')
-                .replace(/&#39;/g, "'")
-                .trim()
-            }
-            title = `Tweet by ${data.author_name}`
-          }
-        } catch (e) {
-          console.error('[Scrape] Twitter oEmbed failed:', e)
-        }
-      }
-    }
-
-    // 2. Standard Fetch (if content not already extracted)
-    if (!content) {
-      let response: Response
-      try {
-        const fetched = await safeFetchText(normalizedUrl, {
-          timeoutMs: 15_000,
-          maxRedirects: 5,
-          maxResponseBytes: 2 * 1024 * 1024,
-          requestInit: {
-            headers: {
-              'User-Agent': 'Mozilla/5.0 (compatible; ResearchToolsBot/1.0)',
-              'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,text/plain;q=0.8'
-            }
-          }
-        })
-        response = fetched.response
-        html = fetched.text
-      } catch (fetchError) {
-        if (fetchError instanceof SafeFetchError) return safeFetchFailureResponse(fetchError)
-        throw fetchError
-      }
-
-      if (!response.ok) {
-        let userMessage = 'Failed to access the website'
-        let suggestions: string[] = []
-
-        if (response.status === 403 || response.status === 401) {
-          userMessage = 'The website is blocking automated access'
-          suggestions = [
-            'This website has anti-bot protection',
-            'Try accessing the URL directly in your browser',
-            'The content may require authentication',
-            'Consider manually copying the content instead'
-          ]
-        } else if (response.status === 404) {
-          userMessage = 'The page was not found'
-          suggestions = [
-            'Check if the URL is correct',
-            'The page might have been moved or deleted',
-            'Try searching for the content on the website'
-          ]
-        } else if (response.status >= 500) {
-          userMessage = 'The website server is having issues'
-          suggestions = [
-            'Try again later - the server might be temporarily down',
-            'Check if the website is accessible in your browser',
-            'The website might be experiencing technical difficulties'
-          ]
-        } else {
-          suggestions = [
-            'Try again later',
-            'Check if the URL is correct and accessible'
-          ]
-        }
-
-        return new Response(JSON.stringify({
-          error: userMessage,
-          errorType: 'http_error',
-          suggestions,
-          technicalDetails: `HTTP ${response.status} ${response.statusText}`
-        }), {
-          status: response.status,
-          headers: JSON_HEADERS
-        })
-      }
-
-      const extracted = extractTextFromHTML(html)
-      title = extracted.title
-      content = extracted.content
-    }
+    const title = scraped.title
+    const content = scraped.content
     
 
     // Generate citation from URL metadata
@@ -548,21 +475,26 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       publisher: undefined
     }
 
-    // Try to extract publish date and author from content if available
-    // This is a simple extraction - could be enhanced with better metadata parsing
-    const publishDateMatch = content.match(/published[:\s]+(\w+\s+\d+,?\s+\d{4})/i)
-    if (publishDateMatch) {
-      const dateStr = publishDateMatch[1]
-      try {
-        const pubDate = new Date(dateStr)
-        if (!isNaN(pubDate.getTime())) {
-          citationFields.year = pubDate.getFullYear().toString()
-          citationFields.month = (pubDate.getMonth() + 1).toString().padStart(2, '0')
-          citationFields.day = pubDate.getDate().toString().padStart(2, '0')
-        }
-      } catch {
-        // Keep default date
+    // Prefer the publication date the extractor read from the page's own metadata.
+    // The fallback below scans prose for "Published: ..."; the default before either
+    // is today, which is the date we fetched the page and not the date it was
+    // written — a 2015 article cited as this year is worse than an absent date.
+    let publishedDate: Date | null = null
+    if (scraped.publishedAt) {
+      const fromMetadata = new Date(scraped.publishedAt)
+      if (!isNaN(fromMetadata.getTime())) publishedDate = fromMetadata
+    }
+    if (!publishedDate) {
+      const publishDateMatch = content.match(/published[:\s]+(\w+\s+\d+,?\s+\d{4})/i)
+      if (publishDateMatch) {
+        const fromProse = new Date(publishDateMatch[1])
+        if (!isNaN(fromProse.getTime())) publishedDate = fromProse
       }
+    }
+    if (publishedDate) {
+      citationFields.year = publishedDate.getUTCFullYear().toString()
+      citationFields.month = (publishedDate.getUTCMonth() + 1).toString().padStart(2, '0')
+      citationFields.day = publishedDate.getUTCDate().toString().padStart(2, '0')
     }
 
     // Generate APA citation
@@ -851,7 +783,8 @@ Return ONLY JSON:
       summary,
       extractedData,
       metadata: {
-        source: parsedUrl.hostname
+        source: parsedUrl.hostname,
+        ...(publishedDate ? { publishDate: publishedDate.toISOString().split('T')[0] } : {}),
       },
       citation: generatedCitation
     }

@@ -18,7 +18,7 @@ import { fetchArchivePhSource, fetchWaybackSource } from './archive-sources'
 import { parseSafeOutboundUrl, SafeFetchError, safeFetchText } from './safe-fetch'
 import type { NormalizedScrapeError } from './scrape-contract'
 
-export type ScrapeUrlPurpose = Extract<ArticleAnalysisPurpose, 'enrichment' | 'timeline' | 'rage-check'>
+export type ScrapeUrlPurpose = Extract<ArticleAnalysisPurpose, 'enrichment' | 'timeline' | 'rage-check' | 'framework'>
 export type ScrapedContentSource = 'apify' | 'twitter-oembed' | 'original' | 'archive.ph' | 'wayback'
 
 export interface ScrapeUrlOptions {
