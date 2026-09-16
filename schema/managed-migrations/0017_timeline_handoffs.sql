@@ -1,8 +1,17 @@
 -- Cross-product timeline handoff store (TL-05). See docs/api/timeline-handoff-design.md.
--- A service credential stages a bounded lineage payload; a human redeems it once. No
+-- NOTE: no semicolon may appear inside a comment in this directory. Keep this file
+-- pure ASCII as well: every other applied migration here is, and a multi-byte
+-- character in a comment is the difference that made remote apply fail where local
+-- apply and plain sqlite both succeeded. `wrangler d1
+-- migrations apply` splits on the statement terminator without stripping comments, so
+-- a stray one in
+-- prose produces a fragment and the whole migration fails with SQLITE_ERROR
+-- "incomplete input". This file did exactly that on its first apply.
+-- A service credential stages a bounded lineage payload, and a human redeems it once. No
 -- workspace or artifact is ever written by this table. Rows are never deleted, so a sweep
--- (functions/api/cron/cleanup-handoffs.ts) is about bytes, not rows. Forward-only; no
+-- (functions/api/cron/cleanup-handoffs.ts) is about bytes, not rows. Forward-only, so no
 -- applied migration is changed. Modelled directly on 0014_timeline_presentations.sql.
+-- statement
 CREATE TABLE timeline_handoffs (
   token TEXT PRIMARY KEY NOT NULL CHECK(length(token)=64 AND token NOT GLOB '*[^0-9a-f]*'),
   client_id TEXT NOT NULL,
@@ -25,15 +34,17 @@ CREATE TABLE timeline_handoffs (
   CHECK((redeemed_at IS NULL) = (redeemed_by IS NULL)),
   CHECK(payload IS NULL OR length(CAST(payload AS BLOB)) <= 65536)
 );
+-- statement
 CREATE INDEX timeline_handoffs_client_active ON timeline_handoffs(client_id,redeemed_at,revoked_at,expires_at);
 -- Insert guard: minted_by must be a live service principal whose client (client_id) holds
 -- timeline.write at insert time. This is the 0013 service predicate
 -- (schema/managed-migrations/0013_timeline_service_scopes.sql:46-66), reused verbatim except
 -- that it is keyed on this table's (client_id, minted_by) instead of a revision's
--- (workspace_id, created_by) — a direct SQL insert cannot forge a handoff any more than it
+-- (workspace_id, created_by) -- a direct SQL insert cannot forge a handoff any more than it
 -- can forge a revision. Also enforces a per-client quota of unredeemed, unexpired,
 -- unrevoked rows, the same idea as the 20-link presentation quota
 -- (0014_timeline_presentations.sql:16), sized higher because link volume is higher.
+-- statement
 CREATE TRIGGER timeline_handoffs_insert_guard BEFORE INSERT ON timeline_handoffs BEGIN
   SELECT CASE WHEN EXISTS (SELECT 1 FROM timeline_handoffs WHERE token=NEW.token OR (client_id=NEW.client_id AND request_key=NEW.request_key)) THEN RAISE(ABORT,'handoff_identity_exists') END;
   SELECT CASE WHEN NOT EXISTS (SELECT 1 FROM integration_clients c
@@ -60,8 +71,9 @@ CREATE TRIGGER timeline_handoffs_insert_guard BEFORE INSERT ON timeline_handoffs
   SELECT CASE WHEN (SELECT count(*) FROM timeline_handoffs WHERE client_id=NEW.client_id AND redeemed_at IS NULL AND revoked_at IS NULL AND expires_at>unixepoch())>=200 THEN RAISE(ABORT,'handoff_quota') END;
 END;
 -- Update guard: only three legal column changes, matching mint/redeem/revoke exactly.
--- redeemed_at and redeemed_by set together exactly once; revoked_at set exactly once;
+-- redeemed_at and redeemed_by set together exactly once, revoked_at set exactly once,
 -- payload moving to NULL and never back. Everything else is immutable once inserted.
+-- statement
 CREATE TRIGGER timeline_handoffs_update_guard BEFORE UPDATE ON timeline_handoffs BEGIN
   SELECT CASE WHEN
        NEW.token IS NOT OLD.token
@@ -81,6 +93,7 @@ CREATE TRIGGER timeline_handoffs_update_guard BEFORE UPDATE ON timeline_handoffs
     OR (OLD.payload IS NOT NULL AND NEW.payload IS NOT NULL AND NEW.payload IS NOT OLD.payload)
   THEN RAISE(ABORT,'handoff_immutable') END;
 END;
+-- statement
 CREATE TRIGGER timeline_handoffs_delete_guard BEFORE DELETE ON timeline_handoffs BEGIN
   SELECT RAISE(ABORT,'handoff_immutable');
 END;

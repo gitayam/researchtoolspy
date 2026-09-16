@@ -5,15 +5,18 @@
  * for framework auto-population
  */
 
-import { useState, useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { getCopHeaders } from '@/lib/cop-auth'
+import { useWorkspace } from '@/contexts/WorkspaceContext'
+import { analyzableUrlFrom } from '@/lib/content-url'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { Loader2, Search, ExternalLink } from 'lucide-react'
+import { Loader2, Search, ExternalLink, Plus } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
+
 
 interface ContentItem {
   id: string
@@ -42,38 +45,46 @@ export function ContentPickerDialog({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [searchQuery, setSearchQuery] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [analyzing, setAnalyzing] = useState(false)
+  const [analyzeError, setAnalyzeError] = useState<string | null>(null)
+  const { currentWorkspaceId } = useWorkspace()
+  const pendingUrl = analyzableUrlFrom(searchQuery)
 
-  // Fetch user's content library
+  // Hoisted so a freshly analysed URL can refresh the list in place, rather than the
+  // reader having to close the dialog and come back.
+  const loadContent = useCallback(async (): Promise<ContentItem[]> => {
+    setLoading(true)
+    setError(null)
+    try {
+      const response = await fetch('/api/content-library', {
+        method: 'GET',
+        headers: {
+          ...getCopHeaders(),
+          ...(currentWorkspaceId ? { 'X-Workspace-ID': currentWorkspaceId } : {}),
+        },
+      })
+      if (!response.ok) throw new Error(`Failed to fetch content: ${response.status}`)
+      const data = await response.json()
+      const items: ContentItem[] = data.content || []
+      setContent(items)
+      return items
+    } catch (err) {
+      console.error('[ContentPicker] Fetch error:', err)
+      setError(err instanceof Error ? err.message : 'Failed to load content')
+      return []
+    } finally {
+      setLoading(false)
+    }
+  }, [currentWorkspaceId])
+
   useEffect(() => {
     if (!open) return
-
-    const fetchContent = async () => {
-      setLoading(true)
-      setError(null)
-
-      try {
-        // Fetch from content library API
-        const response = await fetch('/api/content-library', {
-          method: 'GET',
-          headers: getCopHeaders()
-        })
-
-        if (!response.ok) {
-          throw new Error(`Failed to fetch content: ${response.status}`)
-        }
-
-        const data = await response.json()
-        setContent(data.content || [])
-      } catch (err) {
-        console.error('[ContentPicker] Fetch error:', err)
-        setError(err instanceof Error ? err.message : 'Failed to load content')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchContent()
-  }, [open])
+    // loadContent sets its loading flag before awaiting: the intended single render that
+    // shows the spinner when the dialog opens. The previous inline fetch did exactly the
+    // same, and hoisting it so analysis can reuse it is what made the analyzer see it.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadContent()
+  }, [open, loadContent])
 
   const handleToggle = (id: string) => {
     setSelectedIds(prev => {
@@ -99,6 +110,53 @@ export function ContentPickerDialog({
     onConfirm(Array.from(selectedIds))
     onOpenChange(false)
     setSelectedIds(new Set()) // Reset selection
+  }
+
+  /**
+   * Analyses a pasted URL without leaving the dialog, then selects the result.
+   *
+   * Uses the same endpoint and `save_link` path as Content Research, so a source added
+   * here is indistinguishable from one added there — this is a second doorway to the
+   * same room, not a second implementation.
+   */
+  const analyzeAndSelect = async () => {
+    if (!pendingUrl || analyzing) return
+    setAnalyzing(true)
+    setAnalyzeError(null)
+    try {
+      const response = await fetch('/api/content-intelligence/analyze-url', {
+        method: 'POST',
+        headers: {
+          ...getCopHeaders(),
+          ...(currentWorkspaceId ? { 'X-Workspace-ID': currentWorkspaceId } : {}),
+        },
+        body: JSON.stringify({ url: pendingUrl, mode: 'quick', save_link: true }),
+      })
+      if (!response.ok) {
+        // 422 is the ordinary "this page did not expose enough text" outcome, not a fault.
+        const detail = response.status === 422
+          ? 'That page did not expose enough article text to analyse.'
+          : `Analysis failed (${response.status}).`
+        throw new Error(detail)
+      }
+      const items = await loadContent()
+      const added = items.find(item => item.url === pendingUrl)
+        || items.find(item => analyzableUrlFrom(item.url) === pendingUrl)
+      if (added) {
+        setSelectedIds(prev => {
+          // Respect the cap rather than silently exceeding it.
+          if (prev.has(added.id) || prev.size >= maxSelection) return prev
+          return new Set(prev).add(added.id)
+        })
+        setSearchQuery('')
+      } else {
+        setAnalyzeError('Analysed, but it has not appeared in your library yet. Try searching for it.')
+      }
+    } catch (err) {
+      setAnalyzeError(err instanceof Error ? err.message : 'Analysis failed.')
+    } finally {
+      setAnalyzing(false)
+    }
   }
 
   const filteredContent = content.filter(item => {
@@ -132,6 +190,30 @@ export function ContentPickerDialog({
             className="pl-10"
           />
         </div>
+
+        {pendingUrl && (
+          <div className="rounded-md border border-border p-3">
+            <p className="text-sm font-medium">Not in your library yet</p>
+            <p className="mt-1 break-all text-xs text-muted-foreground">{pendingUrl}</p>
+            <Button
+              type="button"
+              variant="outline"
+              className="mt-2 min-h-11"
+              disabled={analyzing}
+              onClick={() => void analyzeAndSelect()}
+            >
+              {analyzing
+                ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Analysing…</>
+                : <><Plus className="mr-2 h-4 w-4" /> Analyse and add it</>}
+            </Button>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Analysing adds it to your Content Library and selects it here. You do not need to leave this dialog.
+            </p>
+            {analyzeError && (
+              <p className="mt-2 text-xs leading-relaxed text-amber-700 dark:text-amber-400">{analyzeError}</p>
+            )}
+          </div>
+        )}
 
         {/* Selection Counter */}
         {selectedIds.size > 0 && (
@@ -170,7 +252,9 @@ export function ContentPickerDialog({
                 {searchQuery ? 'No content matches your search' : 'No analyzed content found'}
               </p>
               <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">
-                Visit Content Research to analyze URLs first
+                {pendingUrl
+                  ? 'Use “Analyse and add it” above to bring this link in without leaving.'
+                  : 'Paste a URL here to analyse it, or visit Content Research.'}
               </p>
             </div>
           )}
