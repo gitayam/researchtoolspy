@@ -12,11 +12,14 @@ import { EvidenceType, EvidenceLevel, ConfidenceLevel, PriorityLevel } from '@/t
 interface CitationToEvidenceModalProps {
   citation: SavedCitation
   onClose: () => void
-  onSuccess?: () => void
+  /** Receives what was created, so the caller can say where it went. */
+  onSuccess?: (created: { id: string | number; title: string }) => void
 }
 
 export function CitationToEvidenceModal({ citation, onClose, onSuccess }: CitationToEvidenceModalProps) {
   const [loading, setLoading] = useState(false)
+  const [claimError, setClaimError] = useState<string | null>(null)
+  const [submitError, setSubmitError] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     title: citation.fields.title || '',
     what: '', // User must fill this (claim)
@@ -36,10 +39,14 @@ export function CitationToEvidenceModal({ citation, onClose, onSuccess }: Citati
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    // At the field, not in a modal on top of a modal.
     if (!formData.what.trim()) {
-      alert('Please enter a claim (What field)')
+      setClaimError('Enter the claim this source makes. It is what the evidence is for.')
+      document.getElementById('what')?.focus()
       return
     }
+    setClaimError(null)
+    setSubmitError(null)
 
     setLoading(true)
 
@@ -69,8 +76,11 @@ export function CitationToEvidenceModal({ citation, onClose, onSuccess }: Citati
 
       if (response.ok) {
         const data = await response.json()
-        alert(`Evidence created successfully! ID: ${data.id}`)
-        onSuccess?.()
+        // No alert here. The caller shows a notice that persists and links to
+        // the evidence — this used to fire one blocking dialog, then hand off to
+        // a caller that fired a second one saying the same thing, and neither
+        // offered any way to reach what had just been made.
+        onSuccess?.({ id: data.id, title: formData.title || formData.what })
         onClose()
       } else {
         const error = await response.json().catch(() => ({ error: 'Unknown error' }))
@@ -78,7 +88,8 @@ export function CitationToEvidenceModal({ citation, onClose, onSuccess }: Citati
       }
     } catch (error: any) {
       console.error('Failed to create evidence:', error)
-      alert('Failed to create evidence. Please try again.')
+      // Kept in the form, so the reader still has everything they typed.
+      setSubmitError(error?.message || 'Could not create the evidence. Try again.')
     } finally {
       setLoading(false)
     }
@@ -132,13 +143,24 @@ export function CitationToEvidenceModal({ citation, onClose, onSuccess }: Citati
               id="what"
               placeholder="Enter the claim or assertion this evidence supports..."
               value={formData.what}
-              onChange={(e) => setFormData({ ...formData, what: e.target.value })}
+              onChange={(e) => {
+                setFormData({ ...formData, what: e.target.value })
+                if (claimError) setClaimError(null)
+              }}
               className="min-h-24"
               required
+              aria-invalid={claimError ? true : undefined}
+              aria-describedby={claimError ? 'what-error' : 'what-hint'}
             />
-            <p className="text-xs text-gray-500">
-              What does this source claim or assert?
-            </p>
+            {claimError ? (
+              <p id="what-error" className="text-xs text-red-600 dark:text-red-400" role="alert">
+                {claimError}
+              </p>
+            ) : (
+              <p id="what-hint" className="text-xs text-gray-500">
+                What does this source claim or assert?
+              </p>
+            )}
           </div>
 
           {/* Who (pre-filled with authors) */}
@@ -284,6 +306,15 @@ export function CitationToEvidenceModal({ citation, onClose, onSuccess }: Citati
               className="min-h-20"
             />
           </div>
+
+          {submitError && (
+            <div
+              className="rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200"
+              role="alert"
+            >
+              {submitError}
+            </div>
+          )}
 
           {/* Actions */}
           <div className="flex gap-3 pt-4 border-t dark:border-gray-700">

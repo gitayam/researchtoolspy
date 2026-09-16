@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { CreatedNotice } from '@/components/ui/created-notice'
 import {
   Download,
   Trash2,
@@ -50,6 +51,7 @@ export function CitationLibrary({ onRefresh }: CitationLibraryProps) {
   const [displayStyle, setDisplayStyle] = useState<CitationStyle>('apa')
   const [copied, setCopied] = useState(false)
   const [selectedCitationForEvidence, setSelectedCitationForEvidence] = useState<SavedCitation | null>(null)
+  const [createdEvidence, setCreatedEvidence] = useState<{ id: string | number; title: string } | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
 
   // Load citations
@@ -438,7 +440,8 @@ export function CitationLibrary({ onRefresh }: CitationLibraryProps) {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => alert('Save as dataset coming soon!')}
+              disabled
+              title="Not built yet. Export JSON and import it into a dataset."
             >
               <Archive className="h-4 w-4 mr-2" />
               Save as Dataset
@@ -457,14 +460,25 @@ export function CitationLibrary({ onRefresh }: CitationLibraryProps) {
       </CardContent>
     </Card>
 
+    {/* Says what was made and where it went, and stays put while the reader
+        keeps working through the library. The pair of alert() dialogs this
+        replaced said the same thing twice and linked to neither. */}
+    {createdEvidence && (
+      <CreatedNotice
+        title="Evidence created from this citation"
+        detail={`${createdEvidence.title} (ID ${createdEvidence.id})`}
+        href="/dashboard/evidence"
+        linkLabel="Open the Evidence Collector"
+        onDismiss={() => setCreatedEvidence(null)}
+      />
+    )}
+
     {/* Citation to Evidence Modal */}
     {selectedCitationForEvidence && (
       <CitationToEvidenceModal
         citation={selectedCitationForEvidence}
         onClose={() => setSelectedCitationForEvidence(null)}
-        onSuccess={() => {
-          alert('Evidence created successfully! You can view it in the Evidence Collector.')
-        }}
+        onSuccess={(created) => setCreatedEvidence(created)}
       />
     )}
     </>

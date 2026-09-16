@@ -13,6 +13,7 @@
  */
 
 import { useState, useMemo } from 'react'
+import { CreatedNotice } from '@/components/ui/created-notice'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
@@ -226,6 +227,7 @@ export default function CollectionPage() {
 
   // Triage State
   const [selectedResults, setSelectedResults] = useState<Set<string>>(new Set())
+  const [analysedCount, setAnalysedCount] = useState<number | null>(null)
   const [expandedResults, setExpandedResults] = useState<Set<string>>(new Set())
   const [filterCategory, setFilterCategory] = useState<CollectionCategory | 'all'>('all')
   const [minRelevanceFilter, setMinRelevanceFilter] = useState(0)
@@ -288,9 +290,17 @@ export default function CollectionPage() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: collectionKeys.results(activeJobId!) })
       setSelectedResults(new Set())
+      // Approving with "analyze now" ran a full content-intelligence analysis on
+      // every selected source. It is synchronous inside the approve request, so
+      // by the time this runs it has already finished and the analyses are in
+      // Content Intelligence.
+      //
+      // This branch was empty apart from a commented-out navigate() to
+      // /tools/batch-processing?job=..., so the reader was told nothing. That
+      // link would not have worked either: the batch page reads no job param and
+      // batch-process is POST-only, so there is no job to retrieve by id.
       if (data.batchJobId) {
-        // Optionally navigate to batch processing page
-        // navigate(`/dashboard/tools/batch-processing?job=${data.batchJobId}`)
+        setAnalysedCount(data.approved)
       }
     },
   })
@@ -365,6 +375,7 @@ export default function CollectionPage() {
     setSelectedCategories(['news', 'academic', 'government'])
     setSelectedResults(new Set())
     setExpandedResults(new Set())
+    setAnalysedCount(null)
     setFilterCategory('all')
     setMinRelevanceFilter(0)
   }
@@ -410,6 +421,16 @@ export default function CollectionPage() {
           </Button>
         )}
       </div>
+
+      {analysedCount !== null && (
+        <CreatedNotice
+          title={`Analysed ${analysedCount} approved source${analysedCount === 1 ? '' : 's'}`}
+          detail="Each one was read and summarised. The analyses are in Content Intelligence."
+          href="/dashboard/tools/content-intelligence"
+          linkLabel="Open Content Intelligence"
+          onDismiss={() => setAnalysedCount(null)}
+        />
+      )}
 
       {/* Search Form Card */}
       {!activeJobId && (
