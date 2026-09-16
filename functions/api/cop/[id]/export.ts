@@ -55,7 +55,7 @@ async function fetchLayerData(
     `).bind(workspaceId, minLat, maxLat, minLon, maxLon).all(),
 
     db.prepare(`
-      SELECT id, name, event_type, description, coordinates, date, created_at FROM events
+      SELECT id, name, event_type, description, coordinates, date_start AS date, created_at FROM events
       WHERE workspace_id = ? AND coordinates IS NOT NULL
         AND json_extract(coordinates, '$.lat') BETWEEN ? AND ?
         AND json_extract(coordinates, '$.lng') BETWEEN ? AND ?

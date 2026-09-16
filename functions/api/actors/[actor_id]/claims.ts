@@ -61,7 +61,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         co.id as content_analysis_id,
         co.url as content_url,
         co.title as content_title,
-        co.analyzed_at
+        co.created_at AS analyzed_at
       FROM claim_entity_mentions cem
       JOIN claim_adjustments ca ON cem.claim_adjustment_id = ca.id
       JOIN content_analysis co ON ca.content_analysis_id = co.id

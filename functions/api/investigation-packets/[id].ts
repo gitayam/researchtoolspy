@@ -53,8 +53,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         MAX(pc.added_at) as added_at,
         ca.url,
         ca.title,
-        ca.publication_date,
-        ca.processed_at
+        ca.publish_date AS publication_date
       FROM packet_claims pc
       JOIN claim_adjustments ca_adj ON ca_adj.id = pc.claim_adjustment_id
       JOIN content_analysis ca ON ca_adj.content_analysis_id = ca.id
@@ -63,8 +62,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         ca_adj.content_analysis_id,
         ca.url,
         ca.title,
-        ca.publication_date,
-        ca.processed_at
+        ca.publish_date
       ORDER BY MAX(pc.added_at) DESC
     `).bind(packetId).all()
 

@@ -52,7 +52,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
       // Check if framework exists and get details
       const framework = await env.DB.prepare(
-        'SELECT id, title, workspace_id FROM library_frameworks WHERE id = ? AND is_published = 1'
+        'SELECT id, title, original_workspace_id AS workspace_id FROM library_frameworks WHERE id = ? AND is_published = 1'
       ).bind(library_framework_id).first()
 
       if (!framework) {
