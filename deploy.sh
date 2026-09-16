@@ -178,9 +178,15 @@ else
         echo "${GREEN}Backup created: $D1_BACKUP_FILE${NC}"
         echo "${GREEN}Time Travel record: $D1_TIME_TRAVEL_FILE${NC}"
         echo "${YELLOW}Applying managed migrations from schema/managed-migrations...${NC}"
-        # CI mode suppresses Wrangler's interactive apply prompt; this script's
-        # operator approval, backup checks, and preflight are the release gates.
-        CI=1 pnpm exec wrangler d1 migrations apply researchtoolspy-prod --remote
+        # Not `wrangler d1 migrations apply`. That command fails against this
+        # database for reasons never identified — migration 0017 was rejected by
+        # it four times, and the same file applied cleanly through
+        # `d1 execute --file` on the first attempt, with a throwaway remote probe
+        # confirming the SQL itself was valid. The script below drives the path
+        # that works and keeps wrangler's own d1_migrations ledger, recording each
+        # migration only after its SQL succeeds. It exits non-zero on the first
+        # failure, which `set -e` above turns into an aborted deploy.
+        ./scripts/apply-managed-migrations.sh --remote
         echo "${GREEN}Managed migrations applied successfully${NC}"
     fi
 
