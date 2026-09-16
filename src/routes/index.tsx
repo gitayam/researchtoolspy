@@ -1,4 +1,5 @@
-import { lazy, Suspense } from 'react'
+import { Suspense } from 'react'
+import { lazyWithReload as lazy } from '@/lib/lazy-with-reload'
 import { createBrowserRouter, Navigate, useParams } from 'react-router-dom'
 import { DashboardLayout, DashboardFullBleedLayout } from '@/layouts/DashboardLayout'
 import { RouteErrorBoundary } from '@/components/RouteErrorBoundary'
