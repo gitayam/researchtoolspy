@@ -90,6 +90,20 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
+    // verifyCopSessionAccess is true for ANY collaborator, viewers included, and
+    // the insert below binds body.user_id and body.role straight through. That
+    // let a viewer grant editor on this session -- to anyone, including a second
+    // account of their own. Granting access is the owner's call. GET and DELETE
+    // in this file already resolve created_by for exactly this reason.
+    const ownerRow = await env.DB.prepare(
+      'SELECT created_by FROM cop_sessions WHERE id = ?'
+    ).bind(sessionId).first<{ created_by: number }>()
+    if (!ownerRow || String(ownerRow.created_by) !== String(userId)) {
+      return new Response(JSON.stringify({ error: 'Only the session owner can add collaborators' }), {
+        status: 403, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      })
+    }
+
     const body = await request.json() as {
       email?: string
       user_id?: number

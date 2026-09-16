@@ -1,5 +1,6 @@
 import { getUserFromRequest } from '../_shared/auth-helpers'
 import { JSON_HEADERS, optionsResponse } from '../_shared/api-utils'
+import { checkWorkspaceAccess } from '../_shared/workspace-helpers'
 
 interface Env {
   DB: D1Database
@@ -71,6 +72,17 @@ async function handlePatch(context: EventContext<Env, 'id', Record<string, unkno
     return new Response(JSON.stringify({ error: 'Comment not found' }), {
       status: 404,
       headers: JSON_HEADERS
+    })
+  }
+
+  // Resolving is deliberately open to anyone on the thread, but "anyone" has to
+  // mean anyone in that workspace -- the row was fetched by bare id, so any
+  // caller could resolve (hide) or reopen any comment in the product and stamp
+  // their own id as resolved_by.
+  if (!existing.workspace_id
+    || !(await checkWorkspaceAccess(String(existing.workspace_id), userId, env, 'VIEWER'))) {
+    return new Response(JSON.stringify({ error: 'Comment not found' }), {
+      status: 404, headers: JSON_HEADERS,
     })
   }
 

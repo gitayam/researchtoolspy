@@ -1,6 +1,7 @@
 import { getUserFromRequest } from './_shared/auth-helpers'
 import { createNotification } from './_shared/notification-logger'
 import { generateId, JSON_HEADERS, CORS_HEADERS, optionsResponse } from './_shared/api-utils'
+import { checkWorkspaceAccess } from './_shared/workspace-helpers'
 
 interface Env {
   DB: D1Database
@@ -96,12 +97,29 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         })
       }
 
+      // Nothing verified the caller could see the underlying entity, so
+      // iterating entity_type + entity_id read every analyst comment thread in
+      // the product. Scope to a workspace the caller actually belongs to.
+      const readWorkspaceId = url.searchParams.get('workspace_id')
+        || request.headers.get('X-Workspace-ID')
+        || null
+      if (!readWorkspaceId) {
+        return new Response(JSON.stringify({ error: 'workspace_id is required' }), {
+          status: 400, headers: JSON_HEADERS,
+        })
+      }
+      if (!(await checkWorkspaceAccess(readWorkspaceId, userId, env, 'VIEWER'))) {
+        return new Response(JSON.stringify({ error: 'Access denied to workspace' }), {
+          status: 403, headers: JSON_HEADERS,
+        })
+      }
+
       // Build query based on status filter
       let query = `
         SELECT * FROM comments
-        WHERE entity_type = ? AND entity_id = ?
+        WHERE entity_type = ? AND entity_id = ? AND workspace_id = ?
       `
-      const params: any[] = [entityType, entityId]
+      const params: any[] = [entityType, entityId, readWorkspaceId]
 
       if (!includeResolved) {
         query += ` AND status != 'deleted'`
@@ -166,6 +184,16 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         return new Response(JSON.stringify({ error: 'entity_type, entity_id, and content required' }), {
           status: 400,
           headers: JSON_HEADERS
+        })
+      }
+
+      // workspace_id came straight from the request and is handed to
+      // notifyWorkspaceMembers further down, so an unvalidated one let a caller
+      // post into any workspace's threads AND notify all of its members with an
+      // attacker-chosen link -- a phishing channel inside the product.
+      if (!workspace_id || !(await checkWorkspaceAccess(String(workspace_id), userId, env, 'EDITOR'))) {
+        return new Response(JSON.stringify({ error: 'Access denied to workspace' }), {
+          status: 403, headers: JSON_HEADERS,
         })
       }
 

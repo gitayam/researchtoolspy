@@ -10,6 +10,7 @@
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest } from '../_shared/auth-helpers'
 import { JSON_HEADERS, optionsResponse } from '../_shared/api-utils'
+import { checkWorkspaceAccess } from '../_shared/workspace-helpers'
 
 interface Env {
   DB: D1Database
@@ -30,8 +31,22 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   }
 
   try {
-    const body = await request.json() as { evidence_ids?: string[] }
+    const body = await request.json() as { evidence_ids?: string[]; workspace_id?: string }
     const evidenceIds = body.evidence_ids
+
+    // Authenticated but unscoped, this returned the tag category and value for
+    // any evidence id a caller cared to name, 100 at a time.
+    const workspaceId = body.workspace_id || request.headers.get('X-Workspace-ID') || null
+    if (!workspaceId) {
+      return new Response(JSON.stringify({ error: 'workspace_id is required' }), {
+        status: 400, headers: JSON_HEADERS,
+      })
+    }
+    if (!(await checkWorkspaceAccess(workspaceId, userId, env, 'VIEWER'))) {
+      return new Response(JSON.stringify({ error: 'Access denied to workspace' }), {
+        status: 403, headers: JSON_HEADERS,
+      })
+    }
 
     if (!Array.isArray(evidenceIds)) {
       return new Response(JSON.stringify({ error: 'evidence_ids must be an array' }), {
@@ -59,9 +74,21 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     // Build parameterized IN clause
     const placeholders = cleanIds.map(() => '?').join(',')
-    const query = `SELECT * FROM cop_evidence_tags WHERE evidence_id IN (${placeholders}) ORDER BY tag_category, tag_value`
+    // The CAST on both sides is deliberate: cop_evidence_tags.evidence_id is
+    // TEXT while evidence_items.id is INTEGER, so a bare comparison would match
+    // nothing under SQLite's type affinity rules.
+    const query = `
+      SELECT t.* FROM cop_evidence_tags t
+      WHERE t.evidence_id IN (${placeholders})
+        AND EXISTS (
+          SELECT 1 FROM evidence_items e
+          WHERE CAST(e.id AS TEXT) = CAST(t.evidence_id AS TEXT)
+            AND e.workspace_id = ?
+        )
+      ORDER BY t.tag_category, t.tag_value
+    `
 
-    const result = await env.DB.prepare(query).bind(...cleanIds).all()
+    const result = await env.DB.prepare(query).bind(...cleanIds, workspaceId).all()
     const rows = result.results ?? []
 
     // Group by evidence_id
