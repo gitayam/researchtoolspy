@@ -26,11 +26,11 @@ import type { AnalyticsEngineLike } from '../_shared/scrape-metrics'
 import {
   normalizeTimelineModelPayload,
   TIMELINE_ANALYSIS_SCHEMA_VERSION,
-  timelineDatePrecision,
   type NormalizedTimelineModelOutput,
   type TimelineAnalysisRequestV1,
   type TimelineAnalysisResponseV1,
   type TimelineSuppliedContentSource,
+  normalizePublishedAt,
 } from '../_shared/timeline-contract'
 import {
   observeTimelineAnalysis,
@@ -224,15 +224,6 @@ async function authorizeTimelineRequest(
   const authUserId = await getUserFromRequest(request, env)
   if (!authUserId) return legacyErrorResponse(401, 'Authentication required')
   return { tenantScope: `legacy-user:${authUserId}` }
-}
-
-function normalizePublishedAt(value: unknown): string | undefined {
-  if (typeof value !== 'string') return undefined
-  const trimmed = value.trim()
-  if (timelineDatePrecision(trimmed)) return trimmed
-  const timestamp = /^(\d{4}-\d{2}-\d{2})T(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d{1,9})?)?(?:Z|[+-](?:[01]\d|2[0-3]):[0-5]\d)$/i.exec(trimmed)
-  const timestampDay = timestamp?.[1]
-  return timestampDay && timelineDatePrecision(timestampDay) === 'day' ? timestampDay : undefined
 }
 
 function sourceMode(source: string): TimelineAnalysisResponseV1['extraction']['sourceMode'] {

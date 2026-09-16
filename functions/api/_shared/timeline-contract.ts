@@ -111,6 +111,28 @@ export function timelineDatePrecision(value: unknown): TimelineDatePrecision | n
 }
 
 /**
+ * The ISO-8601 instant this contract accepts for a published timestamp. Exported because
+ * three call sites had carried their own copy of this 90-character expression.
+ */
+export const ISO_INSTANT = /^(\d{4}-\d{2}-\d{2})T(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d{1,9})?)?(?:Z|[+-](?:[01]\d|2[0-3]):[0-5]\d)$/i
+
+/**
+ * Reduces a published date to what the v1 contract can carry.
+ *
+ * A bare calendar date passes through at its own precision. A full timestamp is truncated
+ * to its literal date portion — never converted through UTC, which would shift the day for
+ * anything east or west of the meridian and silently move an event across midnight.
+ * Anything else is dropped rather than guessed at.
+ */
+export function normalizePublishedAt(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined
+  const trimmed = value.trim()
+  if (timelineDatePrecision(trimmed)) return trimmed
+  const day = ISO_INSTANT.exec(trimmed)?.[1]
+  return day && timelineDatePrecision(day) === 'day' ? day : undefined
+}
+
+/**
  * Convert untrusted model JSON into the public contract. Dates and titles are
  * evidence-bearing fields, so malformed entries are dropped rather than filled
  * with today's date or an "unknown event" placeholder.

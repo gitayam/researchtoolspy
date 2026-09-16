@@ -1,4 +1,5 @@
 import { getCopHeaders, getGuestHeaders } from '@/lib/cop-auth'
+import { normalizePublishedAt, timelineDatePrecision } from '../../functions/api/_shared/timeline-contract'
 import type {
   TimelineAnalysisInput,
   TimelineAnalysisResult,
@@ -87,31 +88,12 @@ function isSafeHttpUrl(value: string): boolean {
   }
 }
 
-function validCalendarDate(value: string): boolean {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
-  if (!match) return false
-  const year = Number(match[1])
-  const month = Number(match[2])
-  const day = Number(match[3])
-  const candidate = new Date(Date.UTC(year, month - 1, day))
-  return year >= 1000
-    && candidate.getUTCFullYear() === year
-    && candidate.getUTCMonth() === month - 1
-    && candidate.getUTCDate() === day
-}
-
-function timelineDatePrecision(value: unknown): 'day' | 'month' | 'year' | null {
-  if (typeof value !== 'string') return null
-  if (/^\d{4}$/.test(value)) return Number(value) >= 1000 ? 'year' : null
-  const month = /^(\d{4})-(\d{2})$/.exec(value)
-  if (month) {
-    const year = Number(month[1])
-    const monthNumber = Number(month[2])
-    return year >= 1000 && monthNumber >= 1 && monthNumber <= 12 ? 'month' : null
-  }
-  return validCalendarDate(value) ? 'day' : null
-}
-
+/**
+ * Re-exported so this module's callers do not move, but the rule itself now lives in one
+ * place: functions/api/_shared/timeline-contract.ts, which is what the public v1 contract
+ * is defined against. Two byte-identical copies of a validator is one copy too many to
+ * keep in step.
+ */
 export function inferTimelineDatePrecision(value: string): 'day' | 'month' | 'year' | null {
   return timelineDatePrecision(value.trim())
 }
@@ -122,14 +104,7 @@ function truncateUtf8(value: string): string {
   return new TextDecoder().decode(bytes.slice(0, MAX_SUPPLIED_TEXT_BYTES))
 }
 
-function normalizedPublishedAt(value?: string): string | undefined {
-  if (!value) return undefined
-  const trimmed = value.trim()
-  if (timelineDatePrecision(trimmed)) return trimmed
-  const timestamp = /^(\d{4}-\d{2}-\d{2})T(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d{1,9})?)?(?:Z|[+-](?:[01]\d|2[0-3]):[0-5]\d)$/i.exec(trimmed)
-  const day = timestamp?.[1]
-  return day && timelineDatePrecision(day) === 'day' ? day : undefined
-}
+const normalizedPublishedAt = normalizePublishedAt
 
 export class TimelineAnalysisError extends Error {
   readonly status?: number
