@@ -5,7 +5,7 @@
  * POST /api/workspaces - Create investigation + COP session atomically
  */
 
-import { getUserFromRequest } from '../_shared/auth-helpers'
+import { AuthDbError, getUserFromRequest } from '../_shared/auth-helpers'
 import { getWorkspaceMemberRole } from '../_shared/workspace-helpers'
 import { logActivity } from '../_shared/activity-logger'
 import { notifyWorkspaceMembers } from '../_shared/notification-logger'
@@ -74,6 +74,12 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       member: memberWorkspaces.map(w => parseWorkspace(w, (w as any).role || 'VIEWER')),
     }), { headers: JSON_HEADERS })
   } catch (error) {
+    // getUserFromRequest throws AuthDbError when D1 is failing during auth
+    // resolution. The _middleware.ts backstop turns that into a retryable 503,
+    // but only for errors that reach it -- catching it here and answering 500
+    // told the client the failure was permanent. That is what left the browser
+    // holding a stale X-Workspace-ID with no way to refresh it.
+    if (error instanceof AuthDbError || (error as { isAuthDbError?: boolean })?.isAuthDbError) throw error
     console.error('[workspaces] List error:', error)
     return new Response(JSON.stringify({ error: 'Failed to list workspaces' }), {
       status: 500, headers: JSON_HEADERS,
@@ -306,6 +312,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       { status: 201, headers: JSON_HEADERS }
     )
   } catch (error) {
+    if (error instanceof AuthDbError || (error as { isAuthDbError?: boolean })?.isAuthDbError) throw error
     console.error('[workspaces] Create error:', error)
     return new Response(
       JSON.stringify({ error: 'Failed to create workspace' }),

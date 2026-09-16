@@ -136,6 +136,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     })
 
   } catch (error) {
+    // requireAuth signals by throwing a Response (401, or 503 when D1 is down).
+    // Without this it was relabelled as a generic 500.
+    if (error instanceof Response) return error
     console.error('[Generate More Questions] Error:', error)
     return new Response(JSON.stringify({
       error: 'Failed to generate more questions'

@@ -33,8 +33,12 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     try {
       userId = await requireAuth(context.request, context.env)
     } catch (error) {
-      // User is not authenticated - guest user
-      // Return empty list for now (guest investigations are not persisted across sessions)
+      // requireAuth throws a Response. 401 means "not signed in", which this
+      // endpoint deliberately answers with an empty guest list. Anything else --
+      // notably the 503 it throws when the auth datastore is down -- must pass
+      // through: answering 200 [] there tells a signed-in analyst their
+      // investigations are gone when they are merely unreachable.
+      if (!(error instanceof Response) || error.status !== 401) throw error
       return new Response(JSON.stringify({
         investigations: [],
         total: 0

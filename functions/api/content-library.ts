@@ -81,8 +81,11 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     if (error instanceof Response) return error
     console.error('[Content Library] Error:', error)
 
-    // If table doesn't exist, return empty array gracefully
-    if (error.message?.includes('no such table') || error.message?.includes('no such column')) {
+    // A missing TABLE can legitimately mean "this deployment has not run the
+    // migration yet". A missing COLUMN never can -- it is always a code/schema
+    // mismatch, and masking it as an empty 200 is how several always-broken
+    // queries in this codebase went unnoticed. Let that one surface.
+    if (error.message?.includes('no such table')) {
       return new Response(JSON.stringify({
         content: [],
         total: 0,
