@@ -9,6 +9,7 @@
 
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest } from '../_shared/auth-helpers'
+import { parseModelJson } from '../_shared/ai-gateway'
 import { callOpenAIViaGateway } from '../_shared/ai-gateway'
 import { JSON_HEADERS, CORS_HEADERS } from '../_shared/api-utils'
 
@@ -151,9 +152,9 @@ Return ONLY valid JSON with this exact structure:
     let analysisResult: any
     try {
       const content = aiResponse.choices[0]?.message?.content || ''
-      // Remove any markdown code fences if present
-      const cleanContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-      analysisResult = JSON.parse(cleanContent)
+      analysisResult = parseModelJson(content)
+      // Preserve the existing catch: parseModelJson reports failure rather than throwing.
+      if (analysisResult === null) throw new Error('Model returned no parsable JSON')
     } catch (parseError) {
       console.error('[Hamilton AI] Failed to parse AI response:', parseError)
       return new Response(JSON.stringify({

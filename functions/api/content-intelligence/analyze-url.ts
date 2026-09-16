@@ -12,6 +12,7 @@
  */
 
 import type { PagesFunction } from '@cloudflare/workers-types'
+import { stripModelFence } from '../_shared/ai-gateway'
 import { getUserFromRequest } from '../_shared/auth-helpers'
 import { callOpenAIViaGateway, getOptimalCacheTTL, UNTRUSTED_CONTENT_INSTRUCTION, wrapUntrustedContent } from '../_shared/ai-gateway'
 import { JSON_HEADERS, isPrivateUrl } from '../_shared/api-utils'
@@ -2053,10 +2054,7 @@ Return ONLY valid JSON in this exact format:
       throw new Error('Invalid API response')
     }
 
-    const jsonText = data.choices[0].message.content
-      .replace(/```json\n?/g, '')
-      .replace(/```\n?/g, '')
-      .trim()
+    const jsonText = stripModelFence(data.choices[0].message.content)
 
     const result = JSON.parse(jsonText)
     return {
@@ -2189,10 +2187,7 @@ Return ONLY valid JSON in this exact format:
       throw new Error('Invalid API response for topics')
     }
 
-    const jsonText = data.choices[0].message.content
-      .replace(/```json\n?/g, '')
-      .replace(/```\n?/g, '')
-      .trim()
+    const jsonText = stripModelFence(data.choices[0].message.content)
 
     const result = JSON.parse(jsonText)
     return result
@@ -2274,10 +2269,7 @@ Return ONLY valid JSON in this exact format:
       throw new Error('Invalid API response for keyphrases')
     }
 
-    const jsonText = data.choices[0].message.content
-      .replace(/```json\n?/g, '')
-      .replace(/```\n?/g, '')
-      .trim()
+    const jsonText = stripModelFence(data.choices[0].message.content)
 
     const result = JSON.parse(jsonText)
     return result
@@ -2412,10 +2404,7 @@ Return ONLY valid JSON in this exact format:
       throw new Error('Invalid API response for sentiment')
     }
 
-    const jsonText = data.choices[0].message.content
-      .replace(/```json\n?/g, '')
-      .replace(/```\n?/g, '')
-      .trim()
+    const jsonText = stripModelFence(data.choices[0].message.content)
 
     const result = JSON.parse(jsonText)
 
@@ -2770,10 +2759,7 @@ Return ONLY valid JSON array:
       throw new Error('Invalid API response for claim extraction')
     }
 
-    const jsonText = data.choices[0].message.content
-      .replace(/```json\n?/g, '')
-      .replace(/```\n?/g, '')
-      .trim()
+    const jsonText = stripModelFence(data.choices[0].message.content)
 
     const result = JSON.parse(jsonText)
     return result

@@ -16,6 +16,7 @@
  */
 
 import { callOpenAIViaGateway, getOptimalCacheTTL, wrapUntrustedContent } from './ai-gateway'
+import { stripModelFence } from './ai-gateway'
 import { logEvent } from './event-log'
 
 export interface DeceptionClaimInput {
@@ -219,10 +220,7 @@ export async function analyzeClaimsForDeception(
     if (!content) {
       throw new Error('Invalid API response for deception analysis')
     }
-    const jsonText = content
-      .replace(/```json\n?/g, '')
-      .replace(/```\n?/g, '')
-      .trim()
+    const jsonText = stripModelFence(content)
     const parsed = JSON.parse(jsonText)
     if (!parsed || !Array.isArray(parsed.claims)) {
       throw new Error('Deception analysis returned no claims array')

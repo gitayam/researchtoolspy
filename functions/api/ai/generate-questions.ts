@@ -5,6 +5,7 @@
  */
 
 import { JSON_HEADERS } from '../_shared/api-utils'
+import { stripModelFence } from '../_shared/ai-gateway'
 import { getUserFromRequest } from '../_shared/auth-helpers'
 import { callOpenAIViaGateway, REFUSAL_BODY } from '../_shared/ai-gateway'
 
@@ -270,7 +271,7 @@ ${jsonFormat}`
       throw new Error('AI returned empty response. This may be due to timeout, token limits, or model issues. Please try again with a shorter description.')
     }
 
-    const jsonText = generatedText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+    const jsonText = stripModelFence(generatedText)
 
     if (!jsonText) {
       console.error('[Generate Questions] Empty response after cleaning markdown')

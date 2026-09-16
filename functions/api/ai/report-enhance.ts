@@ -9,6 +9,7 @@
  */
 
 import { getUserFromRequest } from '../_shared/auth-helpers'
+import { stripModelFence } from '../_shared/ai-gateway'
 import { JSON_HEADERS } from '../_shared/api-utils'
 import { callOpenAIViaGateway, ANALYST_SYSTEM_PREFIX, REFUSAL_BODY } from '../_shared/ai-gateway'
 
@@ -688,7 +689,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
         const content = data.choices[0].message.content
         try {
-          const jsonText = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+          const jsonText = stripModelFence(content)
           enhancement.keyInsights = JSON.parse(jsonText)
         } catch {
           enhancement.keyInsights = content.split('\n').filter((line: string) => line.trim())
@@ -719,7 +720,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
         const content = data.choices[0].message.content
         try {
-          const jsonText = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+          const jsonText = stripModelFence(content)
           enhancement.recommendations = JSON.parse(jsonText)
         } catch {
           enhancement.recommendations = content.split('\n').filter((line: string) => line.trim())

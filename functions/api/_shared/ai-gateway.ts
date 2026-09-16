@@ -205,6 +205,58 @@ export async function callOpenAIViaGateway(
  * OpenAI-style ("I'm sorry, but I can't…") and Anthropic-style ("…appears to
  * violate…Usage Policy") refusals so it keeps working under provider routing.
  */
+/**
+ * Parses a model's JSON reply, tolerating the markdown fence models add unbidden.
+ *
+ * This exists because the fence was being stripped 29 different ways, and thirteen of
+ * them used a GLOBAL regex — `.replace(/```json\n?/g, '').replace(/```\n?/g, '')`. A
+ * global replace does not remove the fence, it removes every backtick-fence sequence
+ * anywhere in the string, including inside JSON string values. A model returning a code
+ * sample, a shell snippet, or any prose containing a fence had its own payload silently
+ * corrupted, and the resulting parse failure looked like a model error rather than ours.
+ *
+ * So: strip at most ONE fence, anchored to each end, and never globally. If the result
+ * still will not parse, fall back to the outermost brace or bracket span, which recovers
+ * the common case of a model wrapping valid JSON in an apology. Returns null rather than
+ * throwing so existing callers keep their own error handling.
+ */
+/**
+ * Removes at most one markdown fence from each end of a model reply.
+ *
+ * Anchored and non-global on purpose: see parseModelJson below for what the global form
+ * did to payloads containing their own fences. Use this when the caller needs the cleaned
+ * TEXT (to log it, or to test it for emptiness); use parseModelJson when it needs the
+ * parsed value.
+ */
+export function stripModelFence(content: string | null | undefined): string {
+  if (typeof content !== 'string') return ''
+  return content
+    .trim()
+    .replace(/^```(?:json)?[ \t]*\r?\n?/i, '')
+    .replace(/\r?\n?[ \t]*```$/, '')
+    .trim()
+}
+
+export function parseModelJson<T = unknown>(content: string | null | undefined): T | null {
+  if (typeof content !== 'string') return null
+  const unfenced = stripModelFence(content)
+  if (!unfenced) return null
+  try {
+    return JSON.parse(unfenced) as T
+  } catch {
+    // A model that prefaced or followed valid JSON with prose is recoverable; one that
+    // returned no JSON at all is not, and reports null rather than a half-parsed object.
+    const first = unfenced.search(/[[{]/)
+    const last = Math.max(unfenced.lastIndexOf(']'), unfenced.lastIndexOf('}'))
+    if (first === -1 || last <= first) return null
+    try {
+      return JSON.parse(unfenced.slice(first, last + 1)) as T
+    } catch {
+      return null
+    }
+  }
+}
+
 export function detectRefusal(content: string): boolean {
   if (!content) return false
   const head = content.trim().slice(0, 240).toLowerCase()

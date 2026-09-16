@@ -5,6 +5,7 @@
  */
 
 import { requireAuth } from '../../../_shared/auth-helpers'
+import { stripModelFence } from '../../../_shared/ai-gateway'
 import { callOpenAIViaGateway, getOptimalCacheTTL } from '../../../_shared/ai-gateway'
 import { STARBURSTING_SYSTEM_PROMPT, STARBURSTING_JSON_SCHEMA } from '../schema'
 import { JSON_HEADERS, optionsResponse } from '../../../_shared/api-utils'
@@ -207,10 +208,7 @@ ${STARBURSTING_JSON_SCHEMA}
       throw new Error('Invalid API response')
     }
 
-    const jsonText = data.choices[0].message.content
-      .replace(/```json\n?/g, '')
-      .replace(/```\n?/g, '')
-      .trim()
+    const jsonText = stripModelFence(data.choices[0].message.content)
 
     const parsed = JSON.parse(jsonText)
     const result: any = { who: [], what: [], where: [], when: [], why: [], how: [] }

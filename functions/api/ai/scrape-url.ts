@@ -5,6 +5,7 @@
  */
 
 import { callOpenAIViaGateway, getOptimalCacheTTL, wrapUntrustedContent } from '../_shared/ai-gateway'
+import { stripModelFence } from '../_shared/ai-gateway'
 import { JSON_HEADERS } from '../_shared/api-utils'
 import { getUserFromRequest } from '../_shared/auth-helpers'
 import { fetchSocialViaApify, isApifySupportedUrl } from '../_shared/apify-social'
@@ -684,7 +685,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           // Try to parse JSON
           try {
             // Remove markdown code blocks if present
-            const jsonText = extractedText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+            const jsonText = stripModelFence(extractedText)
 
             // Check if response is empty
             if (!jsonText) {
@@ -823,7 +824,7 @@ Return ONLY JSON:
           const unansweredText = unansweredData.choices[0].message.content || ''
 
           try {
-            const jsonText = unansweredText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+            const jsonText = stripModelFence(unansweredText)
 
             // Check if response is empty
             if (!jsonText) {

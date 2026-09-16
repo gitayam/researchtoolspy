@@ -9,6 +9,7 @@
  */
 
 import type { PagesFunction } from '@cloudflare/workers-types'
+import { stripModelFence } from '../_shared/ai-gateway'
 
 import { getUserFromRequest } from '../_shared/auth-helpers'
 import { JSON_HEADERS, safeJsonParse } from '../_shared/api-utils'
@@ -239,10 +240,7 @@ Return ONLY valid JSON:
       throw new Error('Invalid API response')
     }
 
-    const jsonText = data.choices[0].message.content
-      .replace(/```json\n?/g, '')
-      .replace(/```\n?/g, '')
-      .trim()
+    const jsonText = stripModelFence(data.choices[0].message.content)
 
     const result = JSON.parse(jsonText)
 

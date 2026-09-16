@@ -1,4 +1,5 @@
 import { callOpenAIViaGateway, getOptimalCacheTTL, wrapUntrustedContent } from '../_shared/ai-gateway'
+import { stripModelFence } from '../_shared/ai-gateway'
 import { scrapeUrl } from '../_shared/scraper-utils'
 import { getUserFromRequest } from '../_shared/auth-helpers'
 import { JSON_HEADERS } from '../_shared/api-utils'
@@ -114,7 +115,7 @@ Return ONLY valid JSON in this structure:
     }
 
     const rawContent = aiData.choices[0].message.content
-    const jsonContent = rawContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+    const jsonContent = stripModelFence(rawContent)
     let analysis: unknown
     try { analysis = JSON.parse(jsonContent) as unknown } catch {
       console.warn('[rage-check] Failed to parse AI response:', jsonContent?.substring(0, 200))

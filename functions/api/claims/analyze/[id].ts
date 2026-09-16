@@ -5,6 +5,7 @@
  */
 
 import { getUserFromRequest } from '../../_shared/auth-helpers'
+import { stripModelFence } from '../../_shared/ai-gateway'
 import { callOpenAIViaGateway, getOptimalCacheTTL, ANALYST_SYSTEM_PREFIX } from '../../_shared/ai-gateway'
 import { analyzeClaimsForDeception } from '../../_shared/deception-analysis'
 import { CORS_HEADERS, JSON_HEADERS, optionsResponse } from '../../_shared/api-utils'
@@ -226,10 +227,7 @@ Return ONLY valid JSON array:
       throw new Error('Invalid API response for claim extraction')
     }
 
-    const jsonText = data.choices[0].message.content
-      .replace(/```json\n?/g, '')
-      .replace(/```\n?/g, '')
-      .trim()
+    const jsonText = stripModelFence(data.choices[0].message.content)
 
     const claims = JSON.parse(jsonText)
     return Array.isArray(claims) ? claims : []
