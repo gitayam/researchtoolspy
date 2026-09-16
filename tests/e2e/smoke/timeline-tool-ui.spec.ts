@@ -307,8 +307,9 @@ test.describe('Timeline research tool @smoke', () => {
     await expect(page.locator('.timeline-setup')).not.toHaveAttribute('open')
     await openWorkflowDisclosure(page, 'Start or import a timeline')
     await page.getByLabel('Investigation or timeline title').fill('Separate new investigation')
-    page.once('dialog', dialog => dialog.accept())
     await page.getByRole('button', { name: 'Create timeline' }).click()
+    // Replaces window.confirm: the draft-overwrite warning is an in-app dialog now.
+    await page.getByRole('button', { name: 'Replace draft', exact: true }).click()
     await expect(page.locator('.timeline-setup')).not.toHaveAttribute('open')
     await expect(page.getByRole('button', { name: 'Add first event', exact: true })).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Last confirmed public report' })).toHaveCount(0)

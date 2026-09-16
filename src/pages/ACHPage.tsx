@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 import { Plus, Search, MoreHorizontal, Trash2, Edit, FileText, Clock, CheckCircle2, AlertCircle, Grid3x3, ExternalLink, CheckCircle, XCircle, Sparkles, Zap } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -24,6 +25,7 @@ export function ACHPage() {
   const [loading, setLoading] = useState(true)
   const [formOpen, setFormOpen] = useState(false)
   const [wizardOpen, setWizardOpen] = useState(false)
+  const confirm = useConfirm()
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create')
   const [editingAnalysis, setEditingAnalysis] = useState<ACHAnalysis | undefined>(undefined)
 
@@ -49,7 +51,7 @@ export function ACHPage() {
   }, [])
 
   const handleDeleteAnalysis = async (id: string) => {
-    if (!confirm(t('ach:alerts.deleteConfirm'))) return
+    if (!(await confirm({ title: t('ach:alerts.deleteConfirm'), confirmLabel: 'Delete analysis' }))) return
 
     try {
       const response = await fetch(`/api/ach?id=${id}`, {

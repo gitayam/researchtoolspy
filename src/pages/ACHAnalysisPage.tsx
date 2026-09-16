@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Edit, FileText, Calendar, User, Building, Download, Network } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -52,6 +53,7 @@ export function ACHAnalysisPage() {
   const [loading, setLoading] = useState(true)
   const [formOpen, setFormOpen] = useState(false)
   const [evidenceSelectorOpen, setEvidenceSelectorOpen] = useState(false)
+  const confirm = useConfirm()
 
   const loadAnalysis = async (signal?: AbortSignal) => {
     if (!id) return
@@ -164,7 +166,7 @@ export function ACHAnalysisPage() {
   }
 
   const handleRemoveEvidence = async (linkId: string) => {
-    if (!confirm(t('ach:alerts.removeEvidenceConfirm'))) return
+    if (!(await confirm({ title: t('ach:alerts.removeEvidenceConfirm'), description: 'The evidence stays in your collection — it is only removed from this analysis.', confirmLabel: 'Remove evidence' }))) return
 
     try {
       await fetch(`/api/ach/evidence?id=${linkId}`, {

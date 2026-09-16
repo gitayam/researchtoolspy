@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 import { useParams, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Plus, Search, Database, Shield, Eye } from 'lucide-react'
@@ -27,6 +28,7 @@ export function SourcesPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [filterType, setFilterType] = useState<SourceType | 'all'>('all')
   const [isFormOpen, setIsFormOpen] = useState(false)
+  const confirm = useConfirm()
   const [editingSource, setEditingSource] = useState<Source | undefined>(undefined)
 
   const isDetailView = id && !location.pathname.includes('/edit')
@@ -133,7 +135,7 @@ export function SourcesPage() {
 
   const handleDelete = async () => {
     if (!currentSource) return
-    if (!confirm(`Are you sure you want to delete "${currentSource.name}"?`)) return
+    if (!(await confirm({ title: `Are you sure you want to delete "${currentSource.name}"?`, confirmLabel: 'Delete source' }))) return
 
     try {
       const response = await fetch(`/api/sources/${currentSource.id}`, {

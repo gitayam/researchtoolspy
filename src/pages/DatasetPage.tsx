@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 import { Plus, Search, Upload, Tag, Clock, Shield, Globe, FileText, Link as LinkIcon, Image, Video, Music, MessageSquare, Mail, FileBarChart, MoreHorizontal, Trash2, Edit, Copy, Archive, CheckCircle2, XCircle, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -24,6 +25,7 @@ export function DatasetPage() {
   const [filter, setFilter] = useState<DatasetFilter>({})
   const [searchTerm, setSearchTerm] = useState('')
   const [formOpen, setFormOpen] = useState(false)
+  const confirm = useConfirm()
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create')
   const [editingDataset, setEditingDataset] = useState<any>(null)
 
@@ -80,7 +82,7 @@ export function DatasetPage() {
   }
 
   const handleDeleteDataset = async (id: string) => {
-    if (!confirm(t('dataset:alerts.deleteConfirm'))) return
+    if (!(await confirm({ title: t('dataset:alerts.deleteConfirm'), confirmLabel: 'Delete dataset' }))) return
 
     try {
       const response = await fetch(`${DATASETS_API_PATH}?id=${id}`, {

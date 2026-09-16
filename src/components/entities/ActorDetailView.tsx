@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Edit, Trash2, Users, Shield, TrendingUp, AlertTriangle, Link as LinkIcon, Calendar, FileText, Plus, Target, Network, MessageSquare } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -37,6 +38,7 @@ export function ActorDetailView({ actor, onEdit, onDelete }: ActorDetailViewProp
   const [claimStats, setClaimStats] = useState<any>(null)
   const [groupedClaims, setGroupedClaims] = useState<any>({})
   const [loadingClaims, setLoadingClaims] = useState(false)
+  const confirm = useConfirm()
 
   // Load MOM assessments for this actor
   useEffect(() => {
@@ -482,7 +484,7 @@ export function ActorDetailView({ actor, onEdit, onDelete }: ActorDetailViewProp
                     setIsMomModalOpen(true)
                   }}
                   onDelete={async (assessment) => {
-                    if (!confirm(`Delete MOM assessment "${assessment.scenario_description}"?`)) return
+                    if (!(await confirm({ title: `Delete MOM assessment "${assessment.scenario_description}"?`, description: 'The assessment and its scores are removed. This cannot be undone.', confirmLabel: 'Delete assessment' }))) return
                     try {
                       await fetch(`/api/mom-assessments/${assessment.id}`, {
                         method: 'DELETE',
@@ -557,7 +559,7 @@ export function ActorDetailView({ actor, onEdit, onDelete }: ActorDetailViewProp
                     setIsRelationshipFormOpen(true)
                   }}
                   onDelete={async (relationship) => {
-                    if (!confirm(`Delete relationship to ${entityNames[relationship.target_entity_id] || relationship.target_entity_id}?`)) return
+                    if (!(await confirm({ title: `Delete relationship to ${entityNames[relationship.target_entity_id] || relationship.target_entity_id}?`, description: 'Only the link is removed — neither entity is deleted.', confirmLabel: 'Delete relationship' }))) return
                     try {
                       await fetch(`/api/relationships/${relationship.id}`, {
                         method: 'DELETE',

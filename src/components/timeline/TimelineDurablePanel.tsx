@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 import { FolderLock } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
@@ -60,6 +61,7 @@ function WorkspaceSaving({ snapshot, onOpen, workspaceId, principalId, canWrite 
   const [conflict, setConflict] = useState(false)
   const [message, setMessage] = useState('')
   const [linkInput, setLinkInput] = useState(() => new URLSearchParams(window.location.search).has('saved') ? window.location.href : '')
+  const confirm = useConfirm()
   const controller = useRef<AbortController | null>(null)
   const currentIdentity = snapshot ? snapshotIdentity(snapshot) : ''
   const dirty = Boolean(snapshot && currentIdentity !== savedIdentity)
@@ -96,7 +98,7 @@ function WorkspaceSaving({ snapshot, onOpen, workspaceId, principalId, canWrite 
     try {
       const target = parseSavedTimelineLink(linkInput)
       if (target.workspaceId && target.workspaceId !== workspaceId) throw new DurableTimelineError('Choose the private workspace named in the saved link before opening it.')
-      if (snapshot && !window.confirm('Replace the open timeline with its saved version? Export JSON first if you need to keep your current work.')) return
+      if (snapshot && !(await confirm({ title: 'Replace the open timeline with its saved version?', description: 'Your current work is replaced. Export JSON first if you need to keep it.', confirmLabel: 'Replace timeline' }))) return
       const abort = new AbortController(); controller.current = abort
       setBusy(true); setMessage('Opening the saved timeline…')
       try {

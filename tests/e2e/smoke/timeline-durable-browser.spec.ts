@@ -801,8 +801,10 @@ test.describe('durable browser with actual D1 routes @smoke', () => {
       await page.getByRole('button', { name: 'Save changes', exact: true }).click()
       await expect(page.getByText(/Someone saved a newer revision/)).toBeVisible()
       expect((await exported(page)).analystWorkspace.narrative?.title).toBe('Local conflict edits')
-      b.faults.malformedRead = true; page.once('dialog', dialog => dialog.accept())
+      b.faults.malformedRead = true
       await openWorkflowDisclosure(page, 'Saved versions and links'); await page.getByRole('button', { name: 'Open saved timeline', exact: true }).click()
+      // Replaces window.confirm: the replace-timeline warning is an in-app dialog now.
+      await page.getByRole('button', { name: 'Replace timeline', exact: true }).click()
       await expect(page.getByText(/did not match this workspace/)).toBeVisible()
       expect((await exported(page)).analystWorkspace.narrative?.title).toBe('Local conflict edits')
       expect(await savedCompanion(page, last.response.revisionId)).toEqual(JSON.parse(last.body!).changes[0].payload)

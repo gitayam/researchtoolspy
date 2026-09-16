@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 import { useNavigate } from 'react-router-dom'
 import {
   Camera, Video, MessageCircle, Smartphone, Globe, Briefcase,
@@ -106,6 +107,7 @@ const platformColors: Record<string, string> = {
 
 export function SocialMediaPage() {
   const { t } = useTranslation(['socialMedia'])
+  const confirm = useConfirm()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [stats, setStats] = useState<Stats | null>(null)
@@ -261,7 +263,7 @@ export function SocialMediaPage() {
   }
 
   const handleDeleteProfile = async (profileId: string) => {
-    if (!confirm(t('socialMedia:profiles.deleteConfirm'))) return
+    if (!(await confirm({ title: t('socialMedia:profiles.deleteConfirm'), confirmLabel: 'Delete profile' }))) return
 
     try {
       await fetch(`/api/social-media/profiles/${profileId}`, {

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ArrowLeft, Save, Plus, X, ExternalLink, Link2, Trash2, HelpCircle, ChevronDown, ChevronRight, Zap } from 'lucide-react'
@@ -138,6 +139,7 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
   const [expandedSoWhat, setExpandedSoWhat] = useState<Set<string>>(new Set()) // Track "So What?" sections
   const [evidenceLinkerOpen, setEvidenceLinkerOpen] = useState(false)
   const [quickScoreOpen, setQuickScoreOpen] = useState(false)
+  const confirm = useConfirm()
   const [activeEvidenceTarget, setActiveEvidenceTarget] = useState<{
     type: 'cog' | 'capability' | 'requirement' | 'vulnerability'
     id: string
@@ -195,8 +197,8 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
     setCogs(cogs.map(cog => (cog.id === id ? { ...cog, ...updates } : cog)))
   }
 
-  const removeCOG = (id: string) => {
-    if (!confirm(t('form.confirmations.removeCOG'))) return
+  const removeCOG = async (id: string) => {
+    if (!(await confirm({ title: t('form.confirmations.removeCOG'), confirmLabel: 'Remove' }))) return
     setCogs(cogs.filter(cog => cog.id !== id))
     const capIds = capabilities.filter(cap => cap.cog_id === id).map(cap => cap.id)
     setCapabilities(capabilities.filter(cap => cap.cog_id !== id))
@@ -222,8 +224,8 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
     setCapabilities(capabilities.map(cap => (cap.id === id ? { ...cap, ...updates } : cap)))
   }
 
-  const removeCapability = (id: string) => {
-    if (!confirm(t('form.confirmations.removeCapability'))) return
+  const removeCapability = async (id: string) => {
+    if (!(await confirm({ title: t('form.confirmations.removeCapability'), confirmLabel: 'Remove' }))) return
     setCapabilities(capabilities.filter(cap => cap.id !== id))
     const reqIds = requirements.filter(req => req.capability_id === id).map(req => req.id)
     setRequirements(requirements.filter(req => req.capability_id !== id))
@@ -247,8 +249,8 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
     setRequirements(requirements.map(req => (req.id === id ? { ...req, ...updates } : req)))
   }
 
-  const removeRequirement = (id: string) => {
-    if (!confirm(t('form.confirmations.removeRequirement'))) return
+  const removeRequirement = async (id: string) => {
+    if (!(await confirm({ title: t('form.confirmations.removeRequirement'), confirmLabel: 'Remove' }))) return
     setRequirements(requirements.filter(req => req.id !== id))
     setVulnerabilities(vulnerabilities.filter(vuln => vuln.requirement_id !== id))
   }
@@ -294,8 +296,8 @@ export function COGForm({ initialData, mode, onSave, backPath, frameworkId }: CO
     )
   }
 
-  const removeVulnerability = (id: string) => {
-    if (!confirm(t('form.confirmations.removeVulnerability'))) return
+  const removeVulnerability = async (id: string) => {
+    if (!(await confirm({ title: t('form.confirmations.removeVulnerability'), confirmLabel: 'Remove' }))) return
     setVulnerabilities(vulnerabilities.filter(vuln => vuln.id !== id))
   }
 

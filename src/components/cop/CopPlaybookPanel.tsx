@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 import { getCopHeaders } from '@/lib/cop-auth'
 import { isTransientFetchError } from '@/lib/transient-fetch-error'
 import {
@@ -54,6 +55,7 @@ export default function CopPlaybookPanel({ sessionId, onEditPlaybook, onViewLog 
   const [newName, setNewName] = useState('')
   const [newDescription, setNewDescription] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const confirm = useConfirm()
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
@@ -130,7 +132,7 @@ export default function CopPlaybookPanel({ sessionId, onEditPlaybook, onViewLog 
   // ── Delete ─────────────────────────────────────────────────
 
   const handleDelete = useCallback(async (pbId: string) => {
-    if (!confirm('Delete this playbook and all its rules?')) return
+    if (!(await confirm({ title: 'Delete this playbook?', description: 'Every rule in it is deleted too. This cannot be undone.', confirmLabel: 'Delete playbook' }))) return
     try {
       const res = await fetch(`/api/cop/${sessionId}/playbooks/${pbId}`, {
         method: 'DELETE',
@@ -141,7 +143,7 @@ export default function CopPlaybookPanel({ sessionId, onEditPlaybook, onViewLog 
     } catch {
       // ignore
     }
-  }, [sessionId, fetchPlaybooks])
+  }, [sessionId, fetchPlaybooks, confirm])
 
   // ── Render ─────────────────────────────────────────────────
 

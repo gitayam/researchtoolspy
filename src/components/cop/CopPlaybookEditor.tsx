@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 import { getCopHeaders } from '@/lib/cop-auth'
 import {
   Plus,
@@ -132,6 +133,7 @@ export default function CopPlaybookEditor({ sessionId, playbookId, onClose }: Co
   const [newRuleConditions, setNewRuleConditions] = useState<PlaybookCondition[]>([])
   const [newRuleActions, setNewRuleActions] = useState<PlaybookAction[]>([newAction()])
   const [newRuleCooldown, setNewRuleCooldown] = useState(0)
+  const confirm = useConfirm()
 
   // ── Fetch ──────────────────────────────────────────────────
 
@@ -207,7 +209,7 @@ export default function CopPlaybookEditor({ sessionId, playbookId, onClose }: Co
   // ── Delete rule ────────────────────────────────────────────
 
   const handleDeleteRule = useCallback(async (ruleId: string) => {
-    if (!confirm('Delete this rule?')) return
+    if (!(await confirm({ title: 'Delete this rule?', description: 'The rule is removed from this playbook. This cannot be undone.', confirmLabel: 'Delete rule' }))) return
     try {
       await fetch(`/api/cop/${sessionId}/playbooks/${playbookId}/rules?rule_id=${ruleId}`, {
         method: 'DELETE',
@@ -217,7 +219,7 @@ export default function CopPlaybookEditor({ sessionId, playbookId, onClose }: Co
     } catch {
       // ignore
     }
-  }, [sessionId, playbookId, fetchRules])
+  }, [sessionId, playbookId, fetchRules, confirm])
 
   // ── Dry run ────────────────────────────────────────────────
 

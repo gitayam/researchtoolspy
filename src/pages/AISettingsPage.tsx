@@ -5,6 +5,7 @@
  */
 
 import { useState, useEffect } from 'react'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 import { DEFAULT_MODELS } from '../../functions/api/_shared/ai-models'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -44,6 +45,7 @@ export function AISettingsPage() {
   const [config, setConfig] = useState<AIConfigResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const confirm = useConfirm()
   const [error, setError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
@@ -100,7 +102,7 @@ export function AISettingsPage() {
   }
 
   const resetConfig = async () => {
-    if (!confirm(t('aiSettings:resetConfirm'))) return
+    if (!(await confirm({ title: t('aiSettings:resetConfirm'), confirmLabel: 'Reset settings' }))) return
 
     try {
       setSaving(true)

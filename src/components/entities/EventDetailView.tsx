@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 import { useNavigate } from 'react-router-dom'
 import { getCopHeaders } from '@/lib/cop-auth'
 import { ArrowLeft, Edit, Trash2, Calendar, Clock, MapPin, AlertTriangle, CheckCircle, Users, FileText, Plus, Link as LinkIcon, Network } from 'lucide-react'
@@ -32,6 +33,7 @@ export function EventDetailView({ event, onEdit, onDelete }: EventDetailViewProp
   const [isRelationshipFormOpen, setIsRelationshipFormOpen] = useState(false)
   const [editingRelationship, setEditingRelationship] = useState<Relationship | undefined>(undefined)
   const [isMomModalOpen, setIsMomModalOpen] = useState(false)
+  const confirm = useConfirm()
   const [editingMomAssessment, setEditingMomAssessment] = useState<MOMAssessment | undefined>(undefined)
 
   // Load MOM assessments for this event
@@ -486,7 +488,7 @@ export function EventDetailView({ event, onEdit, onDelete }: EventDetailViewProp
                     setIsMomModalOpen(true)
                   }}
                   onDelete={async (assessment) => {
-                    if (!confirm(`Delete MOM assessment "${assessment.scenario_description}"?`)) return
+                    if (!(await confirm({ title: `Delete MOM assessment "${assessment.scenario_description}"?`, description: 'The assessment and its scores are removed. This cannot be undone.', confirmLabel: 'Delete assessment' }))) return
                     try {
                       await fetch(`/api/mom-assessments/${assessment.id}`, { method: 'DELETE', headers: getCopHeaders() })
                       setMomAssessments(prev => prev.filter(a => a.id !== assessment.id))
@@ -544,7 +546,7 @@ export function EventDetailView({ event, onEdit, onDelete }: EventDetailViewProp
                     setIsRelationshipFormOpen(true)
                   }}
                   onDelete={async (relationship) => {
-                    if (!confirm('Delete this relationship?')) return
+                    if (!(await confirm({ title: 'Delete this relationship?', description: 'Only the link is removed — neither entity is deleted.', confirmLabel: 'Delete relationship' }))) return
                     try {
                       const response = await fetch(`/api/relationships/${relationship.id}`, {
                         method: 'DELETE',

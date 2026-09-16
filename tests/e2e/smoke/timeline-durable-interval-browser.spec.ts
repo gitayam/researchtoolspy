@@ -179,8 +179,9 @@ test.describe('Durable recorded interval browser @smoke', () => {
       expect(await download(page, dialog, 'Download ResearchTools JSON')).toEqual(JSON.parse(lost.body!).changes[0].payload)
       await dialog.getByRole('button', { name: 'Close', exact: true }).click()
       b.faults.malformedObjects = true
-      page.once('dialog', dialog => void dialog.accept())
       await page.getByRole('button', { name: 'Open saved timeline', exact: true }).click()
+      // Replaces window.confirm: the replace-timeline warning is an in-app dialog now.
+      await page.getByRole('button', { name: 'Replace timeline', exact: true }).click()
       await expect(page.getByRole('region', { name: 'Workspace saving', exact: true })).toContainText('incomplete or mismatched revision')
       expect((await download(page)).analystWorkspace).toEqual(editing.analystWorkspace)
       await expect(page.getByTestId('timeline-save-state')).toHaveText('Unsaved changes')

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Edit, Trash2, Database, Shield, AlertCircle, CheckCircle, Globe, FileText, Link as LinkIcon, Network } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -26,6 +27,7 @@ export function SourceDetailView({ source, onEdit, onDelete }: SourceDetailViewP
   const [loadingRelationships, setLoadingRelationships] = useState(false)
   const [entityNames, setEntityNames] = useState<Record<string, string>>({})
   const [isRelationshipFormOpen, setIsRelationshipFormOpen] = useState(false)
+  const confirm = useConfirm()
   const [editingRelationship, setEditingRelationship] = useState<Relationship | undefined>(undefined)
 
   // Load relationships
@@ -418,7 +420,7 @@ export function SourceDetailView({ source, onEdit, onDelete }: SourceDetailViewP
                     setIsRelationshipFormOpen(true)
                   }}
                   onDelete={async (relationship) => {
-                    if (!confirm('Delete this relationship?')) return
+                    if (!(await confirm({ title: 'Delete this relationship?', description: 'Only the link is removed — neither entity is deleted.', confirmLabel: 'Delete relationship' }))) return
                     try {
                       const response = await fetch(`/api/relationships/${relationship.id}`, {
                         method: 'DELETE',

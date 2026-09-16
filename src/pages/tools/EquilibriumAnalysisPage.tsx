@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 import { Upload, TrendingUp, Brain, Trash2, Save, RefreshCw } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -30,6 +31,7 @@ export function EquilibriumAnalysisPage() {
   const [timeColumn, setTimeColumn] = useState('')
   const [rateColumn, setRateColumn] = useState('')
   const [groupColumn, setGroupColumn] = useState('')
+  const confirm = useConfirm()
 
   // Load analyses on mount
   useEffect(() => {
@@ -191,7 +193,7 @@ export function EquilibriumAnalysisPage() {
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Delete this analysis?')) return
+    if (!(await confirm({ title: 'Delete this analysis?', confirmLabel: 'Delete analysis' }))) return
 
     try {
       await fetch(`/api/equilibrium-analysis/${id}`, {

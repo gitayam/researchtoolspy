@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ArrowLeft, Edit, Trash2, Download, Network, FileText, Table2, ExternalLink, Share2 } from 'lucide-react'
@@ -67,6 +68,7 @@ export function COGView({ data, onEdit, onDelete, backPath }: COGViewProps) {
   // Generate network data
   const edgeList = useMemo(() => generateEdgeList(data), [data])
   const centralityMeasures = useMemo(() => calculateCentralityMeasures(edgeList), [edgeList])
+  const confirm = useConfirm()
 
   // Group COGs by actor category
   const cogsByActor = useMemo(() => {
@@ -246,8 +248,8 @@ ${Object.entries(centralityMeasures.degree_centrality)
     URL.revokeObjectURL(url)
   }
 
-  const handleDelete = () => {
-    if (confirm(t('view.alerts.confirmDelete', { title: data.title }))) {
+  const handleDelete = async () => {
+    if (await confirm({ title: t('view.alerts.confirmDelete', { title: data.title }), confirmLabel: 'Delete analysis' })) {
       onDelete()
     }
   }

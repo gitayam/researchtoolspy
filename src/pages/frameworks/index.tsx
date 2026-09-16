@@ -1,4 +1,5 @@
 import { FrameworkPlaceholder } from './FrameworkPlaceholder'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { Plus, Search, Grid3x3, MoreVertical, ExternalLink, CheckCircle, XCircle, Tag, X, Merge } from 'lucide-react'
@@ -37,6 +38,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 
 export const SwotPage = () => {
   const { t } = useTranslation(['common', 'frameworks'])
+  const confirm = useConfirm()
   const { currentWorkspaceId } = useWorkspace()
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedTags, setSelectedTags] = useState<string[]>([])
@@ -161,7 +163,11 @@ export const SwotPage = () => {
   const handleDelete = async (deleteId?: string) => {
     const targetId = deleteId || id
     if (!targetId) return
-    if (!confirm(t('frameworkPages.confirmDeleteAnalysis'))) return
+    if (!(await confirm({
+      title: t('frameworkPages.confirmDeleteAnalysis'),
+      description: 'The analysis and everything recorded in it are removed. This cannot be undone.',
+      confirmLabel: 'Delete analysis',
+    }))) return
 
     try {
       const response = await fetch(`/api/frameworks?id=${targetId}&workspace_id=${analysisWorkspaceId}`, {
@@ -633,6 +639,7 @@ export const SwotPage = () => {
 // Generic Framework Page with full CRUD
 const GenericFrameworkPage = ({ frameworkKey }: { frameworkKey: string }) => {
   const { t } = useTranslation(['common', 'frameworks'])
+  const confirm = useConfirm()
   const { currentWorkspaceId } = useWorkspace()
   const config = frameworkConfigs[frameworkKey]
   const [analyses, setAnalyses] = useState<any[]>([])
@@ -738,7 +745,11 @@ const GenericFrameworkPage = ({ frameworkKey }: { frameworkKey: string }) => {
   const handleDelete = async (deleteId?: string) => {
     const targetId = deleteId || id
     if (!targetId) return
-    if (!confirm(t('frameworkPages.confirmDeleteAnalysis'))) return
+    if (!(await confirm({
+      title: t('frameworkPages.confirmDeleteAnalysis'),
+      description: 'The analysis and everything recorded in it are removed. This cannot be undone.',
+      confirmLabel: 'Delete analysis',
+    }))) return
 
     try {
       const response = await fetch(`/api/frameworks?id=${targetId}&workspace_id=${analysisWorkspaceId}`, {
@@ -1078,6 +1089,7 @@ const FrameworkListPage = ({ title, description, frameworkType }: { title: strin
 
 export const CogPage = () => {
   const { t } = useTranslation(['common', 'frameworks'])
+  const confirm = useConfirm()
   const { t: tCog } = useTranslation('cog')
   const { currentWorkspaceId } = useWorkspace()
   const config = frameworkConfigs['cog']
@@ -1213,7 +1225,11 @@ export const CogPage = () => {
   const handleDelete = async (deleteId?: string) => {
     const targetId = deleteId || id
     if (!targetId) return
-    if (!confirm(t('frameworkPages.confirmDeleteAnalysis'))) return
+    if (!(await confirm({
+      title: t('frameworkPages.confirmDeleteAnalysis'),
+      description: 'The analysis and everything recorded in it are removed. This cannot be undone.',
+      confirmLabel: 'Delete analysis',
+    }))) return
 
     try {
       const response = await fetch(`/api/frameworks?id=${targetId}&workspace_id=${analysisWorkspaceId}`, {
@@ -1592,6 +1608,7 @@ export const DotmlpfPage = () => <GenericFrameworkPage frameworkKey="dotmlpf" />
 
 export const DeceptionPage = () => {
   const { t } = useTranslation(['common', 'frameworks'])
+  const confirm = useConfirm()
   const { t: tDeception } = useTranslation('deception')
   const { currentWorkspaceId } = useWorkspace()
   const config = frameworkConfigs['deception']
@@ -1698,7 +1715,11 @@ export const DeceptionPage = () => {
   const handleDelete = async (deleteId?: string) => {
     const targetId = deleteId || id
     if (!targetId) return
-    if (!confirm(t('frameworkPages.confirmDeleteAnalysis'))) return
+    if (!(await confirm({
+      title: t('frameworkPages.confirmDeleteAnalysis'),
+      description: 'The analysis and everything recorded in it are removed. This cannot be undone.',
+      confirmLabel: 'Delete analysis',
+    }))) return
 
     try {
       const response = await fetch(`/api/frameworks?id=${targetId}&workspace_id=${analysisWorkspaceId}`, {

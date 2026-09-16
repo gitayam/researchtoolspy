@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 import { useTranslation } from 'react-i18next'
 import {
   MessageCircle,
@@ -60,6 +61,7 @@ export function CommentThread({ entityType, entityId, className }: CommentThread
   const [loading, setLoading] = useState(false)
   const [showResolved, setShowResolved] = useState(false)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const confirm = useConfirm()
 
   useEffect(() => {
     // Check authentication status (supports both hash and OIDC/JWT auth)
@@ -143,7 +145,7 @@ export function CommentThread({ entityType, entityId, className }: CommentThread
   }
 
   const handleDelete = async (commentId: string) => {
-    if (!confirm(t('confirmDelete'))) return
+    if (!(await confirm({ title: t('confirmDelete'), confirmLabel: 'Delete comment' }))) return
 
     setLoading(true)
     try {

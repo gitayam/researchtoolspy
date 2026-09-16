@@ -6,6 +6,7 @@
  * - Explicit save for scores (dirty tracking + "Save Scores" button)
  */
 
+import { useConfirm } from '@/components/ui/confirm-dialog'
 import {
   useReducer,
   useEffect,
@@ -142,6 +143,7 @@ export function CrossTableEditor({ table, scores }: CrossTableEditorProps) {
   // ── Autosave config (debounced 1s) ──────────────────────────
 
   const configVersionRef = useRef(state.configVersion)
+  const confirm = useConfirm()
   configVersionRef.current = state.configVersion
 
   useEffect(() => {
@@ -216,7 +218,7 @@ export function CrossTableEditor({ table, scores }: CrossTableEditorProps) {
   // ── Delete ──────────────────────────────────────────────────
 
   const handleDelete = useCallback(async () => {
-    if (!confirm('Delete this cross table? This cannot be undone.')) return
+    if (!(await confirm({ title: 'Delete this cross table?', description: 'The table and every score in it are removed. This cannot be undone.', confirmLabel: 'Delete table' }))) return
     try {
       await fetch(`/api/cross-table/${state.table.id}`, {
         method: 'DELETE',
@@ -226,7 +228,7 @@ export function CrossTableEditor({ table, scores }: CrossTableEditorProps) {
     } catch {
       // TODO: show toast error
     }
-  }, [state.table.id, navigate])
+  }, [state.table.id, navigate, confirm])
 
   // ── Compute results for export ──────────────────────────────
 

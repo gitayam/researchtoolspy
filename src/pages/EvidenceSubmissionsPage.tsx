@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -101,6 +102,7 @@ export default function EvidenceSubmissionsPage() {
   const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null)
   const [processDialog, setProcessDialog] = useState<ProcessDialog | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
+  const confirm = useConfirm()
 
   useEffect(() => {
     if (isWorkspaceLoading) return
@@ -187,7 +189,7 @@ export default function EvidenceSubmissionsPage() {
   }
 
   const deleteForm = async (formId: string, formName: string) => {
-    if (!confirm(`Are you sure you want to delete "${formName}"? This action cannot be undone.`)) {
+    if (!(await confirm({ title: `Are you sure you want to delete "${formName}"? This action cannot be undone.`, confirmLabel: 'Delete form' }))) {
       return
     }
 

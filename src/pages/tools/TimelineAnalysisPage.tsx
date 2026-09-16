@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 import type { FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { AlertCircle, ArrowLeft, Calendar, FileSearch, Info, Loader2, PencilLine } from 'lucide-react'
@@ -159,6 +160,7 @@ export function TimelineAnalysisPage() {
   const [liveWorkspace, setLiveWorkspace] = useState<TimelineWorkspaceState | undefined>()
   const [durableGeneration, setDurableGeneration] = useState(0)
   const remoteOpened = useRef(false)
+  const confirm = useConfirm()
   const [sourceImportWorkspaceId, setSourceImportWorkspaceId] = useState<string | undefined>()
   const forgetRemote = useCallback(() => {
     setSourceImportWorkspaceId(undefined)
@@ -251,7 +253,7 @@ export function TimelineAnalysisPage() {
     void runAnalysis(undefined, example.url)
   }
 
-  const startManualTimeline = () => {
+  const startManualTimeline = async () => {
     const title = manualTitle.trim()
     if (!title) {
       setError('Name the investigation or timeline before starting.')
@@ -261,7 +263,7 @@ export function TimelineAnalysisPage() {
       setError('Keep the timeline title under 200 characters.')
       return
     }
-    if (manualDraft && !window.confirm('Replace the existing browser timeline draft? Export it first if you need to keep both.')) return
+    if (manualDraft && !(await confirm({ title: 'Replace the existing browser timeline draft?', description: 'The draft in this browser is overwritten. Export it first if you need to keep both.', confirmLabel: 'Replace draft' }))) return
 
     detachDurable()
     const nextResult = manualTimelineResult(title)

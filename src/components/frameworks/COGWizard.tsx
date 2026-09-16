@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 import { CreatedNotice } from '@/components/ui/created-notice'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -39,6 +40,7 @@ interface COGWizardProps {
 
 export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
   const navigate = useNavigate()
+  const confirm = useConfirm()
   const { t } = useTranslation('cog')
   const { currentWorkspaceId } = useWorkspace()
 
@@ -184,7 +186,7 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
     }
 
     if (entitiesGenerated) {
-      if (!confirm('Entities have already been generated. Generate again? This will create duplicate entities.')) {
+      if (!(await confirm({ title: 'Generate entities again?', description: 'Entities were already generated for this analysis. Generating again creates duplicates.', confirmLabel: 'Generate again', destructive: false }))) {
         return
       }
     }
@@ -404,8 +406,8 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
     }
   }
 
-  const switchToAdvancedMode = () => {
-    if (confirm(t('wizard.navigation.switchToAdvanced'))) {
+  const switchToAdvancedMode = async () => {
+    if (await confirm({ title: t('wizard.navigation.switchToAdvanced'), confirmLabel: 'Switch to advanced', destructive: false })) {
       // Build COG data from wizard state
       const cogId = crypto.randomUUID()
       const capId = crypto.randomUUID()

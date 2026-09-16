@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 import { Users, Plus, Trash2, Brain, ArrowRight, Network } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -60,6 +61,7 @@ export function HamiltonRulePage() {
   const [newRelRelatedness, setNewRelRelatedness] = useState(0.5)
   const [newRelBenefit, setNewRelBenefit] = useState(10)
   const [newRelCost, setNewRelCost] = useState(3)
+  const confirm = useConfirm()
 
   useEffect(() => {
     if (workspaceLoading || !currentWorkspaceId) return
@@ -217,7 +219,7 @@ export function HamiltonRulePage() {
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Delete this analysis?')) return
+    if (!(await confirm({ title: 'Delete this analysis?', confirmLabel: 'Delete analysis' }))) return
 
     try {
       await fetch(`/api/hamilton-rule/${id}`, {

@@ -583,6 +583,20 @@ export function SwotForm({ initialData, mode, onSave }: SwotFormProps) {
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
+  /** An unsaved draft found on mount, offered rather than forced. Every field
+   *  is optional: a draft is whatever had been typed when it was written. */
+  const [pendingDraft, setPendingDraft] = useState<{
+    timestamp: string
+    title?: string
+    description?: string
+    goal?: string
+    options?: string[]
+    tags?: string[]
+    strengths?: SwotItem[]
+    weaknesses?: SwotItem[]
+    opportunities?: SwotItem[]
+    threats?: SwotItem[]
+  } | null>(null)
   const [title, setTitle] = useState(initialData?.title || '')
   const [description, setDescription] = useState(initialData?.description || '')
   const [goal, setGoal] = useState(initialData?.goal || '')
@@ -626,6 +640,10 @@ export function SwotForm({ initialData, mode, onSave }: SwotFormProps) {
     const draftKey = `draft_swot_${mode === 'create' ? 'new' : initialData?.title || 'edit'}`
 
     const interval = setInterval(() => {
+      // An offered draft is not ours to overwrite; without this, a reader who
+      // ignores the offer and types loses it to the next auto-save.
+      if (pendingDraft) return
+
       const draftData = {
         title,
         description,
@@ -647,7 +665,7 @@ export function SwotForm({ initialData, mode, onSave }: SwotFormProps) {
     }, 30000) // 30 seconds
 
     return () => clearInterval(interval)
-  }, [title, description, goal, options, tags, strengths, weaknesses, opportunities, threats, mode, initialData])
+  }, [title, description, goal, options, tags, strengths, weaknesses, opportunities, threats, mode, initialData, pendingDraft])
 
   // Restore draft on mount if available
   useEffect(() => {
@@ -662,22 +680,12 @@ export function SwotForm({ initialData, mode, onSave }: SwotFormProps) {
 
           // Only restore if draft is less than 24 hours old
           if (draftAge < 24 * 60 * 60 * 1000) {
-            const draftDate = new Date(draft.timestamp).toLocaleString()
-            const message = `You have an unsaved SWOT draft from ${draftDate}.\n\nWould you like to restore it and continue where you left off?\n\nClick OK to restore, or Cancel to start fresh.`
-            if (confirm(message)) {
-              setTitle(draft.title || '')
-              setDescription(draft.description || '')
-              setGoal(draft.goal || '')
-              setOptions(draft.options || [])
-              setTags(draft.tags || [])
-              setStrengths(draft.strengths || [])
-              setWeaknesses(draft.weaknesses || [])
-              setOpportunities(draft.opportunities || [])
-              setThreats(draft.threats || [])
-            } else {
-              // User declined, clean up the draft
-              localStorage.removeItem(draftKey)
-            }
+            // Offered in the page rather than through confirm(), for the same
+            // reasons as GenericFrameworkForm: the dialog fired on mount, before
+            // the reader had seen the page the draft belonged to, and Cancel
+            // deleted the draft — as does Escape, which confirm() treats as
+            // Cancel. Nothing is removed here.
+            setPendingDraft(draft)
           } else {
             // Clean up old drafts
             localStorage.removeItem(draftKey)
@@ -898,8 +906,43 @@ export function SwotForm({ initialData, mode, onSave }: SwotFormProps) {
     }
   }
 
+  const restoreDraft = () => {
+    if (!pendingDraft) return
+    setTitle(pendingDraft.title || '')
+    setDescription(pendingDraft.description || '')
+    setGoal(pendingDraft.goal || '')
+    setOptions(pendingDraft.options || [])
+    setTags(pendingDraft.tags || [])
+    setStrengths(pendingDraft.strengths || [])
+    setWeaknesses(pendingDraft.weaknesses || [])
+    setOpportunities(pendingDraft.opportunities || [])
+    setThreats(pendingDraft.threats || [])
+    setPendingDraft(null)
+  }
+
+  const discardDraft = () => {
+    localStorage.removeItem('draft_swot_new')
+    setPendingDraft(null)
+  }
+
   return (
     <div className="space-y-6">
+      {pendingDraft && (
+        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20">
+          <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+            You have an unsaved SWOT draft from {new Date(pendingDraft.timestamp).toLocaleString()}
+          </p>
+          <p className="mt-1 text-sm text-blue-800 dark:text-blue-200">
+            Restore it to pick up where you left off, or discard it and start fresh. It stays
+            here until you choose — and until then, nothing you type is auto-saved over it.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button type="button" size="sm" onClick={restoreDraft}>Restore draft</Button>
+            <Button type="button" size="sm" variant="outline" onClick={discardDraft}>Discard it</Button>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">

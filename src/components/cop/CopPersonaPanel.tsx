@@ -6,6 +6,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 import {
   Plus,
   Hash,
@@ -107,6 +108,7 @@ export default function CopPersonaPanel({ sessionId, expanded, onPromoteToActor 
   const [formHandle, setFormHandle] = useState('')
   const [formNotes, setFormNotes] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const confirm = useConfirm()
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
   // ── Fetch personas ──────────────────────────────────────────
@@ -211,7 +213,7 @@ export default function CopPersonaPanel({ sessionId, expanded, onPromoteToActor 
   // ── Soft-delete persona ─────────────────────────────────────
 
   const handleDelete = useCallback(async (persona: CopPersona) => {
-    if (!window.confirm(`Delete actor "${persona.display_name}"? This can be undone by re-activating it.`)) {
+    if (!(await confirm({ title: `Delete actor "${persona.display_name}"?`, description: 'This can be undone by re-activating the actor later.', confirmLabel: 'Delete actor' }))) {
       return
     }
     setDeletingId(persona.id)
@@ -225,7 +227,7 @@ export default function CopPersonaPanel({ sessionId, expanded, onPromoteToActor 
     } finally {
       setDeletingId(null)
     }
-  }, [sessionId, fetchPersonas])
+  }, [sessionId, fetchPersonas, confirm])
 
   // ── Render ──────────────────────────────────────────────────
 

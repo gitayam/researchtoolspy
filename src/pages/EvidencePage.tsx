@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 import { useNavigate } from 'react-router-dom'
 import { Plus, Search, Tag, Clock, FileText, MoreHorizontal, Trash2, Edit, Archive, CheckCircle2, XCircle, AlertCircle, Target, TrendingUp, Zap, BookOpen, Network, Globe, Filter, CircleDashed, User, MapPin, Calendar, HelpCircle, Shield, ExternalLink } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -139,6 +140,7 @@ export function EvidencePage() {
   const [gapFilter, setGapFilter] = useState<GapFilter>('all')
   const [typeFilter, setTypeFilter] = useState<string>('all')
   const [formOpen, setFormOpen] = useState(false)
+  const confirm = useConfirm()
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create')
   const [editingEvidence, setEditingEvidence] = useState<any>(null)
 
@@ -192,7 +194,7 @@ export function EvidencePage() {
   }
 
   const handleDeleteEvidence = async (id: number) => {
-    if (!confirm(t('evidence.confirmDelete'))) return
+    if (!(await confirm({ title: t('evidence.confirmDelete'), confirmLabel: 'Delete evidence' }))) return
     try {
       const response = await fetch(`/api/evidence-items?id=${id}`, {
         method: 'DELETE',

@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect } from 'react'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 import { getCopHeaders } from '@/lib/cop-auth'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -80,6 +81,7 @@ export function ClaimEntityLinker({ claimAdjustmentId, onLinked }: ClaimEntityLi
   const [credibilityImpact, setCredibilityImpact] = useState(0)
   const [context, setContext] = useState('')
   const [linking, setLinking] = useState(false)
+  const confirm = useConfirm()
 
   // Load linked entities when dialog opens
   useEffect(() => {
@@ -183,7 +185,7 @@ export function ClaimEntityLinker({ claimAdjustmentId, onLinked }: ClaimEntityLi
   }
 
   const removeMention = async (mentionId: string) => {
-    if (!confirm('Remove this entity mention?')) return
+    if (!(await confirm({ title: 'Remove this entity mention?', description: 'The entity is not deleted — only its mention on this claim.', confirmLabel: 'Remove mention' }))) return
 
     try {
       const response = await fetch(`/api/claims/remove-entity-mention/${mentionId}`, {

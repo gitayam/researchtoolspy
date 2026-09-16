@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 import { useParams, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Plus, Search, Calendar, MapPin, AlertCircle } from 'lucide-react'
@@ -27,6 +28,7 @@ export function EventsPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [filterType, setFilterType] = useState<EventType | 'all'>('all')
   const [isFormOpen, setIsFormOpen] = useState(false)
+  const confirm = useConfirm()
   const [editingEvent, setEditingEvent] = useState<Event | undefined>(undefined)
 
   const isDetailView = id && !location.pathname.includes('/edit')
@@ -133,7 +135,7 @@ export function EventsPage() {
 
   const handleDelete = async () => {
     if (!currentEvent) return
-    if (!confirm(`Are you sure you want to delete "${currentEvent.name}"?`)) return
+    if (!(await confirm({ title: `Are you sure you want to delete "${currentEvent.name}"?`, confirmLabel: 'Delete event' }))) return
 
     try {
       const response = await fetch(`/api/events/${currentEvent.id}`, {

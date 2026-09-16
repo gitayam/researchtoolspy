@@ -1,4 +1,5 @@
 import { useEffect, useSyncExternalStore } from 'react'
+import { ConfirmProvider } from '@/components/ui/confirm-dialog'
 import { RouterProvider } from 'react-router-dom'
 import { I18nextProvider } from 'react-i18next'
 import { QueryProvider } from '@/components/providers/QueryProvider'
@@ -17,7 +18,7 @@ function App() {
     listener => router.subscribe(listener),
     () => router.state.location.pathname.startsWith('/present/'),
   )
-  if (presentation) return <ErrorBoundary><I18nextProvider i18n={i18n}><RouterProvider router={router} /></I18nextProvider></ErrorBoundary>
+  if (presentation) return <ErrorBoundary><I18nextProvider i18n={i18n}><ConfirmProvider><RouterProvider router={router} /></ConfirmProvider></I18nextProvider></ErrorBoundary>
   return <WorkspaceApp />
 }
 
@@ -67,8 +68,10 @@ function WorkspaceApp() {
         <GuestModeProvider>
           <WorkspaceProvider>
             <QueryProvider>
-              <RouterProvider router={router} />
-              <SensitiveConsentDialog />
+              <ConfirmProvider>
+                <RouterProvider router={router} />
+                <SensitiveConsentDialog />
+              </ConfirmProvider>
             </QueryProvider>
           </WorkspaceProvider>
         </GuestModeProvider>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 import { CreatedNotice } from '@/components/ui/created-notice'
 import {
   Download,
@@ -50,6 +51,7 @@ export function CitationLibrary({ onRefresh }: CitationLibraryProps) {
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
   const [displayStyle, setDisplayStyle] = useState<CitationStyle>('apa')
   const [copied, setCopied] = useState(false)
+  const confirm = useConfirm()
   const [selectedCitationForEvidence, setSelectedCitationForEvidence] = useState<SavedCitation | null>(null)
   const [createdEvidence, setCreatedEvidence] = useState<{ id: string | number; title: string } | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -78,17 +80,17 @@ export function CitationLibrary({ onRefresh }: CitationLibraryProps) {
     setFilteredCitations(result)
   }, [citations, searchTerm, sortBy, sortOrder, displayStyle])
 
-  const handleDelete = (id: string) => {
-    if (confirm('Delete this citation?')) {
+  const handleDelete = async (id: string) => {
+    if (await confirm({ title: 'Delete this citation?', confirmLabel: 'Delete citation' })) {
       deleteCitation(id)
       loadCitations()
       onRefresh?.()
     }
   }
 
-  const handleDeleteSelected = () => {
+  const handleDeleteSelected = async () => {
     if (selected.size === 0) return
-    if (confirm(`Delete ${selected.size} selected citation(s)?`)) {
+    if (await confirm({ title: `Delete ${selected.size} selected citation${selected.size === 1 ? '' : 's'}?`, confirmLabel: 'Delete' })) {
       deleteCitations(Array.from(selected))
       setSelected(new Set())
       loadCitations()
@@ -96,8 +98,8 @@ export function CitationLibrary({ onRefresh }: CitationLibraryProps) {
     }
   }
 
-  const handleClearLibrary = () => {
-    if (confirm('Clear entire library? This cannot be undone.')) {
+  const handleClearLibrary = async () => {
+    if (await confirm({ title: 'Clear the entire citation library?', description: 'Every saved citation is deleted. This cannot be undone.', confirmLabel: 'Clear library' })) {
       clearLibrary()
       loadCitations()
       onRefresh?.()

@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect } from 'react'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 import { getCopHeaders } from '@/lib/cop-auth'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -76,6 +77,7 @@ export function ClaimEvidenceLinker({ claimAdjustmentId, onLinked }: ClaimEviden
   const [confidence, setConfidence] = useState(75)
   const [notes, setNotes] = useState('')
   const [linking, setLinking] = useState(false)
+  const confirm = useConfirm()
 
   // Load linked evidence when dialog opens
   useEffect(() => {
@@ -178,7 +180,7 @@ export function ClaimEvidenceLinker({ claimAdjustmentId, onLinked }: ClaimEviden
   }
 
   const removeLink = async (linkId: string) => {
-    if (!confirm('Remove this evidence link?')) return
+    if (!(await confirm({ title: 'Remove this evidence link?', description: 'The evidence itself is not deleted — only its link to this claim.', confirmLabel: 'Remove link' }))) return
 
     try {
       const response = await fetch(`/api/claims/remove-evidence-link/${linkId}`, {
