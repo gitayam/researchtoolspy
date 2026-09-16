@@ -49,6 +49,8 @@ interface GenericFrameworkData {
   id: string
   title: string
   description: string
+  /** The workspace this framework belongs to, as returned by the API. */
+  workspace_id?: string
   created_at?: string
   updated_at?: string
   is_public?: boolean
@@ -76,6 +78,12 @@ export function GenericFrameworkView({
   const navigate = useNavigate()
   const { t } = useTranslation('frameworks')
   const { currentWorkspaceId } = useWorkspace()
+
+  // Operate on the framework in ITS workspace, not whichever one the picker
+  // holds. /api/frameworks scopes updates and deletes with
+  // `WHERE id = ? AND workspace_id = ? AND user_id = ?`, so a mismatch made
+  // saving and deleting silently no-op. Same defect as the ACH page.
+  const frameworkWorkspaceId = data?.workspace_id ?? currentWorkspaceId
 
   // Guard against undefined data (e.g. analysis deleted or not yet loaded)
   if (!data || !data.id) {
@@ -126,7 +134,7 @@ export function GenericFrameworkView({
       if (!data.id) return
 
       try {
-        const response = await fetch(`/api/framework-evidence?framework_id=${data.id}&workspace_id=${currentWorkspaceId}`, {
+        const response = await fetch(`/api/framework-evidence?framework_id=${data.id}&workspace_id=${frameworkWorkspaceId}`, {
           headers: getCopHeaders()
         })
         if (response.ok) {
@@ -205,13 +213,13 @@ export function GenericFrameworkView({
       // Extract evidence IDs from selected items
       const evidenceIds = selected.map(item => item.entity_id)
 
-      const response = await fetch(`/api/framework-evidence?workspace_id=${currentWorkspaceId}`, {
+      const response = await fetch(`/api/framework-evidence?workspace_id=${frameworkWorkspaceId}`, {
         method: 'POST',
         headers: getCopHeaders(),
         body: JSON.stringify({
           framework_id: data.id,
           evidence_ids: evidenceIds,
-          workspace_id: currentWorkspaceId
+          workspace_id: frameworkWorkspaceId
         })
       })
 
@@ -234,7 +242,7 @@ export function GenericFrameworkView({
 
     try {
       const response = await fetch(
-        `/api/framework-evidence?framework_id=${data.id}&evidence_id=${entity_id}&workspace_id=${currentWorkspaceId}`,
+        `/api/framework-evidence?framework_id=${data.id}&evidence_id=${entity_id}&workspace_id=${frameworkWorkspaceId}`,
         {
           method: 'DELETE',
           headers: getCopHeaders()
@@ -308,7 +316,7 @@ export function GenericFrameworkView({
       }
 
       // Save to API
-      const response = await fetch(`/api/frameworks?id=${data.id}&workspace_id=${currentWorkspaceId}`, {
+      const response = await fetch(`/api/frameworks?id=${data.id}&workspace_id=${frameworkWorkspaceId}`, {
         method: 'PUT',
         headers: getCopHeaders(),
         body: JSON.stringify({
@@ -317,7 +325,7 @@ export function GenericFrameworkView({
           data: updatedData,
           status: data.status || 'draft',
           is_public: data.is_public || false,
-          workspace_id: currentWorkspaceId
+          workspace_id: frameworkWorkspaceId
         })
       })
 
@@ -357,7 +365,7 @@ export function GenericFrameworkView({
       }
 
       // Save to API
-      const response = await fetch(`/api/frameworks?id=${data.id}&workspace_id=${currentWorkspaceId}`, {
+      const response = await fetch(`/api/frameworks?id=${data.id}&workspace_id=${frameworkWorkspaceId}`, {
         method: 'PUT',
         headers: getCopHeaders(),
         body: JSON.stringify({
@@ -366,7 +374,7 @@ export function GenericFrameworkView({
           data: updatedData,
           status: data.status || 'draft',
           is_public: data.is_public || false,
-          workspace_id: currentWorkspaceId
+          workspace_id: frameworkWorkspaceId
         })
       })
 

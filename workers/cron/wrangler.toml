@@ -20,6 +20,8 @@ CLEANUP_URL = "https://researchtools.net/api/cron/cleanup-content"
 UPLOADS_CLEANUP_URL = "https://researchtools.net/api/cron/cleanup-uploads"
 # Seven-day retention sweep for anonymous, unconverted guest work.
 GUEST_CLEANUP_URL = "https://researchtools.net/api/cron/cleanup-guests"
+# Byte sweep for expired timeline handoff payloads (rows are never deleted).
+HANDOFFS_CLEANUP_URL = "https://researchtools.net/api/cron/cleanup-handoffs"
 
 # Secrets — set via: wrangler secret put <NAME>  (run from this directory)
 # Required:
