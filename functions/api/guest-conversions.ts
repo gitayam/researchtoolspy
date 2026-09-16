@@ -19,30 +19,89 @@ function quoteIdentifier(value: string): string {
   return `"${value}"`
 }
 
+/**
+ * Column names a CREATE TABLE statement actually declares.
+ *
+ * This replaced a regex that searched the DDL TEXT for each candidate column
+ * name, which matched anywhere the string appeared and produced UPDATEs against
+ * columns that do not exist. Three real false positives in this schema:
+ *   claim_adjustments    `adjusted_by TEXT NOT NULL, -- user_id`
+ *   packet_claims        `assigned_to TEXT, -- user_id who's investigating`
+ *   integration_clients  `REFERENCES investigations(id, workspace_id, created_by)`
+ * Two SQL comments and a foreign-key clause naming another table's columns. The
+ * bad statements made db.batch() throw, so every conversion answered 500 and the
+ * workspace ownership transfer at the end never ran.
+ *
+ * pragma_table_info would be the obvious source, but D1's Workers binding
+ * refuses it with `D1_ERROR: not authorized: SQLITE_AUTH` -- note that the same
+ * query DOES succeed through `wrangler d1 execute`, so the CLI is not a valid
+ * check for what the runtime will allow. Hence parsing, done properly: strip
+ * comments, split the top-level column list on commas that are not inside
+ * parentheses, and skip table-constraint clauses.
+ */
+function declaredColumns(createTableSql: string): Set<string> {
+  const columns = new Set<string>()
+
+  const withoutComments = createTableSql
+    .replace(/--[^\n]*/g, ' ')
+    .replace(/\/\*[\s\S]*?\*\//g, ' ')
+
+  const open = withoutComments.indexOf('(')
+  const close = withoutComments.lastIndexOf(')')
+  if (open === -1 || close <= open) return columns
+
+  const body = withoutComments.slice(open + 1, close)
+
+  // Split on commas at paren depth 0 so `REFERENCES t(a, b, c)` stays intact,
+  // and ignore commas inside string literals -- several columns here carry
+  // defaults like DEFAULT '["academic","government"]', which a naive split
+  // turns into imaginary column names.
+  const parts: string[] = []
+  let depth = 0
+  let quote: string | null = null
+  let current = ''
+  for (let i = 0; i < body.length; i += 1) {
+    const ch = body[i]
+    if (quote) {
+      current += ch
+      // '' inside a '-quoted literal is an escaped quote, not the end of it.
+      if (ch === quote && body[i + 1] === quote) { current += body[i + 1]; i += 1; continue }
+      if (ch === quote) quote = null
+      continue
+    }
+    if (ch === "'" || ch === '"' || ch === '`') { quote = ch; current += ch; continue }
+    if (ch === '(') depth += 1
+    else if (ch === ')') depth -= 1
+    if (ch === ',' && depth === 0) { parts.push(current); current = ''; continue }
+    current += ch
+  }
+  parts.push(current)
+
+  // Bare KEY is deliberately absent: SQLite table constraints begin with one of
+  // these words, and `key` is a perfectly legal column name (_cf_KV has one).
+  const TABLE_CONSTRAINTS = /^(CONSTRAINT|PRIMARY|FOREIGN|UNIQUE|CHECK)$/i
+
+  for (const part of parts) {
+    const trimmed = part.trim()
+    if (!trimmed) continue
+    const first = trimmed.split(/[\s(]+/)[0]
+    if (!first || TABLE_CONSTRAINTS.test(first)) continue
+    columns.add(first.replace(/^["`\[]|["`\]]$/g, ''))
+  }
+
+  return columns
+}
+
 async function transferGuestData(db: D1Database, guestUserId: number, authUserId: number) {
   const schema = await db.prepare(
-    `SELECT name FROM sqlite_master WHERE type = 'table' AND sql IS NOT NULL`
-  ).all<{ name: string }>()
+    `SELECT name, sql FROM sqlite_master WHERE type = 'table' AND sql IS NOT NULL`
+  ).all<{ name: string; sql: string }>()
 
   const statements: D1PreparedStatement[] = []
   for (const row of schema.results || []) {
-    if (!row?.name || SPECIAL_TABLES.has(row.name) || row.name.startsWith('sqlite_')) continue
+    if (!row?.name || !row.sql || SPECIAL_TABLES.has(row.name) || row.name.startsWith('sqlite_')) continue
     const table = quoteIdentifier(row.name)
-
-    // Ask SQLite which columns the table actually has. This used to regex the
-    // table's DDL text for each column name, which matches anywhere the string
-    // appears -- including places that are not a column of this table at all:
-    //   claim_adjustments   `adjusted_by TEXT NOT NULL, -- user_id`
-    //   packet_claims       `assigned_to TEXT, -- user_id who's investigating`
-    //   integration_clients `REFERENCES investigations(id, workspace_id, created_by)`
-    // Three UPDATEs against non-existent columns went into the batch, so
-    // db.batch() threw, the whole conversion answered 500, and the workspace
-    // ownership transfer below never ran. That is why a guest who signed up kept
-    // sending a workspace owned by their old guest principal and got 403 on
-    // every write.
-    const info = await db.prepare('SELECT name FROM pragma_table_info(?)')
-      .bind(row.name).all<{ name: string }>()
-    const columns = new Set((info.results || []).map((col) => String(col.name)))
+    const columns = declaredColumns(row.sql)
 
     for (const column of USER_REFERENCE_COLUMNS) {
       if (!columns.has(column)) continue
