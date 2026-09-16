@@ -51,7 +51,7 @@ export function EventsPage() {
         ...(filterType !== 'all' && { event_type: filterType })
       })
 
-      const response = await fetch(`/api/events?${params}`)
+      const response = await fetch(`/api/events?${params}`, { headers: getCopHeaders() })
       const data = await response.json()
 
       if (response.ok) {
@@ -67,7 +67,7 @@ export function EventsPage() {
   const loadEvent = async (eventId: string) => {
     setLoading(true)
     try {
-      const response = await fetch(`/api/events/${eventId}`)
+      const response = await fetch(`/api/events/${eventId}`, { headers: getCopHeaders() })
       const data = await response.json()
 
       if (response.ok) {

@@ -35,7 +35,7 @@ export function ACHAnalysisPage() {
 
     try {
       setLoading(true)
-      const response = await fetch(`/api/ach?id=${id}`, { signal })
+      const response = await fetch(`/api/ach?id=${id}`, { headers: getCopHeaders(), signal })
       if (response.ok) {
         const data = await response.json()
         setAnalysis(data)

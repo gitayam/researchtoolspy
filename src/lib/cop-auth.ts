@@ -13,6 +13,17 @@ export function getGuestHeaders(): Record<string, string> {
   return headers
 }
 
+/**
+ * Credentials without `Content-Type`, for requests whose body sets its own --
+ * a FormData upload must be allowed to emit its multipart boundary, and forcing
+ * application/json on it makes the request unparseable at the origin.
+ */
+export function getCopAuthHeaders(): Record<string, string> {
+  const headers = getCopHeaders()
+  delete headers['Content-Type']
+  return headers
+}
+
 export function getCopHeaders(): Record<string, string> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
   if (typeof window === 'undefined') return headers

@@ -39,7 +39,7 @@ export function AISettingsPage() {
   const loadConfig = async () => {
     try {
       setLoading(true)
-      const response = await fetch('/api/ai/config')
+      const response = await fetch('/api/ai/config', { headers: getCopHeaders() })
       if (!response.ok) {
         if (response.status === 401) throw new Error('Session expired. Please refresh to continue.')
         throw new Error(t('aiSettings:loadFailed'))
@@ -91,7 +91,8 @@ export function AISettingsPage() {
       setError(null)
 
       const response = await fetch('/api/ai/config', {
-        method: 'POST'
+        method: 'POST',
+        headers: getCopHeaders()
       })
 
       if (!response.ok) {

@@ -171,7 +171,7 @@ export function DeceptionView({
 
       try {
         // Load evidence items from framework-evidence API
-        const evidenceResponse = await fetch(`/api/framework-evidence?framework_id=${data.id}`)
+        const evidenceResponse = await fetch(`/api/framework-evidence?framework_id=${data.id}`, { headers: getCopHeaders() })
         let evidenceLinks: LinkedEvidence[] = []
 
         if (evidenceResponse.ok) {
@@ -198,7 +198,7 @@ export function DeceptionView({
         }
 
         // Load actors, sources, events from framework-entities API
-        const entitiesResponse = await fetch(`/api/framework-entities?framework_id=${data.id}`)
+        const entitiesResponse = await fetch(`/api/framework-entities?framework_id=${data.id}`, { headers: getCopHeaders() })
         let entityLinks: LinkedEvidence[] = []
 
         if (entitiesResponse.ok) {

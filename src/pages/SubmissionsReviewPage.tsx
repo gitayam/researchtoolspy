@@ -77,7 +77,7 @@ export default function SubmissionsReviewPage() {
       if (formId) params.append('formId', formId)
       if (statusFilter) params.append('status', statusFilter)
 
-      const response = await fetch(`/api/research/submissions/list?${params}`, { signal })
+      const response = await fetch(`/api/research/submissions/list?${params}`, { headers: getCopHeaders(), signal })
       const data = await response.json()
 
       if (!response.ok) {

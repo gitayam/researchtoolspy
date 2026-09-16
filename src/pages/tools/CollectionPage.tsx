@@ -111,7 +111,7 @@ async function startCollection(request: CollectionJobRequest): Promise<Collectio
 }
 
 async function getJobStatus(jobId: string): Promise<CollectionJob & { resultsSummary?: CollectionResultsSummary[] }> {
-  const response = await fetch(`/api/collection/${jobId}/status`)
+  const response = await fetch(`/api/collection/${jobId}/status`, { headers: getCopHeaders() })
   if (!response.ok) {
     const error = await response.json().catch(() => ({ error: 'Unknown error' }))
     throw new Error(error.error || 'Failed to get job status')
@@ -130,7 +130,7 @@ async function getJobResults(
   if (params.minRelevance) searchParams.set('minRelevance', String(params.minRelevance))
   if (params.approved) searchParams.set('approved', params.approved)
 
-  const response = await fetch(`/api/collection/${jobId}/results?${searchParams}`)
+  const response = await fetch(`/api/collection/${jobId}/results?${searchParams}`, { headers: getCopHeaders() })
   if (!response.ok) {
     const error = await response.json().catch(() => ({ error: 'Unknown error' }))
     throw new Error(error.error || 'Failed to get results')

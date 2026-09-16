@@ -73,7 +73,7 @@ export function ACHPage() {
 
   const handleEditAnalysis = async (id: string) => {
     try {
-      const response = await fetch(`/api/ach?id=${id}`)
+      const response = await fetch(`/api/ach?id=${id}`, { headers: getCopHeaders() })
       if (response.ok) {
         const data = await response.json()
         setFormMode('edit')

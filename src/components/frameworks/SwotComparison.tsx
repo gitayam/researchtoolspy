@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Progress } from '@/components/ui/progress'
 import { cn } from '@/lib/utils'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 interface SwotItem {
   id: string
@@ -72,7 +73,7 @@ export function SwotComparison({ currentSwot, open, onClose }: SwotComparisonPro
     setLoading(true)
     try {
       // Load all SWOT analyses except the current one
-      const response = await fetch('/api/frameworks?framework_type=swot')
+      const response = await fetch('/api/frameworks?framework_type=swot', { headers: getCopHeaders() })
       if (response.ok) {
         const data = await response.json()
         const swots = (data.frameworks || [])

@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { FileUploader } from '@/components/tools/FileUploader'
 import type { ExtractionResult, ExtractionProgress } from '@/types/extraction'
-import { getCopHeaders } from '@/lib/cop-auth'
+import { getCopHeaders, getCopAuthHeaders } from '@/lib/cop-auth'
 
 export function ContentExtractionPage() {
   const navigate = useNavigate()
@@ -31,6 +31,7 @@ export function ContentExtractionPage() {
 
       const response = await fetch('/api/tools/extract', {
         method: 'POST',
+        headers: getCopAuthHeaders(),
         body: formData
       })
 

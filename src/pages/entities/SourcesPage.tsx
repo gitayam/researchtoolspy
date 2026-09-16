@@ -51,7 +51,7 @@ export function SourcesPage() {
         ...(filterType !== 'all' && { source_type: filterType })
       })
 
-      const response = await fetch(`/api/sources?${params}`)
+      const response = await fetch(`/api/sources?${params}`, { headers: getCopHeaders() })
       const data = await response.json()
 
       if (response.ok) {
@@ -67,7 +67,7 @@ export function SourcesPage() {
   const loadSource = async (sourceId: string) => {
     setLoading(true)
     try {
-      const response = await fetch(`/api/sources/${sourceId}`)
+      const response = await fetch(`/api/sources/${sourceId}`, { headers: getCopHeaders() })
       const data = await response.json()
 
       if (response.ok) {

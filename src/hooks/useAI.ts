@@ -55,7 +55,7 @@ export function useAI() {
   const loadConfig = async () => {
     try {
       setLoading(true)
-      const response = await fetch('/api/ai/config')
+      const response = await fetch('/api/ai/config', { headers: getCopHeaders() })
 
       if (!response.ok) {
         throw new Error('Failed to load AI configuration')
