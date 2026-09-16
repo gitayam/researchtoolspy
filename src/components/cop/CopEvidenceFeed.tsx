@@ -52,6 +52,13 @@ interface HandleDetection {
 
 interface CopEvidenceFeedProps {
   sessionId: string
+  /** The session's real workspace. A COP session's id and workspace_id are only
+   *  the same value for sessions created through /api/cop/sessions; ones created
+   *  through /api/workspaces get a UUID workspace and a `cop-` prefixed id. Half
+   *  the sessions in production are the second kind, and sending the session id
+   *  as the workspace made checkWorkspaceAccess look up a workspace that does not
+   *  exist -- so every write from this panel was refused. */
+  workspaceId?: string
   expanded: boolean
   monitorMode?: boolean
   onPinToMap?: (item: FeedItem) => void
@@ -135,6 +142,7 @@ function extractHandles(text: string): Array<{ handle: string; platform: string 
 
 export default function CopEvidenceFeed({
   sessionId,
+  workspaceId,
   expanded,
   monitorMode = false,
   onPinToMap,
@@ -142,6 +150,8 @@ export default function CopEvidenceFeed({
   onLinkPersona,
   viewMode: externalViewMode,
 }: CopEvidenceFeedProps) {
+  // Falls back to sessionId only for sessions where the two genuinely match.
+  const copWorkspaceId = workspaceId ?? sessionId
   const { toast } = useToast()
   const [items, setItems] = useState<FeedItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -200,7 +210,7 @@ export default function CopEvidenceFeed({
       setLoading(true)
       try {
         const headers = getCopHeaders()
-        if (sessionId) headers['X-Workspace-ID'] = sessionId
+        if (copWorkspaceId) headers['X-Workspace-ID'] = copWorkspaceId
 
         const res = await fetch(`/api/cop/${sessionId}/evidence`, { headers, signal: controller.signal })
         if (!res.ok) throw new Error(`Failed to fetch evidence (${res.status})`)
@@ -233,7 +243,13 @@ export default function CopEvidenceFeed({
           return [...pending, ...list.filter(ni => !pending.some(pi => pi.url === ni.url))]
         })
       } catch (e: any) {
-        if (e?.name !== 'AbortError') console.error('[CopEvidenceFeed] fetch error:', e)
+        if (e?.name !== 'AbortError') {
+          console.error('[CopEvidenceFeed] fetch error:', e)
+          // An empty feed and an unreachable feed looked identical: this used to
+          // log and render nothing, so a workspace the caller could not read
+          // presented as "no evidence yet".
+          setError(e?.message ?? 'Could not load evidence for this workspace.')
+        }
       } finally {
         if (!controller.signal.aborted) setLoading(false)
       }
@@ -257,7 +273,7 @@ export default function CopEvidenceFeed({
     pollingRef.current = setInterval(async () => {
       try {
         const headers = getCopHeaders()
-        if (sessionId) headers['X-Workspace-ID'] = sessionId
+        if (copWorkspaceId) headers['X-Workspace-ID'] = copWorkspaceId
 
         const res = await fetch(`/api/cop/${sessionId}/evidence`, { headers, signal: controller.signal })
         if (!res.ok) return
@@ -340,12 +356,12 @@ export default function CopEvidenceFeed({
 
     try {
       const headers = getCopHeaders()
-      if (sessionId) headers['X-Workspace-ID'] = sessionId
+      if (copWorkspaceId) headers['X-Workspace-ID'] = copWorkspaceId
 
       const res = await fetch('/api/content-intelligence/analyze-url', {
         method: 'POST',
         headers,
-        body: JSON.stringify({ url: trimmed, workspace_id: sessionId }),
+        body: JSON.stringify({ url: trimmed, workspace_id: copWorkspaceId }),
       })
 
       if (!res.ok) {
@@ -520,7 +536,7 @@ export default function CopEvidenceFeed({
             </Button>
           </div>
           {error && (
-            <p className="text-xs text-red-400">{error}</p>
+            <p className="text-xs text-red-600 dark:text-red-400">{error}</p>
           )}
         </div>
 

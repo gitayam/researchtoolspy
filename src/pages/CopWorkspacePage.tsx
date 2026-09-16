@@ -764,6 +764,7 @@ export default function CopWorkspacePage() {
         {/* ── Global Quick Capture Bar ────────────────────────────── */}
         <CopGlobalCaptureBar 
           sessionId={id!} 
+          workspaceId={session?.workspace_id}
           onLocationDetected={handleLocationDetected}
         />
 
@@ -1226,6 +1227,7 @@ function ProgressLayout({
       render: (expanded) => (
         <CopEvidenceFeed
           sessionId={sessionId}
+          workspaceId={session.workspace_id}
           expanded={expanded}
           onPinToMap={onPinToMapFromFeed}
           onLinkPersona={onLinkPersona}
@@ -1424,6 +1426,7 @@ function ProgressLayout({
               {(expanded) => (
                 <CopEvidenceFeed
                   sessionId={sessionId}
+                  workspaceId={session.workspace_id}
                   expanded={expanded}
                   onPinToMap={onPinToMapFromFeed}
                   onLinkPersona={onLinkPersona}
@@ -1521,6 +1524,7 @@ function MonitorLayout({
         {(expanded) => (
           <CopEvidenceFeed 
             sessionId={sessionId} 
+            workspaceId={session.workspace_id}
             expanded={expanded} 
             monitorMode 
             onPinToMap={onPinToMapFromFeed} 

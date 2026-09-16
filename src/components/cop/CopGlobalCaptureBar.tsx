@@ -6,11 +6,19 @@ import { cn } from '@/lib/utils'
 
 interface CopGlobalCaptureBarProps {
   sessionId: string
+  /** The session's real workspace. A COP session's id and workspace_id are only
+   *  the same value for sessions created through /api/cop/sessions; ones created
+   *  through /api/workspaces get a UUID workspace and a `cop-` prefixed id. Half
+   *  the sessions in production are the second kind, and sending the session id
+   *  as the workspace made checkWorkspaceAccess look up a workspace that does not
+   *  exist -- so every write from this panel was refused. */
+  workspaceId?: string
   onSuccess?: (type: 'evidence' | 'hypothesis' | 'note' | 'survey') => void
   onLocationDetected?: (location: string, evidenceId: string) => void
 }
 
-export default function CopGlobalCaptureBar({ sessionId, onSuccess, onLocationDetected }: CopGlobalCaptureBarProps) {
+export default function CopGlobalCaptureBar({ sessionId, workspaceId, onSuccess, onLocationDetected }: CopGlobalCaptureBarProps) {
+  const copWorkspaceId = workspaceId ?? sessionId
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -32,7 +40,7 @@ export default function CopGlobalCaptureBar({ sessionId, onSuccess, onLocationDe
 
     try {
       let endpoint = '/api/content-intelligence/analyze-url'
-      let body: any = { url: trimmed, workspace_id: sessionId }
+      let body: any = { url: trimmed, workspace_id: copWorkspaceId }
       let type: 'evidence' | 'hypothesis' | 'note' | 'survey' = 'evidence'
 
       if (isSurvey) {

@@ -40,6 +40,13 @@ interface RecentEntry {
 
 interface CopGlobalCaptureProps {
   sessionId: string
+  /** The session's real workspace. A COP session's id and workspace_id are only
+   *  the same value for sessions created through /api/cop/sessions; ones created
+   *  through /api/workspaces get a UUID workspace and a `cop-` prefixed id. Half
+   *  the sessions in production are the second kind, and sending the session id
+   *  as the workspace made checkWorkspaceAccess look up a workspace that does not
+   *  exist -- so every write from this panel was refused. */
+  workspaceId?: string
   open: boolean
   onOpenChange: (open: boolean) => void
   onEvidenceAdded?: () => void
@@ -101,6 +108,7 @@ function saveRecent(entry: RecentEntry) {
 
 export default function CopGlobalCapture({
   sessionId,
+  workspaceId,
   open,
   onOpenChange,
   onEvidenceAdded,
@@ -172,7 +180,7 @@ export default function CopGlobalCapture({
           const analyzeRes = await fetch('/api/content-intelligence/analyze-url', {
             method: 'POST',
             headers: getCopHeaders(),
-            body: JSON.stringify({ url: trimmed, workspace_id: sessionId }),
+            body: JSON.stringify({ url: trimmed, workspace_id: workspaceId ?? sessionId }),
           })
           if (!analyzeRes.ok) {
             const errData = await analyzeRes.json().catch(() => null)
