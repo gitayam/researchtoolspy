@@ -6,7 +6,7 @@
 
 import { useState, useCallback } from 'react'
 import { getCopHeaders } from '@/lib/cop-auth'
-import { Download, Upload, Trash2, Shield, AlertTriangle, FileJson, Key } from 'lucide-react'
+import { Download, Upload, Trash2, Shield, AlertTriangle, FileJson, Key, X } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -29,6 +29,12 @@ interface DataManagementProps {
 }
 
 export function DataManagement({ userHash, workspaceId }: DataManagementProps) {
+  /** Results and failures, reported in the page. These were alert() calls, and
+   *  two of them were followed immediately by window.location.reload() — so the
+   *  reader read a dialog, dismissed it, and the page tore itself down. The
+   *  reload is now something they choose, which also stops it discarding
+   *  whatever else was in flight elsewhere on the page. */
+  const [notice, setNotice] = useState<{ kind: 'info' | 'error'; text: string; offerReload?: boolean } | null>(null)
   const [exporting, setExporting] = useState(false)
   const [importing, setImporting] = useState(false)
   const [clearDialogOpen, setClearDialogOpen] = useState(false)
@@ -46,6 +52,7 @@ export function DataManagement({ userHash, workspaceId }: DataManagementProps) {
   const handleExport = useCallback(async () => {
     try {
       setExporting(true)
+    setNotice(null)
 
       const response = await fetch('/api/settings/data/export', {
         method: 'POST',
@@ -75,7 +82,7 @@ export function DataManagement({ userHash, workspaceId }: DataManagementProps) {
       document.body.removeChild(a)
     } catch (error) {
       console.error('Export error:', error)
-      alert('Failed to export data. Please try again.')
+      setNotice({ kind: 'error', text: 'Could not export your data. Nothing was changed — try again.' })
     } finally {
       setExporting(false)
     }
@@ -90,6 +97,7 @@ export function DataManagement({ userHash, workspaceId }: DataManagementProps) {
 
     try {
       setImporting(true)
+    setNotice(null)
 
       const text = await file.text()
       const data = JSON.parse(text)
@@ -116,13 +124,21 @@ export function DataManagement({ userHash, workspaceId }: DataManagementProps) {
       }
 
       const result = await response.json()
-      alert(`Successfully imported: ${JSON.stringify(result.imported_count, null, 2)}`)
-
-      // Reload page to refresh data
-      window.location.reload()
+      // Was a JSON.stringify of the counts object inside a dialog. Say it in
+      // words; the reader wants to know what arrived, not read a payload.
+      const counts = Object.entries(result.imported_count ?? {})
+        .filter(([, n]) => typeof n === 'number' && n > 0)
+        .map(([name, n]) => `${n} ${name.replace(/_/g, ' ')}`)
+      setNotice({
+        kind: 'info',
+        text: counts.length > 0
+          ? `Imported ${counts.join(', ')}.`
+          : 'That file imported successfully, but contained nothing new.',
+        offerReload: counts.length > 0,
+      })
     } catch (error) {
       console.error('Import error:', error)
-      alert('Failed to import data. Please check the file format and try again.')
+      setNotice({ kind: 'error', text: 'Could not import that file. Check it is an export from this app, then try again.' })
     } finally {
       setImporting(false)
       // Reset file input
@@ -136,6 +152,7 @@ export function DataManagement({ userHash, workspaceId }: DataManagementProps) {
   const handleClearData = useCallback(async () => {
     try {
       setClearing(true)
+    setNotice(null)
 
       const response = await fetch(`/api/settings/data/workspace/${workspaceId}`, {
         method: 'DELETE',
@@ -146,14 +163,11 @@ export function DataManagement({ userHash, workspaceId }: DataManagementProps) {
         throw new Error('Failed to clear data')
       }
 
-      alert('Workspace data cleared successfully')
       setClearDialogOpen(false)
-
-      // Reload page
-      window.location.reload()
+      setNotice({ kind: 'info', text: 'Workspace data cleared.', offerReload: true })
     } catch (error) {
       console.error('Clear data error:', error)
-      alert('Failed to clear workspace data. Please try again.')
+      setNotice({ kind: 'error', text: 'Could not clear the workspace. Nothing was removed — try again.' })
     } finally {
       setClearing(false)
     }
@@ -184,12 +198,56 @@ export function DataManagement({ userHash, workspaceId }: DataManagementProps) {
       document.body.removeChild(a)
     } catch (error) {
       console.error('Backup error:', error)
-      alert('Failed to generate hash backup. Please try again.')
+      setNotice({ kind: 'error', text: 'Could not generate the backup file. Try again.' })
     }
   }, [userHash])
 
   return (
     <div className="space-y-6">
+      {notice && (
+        <div
+          className={
+            notice.kind === 'error'
+              ? 'rounded-lg border border-red-200 bg-red-50 p-3 dark:border-red-800 dark:bg-red-900/20'
+              : 'rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-900/20'
+          }
+          role="status"
+          aria-live="polite"
+        >
+          <div className="flex items-start justify-between gap-3">
+            <p
+              className={
+                notice.kind === 'error'
+                  ? 'text-sm text-red-800 dark:text-red-200'
+                  : 'text-sm text-blue-900 dark:text-blue-100'
+              }
+            >
+              {notice.text}
+            </p>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="shrink-0"
+              onClick={() => setNotice(null)}
+              aria-label="Dismiss"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          {notice.offerReload && (
+            <Button
+              type="button"
+              size="sm"
+              className="mt-2"
+              onClick={() => window.location.reload()}
+            >
+              Reload to see the changes
+            </Button>
+          )}
+        </div>
+      )}
+
       {/* Export Data */}
       <Card>
         <CardHeader>

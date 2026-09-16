@@ -44,6 +44,11 @@ const symbolTypeDescriptions: Record<SymbolType, string> = {
 }
 
 export function SymbolsManager({ symbols, onChange }: SymbolsManagerProps) {
+  /** Why the upload or the add was refused. All five of these were alert()s —
+   *  browser dialogs for input validation, which is the one case where the
+   *  message needs to sit beside the field it is about, not on top of it. */
+  const [uploadError, setUploadError] = useState<string | null>(null)
+  const [nameError, setNameError] = useState<string | null>(null)
   const [newName, setNewName] = useState('')
   const [newType, setNewType] = useState<SymbolType>('visual')
   const [newDescription, setNewDescription] = useState('')
@@ -72,16 +77,17 @@ export function SymbolsManager({ symbols, onChange }: SymbolsManagerProps) {
   const handleImageUpload = async (e: ChangeEvent<HTMLInputElement>, isEdit: boolean = false) => {
     const file = e.target.files?.[0]
     if (!file) return
+    setUploadError(null)
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      alert('Please upload an image file')
+      setUploadError(`That file is ${file.type || 'an unknown type'}. Pick an image.`)
       return
     }
 
     // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      alert('Image must be less than 5MB')
+      setUploadError(`That image is ${(file.size / (1024 * 1024)).toFixed(1)}MB. The limit is 5MB.`)
       return
     }
 
@@ -101,16 +107,17 @@ export function SymbolsManager({ symbols, onChange }: SymbolsManagerProps) {
   const handleAudioUpload = async (e: ChangeEvent<HTMLInputElement>, isEdit: boolean = false) => {
     const file = e.target.files?.[0]
     if (!file) return
+    setUploadError(null)
 
     // Validate file type
     if (!file.type.startsWith('audio/')) {
-      alert('Please upload an audio file')
+      setUploadError(`That file is ${file.type || 'an unknown type'}. Pick an audio file.`)
       return
     }
 
     // Validate file size (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
-      alert('Audio must be less than 10MB')
+      setUploadError(`That audio is ${(file.size / (1024 * 1024)).toFixed(1)}MB. The limit is 10MB.`)
       return
     }
 
@@ -143,9 +150,10 @@ export function SymbolsManager({ symbols, onChange }: SymbolsManagerProps) {
 
   const handleAdd = () => {
     if (!newName.trim()) {
-      alert('Please enter a symbol name')
+      setNameError('Give the symbol a name — it is how you will find it again.')
       return
     }
+    setNameError(null)
 
     const symbolItem: SymbolItem = {
       id: crypto.randomUUID(),
@@ -466,8 +474,18 @@ export function SymbolsManager({ symbols, onChange }: SymbolsManagerProps) {
             <Input
               placeholder="What is this symbol? (e.g., Red baseball cap, Peace sign, Company logo)"
               value={newName}
-              onChange={(e) => setNewName(e.target.value)}
+              onChange={(e) => {
+                setNewName(e.target.value)
+                if (nameError) setNameError(null)
+              }}
+              aria-invalid={nameError ? true : undefined}
+              aria-describedby={nameError ? 'symbol-name-error' : undefined}
             />
+            {nameError && (
+              <p id="symbol-name-error" className="text-xs text-red-600 dark:text-red-400" role="alert">
+                {nameError}
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -488,6 +506,12 @@ export function SymbolsManager({ symbols, onChange }: SymbolsManagerProps) {
               onChange={(e) => setNewContext(e.target.value)}
             />
           </div>
+
+          {uploadError && (
+            <p className="text-xs text-red-600 dark:text-red-400" role="alert">
+              {uploadError}
+            </p>
+          )}
 
           <Button onClick={handleAdd} className="w-full">
             <Plus className="h-4 w-4 mr-2" />

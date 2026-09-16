@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
-import { ArrowLeft, Edit, Trash2, Download, Share2, Sparkles, FileText, File, Link2, Plus, UserCircle, Check, AlertCircle } from 'lucide-react'
+import { ArrowLeft, Edit, Trash2, Download, Share2, Sparkles, FileText, File, Link2, Plus, UserCircle, Check, AlertCircle, X } from 'lucide-react'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { DeceptionDashboard } from './DeceptionDashboard'
 import { DeceptionPredictions } from './DeceptionPredictions'
@@ -84,6 +84,11 @@ export function DeceptionView({
   // Save to actor state
   const [savingToActor, setSavingToActor] = useState<string | null>(null)
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null)
+  /** The failure counterpart to saveSuccess above. Success was already shown in
+   *  place — a spinner, then a tick, then "Saved!" — while every failure
+   *  escalated to an alert(), so the two halves of the same action were
+   *  reported in completely different registers. */
+  const [actionError, setActionError] = useState<string | null>(null)
 
   // Historical data for trends and predictions
   const [historicalData, setHistoricalData] = useState<Array<{
@@ -293,7 +298,7 @@ export function DeceptionView({
       setExportDialogOpen(false)
     } catch (error) {
       console.error('Export failed:', error)
-      alert('Export failed. Please try again.')
+      setActionError('The export did not finish. Your analysis is unchanged — try again.')
     } finally {
       setExporting(false)
     }
@@ -351,11 +356,11 @@ export function DeceptionView({
         console.error('Some links failed:', results)
         // Still update UI with what we have
         setLinkedEvidence(prev => [...prev, ...selected])
-        alert('Some items may not have been linked properly.')
+        setActionError('Some of that evidence did not link. Reopen the linker to see what is attached.')
       }
     } catch (error) {
       console.error('Error linking evidence:', error)
-      alert('An error occurred while linking evidence.')
+      setActionError('Could not link that evidence. Check your connection and try again.')
     }
   }
 
@@ -386,11 +391,11 @@ export function DeceptionView({
       } else {
         const error = await response.json().catch(() => ({ error: 'Unknown error' }))
         console.error('Failed to unlink evidence:', error)
-        alert('Failed to unlink evidence. Please try again.')
+        setActionError('Could not unlink that evidence. It is still attached — try again.')
       }
     } catch (error) {
       console.error('Error unlinking evidence:', error)
-      alert('An error occurred while unlinking evidence.')
+      setActionError('Could not unlink that evidence. Check your connection and try again.')
     }
   }
 
@@ -403,6 +408,7 @@ export function DeceptionView({
 
     setSavingToActor(String(actorId))
     setSaveSuccess(null)
+    setActionError(null)
 
     try {
       const deceptionProfile = {
@@ -437,11 +443,11 @@ export function DeceptionView({
       } else {
         const error = await response.json().catch(() => ({ error: 'Unknown error' }))
         console.error('Failed to save to actor:', error)
-        alert(`Failed to save MOM scores to ${actorName}. Please try again.`)
+        setActionError(`Could not save the MOM scores to ${actorName}. The analysis itself is unchanged — try again.`)
       }
     } catch (error) {
       console.error('Error saving to actor:', error)
-      alert('An error occurred while saving MOM scores.')
+      setActionError(`Could not save the MOM scores to ${actorName}. Check your connection and try again.`)
     } finally {
       setSavingToActor(null)
     }
@@ -449,6 +455,25 @@ export function DeceptionView({
 
   return (
     <div className="mx-auto py-8 px-4 max-w-7xl">
+      {actionError && (
+        <div
+          className="mb-6 flex items-start justify-between gap-3 rounded-lg border border-red-200 bg-red-50 p-3 dark:border-red-800 dark:bg-red-900/20"
+          role="alert"
+        >
+          <p className="text-sm text-red-800 dark:text-red-200">{actionError}</p>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="shrink-0"
+            onClick={() => setActionError(null)}
+            aria-label="Dismiss"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
+
       {/* Header */}
       <div className="mb-8">
         <Button
