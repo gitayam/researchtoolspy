@@ -1,5 +1,6 @@
 /** Opt-in AI assistance for reviewing a working timeline. Never mutates source events. */
 
+import { aiModel } from '../_shared/ai-models'
 import { callOpenAIViaGateway, RateLimitError, wrapUntrustedContent } from '../_shared/ai-gateway'
 import { JSON_HEADERS, optionsResponse } from '../_shared/api-utils'
 import { AuthDbError, getUserFromRequest } from '../_shared/auth-helpers'
@@ -23,7 +24,8 @@ interface Env {
   JWT_SECRET?: string
 }
 
-const MODEL = 'gpt-5.4-mini'
+/** Suggestion assist is structured extraction — the cheap tier's job. */
+const MODEL_TIER = 'cheap' as const
 const MAX_REQUEST_BYTES = 128 * 1024
 
 type BoundedJson = { ok: true; value: unknown } | { ok: false; tooLarge: boolean }
@@ -120,7 +122,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     if (!parsed) return errorResponse(400, 'Request must match timeline-assist.v1', 'INVALID_REQUEST')
 
     const data = await callOpenAIViaGateway(env, {
-      model: MODEL,
+      tier: MODEL_TIER,
       messages: [
         {
           role: 'system',
@@ -145,7 +147,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
         action: parsed.action,
         outcome: 'declined',
         suggestions: [],
-        model: { name: MODEL, status: 'declined', rejectedSuggestionCount: 0 },
+        model: { name: aiModel(MODEL_TIER, env), status: 'declined', rejectedSuggestionCount: 0 },
       }
       return new Response(JSON.stringify(declined), { headers: headers() })
     }
@@ -171,7 +173,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
       outcome: normalized.status === 'ok' ? 'suggestions' : 'no_suggestions',
       suggestions: normalized.suggestions,
       model: {
-        name: MODEL,
+        name: aiModel(MODEL_TIER, env),
         status: normalized.status === 'ok' ? 'ok' : 'no_suggestions',
         rejectedSuggestionCount: normalized.rejectedSuggestionCount,
       },

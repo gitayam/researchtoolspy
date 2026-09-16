@@ -14,6 +14,7 @@
 import { getUserFromRequest } from '../_shared/auth-helpers'
 import { JSON_HEADERS } from '../_shared/api-utils'
 import { ANALYST_SYSTEM_PREFIX, callOpenAIViaGateway, REFUSAL_BODY } from '../_shared/ai-gateway'
+import { aiModel } from '../_shared/ai-models'
 
 interface Env {
   DB: D1Database
@@ -518,7 +519,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
 
     // Use gpt-5.4-mini for timeline generation (balance of speed and quality)
-    const model = context.env.DEFAULT_AI_MODEL || 'gpt-5.4-mini'
+    const model = context.env.DEFAULT_AI_MODEL || aiModel('cheap', context.env)
 
     const prompt = buildTimelinePrompt(request)
 

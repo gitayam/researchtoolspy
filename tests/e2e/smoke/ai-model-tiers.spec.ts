@@ -2,6 +2,8 @@ import { test, expect } from '@playwright/test'
 import {
   aiModel,
   DEFAULT_MODELS,
+  estimateCost,
+  MODEL_PRICING,
   isReasoningModel,
   minCompletionTokens,
   normalizeChatRequest,
@@ -107,6 +109,45 @@ test.describe('AI model tiers @smoke', () => {
     expect(minCompletionTokens({ AI_MIN_COMPLETION_TOKENS: '512' })).toBe(512)
     for (const bad of ['0', '-1', 'abc', '']) {
       expect(minCompletionTokens({ AI_MIN_COMPLETION_TOKENS: bad }), bad).toBe(2000)
+    }
+  })
+
+  test('cost is priced per model, and retired prices are kept for old rows', () => {
+    // 1M in + 1M out, so the assertion reads as the table.
+    expect(estimateCost('gpt-5.6-luna', 1_000_000, 1_000_000)).toBeCloseTo(0.20 + 1.20, 6)
+    expect(estimateCost('gpt-5.6-terra', 1_000_000, 1_000_000)).toBeCloseTo(2.00 + 12.00, 6)
+
+    // Retired models keep their prices: a stored usage row must still cost out
+    // against the model that actually served it.
+    expect(MODEL_PRICING['gpt-5.4-mini']).toEqual({ input: 0.75, output: 4.50 })
+    expect(estimateCost('gpt-5.4-mini', 1_000_000, 0)).toBeCloseTo(0.75, 6)
+
+    // The bug this replaced: two copies of the table, both falling back to
+    // gpt-5.4-mini for anything unlisted — which after the tier migration was
+    // every call, overstating the reader's cost by 3.75x.
+    expect(estimateCost('gpt-5.6-luna', 1_000_000, 0))
+      .toBeLessThan(estimateCost('gpt-5.4-mini', 1_000_000, 0))
+
+    // An unpriced model estimates at the cheap tier rather than at whatever
+    // happened to be first in the table.
+    expect(estimateCost('some-unreleased-model', 1_000_000, 0))
+      .toBeCloseTo(MODEL_PRICING[DEFAULT_MODELS.cheap].input, 6)
+
+    expect(estimateCost('gpt-5.6-luna', 0, 0)).toBe(0)
+  })
+
+  test('a reasoning effort the API no longer accepts is remapped', () => {
+    // 'minimal' was the gpt-5.x name for the lowest setting and is now rejected
+    // outright, so forwarding it is a hard error rather than a quieter answer.
+    expect(normalizeChatRequest({ tier: 'cheap', messages: [], reasoning_effort: 'minimal' }).reasoning_effort)
+      .toBe('low')
+    // Something we have no mapping for falls through to the default, rather
+    // than being passed along to be rejected.
+    expect(normalizeChatRequest({ tier: 'cheap', messages: [], reasoning_effort: 'turbo' }).reasoning_effort)
+      .toBe('low')
+    for (const effort of ['none', 'low', 'medium', 'high', 'xhigh', 'max']) {
+      expect(normalizeChatRequest({ tier: 'cheap', messages: [], reasoning_effort: effort }).reasoning_effort, effort)
+        .toBe(effort)
     }
   })
 })

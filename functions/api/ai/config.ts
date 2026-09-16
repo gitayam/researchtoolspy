@@ -6,6 +6,7 @@
  * PUT: Update configuration
  */
 
+import { DEFAULT_MODELS, resolveModel } from '../_shared/ai-models'
 import { getUserFromRequest } from '../_shared/auth-helpers'
 
 interface Env {
@@ -18,29 +19,28 @@ interface Env {
 }
 
 const DEFAULT_CONFIG = {
-  defaultModel: 'gpt-5.4-mini',
+  defaultModel: DEFAULT_MODELS.cheap,
   models: {
-    'gpt-5.4': {
+    [DEFAULT_MODELS.standard]: {
       maxTokens: 4096,
       systemPrompt: 'You are an expert intelligence analyst assistant. Provide detailed, structured analysis following intelligence community standards. Focus on analytical rigor, evidence-based reasoning, and clear communication. Always consider alternative hypotheses and indicate confidence levels.'
     },
-    'gpt-5.4-mini': {
+    [DEFAULT_MODELS.cheap]: {
       maxTokens: 2048,
       systemPrompt: 'You are an intelligence analyst assistant. Provide clear, concise analysis based on the provided evidence. Use structured formats (bullet points, numbered lists) when appropriate. Be objective and highlight key findings.'
-    },
-    'gpt-5.4-nano': {
-      maxTokens: 1024,
-      systemPrompt: 'You are a research assistant. Provide brief, focused responses. Use bullet points for clarity. Be concise and actionable.'
     }
   },
+  // The old three-way split (mini / nano / full) mapped two of its three choices
+  // onto models that gpt-5.6-luna now beats on both price axes, so the cheap tier
+  // carries everything that is not deep analysis.
   useCases: {
-    summarization: 'gpt-5.4-mini',
-    questionGeneration: 'gpt-5.4-nano',
-    deepAnalysis: 'gpt-5.4',
-    generation: 'gpt-5.4-mini',
-    fieldSuggestions: 'gpt-5.4-nano',
-    formatting: 'gpt-5.4-nano',
-    guidance: 'gpt-5.4-nano'
+    summarization: DEFAULT_MODELS.cheap,
+    questionGeneration: DEFAULT_MODELS.cheap,
+    deepAnalysis: DEFAULT_MODELS.standard,
+    generation: DEFAULT_MODELS.cheap,
+    fieldSuggestions: DEFAULT_MODELS.cheap,
+    formatting: DEFAULT_MODELS.cheap,
+    guidance: DEFAULT_MODELS.cheap
   },
   features: {
     enableSummarization: true,
@@ -126,11 +126,24 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
     const newConfig = await context.request.json() as Partial<typeof DEFAULT_CONFIG>
 
-    // Validate configuration
-    if (!newConfig.defaultModel || !['gpt-5.4', 'gpt-5.4-mini', 'gpt-5.4-nano'].includes(newConfig.defaultModel)) {
+    // A tier name, or any model the gateway will accept. The old list named the
+    // gpt-5.4 family only, which meant an operator could not select a current
+    // model — the allow-list outlived the models it was written for. A retired
+    // ID is still accepted here and remapped at the gateway, so a stored config
+    // written before this change keeps working.
+    const selectableModels = [...Object.keys(DEFAULT_MODELS), ...Object.values(DEFAULT_MODELS)]
+    if (!newConfig.defaultModel || typeof newConfig.defaultModel !== 'string') {
       return Response.json({
         error: 'Invalid configuration',
-        message: 'defaultModel must be one of: gpt-5.4, gpt-5.4-mini, gpt-5.4-nano'
+        message: `defaultModel is required — a tier (${Object.keys(DEFAULT_MODELS).join(', ')}) or a model ID`
+      }, { status: 400 })
+    }
+    if (!selectableModels.includes(newConfig.defaultModel)
+      && resolveModel(newConfig.defaultModel, 'cheap', context.env) === newConfig.defaultModel
+      && !newConfig.defaultModel.startsWith('gpt-')) {
+      return Response.json({
+        error: 'Invalid configuration',
+        message: `defaultModel must be a tier (${Object.keys(DEFAULT_MODELS).join(', ')}) or an OpenAI model ID`
       }, { status: 400 })
     }
 

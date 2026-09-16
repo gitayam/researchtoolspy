@@ -12,6 +12,7 @@ import { getUserFromRequest } from '../_shared/auth-helpers'
 import { stripModelFence } from '../_shared/ai-gateway'
 import { JSON_HEADERS } from '../_shared/api-utils'
 import { callOpenAIViaGateway, ANALYST_SYSTEM_PREFIX, REFUSAL_BODY } from '../_shared/ai-gateway'
+import { aiModel } from '../_shared/ai-models'
 
 interface Env {
   DB: D1Database
@@ -640,7 +641,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     // Get model configuration
     const config = await context.env.AI_CONFIG.get('default', { type: 'json' }) as any
-    const model = config?.useCases?.summarization || 'gpt-5.4-mini'
+    const model = config?.useCases?.summarization || aiModel('cheap', context.env)
 
     const enhancement: ReportEnhancement = {}
 

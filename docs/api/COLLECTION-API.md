@@ -143,7 +143,7 @@ Internal endpoint called by the OSINT agent when collection is complete. Stores 
     }
   ],
   "error": null,
-  "llm_used": "gpt-5.4-mini"
+  "llm_used": "gpt-5.6-luna"
 }
 ```
 
@@ -268,7 +268,7 @@ Returns the current state of a collection job. If the job is still `running`/`pe
   "results_count": 45,
   "batch_job_id": "batch-1710410523000",
   "error_message": null,
-  "llm_used": "gpt-5.4-mini",
+  "llm_used": "gpt-5.6-luna",
   "created_at": "2024-03-14 10:00:00",
   "completed_at": "2024-03-14 10:02:15",
   "resultsSummary": [

@@ -1,5 +1,6 @@
 /** Extract a versioned, provenance-bearing event timeline from URL or supplied text. */
 
+import { aiModel } from '../_shared/ai-models'
 import { callOpenAIViaGateway, getOptimalCacheTTL } from '../_shared/ai-gateway'
 import { getUserFromRequest } from '../_shared/auth-helpers'
 import { JSON_HEADERS, optionsResponse } from '../_shared/api-utils'
@@ -71,7 +72,8 @@ interface TimelineSource {
   extraction?: { method: string; quality: string; wordCount: number }
 }
 
-const MODEL = 'gpt-5.4-mini'
+/** Chronological extraction into strict JSON — the cheap tier's job. */
+const MODEL_TIER = 'cheap' as const
 const MAX_SUPPLIED_CONTENT_BYTES = 100 * 1024
 const MAX_TIMELINE_REQUEST_BYTES = 112 * 1024
 const MAX_MODEL_CONTENT_CHARS = 64_000
@@ -405,7 +407,7 @@ Article text:
 ${timelineEvidence}`
 
   const aiData = await callOpenAIViaGateway(env, {
-    model: MODEL,
+    tier: MODEL_TIER,
     messages: [
       {
         role: 'system',
@@ -439,6 +441,11 @@ function strictResponse(
   url: string,
   source: TimelineSource,
   model: NormalizedTimelineModelOutput,
+  // Passed in rather than read here: `model.name` must be the model that
+  // actually served the request, and only the caller holds the env the tier
+  // resolves against. v1 types this as a free string, so naming the real model
+  // is a truer answer within the same contract, not a change to it.
+  modelName: string,
   publishedAt?: string,
 ): TimelineAnalysisResponseV1 {
   const wordCount = source.extraction?.wordCount ?? source.quality.wordCount
@@ -467,7 +474,7 @@ function strictResponse(
       fallbackAttempts: source.fallbackAttempts,
     },
     model: {
-      name: MODEL,
+      name: modelName,
       status: model.status === 'no_events' ? 'no_events' : 'ok',
       rejectedEventCount: model.rejectedEventCount,
     },
@@ -710,7 +717,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
         }
       }
 
-      const response = strictResponse(requestId, url, source, model, publishedAt)
+      const response = strictResponse(requestId, url, source, model, aiModel(MODEL_TIER, env), publishedAt)
       const value = new Response(JSON.stringify(strict ? response : legacySuccess(response, source)), {
         status: 200,
         headers: responseHeaders(),

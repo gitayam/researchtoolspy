@@ -7,6 +7,7 @@
 import { getUserFromRequest } from '../_shared/auth-helpers'
 import { JSON_HEADERS } from '../_shared/api-utils'
 import { callOpenAIViaGateway, REFUSAL_BODY } from '../_shared/ai-gateway'
+import { aiModel } from '../_shared/ai-models'
 
 interface Env {
   DB: D1Database
@@ -71,7 +72,7 @@ ${mode === 'comprehensive' ? 'Use markdown headings (##) to organize sections.' 
 
     // Get model for summarization
     const config = await context.env.AI_CONFIG.get('default', { type: 'json' }) as any
-    const model = config?.useCases?.summarization || 'gpt-5.4-mini'
+    const model = config?.useCases?.summarization || aiModel('cheap', context.env)
     const modelSettings = config?.models?.[model] || {
       verbosity: 'medium',
       maxTokens: 2048,

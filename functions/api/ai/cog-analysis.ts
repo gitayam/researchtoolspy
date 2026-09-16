@@ -17,6 +17,8 @@ import { callOpenAIViaGateway, getOptimalCacheTTL, ANALYST_SYSTEM_PREFIX, REFUSA
 import { requireAuth } from '../_shared/auth-helpers'
 import { requireConsent } from '../_shared/consent'
 import { JSON_HEADERS, optionsResponse } from '../_shared/api-utils'
+import { estimateCost } from '../_shared/ai-models'
+import { aiModel } from '../_shared/ai-models'
 
 interface Env {
   DB: D1Database
@@ -81,16 +83,6 @@ const MODE_TOKEN_LIMITS: Record<AnalysisMode, number> = {
   'generate-impact': 1200,
 }
 
-const MODEL_PRICING = {
-  'gpt-5.4': { input: 2.50, output: 15.0 },
-  'gpt-5.4-mini': { input: 0.75, output: 4.50 },
-  'gpt-5.4-nano': { input: 0.20, output: 1.25 },
-}
-
-function estimateCost(model: string, inputTokens: number, outputTokens: number): number {
-  const pricing = MODEL_PRICING[model as keyof typeof MODEL_PRICING] || MODEL_PRICING['gpt-5.4-mini']
-  return (inputTokens / 1_000_000) * pricing.input + (outputTokens / 1_000_000) * pricing.output
-}
 
 // --- Response validators (field-by-field, never trust raw AI JSON) ---
 
@@ -462,7 +454,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       return Response.json({ error: error.message || 'Invalid request' }, { status: 400 })
     }
 
-    const model = 'gpt-5.4-mini'
+    const model = aiModel('cheap', context.env)
     const maxTokens = MODE_TOKEN_LIMITS[request.mode]
 
     let data
@@ -533,7 +525,7 @@ Your analysis must be:
     const result = validateResult(request.mode, parsed)
 
     // Cost tracking
-    const cost = estimateCost(model, tokensUsed.input, tokensUsed.output)
+    const cost = estimateCost(model, tokensUsed.input, tokensUsed.output, context.env)
 
     // Update usage stats async
     if (context.env.AI_CONFIG) {

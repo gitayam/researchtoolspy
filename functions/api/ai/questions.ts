@@ -7,6 +7,7 @@
 import { getUserFromRequest } from '../_shared/auth-helpers'
 import { JSON_HEADERS } from '../_shared/api-utils'
 import { callOpenAIViaGateway, REFUSAL_BODY } from '../_shared/ai-gateway'
+import { aiModel } from '../_shared/ai-models'
 
 interface Env {
   DB: D1Database
@@ -74,7 +75,7 @@ No explanations, just the JSON array.`
 
     // Get model for question generation
     const config = await context.env.AI_CONFIG.get('default', { type: 'json' }) as any
-    const model = config?.useCases?.questionGeneration || 'gpt-5.4-nano'
+    const model = config?.useCases?.questionGeneration || aiModel('cheap', context.env)
     const modelSettings = config?.models?.[model] || {
       verbosity: 'low',
       reasoningEffort: 'minimal',

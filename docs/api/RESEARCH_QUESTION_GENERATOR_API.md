@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Research API provides AI-powered question generation, research planning, evidence collection forms, and workflow management. Uses `gpt-5.4-mini` via Cloudflare AI Gateway.
+The Research API provides AI-powered question generation, research planning, evidence collection forms, and workflow management. Uses `gpt-5.6-luna` via Cloudflare AI Gateway.
 
 **Auth**: AI generation endpoints use `requireAuth` (401 if missing). Data endpoints use `getUserFromRequest` (session-based). Public submission endpoints require no auth.
 

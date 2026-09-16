@@ -263,7 +263,7 @@ Returns a full network graph of entity relationships with graph-theoretic centra
 
 ### GET /api/intelligence/synthesis
 
-**AI-powered.** Sends up to 20 recent framework sessions to OpenAI (`gpt-5.4-mini`) for cross-framework synthesis. Returns key findings, convergence points, AI-detected contradictions, and an overall confidence score.
+**AI-powered.** Sends up to 20 recent framework sessions to OpenAI (`gpt-5.6-luna`) for cross-framework synthesis. Returns key findings, convergence points, AI-detected contradictions, and an overall confidence score.
 
 Returns an empty structure (all arrays empty, `overall_confidence: 0`) if the user has no active frameworks, without calling the AI.
 
@@ -316,7 +316,7 @@ Returns an empty structure (all arrays empty, `overall_confidence: 0`) if the us
 | `overall_confidence` | number | 0–100 |
 | `generated_at` | string | ISO 8601 timestamp of when the response was generated |
 
-**AI model**: `gpt-5.4-mini` via Cloudflare AI Gateway. Response cached for 300 seconds. `max_completion_tokens: 4000`.
+**AI model**: `gpt-5.6-luna` via Cloudflare AI Gateway. Response cached for 300 seconds. `max_completion_tokens: 4000`.
 
 **Data sent to AI**: Per-framework data is truncated by type before the prompt:
 - `ach` — up to 10 hypotheses (name, score, description ≤ 200 chars)
@@ -331,7 +331,7 @@ Returns an empty structure (all arrays empty, `overall_confidence: 0`) if the us
 
 ### GET /api/intelligence/predictions
 
-**AI-powered.** Sends up to 15 recent framework sessions and up to 50 known entities (actors, sources, events) to OpenAI (`gpt-5.4-mini`) for forward-looking intelligence recommendations. Returns a watch list, emerging patterns, collection gaps, and risk trajectory.
+**AI-powered.** Sends up to 15 recent framework sessions and up to 50 known entities (actors, sources, events) to OpenAI (`gpt-5.6-luna`) for forward-looking intelligence recommendations. Returns a watch list, emerging patterns, collection gaps, and risk trajectory.
 
 Returns an empty structure with `risk_trajectory: "STABLE"` if the user has no active frameworks, without calling the AI.
 
@@ -375,7 +375,7 @@ Returns an empty structure with `risk_trajectory: "STABLE"` if the user has no a
 | `risk_trajectory` | string | `ESCALATING` / `STABLE` / `DE_ESCALATING` — validated against allowed values; defaults to `STABLE` if LLM returns unexpected value |
 | `generated_at` | string | ISO 8601 timestamp |
 
-**AI model**: `gpt-5.4-mini` via Cloudflare AI Gateway. Response cached for 600 seconds. `max_completion_tokens: 3000`.
+**AI model**: `gpt-5.6-luna` via Cloudflare AI Gateway. Response cached for 600 seconds. `max_completion_tokens: 3000`.
 
 **Data sent to AI**: Each framework's `data` blob is truncated to 300 characters. Entity list is name + type, up to 50 items. Evidence count is passed as a scalar.
 
@@ -440,8 +440,8 @@ Returns a time-series breakdown of analytical activity: frameworks created/updat
 | `/api/intelligence/contradictions` | GET | No | — |
 | `/api/intelligence/entities` | GET | No | `workspace_id` |
 | `/api/intelligence/network` | GET | No | — |
-| `/api/intelligence/synthesis` | GET | Yes (gpt-5.4-mini, cached 5m) | — |
-| `/api/intelligence/predictions` | GET | Yes (gpt-5.4-mini, cached 10m) | — |
+| `/api/intelligence/synthesis` | GET | Yes (gpt-5.6-luna, cached 5m) | — |
+| `/api/intelligence/predictions` | GET | Yes (gpt-5.6-luna, cached 10m) | — |
 | `/api/intelligence/timeline` | GET | No | — |
 
 ## Error Responses

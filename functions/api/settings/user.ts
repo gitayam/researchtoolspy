@@ -136,11 +136,14 @@ async function loadSettings(db: D1Database, userHash: string): Promise<UserSetti
 
   // Normalize deprecated model names to gpt-5.4-* format
   const modelMap: Record<string, string> = {
-    'gpt-5-mini': 'gpt-5.4-mini',
-    'gpt-5-nano': 'gpt-5.4-nano',
-    'gpt-5': 'gpt-5.4',
-    'gpt-4o-mini': 'gpt-5.4-mini',
-    'gpt-4o': 'gpt-5.4-mini',
+    'gpt-5-mini': DEFAULT_MODELS.cheap,
+    'gpt-5-nano': DEFAULT_MODELS.cheap,
+    'gpt-5': DEFAULT_MODELS.standard,
+    'gpt-4o-mini': DEFAULT_MODELS.cheap,
+    'gpt-4o': DEFAULT_MODELS.standard,
+    'gpt-5.4-mini': DEFAULT_MODELS.cheap,
+    'gpt-5.4-nano': DEFAULT_MODELS.cheap,
+    'gpt-5.4': DEFAULT_MODELS.standard,
   }
   if (settings.ai?.default_model && modelMap[settings.ai.default_model]) {
     settings.ai.default_model = modelMap[settings.ai.default_model]

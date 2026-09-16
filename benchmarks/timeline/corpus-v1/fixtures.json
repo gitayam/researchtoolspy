@@ -46,7 +46,7 @@
       { "eventDate": "2026-09-10", "datePrecision": "day", "title": "Catalog published", "description": "The fictional archive published its first catalog.", "category": "publication", "importance": "high" }
     ],
     "extraction": { "contentSource": "publisher-feed", "sourceMode": "supplied", "method": "caller-supplied", "wordCount": 97, "quality": { "version": "analysis-candidate.v1", "score": 100, "accepted": true }, "fallbackAttempts": ["publisher-feed"] },
-    "model": { "name": "gpt-5.4-mini", "status": "ok", "rejectedEventCount": 2 }
+    "model": { "name": "gpt-5.6-luna", "status": "ok", "rejectedEventCount": 2 }
   },
   "serviceErrors": [
     { "status": 400, "code": "invalid_request", "retryable": false },

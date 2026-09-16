@@ -35,6 +35,7 @@ import {
 import { SafeFetchError, safeFetchHead, safeFetchText, type SafeFetchErrorCode } from '../_shared/safe-fetch'
 import type { NormalizedScrapeError } from '../_shared/scrape-contract'
 import type { AnalyticsEngineLike } from '../_shared/scrape-metrics'
+import { aiModel } from '../_shared/ai-models'
 
 interface Env {
   DB: D1Database
@@ -535,7 +536,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           bypass_urls: bypassUrls,
           processing_mode: mode,
           processing_duration_ms: Date.now() - startTime,
-          gpt_model_used: 'gpt-5.4-mini'
+          gpt_model_used: aiModel('cheap', env)
         })
       } catch (error) {
         console.error('[DEBUG] Database save failed:', error)
@@ -649,7 +650,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       bypass_urls: bypassUrls,
       processing_mode: mode,
       processing_duration_ms: Date.now() - startTime,
-      gpt_model_used: 'gpt-5.4-mini',
+      gpt_model_used: aiModel('cheap', env),
       content_source: contentData.source || 'original',
       fallback_attempts: contentData.fallback_attempts || [],
       extraction_quality: assessExtractionQuality(

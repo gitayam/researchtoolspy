@@ -9,6 +9,8 @@ import { getUserFromRequest } from '../_shared/auth-helpers'
 import { requireConsent } from '../_shared/consent'
 import { JSON_HEADERS } from '../_shared/api-utils'
 import { callOpenAIViaGateway, ANALYST_SYSTEM_PREFIX, REFUSAL_BODY } from '../_shared/ai-gateway'
+import { estimateCost } from '../_shared/ai-models'
+import { aiModel } from '../_shared/ai-models'
 
 interface Env {
   DB: D1Database
@@ -20,34 +22,14 @@ interface Env {
 
 interface GenerateRequest {
   prompt: string
-  model?: 'gpt-5.4' | 'gpt-5.4-mini' | 'gpt-5.4-nano'
+  /** A model ID or a tier name. Resolved and validated at the gateway. */
+  model?: string
   useCase?: 'summarization' | 'questionGeneration' | 'deepAnalysis' | 'fieldSuggestions' | 'formatting' | 'guidance'
   maxTokens?: number
   verbosity?: 'low' | 'medium' | 'high'
-  reasoningEffort?: 'minimal'
+  reasoningEffort?: 'none' | 'low' | 'medium' | 'high' | 'xhigh' | 'max'
 }
 
-const MODEL_PRICING = {
-  'gpt-5.4': {
-    input: 2.50,  // $2.50 per 1M tokens
-    output: 15.0  // $15.00 per 1M tokens
-  },
-  'gpt-5.4-mini': {
-    input: 0.75,
-    output: 4.50
-  },
-  'gpt-5.4-nano': {
-    input: 0.20,
-    output: 1.25
-  }
-}
-
-function estimateCost(model: string, inputTokens: number, outputTokens: number): number {
-  const pricing = MODEL_PRICING[model as keyof typeof MODEL_PRICING] || MODEL_PRICING['gpt-5.4-mini']
-  const inputCost = (inputTokens / 1_000_000) * pricing.input
-  const outputCost = (outputTokens / 1_000_000) * pricing.output
-  return inputCost + outputCost
-}
 
 /**
  * POST /api/ai/generate
@@ -102,7 +84,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       model = config.useCases[request.useCase]
     }
     if (!model) {
-      model = config?.defaultModel || 'gpt-5.4-mini'
+      model = config?.defaultModel || aiModel('cheap', context.env)
     }
 
     // Get model settings
@@ -147,15 +129,18 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       total: data.usage.total_tokens
     }
 
-    // Calculate cost
-    const cost = estimateCost(model, tokensUsed.input, tokensUsed.output)
+    // Price what actually ran, not what was asked for: a tier or a retired ID
+    // resolves at the gateway, so the two differ and the request is the wrong
+    // thing to cost. OpenAI echoes the served model back.
+    const servedModel = typeof data.model === 'string' && data.model ? data.model : model
+    const cost = estimateCost(servedModel, tokensUsed.input, tokensUsed.output, context.env)
 
     // Update usage statistics in KV (async, don't wait)
     context.waitUntil(updateUsageStats(context.env.AI_CONFIG, tokensUsed.total, cost))
 
     return Response.json({
       content,
-      model,
+      model: servedModel,
       tokensUsed,
       estimatedCost: cost,
       finishReason: data.choices[0].finish_reason

@@ -114,7 +114,10 @@ function normalizeCallback(body: AgentCallback): AgentCallbackOriginal {
         results_count: 0
       })),
       error: osintPayload.error || undefined,
-      llm_used: 'gpt-5.4-mini'  // From OSINT Agent config
+      // Deliberately absent. `llm_used` records the model the OSINT agent ran,
+      // and its callback does not tell us — it was hardcoded to whatever this
+      // codebase happened to be using, which described the wrong process
+      // entirely. The insert below already stores 'unknown' when it is missing.
     }
   }
   return body as AgentCallbackOriginal

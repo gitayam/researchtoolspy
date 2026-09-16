@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { aiModel } from '../../../functions/api/_shared/ai-models'
 import Ajv from 'ajv'
 import { readFileSync } from 'node:fs'
 import { normalizeTimelineModelPayload, TIMELINE_EVENT_CATEGORIES, TIMELINE_EVENT_IMPORTANCE } from '../../../functions/api/_shared/timeline-contract'
@@ -116,7 +117,16 @@ test.describe('timeline frozen synthetic corpus and published schemas @smoke', (
           expect(isTimelineResult(payload)).toBe(true)
           expect(payload.events).toEqual(fixture.expected.events)
           expect(payload).toMatchObject({ outcome: fixture.expected.status === 'ok' ? 'events' : 'no_events', extraction: { sourceMode: 'supplied', contentSource: 'publisher-feed', quality: { accepted: true } }, model: { rejectedEventCount: fixture.expected.rejectedEventCount } })
-          if (fixture.id === 'precision-and-dedup') expect({ ...payload, requestId: 'req-synthetic-fixture' }).toEqual(corpus.successResponse)
+          if (fixture.id === 'precision-and-dedup') {
+            // `model.name` is a free string in the v1 schema — which model served
+            // the request is not part of the contract, so freezing the literal
+            // only guaranteed this test would break on the next model change,
+            // as it did. Assert the route names the model that actually ran, and
+            // freeze everything that IS the contract.
+            expect(payload.model.name).toBe(aiModel('cheap'))
+            const frozen = { ...payload, requestId: 'req-synthetic-fixture', model: { ...payload.model, name: corpus.successResponse.model.name } }
+            expect(frozen).toEqual(corpus.successResponse)
+          }
         }
       } finally { globalThis.fetch = originalFetch }
     })

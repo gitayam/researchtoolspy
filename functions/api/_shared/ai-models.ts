@@ -165,6 +165,63 @@ export function minCompletionTokens(env?: EnvBag): number {
 
 export type ReasoningEffort = 'none' | 'low' | 'medium' | 'high' | 'xhigh' | 'max'
 
+const REASONING_EFFORTS: readonly ReasoningEffort[] = ['none', 'low', 'medium', 'high', 'xhigh', 'max']
+
+/** Efforts that no longer exist, mapped to the closest one that does. */
+const RETIRED_EFFORTS: Record<string, ReasoningEffort> = {
+  minimal: 'low',
+}
+
+/**
+ * $ per 1M tokens. Verified against OpenAI's catalog, September 2026.
+ *
+ * Retired models keep their prices: a stored usage row costs out against the
+ * model that actually served it, and dropping the entry would silently reprice
+ * history at whatever the fallback happens to be. That is the bug this table
+ * replaced — two copies of it, both falling back to gpt-5.4-mini's $0.75/$4.50
+ * for every model they did not list, which after the tier migration was every
+ * call, overstating the reader's cost by 3.75x.
+ */
+export const MODEL_PRICING: Record<string, { input: number; output: number }> = {
+  'gpt-5.6-luna': { input: 0.20, output: 1.20 },
+  'gpt-5.6-terra': { input: 2.00, output: 12.00 },
+  'gpt-5.6-sol': { input: 4.00, output: 20.00 },
+  'gpt-6-astra': { input: 10.00, output: 50.00 },
+  'gpt-5.4': { input: 2.50, output: 15.00 },
+  'gpt-5.4-mini': { input: 0.75, output: 4.50 },
+  'gpt-5.4-nano': { input: 0.20, output: 1.25 },
+}
+
+const warnedUnpriced = new Set<string>()
+
+/**
+ * Cost of one call, in dollars.
+ *
+ * Price the model that actually served the request — `data.model` from the
+ * response — not the one the caller asked for. Those differ whenever a tier or
+ * a retired ID is resolved, and pricing the request is how a cost tracker ends
+ * up confidently wrong.
+ *
+ * An unpriced model falls back to the cheap tier's price and warns once, so the
+ * table gets a new entry rather than the number quietly drifting.
+ */
+export function estimateCost(
+  model: string,
+  inputTokens: number,
+  outputTokens: number,
+  env?: EnvBag,
+): number {
+  let pricing = MODEL_PRICING[model]
+  if (!pricing) {
+    pricing = MODEL_PRICING[aiModel('cheap', env)] ?? MODEL_PRICING['gpt-5.6-luna']
+    if (!warnedUnpriced.has(model)) {
+      warnedUnpriced.add(model)
+      console.warn(`[AIModels] no price for "${model}" — estimating at the cheap tier. Add it to MODEL_PRICING.`)
+    }
+  }
+  return (inputTokens / 1_000_000) * pricing.input + (outputTokens / 1_000_000) * pricing.output
+}
+
 /**
  * Make a chat-completions body valid for the model it will actually be sent to.
  *
@@ -179,6 +236,27 @@ export type ReasoningEffort = 'none' | 'low' | 'medium' | 'high' | 'xhigh' | 'ma
  * rather than having its temperature dropped, because dropping it changes the
  * sampling the caller asked for without telling anyone.
  */
+/**
+ * Accept only an effort the API recognises.
+ *
+ * `'minimal'` was the gpt-5.x name for the lowest setting and is now rejected
+ * outright, so a caller still passing it gets a hard API error rather than a
+ * quieter answer. Anything unrecognised falls through to the caller's default.
+ */
+function normalizeEffort(value: unknown): ReasoningEffort | undefined {
+  if (typeof value !== 'string') return undefined
+  if ((REASONING_EFFORTS as readonly string[]).includes(value)) return value as ReasoningEffort
+  const replacement = RETIRED_EFFORTS[value]
+  if (replacement) {
+    if (!warnedRetired.has(`effort:${value}`)) {
+      warnedRetired.add(`effort:${value}`)
+      console.warn(`[AIModels] reasoning_effort "${value}" is retired — using "${replacement}".`)
+    }
+    return replacement
+  }
+  return undefined
+}
+
 export function normalizeChatRequest(
   request: Record<string, unknown>,
   env?: EnvBag,
@@ -200,7 +278,7 @@ export function normalizeChatRequest(
   }
 
   const wantsTemperature = body.temperature !== undefined
-  const effort = (body.reasoning_effort as ReasoningEffort | undefined)
+  const effort = normalizeEffort(body.reasoning_effort)
     ?? (wantsTemperature ? 'none' : 'low')
   body.reasoning_effort = effort
 
