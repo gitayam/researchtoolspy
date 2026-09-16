@@ -4,6 +4,7 @@
  * Based on CIA SATS Methodology + existing AI analysis patterns
  */
 
+import { normalizeChatRequest } from '../../functions/api/_shared/ai-models'
 import OpenAI from 'openai'
 import type { DeceptionScores, DeceptionAssessment } from './deception-scoring'
 import { calculateDeceptionLikelihood, SCORING_CRITERIA } from './deception-scoring'
@@ -115,8 +116,11 @@ export async function analyzeDeceptionWithAI(
     // Get language instruction if specified
     const languageInstruction = getLanguageInstruction(scenario.outputLanguage)
 
-    const response = await openai.chat.completions.create({
-      model: 'gpt-5.4-mini',
+    // Normalized rather than hand-built: this call goes straight to OpenAI from
+    // the browser, so it never passes the gateway where every other call in the
+    // product gets its model resolved and its shape checked.
+    const response = await openai.chat.completions.create(normalizeChatRequest({
+      tier: 'cheap',
       messages: [
         {
           role: 'system',
@@ -136,10 +140,11 @@ ${languageInstruction}`
           content: prompt
         }
       ],
-      reasoning_effort: 'none' as any,  // Required for temperature on gpt-5.4-* models
+      // 'none' is what permits a temperature at all on a reasoning model.
+      reasoning_effort: 'none',
       temperature: 0.2,  // Low temperature for analytical consistency
       max_completion_tokens: 3000
-    })
+    }) as never)
 
     const content = response.choices[0]?.message?.content
     if (!content) {
@@ -406,11 +411,15 @@ export async function checkAIAvailability(): Promise<boolean> {
       return false
     }
 
-    const response = await openai.chat.completions.create({
-      model: 'gpt-5.4-mini',
+    // A reachability probe, not a completion: the caller only checks that a
+    // choice came back. 'none' keeps the one-token budget meaningful — at any
+    // other effort the reasoning phase would consume it before a reply.
+    const response = await openai.chat.completions.create(normalizeChatRequest({
+      tier: 'cheap',
       messages: [{ role: 'user', content: 'Test' }],
+      reasoning_effort: 'none',
       max_completion_tokens: 1
-    })
+    }) as never)
 
     return !!response.choices[0]
   } catch {

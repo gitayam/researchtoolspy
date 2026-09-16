@@ -5,6 +5,7 @@
  * Manages configuration, rate limiting, and error handling
  */
 
+import { normalizeChatRequest } from '../../../functions/api/_shared/ai-models'
 import type {
   AIConfiguration,
   AIModel,
@@ -92,16 +93,20 @@ export class AIClient {
           'Content-Type': 'application/json',
           ...(this.config.organization && { 'OpenAI-Organization': this.config.organization })
         },
-        body: JSON.stringify({
+        // Hand-built body going straight to OpenAI, so it never passes the
+        // gateway that normalizes every server-side call. Same treatment here:
+        // the model is resolved, a retired ID is remapped, and the output budget
+        // is floored so the hidden reasoning phase cannot consume the whole
+        // allowance and return empty content.
+        body: JSON.stringify(normalizeChatRequest({
           model,
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: params.prompt }
           ],
           max_completion_tokens: params.maxTokens || settings.maxTokens,
-          // Note: temperature is NOT supported in gpt-5.4-* models unless reasoning_effort is 'none'
           ...(params.reasoningEffort && { reasoning_effort: params.reasoningEffort })
-        })
+        }))
       })
 
       if (!response.ok) {

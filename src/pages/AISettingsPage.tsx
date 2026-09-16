@@ -5,6 +5,7 @@
  */
 
 import { useState, useEffect } from 'react'
+import { DEFAULT_MODELS } from '../../functions/api/_shared/ai-models'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -22,6 +23,21 @@ interface AIConfigResponse extends AIConfiguration {
   enabled?: boolean
   hasApiKey?: boolean
 }
+
+/**
+ * What an operator can select, derived from the tier table.
+ *
+ * These were three hardcoded <SelectItem>s naming the gpt-5.4 family, labelled
+ * from i18n keys that said "GPT-5 / Mini / Nano" — already the wrong names for
+ * the models they selected. Deriving them means the list cannot name a model
+ * the product no longer sends to. The descriptive keys are reused as-is, so no
+ * translation is left behind.
+ */
+const MODEL_CHOICES = [
+  { model: DEFAULT_MODELS.cheap, roleKey: 'aiSettings:modelConfig.models.fastCheap' },
+  { model: DEFAULT_MODELS.standard, roleKey: 'aiSettings:modelConfig.models.balanced' },
+  { model: DEFAULT_MODELS.premium, roleKey: 'aiSettings:modelConfig.models.deepAnalysis' },
+]
 
 export function AISettingsPage() {
   const { t } = useTranslation(['aiSettings', 'common'])
@@ -230,7 +246,7 @@ export function AISettingsPage() {
               <div className="space-y-2">
                 <Label htmlFor="defaultModel">{t('aiSettings:modelConfig.defaultModel')}</Label>
                 <Select
-                  value={config.defaultModel || 'gpt-5.4-mini'}
+                  value={config.defaultModel || DEFAULT_MODELS.cheap}
                   onValueChange={(value: AIModel) =>
                     setConfig({ ...config, defaultModel: value })
                   }
@@ -239,24 +255,14 @@ export function AISettingsPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="gpt-5.4">
-                      <div className="flex items-center justify-between gap-4">
-                        <span>{t('aiSettings:modelConfig.models.gpt5')}</span>
-                        <span className="text-xs text-muted-foreground">{t('aiSettings:modelConfig.models.deepAnalysis')}</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="gpt-5.4-mini">
-                      <div className="flex items-center justify-between gap-4">
-                        <span>{t('aiSettings:modelConfig.models.gpt5mini')}</span>
-                        <span className="text-xs text-muted-foreground">{t('aiSettings:modelConfig.models.balanced')}</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="gpt-5.4-nano">
-                      <div className="flex items-center justify-between gap-4">
-                        <span>{t('aiSettings:modelConfig.models.gpt5nano')}</span>
-                        <span className="text-xs text-muted-foreground">{t('aiSettings:modelConfig.models.fastCheap')}</span>
-                      </div>
-                    </SelectItem>
+                    {MODEL_CHOICES.map(choice => (
+                      <SelectItem key={choice.model} value={choice.model}>
+                        <div className="flex items-center justify-between gap-4">
+                          <span>{choice.model}</span>
+                          <span className="text-xs text-muted-foreground">{t(choice.roleKey)}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 <p className="text-sm text-muted-foreground">
@@ -284,9 +290,9 @@ export function AISettingsPage() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="gpt-5.4">{t('aiSettings:modelConfig.models.gpt5')}</SelectItem>
-                        <SelectItem value="gpt-5.4-mini">{t('aiSettings:modelConfig.models.gpt5mini')}</SelectItem>
-                        <SelectItem value="gpt-5.4-nano">{t('aiSettings:modelConfig.models.gpt5nano')}</SelectItem>
+                        {MODEL_CHOICES.map(choice => (
+                          <SelectItem key={choice.model} value={choice.model}>{choice.model}</SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>

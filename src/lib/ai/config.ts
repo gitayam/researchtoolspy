@@ -4,7 +4,10 @@
  * Manages GPT-5 model configuration, use case mappings, and feature flags
  */
 
-export type AIModel = 'gpt-5.4' | 'gpt-5.4-mini' | 'gpt-5.4-nano'
+import { DEFAULT_MODELS, estimateCost } from '../../../functions/api/_shared/ai-models'
+
+/** A model ID. See `AIModel` in types/settings.ts for why this is not a union. */
+export type AIModel = string
 
 export type AIUseCase =
   | 'summarization'
@@ -65,34 +68,30 @@ export interface AIConfiguration {
  * Optimized for cost-effective intelligence analysis
  */
 export const defaultAIConfig: AIConfiguration = {
-  defaultModel: 'gpt-5.4-mini',
+  defaultModel: DEFAULT_MODELS.cheap,
 
   models: {
-    'gpt-5.4': {
+    [DEFAULT_MODELS.standard]: {
       verbosity: 'high',
       maxTokens: 4096,
       systemPrompt: `You are an expert intelligence analyst assistant. Provide detailed, structured analysis following intelligence community standards. Focus on analytical rigor, evidence-based reasoning, and clear communication. Always consider alternative hypotheses and indicate confidence levels.`
     },
-    'gpt-5.4-mini': {
+    [DEFAULT_MODELS.cheap]: {
       verbosity: 'medium',
       maxTokens: 2048,
       systemPrompt: `You are an intelligence analyst assistant. Provide clear, concise analysis based on the provided evidence. Use structured formats (bullet points, numbered lists) when appropriate. Be objective and highlight key findings.`
-    },
-    'gpt-5.4-nano': {
-      verbosity: 'low',
-      reasoningEffort: 'low',
-      maxTokens: 1024,
-      systemPrompt: `You are a research assistant. Provide brief, focused responses. Use bullet points for clarity. Be concise and actionable.`
     }
   },
 
+  // The old three-way split gave nano the short-form jobs. One model now beats
+  // it on both price axes, so the cheap tier carries everything but deep analysis.
   useCases: {
-    summarization: 'gpt-5.4-mini',
-    questionGeneration: 'gpt-5.4-nano',
-    deepAnalysis: 'gpt-5.4',
-    fieldSuggestions: 'gpt-5.4-nano',
-    formatting: 'gpt-5.4-nano',
-    guidance: 'gpt-5.4-nano'
+    summarization: DEFAULT_MODELS.cheap,
+    questionGeneration: DEFAULT_MODELS.cheap,
+    deepAnalysis: DEFAULT_MODELS.standard,
+    fieldSuggestions: DEFAULT_MODELS.cheap,
+    formatting: DEFAULT_MODELS.cheap,
+    guidance: DEFAULT_MODELS.cheap
   },
 
   features: {
@@ -118,20 +117,13 @@ export const defaultAIConfig: AIConfiguration = {
 /**
  * Model Pricing (per 1M tokens)
  */
-export const MODEL_PRICING = {
-  'gpt-5.4': {
-    input: 2.50,  // $2.50 per 1M input tokens
-    output: 15.0  // $15.00 per 1M output tokens
-  },
-  'gpt-5.4-mini': {
-    input: 0.75,  // $0.75 per 1M input tokens
-    output: 4.50  // $4.50 per 1M output tokens
-  },
-  'gpt-5.4-nano': {
-    input: 0.20,  // $0.20 per 1M input tokens
-    output: 1.25  // $1.25 per 1M output tokens
-  }
-} as const
+/**
+ * Re-exported, not redefined. This was the third copy of the price table — the
+ * other two lived beside the API's own cost estimators — and all three had to be
+ * edited together to stay honest. They were not, so the settings page quoted
+ * prices the product had stopped paying.
+ */
+export { MODEL_PRICING } from '../../../functions/api/_shared/ai-models'
 
 /**
  * Model Capabilities
@@ -150,10 +142,7 @@ export function estimateRequestCost(
   inputTokens: number,
   estimatedOutputTokens: number = 500
 ): number {
-  const pricing = MODEL_PRICING[model]
-  const inputCost = (inputTokens / 1_000_000) * pricing.input
-  const outputCost = (estimatedOutputTokens / 1_000_000) * pricing.output
-  return inputCost + outputCost
+  return estimateCost(model, inputTokens, estimatedOutputTokens)
 }
 
 /**
@@ -175,7 +164,11 @@ export function validateAIConfig(config: Partial<AIConfiguration>): {
 } {
   const errors: string[] = []
 
-  if (config.defaultModel && !['gpt-5.4', 'gpt-5.4-mini', 'gpt-5.4-nano'].includes(config.defaultModel)) {
+  // A retired ID is not invalid — the gateway remaps it, and a config saved
+  // before a generation change must still validate. Only an empty or non-string
+  // value is a real error here.
+  if (config.defaultModel !== undefined
+    && (typeof config.defaultModel !== 'string' || !config.defaultModel.trim())) {
     errors.push('Invalid default model')
   }
 

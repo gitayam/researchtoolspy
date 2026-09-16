@@ -13,6 +13,7 @@ import { Switch } from '@/components/ui/switch'
 import { Slider } from '@/components/ui/slider'
 import { Badge } from '@/components/ui/badge'
 import type { AISettings, AIModel } from '@/types/settings'
+import { DEFAULT_MODELS, MODEL_PRICING } from '../../../functions/api/_shared/ai-models'
 
 interface AIPreferencesProps {
   settings: AISettings
@@ -20,25 +21,69 @@ interface AIPreferencesProps {
   updating?: boolean
 }
 
-const MODEL_INFO: Record<AIModel, { name: string; description: string; cost: string }> = {
-  'gpt-5.4': {
-    name: 'GPT-5.4',
-    description: 'Most capable model for deep analysis and complex reasoning',
-    cost: '$2.50/$15.00 per 1M tokens',
+/**
+ * What the chooser offers, described by the job rather than the model name.
+ *
+ * The list it replaced named three gpt-5.4 models and quoted their prices as
+ * literals. Two of the three are now beaten on both price axes by a single
+ * newer model, and the quoted prices had no connection to the ones the cost
+ * tracker actually used — so the reader was picking between options that no
+ * longer existed, at prices that were no longer real.
+ *
+ * Options and prices both come from the tier table now, so this cannot drift
+ * from what the product actually spends.
+ */
+const TIER_INFO = [
+  {
+    tier: 'cheap' as const,
+    name: 'Fast',
+    description: 'Extraction, classification and summaries — what most work here is',
   },
-  'gpt-5.4-mini': {
-    name: 'GPT-5.4 Mini',
-    description: 'Balanced performance and cost - ideal for most tasks',
-    cost: '$0.75/$4.50 per 1M tokens',
+  {
+    tier: 'standard' as const,
+    name: 'Considered',
+    description: 'Synthesis and comparison, where the reasoning is the output',
   },
-  'gpt-5.4-nano': {
-    name: 'GPT-5.4 Nano',
-    description: 'Fast and efficient for simple tasks and suggestions',
-    cost: '$0.20/$1.25 per 1M tokens',
+  {
+    tier: 'premium' as const,
+    name: 'Deep',
+    description: 'The hardest analysis. Rarely worth the cost over Considered',
   },
+]
+
+function priceLabel(model: string): string {
+  const price = MODEL_PRICING[model]
+  if (!price) return 'pricing not published'
+  return `$${price.input.toFixed(2)}/$${price.output.toFixed(2)} per 1M tokens`
+}
+
+/** The offered options, plus whatever this account already had stored if it is
+ *  no longer one of them — a preference saved before a model generation changed
+ *  should still be readable, and labelled as the retired thing it is. */
+function modelOptions(stored: string) {
+  const options = TIER_INFO.map(info => ({
+    model: DEFAULT_MODELS[info.tier],
+    name: info.name,
+    description: info.description,
+    cost: priceLabel(DEFAULT_MODELS[info.tier]),
+    retired: false,
+  }))
+  if (options.some(o => o.model === stored)) return options
+  return [
+    ...options,
+    {
+      model: stored,
+      name: stored,
+      description: 'No longer offered. Requests using it are served by Fast.',
+      cost: priceLabel(stored),
+      retired: true,
+    },
+  ]
 }
 
 export function AIPreferences({ settings, onUpdate, updating = false }: AIPreferencesProps) {
+  const options = modelOptions(settings.default_model)
+
   const handleModelChange = useCallback(
     async (model: AIModel) => {
       await onUpdate({ default_model: model })
@@ -90,11 +135,11 @@ export function AIPreferences({ settings, onUpdate, updating = false }: AIPrefer
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {Object.entries(MODEL_INFO).map(([model, info]) => (
-                <SelectItem key={model} value={model}>
+              {options.map((option) => (
+                <SelectItem key={option.model} value={option.model}>
                   <div className="flex flex-col">
-                    <span className="font-medium">{info.name}</span>
-                    <span className="text-xs text-muted-foreground">{info.description}</span>
+                    <span className="font-medium">{option.name}</span>
+                    <span className="text-xs text-muted-foreground">{option.description}</span>
                   </div>
                 </SelectItem>
               ))}
@@ -103,14 +148,15 @@ export function AIPreferences({ settings, onUpdate, updating = false }: AIPrefer
 
           {/* Model Info Card */}
           {(() => {
-            const info = MODEL_INFO[settings.default_model as AIModel] ?? MODEL_INFO['gpt-5.4-mini']
+            const info = options.find(o => o.model === settings.default_model) ?? options[0]
             return (
               <div className="bg-muted/50 rounded-lg p-4 space-y-2">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-2">
                   <span className="text-sm font-medium">{info.name}</span>
                   <Badge variant="secondary" className="text-xs">{info.cost}</Badge>
                 </div>
                 <p className="text-sm text-muted-foreground">{info.description}</p>
+                <p className="text-xs text-muted-foreground">{info.model}</p>
               </div>
             )
           })()}

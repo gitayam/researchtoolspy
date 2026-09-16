@@ -4,13 +4,25 @@
  * Type definitions for hash-based user settings
  */
 
+import { DEFAULT_MODELS } from '../../functions/api/_shared/ai-models'
+
 export type Theme = 'light' | 'dark' | 'system'
 export type Language = 'en' | 'es'
 export type Density = 'compact' | 'comfortable' | 'spacious'
 export type SidebarBehavior = 'always_open' | 'auto_collapse' | 'manual'
 export type FontSize = 'small' | 'medium' | 'large' | 'x-large'
 
-export type AIModel = 'gpt-5.4' | 'gpt-5.4-mini' | 'gpt-5.4-nano'
+/**
+ * A stored model preference.
+ *
+ * Deliberately a plain string rather than a union of the models we currently
+ * offer. The union it replaced named three gpt-5.4 models, which meant every
+ * account that had saved a preference held a value the type no longer admitted
+ * the day we moved generations — and the chooser could not offer the new ones.
+ * The offered set lives with the tier defaults; this type only has to describe
+ * what might come back out of storage.
+ */
+export type AIModel = string
 
 export interface DisplaySettings {
   theme: Theme
@@ -186,7 +198,7 @@ export const DEFAULT_DISPLAY_SETTINGS: DisplaySettings = {
 }
 
 export const DEFAULT_AI_SETTINGS: AISettings = {
-  default_model: 'gpt-5.4-mini',
+  default_model: DEFAULT_MODELS.cheap,
   temperature: 0.7,
   max_tokens: 2048,
   show_cost_tracking: true,
