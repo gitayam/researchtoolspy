@@ -1,5 +1,106 @@
 # Lessons Learned - Research Tools Development
 
+## Session: 2026-09-15 - Guest Conversion Root Cause, Schema Drift, Tailwind v4 Tokens
+
+### A Regex Over DDL Text Is Not a Column List
+`transferGuestData` decided which tables carry a user-reference column by regex-matching the
+column name against the table's `sql` from `sqlite_master`. That matches anywhere the string
+appears, so it matched two SQL comments (`adjusted_by TEXT NOT NULL, -- user_id`) and one
+foreign-key clause (`REFERENCES investigations(id, workspace_id, created_by)`). The resulting
+UPDATEs named columns that do not exist, `db.batch()` threw, and **every** guest-to-account
+conversion returned 500 — never intermittently, always.
+
+The damage was not the 500. Workspace ownership transfer is the last statement in that batch, so
+it never ran: a guest who signed up kept a workspace still owned by their guest principal,
+`checkWorkspaceAccess` refused it, and every subsequent write returned 403. A user-reported
+"403 creating evidence" traced back through the browser's stale `X-Workspace-ID` to this.
+
+**Rule:** parse structure, never grep it. When you need a table's columns, get them from a column
+list, not from the text of its definition.
+
+### D1's Workers Binding Forbids PRAGMA — and the CLI Does Not
+The obvious fix above was `SELECT name FROM pragma_table_info(?)`. It works through
+`wrangler d1 execute`, which is how it was verified, and then failed in production with:
+
+```
+D1_ERROR: not authorized: SQLITE_AUTH
+```
+
+**Rule:** `wrangler d1 execute` is not a check for what the Workers D1 binding will allow. Verify
+runtime SQL behaviour by exercising the deployed endpoint, or by reading `wrangler pages
+deployment tail <deployment-id>` — the log line naming SQLITE_AUTH is what turned a second guess
+into a diagnosis.
+
+### Dropping a Table Leaves Its Triggers and Views Behind
+Migration `113-drop-dead-tables.sql` dropped `framework_analytics`, but the trigger
+`update_framework_comment_count` (AFTER INSERT ON **comments**) still wrote to it. SQLite resolves
+a trigger program when the statement is *prepared*, so every `INSERT INTO comments` failed with
+`no such table: main.framework_analytics`. The whole commenting feature was down, for every
+`entity_type`, with no code change to blame — the trigger's own
+`WHERE NEW.entity_type IN (...)` filter is a run-time test that never got the chance to run.
+Two views (`framework_vote_counts`, `framework_rating_stats`) were orphaned the same way.
+
+**Rule:** before `DROP TABLE`, grep the schema for triggers and views that reference it. To detect
+the class after the fact, probe every table with `EXPLAIN INSERT INTO <t> DEFAULT VALUES` —
+prepare-time resolution makes the failure loud. `scripts/check-sql-schema.py` does this.
+
+### Validate SQL Against the Live Schema, Not a Hand-Written List
+`scripts/validate-schema.ts` compares the database against a maintained list of expected tables and
+columns, so it only ever finds what someone remembered to list. Mirroring `sqlite_master` into an
+in-memory SQLite and asking it to PREPARE all ~1,080 static `.prepare(...)` statements in the repo
+found **twelve always-500 endpoints** in a single pass, including `frameworks/entity-usage`, whose
+three queries were *all* wrong (`framework_sessions.framework_name`, `.framework_data`,
+`ach_analyses.analysis_data`) and which had therefore never once returned data.
+
+**Rule:** run `python3 scripts/check-sql-schema.py` before a release. Statements that legitimately
+run only behind a runtime schema probe opt out with a `sql-schema-check: guarded` comment.
+
+### Tailwind v4 Silently Ignores v3 Token Configuration
+The project uses `@import "tailwindcss"` (v4) while keeping shadcn tokens as bare HSL triplets in
+`:root` — which only v3 could read via `tailwind.config.js`. v4 resolves colour utilities from the
+`--color-*` namespace and ignores the JS config unless loaded with `@config`. Result: `bg-accent`,
+`text-muted-foreground`, `border-border`, `ring-ring`, `bg-popover` and the rest generated **no CSS
+at all** — 1,297 usages across 121 files. A description marked `text-muted-foreground` computed to
+`rgb(2, 8, 23)`, identical to the heading above it; secondary text had no hierarchy product-wide.
+
+Fixed with an `@theme inline` block in `src/index.css`. **`inline` is required**: without it v4
+resolves each value once at build time and the `.dark` overrides never apply.
+
+**Rule:** after a Tailwind major upgrade, grep the *built* stylesheet for a few utilities you rely
+on. `grep -c 'text-muted-foreground' dist/assets/*.css` returning 0 is the whole diagnosis.
+
+### Layered CSS Always Loses to Unlayered CSS
+A global `*:focus-visible { outline: 2px solid ... }` in `index.css` could not be overridden by a
+Tailwind `focus-visible:outline-none` utility, despite the utility having higher specificity.
+Tailwind v4 emits utilities inside `@layer`, and unlayered CSS beats any layer regardless of
+specificity. The override has to live unlayered too.
+
+### A Deploy Under an Open Tab Reproduces the 2025 MIME Error
+`'text/html' is not a valid JavaScript MIME type` returned — but not from the 2025 cause below
+(missing `_redirects`). A tab opened *before* a deploy holds an entry bundle naming the old
+content-hashed chunks; the next lazy route requests a chunk that no longer exists, and
+`_redirects` — the very fix for the 2025 problem — serves `index.html` for it instead of a 404.
+React Router catches the rejected import during render and shows a full-page crash.
+
+`src/lib/lazy-with-reload.ts` wraps every lazy route, recognises the chunk-load error family, and
+reloads once, guarded by a `sessionStorage` timestamp so a genuinely broken deploy degrades to the
+error boundary instead of a reload loop.
+
+**Rule:** this one reproduces on *every* deploy for anyone with a tab already open. Expect it after
+shipping, and do not mistake it for the `_redirects` problem.
+
+### Missing Auth Headers Fail Silently and Look Like Empty Data
+A sweep of every `fetch('/api/...')` in `src/` found 32 calls with no headers; 16 hit endpoints
+requiring auth. Almost all sat in files that already imported `getCopHeaders()` for their other
+calls. Symptoms were never "auth error" — they were an ACH analysis that would not load, a
+deception view with permanently empty evidence panels, and entity lists that rendered as "you have
+none".
+
+**Rule:** `getCopAuthHeaders()` (credentials without `Content-Type`) exists for `FormData` posts —
+forcing `application/json` onto a multipart body makes it unparseable at the origin.
+
+---
+
 ## Session: 2026-03-14 - Workspace Delete Auth & Crash Fixes (Session 33)
 
 ### Mutation Endpoints Need Auth AND Ownership Checks

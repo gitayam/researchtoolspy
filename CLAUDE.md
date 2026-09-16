@@ -174,6 +174,22 @@ npx vite                              # Frontend on 5173, proxies /api to 8788
 - Remote: `npx wrangler d1 execute researchtoolspy-prod --remote --command "SQL"` (the bound DB is `researchtoolspy-prod` per `wrangler.toml`; there is no `researchtoolspy-db`)
 - Entity tables use `created_by` (not `user_id`), `workspace_id`, TEXT IDs
 - Actor/place types MUST be uppercase (D1 CHECK constraints)
+- **`pragma_table_info` is refused by the Workers D1 binding** (`SQLITE_AUTH`) even though
+  `wrangler d1 execute` allows it. The CLI is not a check for what the runtime permits.
+- Dropping a table does NOT drop triggers/views in *other* tables that reference it. SQLite
+  resolves those at statement-prepare time, so the orphan breaks its host table's writes.
+
+## Verification scripts
+
+```bash
+python3 scripts/check-sql-schema.py          # PREPARE every static query against the live schema
+node scripts/verify-declared-columns.mjs <dump.json>   # guest-conversion column parser vs SQLite
+```
+
+`check-sql-schema.py` mirrors `sqlite_master` into SQLite and prepares all ~1,080 `.prepare(...)`
+statements in the repo, then probes every table and view for triggers orphaned by a dropped table.
+Run it before a release; it found twelve always-500 endpoints and a broken `comments` trigger on
+its first run. Opt a deliberately guarded statement out with a `sql-schema-check: guarded` comment.
 
 ## Docs Layout
 

@@ -1,7 +1,72 @@
 # ResearchTools.net — Issue Tracker
 
-**Last updated:** 2026-07-23
+**Last updated:** 2026-09-15
 **Current tag:** v0.21.0-content-retention
+
+---
+
+## Fixed (2026-09-15) — Guest conversion, schema drift, authorization, design tokens
+
+**Root cause of the reported 403 on evidence creation.** `POST /api/guest-conversions` had been
+returning 500 for every conversion: its column detector regex-matched table DDL text, so two SQL
+comments and one foreign-key clause produced UPDATEs against columns that do not exist and the
+batch threw. Workspace ownership transfer is the last statement in that batch, so a guest who
+signed up kept a workspace owned by their old guest principal and every write was refused.
+
+- [x] Guest conversion now parses the CREATE TABLE statement for real columns.
+  `pragma_table_info` was tried first and rejected by D1's Workers binding with
+  `SQLITE_AUTH`, though it works through `wrangler d1 execute`.
+  `scripts/verify-declared-columns.mjs` checks that parse against SQLite's own answer for
+  every table.
+- [x] Browser side of the same bug: a guest workspace id no longer leaks into the
+  non-prefixed `omnicore_workspace_id` / `current_workspace_id` keys, and existing browsers
+  carrying one heal on their next request.
+- [x] `WorkspaceContext` distinguishes "unknown" from "none" — a failed `/api/workspaces`
+  no longer blanks the picker while requests keep sending a stale `X-Workspace-ID` — and
+  refetches on sign-in.
+
+**Commenting was completely broken.** Migration 113 dropped `framework_analytics` but left a
+trigger on `comments` pointing at it; SQLite resolves trigger programs at prepare time, so every
+comment insert failed.
+
+- [x] Migration `0018` drops that trigger and two views orphaned the same way.
+- [x] `scripts/check-sql-schema.py` prepares every static query in the repo against the live
+  schema and probes every table and view for this class. Its first run found twelve
+  always-500 endpoints, including `frameworks/entity-usage`, whose three queries were all wrong.
+- [x] Nine endpoints corrected for columns the schema never had.
+
+**Authorization.** Endpoints that authenticated the caller and then acted on a caller-supplied id
+or workspace without checking either:
+
+- [x] `research/forms/[id]` DELETE (anyone could delete anyone's form and every submission
+  through it) and `/toggle`; `cop/[id]/intake-forms/[formId]` GET took no auth at all and
+  returned `share_token` and `password_hash`.
+- [x] The three framework link tables (`framework_evidence`, `framework_entities`,
+  `framework_datasets`) now verify framework ownership on read and write.
+- [x] `research/evidence/list`, `research/tasks/list`, `research/evidence/add`, `claims/[id]`,
+  `mom-assessments`, `match-entities-to-actors`, `comments`, `comments/[id]`,
+  `evidence-tags/batch`, `hamilton-rule/analyze`, `content-intelligence/auto-extract-entities`.
+- [x] A COP viewer can no longer grant editor; only the session owner adds collaborators.
+
+**Stability.**
+
+- [x] A deploy landing under an open tab no longer shows a full-page crash. Stale
+  content-hashed chunks are served `index.html` by `_redirects`, which React Router surfaces as
+  `'text/html' is not a valid JavaScript MIME type`; lazy routes now reload once.
+- [x] 16 API calls that sent no credentials — including the ACH analysis load and the deception
+  view's evidence panels — now do.
+- [x] Transient D1 failures during auth resolution report a retryable 503 instead of a 500, and
+  `investigations` no longer answers HTTP 200 with an empty list when the datastore is down.
+
+**Design.**
+
+- [x] Tailwind v4 was ignoring the shadcn token layer entirely: 1,297 usages across 121 files
+  generated no CSS, and `text-muted-foreground` rendered identical to full-strength foreground.
+  An `@theme inline` block restores them in both themes.
+- [x] Command palette: no more rows clipped under the input, descriptions wrap instead of cutting
+  mid-word, keyboard affordances and a live result count, a real selected state, and an empty
+  state that names what was searched for.
+- [x] Three ACH dialogs gained the `DialogDescription` they were missing.
 
 ---
 
