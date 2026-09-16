@@ -15,6 +15,9 @@ interface ACHMatrixProps {
   analysis: ACHAnalysis
   onUpdateScore: (hypothesisId: string, evidenceId: string, score: number, notes?: string) => Promise<void>
   onAddEvidence: () => void
+  /** Opens the editor where hypotheses are added. Without this the empty state
+   *  below names the next step but offers no way to take it. */
+  onAddHypothesis?: () => void
   onRemoveEvidence: (linkId: string) => void
 }
 
@@ -22,6 +25,7 @@ export function ACHMatrix({
   analysis,
   onUpdateScore,
   onAddEvidence,
+  onAddHypothesis,
   onRemoveEvidence
 }: ACHMatrixProps) {
   const [scoringCell, setScoringCell] = useState<{ hypothesisId: string; evidenceId: string } | null>(null)
@@ -99,15 +103,32 @@ export function ACHMatrix({
   }
 
   if (hypotheses.length === 0) {
+    // This used to state the next step and stop there, leaving "Edit Analysis"
+    // up in the header as the only -- unlabelled -- way to take it. Evidence is
+    // offered alongside because ACH work often starts by gathering it; neither
+    // step needs the other to exist first.
     return (
       <Card className="p-12 text-center">
         <Info className="h-16 w-16 text-gray-400 mx-auto mb-4" />
         <h3 className="text-lg font-semibold text-gray-600 dark:text-gray-400 mb-2">
           No Hypotheses Yet
         </h3>
-        <p className="text-gray-500 dark:text-gray-500">
-          Add hypotheses to your analysis to begin scoring.
+        <p className="mx-auto max-w-md text-gray-500 dark:text-gray-500">
+          Add two or more competing hypotheses, then score your evidence against
+          each one.
         </p>
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+          {onAddHypothesis && (
+            <Button onClick={onAddHypothesis}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Hypotheses
+            </Button>
+          )}
+          <Button variant="outline" onClick={onAddEvidence}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Evidence
+          </Button>
+        </div>
       </Card>
     )
   }

@@ -434,6 +434,7 @@ export function ACHAnalysisPage() {
         analysis={analysis}
         onUpdateScore={handleUpdateScore}
         onAddEvidence={handleAddEvidence}
+        onAddHypothesis={() => setFormOpen(true)}
         onRemoveEvidence={handleRemoveEvidence}
       />
 
