@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import type { ReactNode } from 'react'
-import { safeJSONParse, safeJSONStringify } from '@/utils/safe-json'
 import { useAuthStore } from '@/stores/auth'
 import { getCopHeaders } from '@/lib/cop-auth'
 import {
@@ -19,15 +18,11 @@ interface GuestModeContextType {
   guestSessionId: string | null
   setMode: (mode: UserMode) => void
   convertToAuthenticated: (userId: number) => Promise<void>
-  getStorageKey: (key: string) => string
-  saveToLocalStorage: (key: string, data: any) => void
-  loadFromLocalStorage: (key: string) => any
   clearGuestData: () => void
 }
 
 const GuestModeContext = createContext<GuestModeContextType | undefined>(undefined)
 
-const GUEST_DATA_PREFIX = 'guest_'
 
 interface GuestModeProviderProps {
   children: ReactNode
@@ -92,24 +87,13 @@ export function GuestModeProvider({ children }: GuestModeProviderProps) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated])
 
-  const getStorageKey = (key: string): string => {
-    if (mode === 'guest') {
-      return `${GUEST_DATA_PREFIX}${key}`
-    }
-    return key
-  }
-
-  const saveToLocalStorage = (key: string, data: any) => {
-    const storageKey = getStorageKey(key)
-    localStorage.setItem(storageKey, safeJSONStringify(data))
-    localStorage.setItem(`${storageKey}_timestamp`, Date.now().toString())
-  }
-
-  const loadFromLocalStorage = (key: string): any => {
-    const storageKey = getStorageKey(key)
-    const data = localStorage.getItem(storageKey)
-    return data ? safeJSONParse(data, null) : null
-  }
+  // getStorageKey / saveToLocalStorage / loadFromLocalStorage used to live here
+  // and namespaced guest data behind a `guest_` prefix so clearGuestStorage()
+  // could reclaim it. Nothing ever called them: the only consumer of
+  // useGuestMode() is GuestModeBanner, which reads isGuest. Keeping them
+  // advertised a guarantee the app did not have -- every draft is written to an
+  // unprefixed key -- so they are gone, and the session boundary now does the
+  // reclaiming instead (see src/lib/user-scoped-storage.ts).
 
   const clearGuestData = () => {
     clearGuestStorage()
@@ -123,9 +107,6 @@ export function GuestModeProvider({ children }: GuestModeProviderProps) {
     guestSessionId,
     setMode,
     convertToAuthenticated,
-    getStorageKey,
-    saveToLocalStorage,
-    loadFromLocalStorage,
     clearGuestData,
   }
 

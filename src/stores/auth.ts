@@ -4,6 +4,7 @@ import { persist } from 'zustand/middleware'
 import { createLogger } from '@/lib/logger'
 import { apiClient } from '@/lib/api'
 import { clearSelectedWorkspaceId } from '@/lib/workspace-storage'
+import { clearUserScopedStorage } from '@/lib/user-scoped-storage'
 import type { User } from '@/types/auth'
 
 const logger = createLogger('Auth')
@@ -95,6 +96,8 @@ export const useAuthStore = create<AuthState>()(
         // Without this the next account to use this browser inherits the
         // previous one's X-Workspace-ID until /api/workspaces resolves.
         clearSelectedWorkspaceId()
+        // ...and their unsaved drafts, which are all written to unprefixed keys.
+        clearUserScopedStorage()
         set({
           user: null,
           isAuthenticated: false,
@@ -118,6 +121,7 @@ export const useAuthStore = create<AuthState>()(
                 apiClient.logout()
                 localStorage.removeItem('omnicore_user_hash')
                 clearSelectedWorkspaceId()
+                clearUserScopedStorage()
                 set({ user: null, isAuthenticated: false })
                 return
               }
