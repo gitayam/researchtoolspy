@@ -5,6 +5,7 @@
 
 import { nanoid } from 'nanoid'
 import { getUserFromRequest } from '../_shared/auth-helpers'
+import { checkWorkspaceAccess } from '../_shared/workspace-helpers'
 import { JSON_HEADERS, CORS_HEADERS, optionsResponse, safeJsonParse } from '../_shared/api-utils'
 
 interface Env {
@@ -44,7 +45,9 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
       })
     }
     const { analysis_id, workspace_id = request.headers.get('X-Workspace-ID') || null } = body
-    const user_id = body.user_id || userId
+    // body.user_id used to win over the server-resolved id, letting a caller
+    // attribute the actors this endpoint creates to anyone they liked.
+    const user_id = userId
 
     if (!analysis_id) {
       return new Response(JSON.stringify({ error: 'analysis_id required' }), {
@@ -54,11 +57,19 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
     }
 
     // Get the content analysis
+    if (!workspace_id || !(await checkWorkspaceAccess(String(workspace_id), userId, env, 'EDITOR'))) {
+      return new Response(JSON.stringify({ error: 'Access denied to workspace' }), {
+        status: 403,
+        headers: JSON_HEADERS,
+      })
+    }
+
+    // Scoped by user_id: this used to read any user's content analysis by id.
     const analysis = await env.DB.prepare(`
       SELECT id, entities, url, title
       FROM content_analysis
-      WHERE id = ?
-    `).bind(analysis_id).first<AnalysisRow>()
+      WHERE id = ? AND user_id = ?
+    `).bind(analysis_id, userId).first<AnalysisRow>()
 
     if (!analysis) {
       return new Response(JSON.stringify({ error: 'Analysis not found' }), {

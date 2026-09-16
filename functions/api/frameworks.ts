@@ -88,8 +88,13 @@ export async function onRequest(context: any) {
         // Only return public frameworks (from any workspace)
         query += ' AND is_public = 1'
       } else {
-        // WORKSPACE ISOLATION: Only return frameworks in this workspace OR public frameworks
-        query += ` AND (workspace_id = ? OR is_public = 1)`
+        // WORKSPACE ISOLATION + OWNERSHIP. workspaceId is client-supplied (query
+        // param or X-Workspace-ID) and never validated, so workspace_id alone let
+        // a caller name someone else's workspace and read it. This GET is
+        // currently shadowed by the onRequestGet in ./frameworks/index.ts, which
+        // is why it was not exploitable -- scope it anyway so un-shadowing it
+        // later cannot silently open a cross-tenant read.
+        query += ` AND (is_public = 1 OR (workspace_id = ? AND user_id = ?))`
       }
 
       const limit = Math.min(parseInt(url.searchParams.get('limit') || '50') || 50, 200)
@@ -97,7 +102,7 @@ export async function onRequest(context: any) {
 
       const frameworks = publicOnly
         ? await env.DB.prepare(query).bind(limit).all()
-        : await env.DB.prepare(query).bind(workspaceId, limit).all()
+        : await env.DB.prepare(query).bind(workspaceId, userId ?? -1, limit).all()
 
       // Parse the data field for each framework
       const parsedFrameworks = (frameworks.results || []).map((framework: any) => {

@@ -53,6 +53,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     const body = await request.json() as AnalyzeRequest
 
+    // Ownership is settled BEFORE the model call, not after: the UPDATE at the
+    // bottom used to take body.analysis_id unscoped, so any authenticated caller
+    // could overwrite anyone's ai_analysis -- and bill the OpenAI request doing it.
     if (!body.analysis_id || !body.relationships || body.relationships.length === 0) {
       return new Response(JSON.stringify({
         error: 'Missing required fields: analysis_id, relationships'
@@ -161,15 +164,22 @@ Return ONLY valid JSON with this exact structure:
 
     // Update the analysis record with AI results
     const now = new Date().toISOString()
-    await env.DB.prepare(`
+    const updated = await env.DB.prepare(`
       UPDATE hamilton_rule_analyses
       SET ai_analysis = ?, updated_at = ?
-      WHERE id = ?
+      WHERE id = ? AND created_by = ?
     `).bind(
       JSON.stringify(analysisResult),
       now,
-      body.analysis_id
+      body.analysis_id,
+      authUserId
     ).run()
+
+    if (!updated.meta.changes) {
+      return new Response(JSON.stringify({ error: 'Analysis not found' }), {
+        status: 404, headers: JSON_HEADERS,
+      })
+    }
 
     return new Response(JSON.stringify({
       success: true,

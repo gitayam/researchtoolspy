@@ -5,6 +5,7 @@
  */
 
 import { requireAuth } from '../../../_shared/auth-helpers'
+import { checkWorkspaceAccess } from '../../../_shared/workspace-helpers'
 import { logActivity } from '../../../_shared/activity-logger'
 import { CORS_HEADERS, JSON_HEADERS, optionsResponse } from '../../../_shared/api-utils'
 
@@ -16,15 +17,39 @@ interface Env {
 // GET - Get form details
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   try {
+    // This is the management view of a form, not the public submission view
+    // (that lives in functions/public/intake/). It used to run with no auth and
+    // SELECT sf.*, handing submission_password_hash to anyone with the hash_id.
+    let userId: number | null = null
+    try {
+      userId = await requireAuth(context.request, context.env)
+    } catch (error) {
+      if (error instanceof Response) return error
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: JSON_HEADERS,
+      })
+    }
+
     const formId = context.params.id as string
 
     const form = await context.env.DB.prepare(`
       SELECT
-        sf.*,
+        sf.id, sf.hash_id, sf.creator_workspace_id AS workspace_id, sf.form_name,
+        sf.form_description, sf.target_investigation_ids, sf.target_research_question_ids,
+        sf.enabled_fields, sf.require_url, sf.require_content_type, sf.allow_anonymous,
+        sf.auto_archive, sf.collect_submitter_info, sf.require_submission_password,
+        sf.is_active, sf.created_at, sf.updated_at, sf.expires_at,
         (SELECT COUNT(*) FROM form_submissions WHERE form_id = sf.hash_id) as submission_count
       FROM submission_forms sf
       WHERE sf.hash_id = ?
     `).bind(formId).first()
+
+    if (form && !(await checkWorkspaceAccess(form.workspace_id as string, userId, context.env, 'VIEWER'))) {
+      // Same shape as "not found" so the endpoint is not an existence oracle.
+      return new Response(JSON.stringify({ error: 'Form not found' }), {
+        status: 404, headers: JSON_HEADERS,
+      })
+    }
 
     if (!form) {
       return new Response(JSON.stringify({
@@ -83,7 +108,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
 
     // Get the form to verify it exists and get metadata
     const form = await context.env.DB.prepare(`
-      SELECT id, hash_id, form_name, workspace_id FROM submission_forms WHERE hash_id = ?
+      SELECT id, hash_id, form_name, creator_workspace_id AS workspace_id FROM submission_forms WHERE hash_id = ?
     `).bind(formId).first()
 
     if (!form) {
@@ -92,6 +117,15 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       }), {
         status: 404,
         headers: JSON_HEADERS
+      })
+    }
+
+    // The query above only proves the form EXISTS. Without this check any
+    // authenticated caller could delete anyone's form and every submission
+    // collected through it, just by supplying the hash_id.
+    if (!(await checkWorkspaceAccess(form.workspace_id as string, userId, context.env, 'EDITOR'))) {
+      return new Response(JSON.stringify({ error: 'Form not found' }), {
+        status: 404, headers: JSON_HEADERS,
       })
     }
 

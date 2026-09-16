@@ -5,7 +5,7 @@
  * PUT /api/cop/:id/intake-forms/:formId  - Update an intake form
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserFromRequest } from '../../../_shared/auth-helpers'
+import { getUserFromRequest, verifyCopSessionAccess } from '../../../_shared/auth-helpers'
 import { JSON_HEADERS } from '../../../_shared/api-utils'
 import { logEvent } from '../../../_shared/event-log'
 
@@ -15,13 +15,40 @@ interface Env {
 
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
-  const { env, params } = context
+  const { env, params, request } = context
   const sessionId = params.id as string
   const formId = params.formId as string
 
   try {
+    // This handler previously took no auth at all and answered SELECT * to
+    // anyone who knew a session id and form id -- which includes share_token
+    // (the public submission credential) and password_hash. Mirror the list
+    // endpoint in ../intake-forms.ts: authenticate, verify session access, and
+    // withhold the secret columns from non-owners.
+    const userId = await getUserFromRequest(request, env)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: JSON_HEADERS,
+      })
+    }
+    const accessWorkspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId, { readOnly: true })
+    if (!accessWorkspaceId) {
+      return new Response(JSON.stringify({ error: 'Access denied' }), {
+        status: 403, headers: JSON_HEADERS,
+      })
+    }
+
+    const session = await env.DB.prepare(
+      'SELECT created_by FROM cop_sessions WHERE id = ?'
+    ).bind(sessionId).first<{ created_by: number }>()
+    const isOwner = session && String(session.created_by) === String(userId)
+
+    const columns = isOwner
+      ? '*'
+      : 'id, cop_session_id, title, description, form_schema, status, auto_tag_category, require_location, require_contact, created_by, workspace_id, created_at, updated_at'
+
     const form = await env.DB.prepare(
-      'SELECT * FROM cop_intake_forms WHERE id = ? AND cop_session_id = ?'
+      `SELECT ${columns} FROM cop_intake_forms WHERE id = ? AND cop_session_id = ?`
     ).bind(formId, sessionId).first() as any
 
     if (!form) {
@@ -59,10 +86,20 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
         status: 401, headers: JSON_HEADERS,
       })
     }
+    // Authentication alone let any signed-in user rewrite another team's form
+    // -- including form_schema and status -- because the only guard was the
+    // (guessable-by-enumeration) id pair. Writes require real session access.
+    const writeWorkspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId)
+    if (!writeWorkspaceId) {
+      return new Response(JSON.stringify({ error: 'Access denied' }), {
+        status: 403, headers: JSON_HEADERS,
+      })
+    }
+
     const body = await request.json() as any
 
     const existing = await env.DB.prepare(
-      'SELECT * FROM cop_intake_forms WHERE id = ? AND cop_session_id = ?'
+      'SELECT id FROM cop_intake_forms WHERE id = ? AND cop_session_id = ?'
     ).bind(formId, sessionId).first()
 
     if (!existing) {

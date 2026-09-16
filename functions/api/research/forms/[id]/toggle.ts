@@ -4,6 +4,7 @@
  */
 
 import { requireAuth } from '../../../_shared/auth-helpers'
+import { checkWorkspaceAccess } from '../../../_shared/workspace-helpers'
 import { logActivity } from '../../../_shared/activity-logger'
 import { CORS_HEADERS, JSON_HEADERS, optionsResponse } from '../../../_shared/api-utils'
 
@@ -39,7 +40,7 @@ export const onRequestPatch: PagesFunction<Env> = async (context) => {
 
     // Get the form to verify ownership and get workspace
     const form = await context.env.DB.prepare(`
-      SELECT id, hash_id, form_name, workspace_id FROM submission_forms WHERE hash_id = ?
+      SELECT id, hash_id, form_name, creator_workspace_id AS workspace_id FROM submission_forms WHERE hash_id = ?
     `).bind(formId).first()
 
     if (!form) {
@@ -48,6 +49,15 @@ export const onRequestPatch: PagesFunction<Env> = async (context) => {
       }), {
         status: 404,
         headers: JSON_HEADERS
+      })
+    }
+
+    // The comment above this lookup claimed it verified ownership. It did not --
+    // it only proved existence, so any authenticated caller could disable or
+    // re-enable anyone's collection form.
+    if (!(await checkWorkspaceAccess(form.workspace_id as string, userId, context.env, 'EDITOR'))) {
+      return new Response(JSON.stringify({ error: 'Form not found' }), {
+        status: 404, headers: JSON_HEADERS,
       })
     }
 
