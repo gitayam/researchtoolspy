@@ -17,6 +17,12 @@ interface ACHAnalysisFormProps {
   onSave: (data: ACHFormData) => Promise<void>
   initialData?: ACHAnalysis
   mode: 'create' | 'edit'
+  /** The workspace the analysis itself lives in. ACH endpoints scope with
+   *  `WHERE id = ? AND user_id = ? AND workspace_id = ?`, so every call about a
+   *  given analysis has to name that analysis's workspace -- not whatever the
+   *  workspace picker happens to hold. Sending the wrong one answers
+   *  "Analysis not found in workspace" (404), which reads as a broken button. */
+  workspaceId?: string
 }
 
 export interface ACHFormData {
@@ -42,7 +48,8 @@ export function ACHAnalysisForm({
   onClose,
   onSave,
   initialData,
-  mode
+  mode,
+  workspaceId
 }: ACHAnalysisFormProps) {
   const [saving, setSaving] = useState(false)
   const [formData, setFormData] = useState<ACHFormData>({
@@ -376,6 +383,7 @@ export function ACHAnalysisForm({
           {/* Evidence Manager - Comes AFTER hypotheses per ACH methodology */}
           <ACHEvidenceManager
             analysisId={initialData?.id}
+            workspaceId={workspaceId ?? initialData?.workspace_id}
             selectedEvidence={formData.evidence_ids || []}
             onEvidenceChange={(evidenceIds) => setFormData({ ...formData, evidence_ids: evidenceIds })}
           />

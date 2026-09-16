@@ -12,15 +12,28 @@ import { cn } from '@/lib/utils'
 
 interface ACHEvidenceManagerProps {
   analysisId?: string  // If provided, we'll load linked evidence
+  /** The workspace the analysis itself lives in. ACH endpoints scope with
+   *  `WHERE id = ? AND user_id = ? AND workspace_id = ?`, so every call about a
+   *  given analysis has to name that analysis's workspace -- not whatever the
+   *  workspace picker happens to hold. Sending the wrong one answers
+   *  "Analysis not found in workspace" (404), which reads as a broken button. */
+  workspaceId?: string
   selectedEvidence: string[]  // Array of evidence IDs
   onEvidenceChange: (evidenceIds: string[]) => void
 }
 
 export function ACHEvidenceManager({
   analysisId,
+  workspaceId,
   selectedEvidence,
   onEvidenceChange
 }: ACHEvidenceManagerProps) {
+  // Pin every evidence call to the analysis's workspace when we know it.
+  const scopedHeaders = () => {
+    const headers = getCopHeaders()
+    if (workspaceId) headers['X-Workspace-ID'] = String(workspaceId)
+    return headers
+  }
   const [allEvidence, setAllEvidence] = useState<EvidenceItem[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [showSelector, setShowSelector] = useState(false)
@@ -37,7 +50,12 @@ export function ACHEvidenceManager({
   const loadEvidence = async (signal?: AbortSignal) => {
     try {
       setLoading(true)
-      const response = await fetch('/api/evidence-items', { headers: getCopHeaders(), signal })
+      const response = await fetch(
+        workspaceId
+          ? `/api/evidence-items?workspace_id=${encodeURIComponent(workspaceId)}`
+          : '/api/evidence-items',
+        { headers: scopedHeaders(), signal }
+      )
       if (response.ok) {
         const data = await response.json()
         setAllEvidence(data.evidence || [])
@@ -53,7 +71,7 @@ export function ACHEvidenceManager({
     try {
       const response = await fetch('/api/evidence-items', {
         method: 'POST',
-        headers: getCopHeaders(),
+        headers: scopedHeaders(),
         body: JSON.stringify(formData)
       })
       if (!response.ok) throw new Error('Failed to create evidence')
@@ -76,7 +94,7 @@ export function ACHEvidenceManager({
     try {
       const response = await fetch(`/api/evidence-items?id=${editingEvidence.id}`, {
         method: 'PUT',
-        headers: getCopHeaders(),
+        headers: scopedHeaders(),
         body: JSON.stringify(formData)
       })
       if (!response.ok) throw new Error('Failed to update evidence')

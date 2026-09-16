@@ -10,6 +10,10 @@ export type ACHDomain = 'intelligence' | 'security' | 'business' | 'research' | 
 export interface ACHAnalysis {
   id: string
   user_id: string
+  /** The workspace the analysis belongs to. The API has always returned it; the
+   *  type omitted it, so callers scoped ACH writes with the workspace picker's
+   *  value instead and the write 404'd whenever the two differed. */
+  workspace_id?: string
   title: string
   description?: string
   question: string

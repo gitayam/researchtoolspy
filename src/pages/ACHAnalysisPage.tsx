@@ -26,6 +26,16 @@ export function ACHAnalysisPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [analysis, setAnalysis] = useState<ACHAnalysis | null>(null)
+
+  // ACH endpoints scope with `WHERE id = ? AND user_id = ? AND workspace_id = ?`.
+  // Using the workspace picker's value meant a save only worked when the picker
+  // happened to match the analysis; otherwise the write answered 404 "Analysis
+  // not found in workspace" and the button looked broken. Pin to the analysis.
+  const achHeaders = (): Record<string, string> => {
+    const headers = getCopHeaders()
+    if (analysis?.workspace_id) headers['X-Workspace-ID'] = String(analysis.workspace_id)
+    return headers
+  }
   const [loading, setLoading] = useState(true)
   const [formOpen, setFormOpen] = useState(false)
   const [evidenceSelectorOpen, setEvidenceSelectorOpen] = useState(false)
@@ -35,7 +45,7 @@ export function ACHAnalysisPage() {
 
     try {
       setLoading(true)
-      const response = await fetch(`/api/ach?id=${id}`, { headers: getCopHeaders(), signal })
+      const response = await fetch(`/api/ach?id=${id}`, { headers: achHeaders(), signal })
       if (response.ok) {
         const data = await response.json()
         setAnalysis(data)
@@ -69,7 +79,7 @@ export function ACHAnalysisPage() {
     try {
       await fetch('/api/ach/scores', {
         method: 'POST',
-        headers: getCopHeaders(),
+        headers: achHeaders(),
         body: JSON.stringify({
           ach_analysis_id: analysis.id,
           hypothesis_id: hypothesisId,
@@ -99,7 +109,7 @@ export function ACHAnalysisPage() {
     try {
       await fetch(`/api/ach/evidence?id=${linkId}`, {
         method: 'DELETE',
-        headers: getCopHeaders(),
+        headers: achHeaders(),
       })
       await loadAnalysis()
     } catch (error) {
@@ -119,7 +129,7 @@ export function ACHAnalysisPage() {
       // Update analysis
       await fetch(`/api/ach?id=${analysis.id}`, {
         method: 'PUT',
-        headers: getCopHeaders(),
+        headers: achHeaders(),
         body: JSON.stringify({
           title: formData.title,
           description: formData.description,
@@ -136,7 +146,7 @@ export function ACHAnalysisPage() {
         for (const oldHyp of analysis.hypotheses) {
           const stillExists = formData.hypotheses.find(h => h.id === oldHyp.id)
           if (!stillExists) {
-            await fetch(`/api/ach/hypotheses?id=${oldHyp.id}`, { method: 'DELETE', headers: getCopHeaders() })
+            await fetch(`/api/ach/hypotheses?id=${oldHyp.id}`, { method: 'DELETE', headers: achHeaders() })
           }
         }
       }
@@ -145,13 +155,13 @@ export function ACHAnalysisPage() {
         if (hyp.id) {
           await fetch(`/api/ach/hypotheses?id=${hyp.id}`, {
             method: 'PUT',
-            headers: getCopHeaders(),
+            headers: achHeaders(),
             body: JSON.stringify(hyp)
           })
         } else {
           await fetch('/api/ach/hypotheses', {
             method: 'POST',
-            headers: getCopHeaders(),
+            headers: achHeaders(),
             body: JSON.stringify({ ...hyp, ach_analysis_id: analysis.id })
           })
         }
@@ -168,7 +178,7 @@ export function ACHAnalysisPage() {
           if (link?.link_id) {
             await fetch(`/api/ach/evidence?id=${link.link_id}`, {
               method: 'DELETE',
-              headers: getCopHeaders(),
+              headers: achHeaders(),
             })
           }
         }
@@ -179,7 +189,7 @@ export function ACHAnalysisPage() {
         if (!currentLinks.includes(evidenceId)) {
           await fetch('/api/ach/evidence', {
             method: 'POST',
-            headers: getCopHeaders(),
+            headers: achHeaders(),
             body: JSON.stringify({
               ach_analysis_id: analysis.id,
               evidence_id: evidenceId
@@ -377,6 +387,7 @@ export function ACHAnalysisPage() {
         onSave={handleSaveAnalysis}
         initialData={analysis}
         mode="edit"
+        workspaceId={analysis?.workspace_id}
       />
     </div>
   )
