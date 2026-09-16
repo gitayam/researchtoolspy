@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, Users, Database, FileText, Calendar, X } from 'lucide-react'
+import { Users, Database, FileText, Calendar } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
@@ -35,6 +35,10 @@ export function EntityQuickCreate({
   const { currentWorkspaceId } = useWorkspace()
   const [activeTab, setActiveTab] = useState<EvidenceEntityType>(defaultTab)
   const [loading, setLoading] = useState(false)
+  // One place for what went wrong, shown inside the dialog. Every one of these
+  // used to be an alert(), which stacks a browser dialog on top of the dialog
+  // it is complaining about and hides the fields it is complaining about.
+  const [formError, setFormError] = useState<string | null>(null)
 
   // Data form state
   const [dataForm, setDataForm] = useState({
@@ -80,16 +84,18 @@ export function EntityQuickCreate({
 
   const handleClose = () => {
     resetForms()
+    setFormError(null)
     onClose()
   }
 
   const handleCreateData = async () => {
+    setFormError(null)
     if (!currentWorkspaceId) {
-      alert('Select a workspace before creating evidence')
+      setFormError('Pick a workspace first — new evidence has to belong to one.')
       return
     }
     if (!dataForm.title || !dataForm.what) {
-      alert('Please fill in required fields (Title and What)')
+      setFormError('Title and What are both required.')
       return
     }
 
@@ -119,24 +125,25 @@ export function EntityQuickCreate({
         onEntityCreated('data', { ...dataForm, id: result.id })
         handleClose()
       } else {
-        const error = await response.json().catch((e) => { console.error('[EntityQuickCreate] JSON parse error:', e); return { error: 'Unknown error' } })
-        alert('Failed to create data. Please try again.')
+        const error = await response.json().catch((e) => { console.error('[EntityQuickCreate] JSON parse error:', e); return { error: null } })
+        setFormError(error?.error || `Could not create evidence. Try again.`)
       }
     } catch (error) {
       console.error('Failed to create data:', error)
-      alert('Failed to create data')
+      setFormError(`Could not create evidence. Check your connection and try again.`)
     } finally {
       setLoading(false)
     }
   }
 
   const handleCreateActor = async () => {
+    setFormError(null)
     if (!currentWorkspaceId) {
-      alert('Select a workspace before creating an actor')
+      setFormError('Pick a workspace first — a new actor has to belong to one.')
       return
     }
     if (!actorForm.name) {
-      alert('Please enter actor name')
+      setFormError('Give the actor a name.')
       return
     }
 
@@ -156,24 +163,25 @@ export function EntityQuickCreate({
         onEntityCreated('actor', result.actor)
         handleClose()
       } else {
-        const error = await response.json().catch((e) => { console.error('[EntityQuickCreate] JSON parse error:', e); return { error: 'Unknown error' } })
-        alert('Failed to create actor. Please try again.')
+        const error = await response.json().catch((e) => { console.error('[EntityQuickCreate] JSON parse error:', e); return { error: null } })
+        setFormError(error?.error || `Could not create the actor. Try again.`)
       }
     } catch (error) {
       console.error('Failed to create actor:', error)
-      alert('Failed to create actor')
+      setFormError(`Could not create the actor. Check your connection and try again.`)
     } finally {
       setLoading(false)
     }
   }
 
   const handleCreateSource = async () => {
+    setFormError(null)
     if (!currentWorkspaceId) {
-      alert('Select a workspace before creating a source')
+      setFormError('Pick a workspace first — a new source has to belong to one.')
       return
     }
     if (!sourceForm.name) {
-      alert('Please enter source name')
+      setFormError('Give the source a name.')
       return
     }
 
@@ -193,24 +201,25 @@ export function EntityQuickCreate({
         onEntityCreated('source', result.source)
         handleClose()
       } else {
-        const error = await response.json().catch((e) => { console.error('[EntityQuickCreate] JSON parse error:', e); return { error: 'Unknown error' } })
-        alert('Failed to create source. Please try again.')
+        const error = await response.json().catch((e) => { console.error('[EntityQuickCreate] JSON parse error:', e); return { error: null } })
+        setFormError(error?.error || `Could not create the source. Try again.`)
       }
     } catch (error) {
       console.error('Failed to create source:', error)
-      alert('Failed to create source')
+      setFormError(`Could not create the source. Check your connection and try again.`)
     } finally {
       setLoading(false)
     }
   }
 
   const handleCreateEvent = async () => {
+    setFormError(null)
     if (!currentWorkspaceId) {
-      alert('Select a workspace before creating an event')
+      setFormError('Pick a workspace first — a new event has to belong to one.')
       return
     }
     if (!eventForm.name || !eventForm.date_start) {
-      alert('Please fill in required fields (Name and Date)')
+      setFormError('Name and Date are both required.')
       return
     }
 
@@ -230,12 +239,12 @@ export function EntityQuickCreate({
         onEntityCreated('event', result.event)
         handleClose()
       } else {
-        const error = await response.json().catch((e) => { console.error('[EntityQuickCreate] JSON parse error:', e); return { error: 'Unknown error' } })
-        alert('Failed to create event. Please try again.')
+        const error = await response.json().catch((e) => { console.error('[EntityQuickCreate] JSON parse error:', e); return { error: null } })
+        setFormError(error?.error || `Could not create the event. Try again.`)
       }
     } catch (error) {
       console.error('Failed to create event:', error)
-      alert('Failed to create event')
+      setFormError(`Could not create the event. Check your connection and try again.`)
     } finally {
       setLoading(false)
     }
@@ -245,10 +254,34 @@ export function EntityQuickCreate({
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Create & Link Entity</DialogTitle>
+          <DialogTitle>Create &amp; Link Entity</DialogTitle>
+          {/* Both callers pass which framework this was opened from, and the
+              prop was accepted and then dropped. Saying it here is what the
+              reader needs to know: what they make is about to be attached to
+              something, and this is the something. */}
+          {frameworkContext?.frameworkType && (
+            <p className="text-sm text-muted-foreground">
+              Will be linked to your {frameworkContext.frameworkType} analysis.
+            </p>
+          )}
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as EvidenceEntityType)}>
+        {formError && (
+          <div
+            className="rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200"
+            role="alert"
+          >
+            {formError}
+          </div>
+        )}
+
+        <Tabs
+          value={activeTab}
+          onValueChange={(v) => {
+            setActiveTab(v as EvidenceEntityType)
+            setFormError(null)
+          }}
+        >
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="data">
               <FileText className="h-4 w-4 mr-2" />
