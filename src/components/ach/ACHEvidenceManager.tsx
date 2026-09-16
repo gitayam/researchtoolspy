@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import type { EvidenceItem } from '@/types/evidence'
 import { EvidenceItemForm } from '@/components/evidence/EvidenceItemForm'
 import { cn } from '@/lib/utils'
@@ -221,6 +221,9 @@ export function ACHEvidenceManager({
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle>Select Evidence from Library</DialogTitle>
+            <DialogDescription>
+              Pick existing evidence items to weigh against this analysis&rsquo;s hypotheses.
+            </DialogDescription>
           </DialogHeader>
 
           <div className="flex-1 overflow-hidden flex flex-col">

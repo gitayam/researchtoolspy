@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { X, Plus, GripVertical, Trash2 } from 'lucide-react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -168,6 +168,9 @@ export function ACHAnalysisForm({
           <DialogTitle>
             {mode === 'create' ? 'Create ACH Analysis' : 'Edit ACH Analysis'}
           </DialogTitle>
+          <DialogDescription>
+            Define the question, list competing hypotheses, and attach the evidence they will be scored against.
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">

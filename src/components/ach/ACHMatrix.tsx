@@ -3,7 +3,7 @@ import { Plus, X, Info, Star, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import type { ACHAnalysis, ACHHypothesis, ACHEvidenceLink, ACHScore } from '@/types/ach'
@@ -400,6 +400,9 @@ export function ACHMatrix({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Score Evidence Against Hypothesis</DialogTitle>
+            <DialogDescription>
+              Rate how consistent this evidence is with the hypothesis, and note why.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             {/* Show context of what's being scored */}

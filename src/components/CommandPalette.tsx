@@ -1,8 +1,9 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useCommandState } from 'cmdk'
 import {
   CommandDialog, CommandInput, CommandList, CommandEmpty,
-  CommandGroup, CommandItem, CommandSeparator
+  CommandGroup, CommandItem, CommandSeparator, CommandFooter, CommandKey
 } from '@/components/ui/command'
 import {
   Home, Search, Folder, Brain, Archive, Network, Database,
@@ -46,6 +47,30 @@ const ICONS: Record<DiscoveryIcon, LucideIcon> = {
   zap: Zap,
 }
 
+/**
+ * Reads cmdk's own filtered count rather than re-running the filter here, so the
+ * number shown can never disagree with the rows on screen.
+ */
+function ResultCount() {
+  const count = useCommandState((state) => state.filtered.count)
+  return <span aria-live="polite">{count} {count === 1 ? 'result' : 'results'}</span>
+}
+
+/** Names what was searched for, so a dead end is diagnosable rather than blank. */
+function EmptyState() {
+  const search = useCommandState((state) => state.search)
+  return (
+    <CommandEmpty>
+      <p className="font-medium text-foreground">
+        {search ? <>No matches for &ldquo;{search}&rdquo;</> : 'No results'}
+      </p>
+      <p className="mx-auto mt-1 max-w-sm text-muted-foreground">
+        Try a tool name like &ldquo;timeline&rdquo;, a framework like &ldquo;ACH&rdquo;, or a page like &ldquo;settings&rdquo;.
+      </p>
+    </CommandEmpty>
+  )
+}
+
 export function CommandPalette() {
   const [open, setOpen] = useState(false)
   const navigate = useNavigate()
@@ -69,8 +94,8 @@ export function CommandPalette() {
   return (
     <CommandDialog open={open} onOpenChange={setOpen}>
       <CommandInput placeholder="Search tools, frameworks, features, and pages..." />
-      <CommandList className="max-h-[400px]">
-        <CommandEmpty>No results found.</CommandEmpty>
+      <CommandList className="max-h-[60vh]">
+        <EmptyState />
         {GROUPS.map((group, i) => {
           const items = DISCOVERY_ENTRIES.filter(entry => entry.group === group)
           return (
@@ -86,10 +111,15 @@ export function CommandPalette() {
                       keywords={[cmd.group, cmd.description, ...cmd.keywords]}
                       onSelect={() => runCommand(cmd.href)}
                     >
-                      <Icon className="mr-2 h-4 w-4 text-muted-foreground" />
-                      <span className="min-w-0">
-                        <span className="block">{cmd.label}</span>
-                        <span className="block truncate text-xs font-normal text-muted-foreground">{cmd.description}</span>
+                      <Icon className="mt-0.5 h-4 w-4 text-muted-foreground" />
+                      <span className="min-w-0 flex-1">
+                        <span className="block font-medium">{cmd.label}</span>
+                        {/* Wraps to a second line instead of cutting a word in
+                            half -- these descriptions are how someone tells two
+                            similar tools apart. */}
+                        <span className="mt-0.5 line-clamp-2 block text-xs font-normal leading-snug text-muted-foreground">
+                          {cmd.description}
+                        </span>
                       </span>
                     </CommandItem>
                   )
@@ -99,6 +129,24 @@ export function CommandPalette() {
           )
         })}
       </CommandList>
+      <CommandFooter>
+        <span className="flex items-center gap-3">
+          <span className="flex items-center gap-1">
+            <CommandKey>&uarr;</CommandKey>
+            <CommandKey>&darr;</CommandKey>
+            <span className="ml-0.5">navigate</span>
+          </span>
+          <span className="flex items-center gap-1">
+            <CommandKey>&crarr;</CommandKey>
+            <span className="ml-0.5">open</span>
+          </span>
+          <span className="hidden items-center gap-1 sm:flex">
+            <CommandKey className="px-1.5">esc</CommandKey>
+            <span className="ml-0.5">close</span>
+          </span>
+        </span>
+        <ResultCount />
+      </CommandFooter>
     </CommandDialog>
   )
 }
