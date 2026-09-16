@@ -19,6 +19,10 @@ interface ACHEvidenceManagerProps {
    *  "Analysis not found in workspace" (404), which reads as a broken button. */
   workspaceId?: string
   selectedEvidence: string[]  // Array of evidence IDs
+  /** Render without the surrounding Card and its heading. A dialog already
+   *  supplies a title and description, so the card's own "Evidence" header
+   *  repeated them inside a second nested card. */
+  embedded?: boolean
   onEvidenceChange: (evidenceIds: string[]) => void
 }
 
@@ -26,7 +30,8 @@ export function ACHEvidenceManager({
   analysisId,
   workspaceId,
   selectedEvidence,
-  onEvidenceChange
+  onEvidenceChange,
+  embedded = false
 }: ACHEvidenceManagerProps) {
   // Pin every evidence call to the analysis's workspace when we know it.
   const scopedHeaders = () => {
@@ -134,17 +139,25 @@ export function ACHEvidenceManager({
 
   const selectedItems = getSelectedEvidenceItems()
 
+  // Static element types on purpose: swapping the component identity per render
+  // would remount this subtree and drop focus inside the create/edit form.
+  const Shell = embedded ? 'div' : Card
+  const HeaderRow = embedded ? 'div' : CardHeader
+  const BodyRow = embedded ? 'div' : CardContent
+
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle>Evidence</CardTitle>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-              Link evidence from your library or create new evidence items
-            </p>
-          </div>
-          <div className="flex gap-2">
+    <Shell className={embedded ? 'space-y-4' : undefined}>
+      <HeaderRow className={embedded ? 'pb-2' : undefined}>
+        <div className={cn('flex items-center justify-between gap-4', embedded && 'flex-wrap')}>
+          {!embedded && (
+            <div>
+              <CardTitle>Evidence</CardTitle>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                Link evidence from your library or create new evidence items
+              </p>
+            </div>
+          )}
+          <div className={cn('flex gap-2', embedded && 'ml-auto')}>
             <Button
               type="button"
               variant="outline"
@@ -165,8 +178,8 @@ export function ACHEvidenceManager({
             </Button>
           </div>
         </div>
-      </CardHeader>
-      <CardContent>
+      </HeaderRow>
+      <BodyRow>
         {selectedItems.length === 0 ? (
           <div className="text-center py-8 text-gray-500 dark:text-gray-400 border-2 border-dashed rounded-lg">
             <FileText className="h-12 w-12 mx-auto mb-3 opacity-50" />
@@ -232,7 +245,7 @@ export function ACHEvidenceManager({
             ))}
           </div>
         )}
-      </CardContent>
+      </BodyRow>
 
       {/* Evidence Selector Dialog */}
       <Dialog open={showSelector} onOpenChange={setShowSelector}>
@@ -348,6 +361,6 @@ export function ACHEvidenceManager({
           mode="edit"
         />
       )}
-    </Card>
+    </Shell>
   )
 }

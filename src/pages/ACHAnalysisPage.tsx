@@ -467,6 +467,7 @@ export function ACHAnalysisPage() {
               workspaceId={analysis.workspace_id}
               selectedEvidence={pendingEvidenceIds}
               onEvidenceChange={setPendingEvidenceIds}
+              embedded
             />
           </div>
 
