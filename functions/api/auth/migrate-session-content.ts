@@ -107,6 +107,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         WHERE type='table' AND name='framework_sessions'
       `).first()
 
+      // framework_sessions has never actually carried bookmark_hash, so this
+      // branch is dormant by design -- the schema probe above is what keeps it
+      // safe. sql-schema-check: guarded
       if (schemaCheck && String(schemaCheck.sql).includes('bookmark_hash')) {
         const frameworkResult = await env.DB.prepare(`
           UPDATE framework_sessions
