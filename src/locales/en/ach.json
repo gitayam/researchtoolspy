@@ -196,8 +196,7 @@
     "createFailed": "Failed to create analysis",
     "scoreUpdateFailed": "Failed to update score",
     "removeEvidenceConfirm": "Remove this evidence from the analysis?",
-    "removeEvidenceFailed": "Failed to remove evidence",
-    "evidenceHint": "Navigate to Evidence Library to add evidence items, then link them to this analysis."
+    "removeEvidenceFailed": "Failed to remove evidence"
   },
   "detail": {
     "notFound": "Analysis not found",
@@ -216,5 +215,11 @@
     "goodUseCases": "Good Use Cases",
     "notIdealFor": "Not Ideal For",
     "learnMore": "Learn more on Wikipedia"
+  },
+  "evidenceDialog": {
+    "title": "Evidence for this analysis",
+    "description": "Pick items from your evidence library, or create a new one. Each item you link becomes a row in the matrix.",
+    "confirm": "Update evidence",
+    "saving": "Linking..."
   }
 }

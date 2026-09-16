@@ -13,6 +13,15 @@ import {
 import type { ACHAnalysis } from '@/types/ach'
 import { ACHMatrix } from '@/components/ach/ACHMatrix'
 import { ACHAnalysisForm, type ACHFormData } from '@/components/ach/ACHAnalysisForm'
+import { ACHEvidenceManager } from '@/components/ach/ACHEvidenceManager'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { getCopHeaders } from '@/lib/cop-auth'
 import { ACHShareButton } from '@/components/ach/ACHShareButton'
 import { ACHVisualAnalytics } from '@/components/ach/ACHVisualAnalytics'
@@ -26,6 +35,10 @@ export function ACHAnalysisPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [analysis, setAnalysis] = useState<ACHAnalysis | null>(null)
+  const [evidenceDialogOpen, setEvidenceDialogOpen] = useState(false)
+  const [pendingEvidenceIds, setPendingEvidenceIds] = useState<string[]>([])
+  const [linkingEvidence, setLinkingEvidence] = useState(false)
+  const [linkError, setLinkError] = useState<string | null>(null)
 
   // ACH endpoints scope with `WHERE id = ? AND user_id = ? AND workspace_id = ?`.
   // Using the workspace picker's value meant a save only worked when the picker
@@ -96,11 +109,58 @@ export function ACHAnalysisPage() {
     }
   }
 
+  // This used to alert "Navigate to Evidence Library..." and then navigate away,
+  // abandoning the analysis the user was in the middle of. ACHEvidenceManager
+  // already does the whole job -- pick from the library or create a new item --
+  // and is what the edit form uses; it just was never offered from here.
   const handleAddEvidence = () => {
-    // For now, just navigate to evidence page
-    // In future, could open a modal to select from existing evidence
-    alert(t('ach:alerts.evidenceHint'))
-    navigate('/dashboard/evidence')
+    setLinkError(null)
+    setPendingEvidenceIds((analysis?.evidence ?? []).map((e: any) => String(e.evidence_id)))
+    setEvidenceDialogOpen(true)
+  }
+
+  /** Apply the picker's selection as link/unlink calls, then refresh. */
+  const handleApplyEvidenceLinks = async () => {
+    if (!analysis) return
+    const linked = analysis.evidence ?? []
+    const currentIds = linked.map((e: any) => String(e.evidence_id))
+    const added = pendingEvidenceIds.filter(id => !currentIds.includes(id))
+    const removed = currentIds.filter(id => !pendingEvidenceIds.includes(id))
+
+    if (added.length === 0 && removed.length === 0) {
+      setEvidenceDialogOpen(false)
+      return
+    }
+
+    setLinkingEvidence(true)
+    setLinkError(null)
+    try {
+      for (const evidenceId of added) {
+        const res = await fetch('/api/ach/evidence', {
+          method: 'POST',
+          headers: achHeaders(),
+          body: JSON.stringify({ ach_analysis_id: analysis.id, evidence_id: evidenceId }),
+        })
+        if (!res.ok) throw new Error((await res.json().catch(() => null))?.error || 'Could not link evidence')
+      }
+      for (const evidenceId of removed) {
+        const link = linked.find((e: any) => String(e.evidence_id) === evidenceId) as any
+        if (!link?.link_id) continue
+        const res = await fetch(`/api/ach/evidence?id=${link.link_id}`, {
+          method: 'DELETE',
+          headers: achHeaders(),
+        })
+        if (!res.ok) throw new Error((await res.json().catch(() => null))?.error || 'Could not unlink evidence')
+      }
+      await loadAnalysis()
+      setEvidenceDialogOpen(false)
+    } catch (error: any) {
+      // Kept open with the reason attached: closing on failure would look like
+      // it worked until the matrix failed to change.
+      setLinkError(error?.message ?? 'Could not update evidence links.')
+    } finally {
+      setLinkingEvidence(false)
+    }
   }
 
   const handleRemoveEvidence = async (linkId: string) => {
@@ -389,6 +449,46 @@ export function ACHAnalysisPage() {
         mode="edit"
         workspaceId={analysis?.workspace_id}
       />
+
+      {/* Link evidence without leaving the analysis. */}
+      <Dialog open={evidenceDialogOpen} onOpenChange={setEvidenceDialogOpen}>
+        <DialogContent className="flex max-h-[85vh] max-w-4xl flex-col overflow-hidden">
+          <DialogHeader>
+            <DialogTitle>{t('ach:evidenceDialog.title')}</DialogTitle>
+            <DialogDescription>
+              {t('ach:evidenceDialog.description')}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <ACHEvidenceManager
+              analysisId={analysis.id}
+              workspaceId={analysis.workspace_id}
+              selectedEvidence={pendingEvidenceIds}
+              onEvidenceChange={setPendingEvidenceIds}
+            />
+          </div>
+
+          {linkError && (
+            <p className="text-sm text-red-600 dark:text-red-400">{linkError}</p>
+          )}
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setEvidenceDialogOpen(false)}
+              disabled={linkingEvidence}
+            >
+              {t('common:cancel', 'Cancel')}
+            </Button>
+            <Button onClick={handleApplyEvidenceLinks} disabled={linkingEvidence}>
+              {linkingEvidence
+                ? t('ach:evidenceDialog.saving')
+                : t('ach:evidenceDialog.confirm')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
