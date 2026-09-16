@@ -100,6 +100,46 @@ def extract_statements(src: str):
         yield match.start(), ''.join(buf), dynamic
 
 
+SQL_START = re.compile(r'^\s*(SELECT|INSERT|UPDATE|DELETE|REPLACE)\b', re.I)
+
+
+def extract_sql_literals(src: str):
+    r"""Yield (offset, sql) for every template literal that looks like a statement.
+
+    extract_statements() only sees `.prepare(\`...\`)`. Plenty of handlers build the
+    text first — `let query = \`SELECT ...\`` then `query += ...` then
+    `.prepare(query)` — and those were skipped entirely. content-library.ts hid a
+    `no such column: created_by` that way: the query targeted content_intelligence,
+    which records its owner as user_id, and the endpoint had never returned a row.
+
+    Fragments appended later (` ORDER BY x`) fail to prepare with a SYNTAX error,
+    not a schema one, and the caller only reports schema errors — so they drop out
+    without needing to be recognised.
+    """
+    for match in re.finditer(r'`', src):
+        start = match.end()
+        if not SQL_START.match(src[start:start + 40]):
+            continue
+        i, buf = start, []
+        while i < len(src):
+            ch = src[i]
+            if ch == '\\':
+                i += 2
+                continue
+            if ch == '$' and src[i + 1:i + 2] == '{':
+                depth, i = 1, i + 2
+                while i < len(src) and depth:
+                    depth += (src[i] == '{') - (src[i] == '}')
+                    i += 1
+                buf.append(' 1 ')          # neutral filler for an interpolation
+                continue
+            if ch == '`':
+                break
+            buf.append(ch)
+            i += 1
+        yield match.start(), ''.join(buf)
+
+
 def source_files():
     for root in SOURCE_ROOTS:
         base = os.path.join(REPO, root)
@@ -143,7 +183,29 @@ def check_statements(con: sqlite3.Connection) -> list:
                 line = src.count('\n', 0, offset) + 1
                 rel = os.path.relpath(path, REPO)
                 failures.append((rel, line, message, ' '.join(statement.split())[:150]))
+    # Second pass: SQL template literals that never reach .prepare() directly.
+    literals = 0
+    for path in sorted(source_files()):
+        src = open(path, encoding='utf-8', errors='replace').read()
+        rel = os.path.relpath(path, REPO)
+        for offset, sql in extract_sql_literals(src):
+            statement = sql.strip()
+            if not statement or GUARD_MARKER in src[max(0, offset - 600):offset]:
+                continue
+            literals += 1
+            try:
+                con.execute('EXPLAIN ' + statement, [None] * statement.count('?'))
+            except Exception as exc:                  # noqa: BLE001
+                message = str(exc)
+                if not SCHEMA_ERROR.search(message):
+                    continue                          # fragment, or not a schema fault
+                line = src.count('\n', 0, offset) + 1
+                entry = (rel, line, message, ' '.join(statement.split())[:150])
+                if entry not in failures:
+                    failures.append(entry)
+
     print(f'statements: {checked} checked, {dynamic} skipped (runtime-interpolated)')
+    print(f'sql literals: {literals} checked (built-then-prepared queries)')
     return failures
 
 

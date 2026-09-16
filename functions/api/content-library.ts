@@ -47,7 +47,13 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         summary, word_count, key_entities, created_at, updated_at,
         last_accessed_at
       FROM content_intelligence
-      WHERE workspace_id = ? AND created_by = ?
+      -- This table records its owner as user_id. The repo convention that entity
+      -- tables use created_by (see CLAUDE.md) does not extend to the content_*
+      -- tables, and the mismatch made every request fail with
+      -- "no such column: created_by". The catch below used to mask that as an
+      -- empty 200, so the Content Picker always showed "no content" rather than
+      -- an error, and the feature never once returned a row.
+      WHERE workspace_id = ? AND user_id = ?
     `
     const params: any[] = [workspaceId, userId]
 

@@ -72,10 +72,12 @@ async function exportWorkspaces(db: D1Database, userHash: string, workspaceId?: 
  * Export frameworks
  */
 async function exportFrameworks(db: D1Database, userHash: string, workspaceId?: string) {
-  // This is a placeholder - adjust based on your actual frameworks table structure
+  // The table is framework_sessions; "frameworks" has never existed, so this
+  // exporter always threw and its catch returned [] -- a data export that
+  // silently omitted every framework the user had.
   let query = `
     SELECT f.*
-    FROM frameworks f
+    FROM framework_sessions f
     JOIN workspaces w ON f.workspace_id = w.id
     WHERE w.user_hash = ?
   `
