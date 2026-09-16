@@ -109,13 +109,12 @@ interface SavedAdjustment {
 export function ClaimAnalysisDisplay({ contentAnalysisId, claimAnalysis: initialClaimAnalysis }: ClaimAnalysisDisplayProps) {
   const { toast } = useToast()
 
-  if (!initialClaimAnalysis || !initialClaimAnalysis.claims || initialClaimAnalysis.claims.length === 0) {
-    return null
-  }
-
   // Use local state to allow updating after retry
   const [claimAnalysis, setClaimAnalysis] = useState(initialClaimAnalysis)
-  const { claims, summary } = claimAnalysis
+  // Tolerates an absent analysis because the guard for that now sits below the
+  // hooks rather than above them — see the note there.
+  const claims = claimAnalysis?.claims ?? []
+  const summary = claimAnalysis?.summary
 
   // Check if analysis failed (has null scores)
   const analysisFailure = claims.some(c =>
@@ -205,6 +204,15 @@ export function ClaimAnalysisDisplay({ contentAnalysisId, claimAnalysis: initial
 
     loadAdjustments()
   }, [contentAnalysisId])
+
+  // Below the hooks deliberately. This was the first statement in the
+  // component, so a render with no claims called zero hooks and a render with
+  // claims called fifteen. Hook state is positional: a component that changes
+  // how many it calls between renders reads the wrong slots or throws. Nothing
+  // above this line depends on there being claims.
+  if (!claimAnalysis || !claimAnalysis.claims || claimAnalysis.claims.length === 0) {
+    return null
+  }
 
   // Handle edit mode
   const startEditing = (index: number, currentRiskScore: number) => {
