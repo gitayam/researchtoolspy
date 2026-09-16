@@ -22,10 +22,14 @@ interface Env {
 
 async function verifyTurnstile(secret: string, token: string): Promise<boolean> {
   try {
+    // Without a deadline a hung upstream holds this request until the platform's
+    // own CPU/wall-clock limit kills it, with a hard error instead of a timeout
+    // we control. This is the only outbound fetch in functions/ that lacked one.
     const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ secret, response: token }),
+      signal: AbortSignal.timeout(5000),
     })
     const data = await res.json() as { success?: boolean }
     return data.success === true

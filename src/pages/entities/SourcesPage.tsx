@@ -23,6 +23,7 @@ export function SourcesPage() {
   const [sources, setSources] = useState<Source[]>([])
   const [currentSource, setCurrentSource] = useState<Source | null>(null)
   const [loading, setLoading] = useState(true)
+  const [loadFailed, setLoadFailed] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [filterType, setFilterType] = useState<SourceType | 'all'>('all')
   const [isFormOpen, setIsFormOpen] = useState(false)
@@ -56,9 +57,15 @@ export function SourcesPage() {
 
       if (response.ok) {
         setSources(data.sources || [])
+        setLoadFailed(false)
+      } else {
+        // An empty list and an unreadable one used to render identically, so a
+        // 403 on the workspace reported "no sources" as fact.
+        setLoadFailed(true)
       }
     } catch (error) {
       console.error('Failed to load sources:', error)
+      setLoadFailed(true)
     } finally {
       setLoading(false)
     }
@@ -372,6 +379,15 @@ export function SourcesPage() {
         <Card>
           <CardContent className="py-12 text-center">
             <p className="text-gray-500">{t('entities:sources.loading')}</p>
+          </CardContent>
+        </Card>
+      ) : loadFailed ? (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <Database className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+            <p className="text-red-600 dark:text-red-400">
+              Could not load sources for this workspace. Reload to try again.
+            </p>
           </CardContent>
         </Card>
       ) : filteredSources.length === 0 ? (

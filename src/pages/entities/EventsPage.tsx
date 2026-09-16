@@ -23,6 +23,7 @@ export function EventsPage() {
   const [events, setEvents] = useState<Event[]>([])
   const [currentEvent, setCurrentEvent] = useState<Event | null>(null)
   const [loading, setLoading] = useState(true)
+  const [loadFailed, setLoadFailed] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [filterType, setFilterType] = useState<EventType | 'all'>('all')
   const [isFormOpen, setIsFormOpen] = useState(false)
@@ -56,9 +57,15 @@ export function EventsPage() {
 
       if (response.ok) {
         setEvents(data.events || [])
+        setLoadFailed(false)
+      } else {
+        // An empty list and an unreadable one used to render identically, so a
+        // 403 on the workspace reported "no events" as fact.
+        setLoadFailed(true)
       }
     } catch (error) {
       console.error('Failed to load events:', error)
+      setLoadFailed(true)
     } finally {
       setLoading(false)
     }
@@ -341,6 +348,15 @@ export function EventsPage() {
         <Card>
           <CardContent className="py-12 text-center">
             <p className="text-gray-500">{t('entities:events.loading')}</p>
+          </CardContent>
+        </Card>
+      ) : loadFailed ? (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <Calendar className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+            <p className="text-red-600 dark:text-red-400">
+              Could not load events for this workspace. Reload to try again.
+            </p>
           </CardContent>
         </Card>
       ) : filteredEvents.length === 0 ? (
