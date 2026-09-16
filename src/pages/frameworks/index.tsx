@@ -42,6 +42,13 @@ export const SwotPage = () => {
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [analyses, setAnalyses] = useState<any[]>([])
   const [currentAnalysis, setCurrentAnalysis] = useState<any | null>(null)
+
+  // An edit or delete must name the workspace the analysis actually lives in.
+  // /api/frameworks scopes both with `WHERE id = ? AND workspace_id = ? AND
+  // user_id = ?`, while the GET by id does not filter on workspace at all -- so a
+  // framework opened from outside the current picker loads fine and then fails to
+  // save, silently. Creates still belong in the picker's workspace.
+  const analysisWorkspaceId = currentAnalysis?.workspace_id ?? currentWorkspaceId
   const [loading, setLoading] = useState(false)
   const [comparisonMode, setComparisonMode] = useState(false)
   const [comparisonTag, setComparisonTag] = useState<string | null>(null)
@@ -127,7 +134,7 @@ export const SwotPage = () => {
 
     if (isEditMode && id) {
       // Update existing
-      const response = await fetch(`/api/frameworks?id=${id}&workspace_id=${currentWorkspaceId}`, {
+      const response = await fetch(`/api/frameworks?id=${id}&workspace_id=${analysisWorkspaceId}`, {
         method: 'PUT',
         headers: getCopHeaders(),
         body: JSON.stringify(payload)
@@ -157,7 +164,7 @@ export const SwotPage = () => {
     if (!confirm(t('frameworkPages.confirmDeleteAnalysis'))) return
 
     try {
-      const response = await fetch(`/api/frameworks?id=${targetId}&workspace_id=${currentWorkspaceId}`, {
+      const response = await fetch(`/api/frameworks?id=${targetId}&workspace_id=${analysisWorkspaceId}`, {
         method: 'DELETE',
         headers: getCopHeaders()
       })
@@ -253,6 +260,7 @@ export const SwotPage = () => {
         data={{
           ...parsedData,
           id: currentAnalysis.id,
+          workspace_id: currentAnalysis.workspace_id,
           title: currentAnalysis.title,
           description: currentAnalysis.description,
           created_at: currentAnalysis.created_at,
@@ -629,6 +637,13 @@ const GenericFrameworkPage = ({ frameworkKey }: { frameworkKey: string }) => {
   const config = frameworkConfigs[frameworkKey]
   const [analyses, setAnalyses] = useState<any[]>([])
   const [currentAnalysis, setCurrentAnalysis] = useState<any | null>(null)
+
+  // An edit or delete must name the workspace the analysis actually lives in.
+  // /api/frameworks scopes both with `WHERE id = ? AND workspace_id = ? AND
+  // user_id = ?`, while the GET by id does not filter on workspace at all -- so a
+  // framework opened from outside the current picker loads fine and then fails to
+  // save, silently. Creates still belong in the picker's workspace.
+  const analysisWorkspaceId = currentAnalysis?.workspace_id ?? currentWorkspaceId
   const [loading, setLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const navigate = useNavigate()
@@ -704,7 +719,7 @@ const GenericFrameworkPage = ({ frameworkKey }: { frameworkKey: string }) => {
     }
 
     if (isEditMode && id) {
-      const response = await fetch(`/api/frameworks?id=${id}&workspace_id=${currentWorkspaceId}`, {
+      const response = await fetch(`/api/frameworks?id=${id}&workspace_id=${analysisWorkspaceId}`, {
         method: 'PUT',
         headers: getCopHeaders(),
         body: JSON.stringify(payload)
@@ -726,7 +741,7 @@ const GenericFrameworkPage = ({ frameworkKey }: { frameworkKey: string }) => {
     if (!confirm(t('frameworkPages.confirmDeleteAnalysis'))) return
 
     try {
-      const response = await fetch(`/api/frameworks?id=${targetId}&workspace_id=${currentWorkspaceId}`, {
+      const response = await fetch(`/api/frameworks?id=${targetId}&workspace_id=${analysisWorkspaceId}`, {
         method: 'DELETE',
         headers: getCopHeaders()
       })
@@ -782,6 +797,7 @@ const GenericFrameworkPage = ({ frameworkKey }: { frameworkKey: string }) => {
         data={{
           ...parsedData,
           id: currentAnalysis.id,
+          workspace_id: currentAnalysis.workspace_id,
           title: currentAnalysis.title,
           description: currentAnalysis.description,
           created_at: currentAnalysis.created_at,
@@ -1067,6 +1083,13 @@ export const CogPage = () => {
   const config = frameworkConfigs['cog']
   const [analyses, setAnalyses] = useState<any[]>([])
   const [currentAnalysis, setCurrentAnalysis] = useState<any | null>(null)
+
+  // An edit or delete must name the workspace the analysis actually lives in.
+  // /api/frameworks scopes both with `WHERE id = ? AND workspace_id = ? AND
+  // user_id = ?`, while the GET by id does not filter on workspace at all -- so a
+  // framework opened from outside the current picker loads fine and then fails to
+  // save, silently. Creates still belong in the picker's workspace.
+  const analysisWorkspaceId = currentAnalysis?.workspace_id ?? currentWorkspaceId
   const [loading, setLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false)
@@ -1154,7 +1177,7 @@ export const CogPage = () => {
 
     try {
       if (isEditMode && id) {
-        const response = await fetch(`/api/frameworks?id=${id}&workspace_id=${currentWorkspaceId}`, {
+        const response = await fetch(`/api/frameworks?id=${id}&workspace_id=${analysisWorkspaceId}`, {
           method: 'PUT',
           headers: getCopHeaders(),
           body: JSON.stringify(payload)
@@ -1193,7 +1216,7 @@ export const CogPage = () => {
     if (!confirm(t('frameworkPages.confirmDeleteAnalysis'))) return
 
     try {
-      const response = await fetch(`/api/frameworks?id=${targetId}&workspace_id=${currentWorkspaceId}`, {
+      const response = await fetch(`/api/frameworks?id=${targetId}&workspace_id=${analysisWorkspaceId}`, {
         method: 'DELETE',
         headers: getCopHeaders()
       })
@@ -1574,6 +1597,13 @@ export const DeceptionPage = () => {
   const config = frameworkConfigs['deception']
   const [analyses, setAnalyses] = useState<any[]>([])
   const [currentAnalysis, setCurrentAnalysis] = useState<any | null>(null)
+
+  // An edit or delete must name the workspace the analysis actually lives in.
+  // /api/frameworks scopes both with `WHERE id = ? AND workspace_id = ? AND
+  // user_id = ?`, while the GET by id does not filter on workspace at all -- so a
+  // framework opened from outside the current picker loads fine and then fails to
+  // save, silently. Creates still belong in the picker's workspace.
+  const analysisWorkspaceId = currentAnalysis?.workspace_id ?? currentWorkspaceId
   const [loading, setLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const navigate = useNavigate()
@@ -1649,7 +1679,7 @@ export const DeceptionPage = () => {
     }
 
     if (isEditMode && id) {
-      const response = await fetch(`/api/frameworks?id=${id}&workspace_id=${currentWorkspaceId}`, {
+      const response = await fetch(`/api/frameworks?id=${id}&workspace_id=${analysisWorkspaceId}`, {
         method: 'PUT',
         headers: getCopHeaders(),
         body: JSON.stringify(payload)
@@ -1671,7 +1701,7 @@ export const DeceptionPage = () => {
     if (!confirm(t('frameworkPages.confirmDeleteAnalysis'))) return
 
     try {
-      const response = await fetch(`/api/frameworks?id=${targetId}&workspace_id=${currentWorkspaceId}`, {
+      const response = await fetch(`/api/frameworks?id=${targetId}&workspace_id=${analysisWorkspaceId}`, {
         method: 'DELETE',
         headers: getCopHeaders()
       })
@@ -1724,6 +1754,7 @@ export const DeceptionPage = () => {
         data={{
           ...parsedData,
           id: currentAnalysis.id,
+          workspace_id: currentAnalysis.workspace_id,
           title: currentAnalysis.title,
           description: currentAnalysis.description,
           created_at: currentAnalysis.created_at,
