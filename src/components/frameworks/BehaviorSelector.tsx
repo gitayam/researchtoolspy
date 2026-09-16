@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Search, Link2, ExternalLink } from 'lucide-react'
 import { Input } from '@/components/ui/input'
@@ -47,9 +47,11 @@ export function BehaviorSelector({
     }
   }, [searchParams, selectedBehaviorId, onSelect])
 
-  // Load behaviors from API
-  useEffect(() => {
-    const loadBehaviors = async () => {
+  // Hoisted and refetchable. "Create Behavior Analysis" opens a new tab, which correctly
+  // preserves this form — but the list loaded once and never again, so a behaviour created
+  // over there was still missing when the reader came back, and only a page reload (which
+  // destroys the form) would show it.
+  const loadBehaviors = useCallback(async () => {
       if (isWorkspaceLoading) return
       setLoading(true)
       try {
@@ -78,10 +80,21 @@ export function BehaviorSelector({
       } finally {
         setLoading(false)
       }
-    }
-
-    loadBehaviors()
   }, [currentWorkspaceId, isWorkspaceLoading])
+
+  useEffect(() => {
+    // loadBehaviors sets its loading flag before awaiting: the intended single render
+    // that shows the spinner. The previous inline effect did the same.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadBehaviors()
+  }, [loadBehaviors])
+
+  // Returning from the tab where they just made one is exactly when the list is stale.
+  useEffect(() => {
+    const refresh = () => { void loadBehaviors() }
+    window.addEventListener('focus', refresh)
+    return () => window.removeEventListener('focus', refresh)
+  }, [loadBehaviors])
 
   const filteredBehaviors = behaviors.filter(b =>
     b.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -169,12 +182,21 @@ export function BehaviorSelector({
             <p className="text-gray-500 mb-4">
               {searchQuery ? 'No behaviors found matching your search' : 'No Behavior Analyses found'}
             </p>
-            <Button
-              variant="outline"
-              onClick={() => window.open('/dashboard/analysis-frameworks/behavior', '_blank')}
-            >
-              Create Behavior Analysis
-            </Button>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <Button
+                variant="outline"
+                className="min-h-11"
+                onClick={() => window.open('/dashboard/analysis-frameworks/behavior', '_blank')}
+              >
+                Create Behavior Analysis
+              </Button>
+              <Button variant="ghost" className="min-h-11" onClick={() => void loadBehaviors()} disabled={loading}>
+                Refresh list
+              </Button>
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Opens in a new tab so this form stays as it is. The list refreshes when you come back.
+            </p>
           </div>
         ) : (
           <ScrollArea className="h-64 border rounded-lg">

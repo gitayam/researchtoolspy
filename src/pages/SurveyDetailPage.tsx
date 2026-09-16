@@ -1253,6 +1253,8 @@ interface SummaryData {
 
 function AnalyticsTab({ surveyId }: { surveyId: string }) {
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null)
+  const [analysingUrls, setAnalysingUrls] = useState(false)
+  const [analyseNote, setAnalyseNote] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [summary, setSummary] = useState<SummaryData | null>(null)
   const [summarizing, setSummarizing] = useState(false)
@@ -1403,10 +1405,44 @@ function AnalyticsTab({ surveyId }: { surveyId: string }) {
             </div>
           )}
           {(!analytics.intelligence || analytics.intelligence.analyzed_urls === 0) && (
-            <p className="text-xs text-amber-600 dark:text-amber-400">
-              No deep analysis found for these URLs.{' '}
-              <a href="/dashboard/tools" className="underline">Analyze them in Content Intelligence</a> to extract entities, claims, and sentiment — they'll automatically appear here.
-            </p>
+            <div className="rounded-md border border-border p-3">
+              <p className="text-xs text-amber-600 dark:text-amber-400">
+                No deep analysis found for these URLs. Analysing extracts entities, claims and sentiment, and the results appear here.
+              </p>
+              <Button
+                variant="outline"
+                className="mt-2 min-h-11"
+                disabled={analysingUrls}
+                onClick={async () => {
+                  const urls = analytics.enrichment?.urls?.map(u => u.url).filter(Boolean).slice(0, 10) ?? []
+                  if (urls.length === 0) return
+                  setAnalysingUrls(true)
+                  setAnalyseNote(null)
+                  let done = 0
+                  // Sequential on purpose: each is a real extraction, and a burst of
+                  // parallel fetches is the wrong thing to do to both services.
+                  for (const url of urls) {
+                    try {
+                      const response = await fetch('/api/content-intelligence/analyze-url', {
+                        method: 'POST',
+                        headers: getCopHeaders(),
+                        body: JSON.stringify({ url, mode: 'quick', save_link: true }),
+                      })
+                      if (response.ok) done += 1
+                    } catch { /* counted as not analysed below */ }
+                  }
+                  setAnalyseNote(
+                    done === urls.length
+                      ? `Analysed ${done} of ${urls.length}. Reload to see them here.`
+                      : `Analysed ${done} of ${urls.length}. The rest did not expose enough article text.`,
+                  )
+                  setAnalysingUrls(false)
+                }}
+              >
+                {analysingUrls ? 'Analysing…' : 'Analyse these URLs here'}
+              </Button>
+              {analyseNote && <p className="mt-2 text-xs text-muted-foreground">{analyseNote}</p>}
+            </div>
           )}
           <div className="space-y-2 max-h-64 overflow-y-auto">
             {analytics.enrichment.urls.map((u, i) => (

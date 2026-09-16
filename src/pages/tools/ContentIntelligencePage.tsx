@@ -4,10 +4,11 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import html2canvas from 'html2canvas'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Progress } from '@/components/ui/progress'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel } from '@/components/ui/dropdown-menu'
@@ -1806,6 +1807,14 @@ ${shortSummary}`
   }
 
   // Copy citation to clipboard
+  const [duplicateEntity, setDuplicateEntity] = useState<{
+    name: string
+    type: 'person' | 'organization' | 'location'
+    existingId: string
+    existingName: string
+  } | null>(null)
+  const [duplicateRename, setDuplicateRename] = useState('')
+
   const copyCitation = async () => {
     try {
       await navigator.clipboard.writeText(generatedCitation)
@@ -1825,7 +1834,11 @@ ${shortSummary}`
   }
 
   // Save entity to evidence
-  const saveEntityToEvidence = async (entityName: string, entityType: 'person' | 'organization' | 'location') => {
+  /**
+   * `force` skips the duplicate check, so a rename chosen in the dialog below can retry
+   * without re-triggering the prompt it was answering.
+   */
+  const saveEntityToEvidence = async (entityName: string, entityType: 'person' | 'organization' | 'location', force = false) => {
     try {
       if (!currentWorkspaceId) {
         throw new Error('Select a workspace before saving entities')
@@ -1852,32 +1865,18 @@ ${shortSummary}`
         } else {
           const checkData = await checkResponse.json()
 
-          if (checkData.exists) {
-        // Entity exists - show alert with options
-        const choice = window.confirm(
-          `"${entityName}" already exists in your entities.\n\n` +
-          `Click OK to view the existing entity, or Cancel to update the name and save as a new entity.`
-        )
-
-        if (choice) {
-          // Navigate to existing entity
-          navigate(`/dashboard/entities/actors/${checkData.actor.id}`)
-          return
-        } else {
-          // Prompt for new name
-          const newName = window.prompt(
-            `Enter a different name for this entity:`,
-            entityName + ' (2)'
-          )
-
-          if (!newName || newName.trim() === '') {
-            // User cancelled
-            return
-          }
-
-          // Use the new name
-          entityName = newName.trim()
-        }
+          if (checkData.exists && !force) {
+        // Previously a confirm() whose OK branch navigated away, abandoning this whole
+        // analysis, and whose Cancel branch opened a bare window.prompt() with no view of
+        // what the existing entity actually was. The decision is now inline state, and
+        // neither branch leaves the page.
+        setDuplicateEntity({
+          name: entityName,
+          type: entityType,
+          existingId: String(checkData.actor?.id ?? ''),
+          existingName: String(checkData.actor?.name ?? entityName),
+        })
+        return
       }
         }
       }
@@ -5797,6 +5796,55 @@ ${shortSummary}`
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={duplicateEntity !== null} onOpenChange={open => { if (!open) setDuplicateEntity(null) }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>That entity already exists</DialogTitle>
+            <DialogDescription>
+              “{duplicateEntity?.existingName}” is already in your entities. Choose what to do — this analysis stays open either way.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <a
+              className="inline-flex min-h-11 items-center gap-1 text-sm text-blue-600 underline hover:no-underline dark:text-blue-400"
+              href={`/dashboard/entities/actors/${duplicateEntity?.existingId ?? ''}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Open the existing entity in a new tab
+            </a>
+            <div className="space-y-2">
+              <Label htmlFor="duplicate-rename">Or save this one under a different name</Label>
+              <Input
+                id="duplicate-rename"
+                value={duplicateRename}
+                placeholder={`${duplicateEntity?.name ?? ''} (2)`}
+                onChange={event => setDuplicateRename(event.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" className="min-h-11" onClick={() => { setDuplicateEntity(null); setDuplicateRename('') }}>
+              Cancel
+            </Button>
+            <Button
+              className="min-h-11"
+              disabled={!duplicateRename.trim()}
+              onClick={() => {
+                const pending = duplicateEntity
+                const renamed = duplicateRename.trim()
+                setDuplicateEntity(null)
+                setDuplicateRename('')
+                // force: the reader has already answered the duplicate question.
+                if (pending && renamed) void saveEntityToEvidence(renamed, pending.type, true)
+              }}
+            >
+              Save under this name
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
