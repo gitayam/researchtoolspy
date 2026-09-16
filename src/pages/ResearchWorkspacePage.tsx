@@ -95,13 +95,19 @@ export default function ResearchWorkspacePage() {
         researchContext: 'osint'
       }
 
-      // Load tasks
-      const tasksResponse = await fetch(`/api/research/tasks/list?researchQuestionId=${researchQuestionId}`)
-      const tasksData = await tasksResponse.json()
-
-      // Load evidence
-      const evidenceResponse = await fetch(`/api/research/evidence/list?researchQuestionId=${researchQuestionId}`)
-      const evidenceData = await evidenceResponse.json()
+      // Both endpoints require authentication, and these two calls were the only
+      // ones on this page sending no credentials -- so the task and evidence
+      // lists have been coming back 401 and rendering empty.
+      const [tasksResponse, evidenceResponse] = await Promise.all([
+        fetch(`/api/research/tasks/list?researchQuestionId=${researchQuestionId}`, {
+          headers: getCopHeaders(),
+        }),
+        fetch(`/api/research/evidence/list?researchQuestionId=${researchQuestionId}`, {
+          headers: getCopHeaders(),
+        }),
+      ])
+      const tasksData = tasksResponse.ok ? await tasksResponse.json() : {}
+      const evidenceData = evidenceResponse.ok ? await evidenceResponse.json() : {}
 
       setWorkspace({
         researchQuestionId,

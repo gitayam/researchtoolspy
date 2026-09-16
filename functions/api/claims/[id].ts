@@ -23,14 +23,20 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         u.username as adjusted_by_username,
         c.title as content_title,
         c.url as content_url,
-        c.domain as content_domain
+        c.domain as content_domain,
+        c.user_id as content_owner_id
       FROM claim_adjustments ca
       LEFT JOIN users u ON ca.adjusted_by = u.id
       LEFT JOIN content_analysis c ON ca.content_analysis_id = c.id
       WHERE ca.id = ?
     `).bind(id).first()
 
-    if (!claim) {
+    // Every other claims/* read endpoint (get-adjustments, get-claim-entities,
+    // get-evidence-links, export-markdown) joins content_analysis and compares
+    // its user_id. This one authenticated the caller and then fetched by bare
+    // id, so any claim adjustment -- plus its evidence links and entity
+    // mentions -- could be read by anyone who guessed an id.
+    if (!claim || String(claim.content_owner_id) !== String(userId)) {
       return new Response(JSON.stringify({ error: 'Claim not found' }), {
         status: 404,
         headers: JSON_HEADERS

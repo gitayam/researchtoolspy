@@ -7,6 +7,7 @@
 
 import { getUserFromRequest } from '../../_shared/auth-helpers'
 import { CORS_HEADERS, JSON_HEADERS, optionsResponse } from '../../_shared/api-utils'
+import { resolveResearchScope } from '../_lib/research-scope'
 
 interface Env {
   DB: D1Database
@@ -38,11 +39,25 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       })
     }
 
+
+    // Derived from the parent row, never from the request, so a caller cannot
+    // widen their own scope. Without this the filters below were the ONLY
+    // predicate, and any id enumerated another user's rows in full.
+    const scope = await resolveResearchScope(context.env.DB, userId, {
+      researchQuestionId,
+      investigationPacketId,
+    })
+    if (!scope) {
+      return new Response(JSON.stringify({ error: 'Not found' }), {
+        status: 404, headers: JSON_HEADERS,
+      })
+    }
+
     let query = `
       SELECT * FROM research_tasks
-      WHERE 1=1
+      WHERE workspace_id = ?
     `
-    const params: any[] = []
+    const params: any[] = [scope.workspaceId]
 
     if (researchQuestionId) {
       query += ` AND research_question_id = ?`

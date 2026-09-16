@@ -7,6 +7,7 @@
 
 import { getUserFromRequest } from '../../_shared/auth-helpers'
 import { JSON_HEADERS, optionsResponse } from '../../_shared/api-utils'
+import { checkWorkspaceAccess } from '../../_shared/workspace-helpers'
 import { buildEvidenceItemsInsert } from '../_lib/research-evidence-mapping'
 
 interface Env {
@@ -81,6 +82,15 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     const now = new Date().toISOString()
     const workspaceId = body.workspaceId || context.request.headers.get('X-Workspace-ID') || null
+
+    // created_by was already server-resolved, but the workspace was not: paired
+    // with the unscoped read in ./list.ts this gave a full cross-tenant
+    // write-then-read channel over evidence_items.
+    if (!workspaceId || !(await checkWorkspaceAccess(String(workspaceId), userId, context.env, 'EDITOR'))) {
+      return new Response(JSON.stringify({ error: 'Access denied to workspace' }), {
+        status: 403, headers: JSON_HEADERS,
+      })
+    }
 
     // Write to the canonical `evidence_items` store (D-E8-3). First-class fields
     // map to real columns; research-specific originals are stashed in `metadata`

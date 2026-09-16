@@ -8,6 +8,7 @@
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest } from './_shared/auth-helpers'
 import { JSON_HEADERS, optionsResponse } from './_shared/api-utils'
+import { checkWorkspaceAccess } from './_shared/workspace-helpers'
 
 interface Env {
   DB: D1Database
@@ -81,6 +82,15 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!body.actor_id || !body.scenario_description || !body.workspace_id) {
       return new Response(JSON.stringify({ error: 'actor_id, scenario_description, and workspace_id are required' }), {
         status: 400, headers: JSON_HEADERS,
+      })
+    }
+
+    // body.workspace_id went straight into the INSERT, so any caller could
+    // plant deception assessments in any workspace -- where deception/aggregate
+    // then reads them back by workspace_id as if they were the team's own.
+    if (!(await checkWorkspaceAccess(String(body.workspace_id), userId, env, 'EDITOR'))) {
+      return new Response(JSON.stringify({ error: 'Access denied to workspace' }), {
+        status: 403, headers: JSON_HEADERS,
       })
     }
 

@@ -11,6 +11,7 @@
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest } from '../_shared/auth-helpers'
 import { JSON_HEADERS } from '../_shared/api-utils'
+import { checkWorkspaceAccess } from '../_shared/workspace-helpers'
 
 interface Env {
   DB: D1Database
@@ -46,6 +47,15 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         status: 400, headers: JSON_HEADERS,
       })
     }
+    // Unvalidated, this endpoint answers "does workspace X track an entity
+    // named Y?" for any workspace, 100 names per request, and hands back the
+    // internal id of every hit.
+    if (!(await checkWorkspaceAccess(String(workspaceId), userId, env, 'VIEWER'))) {
+      return new Response(JSON.stringify({ error: 'Access denied to workspace' }), {
+        status: 403, headers: JSON_HEADERS,
+      })
+    }
+
     const matches: Record<string, { id: string; name: string }> = {}
 
     for (const entity of body.entities.slice(0, 100)) {
