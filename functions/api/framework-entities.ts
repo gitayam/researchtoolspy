@@ -2,6 +2,7 @@
 // Supports linking actors, sources, events to frameworks
 import { getUserIdOrDefault, getUserFromRequest } from './_shared/auth-helpers'
 import { CORS_HEADERS, JSON_HEADERS } from './_shared/api-utils'
+import { canReadFramework, canWriteFramework, frameworkDenied } from './_shared/framework-helpers'
 
 export async function onRequest(context: any) {
   const { request, env } = context
@@ -30,6 +31,10 @@ export async function onRequest(context: any) {
           status: 400,
           headers: JSON_HEADERS,
         })
+      }
+
+      if (!(await canReadFramework(env.DB, frameworkId, userId))) {
+        return frameworkDenied(JSON_HEADERS)
       }
 
       // Build query based on optional entity_type filter
@@ -130,6 +135,12 @@ export async function onRequest(context: any) {
           status: 400,
           headers: JSON_HEADERS,
         })
+      }
+
+      // body.framework_id was taken on trust: INSERT OR REPLACE let any caller
+      // inject -- or overwrite -- entity links on someone else's analysis.
+      if (!(await canWriteFramework(env.DB, body.framework_id, authUserId))) {
+        return frameworkDenied(JSON_HEADERS)
       }
 
       // Link each entity to the framework

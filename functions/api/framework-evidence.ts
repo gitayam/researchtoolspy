@@ -1,6 +1,7 @@
 // Cloudflare Pages Function for Framework-Evidence Linking API
 import { getUserIdOrDefault, getUserFromRequest } from './_shared/auth-helpers'
 import { CORS_HEADERS, JSON_HEADERS, safeJsonParse } from './_shared/api-utils'
+import { canReadFramework, canWriteFramework, frameworkDenied } from './_shared/framework-helpers'
 
 export async function onRequest(context: any) {
   const { request, env } = context
@@ -24,6 +25,11 @@ export async function onRequest(context: any) {
     // GET - Get linked evidence for a framework or frameworks for an evidence item
     if (request.method === 'GET') {
       if (frameworkId) {
+        // Link rows existing for this framework_id never proved it was the
+        // caller's -- this GET returned full evidence content for any id.
+        if (!(await canReadFramework(env.DB, frameworkId, userId))) {
+          return frameworkDenied(JSON_HEADERS)
+        }
         // Get all evidence linked to this framework
         const links = await env.DB.prepare(`
           SELECT
@@ -67,10 +73,10 @@ export async function onRequest(context: any) {
             f.status
           FROM framework_evidence fe
           JOIN framework_sessions f ON fe.framework_id = f.id
-          WHERE fe.evidence_id = ?
+          WHERE fe.evidence_id = ? AND (f.user_id = ? OR f.is_public = 1)
           ORDER BY fe.created_at DESC
           LIMIT 500
-        `).bind(evidenceId).all()
+        `).bind(evidenceId, userId).all()
 
         return new Response(JSON.stringify({ links: links.results }), {
           status: 200,
@@ -101,6 +107,12 @@ export async function onRequest(context: any) {
           status: 400,
           headers: JSON_HEADERS,
         })
+      }
+
+      // is_public marks an analysis readable, not open for anyone to attach
+      // evidence to, so writes require real ownership.
+      if (!(await canWriteFramework(env.DB, body.framework_id, authUserId))) {
+        return frameworkDenied(JSON_HEADERS)
       }
 
       // Link each evidence item to the framework

@@ -1,6 +1,7 @@
 // Cloudflare Pages Function for Framework-Dataset Linking API
 import { getUserIdOrDefault, getUserFromRequest } from './_shared/auth-helpers'
 import { CORS_HEADERS, JSON_HEADERS } from './_shared/api-utils'
+import { canReadFramework, canWriteFramework, frameworkDenied } from './_shared/framework-helpers'
 
 export async function onRequest(context: any) {
   const { request, env } = context
@@ -24,6 +25,9 @@ export async function onRequest(context: any) {
     // GET - Get linked dataset for a framework or frameworks for an dataset
     if (request.method === 'GET') {
       if (frameworkId) {
+        if (!(await canReadFramework(env.DB, frameworkId, userId))) {
+          return frameworkDenied(JSON_HEADERS)
+        }
         // Get all dataset linked to this framework
         const links = await env.DB.prepare(`
           SELECT
@@ -67,10 +71,10 @@ export async function onRequest(context: any) {
             f.status
           FROM framework_datasets fe
           JOIN framework_sessions f ON fe.framework_id = f.id
-          WHERE fe.dataset_id = ?
+          WHERE fe.dataset_id = ? AND (f.user_id = ? OR f.is_public = 1)
           ORDER BY fe.created_at DESC
           LIMIT 500
-        `).bind(datasetId).all()
+        `).bind(datasetId, userId).all()
 
         return new Response(JSON.stringify({ links: links.results }), {
           status: 200,
@@ -101,6 +105,10 @@ export async function onRequest(context: any) {
           status: 400,
           headers: JSON_HEADERS,
         })
+      }
+
+      if (!(await canWriteFramework(env.DB, body.framework_id, authUserId))) {
+        return frameworkDenied(JSON_HEADERS)
       }
 
       // Link each dataset to the framework
