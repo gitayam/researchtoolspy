@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Brain, Target, TrendingUp, BarChart3, FileText, ExternalLink } from 'lucide-react'
 import { getCopHeaders } from '@/lib/cop-auth'
+import { useWorkspace } from '@/contexts/WorkspaceContext'
 import type { EntityType } from './EntitySelector'
 
 interface FrameworkUsage {
@@ -49,6 +50,7 @@ const FRAMEWORK_NAMES: Record<string, string> = {
 
 export function FrameworkUsagePanel({ entityId, entityType, entityName }: FrameworkUsagePanelProps) {
   const navigate = useNavigate()
+  const { currentWorkspaceId } = useWorkspace()
   const [usage, setUsage] = useState<FrameworkUsage[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -56,13 +58,23 @@ export function FrameworkUsagePanel({ entityId, entityType, entityName }: Framew
     const controller = new AbortController()
     loadFrameworkUsage(controller.signal)
     return () => controller.abort()
-  }, [entityId, entityType])
+  }, [entityId, entityType, currentWorkspaceId])
 
   const loadFrameworkUsage = async (signal?: AbortSignal) => {
+    // Take the workspace from context rather than leaning on whatever
+    // getCopHeaders() finds in localStorage, so this panel agrees with the rest
+    // of the page about which workspace it is reading.
+    if (!currentWorkspaceId) {
+      setUsage([])
+      setLoading(false)
+      return
+    }
     setLoading(true)
     try {
       const response = await fetch(
-        `/api/frameworks/entity-usage?entity_id=${entityId}&entity_type=${entityType}`,
+        `/api/frameworks/entity-usage?entity_id=${encodeURIComponent(entityId)}`
+          + `&entity_type=${encodeURIComponent(entityType)}`
+          + `&workspace_id=${encodeURIComponent(currentWorkspaceId)}`,
         {
           headers: getCopHeaders(),
           signal,

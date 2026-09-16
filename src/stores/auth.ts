@@ -3,6 +3,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { createLogger } from '@/lib/logger'
 import { apiClient } from '@/lib/api'
+import { clearSelectedWorkspaceId } from '@/lib/workspace-storage'
 import type { User } from '@/types/auth'
 
 const logger = createLogger('Auth')
@@ -91,6 +92,9 @@ export const useAuthStore = create<AuthState>()(
       logout: () => {
         apiClient.logout()
         localStorage.removeItem('omnicore_user_hash')
+        // Without this the next account to use this browser inherits the
+        // previous one's X-Workspace-ID until /api/workspaces resolves.
+        clearSelectedWorkspaceId()
         set({
           user: null,
           isAuthenticated: false,
@@ -113,6 +117,7 @@ export const useAuthStore = create<AuthState>()(
                 logger.info('Token expired, logging out')
                 apiClient.logout()
                 localStorage.removeItem('omnicore_user_hash')
+                clearSelectedWorkspaceId()
                 set({ user: null, isAuthenticated: false })
                 return
               }

@@ -1,4 +1,5 @@
 import { getOrCreateGuestSessionId, getOrCreateGuestWorkspaceId } from './guest-session'
+import { readSelectedWorkspaceId } from './workspace-storage'
 
 /** Build an explicitly guest-only header set for public, ephemeral tools. */
 export function getGuestHeaders(): Record<string, string> {
@@ -42,7 +43,10 @@ export function getCopHeaders(): Record<string, string> {
   }
 
   if (!isGuestRequest) {
-    const workspaceId = localStorage.getItem('omnicore_workspace_id') || localStorage.getItem('current_workspace_id')
+    // readSelectedWorkspaceId() ignores a `guest-workspace-*` id that an older
+    // build persisted here, so a browser carrying one heals on its next request
+    // instead of sending the guest principal's workspace under account credentials.
+    const workspaceId = readSelectedWorkspaceId()
     if (workspaceId) headers['X-Workspace-ID'] = workspaceId
   }
 
