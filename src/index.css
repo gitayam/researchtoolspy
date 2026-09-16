@@ -3,6 +3,43 @@
 /* Enable dark mode with class strategy (Tailwind v4) */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Expose the design tokens below to Tailwind v4's utility generator.
+ *
+ * This project moved to v4 (`@import "tailwindcss"`) but kept its tokens as bare
+ * HSL triplets in :root, which v3 read through tailwind.config.js. v4 resolves
+ * colour utilities from the --color-* namespace instead, and v4 ignores the JS
+ * config unless it is loaded with @config -- so `bg-accent`,
+ * `text-muted-foreground`, `border-border`, `ring-ring` and friends generated NO
+ * CSS at all. 1,297 usages across 121 files silently rendered as inherited
+ * colour: a description marked text-muted-foreground came out the same
+ * near-black as the heading above it, flattening secondary text everywhere.
+ *
+ * `inline` matters. Without it v4 resolves each value once at build time and the
+ * .dark overrides below would never apply; with it the utility emits
+ * var(--color-x), which re-resolves per element and keeps dark mode working.
+ */
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+}
+
 /* Responsive layout: sidebar + mobile bottom tabs */
 .desktop-sidebar { display: none; }
 .desktop-sidebar-offset { padding-left: 0; }
@@ -95,6 +132,16 @@ html {
 *:focus-visible {
   outline: 2px solid hsl(var(--ring));
   outline-offset: 2px;
+}
+
+/* The command palette's search field is auto-focused the moment the dialog
+ * opens and sits inside a header row that shows its own focus-within treatment,
+ * so the global ring drew a second heavy box around an already-obvious target.
+ * The indicator moves to the wrapper rather than disappearing. This override
+ * lives here, unlayered, because a Tailwind utility cannot beat the rule above:
+ * @layer'd CSS always loses to unlayered CSS regardless of specificity. */
+[cmdk-input]:focus-visible {
+  outline: none;
 }
 
 /* Button active states for mobile feedback */
