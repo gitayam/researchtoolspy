@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { CreatedNotice } from '@/components/ui/created-notice'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ArrowLeft, ArrowRight, Check, AlertCircle, Lightbulb, FileEdit, Network } from 'lucide-react'
@@ -53,6 +54,7 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
   // Entity generation state
   const [generatingEntities, setGeneratingEntities] = useState(false)
   const [entitiesGenerated, setEntitiesGenerated] = useState(false)
+  const [entitySummary, setEntitySummary] = useState<string | null>(null)
   const [savedFrameworkId, setSavedFrameworkId] = useState<string | number | null>(initialData?.id || null)
 
   const ACTOR_CATEGORIES: { value: ActorCategory; label: string }[] = [
@@ -202,11 +204,12 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
       const result = await response.json()
       setEntitiesGenerated(true)
 
-      const message = `✅ Successfully generated ${result.summary.actors} actors, ${result.summary.behaviors} behaviors, and ${result.summary.relationships} relationships!\n\nView them in the Network Graph.`
-
-      if (confirm(message + '\n\nGo to Network Graph now?')) {
-        navigate('/network')
-      }
+      // A confirm() here forced a choice between losing the wizard and never seeing the
+      // result. The notice below persists beside the button instead, and its link opens in
+      // a new tab, so finishing the analysis and inspecting the graph are not exclusive.
+      setEntitySummary(
+        `${result.summary.actors} actors, ${result.summary.behaviors} behaviors and ${result.summary.relationships} relationships.`,
+      )
     } catch (error) {
       console.error('Failed to generate entities:', error)
       alert('Entity generation failed. Please try again.')
@@ -1364,6 +1367,16 @@ export function COGWizard({ initialData, onSave, backPath }: COGWizardProps) {
                 <Network className="h-4 w-4 mr-2" />
                 {generatingEntities ? 'Generating...' : entitiesGenerated ? 'Regenerate Entities' : 'Generate Entities'}
               </Button>
+            )}
+
+            {entitySummary && (
+              <CreatedNotice
+                title="Entities generated"
+                detail={entitySummary}
+                href="/network"
+                linkLabel="Open the Network Graph"
+                onDismiss={() => setEntitySummary(null)}
+              />
             )}
 
             {currentStep < STEPS.length ? (

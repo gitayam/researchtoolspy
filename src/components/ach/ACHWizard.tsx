@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getCopHeaders } from '@/lib/cop-auth'
+import { QuickEvidenceForm } from '@/components/evidence/QuickEvidenceForm'
 import { ArrowLeft, ArrowRight, Check, Sparkles, Plus, X, Search, AlertCircle, Lightbulb } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -125,24 +126,59 @@ export function ACHWizard({ initialData, onSave, onComplete, backPath }: ACHWiza
   )
   const [evidenceSearch, setEvidenceSearch] = useState('')
   const [loadingEvidence, setLoadingEvidence] = useState(false)
+  const [creatingEvidence, setCreatingEvidence] = useState(false)
+  const [createError, setCreateError] = useState<string | null>(null)
 
   const progress = (currentStep / STEPS.length) * 100
 
-  // Load evidence library
-  const loadEvidence = async () => {
-    if (allEvidence.length > 0) return // Already loaded
+  // Load evidence library. `force` exists because creating evidence from inside the
+  // wizard must refresh a list the cache guard would otherwise consider complete.
+  const loadEvidence = async (force = false) => {
+    if (!force && allEvidence.length > 0) return // Already loaded
 
     setLoadingEvidence(true)
     try {
       const response = await fetch('/api/evidence-items', { headers: getCopHeaders() })
       if (response.ok) {
         const data = await response.json()
-        setAllEvidence(data.evidence || [])
+        const items = data.evidence || []
+        setAllEvidence(items)
+        return items
       }
     } catch (error) {
       console.error('Failed to load evidence:', error)
     } finally {
       setLoadingEvidence(false)
+    }
+  }
+
+  /**
+   * Creates an evidence item from inside the wizard and selects it.
+   *
+   * Step 3 cannot be passed without at least one selected item (`canProceed`), and the
+   * previous escape navigated in-app to the Evidence Library, unmounting the wizard and
+   * discarding the intelligence question and hypotheses written in steps 1 and 2 — the
+   * expensive part of an ACH. Creating here keeps all of it.
+   */
+  const createEvidenceInline = async (data: Record<string, unknown>) => {
+    setCreateError(null)
+    try {
+      const response = await fetch('/api/evidence-items', {
+        method: 'POST',
+        headers: getCopHeaders(),
+        body: JSON.stringify(data),
+      })
+      if (!response.ok) throw new Error(`Could not save evidence (${response.status}).`)
+      const created = await response.json()
+      const newId = String(created?.evidence?.id ?? created?.id ?? '')
+      const items = await loadEvidence(true)
+      const match = newId
+        ? (items || []).find((item: { id: string | number }) => String(item.id) === newId)
+        : undefined
+      if (match) setSelectedEvidence(prev => (prev.includes(String(match.id)) ? prev : [...prev, String(match.id)]))
+      setCreatingEvidence(false)
+    } catch (error) {
+      setCreateError(error instanceof Error ? error.message : 'Could not save evidence.')
     }
   }
 
@@ -534,17 +570,25 @@ export function ACHWizard({ initialData, onSave, onComplete, backPath }: ACHWiza
               />
             </div>
 
-            {loadingEvidence ? (
+            {creatingEvidence ? (
+              <div className="rounded-md border border-border p-3">
+                <QuickEvidenceForm
+                  onSave={createEvidenceInline}
+                  onCancel={() => { setCreatingEvidence(false); setCreateError(null) }}
+                  contextData={{ framework: 'ach', section: question || undefined }}
+                />
+                {createError && (
+                  <p className="mt-2 text-xs leading-relaxed text-amber-700 dark:text-amber-400">{createError}</p>
+                )}
+              </div>
+            ) : loadingEvidence ? (
               <div className="text-center py-8 text-muted-foreground">Loading evidence...</div>
             ) : filteredEvidence.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
+              <div className="py-8 text-center text-muted-foreground">
                 <p>No evidence found</p>
-                <Button
-                  variant="link"
-                  onClick={() => navigate('/dashboard/evidence')}
-                  className="mt-2"
-                >
-                  Create evidence in Evidence Library →
+                <p className="mt-1 text-sm">Add a piece here and it is selected for you. Your question and hypotheses stay as they are.</p>
+                <Button variant="outline" className="mt-3 min-h-11" onClick={() => setCreatingEvidence(true)}>
+                  Add evidence here
                 </Button>
               </div>
             ) : (

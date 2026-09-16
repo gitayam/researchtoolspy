@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { EntityQuickCreate } from './EntityQuickCreate'
 import { Search, Filter, X, Link2, FileText, Users, Database, Calendar, CheckCircle2 } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
@@ -42,6 +43,7 @@ export function EvidenceLinker({
   const { currentWorkspaceId, isLoading: workspaceLoading } = useWorkspace()
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedTab, setSelectedTab] = useState<EvidenceEntityType>('data')
+  const [quickCreateOpen, setQuickCreateOpen] = useState(false)
   const [selectedItems, setSelectedItems] = useState<Map<string, LinkedEvidence>>(new Map())
   const [loading, setLoading] = useState(false)
 
@@ -314,12 +316,28 @@ export function EvidenceLinker({
               {loading ? (
                 <div className="text-center py-8 text-gray-500">Loading...</div>
               ) : getCurrentItems().length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  No {selectedTab} items found
+                <div className="py-8 text-center text-gray-500">
+                  <p>No {selectedTab} items found</p>
+                  <p className="mt-1 text-sm">Create one here and it is selected for you. Your form stays open.</p>
+                  <Button variant="outline" className="mt-3 min-h-11" onClick={() => setQuickCreateOpen(true)}>
+                    Create {selectedTab} here
+                  </Button>
                 </div>
               ) : (
                 getCurrentItems().map(item => renderItemCard(item, selectedTab))
               )}
+
+              <EntityQuickCreate
+                open={quickCreateOpen}
+                onClose={() => setQuickCreateOpen(false)}
+                defaultTab={selectedTab}
+                onEntityCreated={(entityType, entityData) => {
+                  setQuickCreateOpen(false)
+                  // Select what was just made, then refresh so it also appears in the list.
+                  if (entityData?.id !== undefined) toggleSelection(entityType, entityData.id, entityData)
+                  void loadData()
+                }}
+              />
             </div>
           </Tabs>
 
