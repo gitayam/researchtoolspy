@@ -376,7 +376,7 @@ Make the plan specific to THIS research question and context, not generic advice
     const response = await callOpenAIViaGateway(
       context.env,
       {
-        model: 'gpt-5.4-mini',
+        tier: 'cheap',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }

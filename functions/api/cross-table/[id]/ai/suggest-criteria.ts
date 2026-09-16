@@ -56,7 +56,7 @@ Suggest ${numCriteria} evaluation criteria for this decision matrix. Each criter
 Respond with ONLY a JSON array of objects with "label" and "description" fields. No other text.`
 
     const aiResponse = await callOpenAIViaGateway(env, {
-      model: 'gpt-5.4-mini',
+      tier: 'cheap',
       messages: [{ role: 'user', content: prompt }],
       reasoning_effort: 'none',
       temperature: 0.7,

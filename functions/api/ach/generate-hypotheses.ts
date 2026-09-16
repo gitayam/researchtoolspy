@@ -9,6 +9,7 @@
 import { requireAuth } from '../_shared/auth-helpers'
 import { callOpenAIViaGateway } from '../_shared/ai-gateway'
 import { JSON_HEADERS, optionsResponse } from '../_shared/api-utils'
+import { aiModel } from '../_shared/ai-models'
 
 interface Env {
   DB: D1Database
@@ -36,7 +37,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const data = await callOpenAIViaGateway(
       context.env,
       {
-        model: 'gpt-5.4-mini',
+        tier: 'cheap',
         messages: [
           {
             role: 'system',
@@ -109,7 +110,7 @@ Return JSON with a "hypotheses" array of strings:
       hypotheses,
       question: body.question,
       generated_at: new Date().toISOString(),
-      model: 'gpt-5.4-mini'
+      model: aiModel('cheap', context.env)
     }), { headers: JSON_HEADERS })
   } catch (error) {
     if (error instanceof Response) return error

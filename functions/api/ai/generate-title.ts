@@ -82,7 +82,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     // Generate title using OpenAI via AI Gateway
     const aiResponse = await callOpenAIViaGateway(env, {
-      model: 'gpt-5.4-nano',
+      tier: 'cheap',
       messages: [
         {
           role: 'system',

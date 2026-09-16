@@ -17,6 +17,7 @@
 import { requireAuth } from '../_shared/auth-helpers'
 import { callOpenAIViaGateway, ANALYST_SYSTEM_PREFIX, REFUSAL_BODY } from '../_shared/ai-gateway'
 import { JSON_HEADERS, optionsResponse } from '../_shared/api-utils'
+import { aiModel } from '../_shared/ai-models'
 
 interface Env {
   DB: D1Database
@@ -342,7 +343,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const data = await callOpenAIViaGateway(
       context.env,
       {
-        model: 'gpt-5.4-mini',
+        tier: 'cheap',
         messages: [
           { role: 'system', content: ANALYST_SYSTEM_PREFIX + system },
           { role: 'user', content: user }
@@ -413,7 +414,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       mode: req.mode,
       context: req.context,
       result,
-      model: 'gpt-5.4-mini',
+      model: aiModel('cheap', context.env),
       tokensUsed: {
         input: data.usage?.prompt_tokens || 0,
         output: data.usage?.completion_tokens || 0,

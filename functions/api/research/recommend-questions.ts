@@ -136,7 +136,7 @@ Return the response as a JSON object with a "questions" array:
     const response = await callOpenAIViaGateway(
       context.env,
       {
-        model: 'gpt-5.4-mini',
+        tier: 'cheap',
         messages: [
           {
             role: 'system',

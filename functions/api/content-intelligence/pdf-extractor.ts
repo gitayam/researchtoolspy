@@ -311,7 +311,7 @@ Return ONLY a JSON array of questions, nothing else.
 Example: ["What is the main argument?", "What evidence supports this?"]`
 
   const data = await callOpenAIViaGateway(env, {
-    model: 'gpt-5.4-mini',
+    tier: 'cheap',
     reasoning_effort: 'none',
     temperature: 0.7,
     messages: [
@@ -382,7 +382,7 @@ ${excerpts.join('\n\n---\n\n')}
 Provide a concise, evidence-based answer (2-3 sentences max).`
 
   const data = await callOpenAIViaGateway(env, {
-    model: 'gpt-5.4-nano',
+    tier: 'cheap',
     reasoning_effort: 'none',
     temperature: 0.3,
     max_completion_tokens: 150,
@@ -414,7 +414,7 @@ Generate a 250-word summary that:
 - Uses specific details from the document`
 
   const data = await callOpenAIViaGateway(env, {
-    model: 'gpt-5.4-nano',
+    tier: 'cheap',
     reasoning_effort: 'none',
     temperature: 0.5,
     max_completion_tokens: 500,
@@ -431,7 +431,7 @@ Generate a 250-word summary that:
 
 async function generateStandardSummary(text: string, env: GatewayEnv): Promise<string> {
   const data = await callOpenAIViaGateway(env, {
-    model: 'gpt-5.4-nano',
+    tier: 'cheap',
     reasoning_effort: 'none',
     temperature: 0.5,
     max_completion_tokens: 400,

@@ -184,7 +184,7 @@ ${STARBURSTING_JSON_SCHEMA}
 
   try {
     const data = await callOpenAIViaGateway(env, {
-      model: 'gpt-5.4-mini',
+      tier: 'cheap',
       messages: [
         {
           role: 'system',

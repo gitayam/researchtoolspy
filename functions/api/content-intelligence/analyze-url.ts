@@ -2031,7 +2031,7 @@ Return ONLY valid JSON in this exact format:
   try {
 
     const data = await callOpenAIViaGateway(env, {
-      model: 'gpt-5.4-mini',
+      tier: 'cheap',
       messages: [
         { role: 'system', content: UNTRUSTED_CONTENT_INSTRUCTION + 'You are a named entity recognition expert. Extract entities by type: people, organizations, locations, dates, money, events, products, and percentages. Exclude article authors from people. Normalize similar entities. Return ONLY valid JSON.' },
         { role: 'user', content: prompt }
@@ -2088,7 +2088,7 @@ ${wrapUntrustedContent(truncated)}`
 
   try {
     const data = await callOpenAIViaGateway(env, {
-      model: 'gpt-5.4-mini',
+      tier: 'cheap',
       messages: [
         { role: 'system', content: UNTRUSTED_CONTENT_INSTRUCTION + 'You are a professional summarizer.' },
         { role: 'user', content: prompt }
@@ -2165,7 +2165,7 @@ Return ONLY valid JSON in this exact format:
 
   try {
     const data = await callOpenAIViaGateway(env, {
-      model: 'gpt-5.4-mini',
+      tier: 'cheap',
       messages: [
         { role: 'system', content: UNTRUSTED_CONTENT_INSTRUCTION + 'You are a topic modeling expert using LDA principles. Identify distinct, coherent topics with accurate coverage distributions. Return ONLY valid JSON.' },
         { role: 'user', content: prompt }
@@ -2247,7 +2247,7 @@ Return ONLY valid JSON in this exact format:
 
   try {
     const data = await callOpenAIViaGateway(env, {
-      model: 'gpt-5.4-mini',
+      tier: 'cheap',
       messages: [
         { role: 'system', content: UNTRUSTED_CONTENT_INSTRUCTION + 'You are a keyphrase extraction expert. Identify important concepts, terminology, and themes using graph-based importance ranking. Return ONLY valid JSON.' },
         { role: 'user', content: prompt }
@@ -2382,7 +2382,7 @@ Return ONLY valid JSON in this exact format:
 
   try {
     const data = await callOpenAIViaGateway(env, {
-      model: 'gpt-5.4-mini',
+      tier: 'cheap',
       messages: [
         { role: 'system', content: UNTRUSTED_CONTENT_INSTRUCTION + 'You are an expert media analyst specializing in sentiment analysis, manipulation detection, and factual claim extraction. Analyze content objectively and return only valid JSON.' },
         { role: 'user', content: prompt }
@@ -2734,7 +2734,7 @@ Return ONLY valid JSON array:
 
   try {
     const data = await callOpenAIViaGateway(env, {
-      model: 'gpt-5.4-mini',
+      tier: 'cheap',
       messages: [
         {
           role: 'system',

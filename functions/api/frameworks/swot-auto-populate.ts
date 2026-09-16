@@ -10,6 +10,7 @@
 import { requireAuth } from '../_shared/auth-helpers'
 import { callOpenAIViaGateway, REFUSAL_BODY } from '../_shared/ai-gateway'
 import { JSON_HEADERS, optionsResponse } from '../_shared/api-utils'
+import { aiModel } from '../_shared/ai-models'
 
 interface Env {
   DB: D1Database
@@ -149,7 +150,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const data = await callOpenAIViaGateway(
       context.env,
       {
-        model: 'gpt-5.4-mini',
+        tier: 'cheap',
         messages: [
           {
             role: 'system',
@@ -247,7 +248,7 @@ Extract 3-5 items per SWOT quadrant. Focus on actionable insights.`
         contentCount: results.length,
         totalItems: strengths.length + weaknesses.length + opportunities.length + threats.length,
         processingTime: Date.now() - startTime,
-        model: 'gpt-5.4-mini'
+        model: aiModel('cheap', context.env)
       }
     }
 

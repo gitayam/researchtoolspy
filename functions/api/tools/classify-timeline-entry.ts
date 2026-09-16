@@ -39,7 +39,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const today = body.today || new Date().toISOString().slice(0, 10)
 
     const aiData = await callOpenAIViaGateway(context.env, {
-      model: 'gpt-5.4-mini',
+      tier: 'cheap',
       messages: [
         {
           role: 'system',

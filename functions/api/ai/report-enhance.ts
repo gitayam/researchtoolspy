@@ -674,7 +674,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
       try {
         const data = await callOpenAIViaGateway(context.env, {
-          model: 'gpt-5.4-nano', // Use faster model for structured extraction
+          tier: 'cheap',
           messages: [
             { role: 'system', content: `${ANALYST_SYSTEM_PREFIX}You are an analytical pattern recognition expert. Return ONLY valid JSON arrays, no other text.` },
             { role: 'user', content: insightsPrompt }
@@ -705,7 +705,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
       try {
         const data = await callOpenAIViaGateway(context.env, {
-          model: 'gpt-5.4-nano',
+          tier: 'cheap',
           messages: [
             { role: 'system', content: `${ANALYST_SYSTEM_PREFIX}You are a strategic advisor. Provide specific, actionable recommendations. Return ONLY valid JSON arrays.` },
             { role: 'user', content: recommendationsPrompt }

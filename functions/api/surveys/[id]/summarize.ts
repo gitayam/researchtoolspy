@@ -96,7 +96,7 @@ Analyze the submissions below and provide a structured analysis. Be concise and 
 }`
 
     const gptResponse = await callOpenAIViaGateway(env, {
-      model: 'gpt-5.4-mini',
+      tier: 'cheap',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt },

@@ -78,7 +78,7 @@ The question should:
 Return ONLY the question text, no other formatting.`
 
     const questionData = await callOpenAIViaGateway(context.env, {
-      model: 'gpt-5.4-mini',
+      tier: 'cheap',
       messages: [
         { role: 'system', content: `${ANALYST_SYSTEM_PREFIX}You are an intelligence analyst creating ACH questions.` },
         { role: 'user', content: questionPrompt }
@@ -104,7 +104,7 @@ Entities: ${analysis.entities ? Object.keys(safeJsonParse(analysis.entities, {})
 Return ONLY a JSON array of hypothesis strings: ["hypothesis 1", "hypothesis 2", ...]`
 
     const hypothesesData = await callOpenAIViaGateway(context.env, {
-      model: 'gpt-5.4-mini',
+      tier: 'cheap',
       messages: [
         { role: 'system', content: `${ANALYST_SYSTEM_PREFIX}You are an intelligence analyst using ACH methodology.` },
         { role: 'user', content: hypothesesPrompt }

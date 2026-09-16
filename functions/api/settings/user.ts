@@ -9,6 +9,7 @@
 
 import { requireAuth } from '../_shared/auth-helpers'
 import { JSON_HEADERS, optionsResponse } from '../_shared/api-utils'
+import { DEFAULT_MODELS } from '../_shared/ai-models'
 
 interface Env {
   DB: D1Database
@@ -61,7 +62,7 @@ const DEFAULT_SETTINGS: Omit<UserSettings, 'user_hash'> = {
     animation_enabled: true,
   },
   ai: {
-    default_model: 'gpt-5.4-mini',
+    default_model: DEFAULT_MODELS.cheap,
     temperature: 0.7,
     max_tokens: 2048,
     show_cost_tracking: true,

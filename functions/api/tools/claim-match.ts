@@ -1,6 +1,7 @@
 import { callOpenAIViaGateway, getOptimalCacheTTL } from '../_shared/ai-gateway'
 import { getUserFromRequest } from '../_shared/auth-helpers'
 import { JSON_HEADERS, optionsResponse } from '../_shared/api-utils'
+import { aiModel } from '../_shared/ai-models'
 
 interface Env {
   DB: D1Database
@@ -103,7 +104,7 @@ ${candidateList}
 Score each candidate's relevance to the claim and its broader topic.`
 
     const aiData = await callOpenAIViaGateway(context.env, {
-      model: 'gpt-5.4-mini',
+      tier: 'cheap',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt }
@@ -138,7 +139,7 @@ Score each candidate's relevance to the claim and its broader topic.`
     return new Response(JSON.stringify({
       claim: body.claim,
       results,
-      model: 'gpt-5.4-mini',
+      model: aiModel('cheap', context.env),
       cached: false
     }), {
       status: 200,

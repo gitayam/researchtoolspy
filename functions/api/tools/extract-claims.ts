@@ -20,6 +20,7 @@ import {
 import { fetchArchivePhSource, fetchWaybackSource } from '../_shared/archive-sources'
 import { parseSafeOutboundUrl, SafeFetchError, safeFetchText } from '../_shared/safe-fetch'
 import type { NormalizedScrapeError } from '../_shared/scrape-contract'
+import { aiModel } from '../_shared/ai-models'
 
 interface Env {
   DB: D1Database
@@ -459,7 +460,7 @@ Article text:
 ${truncated}`
 
   const aiData = await callOpenAIViaGateway(env, {
-    model: 'gpt-5.4-mini',
+    tier: 'cheap',
     messages: [
       {
         role: 'system',
@@ -623,7 +624,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       claims: analysis.claims || [],
       entities: analysis.entities || null,
       summary: analysis.summary || null,
-      model: 'gpt-5.4-mini',
+      model: aiModel('cheap', context.env),
       processing_ms: Date.now() - startTime
     }), {
       status: 200,

@@ -206,7 +206,7 @@ Return ONLY valid JSON array:
 
   try {
     const data = await callOpenAIViaGateway(env, {
-      model: 'gpt-5.4-mini',
+      tier: 'cheap',
       messages: [
         { role: 'system', content: ANALYST_SYSTEM_PREFIX + 'You are an expert at extracting factual claims from text. Return only valid JSON.' },
         { role: 'user', content: prompt }

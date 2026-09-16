@@ -132,7 +132,7 @@ Return ONLY valid JSON with this exact structure:
 
 
     const aiResponse = await callOpenAIViaGateway(env, {
-      model: 'gpt-5.4-mini',
+      tier: 'cheap',
       messages: [
         {
           role: 'system',

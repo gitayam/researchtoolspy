@@ -202,7 +202,7 @@ export async function analyzeClaimsForDeception(
 
   const analyzeBatch = async (batch: DeceptionClaimInput[]): Promise<DeceptionResult['claims']> => {
     const data = await callOpenAIViaGateway(env, {
-      model: 'gpt-5.4-mini',
+      tier: 'cheap',
       messages: [
         { role: 'system', content: systemContent },
         { role: 'user', content: buildPrompt(batch, contextText) }

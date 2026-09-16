@@ -129,7 +129,7 @@ Generate a JSON response with this structure:
 Focus on aspects that are actually present in the content. If a dimension has no relevant information, include 1-2 questions about why it might be absent or what related aspects to consider.`
 
     const gptData = await callOpenAIViaGateway(context.env, {
-      model: 'gpt-5.4-mini',
+      tier: 'cheap',
       messages: [
         {
           role: 'system',

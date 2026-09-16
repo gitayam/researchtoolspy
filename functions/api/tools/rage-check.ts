@@ -90,7 +90,7 @@ Return ONLY valid JSON in this structure:
 }`
 
     const aiData = await callOpenAIViaGateway(context.env, {
-      model: 'gpt-5.4-mini',
+      tier: 'cheap',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: `Analyze this content:\n\n${wrapUntrustedContent(content)}` }

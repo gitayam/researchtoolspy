@@ -157,7 +157,7 @@ Return a JSON object with this structure:
 For dimensions where the content provides no relevant information, return an empty array [].`
 
   const gptData = await callOpenAIViaGateway(env, {
-    model: 'gpt-5.4-mini',
+    tier: 'cheap',
     messages: [
       {
         role: 'system',

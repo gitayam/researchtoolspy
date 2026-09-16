@@ -203,7 +203,7 @@ Respond with ONLY the relationship type, no explanation.`
 
   try {
     const data = await callOpenAIViaGateway(env, {
-      model: 'gpt-5.4-nano',
+      tier: 'cheap',
       messages: [
         {
           role: 'system',
@@ -248,7 +248,7 @@ Provide a brief 1-2 sentence explanation of why this relationship type fits, bas
 
   try {
     const data = await callOpenAIViaGateway(env, {
-      model: 'gpt-5.4-nano',
+      tier: 'cheap',
       messages: [
         {
           role: 'system',

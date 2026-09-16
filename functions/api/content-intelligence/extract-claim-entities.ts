@@ -95,7 +95,7 @@ Return ONLY valid JSON with this exact structure:
     const response = await callOpenAIViaGateway(
       env,
       {
-        model: 'gpt-5.4-nano',
+        tier: 'cheap',
         messages: [{ role: 'user', content: prompt }],
         reasoning_effort: 'none',
         temperature: 0.3,

@@ -13,10 +13,16 @@
 declare type KVNamespace = any
 
 import { logEvent } from './event-log'
+import { normalizeChatRequest } from './ai-models'
 
 interface Env {
   AI_GATEWAY_ACCOUNT_ID?: string
   OPENAI_API_KEY?: string
+  /** Per-tier model overrides; see ai-models.ts. Absent means the tier default. */
+  AI_MODEL_CHEAP?: string
+  AI_MODEL_STANDARD?: string
+  AI_MODEL_PREMIUM?: string
+  AI_MIN_COMPLETION_TOKENS?: string
   OPENAI_ORGANIZATION?: string
   RATE_LIMIT?: KVNamespace
   CACHE?: KVNamespace // reused as the rate-limit counter store when RATE_LIMIT isn't bound
@@ -126,7 +132,7 @@ interface AIGatewayOptions {
  * @example
  * ```typescript
  * const response = await callOpenAIViaGateway(env, {
- *   model: 'gpt-5.4-mini',
+ *   tier: 'cheap',
  *   messages: [{role: 'user', content: 'Hello'}],
  *   reasoning_effort: 'none',
  *   temperature: 0.7
@@ -160,6 +166,15 @@ export async function callOpenAIViaGateway(
   // the prompt-injection guard belongs — a per-prompt approach would miss both
   // the sites nobody audited and every site added later.
   openaiRequest = applyInjectionGuard(openaiRequest)
+
+  // Same argument for the request shape. A caller asks for a `tier` and gets the
+  // model that tier resolves to; a caller that still names a retired model gets
+  // remapped with a warning rather than a 400. The shape rules for reasoning
+  // models are enforced here too, because two of the three are unforgiving and
+  // one is silent: `max_tokens` and a stray `temperature` are refused outright,
+  // and an output budget too small to cover the hidden reasoning phase returns
+  // an empty completion that every caller's `||` fallback quietly absorbs.
+  openaiRequest = normalizeChatRequest(openaiRequest, env)
 
   // Enforce rate limiting BEFORE spending an OpenAI call (cost/abuse protection).
   try {
