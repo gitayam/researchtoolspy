@@ -18,6 +18,16 @@
  * .dark overrides below would never apply; with it the utility emits
  * var(--color-x), which re-resolves per element and keeps dark mode working.
  */
+/* The `xs` breakpoint came from tailwind.config.js, which v4 ignores unless it
+ * is loaded with @config. Two COP tab labels are written `hidden xs:inline`, so
+ * with no xs variant to generate the override they were display:none at EVERY
+ * width -- the "Progress" and "Monitor" tabs have been unlabelled since the v4
+ * upgrade. Declared here rather than in the inline block below: a breakpoint has
+ * to resolve to a literal at build time to become a media query. */
+@theme {
+  --breakpoint-xs: 475px;
+}
+
 @theme inline {
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
