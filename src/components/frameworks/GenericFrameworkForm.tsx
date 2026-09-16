@@ -641,6 +641,31 @@ const SectionCard = memo(({
   )
 })
 
+/**
+ * What the auto-save writes to localStorage. Every field is optional because a
+ * draft is whatever the reader had typed at the time, and older drafts predate
+ * the framework-specific fields.
+ */
+interface SavedDraft {
+  timestamp: string
+  title?: string
+  description?: string
+  sectionData?: { [key: string]: FrameworkItem[] }
+  linked_behavior_id?: string
+  linked_behavior_title?: string
+  com_b_deficits?: Partial<ComBDeficits>
+  comb_assessments?: Record<string, { evidence_notes: string; supporting_evidence: string[]; facilitators: string[]; barriers: string[] }>
+  selected_interventions?: InterventionFunction[]
+  apease_assessment?: APEASEAssessment
+  mode_of_delivery?: ModeOfDelivery
+  selected_bcts?: string[]
+  location_context?: LocationContext
+  behavior_settings?: BehaviorSettings
+  temporal_context?: TemporalContext
+  eligibility?: EligibilityRequirements
+  complexity?: BehaviorComplexity
+}
+
 export function GenericFrameworkForm({
   initialData,
   mode,
@@ -656,6 +681,16 @@ export function GenericFrameworkForm({
   const { currentWorkspaceId } = useWorkspace()
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
+  // Kept apart from saveError on purpose. saveError renders a "Save Failed"
+  // banner that reassures the reader their work is auto-saved locally and
+  // offers to export it — exactly right when a save actually failed, and noise
+  // in front of "you haven't entered a title yet", which is not a failure and
+  // has nothing to recover from.
+  const [validationError, setValidationError] = useState<string | null>(null)
+  // Something the reader asked for did not work, but their analysis is intact.
+  const [actionError, setActionError] = useState<string | null>(null)
+  /** An unsaved draft found on mount, offered rather than forced. */
+  const [pendingDraft, setPendingDraft] = useState<SavedDraft | null>(null)
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
   const [title, setTitle] = useState(initialData?.title || '')
   const [description, setDescription] = useState(initialData?.description || '')
@@ -891,6 +926,14 @@ export function GenericFrameworkForm({
     const draftKey = `draft_${frameworkType}_new`
 
     const interval = setInterval(() => {
+      // An offered draft is not ours to overwrite. Without this, a reader who
+      // ignores the offer and starts typing loses the draft to the next
+      // auto-save — and the offer on screen would then point at data that no
+      // longer exists. The trade is that work typed while the offer is up is
+      // not auto-saved; resolving the offer either way re-enables it, and the
+      // offer says so.
+      if (pendingDraft) return
+
       // Only save if there's actual content
       const hasContent = title.trim() || description.trim() ||
         Object.values(sectionData).some(items => items.length > 0)
@@ -932,7 +975,7 @@ export function GenericFrameworkForm({
     }, 30000) // 30 seconds
 
     return () => clearInterval(interval)
-  }, [title, description, sectionData, frameworkType, mode])
+  }, [title, description, sectionData, frameworkType, mode, pendingDraft])
 
   // Restore draft on mount if available
   // Using a ref to ensure this only runs once
@@ -945,7 +988,7 @@ export function GenericFrameworkForm({
 
       if (savedDraft) {
         try {
-          const draft = JSON.parse(savedDraft)
+          const draft = JSON.parse(savedDraft) as SavedDraft
           const draftAge = Date.now() - new Date(draft.timestamp).getTime()
 
           // Only restore if draft is less than 24 hours old
@@ -956,34 +999,14 @@ export function GenericFrameworkForm({
                               Object.values(draft.sectionData || {}).some((items: any) => items.length > 0)
 
             if (hasContent) {
-              const draftDate = new Date(draft.timestamp).toLocaleString()
-              const message = `You have an unsaved draft from ${draftDate}.\n\nWould you like to restore it and continue where you left off?\n\nClick OK to restore, or Cancel to start fresh.`
-              if (confirm(message)) {
-                setTitle(draft.title || '')
-                setDescription(draft.description || '')
-                setSectionData(draft.sectionData || {})
-                // Restore framework-specific state if present in the draft
-                if (frameworkType === 'comb-analysis') {
-                  if (draft.linked_behavior_id) setLinkedBehaviorId(draft.linked_behavior_id)
-                  if (draft.linked_behavior_title) setLinkedBehaviorTitle(draft.linked_behavior_title)
-                  if (draft.com_b_deficits) setComBDeficits((prev) => ({ ...prev, ...draft.com_b_deficits }))
-                  if (draft.comb_assessments) setComBAssessments(draft.comb_assessments)
-                  if (Array.isArray(draft.selected_interventions)) setSelectedInterventions(draft.selected_interventions)
-                  if (draft.apease_assessment) setApeaseAssessment(draft.apease_assessment)
-                  if (draft.mode_of_delivery) setModeOfDelivery(draft.mode_of_delivery)
-                  if (Array.isArray(draft.selected_bcts)) setSelectedBcts(draft.selected_bcts)
-                }
-                if (frameworkType === 'behavior') {
-                  if (draft.location_context) setLocationContext(draft.location_context)
-                  if (draft.behavior_settings) setBehaviorSettings(draft.behavior_settings)
-                  if (draft.temporal_context) setTemporalContext(draft.temporal_context)
-                  if (draft.eligibility) setEligibility(draft.eligibility)
-                  if (draft.complexity) setComplexity(draft.complexity)
-                }
-              } else {
-                // User declined, clean up the draft
-                localStorage.removeItem(draftKey)
-              }
+              // Offered in the page, not through confirm(). Two reasons. The
+              // dialog fired on mount, so the reader was asked about a draft
+              // before they had seen the page it belonged to. And Cancel deleted
+              // the draft — as does Escape, which confirm() treats as Cancel —
+              // so dismissing a dialog you had not read destroyed unsaved work
+              // with no way back. Nothing is removed here; the draft survives
+              // until the reader restores or discards it deliberately.
+              setPendingDraft(draft)
             } else {
               // Empty draft, just remove it
               localStorage.removeItem(draftKey)
@@ -1001,6 +1024,36 @@ export function GenericFrameworkForm({
       draftRestored.current = true
     }
   }, [mode, frameworkType, initialData])
+
+  const restoreDraft = (draft: SavedDraft) => {
+    setTitle(draft.title || '')
+    setDescription(draft.description || '')
+    setSectionData(draft.sectionData || {})
+    // Framework-specific state, when the draft carried it
+    if (frameworkType === 'comb-analysis') {
+      if (draft.linked_behavior_id) setLinkedBehaviorId(draft.linked_behavior_id)
+      if (draft.linked_behavior_title) setLinkedBehaviorTitle(draft.linked_behavior_title)
+      if (draft.com_b_deficits) setComBDeficits((prev) => ({ ...prev, ...draft.com_b_deficits }))
+      if (draft.comb_assessments) setComBAssessments(draft.comb_assessments)
+      if (Array.isArray(draft.selected_interventions)) setSelectedInterventions(draft.selected_interventions)
+      if (draft.apease_assessment) setApeaseAssessment(draft.apease_assessment)
+      if (draft.mode_of_delivery) setModeOfDelivery(draft.mode_of_delivery)
+      if (Array.isArray(draft.selected_bcts)) setSelectedBcts(draft.selected_bcts)
+    }
+    if (frameworkType === 'behavior') {
+      if (draft.location_context) setLocationContext(draft.location_context)
+      if (draft.behavior_settings) setBehaviorSettings(draft.behavior_settings)
+      if (draft.temporal_context) setTemporalContext(draft.temporal_context)
+      if (draft.eligibility) setEligibility(draft.eligibility)
+      if (draft.complexity) setComplexity(draft.complexity)
+    }
+    setPendingDraft(null)
+  }
+
+  const discardDraft = () => {
+    localStorage.removeItem(`draft_${frameworkType}_new`)
+    setPendingDraft(null)
+  }
 
   const loadLinkedEvidence = async () => {
     if (!frameworkId) return
@@ -1122,7 +1175,7 @@ export function GenericFrameworkForm({
       await loadLinkedEvidence()
     } catch (error) {
       console.error('Failed to link evidence:', error)
-      alert('Failed to link evidence. Please try again.')
+      setActionError('Could not link that evidence. Your analysis is unchanged — try again.')
     }
   }
 
@@ -1155,7 +1208,7 @@ export function GenericFrameworkForm({
       }))
     } catch (error) {
       console.error('Failed to unlink evidence:', error)
-      alert('Failed to unlink evidence. Please try again.')
+      setActionError('Could not unlink that evidence. Your analysis is unchanged — try again.')
     }
   }
 
@@ -1374,7 +1427,7 @@ export function GenericFrameworkForm({
       setTitle(generatedTitle)
     } catch (error) {
       console.error('Failed to generate title:', error)
-      alert('Failed to generate title. Please try again.')
+      setActionError('Could not generate a title. Write one yourself, or try again.')
     } finally {
       setGeneratingTitle(false)
     }
@@ -1422,7 +1475,7 @@ export function GenericFrameworkForm({
       })
     } catch (error) {
       console.error('Failed to generate questions:', error)
-      alert('Failed to generate follow-up questions. Please try again.')
+      setActionError('Could not generate follow-up questions. Your answers are unchanged — try again.')
     } finally {
       setGeneratingQuestions(false)
     }
@@ -1692,9 +1745,9 @@ export function GenericFrameworkForm({
   }
 
   const handleSave = async () => {
+    setValidationError(null)
     if (!title.trim()) {
-      setSaveError('Please enter a title for your analysis')
-      alert(`Please enter a title for your ${frameworkTitle} analysis`)
+      setValidationError(`Give your ${frameworkTitle} analysis a title before saving.`)
       return
     }
 
@@ -1712,23 +1765,20 @@ export function GenericFrameworkForm({
       hasData = hasBasicInfo || sections.some(section => sectionData[section.key]?.length > 0)
 
       if (!hasData) {
-        setSaveError('Please add a description or fill in basic behavior information')
-        alert('Please add a description or fill in at least one field (location, settings, frequency, etc.)')
+        setValidationError('Add a description, or fill in at least one field — location, settings, frequency or complexity.')
         return
       }
     } else if (frameworkType === 'pmesii-pt') {
       // For PMESII-PT - require country and at least some content
       if (!pmesiiLocation.country.trim()) {
-        setSaveError('Country is required for PMESII-PT analysis')
-        alert('Please specify a country for your PMESII-PT analysis. Location context is essential for this framework.')
+        setValidationError('PMESII-PT needs a country. The whole framework reads a place, so it cannot be assessed without one.')
         return
       }
 
       hasData = !!description.trim() || sections.some(section => sectionData[section.key]?.length > 0)
 
       if (!hasData) {
-        setSaveError('Please add a description or at least one item to any section')
-        alert('Please add a description or at least one item before saving')
+        setValidationError('Add a description, or at least one item in any section.')
         return
       }
     } else {
@@ -1736,8 +1786,7 @@ export function GenericFrameworkForm({
       hasData = !!description.trim() || sections.some(section => sectionData[section.key]?.length > 0)
 
       if (!hasData) {
-        setSaveError('Please add a description or at least one item to any section')
-        alert('Please add a description or at least one item before saving')
+        setValidationError('Add a description, or at least one item in any section.')
         return
       }
 
@@ -1745,8 +1794,7 @@ export function GenericFrameworkForm({
       // See docs/frameworks/BEHAVIOR_FRAMEWORK_IMPROVEMENT_PLAN.md. Canon: irregularpedia.org/general/behavior-analysis/
       if (frameworkType === 'comb-analysis') {
         if (!linkedBehaviorId || !linkedBehaviorTitle) {
-          setSaveError('A COM-B Analysis must be linked to a Behavior Analysis. Please select or create one.')
-          alert('A COM-B Analysis must be linked to a Behavior Analysis. Please select or create one.')
+          setValidationError('A COM-B Analysis has to be linked to a Behavior Analysis. Select an existing one or create it first.')
           return
         }
       }
@@ -1754,6 +1802,7 @@ export function GenericFrameworkForm({
 
     setSaving(true)
     setSaveError(null)
+    setValidationError(null)
 
     try {
       const data: GenericFrameworkData = {
@@ -1827,8 +1876,9 @@ export function GenericFrameworkForm({
     } catch (error) {
       console.error(`Failed to save ${frameworkTitle} analysis:`, error)
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      // No alert: the banner below already says this, names the error, tells the
+      // reader their work is auto-saved locally, and offers to export it.
       setSaveError(`Failed to save: ${errorMessage}`)
-      alert(`Failed to save ${frameworkTitle} analysis. ${errorMessage}\n\nYour data has been auto-saved locally. Please try again or contact support if the issue persists.`)
     } finally {
       setSaving(false)
     }
@@ -1900,6 +1950,59 @@ export function GenericFrameworkForm({
           </Button>
         </div>
       </div>
+
+      {pendingDraft && (
+        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20">
+          <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+            You have an unsaved draft from {new Date(pendingDraft.timestamp).toLocaleString()}
+          </p>
+          <p className="mt-1 text-sm text-blue-800 dark:text-blue-200">
+            Restore it to pick up where you left off, or discard it and start fresh. It stays
+            here until you choose — and until then, nothing you type is auto-saved over it.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button type="button" size="sm" onClick={() => restoreDraft(pendingDraft)}>
+              Restore draft
+            </Button>
+            <Button type="button" size="sm" variant="outline" onClick={discardDraft}>
+              Discard it
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Not yet saveable. Deliberately quieter than the failure banner below:
+          nothing has gone wrong and there is nothing to recover, so it names
+          what is missing and stops there. */}
+      {validationError && (
+        <div
+          className="rounded-lg border border-amber-300 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-900/20"
+          role="alert"
+        >
+          <p className="text-sm text-amber-900 dark:text-amber-100">{validationError}</p>
+        </div>
+      )}
+
+      {/* An action failed, but the analysis is intact — dismissible, because
+          the reader may well carry on without retrying it. */}
+      {actionError && (
+        <div
+          className="flex items-start justify-between gap-3 rounded-lg border border-red-200 bg-red-50 p-3 dark:border-red-800 dark:bg-red-900/20"
+          role="alert"
+        >
+          <p className="text-sm text-red-800 dark:text-red-200">{actionError}</p>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="shrink-0"
+            onClick={() => setActionError(null)}
+            aria-label="Dismiss"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
 
       {/* Error Alert */}
       {saveError && (
