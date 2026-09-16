@@ -21,15 +21,31 @@ function quoteIdentifier(value: string): string {
 
 async function transferGuestData(db: D1Database, guestUserId: number, authUserId: number) {
   const schema = await db.prepare(
-    `SELECT name, sql FROM sqlite_master WHERE type = 'table' AND sql IS NOT NULL`
-  ).all<{ name: string; sql: string }>()
+    `SELECT name FROM sqlite_master WHERE type = 'table' AND sql IS NOT NULL`
+  ).all<{ name: string }>()
 
   const statements: D1PreparedStatement[] = []
   for (const row of schema.results || []) {
-    if (!row?.name || !row.sql || SPECIAL_TABLES.has(row.name) || row.name.startsWith('sqlite_')) continue
+    if (!row?.name || SPECIAL_TABLES.has(row.name) || row.name.startsWith('sqlite_')) continue
     const table = quoteIdentifier(row.name)
+
+    // Ask SQLite which columns the table actually has. This used to regex the
+    // table's DDL text for each column name, which matches anywhere the string
+    // appears -- including places that are not a column of this table at all:
+    //   claim_adjustments   `adjusted_by TEXT NOT NULL, -- user_id`
+    //   packet_claims       `assigned_to TEXT, -- user_id who's investigating`
+    //   integration_clients `REFERENCES investigations(id, workspace_id, created_by)`
+    // Three UPDATEs against non-existent columns went into the batch, so
+    // db.batch() threw, the whole conversion answered 500, and the workspace
+    // ownership transfer below never ran. That is why a guest who signed up kept
+    // sending a workspace owned by their old guest principal and got 403 on
+    // every write.
+    const info = await db.prepare('SELECT name FROM pragma_table_info(?)')
+      .bind(row.name).all<{ name: string }>()
+    const columns = new Set((info.results || []).map((col) => String(col.name)))
+
     for (const column of USER_REFERENCE_COLUMNS) {
-      if (!new RegExp(`\\b${column}\\b`, 'i').test(row.sql)) continue
+      if (!columns.has(column)) continue
       statements.push(
         db.prepare(`UPDATE OR IGNORE ${table} SET ${quoteIdentifier(column)} = ? WHERE ${quoteIdentifier(column)} = ?`)
           .bind(authUserId, guestUserId)
