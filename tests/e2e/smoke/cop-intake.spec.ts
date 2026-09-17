@@ -72,11 +72,11 @@ const MOCK_SUBMISSIONS = {
 
 test.describe('COP Public Intake Form @smoke', () => {
   test.beforeEach(async ({ page }) => {
-    await page.route(`**/api/cop/public/intake/${MOCK_TOKEN}`, async (route) => {
+    await page.route(`**/api/surveys/public/${MOCK_TOKEN}`, async (route) => {
       await route.fulfill({ json: MOCK_FORM_SCHEMA })
     })
 
-    await page.route(`**/api/cop/public/intake/${MOCK_TOKEN}/submit`, async (route) => {
+    await page.route(`**/api/surveys/public/${MOCK_TOKEN}/submit`, async (route) => {
       await route.fulfill({ status: 201, json: { id: 'sub-new-001', message: 'Submission received. Thank you.' } })
     })
   })
@@ -86,6 +86,15 @@ test.describe('COP Public Intake Form @smoke', () => {
     await page.waitForLoadState('networkidle')
 
     await expect(page.getByText('Report an Incident')).toBeVisible()
+
+    // The description is not shown outright — it sits behind a collapsed
+    // "Situation Context" disclosure, so the form itself stays the first thing
+    // a reporter sees. Assert both halves: closed by default, and revealed when
+    // asked for.
+    const context = page.getByRole('button', { name: /Situation Context/ })
+    await expect(context).toHaveAttribute('aria-expanded', 'false')
+    await expect(page.getByText('Please provide details about the incident')).toBeHidden()
+    await context.click()
     await expect(page.getByText('Please provide details about the incident')).toBeVisible()
   })
 
@@ -138,7 +147,12 @@ test.describe('COP Public Intake Form @smoke', () => {
     // Submit
     await page.getByRole('button', { name: /Submit/i }).click()
 
-    await expect(page.getByText('Submission received. Thank you.')).toBeVisible({ timeout: 5000 })
+    // The confirmation is the form's own success_message, or this default —
+    // never the submit response's `message`, which nothing reads.
+    await expect(page.getByRole('heading', { name: 'Thank you' })).toBeVisible({ timeout: 5000 })
+    await expect(
+      page.getByText('Your submission has been received and will be reviewed by the research team.')
+    ).toBeVisible()
   })
 
   test('name field is always optional', async ({ page }) => {
@@ -153,7 +167,7 @@ test.describe('COP Public Intake Form @smoke', () => {
 
 test.describe('COP Public Intake - Required Fields @smoke', () => {
   test.beforeEach(async ({ page }) => {
-    await page.route(`**/api/cop/public/intake/${MOCK_TOKEN}`, async (route) => {
+    await page.route(`**/api/surveys/public/${MOCK_TOKEN}`, async (route) => {
       await route.fulfill({ json: MOCK_FORM_WITH_REQUIREMENTS })
     })
   })
@@ -177,18 +191,20 @@ test.describe('COP Public Intake - Required Fields @smoke', () => {
 
 test.describe('COP Public Intake - Closed Form @smoke', () => {
   test('shows error for closed form', async ({ page }) => {
-    await page.route(`**/api/cop/public/intake/${MOCK_TOKEN}`, async (route) => {
+    await page.route(`**/api/surveys/public/${MOCK_TOKEN}`, async (route) => {
       await route.fulfill({ status: 403, json: { error: 'This form is not currently accepting submissions' } })
     })
 
     await page.goto(`/public/intake/${MOCK_TOKEN}`)
     await page.waitForLoadState('networkidle')
 
-    await expect(page.getByText(/form closed|not found/i).first()).toBeVisible({ timeout: 10000 })
+    await expect(
+      page.getByText('This form is not currently accepting submissions')
+    ).toBeVisible({ timeout: 10000 })
   })
 
   test('shows error for invalid token', async ({ page }) => {
-    await page.route('**/api/cop/public/intake/bad-token', async (route) => {
+    await page.route('**/api/surveys/public/bad-token', async (route) => {
       await route.fulfill({ status: 404, json: { error: 'Form not found' } })
     })
 

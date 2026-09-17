@@ -1,4 +1,5 @@
 import { test, expect } from '../fixtures/base-test'
+import { skipWithoutApi } from '../helpers/requires-backend'
 import {
   TEMPLATES,
   VALID_LOCATIONS,
@@ -43,6 +44,7 @@ const NEW_WORKSPACE_LABELS: Record<string, string> = {
 // ---------------------------------------------------------------------------
 
 test.describe('COP Wizard @smoke', () => {
+  test.beforeEach(skipWithoutApi)
   test.beforeEach(async ({ copListPage }) => {
     await copListPage.goto()
     await copListPage.waitForLoad()
@@ -120,6 +122,7 @@ test.describe('COP Wizard @smoke', () => {
 // ---------------------------------------------------------------------------
 
 test.describe('COP Wizard - Event Analysis', () => {
+  test.beforeEach(skipWithoutApi)
   test.beforeEach(async ({ copListPage }) => {
     await copListPage.goto()
     await copListPage.waitForLoad()
@@ -170,6 +173,7 @@ test.describe('COP Wizard - Event Analysis', () => {
 })
 
 test.describe('COP Wizard - Validation', () => {
+  test.beforeEach(skipWithoutApi)
   test.beforeEach(async ({ copListPage }) => {
     await copListPage.goto()
     await copListPage.waitForLoad()
@@ -215,6 +219,7 @@ test.describe('COP Wizard - Validation', () => {
 })
 
 test.describe('COP Wizard - Navigation', () => {
+  test.beforeEach(skipWithoutApi)
   test.beforeEach(async ({ copListPage }) => {
     await copListPage.goto()
     await copListPage.waitForLoad()
@@ -289,6 +294,7 @@ test.describe('COP Wizard - Navigation', () => {
 })
 
 test.describe('COP Wizard - Key Questions', () => {
+  test.beforeEach(skipWithoutApi)
   test.beforeEach(async ({ copListPage, copWizardPage }) => {
     await copListPage.goto()
     await copListPage.waitForLoad()
@@ -332,6 +338,7 @@ test.describe('COP Wizard - Key Questions', () => {
 })
 
 test.describe('COP Wizard - Progress Bar', () => {
+  test.beforeEach(skipWithoutApi)
   test.beforeEach(async ({ copListPage }) => {
     await copListPage.goto()
     await copListPage.waitForLoad()
