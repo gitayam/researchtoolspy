@@ -14,6 +14,7 @@
 // binding or a Durable Object (strongly consistent) — tracked as a follow-up.
 // Fail-open throughout: if CACHE is unbound or KV errors, the request proceeds.
 
+import { withAuthDbFailureTracking, type AuthDbFailureSlot } from './_shared/auth-helpers'
 import {
   recordProductApiRequest,
   type ProductAnalyticsEnv,
@@ -357,8 +358,12 @@ export async function onRequest(context: MiddlewareContext) {
   // Everything else (including Responses thrown by requireAuth) is re-thrown so
   // the Pages runtime handles it exactly as before.
   let response: Response
+  const authSlot: AuthDbFailureSlot = {}
   try {
-    response = await next()
+    // Opens the async context the auth helpers report a datastore failure into.
+    // It has to wrap next() rather than sit beside it: the handler, and the
+    // auth call inside it, must run within the context to reach the slot.
+    response = await withAuthDbFailureTracking(authSlot, () => next())
   } catch (err: unknown) {
     const authErr = err as { isAuthDbError?: boolean; name?: string } | null | undefined
     if (authErr?.isAuthDbError === true || authErr?.name === 'AuthDbError') {
@@ -372,6 +377,32 @@ export async function onRequest(context: MiddlewareContext) {
     }
     await recordResponseStatus(err instanceof Response ? err.status : 500)
     throw err
+  }
+
+  // The handler returned rather than threw — but it may have returned only
+  // because it swallowed an AuthDbError in its own catch. 242 of the 248
+  // endpoints that resolve auth do exactly that, which is why the branch above
+  // almost never fires and why a D1 failure reached readers as "Failed to list
+  // COP sessions" instead of a retryable 503.
+  //
+  // Correct only the statuses that misreport a datastore failure:
+  //   - 5xx: the handler's generic "something went wrong", which is this.
+  //   - 401: the spurious auth failure the AuthDbError contract exists to
+  //     prevent. A reader gets bounced to a login screen over a DB hiccup.
+  // A handler that recovered and returned 2xx, or that made a real
+  // authorization decision (403) or validation decision (4xx), is left alone —
+  // the marker says auth resolution hit trouble, not that the response is wrong.
+  const authFailure = authSlot.error
+  if (authFailure && (response.status >= 500 || response.status === 401)) {
+    console.warn(`[Auth] ${request.method} ${new URL(request.url).pathname} returned `
+      + `${response.status} after ${authFailure.message}; reporting it as retryable`)
+    return observeResponse(new Response(
+      JSON.stringify({ error: 'Service temporarily unavailable, please retry.', retryable: true }),
+      {
+        status: 503,
+        headers: { 'Content-Type': 'application/json', 'Retry-After': '2', ...corsHeaders },
+      }
+    ))
   }
 
   // Add CORS headers to response

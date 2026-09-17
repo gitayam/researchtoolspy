@@ -5,6 +5,7 @@
  * Supports both hash-based auth and session-based auth
  */
 
+import { AsyncLocalStorage } from 'node:async_hooks'
 import { verifyToken } from '../../utils/jwt'
 import { isReservedIntegrationAuthorization } from './service-auth'
 
@@ -30,6 +31,53 @@ export class AuthDbError extends Error {
     this.name = 'AuthDbError'
     this.site = site
   }
+}
+
+/**
+ * Whether auth resolution hit a datastore failure during the current request.
+ *
+ * `AuthDbError` is meant to reach `_middleware.ts` and become a retryable 503.
+ * It almost never does: 242 of the 248 endpoints that resolve auth wrap their
+ * whole body in a `try/catch` and return their own 500, which swallows the
+ * error before the middleware can see it. That is how a D1 failure while
+ * resolving a hash surfaced as "Failed to list COP sessions" — a message naming
+ * a subsystem that had nothing to do with it, on an endpoint that was fine.
+ *
+ * Rather than edit 242 catch blocks, the failure is recorded in async context
+ * that the middleware opens around `next()`, and read back after the handler
+ * returns.
+ *
+ * It is AsyncLocalStorage rather than a WeakMap keyed by the Request, which was
+ * the first attempt: Pages' `next()` does not hand the downstream handler the
+ * same Request instance the middleware holds, so the entry was written against
+ * one object and looked up against another. That failed silently — the marker
+ * was simply never found — and only showed up when tested against the real
+ * runtime rather than a hand-built context.
+ *
+ * A marker is not a substitute for handling the error where it happens. An
+ * endpoint that wants to react to it should still catch `AuthDbError`. This
+ * makes the fleet-wide default correct instead of the fleet-wide default wrong.
+ */
+export interface AuthDbFailureSlot { error?: AuthDbError }
+
+const authDbFailureContext = new AsyncLocalStorage<AuthDbFailureSlot>()
+
+/**
+ * Run `fn` with a slot the auth helpers report into.
+ *
+ * The caller owns the slot and reads it afterwards, rather than asking for the
+ * failure once `run()` has returned — outside that scope there is no store, so
+ * a getter would always answer undefined.
+ */
+export function withAuthDbFailureTracking<T>(slot: AuthDbFailureSlot, fn: () => Promise<T>): Promise<T> {
+  return authDbFailureContext.run(slot, fn)
+}
+
+function recordAuthDbFailure(error: AuthDbError): void {
+  const slot = authDbFailureContext.getStore()
+  // Absent outside a tracked request — a cron, a test calling the helper
+  // directly. Recording is best-effort; the throw is the contract.
+  if (slot) slot.error = error
 }
 
 export interface Env {
@@ -244,6 +292,21 @@ async function ensureGuestWorkspace(db: D1Database, userId: number, workspaceId:
  * @returns User ID (number) or null if not authenticated
  */
 export async function getUserFromRequest(
+  request: Request,
+  env: Env
+): Promise<number | null> {
+  try {
+    return await resolveUserFromRequest(request, env)
+  } catch (error) {
+    // Note it against the request, then re-throw untouched: endpoints that
+    // already handle AuthDbError keep their current behaviour, and the ones
+    // that swallow it get corrected by the middleware instead.
+    if (error instanceof AuthDbError) recordAuthDbFailure(error)
+    throw error
+  }
+}
+
+async function resolveUserFromRequest(
   request: Request,
   env: Env
 ): Promise<number | null> {
