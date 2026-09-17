@@ -194,3 +194,38 @@ export function noteTitle(body: string, max = 80): string {
   const lastSpace = cut.lastIndexOf(' ')
   return `${(lastSpace > max * 0.6 ? cut.slice(0, lastSpace) : cut).trimEnd()}…`
 }
+
+/**
+ * Where each kind of capture lands, by panel id.
+ *
+ * Kept beside the routing because the two must agree: a capture that posts to
+ * the tasks endpoint has to send the analyst to the task board, and the way
+ * those drift apart is by living in different files. The ids are the same ones
+ * `CopPanelExpander` writes as `data-panel`.
+ *
+ * Notes and analysed links both land in the evidence feed, which is one panel —
+ * that is the product's shape, not an oversight.
+ */
+export const PANEL_FOR_KIND: Record<CaptureKind, string> = {
+  rfi: 'rfi',
+  nai: 'map',
+  task: 'tasks',
+  timeline: 'timeline',
+  hypothesis: 'analysis',
+  survey: 'submissions',
+  note: 'evidence',
+  url: 'evidence',
+}
+
+/** What the jump link says. */
+export const PANEL_LABEL_FOR_KIND: Record<CaptureKind, string> = {
+  rfi: 'Key Questions & RFIs',
+  nai: 'Map',
+  task: 'Task Board',
+  timeline: 'Timeline',
+  hypothesis: 'Analysis & Hypotheses',
+  survey: 'Submissions',
+  note: 'Evidence feed',
+  url: 'Evidence feed',
+}
+

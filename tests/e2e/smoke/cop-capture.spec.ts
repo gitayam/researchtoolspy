@@ -1,5 +1,7 @@
 import { test, expect } from '@playwright/test'
-import { noteTitle, parseCapture } from '../../../src/lib/cop-capture'
+import { noteTitle, parseCapture, PANEL_FOR_KIND, PANEL_LABEL_FOR_KIND } from '../../../src/lib/cop-capture'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 
 /**
  * Where a captured line goes.
@@ -147,5 +149,39 @@ test.describe('COP capture routing @smoke', () => {
     expect(parseCapture('taskings for tonight are unchanged')).toMatchObject({ kind: 'note' })
     expect(parseCapture('time on target was 0840')).toMatchObject({ kind: 'note' })
     expect(parseCapture('naive assessment of the crossing')).toMatchObject({ kind: 'note' })
+  })
+
+  test('every kind knows which panel it landed in', () => {
+    const kinds = ['rfi', 'nai', 'task', 'timeline', 'hypothesis', 'survey', 'note', 'url'] as const
+    for (const kind of kinds) {
+      expect(PANEL_FOR_KIND[kind], kind).toBeTruthy()
+      expect(PANEL_LABEL_FOR_KIND[kind], kind).toBeTruthy()
+    }
+  })
+
+  test('every panel it points at actually exists in the workspace', () => {
+    // The mapping is the half that rots silently: renaming a panel id leaves the
+    // capture log pointing at a selector that matches nothing, and the click
+    // just does nothing. Checked against the page's own panel definitions.
+    const page = readFileSync(resolve(process.cwd(), 'src/pages/CopWorkspacePage.tsx'), 'utf8')
+    for (const [kind, panelId] of Object.entries(PANEL_FOR_KIND)) {
+      // Panels are declared as `id: 'tasks',` or, for the map, `id="map"`.
+      const declared = page.includes(`id: '${panelId}'`) || page.includes(`id="${panelId}"`)
+      expect(declared, `${kind} -> [data-panel="${panelId}"]`).toBe(true)
+    }
+  })
+
+  test('the routing target and the jump target agree', () => {
+    // A capture that posts to the tasks endpoint has to send the analyst to the
+    // task board. These drift apart by living in different files, so they live
+    // in the same one and this asserts they still match.
+    expect(PANEL_FOR_KIND[parseCapture('task: x')!.kind]).toBe('tasks')
+    expect(PANEL_FOR_KIND[parseCapture('rfi: x')!.kind]).toBe('rfi')
+    expect(PANEL_FOR_KIND[parseCapture('t: x')!.kind]).toBe('timeline')
+    expect(PANEL_FOR_KIND[parseCapture('nai: 34.05,-118.24 x')!.kind]).toBe('map')
+    expect(PANEL_FOR_KIND[parseCapture('hyp: x')!.kind]).toBe('analysis')
+    // A note and an analysed link both land in the evidence feed — one panel.
+    expect(PANEL_FOR_KIND[parseCapture('plain note')!.kind]).toBe('evidence')
+    expect(PANEL_FOR_KIND[parseCapture('https://example.com')!.kind]).toBe('evidence')
   })
 })

@@ -517,18 +517,40 @@ export default function CopWorkspacePage() {
     setPinPlacementMode(true)
   }, [])
 
-  const handleGoToBlocker = useCallback(
-    (rfiId: string) => {
-      // Switch to progress mode where RFIs are visible, then scroll to the RFI panel
+  /**
+   * Bring a panel into view, whatever state the workspace is in.
+   *
+   * Generalised from the blocker jump, which only ever went to RFIs. Two things
+   * it has to handle that a bare scrollIntoView does not: the panels only exist
+   * in progress mode, and a panel the analyst has hidden cannot be scrolled to
+   * at all — without revealing it first the click would do nothing and look
+   * like a broken link.
+   *
+   * The element is polled for rather than read after one frame, because both of
+   * those are state changes and the panel may not have rendered yet.
+   */
+  const handleGoToPanel = useCallback(
+    (panelId: string) => {
       setMode('progress')
-      requestAnimationFrame(() => {
-        const rfiPanel = document.querySelector('[data-panel="rfi"]')
-        if (rfiPanel) {
-          rfiPanel.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      if (panelLayout.hiddenPanels.some((panel) => panel.id === panelId)) panelLayout.toggleVisible(panelId)
+
+      const deadline = Date.now() + 1000
+      const findAndScroll = () => {
+        const el = document.querySelector(`[data-panel="${panelId}"]`)
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+          return
         }
-      })
+        if (Date.now() < deadline) requestAnimationFrame(findAndScroll)
+      }
+      requestAnimationFrame(findAndScroll)
     },
-    [],
+    [panelLayout],
+  )
+
+  const handleGoToBlocker = useCallback(
+    (_rfiId: string) => handleGoToPanel('rfi'),
+    [handleGoToPanel],
   )
 
   const handleLocationDetected = useCallback(
@@ -770,6 +792,7 @@ export default function CopWorkspacePage() {
           // picture that is long enough to doubt whether the entry landed, so a
           // capture refreshes them at once.
           onSuccess={() => refetchStats()}
+          onJumpToPanel={handleGoToPanel}
         />
 
         {/* ── Panel grid ──────────────────────────────────────────── */}

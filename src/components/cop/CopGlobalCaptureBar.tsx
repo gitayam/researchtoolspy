@@ -3,7 +3,7 @@ import { getCopHeaders } from '@/lib/cop-auth'
 import { Link, Brain, Loader2, Sparkles, MapPin, ClipboardList, HelpCircle, ListChecks, Clock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { noteTitle, parseCapture, type CaptureKind } from '@/lib/cop-capture'
+import { noteTitle, parseCapture, PANEL_FOR_KIND, PANEL_LABEL_FOR_KIND, type CaptureKind } from '@/lib/cop-capture'
 
 interface CopGlobalCaptureBarProps {
   sessionId: string
@@ -15,10 +15,12 @@ interface CopGlobalCaptureBarProps {
    *  exist -- so every write from this panel was refused. */
   workspaceId?: string
   onSuccess?: (type: CaptureKind) => void
+  /** Bring the panel a capture landed in into view. */
+  onJumpToPanel?: (panelId: string) => void
   onLocationDetected?: (location: string, evidenceId: string) => void
 }
 
-export default function CopGlobalCaptureBar({ sessionId, workspaceId, onSuccess, onLocationDetected }: CopGlobalCaptureBarProps) {
+export default function CopGlobalCaptureBar({ sessionId, workspaceId, onSuccess, onLocationDetected, onJumpToPanel }: CopGlobalCaptureBarProps) {
   const copWorkspaceId = workspaceId ?? sessionId
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -356,22 +358,41 @@ export default function CopGlobalCaptureBar({ sessionId, workspaceId, onSuccess,
         {captured.length > 0 && (
           <ul className="ml-10 space-y-0.5" aria-label="Recently captured">
             {captured.map(entry => (
-              <li key={entry.at} className="flex items-center gap-2 text-[10px] text-gray-500 dark:text-gray-400">
-                <span className={cn(
-                  'font-semibold uppercase tracking-tight',
-                  entry.kind === 'rfi' && 'text-amber-600 dark:text-amber-400',
-                  entry.kind === 'nai' && 'text-rose-600 dark:text-rose-400',
-                  entry.kind === 'task' && 'text-indigo-600 dark:text-indigo-400',
-                  entry.kind === 'timeline' && 'text-sky-600 dark:text-sky-400',
-                  entry.kind === 'hypothesis' && 'text-emerald-600 dark:text-emerald-400',
-                  entry.kind === 'survey' && 'text-cyan-600 dark:text-cyan-400',
-                  entry.kind === 'url' && 'text-blue-600 dark:text-blue-400',
-                  entry.kind === 'note' && 'text-purple-600 dark:text-purple-400',
-                )}>{entry.kind}</span>
-                <span className="truncate">{entry.text}</span>
-                <time className="ml-auto shrink-0 tabular-nums" dateTime={new Date(entry.at).toISOString()}>
-                  {new Date(entry.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </time>
+              <li key={entry.at}>
+                {/* The whole row is the link. Capturing is half the job — the
+                    other half is looking at what you just filed, and the analyst
+                    should not have to go find the panel it went to. */}
+                <button
+                  type="button"
+                  onClick={() => onJumpToPanel?.(PANEL_FOR_KIND[entry.kind])}
+                  disabled={!onJumpToPanel}
+                  title={`Go to ${PANEL_LABEL_FOR_KIND[entry.kind]}`}
+                  className={cn(
+                    'flex w-full items-center gap-2 rounded px-1 py-0.5 text-left text-[10px] text-gray-500 dark:text-gray-400',
+                    onJumpToPanel && 'hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer',
+                  )}
+                >
+                  <span className={cn(
+                    'font-semibold uppercase tracking-tight shrink-0',
+                    entry.kind === 'rfi' && 'text-amber-600 dark:text-amber-400',
+                    entry.kind === 'nai' && 'text-rose-600 dark:text-rose-400',
+                    entry.kind === 'task' && 'text-indigo-600 dark:text-indigo-400',
+                    entry.kind === 'timeline' && 'text-sky-600 dark:text-sky-400',
+                    entry.kind === 'hypothesis' && 'text-emerald-600 dark:text-emerald-400',
+                    entry.kind === 'survey' && 'text-cyan-600 dark:text-cyan-400',
+                    entry.kind === 'url' && 'text-blue-600 dark:text-blue-400',
+                    entry.kind === 'note' && 'text-purple-600 dark:text-purple-400',
+                  )}>{entry.kind}</span>
+                  <span className="truncate">{entry.text}</span>
+                  {onJumpToPanel && (
+                    <span className="ml-auto shrink-0 hidden sm:inline text-gray-400 dark:text-gray-500">
+                      {PANEL_LABEL_FOR_KIND[entry.kind]} &rarr;
+                    </span>
+                  )}
+                  <time className={cn('shrink-0 tabular-nums', !onJumpToPanel && 'ml-auto')} dateTime={new Date(entry.at).toISOString()}>
+                    {new Date(entry.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </time>
+                </button>
               </li>
             ))}
           </ul>
