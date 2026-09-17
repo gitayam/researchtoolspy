@@ -33,6 +33,15 @@ export interface DiscoveryEntry {
   description: string
   keywords: string[]
   icon: DiscoveryIcon
+  /**
+   * How people actually reach this entry: ACH, SWOT, COG, PMESII-PT.
+   *
+   * Separate from `keywords` because an acronym is an identity, not a hint, and
+   * has to outrank every description in the catalogue. Typing "ach" used to
+   * return Citation Library first — its description contains "m(a)nage" and
+   * "resear(ch)", which a subsequence match happily accepts.
+   */
+  acronyms?: string[]
 }
 
 export const DISCOVERY_ENTRIES: DiscoveryEntry[] = [
@@ -128,46 +137,55 @@ export const DISCOVERY_ENTRIES: DiscoveryEntry[] = [
     group: 'Frameworks', label: 'Behavior Decision Analysis', href: '/dashboard/analysis-frameworks/behavior', icon: 'brain',
     description: 'Model an actor decision sequence, psychological state, coping plans, forks, and competing behaviors.',
     keywords: ['behavior framework', 'behaviour framework', 'decision timeline', 'decision type', 'psychological state', 'TTM', 'HAPA', 'coping branch', 'coping plan', 'competing behavior', 'sub-step', 'fork outcome', 'COM-B target'],
+    acronyms: ['TTM', 'HAPA'],
   },
   {
     group: 'Frameworks', label: 'COM-B & Behaviour Change Wheel', href: '/dashboard/analysis-frameworks/comb-analysis', icon: 'brain',
     description: 'Diagnose capability, opportunity, and motivation; select interventions and policy options.',
     keywords: ['COM-B', 'COMB', 'behavior change wheel', 'behaviour change wheel', 'BCW', 'BCT', 'APEASE', 'intervention functions', 'policy categories', 'capability opportunity motivation'],
+    acronyms: ['COM-B', 'COMB', 'BCW', 'BCT', 'APEASE'],
   },
   {
     group: 'Frameworks', label: 'ACH Analysis', href: '/dashboard/analysis-frameworks/ach-dashboard', icon: 'brain',
     description: 'Test competing hypotheses against evidence and inconsistency.',
     keywords: ['analysis of competing hypotheses', 'hypothesis matrix', 'evidence scoring', 'diagnosticity', 'inconsistency'],
+    acronyms: ['ACH'],
   },
   {
     group: 'Frameworks', label: 'SWOT Analysis', href: '/dashboard/analysis-frameworks/swot-dashboard', icon: 'brain',
     description: 'Assess strengths, weaknesses, opportunities, and threats.',
     keywords: ['strengths', 'weaknesses', 'opportunities', 'threats', 'strategy'],
+    acronyms: ['SWOT'],
   },
   {
     group: 'Frameworks', label: 'PEST Analysis', href: '/dashboard/analysis-frameworks/pest', icon: 'brain',
     description: 'Assess political, economic, social, and technological conditions.',
     keywords: ['political', 'economic', 'social', 'technological', 'environment scan'],
+    acronyms: ['PEST', 'PESTLE'],
   },
   {
     group: 'Frameworks', label: 'PMESII-PT', href: '/dashboard/analysis-frameworks/pmesii-pt', icon: 'brain',
     description: 'Analyze political, military, economic, social, information, infrastructure, physical, and time factors.',
     keywords: ['operational environment', 'civil considerations', 'physical environment', 'time'],
+    acronyms: ['PMESII-PT', 'PMESII', 'PMESIIPT'],
   },
   {
     group: 'Frameworks', label: 'DIME Framework', href: '/dashboard/analysis-frameworks/dime', icon: 'brain',
     description: 'Analyze diplomatic, information, military, and economic instruments.',
     keywords: ['diplomatic', 'information', 'military', 'economic', 'national power'],
+    acronyms: ['DIME', 'DIMEFIL'],
   },
   {
     group: 'Frameworks', label: 'DOTMLPF', href: '/dashboard/analysis-frameworks/dotmlpf', icon: 'brain',
     description: 'Assess doctrine, organization, training, materiel, leadership, personnel, and facilities.',
     keywords: ['capability assessment', 'doctrine', 'organization', 'training', 'materiel', 'leadership', 'personnel', 'facilities'],
+    acronyms: ['DOTMLPF', 'DOTMLPF-P', 'DOTMLPFP'],
   },
   {
     group: 'Frameworks', label: 'Center of Gravity Analysis', href: '/dashboard/analysis-frameworks/cog', icon: 'brain',
     description: 'Map centers of gravity, critical capabilities, requirements, and vulnerabilities.',
     keywords: ['COG', 'center of gravity', 'centre of gravity', 'critical capability', 'critical requirement', 'critical vulnerability', 'DIMEFIL'],
+    acronyms: ['COG'],
   },
   {
     group: 'Frameworks', label: 'Causeway', href: '/dashboard/analysis-frameworks/causeway', icon: 'brain',
@@ -178,16 +196,19 @@ export const DISCOVERY_ENTRIES: DiscoveryEntry[] = [
     group: 'Frameworks', label: 'Deception Analysis', href: '/dashboard/analysis-frameworks/deception', icon: 'brain',
     description: 'Evaluate deception indicators, competing explanations, and evidence.',
     keywords: ['deception detection', 'MOM', 'motive opportunity means', 'SATS', 'indicators', 'claims'],
+    acronyms: ['MOM', 'POP', 'MOSES', 'EVE', 'SATS'],
   },
   {
     group: 'Frameworks', label: 'Stakeholder Analysis', href: '/dashboard/analysis-frameworks/stakeholder', icon: 'users',
     description: 'Map stakeholder power, interest, influence, and engagement.',
     keywords: ['power interest matrix', 'stakeholder map', 'engagement plan', 'key players'],
+    acronyms: ['RACI'],
   },
   {
     group: 'Frameworks', label: 'Starbursting', href: '/dashboard/analysis-frameworks/starbursting', icon: 'sparkles',
     description: 'Generate structured who, what, when, where, why, and how questions.',
     keywords: ['5W1H', 'five Ws', 'question generation', 'who what when where why how'],
+    acronyms: ['5W1H'],
   },
   {
     group: 'Frameworks', label: 'Fundamental Flow', href: '/dashboard/analysis-frameworks/fundamental-flow', icon: 'brain',
@@ -203,6 +224,7 @@ export const DISCOVERY_ENTRIES: DiscoveryEntry[] = [
     group: 'Frameworks', label: 'Deception Risk Dashboard', href: '/dashboard/deception-risk', icon: 'shield',
     description: 'Review deception risk signals and aggregate assessments.',
     keywords: ['deception risk', 'risk dashboard', 'SATS', 'aggregate deception'],
+    acronyms: ['MOM', 'POP'],
   },
 
   // Main navigation and durable work areas

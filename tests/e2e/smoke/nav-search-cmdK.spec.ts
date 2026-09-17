@@ -75,7 +75,7 @@ test.describe('nav-search-cmdK discovery @smoke', () => {
     await page.route('**/api/workspaces', route => route.fulfill({ status: 200, json: { owned: [], member: [] } }))
     await page.goto('/dashboard/tools')
     await page.getByRole('button', { name: /Open command palette/ }).click()
-    const input = page.getByPlaceholder('Search tools, frameworks, features, and pages...')
+    const input = page.getByPlaceholder('Search frameworks, tools, features, and pages...')
 
     await input.fill('relative event')
     await expect(page.getByRole('option', { name: /Timeline Analysis/ })).toBeVisible()
