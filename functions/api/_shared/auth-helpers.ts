@@ -10,12 +10,25 @@ import { isReservedIntegrationAuthorization } from './service-auth'
 
 /** Thrown when a D1 error prevents resolving an otherwise-valid auth hash.
  *  Callers must map this to a retryable 503 — NOT a 401 — so clients retry
- *  instead of treating a DB hiccup as an auth failure. */
+ *  instead of treating a DB hiccup as an auth failure.
+ *
+ *  The message names WHERE it was raised and, when there is one, the underlying
+ *  error. Every instance used to read "Auth datastore temporarily unavailable"
+ *  and nothing else, including in `event_logs`, where `String(error)` yields
+ *  only name and message — so a permanent username collision and a genuine D1
+ *  outage produced byte-identical log lines, and the logs could not tell which
+ *  of four throw sites had fired. That cost an hour of guessing on a real
+ *  incident. */
 export class AuthDbError extends Error {
   readonly isAuthDbError = true
-  constructor(cause?: unknown) {
-    super('Auth datastore temporarily unavailable', { cause })
+  readonly site: string
+  constructor(site: string, cause?: unknown) {
+    const detail = cause instanceof Error
+      ? `${cause.name}: ${cause.message}`
+      : cause !== undefined ? String(cause) : 'no underlying error'
+    super(`Auth datastore temporarily unavailable [${site}] (${detail})`, { cause })
     this.name = 'AuthDbError'
+    this.site = site
   }
 }
 
@@ -36,11 +49,22 @@ export interface Env {
  *
  * Hardened against the two failure modes that were intermittently logging users
  * out as 401 (and permanently locking some out):
- *  - **UNIQUE collisions:** the guest username/email were derived from only the
- *    first 8 hash chars, so two distinct hashes sharing those 8 chars collided on
- *    the UNIQUE username → INSERT failed → that user could NEVER authenticate.
- *    Now derived from a 32-char prefix (collision is astronomically unlikely;
- *    existing 8-char guests still resolve by user_hash).
+ *  - **UNIQUE collisions:** the guest username/email were derived from a PREFIX
+ *    of the hash — first 8 chars, then widened to 32. Widening a prefix does not
+ *    fix this, it only raises the bar for input that is structured rather than
+ *    random, and then such input arrived. Some clients send a JWT as the hash,
+ *    and every HS256 JWT begins with the same 36 characters
+ *    (`eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.` — the base64 of its header). So the
+ *    first JWT-bearing visitor claimed `guest_eyJhbGciOiJIUzI1NiIsInR5cCI6IkpX`
+ *    and every later one collided on the UNIQUE username, failed to INSERT,
+ *    re-SELECTed by its own (different) hash, found nothing, and threw — a
+ *    guaranteed 500 for that visitor, on every request, forever. Production had
+ *    two such users and was refusing the third.
+ *
+ *    The label is now a SHA-256 digest of the WHOLE hash, so it cannot inherit
+ *    structure from its input: distinct hashes get distinct usernames whatever
+ *    they look like. Existing guests are unaffected — they resolve by the unique
+ *    `user_hash` index before any INSERT is attempted.
  *  - **Transient D1 errors / insert races:** retry the SELECT once on error, and
  *    re-SELECT after a failed INSERT (a concurrent request may have won the race).
  *
@@ -50,6 +74,21 @@ export interface Env {
  * NEVER returns null: it resolves to a valid user id, or throws {@link AuthDbError}
  * so callers can map it to a retryable 503 instead of a spurious 401.
  */
+/**
+ * A collision-resistant, deterministic label for a hash.
+ *
+ * Deterministic matters: the same visitor must derive the same username every
+ * time, or a lost INSERT race would provision them twice. Hex-encoded because
+ * the value lands in a username and an email local-part.
+ */
+async function guestLabel(hash: string): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(hash))
+  return Array.from(new Uint8Array(digest))
+    .map(byte => byte.toString(16).padStart(2, '0'))
+    .join('')
+    .substring(0, 32)
+}
+
 async function resolveHashUser(db: D1Database, hash: string): Promise<number> {
   const selectId = async (): Promise<number | null> => {
     const row = await db.prepare('SELECT id FROM users WHERE user_hash = ?')
@@ -67,12 +106,14 @@ async function resolveHashUser(db: D1Database, hash: string): Promise<number> {
       if (id !== null) return id
     } catch (err) {
       // Retry also failed — D1 is the problem, not the hash.
-      throw new AuthDbError(err)
+      throw new AuthDbError('select-retry', err)
     }
   }
 
-  // 2. Auto-provision a guest. Long-prefix username/email avoids UNIQUE collisions.
-  const label = hash.substring(0, 32)
+  // 2. Auto-provision a guest. The label digests the whole hash rather than
+  //    slicing a prefix off it, because a prefix is only as distinctive as the
+  //    input happens to be and some inputs are JWTs (see the note above).
+  const label = await guestLabel(hash)
   try {
     const result = await db.prepare(`
       INSERT INTO users (username, email, user_hash, full_name, hashed_password, created_at, is_active, is_verified, role)
@@ -87,13 +128,15 @@ async function resolveHashUser(db: D1Database, hash: string): Promise<number> {
       const id = await selectId()
       if (id !== null) return id
     } catch (err) {
-      throw new AuthDbError(err)
+      throw new AuthDbError('post-insert-select', err)
     }
   }
 
   // INSERT succeeded but returned no id, or the post-collision re-SELECT found
-  // nothing — both anomalous for an already-validated hash. Treat as DB trouble.
-  throw new AuthDbError()
+  // nothing. The second is what a UNIQUE username collision looks like from
+  // here, and it is PERMANENT for that visitor rather than transient — which is
+  // why this site is named separately in the message.
+  throw new AuthDbError('insert-no-id-or-missing-after-collision')
 }
 
 async function guestPrincipalHash(sessionId: string): Promise<string | null> {
@@ -115,7 +158,7 @@ async function guestSessionIsActive(db: D1Database, userId: number): Promise<boo
     const createdAt = Date.parse(user.created_at)
     return Number.isFinite(createdAt) && Date.now() - createdAt < GUEST_SESSION_MAX_AGE_MS
   } catch (err) {
-    throw new AuthDbError(err)
+    throw new AuthDbError('resolve', err)
   }
 }
 
@@ -155,7 +198,7 @@ export async function getExistingGuestPrincipalFromRequest(
     return { userId: Number(row.id), principalHash, isActive }
   } catch (err) {
     if (err instanceof AuthDbError) throw err
-    throw new AuthDbError(err)
+    throw new AuthDbError('resolve', err)
   }
 }
 
@@ -188,7 +231,7 @@ async function ensureGuestWorkspace(db: D1Database, userId: number, workspaceId:
       VALUES (?, ?, ?, 'ADMIN', ?)
     `).bind(`guest-member-${userId}`, workspaceId, userId, now).run()
   } catch (err) {
-    throw new AuthDbError(err)
+    throw new AuthDbError('resolve', err)
   }
 }
 
