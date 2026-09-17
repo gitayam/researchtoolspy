@@ -762,10 +762,14 @@ export default function CopWorkspacePage() {
         />
 
         {/* ── Global Quick Capture Bar ────────────────────────────── */}
-        <CopGlobalCaptureBar 
-          sessionId={id!} 
+        <CopGlobalCaptureBar
+          sessionId={id!}
           workspaceId={session?.workspace_id}
           onLocationDetected={handleLocationDetected}
+          // Counts refresh on a 60s poll. For an analyst capturing into a live
+          // picture that is long enough to doubt whether the entry landed, so a
+          // capture refreshes them at once.
+          onSuccess={() => refetchStats()}
         />
 
         {/* ── Panel grid ──────────────────────────────────────────── */}

@@ -395,13 +395,23 @@ test.describe('COP Workspace -- Command Palette', () => {
     await expect(copWorkspacePage.captureSubmitButton).toBeVisible()
   })
 
-  test('Cmd/Ctrl+K focuses the capture input', async ({ copWorkspacePage }) => {
+  test('"/" focuses the capture input', async ({ copWorkspacePage }) => {
     await copWorkspacePage.goto(SESSION_ID)
     await copWorkspacePage.waitForLoad()
 
-    // Press Cmd+K to focus the capture bar input
-    await copWorkspacePage.pressCommandK()
+    await copWorkspacePage.pressCaptureFocusKey()
     await expect(copWorkspacePage.captureInput).toBeFocused()
+  })
+
+  test('Cmd+K opens the palette and does not steal focus into the capture bar', async ({ copWorkspacePage }) => {
+    await copWorkspacePage.goto(SESSION_ID)
+    await copWorkspacePage.waitForLoad()
+
+    // The bar used to bind Cmd+K too, so this fired both listeners: the palette
+    // opened and the capture input took focus behind its dialog. The old test
+    // asserted the focus and so recorded the collision as correct behaviour.
+    await copWorkspacePage.pressCommandK()
+    await expect(copWorkspacePage.captureInput).not.toBeFocused()
   })
 
   test('Escape blurs the capture input', async ({ copWorkspacePage }) => {
@@ -425,7 +435,7 @@ test.describe('COP Workspace -- Command Palette', () => {
     const viewport = copWorkspacePage.page.viewportSize()
     if (viewport && viewport.width < 640) return
 
-    // When input is empty, the Cmd+K keyboard hint should be visible
+    // When input is empty, the "/" keyboard hint should be visible
     await expect(copWorkspacePage.captureKeyboardHint).toBeVisible()
 
     // When input has text, the hint should be hidden
@@ -437,7 +447,7 @@ test.describe('COP Workspace -- Command Palette', () => {
     await expect(copWorkspacePage.captureKeyboardHint).toBeVisible()
   })
 
-  test('typing a URL shows "Evidence Feed (URL Analysis)" routing', async ({ copWorkspacePage }) => {
+  test('typing a URL shows "Evidence feed — fetch and analyse" routing', async ({ copWorkspacePage }) => {
     await copWorkspacePage.goto(SESSION_ID)
     await copWorkspacePage.waitForLoad()
 
@@ -445,11 +455,11 @@ test.describe('COP Workspace -- Command Palette', () => {
 
     // Should show routing label for URL analysis
     await expect(
-      copWorkspacePage.captureBar.getByText('Evidence Feed (URL Analysis)'),
+      copWorkspacePage.captureBar.getByText('Evidence feed — fetch and analyse'),
     ).toBeVisible()
   })
 
-  test('typing hypothesis: prefix shows "Hypothesis Ledger" routing', async ({ copWorkspacePage }) => {
+  test('typing hypothesis: prefix shows "Hypothesis ledger" routing', async ({ copWorkspacePage }) => {
     await copWorkspacePage.goto(SESSION_ID)
     await copWorkspacePage.waitForLoad()
 
@@ -457,11 +467,11 @@ test.describe('COP Workspace -- Command Palette', () => {
 
     // Should show routing label for hypothesis
     await expect(
-      copWorkspacePage.captureBar.getByText('Hypothesis Ledger'),
+      copWorkspacePage.captureBar.getByText('Hypothesis ledger'),
     ).toBeVisible()
   })
 
-  test('typing free text shows "Evidence Feed (Quick Note)" routing', async ({ copWorkspacePage }) => {
+  test('typing free text shows "Evidence feed — note" routing', async ({ copWorkspacePage }) => {
     await copWorkspacePage.goto(SESSION_ID)
     await copWorkspacePage.waitForLoad()
 
@@ -469,7 +479,7 @@ test.describe('COP Workspace -- Command Palette', () => {
 
     // Should show routing label for quick note
     await expect(
-      copWorkspacePage.captureBar.getByText('Evidence Feed (Quick Note)'),
+      copWorkspacePage.captureBar.getByText('Evidence feed — note'),
     ).toBeVisible()
   })
 
@@ -484,15 +494,16 @@ test.describe('COP Workspace -- Command Palette', () => {
     await expect(copWorkspacePage.captureInput).toHaveValue('', { timeout: 5000 })
   })
 
-  test('routing hint shows Cmd+Enter to send', async ({ copWorkspacePage }) => {
+  test('routing hint shows how to send', async ({ copWorkspacePage }) => {
     await copWorkspacePage.goto(SESSION_ID)
     await copWorkspacePage.waitForLoad()
 
     await copWorkspacePage.typeCaptureInput('Some intel note')
 
-    // Should show Cmd+Enter hint when text is present
+    // Enter sends now. Reaching for a modifier on every entry is a tax on the
+    // fast, fragmentary capture this bar exists for.
     await expect(
-      copWorkspacePage.captureBar.getByText('Cmd+Enter to send'),
+      copWorkspacePage.captureBar.getByText('Enter sends'),
     ).toBeVisible()
   })
 })

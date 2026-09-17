@@ -102,7 +102,9 @@ export class CopWorkspacePage {
 
     // Quick Capture (Global Capture Bar — always-visible sticky bar)
     this.captureBar = page.locator('.sticky.top-0.z-30').first()
-    this.captureInput = this.captureBar.locator('input[type="text"]')
+    // A textarea now: an observation is often more than one line, and the
+    // single-line field made the analyst truncate the thought.
+    this.captureInput = this.captureBar.getByLabel('Capture intelligence')
     this.captureSubmitButton = this.captureBar.getByRole('button', { name: /Capture/i })
     this.captureTypeLabel = this.captureBar.locator('span.font-bold.text-gray-300').first()
     this.captureKeyboardHint = page.locator('[data-testid="capture-kbd-hint"]')
@@ -172,9 +174,18 @@ export class CopWorkspacePage {
 
   // ── Keyboard shortcuts ──────────────────────────────────────────
 
+  /** Still needed: the palette binds this, and the capture bar must not. */
   async pressCommandK() {
     await this.page.keyboard.press('Meta+k')
   }
+
+  /** "/" focuses the capture bar. It was Cmd+K, which the command palette also
+   *  binds globally on this same page — pressing it opened the palette AND
+   *  focused this input behind the dialog. */
+  async pressCaptureFocusKey() {
+    await this.page.keyboard.press('/')
+  }
+
 
   async pressCommandM() {
     await this.page.keyboard.press('Meta+m')
