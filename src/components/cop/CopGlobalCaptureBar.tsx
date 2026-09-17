@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { getCopHeaders } from '@/lib/cop-auth'
-import { Link, Brain, Loader2, Sparkles, MapPin, ClipboardList, HelpCircle } from 'lucide-react'
+import { Link, Brain, Loader2, Sparkles, MapPin, ClipboardList, HelpCircle, ListChecks, Clock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { noteTitle, parseCapture, type CaptureKind } from '@/lib/cop-capture'
@@ -47,6 +47,11 @@ export default function CopGlobalCaptureBar({ sessionId, workspaceId, onSuccess,
       setError('Nothing to capture — a prefix on its own needs something after it.')
       return
     }
+    if (route.problem) {
+      setLoading(false)
+      setError(route.problem)
+      return
+    }
 
     try {
       let endpoint: string
@@ -54,6 +59,58 @@ export default function CopGlobalCaptureBar({ sessionId, workspaceId, onSuccess,
       const type = route.kind
 
       switch (route.kind) {
+        case 'nai': {
+          // Two steps, because a named area needs real coordinates and the
+          // resolver already understands lat/lon, MGRS and map links. Doing it
+          // here rather than in the parser keeps one implementation of that.
+          const resolved = await fetch('/api/surveys/resolve-location', {
+            method: 'POST',
+            headers: getCopHeaders(),
+            body: JSON.stringify({ input: route.location }),
+          }).then(r => r.json()).catch(() => null)
+
+          if (!resolved || typeof resolved.lat !== 'number' || typeof resolved.lon !== 'number') {
+            throw new Error(
+              `Could not place "${route.location}". Try 34.05,-118.24, an MGRS grid, or a map link.`,
+            )
+          }
+
+          endpoint = `/api/cop/${sessionId}/markers`
+          body = {
+            lat: resolved.lat,
+            lon: resolved.lon,
+            label: route.body,
+            // A reference point, not an area: the marker store holds points, so
+            // an NAI is recorded at its centre rather than as a boundary.
+            cot_type: 'b-m-p-w',
+            description: `Named area of interest — ${route.body}`,
+            confidence: 'POSSIBLE',
+            source_type: 'MANUAL',
+            rationale: 'Captured from the COP capture bar',
+          }
+          break
+        }
+        case 'task':
+          endpoint = `/api/cop/${sessionId}/tasks`
+          body = {
+            title: noteTitle(route.body),
+            description: route.body,
+            priority: route.priority,
+            status: 'todo',
+          }
+          break
+        case 'timeline':
+          endpoint = `/api/cop/${sessionId}/timeline`
+          body = {
+            title: noteTitle(route.body),
+            description: route.body,
+            // The endpoint defaults to today when this is absent, which is what
+            // an analyst logging a live picture almost always means.
+            ...(route.eventDate ? { event_date: route.eventDate } : {}),
+            category: 'event',
+            importance: route.priority === 'critical' ? 'high' : 'normal',
+          }
+          break
         case 'rfi':
           endpoint = `/api/cop/${sessionId}/rfis`
           body = {
@@ -170,6 +227,12 @@ export default function CopGlobalCaptureBar({ sessionId, workspaceId, onSuccess,
               <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />
             ) : kind === 'rfi' ? (
               <HelpCircle className="h-4 w-4 text-amber-500 dark:text-amber-400" />
+            ) : kind === 'nai' ? (
+              <MapPin className="h-4 w-4 text-rose-500 dark:text-rose-400" />
+            ) : kind === 'task' ? (
+              <ListChecks className="h-4 w-4 text-indigo-500 dark:text-indigo-400" />
+            ) : kind === 'timeline' ? (
+              <Clock className="h-4 w-4 text-sky-500 dark:text-sky-400" />
             ) : kind === 'survey' ? (
               <ClipboardList className="h-4 w-4 text-cyan-500 dark:text-cyan-400" />
             ) : kind === 'url' ? (
@@ -195,6 +258,9 @@ export default function CopGlobalCaptureBar({ sessionId, workspaceId, onSuccess,
             className={cn(
               "w-full resize-none max-h-32 bg-gray-50 dark:bg-gray-800/50 border border-gray-300 dark:border-gray-700 rounded-lg pl-10 pr-24 py-2.5 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/50",
               kind === 'rfi' && "focus:ring-amber-500/50",
+              kind === 'nai' && "focus:ring-rose-500/50",
+              kind === 'task' && "focus:ring-indigo-500/50",
+              kind === 'timeline' && "focus:ring-sky-500/50",
               kind === 'survey' && "focus:ring-cyan-500/50",
               kind === 'hypothesis' && "focus:ring-emerald-500/50",
               kind === 'note' && "focus:ring-purple-500/50"
@@ -220,6 +286,9 @@ export default function CopGlobalCaptureBar({ sessionId, workspaceId, onSuccess,
               className={cn(
                 "h-7 text-[10px] px-3 font-bold uppercase tracking-tighter transition-all cursor-pointer",
                 kind === 'rfi' ? "bg-amber-600 hover:bg-amber-700 text-white"
+                  : kind === 'nai' ? "bg-rose-600 hover:bg-rose-700 text-white"
+                  : kind === 'task' ? "bg-indigo-600 hover:bg-indigo-700 text-white"
+                  : kind === 'timeline' ? "bg-sky-600 hover:bg-sky-700 text-white"
                   : kind === 'survey' ? "bg-cyan-600 hover:bg-cyan-700 text-white"
                   : kind === 'hypothesis' ? "bg-emerald-600 hover:bg-emerald-700 text-white"
                   : "bg-blue-600 hover:bg-blue-700 text-white"
@@ -241,6 +310,11 @@ export default function CopGlobalCaptureBar({ sessionId, workspaceId, onSuccess,
              <span className="text-[10px] text-gray-500 dark:text-gray-400">
                Routing to: <span className="font-bold text-gray-700 dark:text-gray-300">{parsed.label}</span>
              </span>
+             {parsed.problem && (
+               <span className="text-[10px] font-medium text-amber-700 dark:text-amber-400">
+                 {parsed.problem}
+               </span>
+             )}
              <span className="text-[10px] text-gray-500 dark:text-gray-400">
                Enter sends · Shift+Enter for a new line
              </span>
@@ -253,6 +327,9 @@ export default function CopGlobalCaptureBar({ sessionId, workspaceId, onSuccess,
           <div className="hidden sm:flex flex-wrap items-center gap-2 ml-10">
             {[
               { prefix: 'rfi:', meaning: 'request for information', extra: '! or !! to raise priority' },
+              { prefix: 'nai:', meaning: 'named area', extra: 'start with 34.05,-118.24, an MGRS grid, or a map link' },
+              { prefix: 'task:', meaning: 'task', extra: '! or !! to raise priority' },
+              { prefix: 't:', meaning: 'timeline', extra: 'optionally lead with YYYY-MM-DD' },
               { prefix: 'hyp:', meaning: 'hypothesis' },
               { prefix: 'survey:', meaning: 'collection form' },
             ].map(hint => (
@@ -283,6 +360,9 @@ export default function CopGlobalCaptureBar({ sessionId, workspaceId, onSuccess,
                 <span className={cn(
                   'font-semibold uppercase tracking-tight',
                   entry.kind === 'rfi' && 'text-amber-600 dark:text-amber-400',
+                  entry.kind === 'nai' && 'text-rose-600 dark:text-rose-400',
+                  entry.kind === 'task' && 'text-indigo-600 dark:text-indigo-400',
+                  entry.kind === 'timeline' && 'text-sky-600 dark:text-sky-400',
                   entry.kind === 'hypothesis' && 'text-emerald-600 dark:text-emerald-400',
                   entry.kind === 'survey' && 'text-cyan-600 dark:text-cyan-400',
                   entry.kind === 'url' && 'text-blue-600 dark:text-blue-400',

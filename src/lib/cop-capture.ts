@@ -16,10 +16,19 @@ import { analyzableUrlFrom } from '@/lib/content-url'
  *   rfi: who controls the bridge      -> RFI, medium
  *   rfi!: who controls the bridge     -> RFI, high
  *   rfi!!: who controls the bridge    -> RFI, critical, and a blocker
+ *
+ * The same punctuation raises a task's priority, because a convention that
+ * works in one place and not the next is worse than no convention.
+ *
+ *   nai: 34.05,-118.24 North bridge  -> a named area of interest, on the map
+ *   task!: confirm the bridge status -> task, high
+ *   t: 2026-03-14 convoy departed    -> timeline entry on that date
  */
 
-export type CaptureKind = 'rfi' | 'hypothesis' | 'survey' | 'url' | 'note'
-export type RfiPriority = 'critical' | 'high' | 'medium'
+export type CaptureKind = 'rfi' | 'nai' | 'task' | 'timeline' | 'hypothesis' | 'survey' | 'url' | 'note'
+export type Priority = 'critical' | 'high' | 'medium'
+/** Retained name: RFIs were the first thing to carry a priority. */
+export type RfiPriority = Priority
 
 export interface ParsedCapture {
   kind: CaptureKind
@@ -27,19 +36,41 @@ export interface ParsedCapture {
   body: string
   /** What the bar tells the analyst before they commit. */
   label: string
-  priority?: RfiPriority
+  priority?: Priority
   isBlocker?: boolean
   /** For `url`, the normalised address — a bare host gains its scheme. */
   url?: string
+  /** For `nai`, the location token to resolve; the body is the area's name. */
+  location?: string
+  /** For `timeline`, an explicit date the analyst supplied. */
+  eventDate?: string
+  /** Why this input cannot be sent, shown before they try. */
+  problem?: string
 }
 
 /** `rfi`, `rfi!`, `rfi!!` … then a colon. */
 const RFI = /^rfi(!*)\s*:\s*/i
+const NAI = /^(?:nai|aoi)\s*:\s*/i
+const TASK = /^task(!*)\s*:\s*/i
+const TIMELINE = /^(?:t|time|timeline)\s*:\s*/i
 const HYPOTHESIS = /^(?:hypothesis|hyp|maybe)\s*:\s*/i
 const SURVEY = /^(?:survey|form|drop)\s*:\s*/i
 const NOTE = /^note\s*:\s*/i
 
-function rfiPriority(bangs: number): { priority: RfiPriority; isBlocker: boolean } {
+/**
+ * A leading location token: `34.05,-118.24`, an MGRS grid, or a map URL.
+ *
+ * Only the leading token, because the rest of the line is the area's name. The
+ * resolver at /api/surveys/resolve-location does the actual conversion — it
+ * already understands lat/lon, MGRS, and Google, Apple and OSM map links, and
+ * duplicating any of that here would mean two parsers disagreeing later.
+ */
+const LEADING_LOCATION = /^(https?:\/\/\S+|-?\d{1,3}\.?\d*\s*,\s*-?\d{1,3}\.?\d*|\d{1,2}[A-Za-z]{3}\d{2,10})\s*/
+
+/** `YYYY-MM-DD` at the front of a timeline entry. */
+const LEADING_DATE = /^(\d{4}-\d{2}-\d{2})\s+/
+
+function priorityFor(bangs: number): { priority: Priority; isBlocker: boolean } {
   if (bangs >= 2) return { priority: 'critical', isBlocker: true }
   if (bangs === 1) return { priority: 'high', isBlocker: false }
   return { priority: 'medium', isBlocker: false }
@@ -53,7 +84,7 @@ export function parseCapture(raw: string): ParsedCapture | null {
   if (rfi) {
     const body = trimmed.slice(rfi[0].length).trim()
     if (!body) return null
-    const { priority, isBlocker } = rfiPriority(rfi[1].length)
+    const { priority, isBlocker } = priorityFor(rfi[1].length)
     return {
       kind: 'rfi',
       body,
@@ -62,6 +93,60 @@ export function parseCapture(raw: string): ParsedCapture | null {
       label: isBlocker
         ? 'Request for information — critical, blocking'
         : `Request for information — ${priority} priority`,
+    }
+  }
+
+  const nai = NAI.exec(trimmed)
+  if (nai) {
+    const rest = trimmed.slice(nai[0].length).trim()
+    if (!rest) return null
+    const located = LEADING_LOCATION.exec(rest)
+    if (!located) {
+      // A named area of interest without an area is not one. Say so here rather
+      // than let the marker endpoint refuse it after the analyst has moved on.
+      return {
+        kind: 'nai',
+        body: rest,
+        label: 'Named area of interest',
+        problem: 'Start with a location: 34.05,-118.24 · an MGRS grid · or a map link.',
+      }
+    }
+    const name = rest.slice(located[0].length).trim()
+    return {
+      kind: 'nai',
+      body: name || located[1],
+      location: located[1],
+      label: `Named area of interest at ${located[1]}`,
+    }
+  }
+
+  const task = TASK.exec(trimmed)
+  if (task) {
+    const body = trimmed.slice(task[0].length).trim()
+    if (!body) return null
+    const { priority, isBlocker } = priorityFor(task[1].length)
+    return {
+      kind: 'task',
+      body,
+      priority,
+      isBlocker,
+      label: `Task — ${priority} priority`,
+    }
+  }
+
+  const timeline = TIMELINE.exec(trimmed)
+  if (timeline) {
+    const rest = trimmed.slice(timeline[0].length).trim()
+    if (!rest) return null
+    const dated = LEADING_DATE.exec(rest)
+    const eventDate = dated?.[1]
+    const body = dated ? rest.slice(dated[0].length).trim() : rest
+    if (!body) return null
+    return {
+      kind: 'timeline',
+      body,
+      eventDate,
+      label: eventDate ? `Timeline — ${eventDate}` : 'Timeline — today',
     }
   }
 

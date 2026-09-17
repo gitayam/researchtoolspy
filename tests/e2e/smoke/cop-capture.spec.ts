@@ -88,4 +88,64 @@ test.describe('COP capture routing @smoke', () => {
     // catching before it is sent.
     expect(parseCapture('rfi!!: x')!.label).toContain('blocking')
   })
+
+  test('a named area of interest carries its location and its name', () => {
+    expect(parseCapture('nai: 34.05,-118.24 North bridge crossing')).toMatchObject({
+      kind: 'nai', location: '34.05,-118.24', body: 'North bridge crossing',
+    })
+    // MGRS is how a lot of this is actually written down.
+    expect(parseCapture('nai: 18SUJ23480647 Bridge')).toMatchObject({
+      kind: 'nai', location: '18SUJ23480647', body: 'Bridge',
+    })
+    // A map link pasted straight from a phone.
+    expect(parseCapture('nai: https://maps.google.com/?q=34.05,-118.24 Ridge')).toMatchObject({
+      kind: 'nai', body: 'Ridge',
+    })
+    expect(parseCapture('aoi: 34.05,-118.24 Ridge')).toMatchObject({ kind: 'nai' })
+  })
+
+  test('a named area with no area says so before it is sent', () => {
+    // An NAI without coordinates is not one. Refusing at the endpoint would tell
+    // the analyst after they had moved on to the next entry.
+    const parsed = parseCapture('nai: somewhere near the north bridge')
+    expect(parsed).toMatchObject({ kind: 'nai' })
+    expect(parsed!.problem).toContain('Start with a location')
+  })
+
+  test('an unnamed area falls back to its coordinates for a name', () => {
+    expect(parseCapture('nai: 34.05,-118.24')).toMatchObject({
+      kind: 'nai', location: '34.05,-118.24', body: '34.05,-118.24',
+    })
+  })
+
+  test('tasks take the same priority punctuation as RFIs', () => {
+    // A convention that works in one place and not the next is worse than none.
+    expect(parseCapture('task: confirm bridge status')).toMatchObject({ kind: 'task', priority: 'medium' })
+    expect(parseCapture('task!: confirm bridge status')).toMatchObject({ kind: 'task', priority: 'high' })
+    expect(parseCapture('task!!: confirm bridge status')).toMatchObject({ kind: 'task', priority: 'critical' })
+  })
+
+  test('a timeline entry defaults to today and accepts an explicit date', () => {
+    expect(parseCapture('t: convoy departed the depot')).toMatchObject({
+      kind: 'timeline', body: 'convoy departed the depot', eventDate: undefined,
+    })
+    expect(parseCapture('t: 2026-03-14 convoy departed the depot')).toMatchObject({
+      kind: 'timeline', eventDate: '2026-03-14', body: 'convoy departed the depot',
+    })
+    for (const alias of ['time:', 'timeline:']) {
+      expect(parseCapture(`${alias} something`), alias).toMatchObject({ kind: 'timeline' })
+    }
+  })
+
+  test('a date with nothing after it is not a timeline entry', () => {
+    expect(parseCapture('t: 2026-03-14')).toMatchObject({ kind: 'timeline', body: '2026-03-14' })
+    expect(parseCapture('t:')).toBeNull()
+  })
+
+  test('the new prefixes do not shadow ordinary notes', () => {
+    // "task" and "time" appear in prose constantly; only a real prefix routes.
+    expect(parseCapture('taskings for tonight are unchanged')).toMatchObject({ kind: 'note' })
+    expect(parseCapture('time on target was 0840')).toMatchObject({ kind: 'note' })
+    expect(parseCapture('naive assessment of the crossing')).toMatchObject({ kind: 'note' })
+  })
 })
