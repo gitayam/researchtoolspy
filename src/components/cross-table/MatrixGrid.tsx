@@ -176,6 +176,7 @@ export function MatrixGrid() {
                               <TooltipTrigger asChild>
                                 <button
                                   onClick={() => moveColumn(col.id, -1)}
+                                  aria-label={`Move ${col.label} left`}
                                   disabled={colIdx === 0}
                                   className="p-0.5 rounded hover:bg-slate-200 disabled:opacity-30"
                                 >
@@ -188,6 +189,7 @@ export function MatrixGrid() {
                               <TooltipTrigger asChild>
                                 <button
                                   onClick={() => moveColumn(col.id, 1)}
+                                  aria-label={`Move ${col.label} right`}
                                   disabled={colIdx === sortedCols.length - 1}
                                   className="p-0.5 rounded hover:bg-slate-200 disabled:opacity-30"
                                 >
@@ -200,6 +202,7 @@ export function MatrixGrid() {
                               <TooltipTrigger asChild>
                                 <button
                                   onClick={() => removeColumn(col.id)}
+                                  aria-label={`Remove criterion ${col.label}`}
                                   className="p-0.5 rounded hover:bg-red-100 text-muted-foreground hover:text-red-600"
                                 >
                                   <Trash2 className="h-3 w-3" />
@@ -220,6 +223,7 @@ export function MatrixGrid() {
                         <TooltipTrigger asChild>
                           <button
                             onClick={addColumn}
+                            aria-label="Add criterion"
                             className="p-2 rounded hover:bg-slate-200 text-muted-foreground hover:text-[#4F5BFF] transition-colors"
                           >
                             <Plus className="h-4 w-4" />
@@ -251,6 +255,7 @@ export function MatrixGrid() {
                           <div className="flex items-center gap-0.5 shrink-0">
                             <button
                               onClick={() => moveRow(row.id, -1)}
+                              aria-label={`Move ${row.label} up`}
                               disabled={rowIdx === 0}
                               className="p-0.5 rounded hover:bg-slate-200 disabled:opacity-30 hidden sm:block"
                             >
@@ -258,6 +263,7 @@ export function MatrixGrid() {
                             </button>
                             <button
                               onClick={() => moveRow(row.id, 1)}
+                              aria-label={`Move ${row.label} down`}
                               disabled={rowIdx === sortedRows.length - 1}
                               className="p-0.5 rounded hover:bg-slate-200 disabled:opacity-30 hidden sm:block"
                             >
@@ -265,6 +271,7 @@ export function MatrixGrid() {
                             </button>
                             <button
                               onClick={() => removeRow(row.id)}
+                              aria-label={`Remove ${row.label}`}
                               className="p-0.5 rounded hover:bg-red-100 text-muted-foreground hover:text-red-600"
                             >
                               <Trash2 className="h-3 w-3" />

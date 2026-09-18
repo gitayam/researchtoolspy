@@ -61,8 +61,18 @@ baseline. `wrangler pages dev` does run in the Playwright container (ready in 6 
 while an unrelated `bazarr` process was consuming 1020 % CPU on proxmox, and they reported
 90 and 149 failures against a tree that reports 0 on a quiet host. The numbers were
 interpreted, compared, and nearly written up before the load average explained them.
-`remote-playwright.sh` now refuses to start on an oversubscribed host for exactly this
-reason. **Re-run the A/B when proxmox is quiet.**
+Two further attempts failed the same way for a cause that took a while to find:
+**proxmox runs GitLab CI**, and a job starting at minute two of a suite is invisible to any
+load check made at minute zero. Runs landing in a quiet window take 3.4 minutes and pass
+2095/2095; runs overlapping a CI job take 6.5 to 11 minutes and report 64 or 160 failures,
+with the starting load reading an unremarkable 15 to 19 in both cases.
+
+`remote-playwright.sh` now judges a run by its **duration against a known-good baseline** —
+the only signal that catches a neighbour arriving mid-run — and says outright when failures
+should not be believed. **Re-run the A/B and check that warning before reading the numbers.**
+
+The three failed attempts are the useful part of this entry: a slow run that fails is
+evidence about the host, not the code.
 
 Of the 37 spec files that open a browser, exactly **one**
 (`comb-analysis-form.spec.ts`) mocks no routes at all. The other 36 mock selectively, so
