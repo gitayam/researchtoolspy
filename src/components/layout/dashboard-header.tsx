@@ -91,10 +91,13 @@ export function DashboardHeader() {
             <WorkspaceSelector />
           </div>
 
-          {/* Command Palette trigger */}
+          {/* Command Palette trigger.
+              Shown at every width on purpose: this was `hidden sm:flex`, which removed the
+              only route into search on a phone — there is no button to press and no ⌘K to
+              type. Below 2xl it collapses to the icon alone, with a 44px target. */}
           <button
             onClick={openCommandPalette}
-            className="hidden sm:flex items-center gap-2 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            className="flex min-h-11 items-center gap-2 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
             aria-label="Open command palette (⌘K)"
           >
             <Search className="h-4 w-4" />
