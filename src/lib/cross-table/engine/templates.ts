@@ -6,7 +6,10 @@ const DEFAULT_DISPLAY: DisplayConfig = {
   color_scale: 'red-green',
 }
 
+// Off by default. A template is a starting point for an ordinary matrix; running it as a
+// Delphi process is a facilitator's decision, made later and explicitly.
 const DEFAULT_DELPHI: DelphiConfig = {
+  enabled: false,
   current_round: 1,
   results_released: false,
 }

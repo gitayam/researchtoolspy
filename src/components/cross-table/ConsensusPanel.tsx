@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import { getCopHeaders } from '@/lib/cop-auth'
+import { isDelphiActive } from '@/lib/cross-table/delphi-state'
 import { useCrossTable } from './cross-table-context'
 import type { DelphiConsensus, DelphiCellStats } from '@/lib/cross-table/types'
 
@@ -44,7 +45,89 @@ function kendallLabel(w: number): { label: string; color: string } {
 
 // ── Component ──────────────────────────────────────────────────
 
+/**
+ * Starting, advancing and stopping a Delphi process.
+ *
+ * Deliberately outside the body below, which returns early whenever there is nothing to
+ * show. A facilitator with no consensus data yet is the *normal* case at the point they
+ * want to start a process, and putting this control inside those branches would have hidden
+ * it exactly when it was needed.
+ *
+ * Writes go through the editor's config autosave rather than POST /rounds, so that the
+ * table has a single writer. The endpoint remains the path for API consumers.
+ */
+function DelphiFacilitator() {
+  const { state, dispatch } = useCrossTable()
+  const { table } = state
+  const delphi = table.config.delphi
+  const active = isDelphiActive(table.config)
+  const currentRound = delphi?.current_round ?? 1
+
+  const write = (next: { enabled?: boolean; current_round?: number }) => {
+    dispatch({
+      type: 'UPDATE_CONFIG',
+      config: {
+        delphi: {
+          enabled: active,
+          current_round: currentRound,
+          results_released: delphi?.results_released ?? false,
+          ...next,
+        },
+      },
+    })
+  }
+
+  return (
+    <div className="flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-start sm:justify-between">
+      <div className="min-w-0">
+        <p className="text-sm font-medium">
+          {active ? `Delphi round ${currentRound} in progress` : 'Scored as an ordinary matrix'}
+        </p>
+        <p className="mt-1 max-w-prose text-xs text-muted-foreground">
+          {active
+            ? 'Scorers work independently, and the matrix hides structural edits so every scorer rates the same rows and criteria.'
+            : 'Start a Delphi process to score in rounds, with scorers revising after seeing where the panel disagreed. Rows and criteria lock while it runs.'}
+        </p>
+      </div>
+      <div className="flex shrink-0 flex-wrap items-center gap-2">
+        {active ? (
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => write({ current_round: currentRound + 1, enabled: true })}
+            >
+              Advance to round {currentRound + 1}
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => write({ enabled: false })}>
+              Stop
+            </Button>
+          </>
+        ) : (
+          <Button size="sm" onClick={() => write({ enabled: true })}>
+            Start Delphi
+          </Button>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export function ConsensusPanel() {
+  const { state } = useCrossTable()
+  const currentRound = state.table.config.delphi?.current_round ?? 1
+
+  return (
+    <div className="max-w-5xl space-y-6">
+      <DelphiFacilitator />
+      {/* Keyed on the round so advancing resets the body to the new round and refetches,
+          rather than leaving the reader on the previous one with nothing to say why. */}
+      <ConsensusBody key={currentRound} />
+    </div>
+  )
+}
+
+function ConsensusBody() {
   const { state } = useCrossTable()
   const { table } = state
   const { rows, columns } = table.config
@@ -159,7 +242,7 @@ export function ConsensusPanel() {
   const kw = kendallLabel(consensus.kendall_w)
 
   return (
-    <div className="space-y-6 max-w-5xl">
+    <div className="space-y-6">
       {/* Round selector + Kendall's W */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         {/* Round navigation */}

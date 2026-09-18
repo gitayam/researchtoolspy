@@ -77,6 +77,17 @@ export interface DisplayConfig {
 
 /** Delphi configuration nested under config.delphi */
 export interface DelphiConfig {
+  /**
+   * Whether this table is being run as a Delphi process.
+   *
+   * Added after the fact, and the reason matters: the previous shape had no on/off bit at
+   * all, so `MatrixGrid` inferred one from `current_round > 0` — which every template
+   * satisfies, because every template ships `current_round: 1`. The effect was that every
+   * cross table in existence rendered in facilitator mode, with add/remove/reorder for rows
+   * and columns hidden. Optional rather than required so stored configs written before the
+   * flag still typecheck; `isDelphiActive` decides what their absence means.
+   */
+  enabled?: boolean
   current_round: number
   results_released: boolean
 }

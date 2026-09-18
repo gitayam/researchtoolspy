@@ -19,6 +19,7 @@ import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
+import { isDelphiActive } from '@/lib/cross-table/delphi-state'
 import { useCrossTable } from './cross-table-context'
 import { ScoreCell } from './ScoreCell'
 import type { CrossTableRow, CrossTableColumn } from '@/lib/cross-table/types'
@@ -37,13 +38,7 @@ export function MatrixGrid() {
   const { rows, columns } = table.config
   // Tables created before the nested config migration stored these fields at
   // the config root. Keep them editable instead of crashing the whole route.
-  const legacyConfig = table.config as typeof table.config & {
-    delphi_enabled?: boolean
-    current_round?: number
-  }
-  const delphiActive = table.config.delphi
-    ? table.config.delphi.current_round > 0
-    : Boolean(legacyConfig.delphi_enabled && (legacyConfig.current_round ?? 1) > 0)
+  const delphiActive = isDelphiActive(table.config)
 
   // ── Row management ──────────────────────────────────────────
 
