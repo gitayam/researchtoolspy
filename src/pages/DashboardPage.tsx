@@ -1,3 +1,4 @@
+import { frameworkSessionHref } from '@/lib/framework-routes'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -416,7 +417,7 @@ export function DashboardPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <Link
-                        to={`/analysis-frameworks/${session.framework_type}/${session.id}`}
+                        to={frameworkSessionHref(session.framework_type, session.id) ?? '/dashboard/analysis-frameworks'}
                         className="text-sm font-medium text-gray-900 dark:text-white hover:text-blue-600"
                       >
                         {session.title}
