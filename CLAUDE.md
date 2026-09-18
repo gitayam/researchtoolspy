@@ -167,6 +167,38 @@ npx wrangler pages dev --port 8788   # API
 npx vite                              # Frontend on 5173, proxies /api to 8788
 ```
 
+## Tests
+
+**Run Playwright on proxmox, not locally.** From the repo root:
+
+```bash
+~/.claude/scripts/remote-playwright.sh                 # whole suite (~3.5 min)
+~/.claude/scripts/remote-playwright.sh --grep @smoke   # what CI runs
+~/.claude/scripts/remote-playwright.sh nav-search-cmdK # args pass through
+```
+
+The suite is ~2190 tests across two projects and this laptop cannot run it honestly. A
+contended local run does not merely take longer, it reports failures that are not there:
+timeouts and `getBoundingClientRect` layout assertions, all of which pass in isolation.
+Measured back to back on the same commit — proxmox: 2089 passed, 1 failed, 3m24s. Laptop:
+1683 passed, **402 failed**, 36m43s. Never start a second run while one is in flight.
+
+`npm run test:e2e` still runs locally and is left that way on purpose — CI calls
+`npx playwright test` directly, and the remote script needs Tailscale reach to proxmox. Use
+it only for a single non-browser spec.
+
+Read results from the **JSON reporter**, never by grepping the line reporter. The `N failed`
+summary line does not match the obvious greps, and a run with 65 real failures was once
+reported here as passing because of it.
+
+Known gap: `vite.config.ts` proxies `/api` to `localhost:8788`, but the Playwright config
+starts only the two Vite servers — so every unmocked API call in a browser test hits a dead
+proxy. Hundreds of `ECONNREFUSED 127.0.0.1:8788` lines per run are expected, not a new
+breakage.
+
+**Current state and what still needs testing: [`docs/TESTING-OPEN-QUESTIONS.md`](docs/TESTING-OPEN-QUESTIONS.md).**
+Read it before concluding that a failure is new.
+
 ## Database
 
 - D1 (SQLite) on Cloudflare
