@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { Loader2, AlertTriangle, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Loader2, AlertTriangle, CheckCircle2, ChevronLeft, ChevronRight, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
@@ -142,7 +142,19 @@ export function ConsensusPanel() {
     )
   }
 
-  if (!consensus) return null
+  if (!consensus) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center">
+        <Users className="h-8 w-8 text-muted-foreground mb-3" />
+        <p className="text-sm text-muted-foreground">
+          No consensus data for round {selectedRound} yet.
+        </p>
+        <p className="mt-1 text-xs text-muted-foreground max-w-sm">
+          Consensus is computed once more than one scorer has submitted for a round.
+        </p>
+      </div>
+    )
+  }
 
   const kw = kendallLabel(consensus.kendall_w)
 
