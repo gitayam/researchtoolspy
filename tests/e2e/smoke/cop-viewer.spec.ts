@@ -128,18 +128,22 @@ test.describe('COP Viewer — Event Monitor', () => {
 
   test.skip('refresh button exists and is clickable — route now serves CopWorkspacePage', () => {})
 
-  test('CoT export button opens /api/cop/:id/cot', async ({ copViewerPage, isMobile }) => {
+  test('CoT export downloads the ATAK feed', async ({ copViewerPage, isMobile }) => {
     test.skip(isMobile, 'CoT export button is hidden on mobile (sm:inline-flex)')
     await copViewerPage.goto(MOCK_SESSION_ID)
     await copViewerPage.waitForLoad()
 
-    await expect(copViewerPage.cotExportButton).toBeVisible()
+    // The export no longer opens /api/cop/:id/cot in a popup. This route serves
+    // CopWorkspacePage now — as its six skipped siblings above record — and that
+    // page fetches the XML with the caller's credentials and saves it. Waiting
+    // for a popup that is never opened is why this timed out rather than failed.
+    const button = copViewerPage.page.getByRole('button', { name: 'Export as Cursor-on-Target' })
+    await expect(button).toBeVisible()
 
-    // The button calls window.open — intercept the popup
-    const popupPromise = copViewerPage.page.waitForEvent('popup')
-    await copViewerPage.clickCotExport()
-    const popup = await popupPromise
-    expect(popup.url()).toContain(`/api/cop/${MOCK_SESSION_ID}/cot`)
+    const downloadPromise = copViewerPage.page.waitForEvent('download')
+    await button.click()
+    const download = await downloadPromise
+    expect(download.suggestedFilename()).toContain('.xml')
   })
 
   test('share button exists and is clickable', async ({ copViewerPage }) => {

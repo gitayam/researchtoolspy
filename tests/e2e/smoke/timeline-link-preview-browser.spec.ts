@@ -1,6 +1,20 @@
 import { test, expect, type Page } from '@playwright/test'
 import type { TimelineWorkspaceExport } from '../../../src/types/timeline-workspace'
 
+/**
+ * This spec is pinned to the isolated Vite on 127.0.0.1:5189, which
+ * playwright.config.ts now starts alongside the shared one.
+ *
+ * It has always assumed that origin — every route handler matches it, and the
+ * presentation-link assertion expects it — but its `page.goto()` calls are
+ * relative, so they resolved against the default baseURL of localhost:5173
+ * instead. The artwork test then aborted its own navigation, because it aborts
+ * any request whose origin is not 5189, and the link test compared a 5173 URL
+ * against a 5189 expectation. One override rather than absolute URLs at every
+ * call site.
+ */
+test.use({ baseURL: 'http://127.0.0.1:5189' })
+
 const title = 'Library & community <planning> — ' + 'recorded moments and shared context '.repeat(6)
 const user = { id: 1, role: 'researcher', is_active: true, username: 'synthetic-preview' }
 const token = 'b'.repeat(64)

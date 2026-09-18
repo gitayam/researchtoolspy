@@ -9,11 +9,17 @@
  * results or timing).
  *
  * Strategy: source-file assertions (no live DB required).
- *   1. The handler file must reference `workspaceId` AND an ownership check
- *      (SELECT against `cop_sessions` or a collaborators table) before the
- *      main survey_drops query.
- *   2. A 403 response path must exist in the handler.
- *   3. The submissions/list endpoint does NOT accept workspaceId (not vulnerable).
+ *
+ * These assertions used to grep the handler for `cop_sessions`, `created_by`
+ * and a collaborators table, because the guard was inlined there. It has since
+ * moved into the shared `checkWorkspaceAccess` helper — and the assertions kept
+ * passing, because the handler still MENTIONS `cop_sessions` in a comment.
+ * Grepping a file for a word the guard used to contain is assurance that
+ * survives the guard being deleted, which is worse than no assurance.
+ *
+ * So: the handler must CALL the guard before its main query, and the guard
+ * itself must consult ownership and collaborators. Each assertion now reads the
+ * file the behaviour lives in.
  */
 import { test, expect } from '@playwright/test'
 import { readFileSync } from 'node:fs'
@@ -31,12 +37,21 @@ test.describe('research/forms/list workspace authorization @smoke', () => {
     expect(source).toContain('workspaceId')
   })
 
-  test('@smoke handler performs an ownership check against cop_sessions before the main query', () => {
+  test('@smoke handler calls the shared workspace guard', () => {
     const source = src('functions/api/research/forms/list.ts')
-    // The guard must query cop_sessions to verify ownership.
-    expect(source).toContain('cop_sessions')
-    // And must check created_by (owner) — the core of the ownership assertion.
-    expect(source).toContain('created_by')
+    expect(source).toContain('checkWorkspaceAccess')
+    expect(source).toContain("from '../../_shared/workspace-helpers'")
+  })
+
+  test('@smoke the guard itself checks ownership and collaborators', () => {
+    // Where the check actually lives. `list.ts` only mentions cop_sessions in a
+    // comment now, so asserting against the handler proved nothing.
+    const guard = src('functions/api/_shared/workspace-helpers.ts')
+    expect(guard).toContain('cop_sessions')
+    expect(guard).toContain('created_by')
+    // Collaborators can legitimately filter by workspace, so owner-only would
+    // lock them out of their own sessions.
+    expect(guard).toContain('cop_collaborators')
   })
 
   test('@smoke handler has a 403 response path for unauthorized workspace access', () => {
@@ -45,23 +60,19 @@ test.describe('research/forms/list workspace authorization @smoke', () => {
     expect(source).toContain('Access denied')
   })
 
-  test('@smoke ownership check (cop_sessions) appears before the main survey_drops SELECT', () => {
+  test('@smoke the guard is awaited before the query is executed', () => {
     const source = src('functions/api/research/forms/list.ts')
-    const ownershipCheckIdx = source.indexOf('cop_sessions')
-    const mainQueryIdx = source.indexOf('FROM survey_drops')
-    expect(ownershipCheckIdx).toBeGreaterThan(-1)
-    expect(mainQueryIdx).toBeGreaterThan(-1)
-    // The cop_sessions check (ownership guard) must be declared before the main
-    // survey_drops query in the file. The function definition comes first, then
-    // the handler body calls it before executing the main query.
-    expect(ownershipCheckIdx).toBeLessThan(mainQueryIdx)
-  })
-
-  test('@smoke collaborator path is also checked (not just owner)', () => {
-    const source = src('functions/api/research/forms/list.ts')
-    // The guard must also consult the collaborators table so collaborators
-    // can legitimately filter by workspace.
-    expect(source).toContain('cop_collaborators')
+    const guardIdx = source.indexOf('await checkWorkspaceAccess')
+    // Against execution, not against the SQL text. The query is built as a
+    // template string BEFORE the guard runs and appended to afterwards, so
+    // `FROM survey_drops` legitimately appears first — comparing against it
+    // failed while the ordering that matters was correct.
+    const executeIdx = source.indexOf('DB.prepare(query)')
+    expect(guardIdx, 'guard is awaited').toBeGreaterThan(-1)
+    expect(executeIdx, 'query is executed').toBeGreaterThan(-1)
+    // Existence enumeration is the risk: a workspace id that is not yours must
+    // be refused before anything runs against it.
+    expect(guardIdx).toBeLessThan(executeIdx)
   })
 
   test('@smoke submissions/list does not accept workspaceId (not vulnerable to this issue)', () => {
