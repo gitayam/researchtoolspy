@@ -52,7 +52,19 @@ failed.
 two Vite servers. Every unmocked API call in a browser test therefore hits a dead proxy, and
 a full run emits hundreds of `ECONNREFUSED 127.0.0.1:8788` lines.
 
-**Bounded, but not closed.** Of the 37 spec files that open a browser, exactly **one**
+**Still open. One attempt to answer it produced a result that had to be thrown away** —
+recorded here because the way it failed is more useful than the answer would have been.
+
+The plan was sound: run the suite once with `wrangler pages dev` up and diff against the
+baseline. `wrangler pages dev` does run in the Playwright container (ready in 6 s,
+`/api/workspaces` → 200), so the experiment was possible. But both halves of the A/B ran
+while an unrelated `bazarr` process was consuming 1020 % CPU on proxmox, and they reported
+90 and 149 failures against a tree that reports 0 on a quiet host. The numbers were
+interpreted, compared, and nearly written up before the load average explained them.
+`remote-playwright.sh` now refuses to start on an oversubscribed host for exactly this
+reason. **Re-run the A/B when proxmox is quiet.**
+
+Of the 37 spec files that open a browser, exactly **one**
 (`comb-analysis-form.spec.ts`) mocks no routes at all. The other 36 mock selectively, so
 calls they do not name — `/api/analytics/events` and `/api/workspaces` are the two that show
 up loudest in the log — still reach the dead proxy.
@@ -117,10 +129,23 @@ Still absent by choice: evidence items and saved content analyses, which have no
 opens a single item. A result that can only land on a list page is a redirect with extra
 steps.
 
-### 7. Two specs are quarantined
+### 7. `cop-wizard` is quarantined for a reason that was misdiagnosed
 
-`cop-wizard` (10 failing, 0 passing) is guarded, and one consensus-spinner spec is
-`test.fixme`. Both are debt with a note, not fixes.
+The guard's own note said these specs "were written against a session nothing provides",
+implying a server-side dependency. That is wrong, and worth correcting because it made the
+quarantine look harder to lift than it is.
+
+`NewWorkspacePage` redirects in a mount effect when `isUserAuthenticated()` is false, and
+that function reads `omnicore_user_hash` out of **localStorage** — validated against
+nothing. There is no session. Running the API would never have fixed these specs.
+
+`tests/e2e/helpers/auth.ts` now seeds that value with `addInitScript` (an init script, not a
+`setItem` after navigation — by the time a test could set it, the redirect has fired).
+
+What remains before the quarantine can lift: the list page calls `GET /api/workspaces`,
+which the spec does not mock — `mockCreateWorkspace` handles POST and `route.continue()`s
+the rest. Mock it, rather than depending on the API server, so the specs are self-contained.
+The `test.fixme` consensus-spinner spec is separate and still untouched.
 
 ## Local fallback, if proxmox is unreachable
 
