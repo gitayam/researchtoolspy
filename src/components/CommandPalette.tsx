@@ -18,8 +18,34 @@ import {
   type DiscoveryIcon,
 } from '@/config/discovery-catalog'
 import { rankEntries } from '@/lib/discovery-rank'
+import { getCopHeaders } from '@/lib/cop-auth'
 
 const GROUPS: DiscoveryGroup[] = ['Tools', 'Frameworks', 'Navigate']
+
+/** A thing the caller made, as returned by /api/discovery/search. */
+interface ContentHit {
+  kind: 'framework' | 'cop' | 'actor' | 'investigation' | 'cross-table'
+  id: string
+  title: string
+  detail: string | null
+  href: string
+}
+
+const CONTENT_ICONS: Record<ContentHit['kind'], LucideIcon> = {
+  framework: Brain,
+  cop: Map,
+  actor: Users,
+  investigation: Search,
+  'cross-table': TableProperties,
+}
+
+const CONTENT_LABELS: Record<ContentHit['kind'], string> = {
+  framework: 'Analysis',
+  cop: 'COP session',
+  actor: 'Actor',
+  investigation: 'Investigation',
+  'cross-table': 'Cross table',
+}
 const ICONS: Record<DiscoveryIcon, LucideIcon> = {
   activity: Activity,
   archive: Archive,
@@ -76,6 +102,9 @@ function EmptyState({ search }: { search: string }) {
 export function CommandPalette() {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
+  // Kept with the query it answers, so a slow response for an older query cannot be shown
+  // beside a newer one — and so the effect never has to clear state synchronously.
+  const [content, setContent] = useState<{ query: string; hits: ContentHit[] }>({ query: '', hits: [] })
   const navigate = useNavigate()
 
   // Ranked, flat, best first while searching. The palette used to render its
@@ -84,6 +113,33 @@ export function CommandPalette() {
   // Tools. Grouping is for browsing; when someone has typed, the ordering that
   // matters is relevance.
   const ranked = query.trim() ? rankEntries(DISCOVERY_ENTRIES, query) : null
+
+  // The caller's own analyses, sessions and entities — the half of the search the static
+  // catalogue cannot answer. Debounced because the palette asks on every keystroke, and
+  // silent on failure: a signed-out or offline caller still gets the catalogue, which is the
+  // majority of what the palette is for.
+  useEffect(() => {
+    const trimmed = query.trim()
+    if (!open || trimmed.length < 2) return
+
+    const controller = new AbortController()
+    const timer = setTimeout(() => {
+      fetch(`/api/discovery/search?q=${encodeURIComponent(trimmed)}`, {
+        headers: getCopHeaders(),
+        signal: controller.signal,
+      })
+        .then(response => (response.ok ? response.json() : null))
+        .then((data: { results?: ContentHit[] } | null) => {
+          if (data) setContent({ query: trimmed, hits: data.results ?? [] })
+        })
+        .catch(() => { /* aborted, offline, or signed out: the catalogue still works */ })
+    }, 150)
+
+    return () => {
+      clearTimeout(timer)
+      controller.abort()
+    }
+  }, [query, open])
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -123,6 +179,25 @@ export function CommandPalette() {
     )
   }
 
+  const renderContentItem = (hit: ContentHit) => {
+    const Icon = CONTENT_ICONS[hit.kind]
+    return (
+      <CommandItem key={`${hit.kind}:${hit.id}`} value={`${hit.kind}:${hit.id}`} onSelect={() => runCommand(hit.href)}>
+        <Icon className="mt-0.5 h-4 w-4 text-muted-foreground" />
+        <span className="min-w-0 flex-1">
+          <span className="block font-medium">{hit.title}</span>
+          <span className="mt-0.5 line-clamp-2 block text-xs font-normal leading-snug text-muted-foreground">
+            {CONTENT_LABELS[hit.kind]}{hit.detail ? ` · ${hit.detail}` : ''}
+          </span>
+        </span>
+      </CommandItem>
+    )
+  }
+
+  // Only for the query on screen. A response that arrives for an older query is discarded
+  // rather than shown beside results it does not belong to.
+  const contentHits = content.query === query.trim() ? content.hits : []
+
   return (
     <CommandDialog open={open} onOpenChange={setOpen} shouldFilter={false}>
       {/* shouldFilter=false: ranking is ours now. cmdk's own filter scores a
@@ -134,9 +209,18 @@ export function CommandPalette() {
         onValueChange={setQuery}
       />
       <CommandList className="max-h-[60vh]">
-        {ranked?.length === 0 && <EmptyState search={query} />}
+        {ranked?.length === 0 && contentHits.length === 0 && <EmptyState search={query} />}
         {ranked && ranked.length > 0 && (
           <CommandGroup heading="Results">{ranked.map(renderItem)}</CommandGroup>
+        )}
+        {/* Below the catalogue on purpose. Someone typing "ach" wants the framework, not an
+            analysis that happens to mention it; the tool is the thing they cannot reach any
+            other way, whereas their own work is also listed on its own page. */}
+        {contentHits.length > 0 && (
+          <>
+            {ranked && ranked.length > 0 && <CommandSeparator />}
+            <CommandGroup heading="Your content">{contentHits.map(renderContentItem)}</CommandGroup>
+          </>
         )}
         {!ranked && GROUPS.map((group, i) => {
           const items = DISCOVERY_ENTRIES.filter(entry => entry.group === group)
@@ -166,7 +250,7 @@ export function CommandPalette() {
             <span className="ml-0.5">close</span>
           </span>
         </span>
-        <ResultCount count={ranked ? ranked.length : DISCOVERY_ENTRIES.length} />
+        <ResultCount count={ranked ? ranked.length + contentHits.length : DISCOVERY_ENTRIES.length} />
       </CommandFooter>
     </CommandDialog>
   )

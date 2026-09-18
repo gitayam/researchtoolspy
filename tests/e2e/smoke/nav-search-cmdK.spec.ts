@@ -95,6 +95,59 @@ test.describe('nav-search-cmdK discovery @smoke', () => {
     await expect(page.getByRole('heading', { name: 'Timeline Analysis' })).toBeVisible()
   })
 
+  test('the palette lists the caller\'s own content, below the catalogue', async ({ page }) => {
+    await page.route('**/api/workspaces', route => route.fulfill({ status: 200, json: { owned: [], member: [] } }))
+    await page.route('**/api/discovery/search**', route => route.fulfill({
+      status: 200,
+      json: {
+        results: [
+          { kind: 'framework', id: '10', title: 'Harbour access analysis', detail: 'starbursting',
+            href: '/dashboard/analysis-frameworks/starbursting/10/view' },
+          { kind: 'cop', id: 'cop-1', title: 'Harbour watch', detail: 'Live picture',
+            href: '/dashboard/cop/cop-1' },
+        ],
+      },
+    }))
+
+    await page.goto('/dashboard/tools')
+    await page.getByRole('button', { name: /Open command palette/ }).click()
+    await page.getByPlaceholder('Search frameworks, tools, features, and pages...').fill('harbour')
+
+    await expect(page.getByRole('option', { name: /Harbour access analysis/ })).toBeVisible()
+    await expect(page.getByRole('option', { name: /Harbour watch/ })).toBeVisible()
+  })
+
+  test('a framework the catalogue knows still outranks content that merely mentions it', async ({ page }) => {
+    // The ordering the request asked for: frameworks and their acronyms first, then
+    // everything else including the caller's own work.
+    await page.route('**/api/workspaces', route => route.fulfill({ status: 200, json: { owned: [], member: [] } }))
+    await page.route('**/api/discovery/search**', route => route.fulfill({
+      status: 200,
+      json: { results: [{ kind: 'framework', id: '99', title: 'ACH on the port incident', detail: 'ach', href: '/dashboard/analysis-frameworks/ach-dashboard/99' }] },
+    }))
+
+    await page.goto('/dashboard/tools')
+    await page.getByRole('button', { name: /Open command palette/ }).click()
+    await page.getByPlaceholder('Search frameworks, tools, features, and pages...').fill('ach')
+
+    const options = page.getByRole('option')
+    await expect(options.first()).toContainText(/Analysis of Competing Hypotheses|ACH/)
+    // The caller's own analysis is present, but after the tool itself.
+    await expect(page.getByRole('option', { name: /ACH on the port incident/ })).toBeVisible()
+  })
+
+  test('the palette still works when the content search fails', async ({ page }) => {
+    // It asks on every keystroke; a signed-out or erroring caller must still get the
+    // catalogue rather than a broken panel.
+    await page.route('**/api/workspaces', route => route.fulfill({ status: 200, json: { owned: [], member: [] } }))
+    await page.route('**/api/discovery/search**', route => route.fulfill({ status: 500, json: { error: 'nope' } }))
+
+    await page.goto('/dashboard/tools')
+    await page.getByRole('button', { name: /Open command palette/ }).click()
+    await page.getByPlaceholder('Search frameworks, tools, features, and pages...').fill('timeline')
+    await expect(page.getByRole('option', { name: /Timeline Analysis/ })).toBeVisible()
+  })
+
   test('tools-page search includes features and catalog aliases', async ({ page }) => {
     await page.route('**/api/workspaces', route => route.fulfill({ status: 200, json: { owned: [], member: [] } }))
     await page.goto('/dashboard/tools')

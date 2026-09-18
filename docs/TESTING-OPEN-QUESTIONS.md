@@ -5,7 +5,9 @@ Written 2026-09-18, after the pass that took the suite from a reported "1694 pas
 
 ## Settled
 
-- **The suite is green.** 2090 passed / 100 skipped / **0 failed** on proxmox, 3 min 30 s.
+- **The suite is green, and repeatably so.** 0 failures across three consecutive full runs
+  on proxmox (2073 / 2079 / 2084 passed; the counts rise because specs were added between
+  runs). Around 3.5-4 min each.
 - **Run it on proxmox**, via `~/.claude/scripts/remote-playwright.sh`. Not a preference: a
   contended laptop run of this same commit reported **402 failures that do not exist**.
 - **Read results from the JSON reporter.** The line reporter's `N failed` line does not match
@@ -68,11 +70,20 @@ Blocking, MR-triggered, v1.60 image, chromium + webkit. All four changed togethe
 executed. The first merge request will tell us; watch that pipeline specifically. Most likely
 failure: the job's own 45 m timeout against `workers: 1` in CI.
 
-### 4. Flake rate is unmeasured
+### ~~4. Flake rate~~ — measured: zero over three consecutive runs
 
-One green run is not evidence of a stable suite. Run the full suite 5× back to back on
-proxmox and count how many specs fail at least once. That number decides whether `retries: 2`
-in CI is masking a real problem.
+| Run | Result |
+|---|---|
+| 1 | 2073 passed, 0 failed, 4.0 min |
+| 2 | 2079 passed, 0 failed, 3.5 min |
+| 3 | 2084 passed, 0 failed, 3.9 min |
+
+Counts differ because specs were being added between runs, not because tests were skipped.
+No spec failed in any run, so nothing is currently hiding behind CI's `retries: 2`.
+
+This is three runs, not fifty — it rules out a *frequent* flake, not a rare one. Re-measure
+after any change to worker count, the CPU ceiling, or the webServer set, since all three
+alter the timing this suite proved sensitive to.
 
 ### 5. Delphi back-compat — verified as far as it can be without a browser session
 
@@ -87,12 +98,24 @@ What is left is only the visual confirmation, which needs an authenticated sessi
 table `ae969508-4f99-4bfb-9fc8-48f6f088cd8b` ("Location", 12 scores) and check that Add row
 and Add criterion are present, and that the Consensus tab offers Start Delphi.
 
-### 6. `functions/api/discovery/search.ts` is unverified
+### ~~6. `functions/api/discovery/search.ts`~~ — finished, tested, wired
 
-Written, never typechecked, never called — no route wiring, no UI, no test. It queries five
-tables whose columns were confirmed against production, but the handler itself has not run
-once. Either finish it (typecheck, a spec, palette wiring) or delete it; leaving it is the
-worst of the three.
+Six executable specs against in-memory D1, and the palette now renders a "Your content"
+group beneath the catalogue results. The scope test is the one that matters: content in a
+workspace the caller neither owns nor belongs to must not be reachable, and the search
+covers owned workspaces directly rather than via `workspace_members`, because owning a
+workspace does not require a membership row.
+
+Finishing it surfaced a bug that had already passed a test. The LIKE pattern escaped `%` and
+`_` with a backslash, but no `LIKE` carried an `ESCAPE` clause — so SQLite read the
+backslash literally and a query containing `%` matched *nothing* instead of matching a
+literal `%`. The original test asserted an empty result and passed for exactly the wrong
+reason. Both are fixed: `ESCAPE '\'` on all five clauses, and the test now asserts that a
+title containing a real percent sign is **found**.
+
+Still absent by choice: evidence items and saved content analyses, which have no route that
+opens a single item. A result that can only land on a list page is a redirect with extra
+steps.
 
 ### 7. Two specs are quarantined
 
