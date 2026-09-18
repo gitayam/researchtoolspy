@@ -25,10 +25,27 @@ const mockWorkspaceSession = {
 const mockStats = {
   evidence_count: 12,
   entity_count: 5,
+  actor_count: 2,
+  source_count: 1,
+  event_count: 1,
+  place_count: 1,
+  behavior_count: 0,
   relationship_count: 3,
   framework_count: 2,
   open_questions: 4,
+  answered_questions: 1,
+  open_rfis: 2,
   blocker_count: 0,
+  hypothesis_count: 2,
+  claim_count: 3,
+  verified_claim_count: 1,
+  alert_count: 1,
+  timeline_count: 4,
+  task_count: 3,
+  persona_count: 2,
+  marker_count: 2,
+  submission_count: 1,
+  poo_count: 1,
 }
 
 const mockStatsWithBlockers = {
