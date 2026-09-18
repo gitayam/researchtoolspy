@@ -7,7 +7,17 @@ test.describe('Behavior decision-sequence editor @smoke', () => {
     await page.route('**/api/ai/config**', route => route.fulfill({ status: 200, json: { enabled: false } }))
   })
 
+  // Thirty-one sequential interactions, several of them Radix Selects whose close animation
+  // the next click has to wait out. That is comfortably under the default 30 s budget on its
+  // own — the mobile-safari project alone passes 275/275 — but not when the full suite's
+  // chromium half is running beside it, where it times out waiting for the HAPA phase
+  // combobox to become stable. Classified before being marked: it is not order-dependent
+  // (localStorage is cleared per test and every route is mocked in-test), it is long.
   test('authors and saves advanced event fields in the canonical schema', async ({ page }) => {
+    // Inside the test body, not above it: at describe level this would slow every test in
+    // the group, which is not what was measured.
+    test.slow()
+
     let savedPayload: { data: { timeline: Array<Record<string, unknown>> } } | undefined
     await page.route('**/api/frameworks?**', async (route) => {
       if (route.request().method() === 'POST') {

@@ -14,11 +14,21 @@ import { defineConfig, devices } from '@playwright/test'
  * It fails toward "runs once, on desktop" rather than "does not run": chromium takes every
  * spec regardless, so a miss here costs mobile coverage, never coverage.
  */
+/**
+ * A Playwright fixture destructure in a test or hook callback — `async ({ page }) => …`.
+ *
+ * Anchored to `async (` rather than matching any `{ … page … }`, because a bare brace match
+ * also catches ordinary local destructures (`const { context } = contextFor(url)`) and
+ * `browserName`, which tells a test which engine it is on without ever opening a browser.
+ * Those three files were being run twice under a phone profile for nothing.
+ */
+const FIXTURE_DESTRUCTURE = /async\s*\(\s*\{[^}]*\b(?:page|context|browser)\b/
+
 function browserSpecs(dir: string, found: string[] = []): string[] {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     const path = join(dir, entry.name)
     if (entry.isDirectory()) browserSpecs(path, found)
-    else if (entry.name.endsWith('.spec.ts') && /\{\s*(?:[\w:, ]*\b(?:page|context|browser|browserName)\b)[\s,}]/.test(readFileSync(path, 'utf8'))) {
+    else if (entry.name.endsWith('.spec.ts') && FIXTURE_DESTRUCTURE.test(readFileSync(path, 'utf8'))) {
       found.push(entry.name)
     }
   }
