@@ -1,4 +1,33 @@
+import { readdirSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { defineConfig, devices } from '@playwright/test'
+
+/**
+ * Which specs actually open a browser.
+ *
+ * Most of this suite is compute: contract checks, parsers, projection helpers. Playwright
+ * only launches a browser for a test that asks for one, so those specs ran a second time
+ * under a phone profile and re-executed identical pure assertions — half the suite's work,
+ * proving nothing. Scanned rather than listed by hand so a new UI spec gets mobile coverage
+ * without anyone remembering to add it; the scan is over ~200 small files and costs nothing.
+ *
+ * It fails toward "runs once, on desktop" rather than "does not run": chromium takes every
+ * spec regardless, so a miss here costs mobile coverage, never coverage.
+ */
+function browserSpecs(dir: string, found: string[] = []): string[] {
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const path = join(dir, entry.name)
+    if (entry.isDirectory()) browserSpecs(path, found)
+    else if (entry.name.endsWith('.spec.ts') && /\{\s*(?:[\w:, ]*\b(?:page|context|browser|browserName)\b)[\s,}]/.test(readFileSync(path, 'utf8'))) {
+      found.push(entry.name)
+    }
+  }
+  return found
+}
+
+const MOBILE_SPECS = new RegExp(
+  `(?:${browserSpecs('tests/e2e').map(name => name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})$`,
+)
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -23,7 +52,11 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
     {
+      // Only the specs that render something. This project caught the command palette
+      // trigger being `hidden sm:flex`, which left a phone with no way to reach search at
+      // all — worth keeping, and worth keeping narrow.
       name: 'mobile-safari',
+      testMatch: MOBILE_SPECS,
       use: { ...devices['iPhone 14'] },
     },
   ],

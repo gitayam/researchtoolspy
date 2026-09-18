@@ -53,13 +53,23 @@ build:
 
 # --- Test Stage ---
 
+# Blocking, as of the pass that took the suite from 65 failures to 0. It was
+# `allow_failure: true` before that, which is how the 65 accumulated unseen: the job went
+# red, the pipeline stayed green, and nobody had a reason to look.
+#
+# Three things had to be true first. The suite had to pass, obviously. The image had to
+# match the version in package-lock (it was pinned to v1.52 against a 1.60 lockfile, so
+# every run re-downloaded browsers the image could not supply system libraries for). And
+# webkit had to be installed, because the config defines a mobile-safari project that this
+# job was never able to launch.
 e2e:smoke:
   stage: test
-  image: mcr.microsoft.com/playwright:v1.52.0-noble
+  image: mcr.microsoft.com/playwright:v1.60.0-noble
   needs: ["build"]
+  timeout: 45m
   script:
     - npm ci --prefer-offline
-    - npx playwright install --with-deps chromium
+    - npx playwright install --with-deps chromium webkit
     - npx playwright test --grep @smoke --reporter=list
   artifacts:
     when: on_failure
@@ -67,6 +77,8 @@ e2e:smoke:
       - playwright-report/
       - test-results/
     expire_in: 3 days
-  allow_failure: true
   rules:
+    # Run before the merge, not only after it. On main-only, the first sight of a break was
+    # always a break already on main.
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == "main"
