@@ -98,7 +98,13 @@ const SCHEMA = `
     user_id INTEGER,
     workspace_id TEXT,
     url TEXT,
+    content_hash TEXT,
     title TEXT,
+    author TEXT,
+    publish_date TEXT,
+    is_social_media INTEGER,
+    extracted_text TEXT,
+    created_at TEXT,
     publication_date TEXT,
     processed_at TEXT
   );

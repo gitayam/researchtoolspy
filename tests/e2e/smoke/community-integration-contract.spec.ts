@@ -52,16 +52,15 @@ test.describe('community integration contract @smoke', () => {
     })
 
     expect(result.identityType).toBe('service')
-    expect(result.capabilities.anonymousAnalysis).toBe(true)
-    expect(result.capabilities.publicBcw).toBe(true)
+
+    // One list, used in both directions: every name here must be advertised, every name
+    // absent from it must not be. Written out by hand rather than derived from
+    // TRANCHE_A_SERVER_SUPPORT, so that shipping a capability is a deliberate edit to this
+    // line and not a silent consequence of flipping a flag in the source constant.
+    const shipped = ['anonymousAnalysis','publicBcw','timelineAnalysis','timelineRead','timelineWrite','timelineHandoffMint']
     for (const name of INTEGRATION_CAPABILITY_NAMES) {
-      if (!['anonymousAnalysis','publicBcw','timelineAnalysis','timelineRead','timelineWrite'].includes(name)) {
-        expect(result.capabilities[name], name).toBe(false)
-      }
+      expect(result.capabilities[name], name).toBe(shipped.includes(name))
     }
-    expect(result.capabilities.timelineAnalysis).toBe(true)
-    expect(result.capabilities.timelineRead).toBe(true)
-    expect(result.capabilities.timelineWrite).toBe(true)
     expect(result.contractVersions).toEqual({
       capabilities: 'integration-capabilities.v1',
       timelineAnalysis: 'timeline-analysis.v1',

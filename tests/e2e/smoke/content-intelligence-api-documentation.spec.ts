@@ -40,7 +40,10 @@ test.describe('content intelligence API documentation contract @smoke', () => {
     expect(middleware).toContain('content-analysis:${clientIp}`, 12, 60 * 60')
     expect(analysisApi).toContain('`X-Analysis-Meter`')
     expect(analysisApi).toContain('operational classification receipt')
-    expect(middleware).toContain("'Access-Control-Expose-Headers': 'X-Analysis-Meter'")
+    // Matched loosely on purpose: the assertion is that the meter header reaches a browser
+    // caller, not that it is the only header exposed. Pinning the full value made adding
+    // ETag to the same list read as a documentation regression.
+    expect(middleware).toMatch(/'Access-Control-Expose-Headers': '[^']*\bX-Analysis-Meter\b/)
     expect(middleware).toContain("response.headers.set('X-Analysis-Meter', analysisMeter)")
   })
 
