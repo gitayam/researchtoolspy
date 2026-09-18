@@ -69,10 +69,41 @@ with the starting load reading an unremarkable 15 to 19 in both cases.
 
 `remote-playwright.sh` now judges a run by its **duration against a known-good baseline** —
 the only signal that catches a neighbour arriving mid-run — and says outright when failures
-should not be believed. **Re-run the A/B and check that warning before reading the numbers.**
+should not be believed.
 
-The three failed attempts are the useful part of this entry: a slow run that fails is
-evidence about the host, not the code.
+**Answered, on the fourth attempt.** The sharpest available test is `comb-analysis-form`,
+the only browser spec that mocks no routes at all: if a dead `/api` proxy changes any
+outcome anywhere, it changes one there. Run with and without `wrangler pages dev`, back to
+back in one container:
+
+| | Result | Duration |
+|---|---|---|
+| No API server | 16 failed | 125 s |
+| `wrangler pages dev` up | 16 failed | 124 s |
+
+Identical. **The API server changes nothing**, so the dead proxy is log noise rather than a
+source of false passes, and the suite does not need a third `webServer` — which is worth
+avoiding, since it would require a `vite build` before every run and roughly double the
+3.5-minute loop.
+
+### What that experiment exposed instead
+
+Both halves failed 16/16 — yet the same spec passes inside the full suite. That is backwards
+from the usual pollution signature, and it is now the open question:
+
+| Selection | Workers | Result |
+|---|---|---|
+| Full suite | 16 | passes (2095/2095 overall, 211 s) |
+| Alone | 6 | 0 passed, 16 failed |
+| Alone | 1 | 4 passed, 4 failed, ~23 s per test |
+
+Fewer workers help without fixing it, and ~23 s per test makes the 30 s timeout marginal.
+The likely shape is a cold Vite dev server: in a full run the ~1500 node specs warm it while
+browser specs trickle in; run alone, every worker stampedes it at once. Not pinned down.
+
+**Operating rule until it is: a browser-spec subset failing here is not evidence.** Confirm
+against the full suite in either direction. Several "targeted runs" were treated as
+authoritative during this work and should not have been.
 
 Of the 37 spec files that open a browser, exactly **one**
 (`comb-analysis-form.spec.ts`) mocks no routes at all. The other 36 mock selectively, so
