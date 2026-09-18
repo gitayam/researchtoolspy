@@ -27,6 +27,8 @@ import { analyzableUrlFrom } from '@/lib/content-url'
 
 export type CaptureKind = 'rfi' | 'nai' | 'task' | 'timeline' | 'hypothesis' | 'survey' | 'url' | 'note'
 export type Priority = 'critical' | 'high' | 'medium'
+/** The corroboration scale the evidence and marker stores already use. */
+export type Credibility = 'confirmed' | 'probable' | 'possible' | 'doubtful'
 /** Retained name: RFIs were the first thing to carry a priority. */
 export type RfiPriority = Priority
 
@@ -46,6 +48,8 @@ export interface ParsedCapture {
   eventDate?: string
   /** Why this input cannot be sent, shown before they try. */
   problem?: string
+  /** How well corroborated, when the analyst said. */
+  credibility?: Credibility
 }
 
 /** `rfi`, `rfi!`, `rfi!!` … then a colon. */
@@ -67,6 +71,35 @@ const NOTE = /^note\s*:\s*/i
  */
 const LEADING_LOCATION = /^(https?:\/\/\S+|-?\d{1,3}\.?\d*\s*,\s*-?\d{1,3}\.?\d*|\d{1,2}[A-Za-z]{3}\d{2,10})\s*/
 
+/**
+ * A trailing corroboration marker: `two vehicles at the north gate ~confirmed`.
+ *
+ * Every note the bar filed was stored `unverified`, because it never sent a
+ * credibility and that is the column's default. Whether the analyst saw
+ * something themselves or was told about it is the single most useful thing to
+ * record at the moment of capture, and it was the one thing they could not.
+ *
+ * A tilde, because it almost never starts a word in prose. At the end of the
+ * line, because that is where a qualifier falls naturally when you have already
+ * written the observation. Only these words count — an unknown `~something`
+ * stays part of the text rather than being silently eaten.
+ */
+const CREDIBILITY_WORDS: Record<string, Credibility> = {
+  confirmed: 'confirmed', conf: 'confirmed',
+  probable: 'probable', prob: 'probable', likely: 'probable',
+  possible: 'possible', poss: 'possible',
+  doubtful: 'doubtful', doubt: 'doubtful', unlikely: 'doubtful',
+}
+const TRAILING_CREDIBILITY = /\s~([a-z]+)\s*$/i
+
+function splitCredibility(text: string): { text: string; credibility?: Credibility } {
+  const match = TRAILING_CREDIBILITY.exec(text)
+  if (!match) return { text }
+  const credibility = CREDIBILITY_WORDS[match[1].toLowerCase()]
+  if (!credibility) return { text }
+  return { text: text.slice(0, match.index).trim(), credibility }
+}
+
 /** `YYYY-MM-DD` at the front of a timeline entry. */
 const LEADING_DATE = /^(\d{4}-\d{2}-\d{2})\s+/
 
@@ -77,15 +110,24 @@ function priorityFor(bangs: number): { priority: Priority; isBlocker: boolean } 
 }
 
 export function parseCapture(raw: string): ParsedCapture | null {
-  const trimmed = raw.trim()
+  const { text: trimmed, credibility } = splitCredibility(raw.trim())
   if (!trimmed) return null
+
+  const withCredibility = (parsed: ParsedCapture): ParsedCapture => {
+    if (!credibility) return parsed
+    return {
+      ...parsed,
+      credibility,
+      label: `${parsed.label} · ${credibility}`,
+    }
+  }
 
   const rfi = RFI.exec(trimmed)
   if (rfi) {
     const body = trimmed.slice(rfi[0].length).trim()
     if (!body) return null
     const { priority, isBlocker } = priorityFor(rfi[1].length)
-    return {
+    return withCredibility({
       kind: 'rfi',
       body,
       priority,
@@ -93,7 +135,7 @@ export function parseCapture(raw: string): ParsedCapture | null {
       label: isBlocker
         ? 'Request for information — critical, blocking'
         : `Request for information — ${priority} priority`,
-    }
+    })
   }
 
   const nai = NAI.exec(trimmed)
@@ -112,12 +154,12 @@ export function parseCapture(raw: string): ParsedCapture | null {
       }
     }
     const name = rest.slice(located[0].length).trim()
-    return {
+    return withCredibility({
       kind: 'nai',
       body: name || located[1],
       location: located[1],
       label: `Named area of interest at ${located[1]}`,
-    }
+    })
   }
 
   const task = TASK.exec(trimmed)
@@ -125,13 +167,13 @@ export function parseCapture(raw: string): ParsedCapture | null {
     const body = trimmed.slice(task[0].length).trim()
     if (!body) return null
     const { priority, isBlocker } = priorityFor(task[1].length)
-    return {
+    return withCredibility({
       kind: 'task',
       body,
       priority,
       isBlocker,
       label: `Task — ${priority} priority`,
-    }
+    })
   }
 
   const timeline = TIMELINE.exec(trimmed)
@@ -142,19 +184,19 @@ export function parseCapture(raw: string): ParsedCapture | null {
     const eventDate = dated?.[1]
     const body = dated ? rest.slice(dated[0].length).trim() : rest
     if (!body) return null
-    return {
+    return withCredibility({
       kind: 'timeline',
       body,
       eventDate,
       label: eventDate ? `Timeline — ${eventDate}` : 'Timeline — today',
-    }
+    })
   }
 
   const hypothesis = HYPOTHESIS.exec(trimmed)
   if (hypothesis) {
     const body = trimmed.slice(hypothesis[0].length).trim()
     if (!body) return null
-    return { kind: 'hypothesis', body, label: 'Hypothesis ledger' }
+    return withCredibility({ kind: 'hypothesis', body, label: 'Hypothesis ledger' })
   }
 
   const survey = SURVEY.exec(trimmed)
@@ -170,13 +212,13 @@ export function parseCapture(raw: string): ParsedCapture | null {
   if (note) {
     const body = trimmed.slice(note[0].length).trim()
     if (!body) return null
-    return { kind: 'note', body, label: 'Evidence feed — note' }
+    return withCredibility({ kind: 'note', body, label: 'Evidence feed — note' })
   }
 
   const url = analyzableUrlFrom(trimmed)
-  if (url) return { kind: 'url', body: trimmed, url, label: 'Evidence feed — fetch and analyse' }
+  if (url) return withCredibility({ kind: 'url', body: trimmed, url, label: 'Evidence feed — fetch and analyse' })
 
-  return { kind: 'note', body: trimmed, label: 'Evidence feed — note' }
+  return withCredibility({ kind: 'note', body: trimmed, label: 'Evidence feed — note' })
 }
 
 /**
@@ -227,5 +269,30 @@ export const PANEL_LABEL_FOR_KIND: Record<CaptureKind, string> = {
   survey: 'Submissions',
   note: 'Evidence feed',
   url: 'Evidence feed',
+}
+
+/**
+ * The same judgement, in each store's own vocabulary.
+ *
+ * Evidence keeps a lowercase corroboration word, markers an uppercase one, and
+ * hypotheses a 0-100 number. The analyst says it once; the translation belongs
+ * here rather than at three call sites that would drift.
+ *
+ * The hypothesis numbers are deliberately not 100 or 0: an analyst marking a
+ * fresh hypothesis "confirmed" is reporting good corroboration, not certainty,
+ * and a ledger that starts something at 100 has nowhere left to go.
+ */
+export const MARKER_CONFIDENCE: Record<Credibility, string> = {
+  confirmed: 'CONFIRMED',
+  probable: 'PROBABLE',
+  possible: 'POSSIBLE',
+  doubtful: 'DOUBTFUL',
+}
+
+export const HYPOTHESIS_CONFIDENCE: Record<Credibility, number> = {
+  confirmed: 85,
+  probable: 65,
+  possible: 50,
+  doubtful: 25,
 }
 

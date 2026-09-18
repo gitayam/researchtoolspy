@@ -3,7 +3,7 @@ import { getCopHeaders } from '@/lib/cop-auth'
 import { Link, Brain, Loader2, Sparkles, MapPin, ClipboardList, HelpCircle, ListChecks, Clock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { noteTitle, parseCapture, PANEL_FOR_KIND, PANEL_LABEL_FOR_KIND, type CaptureKind } from '@/lib/cop-capture'
+import { noteTitle, parseCapture, HYPOTHESIS_CONFIDENCE, MARKER_CONFIDENCE, PANEL_FOR_KIND, PANEL_LABEL_FOR_KIND, type CaptureKind } from '@/lib/cop-capture'
 
 interface CopGlobalCaptureBarProps {
   sessionId: string
@@ -86,7 +86,7 @@ export default function CopGlobalCaptureBar({ sessionId, workspaceId, onSuccess,
             // an NAI is recorded at its centre rather than as a boundary.
             cot_type: 'b-m-p-w',
             description: `Named area of interest — ${route.body}`,
-            confidence: 'POSSIBLE',
+            confidence: route.credibility ? MARKER_CONFIDENCE[route.credibility] : 'POSSIBLE',
             source_type: 'MANUAL',
             rationale: 'Captured from the COP capture bar',
           }
@@ -127,7 +127,10 @@ export default function CopGlobalCaptureBar({ sessionId, workspaceId, onSuccess,
           break
         case 'hypothesis':
           endpoint = `/api/cop/${sessionId}/hypotheses`
-          body = { statement: route.body }
+          body = {
+            statement: route.body,
+            ...(route.credibility ? { confidence: HYPOTHESIS_CONFIDENCE[route.credibility] } : {}),
+          }
           break
         case 'url':
           endpoint = '/api/content-intelligence/analyze-url'
@@ -143,6 +146,10 @@ export default function CopGlobalCaptureBar({ sessionId, workspaceId, onSuccess,
             content: route.body,
             source_type: 'observation',
             confidence: 'medium',
+            // Every note used to land `unverified`, because the bar sent no
+            // credibility and that is the column's default — so a first-hand
+            // sighting and a rumour were stored identically.
+            ...(route.credibility ? { credibility: route.credibility } : {}),
           }
           break
       }
@@ -334,12 +341,17 @@ export default function CopGlobalCaptureBar({ sessionId, workspaceId, onSuccess,
               { prefix: 't:', meaning: 'timeline', extra: 'optionally lead with YYYY-MM-DD' },
               { prefix: 'hyp:', meaning: 'hypothesis' },
               { prefix: 'survey:', meaning: 'collection form' },
+              { prefix: '~confirmed', meaning: 'how corroborated', extra: 'end any capture with ~confirmed, ~probable, ~possible or ~doubtful' },
             ].map(hint => (
               <button
                 key={hint.prefix}
                 type="button"
                 onClick={() => {
-                  setInput(`${hint.prefix} `)
+                  // The corroboration marker goes at the end of what is already
+                  // written; every other hint starts a line.
+                  setInput(prev => hint.prefix.startsWith('~')
+                    ? `${prev.trimEnd()} ${hint.prefix} `.trimStart()
+                    : `${hint.prefix} `)
                   inputRef.current?.focus()
                 }}
                 title={hint.extra ? `${hint.meaning} — ${hint.extra}` : hint.meaning}

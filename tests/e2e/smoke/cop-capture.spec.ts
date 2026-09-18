@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { noteTitle, parseCapture, PANEL_FOR_KIND, PANEL_LABEL_FOR_KIND } from '../../../src/lib/cop-capture'
+import { noteTitle, parseCapture, HYPOTHESIS_CONFIDENCE, MARKER_CONFIDENCE, PANEL_FOR_KIND, PANEL_LABEL_FOR_KIND } from '../../../src/lib/cop-capture'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
@@ -183,5 +183,67 @@ test.describe('COP capture routing @smoke', () => {
     // A note and an analysed link both land in the evidence feed — one panel.
     expect(PANEL_FOR_KIND[parseCapture('plain note')!.kind]).toBe('evidence')
     expect(PANEL_FOR_KIND[parseCapture('https://example.com')!.kind]).toBe('evidence')
+  })
+
+  test('a trailing marker records how well corroborated it is', () => {
+    // Every note used to be stored `unverified`, so a first-hand sighting and a
+    // rumour were indistinguishable afterwards.
+    expect(parseCapture('two vehicles at the north gate ~confirmed')).toMatchObject({
+      kind: 'note', body: 'two vehicles at the north gate', credibility: 'confirmed',
+    })
+    for (const [marker, expected] of [
+      ['~probable', 'probable'], ['~prob', 'probable'], ['~likely', 'probable'],
+      ['~possible', 'possible'], ['~poss', 'possible'],
+      ['~doubtful', 'doubtful'], ['~unlikely', 'doubtful'],
+      ['~CONFIRMED', 'confirmed'],
+    ] as const) {
+      expect(parseCapture(`something ${marker}`)!.credibility, marker).toBe(expected)
+    }
+  })
+
+  test('an unknown marker stays part of the text', () => {
+    // Eating a trailing word the analyst meant to keep would be worse than
+    // ignoring a marker they got wrong.
+    const parsed = parseCapture('convoy seen near ~bridgehead')
+    expect(parsed).toMatchObject({ kind: 'note', body: 'convoy seen near ~bridgehead' })
+    expect(parsed!.credibility).toBeUndefined()
+  })
+
+  test('the marker applies to every kind, not just notes', () => {
+    expect(parseCapture('rfi: who holds it ~probable')).toMatchObject({
+      kind: 'rfi', body: 'who holds it', credibility: 'probable',
+    })
+    expect(parseCapture('nai: 34.05,-118.24 Bridge ~confirmed')).toMatchObject({
+      kind: 'nai', body: 'Bridge', credibility: 'confirmed',
+    })
+    expect(parseCapture('hyp: they will cross tonight ~doubtful')).toMatchObject({
+      kind: 'hypothesis', credibility: 'doubtful',
+    })
+  })
+
+  test('the marker is visible in the routing label before sending', () => {
+    expect(parseCapture('a note ~confirmed')!.label).toContain('confirmed')
+  })
+
+  test('each store gets the judgement in its own vocabulary', () => {
+    // Markers keep an uppercase word, hypotheses a 0-100 number, evidence the
+    // lowercase word. Said once by the analyst, translated in one place.
+    expect(MARKER_CONFIDENCE.confirmed).toBe('CONFIRMED')
+    expect(MARKER_CONFIDENCE.doubtful).toBe('DOUBTFUL')
+    expect(HYPOTHESIS_CONFIDENCE.confirmed).toBeGreaterThan(HYPOTHESIS_CONFIDENCE.probable)
+    expect(HYPOTHESIS_CONFIDENCE.probable).toBeGreaterThan(HYPOTHESIS_CONFIDENCE.possible)
+    expect(HYPOTHESIS_CONFIDENCE.possible).toBeGreaterThan(HYPOTHESIS_CONFIDENCE.doubtful)
+    // Never 100: a fresh hypothesis marked "confirmed" is well corroborated,
+    // not certain, and a ledger starting at 100 has nowhere to go.
+    expect(HYPOTHESIS_CONFIDENCE.confirmed).toBeLessThan(100)
+    expect(HYPOTHESIS_CONFIDENCE.doubtful).toBeGreaterThan(0)
+  })
+
+  test('a tilde mid-sentence is left alone', () => {
+    // Only a trailing marker counts; "~5 vehicles" is an approximation.
+    expect(parseCapture('~5 vehicles at the gate')).toMatchObject({
+      kind: 'note', body: '~5 vehicles at the gate',
+    })
+    expect(parseCapture('~5 vehicles at the gate')!.credibility).toBeUndefined()
   })
 })
