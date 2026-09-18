@@ -1,5 +1,5 @@
 import { test, expect } from '../fixtures/base-test'
-import { skipWithoutApi } from '../helpers/requires-backend'
+import { signIn } from '../helpers/auth'
 import {
   TEMPLATES,
   VALID_LOCATIONS,
@@ -15,6 +15,42 @@ const MOCK_WORKSPACE_RESPONSE = {
   title: 'E2E Test Workspace',
 }
 
+/**
+ * `STALE_PAGE_OBJECTS` — the marked tests drive a wizard that no longer exists.
+ *
+ * "New COP" was replaced by "New Workspace", pointing at the unified wizard at
+ * `/dashboard/workspace/new`, and `cop-wizard.page.ts` still describes the screen before
+ * that change: it waits for a "Purpose" step and a Next button that the current wizard does
+ * not present in those places. The failures are all `toBeVisible` and `click` timeouts on
+ * selectors for a replaced UI, not defects in the wizard.
+ *
+ * Marked `fixme` rather than skipped behind a condition, because the previous arrangement
+ * hid them behind "the API is not running" — a dependency that was never the real one, and
+ * that made ten specs invisible for months rather than countable. Fixing them means
+ * rewriting the page object against the current wizard.
+ *
+ * Everything these specs need from the outside world.
+ *
+ * They used to be skipped whenever the local API was not running, which meant they never
+ * ran at all in the default harness — ten specs, zero of them passing, for months. The
+ * dependency was real but it was never a *server* dependency: the page reads its identity
+ * from localStorage and the two endpoints involved return trivial payloads. Mocking them
+ * makes the specs hermetic, which is what a wizard flow test should have been.
+ */
+async function setUpWizardHarness(page: import('@playwright/test').Page) {
+  await signIn(page)
+  // The list page this flow starts from. Empty is the interesting case anyway — the wizard
+  // is reached from the empty state as readily as from a populated one.
+  await page.route('**/api/cop/sessions**', route => route.fulfill({ status: 200, json: { sessions: [] } }))
+  await page.route('**/api/ai/config**', route => route.fulfill({ status: 200, json: { enabled: false } }))
+  // WorkspaceContext fetches this on every dashboard page, not just the wizard.
+  await page.route('**/api/workspaces', route => (
+    route.request().method() === 'POST'
+      ? route.fulfill({ status: 200, json: MOCK_WORKSPACE_RESPONSE })
+      : route.fulfill({ status: 200, json: { workspaces: [] } })
+  ))
+}
+
 /** Intercept the workspace creation API and return a mock response. */
 async function mockCreateWorkspace(page: import('@playwright/test').Page) {
   await page.route('**/api/workspaces', (route) => {
@@ -25,7 +61,10 @@ async function mockCreateWorkspace(page: import('@playwright/test').Page) {
         body: JSON.stringify(MOCK_WORKSPACE_RESPONSE),
       })
     }
-    return route.continue()
+    // fallback(), not continue(): continue() goes to the network, which in this harness is
+    // a Vite proxy pointing at an API server nothing starts. fallback() hands the request
+    // to the handler registered before this one, which answers it.
+    return route.fallback()
   })
 }
 
@@ -44,7 +83,7 @@ const NEW_WORKSPACE_LABELS: Record<string, string> = {
 // ---------------------------------------------------------------------------
 
 test.describe('COP Wizard @smoke', () => {
-  test.beforeEach(skipWithoutApi)
+  test.beforeEach(async ({ page }) => setUpWizardHarness(page))
   test.beforeEach(async ({ copListPage }) => {
     await copListPage.goto()
     await copListPage.waitForLoad()
@@ -60,6 +99,7 @@ test.describe('COP Wizard @smoke', () => {
     copListPage,
     copWizardPage,
   }) => {
+    test.fixme() // STALE_PAGE_OBJECTS
     await copListPage.clickNewCop()
     await copWizardPage.waitForWizard()
 
@@ -83,6 +123,7 @@ test.describe('COP Wizard @smoke', () => {
     copListPage,
     copWizardPage,
   }) => {
+    test.fixme() // STALE_PAGE_OBJECTS
     await mockCreateWorkspace(page)
 
     await copListPage.clickNewCop()
@@ -122,7 +163,7 @@ test.describe('COP Wizard @smoke', () => {
 // ---------------------------------------------------------------------------
 
 test.describe('COP Wizard - Event Analysis', () => {
-  test.beforeEach(skipWithoutApi)
+  test.beforeEach(async ({ page }) => setUpWizardHarness(page))
   test.beforeEach(async ({ copListPage }) => {
     await copListPage.goto()
     await copListPage.waitForLoad()
@@ -133,6 +174,7 @@ test.describe('COP Wizard - Event Analysis', () => {
     copListPage,
     copWizardPage,
   }) => {
+    test.fixme() // STALE_PAGE_OBJECTS
     await mockCreateWorkspace(page)
 
     await copListPage.clickNewCop()
@@ -173,7 +215,7 @@ test.describe('COP Wizard - Event Analysis', () => {
 })
 
 test.describe('COP Wizard - Validation', () => {
-  test.beforeEach(skipWithoutApi)
+  test.beforeEach(async ({ page }) => setUpWizardHarness(page))
   test.beforeEach(async ({ copListPage }) => {
     await copListPage.goto()
     await copListPage.waitForLoad()
@@ -200,6 +242,7 @@ test.describe('COP Wizard - Validation', () => {
     copListPage,
     copWizardPage,
   }) => {
+    test.fixme() // STALE_PAGE_OBJECTS
     await copListPage.clickNewCop()
     await copWizardPage.waitForWizard()
 
@@ -219,7 +262,7 @@ test.describe('COP Wizard - Validation', () => {
 })
 
 test.describe('COP Wizard - Navigation', () => {
-  test.beforeEach(skipWithoutApi)
+  test.beforeEach(async ({ page }) => setUpWizardHarness(page))
   test.beforeEach(async ({ copListPage }) => {
     await copListPage.goto()
     await copListPage.waitForLoad()
@@ -229,6 +272,7 @@ test.describe('COP Wizard - Navigation', () => {
     copListPage,
     copWizardPage,
   }) => {
+    test.fixme() // STALE_PAGE_OBJECTS
     await copListPage.clickNewCop()
     await copWizardPage.waitForWizard()
 
@@ -293,8 +337,10 @@ test.describe('COP Wizard - Navigation', () => {
   })
 })
 
-test.describe('COP Wizard - Key Questions', () => {
-  test.beforeEach(skipWithoutApi)
+// describe.fixme, not a per-test fixme: this group's beforeEach drives the stale wizard
+// itself, so the hook times out before a marker inside the test body is ever reached.
+test.describe.fixme('COP Wizard - Key Questions', () => {
+  test.beforeEach(async ({ page }) => setUpWizardHarness(page))
   test.beforeEach(async ({ copListPage, copWizardPage }) => {
     await copListPage.goto()
     await copListPage.waitForLoad()
@@ -338,7 +384,7 @@ test.describe('COP Wizard - Key Questions', () => {
 })
 
 test.describe('COP Wizard - Progress Bar', () => {
-  test.beforeEach(skipWithoutApi)
+  test.beforeEach(async ({ page }) => setUpWizardHarness(page))
   test.beforeEach(async ({ copListPage }) => {
     await copListPage.goto()
     await copListPage.waitForLoad()
@@ -349,6 +395,7 @@ test.describe('COP Wizard - Progress Bar', () => {
     copWizardPage,
     isMobile,
   }) => {
+    test.fixme() // STALE_PAGE_OBJECTS
     test.skip(isMobile, 'Progress bar labels are hidden on mobile (sm:inline)')
     await copListPage.clickNewCop()
     await copWizardPage.waitForWizard()

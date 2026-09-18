@@ -142,9 +142,25 @@ nothing. There is no session. Running the API would never have fixed these specs
 `tests/e2e/helpers/auth.ts` now seeds that value with `addInitScript` (an init script, not a
 `setItem` after navigation — by the time a test could set it, the redirect has fired).
 
-What remains before the quarantine can lift: the list page calls `GET /api/workspaces`,
-which the spec does not mock — `mockCreateWorkspace` handles POST and `route.continue()`s
-the rest. Mock it, rather than depending on the API server, so the specs are self-contained.
+The specs are now self-contained: `setUpWizardHarness` seeds the identity and mocks
+`/api/cop/sessions`, `/api/ai/config` and `/api/workspaces`, so nothing depends on a server.
+`mockCreateWorkspace` was also changed from `route.continue()` to `route.fallback()` for
+non-POST requests — `continue()` goes to the network, which here is a proxy pointing at an
+API server nothing starts, while `fallback()` hands the request to the handler behind it.
+
+**Result: 6 tests now run and pass where none ran before. 14 are `fixme`, and the reason is
+now the true one** — `cop-wizard.page.ts` describes the wizard as it was before "New COP"
+became "New Workspace" and moved to the unified `/dashboard/workspace/new`. It waits for a
+"Purpose" step and a Next button the current wizard does not present there. Fixing them
+means rewriting the page object against the current UI; that is a bounded, describable job
+rather than an unexplained skip.
+
+Two mechanics worth keeping in mind for the rewrite:
+- `test.fixme()` in a test body does **not** stop `beforeEach` hooks. Where the hook itself
+  drives the stale wizard (`COP Wizard - Key Questions`), only `test.describe.fixme` works.
+- The old guard hid these behind "the API is not running". That dependency was never real,
+  and it made ten specs invisible rather than countable for months.
+
 The `test.fixme` consensus-spinner spec is separate and still untouched.
 
 ## Local fallback, if proxmox is unreachable
