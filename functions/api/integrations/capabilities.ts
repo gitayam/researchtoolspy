@@ -15,6 +15,7 @@ import {
 
 interface Env extends IntegrationAuthEnv {
   COMMUNITY_INTEGRATIONS_ENABLED?: string
+  RESEARCH_QUESTIONS_SERVICE_ENABLED?: string
   OPENAI_API_KEY?: string
 }
 
@@ -93,6 +94,9 @@ export const onRequest: PagesFunction<Env> = async ({ request, env }) => {
     runtimeReady.timelineRead = Boolean(env.DB)
     runtimeReady.timelineWrite = Boolean(env.DB)
     runtimeReady.timelineHandoffMint = Boolean(env.DB)
+    // Off unless the operator sets the exact flag; the route enforces the same check.
+    runtimeReady.researchQuestions = Boolean(env.OPENAI_API_KEY)
+      && env.RESEARCH_QUESTIONS_SERVICE_ENABLED === 'true'
     runtimeReady.persistentWorkspace = Boolean(principal)
 
     const body = buildIntegrationCapabilitiesDocument({

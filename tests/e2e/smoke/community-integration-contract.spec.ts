@@ -57,7 +57,7 @@ test.describe('community integration contract @smoke', () => {
     // absent from it must not be. Written out by hand rather than derived from
     // TRANCHE_A_SERVER_SUPPORT, so that shipping a capability is a deliberate edit to this
     // line and not a silent consequence of flipping a flag in the source constant.
-    const shipped = ['anonymousAnalysis','publicBcw','timelineAnalysis','timelineRead','timelineWrite','timelineHandoffMint']
+    const shipped = ['anonymousAnalysis','publicBcw','timelineAnalysis','timelineRead','timelineWrite','timelineHandoffMint','researchQuestions']
     for (const name of INTEGRATION_CAPABILITY_NAMES) {
       expect(result.capabilities[name], name).toBe(shipped.includes(name))
     }

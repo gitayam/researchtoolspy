@@ -1510,6 +1510,17 @@ Required work and proof:
 fixture pass locally and in staging; a separate operator authorization records
 any credential provisioning, remote migration, flag change, or deployment.
 
+**2026-09-24 checkpoint — research questions adapted first, disabled by default:**
+
+The operator chose `researchQuestions` over claim matching because `!research`
+was the user-visible gap. The persistence concern that made claim matching the
+default is handled by refusing persistence outright on the service path:
+`saveToDatabase: true` is a `400`, no workspace is provisioned, and the only write
+is the token `last_used_at` stamp. The route requires `community.research.execute`
+plus `COMMUNITY_INTEGRATIONS_ENABLED` and the new `RESEARCH_QUESTIONS_SERVICE_ENABLED`
+flag, which is not set in `wrangler.toml`. Enabling it is a separate operator
+step. Coverage: `tests/e2e/smoke/research-question-service.spec.ts`.
+
 ### Tranche C — one shadow Signal event end to end
 
 **Outcome:** one eligible Signal URL source event is accepted idempotently, dispatched through the outbox/queue Worker, resolved through `ScrapeGateway` into existing source-artifact/passage structures, projected once, and observed by IrregularChat through webhook plus reconciliation without changing the displayed result.

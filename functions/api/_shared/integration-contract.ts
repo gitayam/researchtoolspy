@@ -94,7 +94,10 @@ const REQUIRED_SCOPE: Partial<Record<IntegrationCapabilityName, IntegrationScope
   webhookManagement: 'community.webhooks.manage',
 }
 
-/** Timeline analysis is the first scoped service-compute operation. */
+/**
+ * Timeline analysis is the first scoped service-compute operation; research
+ * questions is the second. Both are non-persistent for service callers.
+ */
 export const TRANCHE_A_SERVER_SUPPORT: Readonly<IntegrationCapabilities> = Object.freeze({
   anonymousAnalysis: true,
   publicBcw: true,
@@ -107,7 +110,7 @@ export const TRANCHE_A_SERVER_SUPPORT: Readonly<IntegrationCapabilities> = Objec
   artifactRead: false,
   projectionRead: false,
   persistentWorkspace: false,
-  researchQuestions: false,
+  researchQuestions: true,
   cop: false,
   behaviorIntake: false,
   claimMatch: false,

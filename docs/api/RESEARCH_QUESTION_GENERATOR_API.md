@@ -15,7 +15,7 @@ The Research API provides AI-powered question generation, research planning, evi
 | # | Endpoint | Method | Auth | Purpose |
 |---|----------|--------|------|---------|
 | 1 | `/api/research/recommend-questions` | POST | requireAuth | Quick question generation from topic |
-| 2 | `/api/research/generate-question` | POST | requireAuth | Detailed generation with 5 W's context |
+| 2 | `/api/research/generate-question` | POST | requireAuth, or scoped `rt_svc_` service (non-persistent; see [COMMUNITY-INTEGRATIONS-API.md](COMMUNITY-INTEGRATIONS-API.md#research-questions)) | Detailed generation with 5 W's context |
 | 3 | `/api/research/generate-plan` | POST | requireAuth | Full research plan from a question |
 | 4 | `/api/investigations/from-research-question` | POST | requireAuth | Create investigation from saved question |
 | 5 | `/api/research/forms/list` | GET | session | List submission forms |

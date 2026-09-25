@@ -119,6 +119,10 @@ The cross-product timeline handoff (TL-05, see
 [`timeline-handoff-design.md`](./timeline-handoff-design.md)) adds one more additive,
 omit-when-false capability, `timelineHandoffMint`, gated on the same `timeline.write`
 scope — see "Timeline handoff (TL-05)" below.
+`researchQuestions` is the second service-consuming capability (see "Research
+questions" below). It is true only when `COMMUNITY_INTEGRATIONS_ENABLED=true`,
+the dedicated `RESEARCH_QUESTIONS_SERVICE_ENABLED=true` flag (unset by default),
+an OpenAI key, valid tenant state, and `community.research.execute` all agree.
 Other unimplemented service-consuming capabilities remain false. A route file, URL, configured token, or scope alone
 is never proof of executable support.
 
@@ -173,6 +177,25 @@ The full transitional contract is documented in
 replacement for the planned scoped service compute/ingestion adapters. Clients
 must keep capability-gated service operations distinct from public analysis and
 legacy user-authenticated calls.
+
+## Research questions
+
+`POST /api/research/generate-question` accepts a scoped `rt_svc_` bearer in
+addition to its existing user authentication. A reserved service credential never
+reaches user, guest, or hash resolution.
+
+- Requires `community.research.execute`, `COMMUNITY_INTEGRATIONS_ENABLED=true`,
+  and `RESEARCH_QUESTIONS_SERVICE_ENABLED=true`; any gate missing returns `403
+  scope_denied` before the model is called.
+- Non-persistent: `saveToDatabase: true` is rejected with `400 invalid_request`,
+  and the response always carries `id: null`. The only database write is
+  service-auth's own `last_used_at` stamp.
+- Body is the same request shape users send; it is bounded to 16 KiB (`413`) and
+  `topic` to 2,000 characters (`400`).
+- Success is the existing response shape with `Cache-Control: no-store`. Failures
+  use `integration-error.v1`; a gateway rate limit returns `503` retryable.
+- The service is metered by the AI gateway's per-caller limiter as
+  `service:<clientId>`.
 
 ## Timeline analysis
 

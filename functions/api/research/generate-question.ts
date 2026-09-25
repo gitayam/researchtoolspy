@@ -4,17 +4,132 @@
  *
  * Uses AI to generate 3 high-quality research questions based on user inputs.
  * Applies SMART and FINER criteria, includes null/alternative hypotheses.
+ *
+ * Two callers:
+ * - Users (session/JWT/hash) via requireAuth, unchanged; may opt into saving.
+ * - Scoped services (`Bearer rt_svc_…`) with `community.research.execute`,
+ *   gated by COMMUNITY_INTEGRATIONS_ENABLED and RESEARCH_QUESTIONS_SERVICE_ENABLED.
+ *   Service requests never reach user auth, never persist, and fail with
+ *   integration-error.v1 documents.
  */
 
 import { requireAuth } from '../_shared/auth-helpers'
 import { callOpenAIViaGateway } from '../_shared/ai-gateway'
 import { CORS_HEADERS, JSON_HEADERS, optionsResponse } from '../_shared/api-utils'
+import {
+  buildIntegrationErrorDocument,
+  readIntegrationCorrelationId,
+  type IntegrationErrorCode,
+} from '../_shared/integration-contract'
+import {
+  getIntegrationPrincipalFromRequest,
+  IntegrationAuthError,
+  isReservedIntegrationAuthorization,
+  type IntegrationAuthEnv,
+} from '../_shared/service-auth'
 
-interface Env {
+interface Env extends IntegrationAuthEnv {
   DB: D1Database
   SESSIONS?: KVNamespace
   OPENAI_API_KEY: string
   AI_GATEWAY_ACCOUNT_ID?: string
+  COMMUNITY_INTEGRATIONS_ENABLED?: string
+  RESEARCH_QUESTIONS_SERVICE_ENABLED?: string
+}
+
+/** Service bodies are bounded before parsing; every field feeds the prompt. */
+const MAX_SERVICE_REQUEST_BYTES = 16 * 1024
+const MAX_SERVICE_TOPIC_CHARS = 2000
+
+type Caller =
+  | { kind: 'user'; userId: number }
+  | { kind: 'service'; clientId: string }
+
+function serviceErrorResponse(options: {
+  requestId: string
+  correlationId?: string
+  code: IntegrationErrorCode
+  message: string
+  retryable: boolean
+  status: number
+}): Response {
+  return new Response(JSON.stringify(buildIntegrationErrorDocument(options)), {
+    status: options.status,
+    headers: {
+      ...JSON_HEADERS,
+      'Cache-Control': 'no-store',
+      'X-Content-Type-Options': 'nosniff',
+      ...(options.status === 503 ? { 'Retry-After': '2' } : {}),
+    },
+  })
+}
+
+async function authorizeServiceCaller(
+  request: Request,
+  env: Env,
+  requestId: string,
+  correlationId?: string,
+): Promise<Caller | Response> {
+  try {
+    const principal = await getIntegrationPrincipalFromRequest(request, env)
+    if (!principal) {
+      return serviceErrorResponse({
+        requestId, correlationId, code: 'authentication_required',
+        message: 'A ResearchTools service credential is required.', retryable: false, status: 401,
+      })
+    }
+    if (
+      env.COMMUNITY_INTEGRATIONS_ENABLED !== 'true'
+      || env.RESEARCH_QUESTIONS_SERVICE_ENABLED !== 'true'
+      || !principal.scopes.includes('community.research.execute')
+    ) {
+      return serviceErrorResponse({
+        requestId, correlationId, code: 'scope_denied',
+        message: 'Research question generation is not enabled for this service credential.',
+        retryable: false, status: 403,
+      })
+    }
+    return { kind: 'service', clientId: principal.clientId }
+  } catch (error) {
+    if (error instanceof IntegrationAuthError) {
+      return serviceErrorResponse({
+        requestId, correlationId, code: error.code, message: error.message,
+        retryable: error.retryable, status: error.status,
+      })
+    }
+    return serviceErrorResponse({
+      requestId, correlationId, code: 'internal_error',
+      message: 'Research question authentication failed.', retryable: true, status: 500,
+    })
+  }
+}
+
+/** Parse and validate a service body; returns an error message on rejection. */
+async function readServiceBody(request: Request): Promise<GenerateQuestionRequest | string> {
+  const declared = request.headers.get('Content-Length')
+  if (declared && /^\d+$/.test(declared) && Number(declared) > MAX_SERVICE_REQUEST_BYTES) {
+    return 'The request body exceeds 16 KiB.'
+  }
+  const text = await request.text()
+  if (new TextEncoder().encode(text).byteLength > MAX_SERVICE_REQUEST_BYTES) {
+    return 'The request body exceeds 16 KiB.'
+  }
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(text)
+  } catch {
+    return 'The request body must be valid JSON.'
+  }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    return 'The request body must be a JSON object.'
+  }
+  const body = parsed as GenerateQuestionRequest
+  if (typeof body.topic !== 'string' || !body.topic.trim()) return 'topic is required.'
+  if (body.topic.length > MAX_SERVICE_TOPIC_CHARS) {
+    return `topic must be at most ${MAX_SERVICE_TOPIC_CHARS} characters.`
+  }
+  if (body.saveToDatabase === true) return 'Service callers cannot persist research questions.'
+  return body
 }
 
 interface GenerateQuestionRequest {
@@ -86,10 +201,30 @@ interface GeneratedQuestion {
 }
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
-  try {
-    const userId = await requireAuth(context.request, context.env)
+  const requestId = `req-${crypto.randomUUID()}`
+  const correlationId = readIntegrationCorrelationId(context.request)
+  const serviceRequest = isReservedIntegrationAuthorization(context.request)
 
-    const body = await context.request.json() as GenerateQuestionRequest
+  try {
+    let caller: Caller
+    let body: GenerateQuestionRequest
+    if (serviceRequest) {
+      const authorized = await authorizeServiceCaller(context.request, context.env, requestId, correlationId)
+      if (authorized instanceof Response) return authorized
+      caller = authorized
+      const parsed = await readServiceBody(context.request)
+      if (typeof parsed === 'string') {
+        return serviceErrorResponse({
+          requestId, correlationId, code: 'invalid_request', message: parsed, retryable: false,
+          status: parsed.includes('16 KiB') ? 413 : 400,
+        })
+      }
+      body = parsed
+    } else {
+      caller = { kind: 'user', userId: await requireAuth(context.request, context.env) }
+      body = await context.request.json() as GenerateQuestionRequest
+    }
+    const userId = caller.kind === 'user' ? caller.userId : null
 
     // Validate required fields — only topic is truly required
     if (!body.topic) {
@@ -204,12 +339,15 @@ Generate 3 research questions with varying scope that are SMART and FINER compli
           // Optional metadata for logging/tracking
           metadata: {
             endpoint: 'generate-question',
-            userId: userId
+            userId: userId,
+            // The gateway's per-caller limiter keys on user_id; bind services to it.
+            ...(caller.kind === 'service' ? { user_id: `service:${caller.clientId}` } : {}),
           }
         }
       )
     } catch (aiError) {
       console.error('[generate-question] AI Gateway Error:', aiError)
+      if (aiError instanceof Error && aiError.name === 'RateLimitError') throw aiError
       throw new Error('AI generation failed')
     }
 
@@ -246,7 +384,7 @@ Generate 3 research questions with varying scope that are SMART and FINER compli
     // question generation (the primary purpose of this endpoint), so the whole
     // block is wrapped in try/catch and returns the questions regardless.
     let savedId: string | null = null
-    if (body.saveToDatabase) {
+    if (body.saveToDatabase && userId !== null) {
       try {
         // Get OR create the user's workspace. Guest/hash users are provisioned
         // in `users` (auth-helpers.resolveHashUser) but have no workspace_members
@@ -329,11 +467,23 @@ Generate 3 research questions with varying scope that are SMART and FINER compli
         why: why.importance
       }
     }), {
-      headers: JSON_HEADERS
+      headers: serviceRequest
+        ? { ...JSON_HEADERS, 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' }
+        : JSON_HEADERS
     })
   } catch (error) {
     if (error instanceof Response) return error
     console.error('[generate-question] Error:', error)
+    if (serviceRequest) {
+      const rateLimited = error instanceof Error && error.name === 'RateLimitError'
+      return serviceErrorResponse({
+        requestId, correlationId, code: 'internal_error',
+        message: rateLimited
+          ? 'Research question generation is rate limited; retry later.'
+          : 'Failed to generate research questions.',
+        retryable: true, status: rateLimited ? 503 : 500,
+      })
+    }
     return new Response(JSON.stringify({
       error: 'Failed to generate research questions'
 
