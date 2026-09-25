@@ -56,6 +56,8 @@ ENVIRONMENT = "production"
 ENABLE_AI_FEATURES = "true"
 DEFAULT_AI_MODEL = "gpt-4o-mini"
 COMMUNITY_INTEGRATIONS_ENABLED = "true"
+# Scoped rt_svc_ callers may generate (never persist) research questions.
+RESEARCH_QUESTIONS_SERVICE_ENABLED = "true"
 # AI_GATEWAY_ACCOUNT_ID is set as a Pages secret (`wrangler pages secret put`).
 # Do NOT also declare it here — a plaintext [vars] copy collides with the secret
 # at deploy time: "Binding name 'AI_GATEWAY_ACCOUNT_ID' already in use".
@@ -73,6 +75,8 @@ ENVIRONMENT = "production"
 ENABLE_AI_FEATURES = "true"
 DEFAULT_AI_MODEL = "gpt-4o-mini"
 COMMUNITY_INTEGRATIONS_ENABLED = "true"
+# Scoped rt_svc_ callers may generate (never persist) research questions.
+RESEARCH_QUESTIONS_SERVICE_ENABLED = "true"
 # AI_GATEWAY_ACCOUNT_ID is set as a Pages secret (`wrangler pages secret put`).
 # Do NOT also declare it here — a plaintext [vars] copy collides with the secret
 # at deploy time: "Binding name 'AI_GATEWAY_ACCOUNT_ID' already in use".
