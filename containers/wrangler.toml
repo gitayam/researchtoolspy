@@ -37,6 +37,10 @@ new_sqlite_classes = ["SearXNGContainer", "OSINTAgentContainer"]
 # Environment Variables
 [vars]
 ENVIRONMENT = "production"
+# OSINT agent's OpenAI calls go through this Cloudflare AI Gateway. Not a secret.
+# AI_GATEWAY_TOKEN (optional, "AI Gateway Run") is a secret: wrangler secret put AI_GATEWAY_TOKEN
+AI_GATEWAY_ACCOUNT_ID = "04eac09ae835290383903273f68c79b0"
+AI_GATEWAY_ID = "research-tools-ai"
 
 # Secrets should be set via: wrangler secret put <NAME>
 # Required secrets:

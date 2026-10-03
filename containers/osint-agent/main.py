@@ -3,9 +3,9 @@ OSINT Agent - Intelligent search collection with LLM-powered query expansion and
 
 This agent:
 1. Receives collection requests from the Worker API
-2. Expands queries using LLM intelligence (gpt-5 for expansion)
+2. Expands queries using LLM intelligence (cheap tier)
 3. Executes searches via SearXNG
-4. Scores relevance using LLM (gpt-5-mini for bulk scoring)
+4. Scores relevance using LLM (cheap tier for bulk scoring)
 5. Sends results back via callback URL
 """
 
@@ -43,7 +43,18 @@ app = FastAPI(
 
 # Configuration
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
+# Cloudflare AI Gateway. When the account is set, cloud calls go through the
+# gateway (logs, cost attribution, caching) instead of straight to OpenAI. The
+# token is optional: it is sent only once it exists, so the gateway can be
+# switched to authenticated without a code change.
+AI_GATEWAY_ACCOUNT_ID = (os.getenv("AI_GATEWAY_ACCOUNT_ID") or "").strip()
+AI_GATEWAY_ID = (os.getenv("AI_GATEWAY_ID") or "research-tools-ai").strip()
+AI_GATEWAY_TOKEN = (os.getenv("AI_GATEWAY_TOKEN") or "").strip()
+OPENAI_BASE_URL = (
+    f"https://gateway.ai.cloudflare.com/v1/{AI_GATEWAY_ACCOUNT_ID}/{AI_GATEWAY_ID}/openai"
+    if AI_GATEWAY_ACCOUNT_ID
+    else os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
+)
 LOCAL_LLM_BASE_URL = os.getenv("LOCAL_LLM_BASE_URL", "http://ollama:11434/v1")
 LOCAL_LLM_MODEL = os.getenv("LOCAL_LLM_MODEL", "llama3.2")
 # SearXNG endpoints - primary is container, fallback to public instances
@@ -57,9 +68,46 @@ FALLBACK_SEARXNG_ENDPOINTS = [
 ]
 # DuckDuckGo search library as ultimate fallback (more reliable than HTML scraping)
 
-# Model selection - use gpt-5 for expansion, gpt-5-mini for bulk scoring
-EXPANSION_MODEL = os.getenv("EXPANSION_MODEL", "gpt-5")
-SCORING_MODEL = os.getenv("SCORING_MODEL", "gpt-5-mini")
+# Model selection by tier, never a hardcoded ID: both jobs are short JSON
+# extraction, which is the cheap tier. EXPANSION_MODEL / SCORING_MODEL still
+# override per job; AI_MODEL_CHEAP overrides the tier.
+CHEAP_MODEL = os.getenv("AI_MODEL_CHEAP") or "gpt-5.6-luna"
+EXPANSION_MODEL = os.getenv("EXPANSION_MODEL") or CHEAP_MODEL
+SCORING_MODEL = os.getenv("SCORING_MODEL") or CHEAP_MODEL
+# Reasoning models draw hidden reasoning from the same output allowance; a small
+# budget returns EMPTY content. Floor every cloud request at this.
+MIN_COMPLETION_TOKENS = int(os.getenv("AI_MIN_COMPLETION_TOKENS") or "2000")
+
+
+def completion_options(use_local: bool, temperature: float, budget: int, feature: str) -> dict:
+    """Request options for one chat call, shaped for the backend it goes to.
+
+    Cloud (gpt-5.x): max_completion_tokens only, floored; temperature is accepted
+    only with reasoning_effort "none". Sent via extra_body so an older pinned
+    openai SDK without these keyword arguments still works.
+    Local (Ollama): the classic max_tokens/temperature shape it understands.
+    """
+    if use_local:
+        return {"temperature": temperature, "max_tokens": budget}
+    headers = {"cf-aig-metadata": json.dumps({"app": "researchtools", "feature": feature})}
+    if AI_GATEWAY_ACCOUNT_ID and AI_GATEWAY_TOKEN:
+        headers["cf-aig-authorization"] = f"Bearer {AI_GATEWAY_TOKEN}"
+    return {
+        "temperature": temperature,
+        "extra_body": {
+            "reasoning_effort": "none",
+            "max_completion_tokens": max(budget, MIN_COMPLETION_TOKENS),
+        },
+        "extra_headers": headers if AI_GATEWAY_ACCOUNT_ID else {},
+    }
+
+
+def response_text(response) -> str:
+    """The reply text, or a ValueError the caller's handler already covers."""
+    content = response.choices[0].message.content if response.choices else None
+    if not content or not content.strip():
+        raise ValueError("model returned empty content")
+    return content.strip()
 
 
 # ============================================================================
@@ -169,7 +217,7 @@ async def expand_queries(
     """
     Use LLM to expand a research question into targeted search queries.
 
-    Uses gpt-5 for high-quality query expansion (or local model if specified).
+    Uses the cheap-tier model for query expansion (or local model if specified).
     """
     client = get_client(use_local=use_local_llm, async_client=True)
     model = LOCAL_LLM_MODEL if use_local_llm else EXPANSION_MODEL
@@ -197,11 +245,10 @@ Return ONLY a JSON array of search query strings, no explanations. Example forma
                 {"role": "system", "content": "You are an expert OSINT analyst. Return only valid JSON arrays."},
                 {"role": "user", "content": prompt}
             ],
-            temperature=0.7,
-            max_tokens=1000
+            **completion_options(use_local_llm, 0.7, 1000, "osint-agent:expand-queries"),
         )
 
-        content = response.choices[0].message.content.strip()
+        content = response_text(response)
 
         # Parse JSON response
         if content.startswith("```"):
@@ -395,7 +442,7 @@ async def score_results(
     """
     Score results for relevance using LLM.
 
-    Uses gpt-5-mini for efficient bulk scoring (or local model if specified).
+    Uses the cheap-tier model for efficient bulk scoring (or local model if specified).
     """
     if not results:
         return results
@@ -442,11 +489,11 @@ Return ONLY a JSON array of scores in the same order as the input, e.g.: [0.8, 0
                     {"role": "system", "content": "You are a relevance scoring system. Return only valid JSON arrays of numbers."},
                     {"role": "user", "content": prompt}
                 ],
-                temperature=0.3,  # Lower temperature for consistent scoring
-                max_tokens=200
+                # Lower temperature for consistent scoring
+                **completion_options(use_local_llm, 0.3, 200, "osint-agent:score-relevance"),
             )
 
-            content = response.choices[0].message.content.strip()
+            content = response_text(response)
 
             # Parse JSON response
             if content.startswith("```"):
@@ -653,8 +700,8 @@ async def root():
             "GET /": "This info page"
         },
         "features": [
-            "LLM-powered query expansion (gpt-5)",
-            "Bulk relevance scoring (gpt-5-mini)",
+            "LLM-powered query expansion (cheap tier)",
+            "Bulk relevance scoring (cheap tier)",
             "SearXNG integration for meta-search",
             "Local LLM fallback via Ollama",
             "Async processing with callbacks"

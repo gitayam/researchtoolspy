@@ -18,6 +18,13 @@ interface Env {
   OSINT_AGENT: DurableObjectNamespace;
   OPENAI_API_KEY?: string;
   ENVIRONMENT?: string;
+  /** Cloudflare AI Gateway routing for the OSINT agent's OpenAI calls. */
+  AI_GATEWAY_ACCOUNT_ID?: string;
+  AI_GATEWAY_ID?: string;
+  /** Optional "AI Gateway Run" token; sent only when set. */
+  AI_GATEWAY_TOKEN?: string;
+  /** Cheap-tier model override; the container defaults to gpt-5.6-luna. */
+  AI_MODEL_CHEAP?: string;
 }
 
 // ============================================================================
@@ -68,8 +75,12 @@ export class OSINTAgentContainer extends Container<Env> {
   envVars = {
     OPENAI_API_KEY: env.OPENAI_API_KEY || "",
     OPENAI_BASE_URL: "https://api.openai.com/v1",
-    EXPANSION_MODEL: "gpt-4o-mini",
-    SCORING_MODEL: "gpt-4o-mini",
+    // When set, the container routes through the gateway instead of OPENAI_BASE_URL.
+    AI_GATEWAY_ACCOUNT_ID: env.AI_GATEWAY_ACCOUNT_ID || "",
+    AI_GATEWAY_ID: env.AI_GATEWAY_ID || "research-tools-ai",
+    AI_GATEWAY_TOKEN: env.AI_GATEWAY_TOKEN || "",
+    // Models by tier, never a hardcoded ID (see main.py).
+    AI_MODEL_CHEAP: env.AI_MODEL_CHEAP || "",
     SEARXNG_ENDPOINT: "https://search.irregularchat.com",  // Self-hosted SearXNG via Cloudflare Tunnel
     LOCAL_LLM_BASE_URL: "http://ollama:11434/v1",
     LOCAL_LLM_MODEL: "llama3.2",
