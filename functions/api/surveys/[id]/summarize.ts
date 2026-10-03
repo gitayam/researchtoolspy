@@ -103,7 +103,7 @@ Analyze the submissions below and provide a structured analysis. Be concise and 
       ],
       max_completion_tokens: 1500,
       response_format: { type: 'json_object' },
-    })
+    }, { metadata: { endpoint: 'survey-summarize' } })
 
     // Parse and validate each field individually (never spread raw LLM output)
     const raw = gptResponse?.choices?.[0]?.message?.content

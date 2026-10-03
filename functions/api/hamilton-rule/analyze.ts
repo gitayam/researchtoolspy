@@ -146,7 +146,7 @@ Return ONLY valid JSON with this exact structure:
       reasoning_effort: 'none',
       temperature: 0.3,
       max_completion_tokens: 1500
-    })
+    }, { metadata: { endpoint: 'hamilton-rule' } })
 
     // Parse AI response
     let analysisResult: any

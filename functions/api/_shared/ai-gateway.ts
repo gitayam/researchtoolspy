@@ -16,7 +16,20 @@ import { logEvent } from './event-log'
 import { normalizeChatRequest } from './ai-models'
 
 interface Env {
+  /**
+   * Cloudflare account that owns the gateway. Unset → calls go direct to OpenAI.
+   * Deliberately no default: whether production uses the gateway stays an
+   * operator decision made in the Pages secret, not a side effect of a deploy.
+   */
   AI_GATEWAY_ACCOUNT_ID?: string
+  /** Gateway name. Defaults to DEFAULT_GATEWAY_ID. */
+  AI_GATEWAY_ID?: string
+  /**
+   * "AI Gateway Run" token. When set, every gateway call carries
+   * `cf-aig-authorization`, which is what lets the gateway be switched to
+   * authenticated. Unset → the header is omitted and nothing changes.
+   */
+  AI_GATEWAY_TOKEN?: string
   OPENAI_API_KEY?: string
   /** Per-tier model overrides; see ai-models.ts. Absent means the tier default. */
   AI_MODEL_CHEAP?: string
@@ -157,8 +170,11 @@ export async function callOpenAIViaGateway(
     timeout = 30000
   } = options
 
-  // Determine if we should use gateway
-  const useGateway = !forceDirect && !!env.AI_GATEWAY_ACCOUNT_ID
+  // Determine if we should use gateway. Note for whoever debugs "no gateway logs":
+  // from 2026-06-26 the production secret existed only under a mistyped name
+  // (" AI_GATEWAY_ACCOUNT_ID", leading space), so this read it as unset and every
+  // call went straight to OpenAI. `wrangler pages secret list` shows the space.
+  const useGateway = !forceDirect && !!env.AI_GATEWAY_ACCOUNT_ID?.trim()
 
   const source = metadata?.endpoint || 'ai-gateway'
 
@@ -430,6 +446,52 @@ export const REFUSAL_BODY = {
   reason: 'The model declined to analyze this content (content-policy refusal).',
 }
 
+/** The gateway the app has always used; AI_GATEWAY_ID overrides. */
+export const DEFAULT_GATEWAY_ID = 'research-tools-ai'
+const GATEWAY_APP = 'researchtools'
+/** Cloudflare AI Gateway accepts at most five custom-metadata entries. */
+const GATEWAY_METADATA_MAX_KEYS = 5
+
+/**
+ * Shape caller metadata into what `cf-aig-metadata` accepts: at most five
+ * string/number/boolean entries. `app` and `feature` come first so cost can be
+ * attributed per feature in the gateway logs; the caller's own keys (endpoint,
+ * user_id, content_hash, …) follow in their original order until the cap.
+ * Objects, arrays, null and undefined are dropped rather than sent, since a
+ * nested value is not valid gateway metadata. Exported for tests.
+ */
+export function buildGatewayMetadata(metadata: Record<string, any> = {}): Record<string, string | number | boolean> {
+  const feature = [metadata.endpoint, metadata.operation]
+    .filter((v) => typeof v === 'string' && v.length > 0)
+    .join(':') || 'unspecified'
+  const out: Record<string, string | number | boolean> = { app: GATEWAY_APP, feature }
+  for (const [key, value] of Object.entries(metadata)) {
+    if (Object.keys(out).length >= GATEWAY_METADATA_MAX_KEYS) break
+    if (key in out) continue
+    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') out[key] = value
+  }
+  return out
+}
+
+/** Headers specific to the gateway hop. Exported for tests. */
+export function gatewayHeaders(env: Env, cacheTTL: number, metadata: Record<string, any>): Record<string, string> {
+  const headers: Record<string, string> = {
+    'cf-aig-cache-ttl': String(cacheTTL),
+    'cf-aig-metadata': JSON.stringify(buildGatewayMetadata(metadata)),
+  }
+  // Sent only once the token exists, so enabling `authentication` on the
+  // gateway is a dashboard switch rather than a code change.
+  if (env.AI_GATEWAY_TOKEN) headers['cf-aig-authorization'] = `Bearer ${env.AI_GATEWAY_TOKEN}`
+  return headers
+}
+
+/** Gateway chat-completions URL from env. Only called when the account ID is set. Exported for tests. */
+export function gatewayChatUrl(env: Env): string {
+  const accountId = env.AI_GATEWAY_ACCOUNT_ID!.trim()
+  const gatewayId = env.AI_GATEWAY_ID?.trim() || DEFAULT_GATEWAY_ID
+  return `https://gateway.ai.cloudflare.com/v1/${accountId}/${gatewayId}/openai/chat/completions`
+}
+
 /**
  * Call OpenAI via AI Gateway
  */
@@ -440,8 +502,7 @@ async function callViaGateway(
   metadata: any,
   timeout: number
 ): Promise<any> {
-  const accountId = env.AI_GATEWAY_ACCOUNT_ID!
-  const gatewayUrl = `https://gateway.ai.cloudflare.com/v1/${accountId}/research-tools-ai/openai/chat/completions`
+  const gatewayUrl = gatewayChatUrl(env)
 
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), timeout)
@@ -451,10 +512,7 @@ async function callViaGateway(
       method: 'POST',
       headers: {
         ...openaiAuthHeaders(env),
-        // Caching headers
-        'cf-aig-cache-ttl': String(cacheTTL),
-        // Metadata for analytics
-        'cf-aig-metadata': JSON.stringify(metadata),
+        ...gatewayHeaders(env, cacheTTL, metadata),
       },
       body: JSON.stringify(openaiRequest),
       signal: controller.signal
