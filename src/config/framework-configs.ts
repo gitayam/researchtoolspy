@@ -19,6 +19,91 @@ export interface FrameworkConfig {
 }
 
 export const frameworkConfigs: Record<string, FrameworkConfig> = {
+
+  'brief-map': {
+    type: 'brief-map',
+    title: 'BRIEF Map (Remarks Planner)',
+    description: 'Plan spoken remarks against a time slot: one headline, five branches, and a word budget before the first sentence is written',
+    itemType: 'text',
+    sections: [
+      {
+        key: 'headline',
+        label: 'Headline (the ask)',
+        description: 'The one sentence you would say if stopped after ten seconds. A verb and a date.',
+        color: 'border-slate-700',
+        bgColor: 'bg-slate-50 dark:bg-slate-900/20',
+        icon: '🎯',
+        promptQuestions: [
+          'What do you want this audience to do, and by when?',
+          'If the chair cut you off after ten seconds, would the record contain this?',
+          'Could someone repeat it back in one breath?'
+        ]
+      },
+      {
+        key: 'background',
+        label: 'Background',
+        description: 'Only what this audience does not already know. One sentence is usually enough.',
+        color: 'border-blue-500',
+        bgColor: 'bg-blue-50 dark:bg-blue-900/20',
+        icon: '🧭',
+        promptQuestions: [
+          'Who are you, and whom do you speak for?',
+          'What does this audience already know that you can skip?'
+        ]
+      },
+      {
+        key: 'relevance',
+        label: 'Relevance',
+        description: 'Why now, and why them: what changed, what is pending, or what was promised.',
+        color: 'border-amber-500',
+        bgColor: 'bg-amber-50 dark:bg-amber-900/20',
+        icon: '⏱️',
+        promptQuestions: [
+          'What decision, deadline, or promise makes this timely?',
+          'Why is this audience the one that can act?'
+        ]
+      },
+      {
+        key: 'information',
+        label: 'Information',
+        description: 'Two or three facts. Each with a date and a place, and a source you can produce.',
+        color: 'border-green-500',
+        bgColor: 'bg-green-50 dark:bg-green-900/20',
+        icon: '📌',
+        promptQuestions: [
+          'Which two or three facts carry the argument?',
+          'Does each one have a date, a place, and a source?',
+          'Is anyone named who has not agreed to be named?',
+          'For a single incident: what happened, what it exposed, what was done, what came of it?'
+        ]
+      },
+      {
+        key: 'ending',
+        label: 'Ending',
+        description: 'The ask again, with the deadline and what success looks like.',
+        color: 'border-purple-500',
+        bgColor: 'bg-purple-50 dark:bg-purple-900/20',
+        icon: '🏁',
+        promptQuestions: [
+          'What exactly should happen next, and by when?',
+          'How will you know it worked?'
+        ]
+      },
+      {
+        key: 'follow_up',
+        label: 'Follow-up',
+        description: 'What they will ask afterward. Statement only: this is your written submission. With questions: your prepared answers.',
+        color: 'border-rose-500',
+        bgColor: 'bg-rose-50 dark:bg-rose-900/20',
+        icon: '💬',
+        promptQuestions: [
+          'What will the first question be, and what is your two-sentence answer?',
+          'What did you cut from the spoken version that belongs in the written record?',
+          'Will anyone respond during this forum, or is it a monologue for the record?'
+        ]
+      }
+    ]
+  },
   'pest': {
     type: 'pest',
     title: 'PEST Analysis',

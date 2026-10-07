@@ -174,6 +174,8 @@ Collection API documented separately: [`COLLECTION-API.md`](COLLECTION-API.md)
 
 Research Question Generator documented separately: [`RESEARCH_QUESTION_GENERATOR_API.md`](RESEARCH_QUESTION_GENERATOR_API.md)
 
+Remarks planning (BRIEF Map against a time slot; service-callable): [`REMARKS-PLANNING-API.md`](REMARKS-PLANNING-API.md)
+
 ### Intelligence synthesis
 
 Documented separately: [`INTELLIGENCE-API.md`](INTELLIGENCE-API.md)

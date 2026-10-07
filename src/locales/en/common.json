@@ -128,7 +128,8 @@
     "pest": "PEST Analysis",
     "stakeholder": "Stakeholder Analysis",
     "surveillance": "Surveillance Framework",
-    "fundamentalFlow": "Fundamental Flow"
+    "fundamentalFlow": "Fundamental Flow",
+    "briefMap": "BRIEF Map (Remarks)"
   },
   "frameworkCategories": {
     "environmental": "Environmental & Situational Assessment",

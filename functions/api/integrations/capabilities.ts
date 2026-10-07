@@ -12,10 +12,12 @@ import {
   getIntegrationPrincipalFromRequest,
   type IntegrationAuthEnv,
 } from '../_shared/service-auth'
+import { REMARKS_LIMITS } from '../_shared/remarks-contract'
 
 interface Env extends IntegrationAuthEnv {
   COMMUNITY_INTEGRATIONS_ENABLED?: string
   RESEARCH_QUESTIONS_SERVICE_ENABLED?: string
+  REMARKS_SERVICE_ENABLED?: string
   OPENAI_API_KEY?: string
 }
 
@@ -98,6 +100,11 @@ export const onRequest: PagesFunction<Env> = async ({ request, env }) => {
     runtimeReady.researchQuestions = Boolean(env.OPENAI_API_KEY)
       && env.RESEARCH_QUESTIONS_SERVICE_ENABLED === 'true'
     runtimeReady.persistentWorkspace = Boolean(principal)
+    // Same shape as research questions: the route enforces the identical gate.
+    // budget/check modes need no model, but the capability is advertised as a
+    // whole, so the key is required for the flag to show.
+    runtimeReady.remarksPlanning = Boolean(env.OPENAI_API_KEY)
+      && env.REMARKS_SERVICE_ENABLED === 'true'
 
     const body = buildIntegrationCapabilitiesDocument({
       requestId,
@@ -106,7 +113,12 @@ export const onRequest: PagesFunction<Env> = async ({ request, env }) => {
       integrationsEnabled: env.COMMUNITY_INTEGRATIONS_ENABLED === 'true',
       serverSupport: TRANCHE_A_SERVER_SUPPORT,
       runtimeReady,
-      limits: {},
+      limits: {
+        remarksRequestBytes: REMARKS_LIMITS.requestBytes,
+        remarksScriptChars: REMARKS_LIMITS.scriptChars,
+        remarksBranchItems: REMARKS_LIMITS.branchItems,
+        remarksVoiceChars: REMARKS_LIMITS.voiceChars,
+      },
     })
     return new Response(JSON.stringify(body), { status: 200, headers: RESPONSE_HEADERS })
   } catch (error) {

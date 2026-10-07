@@ -82,6 +82,7 @@ const PestPage = lazy(() => import('@/pages/frameworks').then(m => ({ default: m
 const StakeholderPage = lazy(() => import('@/pages/frameworks').then(m => ({ default: m.StakeholderPage })))
 const SurveillancePage = lazy(() => import('@/pages/frameworks').then(m => ({ default: m.SurveillancePage })))
 const FundamentalFlowPage = lazy(() => import('@/pages/frameworks').then(m => ({ default: m.FundamentalFlowPage })))
+const BriefMapPage = lazy(() => import('@/pages/frameworks').then(m => ({ default: m.BriefMapPage })))
 
 // Tool pages (lazy loaded)
 const EvidencePage = lazy(() => import('@/pages/EvidencePage').then(m => ({ default: m.EvidencePage })))
@@ -522,6 +523,21 @@ export const router = createBrowserRouter([
       {
         path: 'analysis-frameworks/fundamental-flow/:id/:action',
         element: <LazyPage Component={FundamentalFlowPage} />,
+        errorElement: <RouteErrorBoundary />,
+      },
+      {
+        path: 'analysis-frameworks/brief-map',
+        element: <LazyPage Component={BriefMapPage} />,
+        errorElement: <RouteErrorBoundary />,
+      },
+      {
+        path: 'analysis-frameworks/brief-map/:action',
+        element: <LazyPage Component={BriefMapPage} />,
+        errorElement: <RouteErrorBoundary />,
+      },
+      {
+        path: 'analysis-frameworks/brief-map/:id/:action',
+        element: <LazyPage Component={BriefMapPage} />,
         errorElement: <RouteErrorBoundary />,
       },
       // Research Tools Routes

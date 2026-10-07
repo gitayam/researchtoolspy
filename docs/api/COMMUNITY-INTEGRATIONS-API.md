@@ -197,6 +197,20 @@ reaches user, guest, or hash resolution.
 - The service is metered by the AI gateway's per-caller limiter as
   `service:<clientId>`.
 
+## Remarks planning
+
+`POST /api/research/plan-remarks` accepts a scoped `rt_svc_` bearer with
+`community.research.execute` under the same non-persistent rules as research
+questions, gated additionally by `REMARKS_SERVICE_ENABLED=true`. Discovery
+advertises `capabilities.remarksPlanning`,
+`contractVersions.remarksPlanning = remarks-plan.v1`, and four `remarks*`
+limits only when the flag, the scope, and a model key are all present.
+Holding `community.research.execute` therefore unlocks timeline analysis,
+research questions, and remarks planning together. Full contract, limits, warning codes, and a faydta.com client
+example: [`REMARKS-PLANNING-API.md`](REMARKS-PLANNING-API.md). Schema and
+OpenAPI: [`schemas/remarks-plan.v1.schema.json`](./schemas/remarks-plan.v1.schema.json),
+[`openapi/remarks-plan.v1.json`](./openapi/remarks-plan.v1.json).
+
 ## Timeline analysis
 
 Reusable v1 materials: [JSON Schema](./schemas/timeline-analysis.v1.schema.json),

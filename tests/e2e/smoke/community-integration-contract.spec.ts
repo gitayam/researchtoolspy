@@ -57,7 +57,7 @@ test.describe('community integration contract @smoke', () => {
     // absent from it must not be. Written out by hand rather than derived from
     // TRANCHE_A_SERVER_SUPPORT, so that shipping a capability is a deliberate edit to this
     // line and not a silent consequence of flipping a flag in the source constant.
-    const shipped = ['anonymousAnalysis','publicBcw','timelineAnalysis','timelineRead','timelineWrite','timelineHandoffMint','researchQuestions']
+    const shipped = ['anonymousAnalysis','publicBcw','timelineAnalysis','timelineRead','timelineWrite','timelineHandoffMint','researchQuestions','remarksPlanning']
     for (const name of INTEGRATION_CAPABILITY_NAMES) {
       expect(result.capabilities[name], name).toBe(shipped.includes(name))
     }
@@ -65,6 +65,7 @@ test.describe('community integration contract @smoke', () => {
       capabilities: 'integration-capabilities.v1',
       timelineAnalysis: 'timeline-analysis.v1',
       timelineArtifact: 'timeline-artifact.v1',
+      remarksPlanning: 'remarks-plan.v1',
     })
     expect(result.limits).toEqual(durableLimits)
   })
@@ -89,6 +90,7 @@ test.describe('community integration contract @smoke', () => {
       sourceEvent: 'community-source-event.v1',
       artifact: 'source-artifact.v1',
       projection: 'community-enrichment.v1',
+      remarksPlanning: 'remarks-plan.v1',
     })
 
     const noFlag = buildIntegrationCapabilitiesDocument({
@@ -171,7 +173,9 @@ test.describe('community integration contract @smoke', () => {
     expect(readOnlyRuntime.capabilities).not.toHaveProperty('timelineWrite')
     const extraction=build(['community.research.execute'])
     expect(extraction.capabilities.timelineAnalysis).toBe(true)
-    expect(extraction.contractVersions).toEqual({capabilities:'integration-capabilities.v1',timelineAnalysis:'timeline-analysis.v1'})
+    // community.research.execute also unlocks remarks planning (remarks-plan.v1).
+    expect(extraction.capabilities.remarksPlanning).toBe(true)
+    expect(extraction.contractVersions).toEqual({capabilities:'integration-capabilities.v1',timelineAnalysis:'timeline-analysis.v1',remarksPlanning:'remarks-plan.v1'})
   })
 
   test('@smoke correlation identifiers are bounded opaque values', () => {

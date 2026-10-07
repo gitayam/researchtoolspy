@@ -126,6 +126,13 @@ const getNavigation = (t: (key: string) => string) => [
         ]
       },
       {
+        name: t('frameworkCategories.planning'),
+        isCategory: true,
+        children: [
+          { name: t('frameworks.briefMap'), href: '/dashboard/analysis-frameworks/brief-map' },
+        ]
+      },
+      {
         name: t('frameworkCategories.monitoring'),
         isCategory: true,
         children: [

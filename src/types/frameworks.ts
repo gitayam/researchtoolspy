@@ -37,6 +37,7 @@ export const FrameworkType = {
   TREND: 'trend',
   STARBURSTING: 'starbursting',
   FUNDAMENTAL_FLOW: 'fundamental-flow',
+  BRIEF_MAP: 'brief-map',
   EQUILIBRIUM_ANALYSIS: 'equilibrium-analysis',
   HAMILTON_RULE: 'hamilton-rule'
 } as const

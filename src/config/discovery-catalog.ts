@@ -134,6 +134,12 @@ export const DISCOVERY_ENTRIES: DiscoveryEntry[] = [
 
   // Analysis frameworks
   {
+    group: 'Frameworks', label: 'BRIEF Map (Remarks Planner)', href: '/dashboard/analysis-frameworks/brief-map', icon: 'file-text',
+    description: 'Plan spoken remarks against a time slot: headline, five BRIEF branches, word budget, clock marks, pace warnings, prepared answers.',
+    keywords: ['brief map', 'remarks', 'public comment', 'testimony', 'speech', 'three minutes', 'talking points', 'briefing', 'statement', 'podium', 'council', 'word budget', 'speaking rate', 'words per minute', 'prepared answers', 'written submission'],
+    acronyms: ['BRIEF'],
+  },
+  {
     group: 'Frameworks', label: 'Behavior Decision Analysis', href: '/dashboard/analysis-frameworks/behavior', icon: 'brain',
     description: 'Model an actor decision sequence, psychological state, coping plans, forks, and competing behaviors.',
     keywords: ['behavior framework', 'behaviour framework', 'decision timeline', 'decision type', 'psychological state', 'TTM', 'HAPA', 'coping branch', 'coping plan', 'competing behavior', 'sub-step', 'fork outcome', 'COM-B target'],

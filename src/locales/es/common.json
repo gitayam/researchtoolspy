@@ -127,7 +127,8 @@
     "pest": "Análisis PEST",
     "stakeholder": "Análisis de Partes Interesadas",
     "surveillance": "Marco de Vigilancia",
-    "fundamentalFlow": "Flujo Fundamental"
+    "fundamentalFlow": "Flujo Fundamental",
+    "briefMap": "Mapa BRIEF (Intervenciones)"
   },
   "frameworkCategories": {
     "environmental": "Evaluación Ambiental y Situacional",

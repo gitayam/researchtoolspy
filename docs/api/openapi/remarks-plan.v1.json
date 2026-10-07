@@ -1,0 +1,201 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "ResearchTools remarks planning",
+    "version": "remarks-plan.v1",
+    "description": "Plans spoken remarks against a declared time slot from a BRIEF Map: word budget, clock marks, pace warnings, drafted script or answer cards, placement and fact checks, written-submission skeleton. Service callers are non-persistent. budget and check modes call no model and are deterministic. Discover support before submitting; omission of remarksPlanning means unavailable."
+  },
+  "servers": [
+    {
+      "url": "https://researchtools.net"
+    }
+  ],
+  "security": [
+    {
+      "serviceBearer": []
+    }
+  ],
+  "paths": {
+    "/api/integrations/capabilities": {
+      "get": {
+        "operationId": "discoverRemarksCapabilities",
+        "description": "Require identityType=service, capabilities.remarksPlanning=true, contractVersions.remarksPlanning=remarks-plan.v1 and the community.research.execute scope. Omission means unavailable. Limits advertised: remarksRequestBytes, remarksScriptChars, remarksBranchItems, remarksVoiceChars.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CorrelationId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Integration discovery; additive capabilities and versions may be present.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./timeline-analysis.v1.json#/components/schemas/Capabilities"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ServiceError"
+          },
+          "401": {
+            "$ref": "#/components/responses/ServiceError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ServiceError"
+          },
+          "405": {
+            "$ref": "#/components/responses/ServiceError"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServiceError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
+    },
+    "/api/research/plan-remarks": {
+      "post": {
+        "operationId": "planRemarks",
+        "description": "Requires enabled community integrations, REMARKS_SERVICE_ENABLED, and community.research.execute. Request <=32 KiB UTF-8; script <=6000 chars; voice <=2000 chars; <=12 items per map branch. Nothing is truncated: over a limit is a refusal naming the limit. mode=budget needs venue only and calls no model; mode=check needs venue+script and calls no model; mode=script needs venue+map; mode=trim needs venue+map+script. A trim whose output fails the fact guard or ask placement is 502 upstream_invalid_response and the caller's script is untouched. saveToFramework=true from a service credential is 400. Rate is derived from a preset or a measured read; a bare wpm is rejected.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CorrelationId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "../schemas/remarks-plan.v1.schema.json#/definitions/request"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Budget, warnings and (per mode) script or answer cards, counts, placement, fact guard, written submission. Cache-Control: no-store.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../schemas/remarks-plan.v1.schema.json"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ServiceError"
+          },
+          "401": {
+            "$ref": "#/components/responses/ServiceError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ServiceError"
+          },
+          "405": {
+            "$ref": "#/components/responses/ServiceError"
+          },
+          "413": {
+            "$ref": "#/components/responses/ServiceError"
+          },
+          "429": {
+            "description": "Middleware rate limit; flat error, not integration-error.v1. Metered as service:<clientId>. Do not retry in a loop.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./timeline-analysis.v1.json#/components/schemas/MiddlewareError"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ServiceError"
+          },
+          "502": {
+            "$ref": "#/components/responses/ServiceError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "serviceBearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "rt_svc_<client-id>.<secret>",
+        "description": "Keep server-side. Never in a browser, extension, or static page."
+      }
+    },
+    "parameters": {
+      "CorrelationId": {
+        "name": "X-Correlation-ID",
+        "in": "header",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._:-]{16,128}$"
+        },
+        "description": "Optional caller correlation; echoed in discovery, in every error, and in the plan response."
+      }
+    },
+    "responses": {
+      "ServiceError": {
+        "description": "Nested integration-error.v1. Codes: 400/413 invalid_request; 401 authentication_required/invalid_service_token/expired_service_token; 403 scope_denied; 405 method_not_allowed; 500 internal_error; 502 upstream_invalid_response (retry once). Bodies never echo the map, script, or voice.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "../schemas/integration-error.v1.schema.json"
+            }
+          }
+        }
+      },
+      "Unavailable": {
+        "description": "503 auth_datastore_unavailable, or flat middleware error with retryable=true; Retry-After: 2.",
+        "headers": {
+          "Retry-After": {
+            "schema": {
+              "type": "string",
+              "const": "2"
+            }
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "oneOf": [
+                {
+                  "$ref": "../schemas/integration-error.v1.schema.json"
+                },
+                {
+                  "allOf": [
+                    {
+                      "$ref": "./timeline-analysis.v1.json#/components/schemas/MiddlewareError"
+                    },
+                    {
+                      "required": [
+                        "retryable"
+                      ],
+                      "properties": {
+                        "retryable": {
+                          "const": true
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}

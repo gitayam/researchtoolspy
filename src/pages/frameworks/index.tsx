@@ -2026,3 +2026,5 @@ export const StakeholderPage = () => <GenericFrameworkPage frameworkKey="stakeho
 export const SurveillancePage = () => <GenericFrameworkPage frameworkKey="surveillance" />
 
 export const FundamentalFlowPage = () => <GenericFrameworkPage frameworkKey="fundamental-flow" />
+
+export const BriefMapPage = () => <GenericFrameworkPage frameworkKey="brief-map" />

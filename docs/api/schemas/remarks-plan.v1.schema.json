@@ -1,0 +1,744 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://researchtools.net/contracts/remarks-plan.v1.schema.json",
+  "title": "Remarks plan v1",
+  "description": "Request is strict (no additional properties); response is additive. Byte limits (32 KiB request) and derived-rate rules require runtime enforcement.",
+  "definitions": {
+    "paceInput": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "preset"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "preset": {
+              "enum": [
+                "deliberate",
+                "podium",
+                "conversational"
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "measured"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "measured": {
+              "type": "object",
+              "required": [
+                "words",
+                "seconds"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "words": {
+                  "type": "integer",
+                  "minimum": 50,
+                  "maximum": 2000
+                },
+                "seconds": {
+                  "type": "integer",
+                  "minimum": 10,
+                  "maximum": 1200
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "venue": {
+      "type": "object",
+      "required": [
+        "format",
+        "secondsTotal",
+        "secondsHard",
+        "pace"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "format": {
+          "enum": [
+            "statement",
+            "statement_with_questions",
+            "qa_only",
+            "open_discussion"
+          ]
+        },
+        "secondsTotal": {
+          "type": "integer",
+          "minimum": 30,
+          "maximum": 3600
+        },
+        "secondsHard": {
+          "type": "boolean"
+        },
+        "questionReserveSeconds": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3600
+        },
+        "questionsLikelyFrom": {
+          "type": "array",
+          "uniqueItems": true,
+          "maxItems": 6,
+          "items": {
+            "enum": [
+              "chair",
+              "members",
+              "staff",
+              "press",
+              "public",
+              "partners"
+            ]
+          }
+        },
+        "pace": {
+          "$ref": "#/definitions/paceInput"
+        },
+        "audience": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "bodyName": {
+          "type": "string",
+          "maxLength": 200
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "format": {
+                "not": {
+                  "const": "statement_with_questions"
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "questionReserveSeconds": {
+                "const": 0
+              }
+            }
+          }
+        }
+      ]
+    },
+    "branchText": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500
+    },
+    "informationItem": {
+      "oneOf": [
+        {
+          "$ref": "#/definitions/branchText"
+        },
+        {
+          "type": "object",
+          "required": [
+            "fact"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "fact": {
+              "$ref": "#/definitions/branchText"
+            },
+            "date": {
+              "type": "string",
+              "maxLength": 40
+            },
+            "place": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "source": {
+              "type": "string",
+              "maxLength": 300
+            }
+          }
+        }
+      ]
+    },
+    "followUpItem": {
+      "oneOf": [
+        {
+          "$ref": "#/definitions/branchText"
+        },
+        {
+          "type": "object",
+          "required": [
+            "question"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "question": {
+              "$ref": "#/definitions/branchText"
+            },
+            "answer": {
+              "$ref": "#/definitions/branchText"
+            }
+          }
+        }
+      ]
+    },
+    "map": {
+      "type": "object",
+      "required": [
+        "headline"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "headline": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+        },
+        "background": {
+          "type": "array",
+          "maxItems": 12,
+          "items": {
+            "$ref": "#/definitions/branchText"
+          }
+        },
+        "relevance": {
+          "type": "array",
+          "maxItems": 12,
+          "items": {
+            "$ref": "#/definitions/branchText"
+          }
+        },
+        "information": {
+          "type": "array",
+          "maxItems": 12,
+          "items": {
+            "$ref": "#/definitions/informationItem"
+          }
+        },
+        "ending": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "follow_up": {
+          "type": "array",
+          "maxItems": 12,
+          "items": {
+            "$ref": "#/definitions/followUpItem"
+          }
+        }
+      }
+    },
+    "request": {
+      "type": "object",
+      "required": [
+        "schemaVersion",
+        "mode",
+        "venue"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "schemaVersion": {
+          "const": "remarks-plan.v1"
+        },
+        "mode": {
+          "enum": [
+            "budget",
+            "script",
+            "trim",
+            "check"
+          ]
+        },
+        "venue": {
+          "$ref": "#/definitions/venue"
+        },
+        "map": {
+          "$ref": "#/definitions/map"
+        },
+        "script": {
+          "type": "string",
+          "maxLength": 6000
+        },
+        "voice": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "saveToFramework": {
+          "type": "boolean"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "mode": {
+                "enum": [
+                  "script",
+                  "trim"
+                ]
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "map"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "mode": {
+                "enum": [
+                  "trim",
+                  "check"
+                ]
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "script"
+            ]
+          }
+        }
+      ]
+    },
+    "warning": {
+      "type": "object",
+      "required": [
+        "code",
+        "severity",
+        "message"
+      ],
+      "properties": {
+        "code": {
+          "enum": [
+            "over_budget",
+            "near_budget",
+            "pace_assumes_fast",
+            "pace_assumes_slow",
+            "no_measured_rate",
+            "ask_lost_if_cut",
+            "ask_not_last",
+            "no_question_reserve",
+            "answers_unbudgeted",
+            "sentence_too_long",
+            "audience_will_not_respond",
+            "fact_unsupported"
+          ]
+        },
+        "severity": {
+          "enum": [
+            "info",
+            "warning"
+          ]
+        },
+        "message": {
+          "type": "string"
+        },
+        "detail": {
+          "type": "object"
+        }
+      }
+    },
+    "response": {
+      "type": "object",
+      "required": [
+        "schemaVersion",
+        "requestId",
+        "id",
+        "mode",
+        "venueResolved",
+        "budget",
+        "warnings",
+        "model"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": "remarks-plan.v1"
+        },
+        "requestId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "correlationId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._:-]{16,128}$"
+        },
+        "id": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "mode": {
+          "enum": [
+            "budget",
+            "script",
+            "trim",
+            "check"
+          ]
+        },
+        "venueResolved": {
+          "type": "object",
+          "required": [
+            "format",
+            "secondsTotal",
+            "secondsHard",
+            "scriptSeconds",
+            "questionReserveSeconds",
+            "wpm",
+            "paceSource",
+            "targetFactor"
+          ],
+          "properties": {
+            "format": {
+              "enum": [
+                "statement",
+                "statement_with_questions",
+                "qa_only",
+                "open_discussion"
+              ]
+            },
+            "secondsTotal": {
+              "type": "integer"
+            },
+            "secondsHard": {
+              "type": "boolean"
+            },
+            "scriptSeconds": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "questionReserveSeconds": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "wpm": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "paceSource": {
+              "type": "string",
+              "pattern": "^(preset:(deliberate|podium|conversational)|measured)$"
+            },
+            "targetFactor": {
+              "enum": [
+                0.92,
+                1
+              ]
+            }
+          }
+        },
+        "budget": {
+          "type": "object",
+          "required": [
+            "targetWords",
+            "maxWords",
+            "marks",
+            "allocation",
+            "answerCards"
+          ],
+          "properties": {
+            "targetWords": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "maxWords": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "marks": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "atSeconds",
+                  "words"
+                ],
+                "properties": {
+                  "atSeconds": {
+                    "type": "integer"
+                  },
+                  "words": {
+                    "type": "integer"
+                  }
+                }
+              }
+            },
+            "allocation": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "section",
+                  "words"
+                ],
+                "properties": {
+                  "section": {
+                    "enum": [
+                      "who",
+                      "ask",
+                      "evidence",
+                      "doing",
+                      "invite_questions",
+                      "ask_again",
+                      "thanks"
+                    ]
+                  },
+                  "words": {
+                    "type": "integer"
+                  }
+                }
+              }
+            },
+            "answerCards": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "count",
+                    "wordsEach",
+                    "secondsEach"
+                  ],
+                  "properties": {
+                    "count": {
+                      "type": "integer"
+                    },
+                    "wordsEach": {
+                      "type": "integer"
+                    },
+                    "secondsEach": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/warning"
+          }
+        },
+        "script": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "answerCards": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "object",
+            "required": [
+              "question",
+              "answer",
+              "words",
+              "seconds"
+            ],
+            "properties": {
+              "question": {
+                "type": "string"
+              },
+              "answer": {
+                "type": "string"
+              },
+              "words": {
+                "type": "integer"
+              },
+              "seconds": {
+                "type": "integer"
+              }
+            }
+          }
+        },
+        "wordCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "estimatedSeconds": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "askPlacement": {
+          "type": "object",
+          "required": [
+            "inFirstTwoSentences",
+            "inLastSentence",
+            "beforeFirstMark"
+          ],
+          "properties": {
+            "inFirstTwoSentences": {
+              "type": "boolean"
+            },
+            "inLastSentence": {
+              "type": "boolean"
+            },
+            "beforeFirstMark": {
+              "type": "boolean"
+            }
+          }
+        },
+        "factGuard": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "text",
+              "kind",
+              "position"
+            ],
+            "properties": {
+              "text": {
+                "type": "string"
+              },
+              "kind": {
+                "enum": [
+                  "number",
+                  "date",
+                  "year",
+                  "money",
+                  "name"
+                ]
+              },
+              "position": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          }
+        },
+        "writtenSubmission": {
+          "type": "object",
+          "required": [
+            "title",
+            "lines"
+          ],
+          "properties": {
+            "title": {
+              "type": "string"
+            },
+            "lines": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "model": {
+          "type": "object",
+          "required": [
+            "used"
+          ],
+          "properties": {
+            "used": {
+              "type": "boolean"
+            },
+            "tier": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "mode": {
+                "enum": [
+                  "script",
+                  "trim",
+                  "check"
+                ]
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "wordCount",
+              "estimatedSeconds",
+              "askPlacement",
+              "factGuard"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "mode": {
+                "enum": [
+                  "script",
+                  "trim"
+                ]
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "writtenSubmission"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "mode": {
+                "const": "budget"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "model": {
+                "properties": {
+                  "used": {
+                    "const": false
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "mode": {
+                "const": "check"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "model": {
+                "properties": {
+                  "used": {
+                    "const": false
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "$ref": "#/definitions/response"
+}

@@ -7,6 +7,25 @@ export interface FrameworkDescription {
 }
 
 export const frameworkDescriptions: Record<string, FrameworkDescription> = {
+  'brief-map': {
+    title: 'BRIEF Map (Remarks Planner)',
+    context: `The BRIEF Map is Joseph McCormack's one-page planning tool from "Brief: Make a Bigger Impact by Saying Less" (The BRIEF Lab). The headline sits in the centre and five branches surround it: Background, Relevance, Information, Ending, and Follow-up. Mapping before writing forces a single centre and prunes branches before they become paragraphs. This implementation adds a declared venue (how many seconds, whether the clock is enforced, whether questions follow, and the speaking rate) so that a word budget, clock marks, and pace warnings exist before the first sentence is drafted. The Follow-up branch becomes the written submission for a statement-only venue, or prepared answers where questions are taken.`,
+    wikipediaUrl: 'https://thebrieflab.com/download/brief-map/',
+    goodUseCases: [
+      'A three-minute public comment to a council, board, or commission',
+      'Committee testimony with questions afterward',
+      'An interview, panel, or press question where only answers are spoken',
+      'A short briefing to a decision-maker who will cut you off',
+      'Turning a long position paper into what can actually be said aloud',
+    ],
+    notIdealFor: [
+      'Written reports or long-form analysis (use the research plan and answer packet tools)',
+      'Evidence weighing between competing hypotheses (use ACH)',
+      'Speeches with no time limit and no decision at the end',
+      'Fact-finding: the map organises facts you already hold and sourced; it does not collect them',
+    ]
+  },
+
   'swot': {
     title: 'SWOT Analysis',
     context: `SWOT Analysis is a strategic planning framework that evaluates Strengths, Weaknesses, Opportunities, and Threats. Developed in the 1960s at Stanford Research Institute, SWOT helps organizations understand their internal capabilities (strengths/weaknesses) and external environment (opportunities/threats) to inform strategic decision-making. This versatile tool is used across business, nonprofit, and government sectors for strategic planning and competitive analysis.`,

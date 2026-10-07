@@ -69,13 +69,19 @@ export const INTEGRATION_CAPABILITY_NAMES = [
   'claimMatch',
   'feedJobs',
   'webhookManagement',
+  'remarksPlanning',
 ] as const
 
 export type IntegrationCapabilityName = typeof INTEGRATION_CAPABILITY_NAMES[number]
 export type IntegrationCapabilities = Record<IntegrationCapabilityName, boolean>
 export type AdvertisedIntegrationCapabilities =
-  Omit<IntegrationCapabilities, 'timelineAnalysis' | 'timelineRead' | 'timelineWrite' | 'timelineHandoffMint'>
-  & Partial<Pick<IntegrationCapabilities, 'timelineAnalysis' | 'timelineRead' | 'timelineWrite' | 'timelineHandoffMint'>>
+  Omit<IntegrationCapabilities, 'timelineAnalysis' | 'timelineRead' | 'timelineWrite' | 'timelineHandoffMint' | 'remarksPlanning'>
+  & Partial<Pick<IntegrationCapabilities, 'timelineAnalysis' | 'timelineRead' | 'timelineWrite' | 'timelineHandoffMint' | 'remarksPlanning'>>
+
+/** Additive capabilities are omitted from discovery while unavailable, for old strict clients. */
+const OMITTED_WHEN_UNAVAILABLE: ReadonlySet<string> = new Set([
+  'timelineAnalysis', 'timelineRead', 'timelineWrite', 'timelineHandoffMint', 'remarksPlanning',
+])
 
 const REQUIRED_SCOPE: Partial<Record<IntegrationCapabilityName, IntegrationScope>> = {
   timelineAnalysis: 'community.research.execute',
@@ -92,11 +98,13 @@ const REQUIRED_SCOPE: Partial<Record<IntegrationCapabilityName, IntegrationScope
   behaviorIntake: 'community.behavior.write',
   feedJobs: 'community.feeds.manage',
   webhookManagement: 'community.webhooks.manage',
+  remarksPlanning: 'community.research.execute',
 }
 
 /**
  * Timeline analysis is the first scoped service-compute operation; research
- * questions is the second. Both are non-persistent for service callers.
+ * questions is the second; remarks planning is the third. All are
+ * non-persistent for service callers.
  */
 export const TRANCHE_A_SERVER_SUPPORT: Readonly<IntegrationCapabilities> = Object.freeze({
   anonymousAnalysis: true,
@@ -116,6 +124,7 @@ export const TRANCHE_A_SERVER_SUPPORT: Readonly<IntegrationCapabilities> = Objec
   claimMatch: false,
   feedJobs: false,
   webhookManagement: false,
+  remarksPlanning: true,
 })
 
 export interface IntegrationCapabilityLimits {
@@ -126,6 +135,10 @@ export interface IntegrationCapabilityLimits {
   timelineChanges?: number
   timelineObjects?: number
   timelinePageSize?: number
+  remarksRequestBytes?: number
+  remarksScriptChars?: number
+  remarksBranchItems?: number
+  remarksVoiceChars?: number
 }
 
 export interface IntegrationCapabilitiesDocument {
@@ -146,6 +159,7 @@ export interface IntegrationCapabilitiesDocument {
     sourceEvent?: 'community-source-event.v1'
     artifact?: 'source-artifact.v1'
     projection?: 'community-enrichment.v1'
+    remarksPlanning?: 'remarks-plan.v1'
   }
   scopes: IntegrationScope[]
   /** Additive v1 extensions are omitted while unavailable for old strict clients. */
@@ -201,7 +215,15 @@ export function buildIntegrationCapabilitiesDocument(
     claimMatch: scoped('claimMatch') && claimLimit !== null,
     feedJobs: scoped('feedJobs'),
     webhookManagement: scoped('webhookManagement'),
+    remarksPlanning: scoped('remarksPlanning'),
   }
+  const remarksLimits = options.limits && capabilities.remarksPlanning ? {
+    remarksRequestBytes: positiveInteger(options.limits.remarksRequestBytes),
+    remarksScriptChars: positiveInteger(options.limits.remarksScriptChars),
+    remarksBranchItems: positiveInteger(options.limits.remarksBranchItems),
+    remarksVoiceChars: positiveInteger(options.limits.remarksVoiceChars),
+  } : null
+  const remarksLimitsComplete = remarksLimits !== null && Object.values(remarksLimits).every(value => value !== null)
 
   const document: IntegrationCapabilitiesDocument = {
     schemaVersion: INTEGRATION_CAPABILITIES_SCHEMA_VERSION,
@@ -223,12 +245,14 @@ export function buildIntegrationCapabilitiesDocument(
       ...(capabilities.communityIngest ? { sourceEvent: 'community-source-event.v1' as const } : {}),
       ...(capabilities.artifactRead ? { artifact: 'source-artifact.v1' as const } : {}),
       ...(capabilities.projectionRead ? { projection: 'community-enrichment.v1' as const } : {}),
+      ...(capabilities.remarksPlanning ? { remarksPlanning: 'remarks-plan.v1' as const } : {}),
     },
     scopes: principal ? [...principal.scopes] : [],
     capabilities: Object.fromEntries(
-      Object.entries(capabilities).filter(([name, enabled]) => enabled || !['timelineAnalysis','timelineRead','timelineWrite','timelineHandoffMint'].includes(name)),
+      Object.entries(capabilities).filter(([name, enabled]) => enabled || !OMITTED_WHEN_UNAVAILABLE.has(name)),
     ) as AdvertisedIntegrationCapabilities,
     limits: {
+      ...(remarksLimitsComplete ? remarksLimits as Record<string, number> : {}),
       ...(capabilities.claimMatch && claimLimit !== null ? { claimMatchCandidates: claimLimit } : {}),
       ...(capabilities.communityIngest && batchLimit !== null ? { maxBatchUrls: batchLimit } : {}),
       ...(capabilities.timelineRead || capabilities.timelineWrite ? {
