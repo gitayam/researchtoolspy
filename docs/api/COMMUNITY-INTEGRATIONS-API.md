@@ -39,7 +39,14 @@ Any bearer using the reserved `rt_svc_` namespace is terminally handled as a
 service credential. Invalid, malformed, expired, or revoked credentials never
 fall through to user-hash or guest auto-provisioning.
 
-There is deliberately no public credential-creation API in Tranche A. No client,
+There is deliberately no public credential-creation API in Tranche A. The
+operator path is `scripts/provision-service-client.mjs`: given
+`INTEGRATION_TOKEN_HASH_KEY` in the environment, it writes reviewable SQL that
+satisfies the binding triggers (dedicated service user, private TEAM
+workspace, active intake investigation, no membership) and prints the
+plaintext token once. It never touches a database; the operator applies the
+file with `wrangler d1 execute --remote --file`. Header comment covers
+rotation (`--slot next`) and revocation. No client,
 principal, production token, or plaintext feature flag is seeded by managed
 migrations `0009_community_service_auth.sql` and
 `0010_service_principal_identity_compat.sql`. Service features remain disabled unless

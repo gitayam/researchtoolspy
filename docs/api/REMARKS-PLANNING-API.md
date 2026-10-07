@@ -299,6 +299,22 @@ shape the rest of `/api/research` returns.
 
 ## Calling from faydta.com
 
+**Connecting a new caller** is two operator steps. Provision the credential:
+
+```sh
+INTEGRATION_TOKEN_HASH_KEY=<from the operator's record> \
+  node scripts/provision-service-client.mjs \
+  --client-id dta_admin_portal_01 --community-id faydta \
+  --scope community.research.execute --days 365 --out /tmp/dta-client.sql
+source ./scripts/cloudflare-account.sh
+npx wrangler d1 execute researchtoolspy-prod --remote --file=/tmp/dta-client.sql
+```
+
+Then store the printed token as the caller's secret (for faydta.com:
+`RESEARCHTOOLS_SERVICE_TOKEN` on the `dta-admin` Pages project). The token is
+shown once.
+
+
 The credential lives in a Pages secret on the admin project and is used only
 from `apps/admin/functions`. The browser never sees it. A minimal client:
 
