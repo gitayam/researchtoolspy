@@ -11,6 +11,8 @@
  * are the ones that document states; the schema test asserts the two agree.
  */
 
+import writeGood from 'write-good'
+
 export const REMARKS_PLAN_VERSION = 'remarks-plan.v1' as const
 
 export const REMARKS_LIMITS = Object.freeze({
@@ -72,7 +74,7 @@ export const ALLOCATION: Readonly<Record<RemarksFormat, ReadonlyArray<readonly [
 export const WARNING_CODES = [
   'over_budget', 'near_budget', 'pace_assumes_fast', 'pace_assumes_slow', 'no_measured_rate',
   'ask_lost_if_cut', 'ask_not_last', 'no_question_reserve', 'answers_unbudgeted',
-  'sentence_too_long', 'audience_will_not_respond', 'fact_unsupported',
+  'sentence_too_long', 'audience_will_not_respond', 'fact_unsupported', 'plain_language',
 ] as const
 export type WarningCode = typeof WARNING_CODES[number]
 
@@ -715,7 +717,52 @@ export function writtenSubmission(map: RemarksMap, venue: VenueInput): WrittenSu
   return { title, lines }
 }
 
+// ── Plain language (write-good, MIT) ────────────────────────────────────────
+
+export const PLAIN_LANGUAGE_KINDS = ['passive', 'wordy', 'repeated', 'cliche', 'empty_opening', 'hedge'] as const
+export type PlainLanguageKind = typeof PLAIN_LANGUAGE_KINDS[number]
+export interface PlainLanguageHit { kind: PlainLanguageKind; text: string; index: number; offset: number; reason: string }
+export const PLAIN_LANGUAGE_LIMIT = 40
+
+const ALL_OFF = { passive: false, illusion: false, so: false, thereIs: false, weasel: false, adverb: false, tooWordy: false, cliches: false, eprime: false }
+// write-good does not say which check fired, so each runs alone and is tagged.
+const PLAIN_CHECKS: ReadonlyArray<readonly [PlainLanguageKind, keyof typeof ALL_OFF]> = [
+  ['repeated', 'illusion'],
+  ['passive', 'passive'],
+  ['wordy', 'tooWordy'],
+  ['cliche', 'cliches'],
+  ['empty_opening', 'thereIs'],
+  ['empty_opening', 'so'],
+  ['hedge', 'adverb'],
+  ['hedge', 'weasel'],
+]
+// Words write-good calls weasel words that are honest, needed quantities in a
+// statement of fact ("many calls", "several blocks"). A speaker should not be
+// told to delete the size of the problem.
+const QUANTITY_WORDS = ['many', 'several', 'various', 'some', 'most', 'few']
+
+/**
+ * Plain-language findings for spoken remarks, ordered by position and capped.
+ * Deterministic, no model. Overlapping findings at the same position keep the
+ * first kind in PLAIN_CHECKS order, which runs from most to least useful.
+ */
+export function plainLanguage(script: string): PlainLanguageHit[] {
+  if (!script.trim()) return []
+  const hits: PlainLanguageHit[] = []
+  const seen = new Set<string>()
+  for (const [kind, option] of PLAIN_CHECKS) {
+    for (const finding of writeGood(script, { ...ALL_OFF, [option]: true, whitelist: QUANTITY_WORDS })) {
+      const key = `${finding.index}:${finding.offset}`
+      if (seen.has(key)) continue
+      seen.add(key)
+      hits.push({ kind, text: script.substr(finding.index, finding.offset), index: finding.index, offset: finding.offset, reason: finding.reason })
+    }
+  }
+  return hits.sort((a, b) => a.index - b.index).slice(0, PLAIN_LANGUAGE_LIMIT)
+}
+
 export interface ScriptEvaluation {
+  plainLanguage: PlainLanguageHit[]
   wordCount: number
   estimatedSeconds: number
   askPlacement: AskPlacement
@@ -788,7 +835,16 @@ export function evaluateScript(
       detail: { count: guard.length },
     })
   }
-  return { wordCount, estimatedSeconds, askPlacement, factGuard: guard, warnings }
+  const plain = plainLanguage(script)
+  if (plain.length) {
+    const counts = PLAIN_LANGUAGE_KINDS.map(kind => [kind, plain.filter(hit => hit.kind === kind).length] as const).filter(([, n]) => n > 0)
+    warnings.push({
+      code: 'plain_language', severity: 'info',
+      message: `${plain.length} phrase${plain.length > 1 ? 's' : ''} could be plainer when spoken: ${counts.map(([kind, n]) => `${n} ${kind.replace('_', ' ')}`).join(', ')}.`,
+      detail: Object.fromEntries(counts),
+    })
+  }
+  return { wordCount, estimatedSeconds, askPlacement, factGuard: guard, warnings, plainLanguage: plain }
 }
 
 export function answerWarnings(unbudgeted: number[], wpm: number): RemarksWarning[] {

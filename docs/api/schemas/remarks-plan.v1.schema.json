@@ -365,7 +365,8 @@
             "answers_unbudgeted",
             "sentence_too_long",
             "audience_will_not_respond",
-            "fact_unsupported"
+            "fact_unsupported",
+            "plain_language"
           ]
         },
         "severity": {
@@ -815,6 +816,46 @@
                   ]
                 }
               ]
+            }
+          }
+        },
+        "plainLanguage": {
+          "type": "array",
+          "maxItems": 40,
+          "items": {
+            "type": "object",
+            "required": [
+              "kind",
+              "text",
+              "index",
+              "offset",
+              "reason"
+            ],
+            "properties": {
+              "kind": {
+                "enum": [
+                  "passive",
+                  "wordy",
+                  "repeated",
+                  "cliche",
+                  "empty_opening",
+                  "hedge"
+                ]
+              },
+              "text": {
+                "type": "string"
+              },
+              "index": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "offset": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "reason": {
+                "type": "string"
+              }
             }
           }
         }

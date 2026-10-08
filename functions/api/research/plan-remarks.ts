@@ -319,6 +319,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       estimatedSeconds: evaluation.estimatedSeconds,
       askPlacement: evaluation.askPlacement,
       factGuard: evaluation.factGuard,
+      plainLanguage: evaluation.plainLanguage,
       ...(req.map ? { writtenSubmission: writtenSubmission(req.map, req.venue) } : {}),
       model: { used: false },
     }, { headers: RESPONSE_HEADERS })
@@ -435,7 +436,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   }
 
   if (!evaluation) {
-    evaluation = { wordCount: 0, estimatedSeconds: 0, askPlacement: { inFirstTwoSentences: false, inLastSentence: false, beforeFirstMark: false }, factGuard: [], warnings: [] }
+    evaluation = { wordCount: 0, estimatedSeconds: 0, askPlacement: { inFirstTwoSentences: false, inLastSentence: false, beforeFirstMark: false }, factGuard: [], warnings: [], plainLanguage: [] }
   }
 
   return Response.json({
@@ -448,6 +449,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     estimatedSeconds: wantsScript ? evaluation.estimatedSeconds : timeFor(0, resolved.wpm),
     askPlacement: evaluation.askPlacement,
     factGuard: evaluation.factGuard,
+    plainLanguage: evaluation.plainLanguage,
     writtenSubmission: writtenSubmission(req.map!, req.venue),
     model: { used: true, tier: 'cheap' },
   }, { headers: RESPONSE_HEADERS })

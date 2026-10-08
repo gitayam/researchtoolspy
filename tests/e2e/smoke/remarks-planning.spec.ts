@@ -14,6 +14,7 @@ import {
   factGuard,
   mapStatus,
   parseRemarksRequest,
+  plainLanguage,
   sanitizeCoach,
   resolveVenue,
   type RemarksMap,
@@ -477,5 +478,29 @@ test.describe('remarks-plan.v1 map status and coaching @smoke', () => {
     } as never)).json()).capabilities
     expect((await discoverWith({})).remarksCoaching).toBe(true)
     expect('remarksCoaching' in (await discoverWith({ REMARKS_SERVICE_ENABLED: undefined }))).toBe(false)
+  })
+})
+
+test.describe('remarks-plan.v1 plain language @smoke', () => {
+  test('@smoke tags each finding by kind and leaves honest quantities alone', () => {
+    const hits = plainLanguage('The data was collected by the city. There are many calls. We really need to utilize the the numbers.')
+    const byKind = Object.fromEntries(hits.map(hit => [hit.text, hit.kind]))
+    expect(byKind['was collected']).toBe('passive')
+    expect(byKind['There are']).toBe('empty_opening')
+    expect(byKind['really']).toBe('hedge')
+    expect(byKind['utilize']).toBe('wordy')
+    expect(byKind['the']).toBe('repeated')
+    expect(Object.keys(byKind)).not.toContain('many')
+    expect(hits.map(hit => hit.index)).toEqual([...hits.map(hit => hit.index)].sort((a, b) => a - b))
+    expect(plainLanguage('   ')).toEqual([])
+  })
+
+  test('@smoke check mode returns the findings, a single summary warning, and matches the schema', async () => {
+    const response = await call(post(request('check', { map: MAP, script: `${GOOD_SCRIPT} The data was collected by the city.` })), await env())
+    const body = await response.json()
+    expect(validateResponse(body), JSON.stringify(validateResponse.errors)).toBe(true)
+    expect(body.plainLanguage.some((hit: { kind: string }) => hit.kind === 'passive')).toBe(true)
+    expect(body.warnings.filter((w: { code: string }) => w.code === 'plain_language')).toHaveLength(1)
+    expect(body.model.used).toBe(false)
   })
 })

@@ -252,6 +252,7 @@ is always echoed.
 | `estimatedSeconds` | `wordCount ÷ wpm × 60`, rounded. Compare with `venueResolved.scriptSeconds`. |
 | `askPlacement` | Whether the headline's sense appears in the first two sentences, the last sentence, and before the first clock mark. Computed by matching at least half of the headline's content words (minimum two), not by exact string. A sentence under four words ("Good evening.") does not count toward the first two. |
 | `factGuard[]` | `{ text, kind, position }` for every number, date, year, dollar amount, or capitalised run in the script that appears nowhere in the map. `kind` is `number` \| `date` \| `year` \| `money` \| `name`. Matching ignores case and punctuation, and splits hyphens, so "20-plus-minute" in the map supports "20 minutes" in the script. Bare numbers from 1 to 12 are not flagged ("two calls", "3 things"). A capitalised word that opens a sentence is not treated as a name. Empty means nothing unsupported was found; it does not mean the script is true. |
+| `plainLanguage[]` | `script`, `trim`, and `check` modes: phrases that would be plainer spoken, each `{ kind, text, index, offset, reason }`, ordered by position, at most 40. `kind` is `passive` \| `wordy` \| `repeated` \| `cliche` \| `empty_opening` ("There are…", "So…") \| `hedge` ("really", "very"). From [write-good](https://github.com/btford/write-good) (MIT), run one check at a time so each finding carries its kind. Honest quantities ("many", "several", "most") are never flagged. One `plain_language` info warning summarises the counts. Advisory, never applied automatically. |
 | `writtenSubmission` | A one-page memo skeleton: header, the ask, the facts with their sources, then every Follow-up item. Plain text lines, no markup. |
 | `model` | `{ used, tier }`. `used` is `false` for `budget` and `check`. |
 
@@ -271,6 +272,7 @@ is always echoed.
 | `sentence_too_long` | info | Any sentence over 30 words. `detail.sentences` lists their indexes. |
 | `audience_will_not_respond` | info | `statement` format and the script asks a question outside quotation marks. |
 | `fact_unsupported` | warning | `factGuard` is non-empty. One warning, with the count. |
+| `plain_language` | info | `plainLanguage` is non-empty. `detail` holds the count per kind. |
 
 ### `mapStatus` rules
 
