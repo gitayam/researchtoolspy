@@ -12,7 +12,9 @@ import {
   checkAskPlacement,
   evaluateScript,
   factGuard,
+  mapStatus,
   parseRemarksRequest,
+  sanitizeCoach,
   resolveVenue,
   type RemarksMap,
   type VenueInput,
@@ -386,5 +388,94 @@ test.describe('remarks-plan.v1 service adapter @smoke', () => {
       expect(off.contractVersions.remarksPlanning).toBeUndefined()
       expect(off.limits.remarksRequestBytes).toBeUndefined()
     }
+  })
+})
+
+// One fact without a source, so Information is "started" by rule.
+const UNSOURCED: RemarksMap = { ...MAP, information: [MAP.information![0], 'Two other calls reported waits of about 36 and 40 minutes.'] }
+
+test.describe('remarks-plan.v1 map status and coaching @smoke', () => {
+  test('@smoke map status is a rule floor: deadlines, sources, and answers decide "ready"', () => {
+    const ready = mapStatus(MAP, 'statement')
+    expect(ready.headline.state).toBe('ready')
+    expect(ready.information.state).toBe('ready')
+    expect(mapStatus(UNSOURCED, 'statement').information).toEqual({ state: 'started', items: 2, reason: 'Add a source you can produce for fact 2.' })
+    const noDeadline = mapStatus({ ...MAP, headline: 'DTA asks Council for downtown police response-time data.' }, 'statement')
+    expect(noDeadline.headline).toMatchObject({ state: 'started', reason: expect.stringContaining('when') })
+    const empty = mapStatus({ headline: 'x' }, 'statement')
+    expect(empty.background.state).toBe('empty')
+    expect(empty.headline.state).toBe('started')
+    const qa = mapStatus(MAP, 'statement_with_questions')
+    expect(qa.follow_up).toMatchObject({ state: 'started', reason: expect.stringContaining('question 2') })
+    expect(mapStatus(MAP, 'statement').follow_up.state).toBe('ready')
+    const sourced = mapStatus({ ...MAP, information: [{ fact: 'A fact.', source: 'A record' }] }, 'statement')
+    expect(sourced.information.state).toBe('ready')
+  })
+
+  test('@smoke the coach cannot turn a branch green past the rules, and never supplies a fact', () => {
+    const status = mapStatus(UNSOURCED, 'statement')
+    const flattered = sanitizeCoach({ status: 'strong', note: 'Great.', questions: [] }, 'information', UNSOURCED, status)
+    expect(flattered.status).toBe('needs_work')
+
+    const invented = sanitizeCoach({ status: 'needs_work', note: 'Tighten it.', suggestion: 'DTA asks Council for response-time data by March 3, as Chief Robinson promised.' }, 'headline', MAP, status)
+    expect(invented.suggestion).toBeNull()
+    expect(invented.withheld.map(hit => hit.text)).toEqual(expect.arrayContaining(['March 3', 'Chief Robinson']))
+
+    const faithful = sanitizeCoach({ status: 'needs_work', note: 'Lead with the verb.', suggestion: 'DTA asks Council for downtown police response-time data before October 13.' }, 'headline', MAP, status)
+    expect(faithful.suggestion).toContain('before October 13')
+    expect(faithful.withheld).toEqual([])
+
+    const facts = sanitizeCoach({ status: 'needs_work', note: 'n', suggestion: 'Two other calls reported waits of about 36 and 40 minutes.', questions: ['What date was the Hay Street call', 'Who keeps the dispatch log?', 'q3?', 'q4?'] }, 'information', UNSOURCED, status)
+    expect(facts.suggestion).toBeNull()
+    expect(facts.questions).toEqual(['What date was the Hay Street call?', 'Who keeps the dispatch log?'])
+    expect(sanitizeCoach({ questions: ['a', 'b?', 'c?', 'd?', 'e?'].map(q => `${q} long enough`) }, 'ending', MAP, mapStatus(MAP, 'statement')).questions).toHaveLength(3)
+    expect(facts.nextSection).toBeNull() // every other branch is ready
+    const noEnding: RemarksMap = { ...UNSOURCED, ending: undefined }
+    expect(sanitizeCoach({}, 'information', noEnding, mapStatus(noEnding, 'statement')).nextSection).toBe('ending')
+  })
+
+  test('@smoke coach mode reviews one branch, withholds invented specifics, and matches the schema', async () => {
+    const mock = installModelMock({ status: 'needs_work', note: 'Name the deadline first.', suggestion: 'By March 3, DTA asks Council for data.', questions: ['When is the next Council work session'] })
+    try {
+      const response = await call(post(request('coach', { map: UNSOURCED, section: 'headline' })), await env())
+      expect(response.status).toBe(200)
+      const body = await response.json()
+      expect(validateResponse(body), JSON.stringify(validateResponse.errors)).toBe(true)
+      expect(body.coach).toMatchObject({ section: 'headline', suggestion: null, questions: ['When is the next Council work session?'] })
+      expect(body.coach.withheld.map((h: { text: string }) => h.text)).toContain('March 3')
+      expect(body.mapStatus.information.state).toBe('started')
+      expect(mock.calls).toHaveLength(1)
+      const sent = JSON.stringify(JSON.parse(String(mock.calls[0].body)).messages)
+      expect(sent).toContain('PART TO REVIEW: headline')
+      expect(sent).toContain('Never supply a fact')
+    } finally { mock.restore() }
+  })
+
+  test('@smoke coach needs a section, and a section is refused on every other mode', async () => {
+    const mock = installModelMock({})
+    try {
+      for (const body of [request('coach', { map: MAP }), request('check', { map: MAP, script: 'x', section: 'headline' }), request('coach', { map: MAP, section: 'summary' })]) {
+        const response = await call(post(body), await env())
+        expect(response.status).toBe(400)
+        expect(validateRequest(body)).toBe(false)
+      }
+      expect(mock.calls).toHaveLength(0)
+    } finally { mock.restore() }
+  })
+
+  test('@smoke budget and check carry map status so a client can colour the map without AI', async () => {
+    const response = await call(post(request('check', { map: MAP, script: GOOD_SCRIPT })), await env())
+    const body = await response.json()
+    expect(body.mapStatus.headline.state).toBe('ready')
+    expect(body.model.used).toBe(false)
+  })
+
+  test('@smoke discovery advertises coaching only alongside planning', async () => {
+    const discoverWith = async (overrides: Record<string, unknown>) => (await (await discover({
+      request: new Request('https://researchtools.net/api/integrations/capabilities', { headers: { Authorization: `Bearer ${TOKEN}` } }),
+      env: await env(overrides),
+    } as never)).json()).capabilities
+    expect((await discoverWith({})).remarksCoaching).toBe(true)
+    expect('remarksCoaching' in (await discoverWith({ REMARKS_SERVICE_ENABLED: undefined }))).toBe(false)
   })
 })

@@ -70,17 +70,18 @@ export const INTEGRATION_CAPABILITY_NAMES = [
   'feedJobs',
   'webhookManagement',
   'remarksPlanning',
+  'remarksCoaching',
 ] as const
 
 export type IntegrationCapabilityName = typeof INTEGRATION_CAPABILITY_NAMES[number]
 export type IntegrationCapabilities = Record<IntegrationCapabilityName, boolean>
 export type AdvertisedIntegrationCapabilities =
-  Omit<IntegrationCapabilities, 'timelineAnalysis' | 'timelineRead' | 'timelineWrite' | 'timelineHandoffMint' | 'remarksPlanning'>
-  & Partial<Pick<IntegrationCapabilities, 'timelineAnalysis' | 'timelineRead' | 'timelineWrite' | 'timelineHandoffMint' | 'remarksPlanning'>>
+  Omit<IntegrationCapabilities, 'timelineAnalysis' | 'timelineRead' | 'timelineWrite' | 'timelineHandoffMint' | 'remarksPlanning' | 'remarksCoaching'>
+  & Partial<Pick<IntegrationCapabilities, 'timelineAnalysis' | 'timelineRead' | 'timelineWrite' | 'timelineHandoffMint' | 'remarksPlanning' | 'remarksCoaching'>>
 
 /** Additive capabilities are omitted from discovery while unavailable, for old strict clients. */
 const OMITTED_WHEN_UNAVAILABLE: ReadonlySet<string> = new Set([
-  'timelineAnalysis', 'timelineRead', 'timelineWrite', 'timelineHandoffMint', 'remarksPlanning',
+  'timelineAnalysis', 'timelineRead', 'timelineWrite', 'timelineHandoffMint', 'remarksPlanning', 'remarksCoaching',
 ])
 
 const REQUIRED_SCOPE: Partial<Record<IntegrationCapabilityName, IntegrationScope>> = {
@@ -99,6 +100,7 @@ const REQUIRED_SCOPE: Partial<Record<IntegrationCapabilityName, IntegrationScope
   feedJobs: 'community.feeds.manage',
   webhookManagement: 'community.webhooks.manage',
   remarksPlanning: 'community.research.execute',
+  remarksCoaching: 'community.research.execute',
 }
 
 /**
@@ -125,6 +127,7 @@ export const TRANCHE_A_SERVER_SUPPORT: Readonly<IntegrationCapabilities> = Objec
   feedJobs: false,
   webhookManagement: false,
   remarksPlanning: true,
+  remarksCoaching: true,
 })
 
 export interface IntegrationCapabilityLimits {
@@ -216,6 +219,8 @@ export function buildIntegrationCapabilitiesDocument(
     feedJobs: scoped('feedJobs'),
     webhookManagement: scoped('webhookManagement'),
     remarksPlanning: scoped('remarksPlanning'),
+    // Coaching is a mode of remarks-plan.v1, so it is never available without planning.
+    remarksCoaching: scoped('remarksCoaching') && scoped('remarksPlanning'),
   }
   const remarksLimits = options.limits && capabilities.remarksPlanning ? {
     remarksRequestBytes: positiveInteger(options.limits.remarksRequestBytes),

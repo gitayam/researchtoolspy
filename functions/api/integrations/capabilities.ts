@@ -105,6 +105,7 @@ export const onRequest: PagesFunction<Env> = async ({ request, env }) => {
     // whole, so the key is required for the flag to show.
     runtimeReady.remarksPlanning = Boolean(env.OPENAI_API_KEY)
       && env.REMARKS_SERVICE_ENABLED === 'true'
+    runtimeReady.remarksCoaching = runtimeReady.remarksPlanning
 
     const body = buildIntegrationCapabilitiesDocument({
       requestId,

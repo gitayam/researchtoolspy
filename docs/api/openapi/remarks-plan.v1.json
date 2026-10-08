@@ -19,7 +19,7 @@
     "/api/integrations/capabilities": {
       "get": {
         "operationId": "discoverRemarksCapabilities",
-        "description": "Require identityType=service, capabilities.remarksPlanning=true, contractVersions.remarksPlanning=remarks-plan.v1 and the community.research.execute scope. Omission means unavailable. Limits advertised: remarksRequestBytes, remarksScriptChars, remarksBranchItems, remarksVoiceChars.",
+        "description": "Require identityType=service, capabilities.remarksPlanning=true, contractVersions.remarksPlanning=remarks-plan.v1 and the community.research.execute scope. Coaching additionally requires capabilities.remarksCoaching=true. Omission means unavailable. Limits advertised: remarksRequestBytes, remarksScriptChars, remarksBranchItems, remarksVoiceChars.",
         "parameters": [
           {
             "$ref": "#/components/parameters/CorrelationId"
@@ -60,7 +60,7 @@
     "/api/research/plan-remarks": {
       "post": {
         "operationId": "planRemarks",
-        "description": "Requires enabled community integrations, REMARKS_SERVICE_ENABLED, and community.research.execute. Request <=32 KiB UTF-8; script <=6000 chars; voice <=2000 chars; <=12 items per map branch. Nothing is truncated: over a limit is a refusal naming the limit. mode=budget needs venue only and calls no model; mode=check needs venue+script and calls no model; mode=script needs venue+map; mode=trim needs venue+map+script. A trim whose output fails the fact guard or ask placement is 502 upstream_invalid_response and the caller's script is untouched. saveToFramework=true from a service credential is 400. Rate is derived from a preset or a measured read; a bare wpm is rejected.",
+        "description": "Requires enabled community integrations, REMARKS_SERVICE_ENABLED, and community.research.execute. Request <=32 KiB UTF-8; script <=6000 chars; voice <=2000 chars; <=12 items per map branch. Nothing is truncated: over a limit is a refusal naming the limit. mode=budget needs venue only and calls no model; mode=check needs venue+script and calls no model; mode=script needs venue+map; mode=trim needs venue+map+script. A trim whose output fails the fact guard or ask placement is 502 upstream_invalid_response and the caller's script is untouched. saveToFramework=true from a service credential is 400. Rate is derived from a preset or a measured read; a bare wpm is rejected. mode=coach needs venue+map+section and reviews one branch: suggestions are offered only for headline/background/relevance/ending and only when every specific already appears in the map; otherwise withheld. Every response carrying a map includes rule-based mapStatus.",
         "parameters": [
           {
             "$ref": "#/components/parameters/CorrelationId"

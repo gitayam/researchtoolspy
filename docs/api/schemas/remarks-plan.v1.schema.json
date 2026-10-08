@@ -253,7 +253,8 @@
             "budget",
             "script",
             "trim",
-            "check"
+            "check",
+            "coach"
           ]
         },
         "venue": {
@@ -272,6 +273,16 @@
         },
         "saveToFramework": {
           "type": "boolean"
+        },
+        "section": {
+          "enum": [
+            "headline",
+            "background",
+            "relevance",
+            "information",
+            "ending",
+            "follow_up"
+          ]
         }
       },
       "allOf": [
@@ -281,7 +292,8 @@
               "mode": {
                 "enum": [
                   "script",
-                  "trim"
+                  "trim",
+                  "coach"
                 ]
               }
             }
@@ -307,6 +319,27 @@
             "required": [
               "script"
             ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "mode": {
+                "const": "coach"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "section"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "section"
+              ]
+            }
           }
         }
       ]
@@ -384,7 +417,8 @@
             "budget",
             "script",
             "trim",
-            "check"
+            "check",
+            "coach"
           ]
         },
         "venueResolved": {
@@ -656,6 +690,133 @@
               "type": "string"
             }
           }
+        },
+        "mapStatus": {
+          "type": "object",
+          "required": [
+            "headline",
+            "background",
+            "relevance",
+            "information",
+            "ending",
+            "follow_up"
+          ],
+          "properties": {
+            "headline": {
+              "$ref": "#/definitions/branchStatus"
+            },
+            "background": {
+              "$ref": "#/definitions/branchStatus"
+            },
+            "relevance": {
+              "$ref": "#/definitions/branchStatus"
+            },
+            "information": {
+              "$ref": "#/definitions/branchStatus"
+            },
+            "ending": {
+              "$ref": "#/definitions/branchStatus"
+            },
+            "follow_up": {
+              "$ref": "#/definitions/branchStatus"
+            }
+          }
+        },
+        "coach": {
+          "type": "object",
+          "required": [
+            "section",
+            "status",
+            "note",
+            "suggestion",
+            "questions",
+            "withheld",
+            "nextSection"
+          ],
+          "properties": {
+            "section": {
+              "enum": [
+                "headline",
+                "background",
+                "relevance",
+                "information",
+                "ending",
+                "follow_up"
+              ]
+            },
+            "status": {
+              "enum": [
+                "strong",
+                "needs_work",
+                "empty"
+              ]
+            },
+            "note": {
+              "type": "string",
+              "maxLength": 240
+            },
+            "suggestion": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "maxLength": 500
+            },
+            "questions": {
+              "type": "array",
+              "maxItems": 3,
+              "items": {
+                "type": "string",
+                "maxLength": 201
+              }
+            },
+            "withheld": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "text",
+                  "kind",
+                  "position"
+                ],
+                "properties": {
+                  "text": {
+                    "type": "string"
+                  },
+                  "kind": {
+                    "enum": [
+                      "number",
+                      "date",
+                      "year",
+                      "money",
+                      "name"
+                    ]
+                  },
+                  "position": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              }
+            },
+            "nextSection": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "enum": [
+                    "headline",
+                    "background",
+                    "relevance",
+                    "information",
+                    "ending",
+                    "follow_up"
+                  ]
+                }
+              ]
+            }
+          }
         }
       },
       "allOf": [
@@ -736,8 +897,59 @@
               }
             }
           }
+        },
+        {
+          "if": {
+            "properties": {
+              "mode": {
+                "const": "coach"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "coach",
+              "mapStatus"
+            ],
+            "properties": {
+              "model": {
+                "properties": {
+                  "used": {
+                    "const": true
+                  }
+                }
+              }
+            }
+          }
         }
       ]
+    },
+    "branchStatus": {
+      "type": "object",
+      "required": [
+        "state",
+        "items",
+        "reason"
+      ],
+      "properties": {
+        "state": {
+          "enum": [
+            "empty",
+            "started",
+            "ready"
+          ]
+        },
+        "items": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
     }
   },
   "$ref": "#/definitions/response"

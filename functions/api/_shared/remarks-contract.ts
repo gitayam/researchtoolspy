@@ -35,11 +35,17 @@ export const REMARKS_LIMITS = Object.freeze({
 export const REMARKS_FORMATS = ['statement', 'statement_with_questions', 'qa_only', 'open_discussion'] as const
 export type RemarksFormat = typeof REMARKS_FORMATS[number]
 
-export const REMARKS_MODES = ['budget', 'script', 'trim', 'check'] as const
+export const REMARKS_MODES = ['budget', 'script', 'trim', 'check', 'coach'] as const
 export type RemarksMode = typeof REMARKS_MODES[number]
 
 export const PACE_PRESETS = Object.freeze({ deliberate: 120, podium: 135, conversational: 150 })
 export type PacePreset = keyof typeof PACE_PRESETS
+
+/** The six parts of a BRIEF Map, in the order the method fills them. */
+export const BRANCH_KEYS = ['headline', 'background', 'relevance', 'information', 'ending', 'follow_up'] as const
+export type BranchKey = typeof BRANCH_KEYS[number]
+
+export const COACH_LIMITS = Object.freeze({ noteChars: 240, suggestionChars: 500, questionChars: 200, questions: 3 })
 
 export const QUESTION_SOURCES = ['chair', 'members', 'staff', 'press', 'public', 'partners'] as const
 
@@ -112,6 +118,8 @@ export interface RemarksRequest {
   script?: string
   voice?: string
   saveToFramework?: boolean
+  /** Required for mode `coach`: the branch to review. */
+  section?: BranchKey
 }
 
 export interface ResolvedVenue {
@@ -351,7 +359,7 @@ export function parseVenue(value: unknown): Parsed<VenueInput> {
 /** Strict parse of a remarks-plan.v1 request. Unknown fields are refused. */
 export function parseRemarksRequest(value: unknown): Parsed<RemarksRequest> {
   if (!isRecord(value)) return { ok: false, message: 'The request body must be a JSON object.' }
-  const extra = onlyKeys(value, ['schemaVersion', 'mode', 'venue', 'map', 'script', 'voice', 'saveToFramework'], 'request')
+  const extra = onlyKeys(value, ['schemaVersion', 'mode', 'venue', 'map', 'script', 'voice', 'saveToFramework', 'section'], 'request')
   if (extra) return { ok: false, message: extra }
   if (value.schemaVersion !== REMARKS_PLAN_VERSION) return { ok: false, message: `schemaVersion must be ${REMARKS_PLAN_VERSION}.` }
   const mode = value.mode
@@ -366,7 +374,16 @@ export function parseRemarksRequest(value: unknown): Parsed<RemarksRequest> {
     if (isParseFailure(parsed)) return fail(parsed)
     map = parsed.value
   }
-  if ((mode === 'script' || mode === 'trim') && !map) return { ok: false, message: `mode ${mode} requires map.` }
+  if ((mode === 'script' || mode === 'trim' || mode === 'coach') && !map) return { ok: false, message: `mode ${mode} requires map.` }
+  let section: BranchKey | undefined
+  if (value.section !== undefined) {
+    if (typeof value.section !== 'string' || !(BRANCH_KEYS as readonly string[]).includes(value.section)) {
+      return { ok: false, message: `section must be one of ${BRANCH_KEYS.join(', ')}.` }
+    }
+    if (mode !== 'coach') return { ok: false, message: 'section applies only to mode coach.' }
+    section = value.section as BranchKey
+  }
+  if (mode === 'coach' && !section) return { ok: false, message: 'mode coach requires section.' }
   let script: string | undefined
   if (value.script !== undefined) {
     if (typeof value.script !== 'string') return { ok: false, message: 'script must be text.' }
@@ -391,6 +408,7 @@ export function parseRemarksRequest(value: unknown): Parsed<RemarksRequest> {
       ...(script !== undefined ? { script } : {}),
       ...(voice !== undefined ? { voice } : {}),
       ...(value.saveToFramework !== undefined ? { saveToFramework: value.saveToFramework as boolean } : {}),
+      ...(section ? { section } : {}),
     },
   }
 }
@@ -785,3 +803,131 @@ export function answerWarnings(unbudgeted: number[], wpm: number): RemarksWarnin
 export function utf8Bytes(text: string): number {
   return new TextEncoder().encode(text).byteLength
 }
+
+
+// ── Map status: the deterministic fill state the mind map draws ─────────────
+
+export type BranchState = 'empty' | 'started' | 'ready'
+export interface BranchStatus { state: BranchState; items: number; reason: string | null }
+export type MapStatus = Record<BranchKey, BranchStatus>
+
+const DEADLINE_CUE = new RegExp(`\\b(?:by|before|until|no later than|this week|next week|tonight|tomorrow|today|${MONTHS})\\b|\\d`, 'i')
+
+/**
+ * Where each branch stands, by rule rather than by model, so the map's colours
+ * mean the same thing with or without AI. "ready" is a floor, not praise: it
+ * says the branch holds what the method asks of it.
+ */
+export function mapStatus(map: RemarksMap, format: RemarksFormat): MapStatus {
+  const headlineWords = countWords(map.headline ?? '')
+  const headline: BranchStatus = headlineWords === 0
+    ? { state: 'empty', items: 0, reason: null }
+    : headlineWords < 6
+      ? { state: 'started', items: 1, reason: 'Say what you want done, by whom, in a full sentence.' }
+      : headlineWords > 40
+        ? { state: 'started', items: 1, reason: 'Cut it to one breath: under 40 words.' }
+        : !DEADLINE_CUE.test(map.headline)
+          ? { state: 'started', items: 1, reason: 'Add when you need it: a date or "before" something.' }
+          : { state: 'ready', items: 1, reason: null }
+
+  const list = (items: string[] | undefined, max: number, tooMany: string): BranchStatus => {
+    const n = items?.length ?? 0
+    if (n === 0) return { state: 'empty', items: 0, reason: null }
+    if (n > max) return { state: 'started', items: n, reason: tooMany }
+    return { state: 'ready', items: n, reason: null }
+  }
+  const background = list(map.background, 2, 'Keep only what this audience does not already know: one or two lines.')
+  const relevance = list(map.relevance, 3, 'One reason this is timely is stronger than four.')
+
+  const facts = map.information ?? []
+  let information: BranchStatus
+  if (facts.length === 0) information = { state: 'empty', items: 0, reason: null }
+  else if (facts.length > 3) information = { state: 'started', items: facts.length, reason: 'Pick the two or three facts that carry the argument. The rest go in the written submission.' }
+  else {
+    const unsourced = facts.map((item, index) => (typeof item === 'string' || !item.source?.trim() ? index + 1 : 0)).filter(Boolean)
+    information = unsourced.length
+      ? { state: 'started', items: facts.length, reason: `Add a source you can produce for fact ${unsourced.join(' and ')}.` }
+      : { state: 'ready', items: facts.length, reason: null }
+  }
+
+  const ending: BranchStatus = !map.ending?.trim()
+    ? { state: 'empty', items: 0, reason: null }
+    : !DEADLINE_CUE.test(map.ending)
+      ? { state: 'started', items: 1, reason: 'Say when, and what success looks like.' }
+      : { state: 'ready', items: 1, reason: null }
+
+  const follow = map.follow_up ?? []
+  let follow_up: BranchStatus
+  if (follow.length === 0) follow_up = { state: 'empty', items: 0, reason: null }
+  else if (format === 'statement') follow_up = { state: 'ready', items: follow.length, reason: null }
+  else {
+    const unanswered = follow.map((item, index) => (typeof item === 'string' || !item.answer?.trim() ? index + 1 : 0)).filter(Boolean)
+    follow_up = unanswered.length
+      ? { state: 'started', items: follow.length, reason: `Write a two-sentence answer for question ${unanswered.join(' and ')}.` }
+      : { state: 'ready', items: follow.length, reason: null }
+  }
+
+  return { headline, background, relevance, information, ending, follow_up }
+}
+
+// ── Coach: one branch at a time ──────────────────────────────────────────────
+
+export interface CoachResult {
+  section: BranchKey
+  status: 'strong' | 'needs_work' | 'empty'
+  note: string
+  suggestion: string | null
+  questions: string[]
+  /** Specifics the model's suggestion introduced; when non-empty the suggestion was withheld. */
+  withheld: FactGuardHit[]
+  nextSection: BranchKey | null
+}
+
+/** Branches whose wording the coach may offer back. Never Information: facts come from the speaker. */
+export const COACH_MAY_REWORD: ReadonlySet<BranchKey> = new Set(['headline', 'background', 'relevance', 'ending'])
+
+function clip(text: unknown, max: number): string {
+  return typeof text === 'string' ? text.replace(/\s+/g, ' ').trim().slice(0, max) : ''
+}
+
+/**
+ * Turns whatever the model returned into a CoachResult the client can trust:
+ * statuses from the enum, lengths capped, questions kept as questions, and a
+ * suggested rewording dropped whenever it carries a specific the map lacks.
+ */
+export function sanitizeCoach(raw: unknown, section: BranchKey, map: RemarksMap, status: MapStatus): CoachResult {
+  const record = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>
+  const ruleState = status[section].state
+  let coachStatus: CoachResult['status'] = record.status === 'strong' || record.status === 'needs_work' || record.status === 'empty'
+    ? record.status : ruleState === 'ready' ? 'strong' : ruleState === 'empty' ? 'empty' : 'needs_work'
+  // The rules outrank the model in one direction: a branch the rules say is not
+  // ready is never "strong", or the map would turn green on a missing source.
+  if (ruleState !== 'ready' && coachStatus === 'strong') coachStatus = ruleState === 'empty' ? 'empty' : 'needs_work'
+  const note = clip(record.note, COACH_LIMITS.noteChars) || status[section].reason || ''
+  const questions = (Array.isArray(record.questions) ? record.questions : [])
+    .map(question => clip(question, COACH_LIMITS.questionChars))
+    .filter(question => question.length > 3)
+    .map(question => (question.endsWith('?') ? question : `${question.replace(/[.!]+$/, '')}?`))
+    .slice(0, COACH_LIMITS.questions)
+  let suggestion: string | null = null
+  let withheld: FactGuardHit[] = []
+  const proposed = clip(record.suggestion, COACH_LIMITS.suggestionChars)
+  if (proposed && COACH_MAY_REWORD.has(section)) {
+    withheld = factGuard(map, proposed)
+    if (withheld.length === 0) suggestion = proposed
+  }
+  const order = BRANCH_KEYS.indexOf(section)
+  const nextSection = BRANCH_KEYS.slice(order + 1).find(key => status[key].state !== 'ready')
+    ?? BRANCH_KEYS.slice(0, order).find(key => status[key].state !== 'ready')
+    ?? null
+  return { section, status: coachStatus, note, suggestion, questions, withheld, nextSection }
+}
+
+export const BRANCH_PURPOSE: Readonly<Record<BranchKey, string>> = Object.freeze({
+  headline: 'The ask in one sentence: what the audience should do, and by when. It must survive being cut off after ten seconds.',
+  background: 'Only what this audience does not already know about the speaker and their organisation. Usually one sentence.',
+  relevance: 'Why now, and why this audience: what changed, what is pending, or what was promised.',
+  information: 'Two or three facts, each with a date, a place, and a source the speaker can produce.',
+  ending: 'The ask restated with the deadline and what success looks like.',
+  follow_up: 'Questions the audience will ask afterward, each with a two-sentence answer; or, for a statement-only venue, what was cut and belongs in the written record.',
+})

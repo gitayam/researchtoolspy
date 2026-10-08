@@ -32,8 +32,13 @@ import {
 import {
   REMARKS_LIMITS,
   REMARKS_PLAN_VERSION,
+  BRANCH_PURPOSE,
+  COACH_LIMITS,
+  COACH_MAY_REWORD,
   answerCardsFor,
   answerWarnings,
+  mapStatus,
+  sanitizeCoach,
   budgetFor,
   countWords,
   evaluateScript,
@@ -44,6 +49,7 @@ import {
   utf8Bytes,
   writtenSubmission,
   type AnswerCard,
+  type BranchKey,
   type Budget,
   type RemarksMap,
   type RemarksRequest,
@@ -203,6 +209,32 @@ function trimPrompt(req: RemarksRequest, resolved: ResolvedVenue, budget: Budget
   return { system, user }
 }
 
+function coachPrompt(req: RemarksRequest, resolved: ResolvedVenue, status: ReturnType<typeof mapStatus>): { system: string; user: string } {
+  const section = req.section as BranchKey
+  const mayReword = COACH_MAY_REWORD.has(section)
+  const system = [
+    req.voice ? `VOICE (supplied by the caller, apply it to any rewording):\n${req.voice}\n` : '',
+    'You coach a person preparing to speak. You review ONE part of their plan and help them improve it. Return ONLY valid JSON.',
+    'Rules that are never broken:',
+    '- Never supply a fact, number, date, name, place, or source. Facts come only from the speaker. If something specific is missing, ASK for it in questions.',
+    mayReword
+      ? '- You may offer "suggestion": a tighter rewording of THEIR OWN words for this part, using only what is already in the map. If you cannot improve it without adding a fact, set suggestion to null.'
+      : '- Do not offer a rewording for this part. Set suggestion to null. Help only with questions and a note.',
+    '- "note" is one or two plain sentences: what is working, then the single most useful change. No praise words, no jargon.',
+    `- "questions" are at most ${COACH_LIMITS.questions} short questions whose answers would make this part stronger.`,
+    '- "status" is "strong" if this part already does its job, "needs_work" if not, "empty" if there is nothing to review.',
+  ].filter(Boolean).join('\n')
+  const user = [
+    `VENUE: ${resolved.format.replace(/_/g, ' ')}; ${resolved.secondsTotal} seconds; ${resolved.wpm} words a minute; audience: ${req.venue.audience ?? 'a public body'}.`,
+    `PART TO REVIEW: ${section}. Its job: ${BRANCH_PURPOSE[section]}`,
+    `RULE CHECK ALREADY APPLIED: ${status[section].state}${status[section].reason ? ` (${status[section].reason})` : ''}`,
+    'WHOLE MAP (for context; review only the part named above):',
+    wrapUntrustedContent(mapForPrompt(req.map!)),
+    'Return JSON exactly of the form {"status": "strong|needs_work|empty", "note": "...", "suggestion": "..." or null, "questions": ["..."]}',
+  ].join('\n\n')
+  return { system, user }
+}
+
 interface ModelResult { script?: string; answerCards?: Array<{ question?: string; answer?: string }> }
 
 async function callModel(env: Env, prompt: { system: string; user: string }, metadata: Record<string, unknown>): Promise<ModelResult | null> {
@@ -269,6 +301,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     mode: req.mode,
     venueResolved: resolved,
     budget,
+    ...(req.map ? { mapStatus: mapStatus(req.map, resolved.format) } : {}),
   }
 
   if (req.mode === 'budget') {
@@ -288,6 +321,42 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       factGuard: evaluation.factGuard,
       ...(req.map ? { writtenSubmission: writtenSubmission(req.map, req.venue) } : {}),
       model: { used: false },
+    }, { headers: RESPONSE_HEADERS })
+  }
+
+  if (req.mode === 'coach') {
+    if (!context.env.OPENAI_API_KEY) {
+      return errorFor(caller, requestId, correlationId, 'AI coaching is not available right now.', 503, 'auth_datastore_unavailable', true)
+    }
+    const status = mapStatus(req.map!, resolved.format)
+    const coachMetadata = caller.kind === 'user' ? { user_id: String(caller.userId) } : { user_id: `service:${caller.clientId}` }
+    let raw: unknown
+    try {
+      const response = await callOpenAIViaGateway(context.env, {
+        tier: 'cheap',
+        messages: [
+          { role: 'system', content: coachPrompt(req, resolved, status).system },
+          { role: 'user', content: coachPrompt(req, resolved, status).user },
+        ],
+        reasoning_effort: 'low',
+        max_completion_tokens: 800,
+        response_format: { type: 'json_object' },
+      }, { cacheTTL: 0, metadata: { endpoint: 'plan-remarks-coach', ...coachMetadata } })
+      if (response?._refusal) throw new Error('refusal')
+      raw = parseModelJson(response?.choices?.[0]?.message?.content)
+      if (!raw || typeof raw !== 'object') throw new Error('unparseable')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      if (/rate limit/i.test(message)) {
+        return errorFor(caller, requestId, correlationId, 'The coaching service is busy. Try again shortly.', 503, 'auth_datastore_unavailable', true)
+      }
+      return errorFor(caller, requestId, correlationId, 'Coaching could not be produced.', 502, 'upstream_invalid_response', true)
+    }
+    return Response.json({
+      ...base,
+      warnings,
+      coach: sanitizeCoach(raw, req.section!, req.map!, status),
+      model: { used: true, tier: 'cheap' },
     }, { headers: RESPONSE_HEADERS })
   }
 

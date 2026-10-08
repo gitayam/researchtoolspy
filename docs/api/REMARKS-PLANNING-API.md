@@ -59,7 +59,7 @@ Authorization: Bearer rt_svc_<client-id>.<secret>
 X-Correlation-ID: <optional, 16–128 chars of [A-Za-z0-9._:-]>
 ```
 
-One endpoint, four modes. Two of them call no model and are deterministic:
+One endpoint, five modes. Two of them call no model and are deterministic:
 the same input always returns the same output, so a client may cache them.
 
 | `mode` | Needs | Calls a model | Returns |
@@ -68,6 +68,12 @@ the same input always returns the same output, so a client may cache them.
 | `script` | `venue`, `map` | yes | everything in `budget` plus a drafted `script` (or `answerCards` for `qa_only`), counts, placement, fact guard, written submission |
 | `trim` | `venue`, `map`, `script` | yes | the caller's script shortened to budget, with the same checks. Wording outside the cut is preserved; see "What trim may change" |
 | `check` | `venue`, `script`, optional `map` | no | counts, estimated seconds, warnings, placement, and (with `map`) fact guard for a script the caller wrote or rehearsed |
+| `coach` | `venue`, `map`, `section` | yes | a review of ONE branch: status, a note, up to three questions, and for some branches a rewording of the speaker's own words. See "Coaching". |
+
+Every response that carries a `map` also returns `mapStatus`: the rule-based
+fill state of all six branches (`empty` / `started` / `ready`, with the
+reason it is not ready). It needs no model, so a client can colour a mind map
+from `budget` or `check` responses alone.
 
 ### Limits
 
@@ -178,6 +184,7 @@ is always echoed.
 | `script` | string ≤ 6,000 | Required for `trim` and `check`. |
 | `voice` | string ≤ 2,000 | A caller-supplied system preamble. This is how an organisation's brand voice reaches the model without ResearchTools storing it. Ignored in `budget` and `check`. |
 | `saveToFramework` | boolean | Users only. `true` from a service credential is `400`. |
+| `section` | `headline` \| `background` \| `relevance` \| `information` \| `ending` \| `follow_up` | Required for `coach`, refused on every other mode. |
 
 ## Response
 
@@ -264,6 +271,55 @@ is always echoed.
 | `sentence_too_long` | info | Any sentence over 30 words. `detail.sentences` lists their indexes. |
 | `audience_will_not_respond` | info | `statement` format and the script asks a question outside quotation marks. |
 | `fact_unsupported` | warning | `factGuard` is non-empty. One warning, with the count. |
+
+### `mapStatus` rules
+
+The floor each branch must reach to read `ready`. A rule, not a judgement, so
+it means the same thing with or without AI and can be checked by a person.
+
+| branch | `ready` when | otherwise `started` says |
+|---|---|---|
+| headline | 6 to 40 words and a deadline cue (a digit, a month, "by", "before", "until", "this week"…) | add when; make it a sentence; cut it to one breath |
+| background | 1 or 2 lines | keep only what the audience does not know |
+| relevance | 1 to 3 lines | one timely reason beats four |
+| information | 1 to 3 facts, every one with a `source` | name the fact that needs a source; or pick two or three |
+| ending | present, with a deadline cue | say when and what success looks like |
+| follow_up | any item for `statement`; every item answered for formats with questions | name the question that needs an answer |
+
+### Coaching
+
+`mode: "coach"` reviews the named `section` and returns:
+
+```json
+"coach": {
+  "section": "headline",
+  "status": "needs_work",
+  "note": "The ask is clear. Put the deadline in the first half so it survives a cut.",
+  "suggestion": "Before October 13, DTA asks Council for downtown police response-time data.",
+  "questions": ["Which Council member should receive the request?"],
+  "withheld": [],
+  "nextSection": "information"
+}
+```
+
+Guarantees, enforced on the server after the model answers:
+
+- **The coach never supplies a fact.** `suggestion` is offered only for
+  `headline`, `background`, `relevance`, and `ending`, and only when every
+  number, date, year, dollar amount, and name in it already appears in the
+  map. Otherwise `suggestion` is `null` and the offending specifics are listed
+  in `withheld`. Information and Follow-up get questions only.
+- **The rules outrank the model.** A branch `mapStatus` does not call `ready`
+  is never `strong`, so a map cannot turn green on a missing source.
+- `questions` are at most three, each ends in a question mark, each at most
+  200 characters. `note` is at most 240.
+- `nextSection` is the next branch, in method order, that is not yet `ready`,
+  or `null` when every other branch is.
+
+Discovery advertises `capabilities.remarksCoaching` with the same gates as
+planning; it is never available without `remarksPlanning`. A client should
+coach when a branch loses focus and its text changed, one request at a time,
+and must always offer a manual "Coach this" control as well.
 
 ### What `trim` may change
 

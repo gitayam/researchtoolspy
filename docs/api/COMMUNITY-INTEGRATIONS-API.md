@@ -212,8 +212,9 @@ questions, gated additionally by `REMARKS_SERVICE_ENABLED=true`. Discovery
 advertises `capabilities.remarksPlanning`,
 `contractVersions.remarksPlanning = remarks-plan.v1`, and four `remarks*`
 limits only when the flag, the scope, and a model key are all present.
-Holding `community.research.execute` therefore unlocks timeline analysis,
-research questions, and remarks planning together. Full contract, limits, warning codes, and a faydta.com client
+`remarksCoaching` (the `coach` mode) is advertised alongside it under the same
+gates. Holding `community.research.execute` therefore unlocks timeline
+analysis, research questions, remarks planning, and coaching together. Full contract, limits, warning codes, and a faydta.com client
 example: [`REMARKS-PLANNING-API.md`](REMARKS-PLANNING-API.md). Schema and
 OpenAPI: [`schemas/remarks-plan.v1.schema.json`](./schemas/remarks-plan.v1.schema.json),
 [`openapi/remarks-plan.v1.json`](./openapi/remarks-plan.v1.json).
