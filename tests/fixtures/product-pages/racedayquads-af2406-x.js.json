@@ -1,0 +1,35 @@
+{
+ "id": 7827531300977,
+ "title": "Axisflying AF2406-X Modular Motor - 1860KV/2080KV",
+ "handle": "axisflying-af2406-x-modular-motor-1860kv-2080kv",
+ "vendor": "AXIS FLYING",
+ "type": "Motor",
+ "price": 3249,
+ "price_min": 3249,
+ "price_max": 3249,
+ "available": true,
+ "featured_image": "//cdn.shopify.com/s/files/1/1285/4651/files/axisflying-af2406-x-modular-motor-1860kv-2080kv-motor-1257660250.jpg?v=1788984849",
+ "url": "/products/axisflying-af2406-x-modular-motor-1860kv-2080kv",
+ "variants": [
+  {
+   "id": 44514325102705,
+   "title": "1860KV",
+   "option1": "1860KV",
+   "sku": "G25021CN1Z",
+   "available": true,
+   "name": "Axisflying AF2406-X Modular Motor - 1860KV/2080KV - 1860KV",
+   "public_title": "1860KV",
+   "price": 3249
+  },
+  {
+   "id": 44514325135473,
+   "title": "2080KV",
+   "option1": "2080KV",
+   "sku": "G25022CN1Z",
+   "available": true,
+   "name": "Axisflying AF2406-X Modular Motor - 1860KV/2080KV - 2080KV",
+   "public_title": "2080KV",
+   "price": 3249
+  }
+ ]
+}

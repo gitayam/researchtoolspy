@@ -1,0 +1,236 @@
+{
+ "id": 7192472551613,
+ "title": "Spare Parts-X500 V2 Kit",
+ "handle": "spare-parts-x500-v2-kit",
+ "vendor": "PCBA",
+ "type": "Development Drone Kit",
+ "price": 259,
+ "price_min": 259,
+ "price_max": 3059,
+ "available": true,
+ "featured_image": "//cdn.shopify.com/s/files/1/0604/5905/7341/products/30125-ARF-Kit-12_1800x1800_a65e7a0c-b4cd-4451-ace4-355718d562c4.jpg?v=1672219369",
+ "url": "/products/spare-parts-x500-v2-kit",
+ "variants": [
+  {
+   "id": 41591073571005,
+   "title": "Carbon Fiber Landing Gear with Plastic Connectors (Single Leg)",
+   "option1": "Carbon Fiber Landing Gear with Plastic Connectors (Single Leg)",
+   "sku": "31063",
+   "available": true,
+   "name": "Spare Parts-X500 V2 Kit - Carbon Fiber Landing Gear with Plastic Connectors (Single Leg)",
+   "public_title": "Carbon Fiber Landing Gear with Plastic Connectors (Single Leg)",
+   "price": 1899,
+   "featured_image": {
+    "src": "https://cdn.shopify.com/s/files/1/0604/5905/7341/products/31063_1.jpg?v=1672219369"
+   }
+  },
+  {
+   "id": 41591073603773,
+   "title": "Landing Gear Plastic Connector A",
+   "option1": "Landing Gear Plastic Connector A",
+   "sku": "31064",
+   "available": false,
+   "name": "Spare Parts-X500 V2 Kit - Landing Gear Plastic Connector A",
+   "public_title": "Landing Gear Plastic Connector A",
+   "price": 359,
+   "featured_image": {
+    "src": "https://cdn.shopify.com/s/files/1/0604/5905/7341/products/3164_1.jpg?v=1672219369"
+   }
+  },
+  {
+   "id": 41591073636541,
+   "title": "Landing Gear Plastic Connector B",
+   "option1": "Landing Gear Plastic Connector B",
+   "sku": "31065",
+   "available": false,
+   "name": "Spare Parts-X500 V2 Kit - Landing Gear Plastic Connector B",
+   "public_title": "Landing Gear Plastic Connector B",
+   "price": 459,
+   "featured_image": {
+    "src": "https://cdn.shopify.com/s/files/1/0604/5905/7341/products/31065_1.jpg?v=1672219369"
+   }
+  },
+  {
+   "id": 41591073669309,
+   "title": "Propeller1045(2pair)",
+   "option1": "Propeller1045(2pair)",
+   "sku": "530084",
+   "available": false,
+   "name": "Spare Parts-X500 V2 Kit - Propeller1045(2pair)",
+   "public_title": "Propeller1045(2pair)",
+   "price": 1159,
+   "featured_image": {
+    "src": "https://cdn.shopify.com/s/files/1/0604/5905/7341/products/530084_4.jpg?v=1672219369"
+   }
+  },
+  {
+   "id": 41591073702077,
+   "title": "Battery Mounting Board V2",
+   "option1": "Battery Mounting Board V2",
+   "sku": "31108",
+   "available": false,
+   "name": "Spare Parts-X500 V2 Kit - Battery Mounting Board V2",
+   "public_title": "Battery Mounting Board V2",
+   "price": 659,
+   "featured_image": {
+    "src": "https://cdn.shopify.com/s/files/1/0604/5905/7341/products/31108_1.jpg?v=1672219369"
+   }
+  },
+  {
+   "id": 41591073734845,
+   "title": "Payload Platform Board V2",
+   "option1": "Payload Platform Board V2",
+   "sku": "31109",
+   "available": true,
+   "name": "Spare Parts-X500 V2 Kit - Payload Platform Board V2",
+   "public_title": "Payload Platform Board V2",
+   "price": 1059,
+   "featured_image": {
+    "src": "https://cdn.shopify.com/s/files/1/0604/5905/7341/products/31109_2.jpg?v=1672219369"
+   }
+  },
+  {
+   "id": 41591073767613,
+   "title": "Depth Camera Mount",
+   "option1": "Depth Camera Mount",
+   "sku": "31110",
+   "available": false,
+   "name": "Spare Parts-X500 V2 Kit - Depth Camera Mount",
+   "public_title": "Depth Camera Mount",
+   "price": 1059,
+   "featured_image": {
+    "src": "https://cdn.shopify.com/s/files/1/0604/5905/7341/products/31110_2.jpg?v=1672219369"
+   }
+  },
+  {
+   "id": 41591073800381,
+   "title": "Carbon Fiber Tube - ARM",
+   "option1": "Carbon Fiber Tube - ARM",
+   "sku": "510177",
+   "available": false,
+   "name": "Spare Parts-X500 V2 Kit - Carbon Fiber Tube - ARM",
+   "public_title": "Carbon Fiber Tube - ARM",
+   "price": 659,
+   "featured_image": {
+    "src": "https://cdn.shopify.com/s/files/1/0604/5905/7341/products/510177_1.jpg?v=1672219369"
+   }
+  },
+  {
+   "id": 41591073833149,
+   "title": "Fiber Reinforced Nylon Parts",
+   "option1": "Fiber Reinforced Nylon Parts",
+   "sku": "510178",
+   "available": false,
+   "name": "Spare Parts-X500 V2 Kit - Fiber Reinforced Nylon Parts",
+   "public_title": "Fiber Reinforced Nylon Parts",
+   "price": 359,
+   "featured_image": {
+    "src": "https://cdn.shopify.com/s/files/1/0604/5905/7341/products/510178_1.jpg?v=1755739627"
+   }
+  },
+  {
+   "id": 41591073865917,
+   "title": "Carbon Fiber Top Plate",
+   "option1": "Carbon Fiber Top Plate",
+   "sku": "510179",
+   "available": false,
+   "name": "Spare Parts-X500 V2 Kit - Carbon Fiber Top Plate",
+   "public_title": "Carbon Fiber Top Plate",
+   "price": 3059,
+   "featured_image": {
+    "src": "https://cdn.shopify.com/s/files/1/0604/5905/7341/products/510179_1.jpg?v=1755739651"
+   }
+  },
+  {
+   "id": 41591073898685,
+   "title": "Carbon Fiber Bottom Plate",
+   "option1": "Carbon Fiber Bottom Plate",
+   "sku": "510180",
+   "available": false,
+   "name": "Spare Parts-X500 V2 Kit - Carbon Fiber Bottom Plate",
+   "public_title": "Carbon Fiber Bottom Plate",
+   "price": 3059,
+   "featured_image": {
+    "src": "https://cdn.shopify.com/s/files/1/0604/5905/7341/products/510180_1.jpg?v=1672219369"
+   }
+  },
+  {
+   "id": 41591073931453,
+   "title": "Carbon Fiber Motor Base",
+   "option1": "Carbon Fiber Motor Base",
+   "sku": "510181",
+   "available": false,
+   "name": "Spare Parts-X500 V2 Kit - Carbon Fiber Motor Base",
+   "public_title": "Carbon Fiber Motor Base",
+   "price": 259,
+   "featured_image": {
+    "src": "https://cdn.shopify.com/s/files/1/0604/5905/7341/products/510181_2.jpg?v=1672219369"
+   }
+  },
+  {
+   "id": 41591073964221,
+   "title": "Motor 2216-920KV-CW (1PC)",
+   "option1": "Motor 2216-920KV-CW (1PC)",
+   "sku": "520085",
+   "available": false,
+   "name": "Spare Parts-X500 V2 Kit - Motor 2216-920KV-CW (1PC)",
+   "public_title": "Motor 2216-920KV-CW (1PC)",
+   "price": 1999,
+   "featured_image": {
+    "src": "https://cdn.shopify.com/s/files/1/0604/5905/7341/products/520085_4.jpg?v=1755739805"
+   }
+  },
+  {
+   "id": 41591073996989,
+   "title": "Motor 2216-920KV-CCW (1PC)",
+   "option1": "Motor 2216-920KV-CCW (1PC)",
+   "sku": "520086",
+   "available": false,
+   "name": "Spare Parts-X500 V2 Kit - Motor 2216-920KV-CCW (1PC)",
+   "public_title": "Motor 2216-920KV-CCW (1PC)",
+   "price": 1999,
+   "featured_image": {
+    "src": "https://cdn.shopify.com/s/files/1/0604/5905/7341/products/520086X500V2-Motor2216-920KV_CCW_-8.jpg?v=1755739824"
+   }
+  },
+  {
+   "id": 41591074029757,
+   "title": "PDB Board (With XT30 Pre-soldered)",
+   "option1": "PDB Board (With XT30 Pre-soldered)",
+   "sku": "18069A",
+   "available": false,
+   "name": "Spare Parts-X500 V2 Kit - PDB Board (With XT30 Pre-soldered)",
+   "public_title": "PDB Board (With XT30 Pre-soldered)",
+   "price": 859,
+   "featured_image": {
+    "src": "https://cdn.shopify.com/s/files/1/0604/5905/7341/products/18069A_1_0007e71d-1ffd-47a4-9ddd-c9f513ffede7.jpg?v=1751957555"
+   }
+  },
+  {
+   "id": 41591074062525,
+   "title": "X500 V2-BLHeli S 20A ESC(1PC)",
+   "option1": "X500 V2-BLHeli S 20A ESC(1PC)",
+   "sku": "520081",
+   "available": false,
+   "name": "Spare Parts-X500 V2 Kit - X500 V2-BLHeli S 20A ESC(1PC)",
+   "public_title": "X500 V2-BLHeli S 20A ESC(1PC)",
+   "price": 1399,
+   "featured_image": {
+    "src": "https://cdn.shopify.com/s/files/1/0604/5905/7341/products/520081X500V2-BLHeli20AESC_1pcs.jpg?v=1672219369"
+   }
+  },
+  {
+   "id": 41591074095293,
+   "title": "Landing Gear Reinforcement",
+   "option1": "Landing Gear Reinforcement",
+   "sku": "510192",
+   "available": false,
+   "name": "Spare Parts-X500 V2 Kit - Landing Gear Reinforcement",
+   "public_title": "Landing Gear Reinforcement",
+   "price": 559,
+   "featured_image": {
+    "src": "https://cdn.shopify.com/s/files/1/0604/5905/7341/products/510192_1.jpg?v=1755739728"
+   }
+  }
+ ]
+}
