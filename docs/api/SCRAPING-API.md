@@ -4,7 +4,7 @@
 **Endpoint:** `POST https://researchtools.net/api/web-scraper`  
 **Authentication:** required
 
-The Web Scraper API extracts metadata and optionally bounded semantic article text, or structured product and price data, from one public HTTP(S) page. It is a static-fetch endpoint: it does not execute page JavaScript or attempt to bypass authentication, CAPTCHAs, robots/content policy, or access controls.
+The Web Scraper API extracts metadata and optionally bounded semantic article text, or structured product and price data, from one public HTTP(S) page. It is a static-fetch endpoint: it does not execute page JavaScript (except product mode's opt-in render fallback, below) or attempt to bypass authentication, CAPTCHAs, robots/content policy, or access controls.
 
 ## Authentication
 
@@ -151,12 +151,22 @@ additional quality signals in future versions.
 | `url` | string | yes | The product page. Same validation as other modes. When `content` is sent it must be `https://`. |
 | `match` | string | no | 1–300 characters describing the wanted variant, e.g. `"2216 KV920 CW motor"`. Adds `matched_offer` to the response. |
 | `content` | object | no | Page content the caller already fetched. When present **nothing is fetched**; `url` is used only for attribution and resolving relative links. |
-| `content.html` | string | one of the two | The product page HTML. |
+| `content.html` | string | one of the two | The product page HTML. Platform data embedded in it (WooCommerce variations, Magento `spConfig`, BigCommerce `BCData`) is read the same way as for a fetched page. |
 | `content.shopify_json` | object | one of the two | The parsed body of `<product-url>.js` (prices in integer cents) or `<product-url>.json` (decimal-string prices, with or without the `product` wrapper). |
 
 `content` exists for stores that refuse Cloudflare egress — many Shopify stores answer it with HTTP `429` while serving a residential connection normally. The combined size of `content.html` and serialized `content.shopify_json` is limited to 2 MiB, the same bound as a fetched response; larger content returns `413`. Malformed `content` (not an object, wrong field types, or neither field non-empty) returns `400`. Supplied content is reported as `content_source: "supplied"`: the response states what that content says, not that the store currently says it.
 
-Without `content`, the endpoint fetches `url`. If the page looks like a Shopify storefront and its path is `/products/<handle>`, it also fetches `<product-url>.js` from the **same hostname only** (10-second deadline, at most 3 redirects, 2 MiB) to obtain variant titles and availability. A failed `.js` fetch is not an error; extraction continues from the HTML.
+Without `content`, the endpoint fetches `url` with the user agent `ResearchTools/1.0 (+https://researchtools.net/bot)` (product mode does not imitate a browser; [`/bot`](https://researchtools.net/bot) explains the agent to store operators). It may then make read-only `GET` requests to the **same hostname only** (10-second deadline, at most 3 redirects, 2 MiB each, same user agent):
+
+| Platform | When | Request |
+|---|---|---|
+| Shopify | page looks like Shopify and the path is `/products/<handle>` | `<product-url>.js` (variant titles, cents, availability, `compare_at_price`) |
+| WooCommerce | the page did not already give every offer's stock, or its variations form deferred them (`data-product_variations="false"`, more than WooCommerce's ajax threshold) | `/wp-json/wc/store/v1/products/<id>`, then for a variable product `/wp-json/wc/store/v1/products?type=variation&parent=<id>&per_page=100`. The id comes from the page's `wp-json/wp/v2/product/<id>` link, the variations form, or the `postid-<id>` body class. Prices are minor units divided by `currency_minor_unit`. |
+| Magento 2 | the page is Magento and its offers came from `spConfig` or lack SKU/stock | one `GET /graphql?query={products(filter:{url_key:{eq:"…"}})…}` (child SKU, price, `stock_status`). Many stores disable GraphQL; a failure changes nothing. |
+
+A failed platform request is not an error; extraction continues from the HTML.
+
+**Render fallback (off by default).** When the deployment sets `PRODUCT_BROWSER_FALLBACK=1`, a fetched page that returned `2xx`, is not a bot-challenge interstitial (`Just a moment…`, `cf-chl-`, Incapsula, PerimeterX, DataDome markers), and produced **no offers** is rendered once by the `researchtools-browser-renderer` Worker (Cloudflare Browser Run `content`, `mode: "html"`, images/media/fonts/stylesheets blocked) and extracted again. If the render yields offers the response says `content_source: "rendered"`; otherwise the static result is returned unchanged. Browser Run identifies itself and does not pass bot protection, so challenged or blocked stores still need `content`.
 
 ### Response
 
@@ -172,6 +182,7 @@ Without `content`, the endpoint fetches `url`. If the page looks like a Shopify 
     "sku": "31063",
     "image": "https://holybro.com/cdn/shop/products/….jpg",
     "currency": "USD",
+    "currency_ambiguous": false,
     "offers": [
       {
         "title": "Propeller1045(2pair)",
@@ -186,7 +197,7 @@ Without `content`, the endpoint fetches `url`. If the page looks like a Shopify 
     "sources": ["json-ld", "shopify"],
     "confidence": 1,
     "price_range": { "low": 2.59, "high": 30.59, "currency": "USD" },
-    "extractor_version": "product.v1"
+    "extractor_version": "product.v2"
   },
   "matched_offer": {
     "title": "Propeller1045(2pair)",
@@ -208,14 +219,23 @@ Unlike the other modes, the product result is at the top level, not under `data`
 | Field | Description |
 |---|---|
 | `product.offers[]` | One entry per priced offer or variant, up to 250. `price` is a number in **major units** (dollars, not cents). `availability` is `in_stock`, `out_of_stock`, `preorder` (includes back-order), or `unknown`. `currency` is an ISO 4217 code or `null` when the page does not state one. `url` is the offer/variant link when known. |
+| `offers[].regular_price` | Present only when the store states a higher list price for the offer: a schema.org `priceSpecification` with `priceType` `StrikethroughPrice`/`ListPrice`/`MSRP`, Shopify `compare_at_price`, WooCommerce `regular_price`, Magento `oldPrice`/`regular_price`, BigCommerce non-sale/RRP price. `price` is always the current (sale) price. |
 | `offers[].aggregate` | Present only when the page publishes a schema.org `AggregateOffer` without individual offers: `price` is `lowPrice`, and `aggregate` carries `high_price` and `offer_count`. |
-| `product.sources` | Sources that contributed, in priority order: `json-ld` (schema.org `Product`/`ProductGroup` + `hasVariant`, `Offer`, `AggregateOffer`, `@graph`), `shopify` (product JSON), `microdata-meta` (`itemprop` price/priceCurrency/availability), `og-meta` (`product:price:amount`, `og:price:amount`, `product:availability`). Prices come from the highest-priority source that has any; lower sources only fill missing fields such as variant titles. |
-| `product.confidence` | 0–1 heuristic for how structured the price evidence was (structured data with currency and availability scores high; a lone meta price scores low; no offers is `0`). It is not a statement that the price is current or that the seller is reliable. |
+| `product.sources` | Sources that contributed, in priority order: `json-ld` (schema.org `Product`/`ProductGroup` + `hasVariant`, `Offer`, `AggregateOffer`, `priceSpecification`, `@graph`), `shopify` (product JSON), `woo-variations` (WooCommerce `data-product_variations` in the page), `magento-spconfig` (Magento 2 `spConfig`/`jsonConfig` in the page), `woo-store-api`, `magento-graphql` (the platform requests above), `bigcommerce-bcdata` (`BCData.product_attributes` in the page), `microdata-meta` (the schema.org microdata item tree, including text-content prices and one offer per `Offer` item), `og-meta` (`product:price:amount`, `og:price:amount`, `product:availability`). Prices come from the highest-priority source that has any, except that a variant-level source with several offers (Shopify, WooCommerce, Magento) replaces a higher source that has only one. Other sources only fill missing fields (variant titles, stock, SKU, list price), matched by variant id, SKU or variant title. A product-level summary offer listed beside its own variants is dropped. |
+| `product.currency_ambiguous` | `true` when `currency` was read from a symbol several currencies share (`$`, `kr`, `¥`, `Rs`, `C$`) and the page states no ISO code anywhere. A `<html lang>` region or country TLD may have picked a better guess (`$` on `en-CA` → `CAD`), but it remains a guess. |
+| `product.confidence` | 0–1 heuristic for how structured the price evidence was (structured data with an unambiguous currency and availability scores high; agreeing structured sources add to it; a lone meta price scores low; no offers is `0`). It is not a statement that the price is current or that the seller is reliable. |
+| `product.extractor_version` | `product.v2`. |
 | `product.price_range` | Min/max across offers (including an `AggregateOffer` high price), or `null` when there are no offers. |
-| `content_source` | `fetched` or `supplied`. |
+| `content_source` | `fetched`, `supplied`, or `rendered` (render fallback). |
 | `matched_offer` | Present only when `match` was sent. The best offer, with `match_score`, or `null` when nothing matches. |
 
-When a page has no recognizable structured price, the response is still `200` with `success: true` and `offers: []`. A variant title is the store's own label; when a theme's JSON-LD omits variant names and no Shopify JSON is available, the offer's SKU is used as its title.
+When a page has no recognizable structured price, the response is still `200` with `success: true` and `offers: []`. A variant title is the store's own label (the group name, and a trailing ` - Site name`, are stripped from it); when no source names a variant, the offer's SKU is used as its title.
+
+BigCommerce `BCData` describes the default option selection; when it reports the product in stock while the page's schema data says `OutOfStock` for the same price (themes mark the not-yet-selected default that way), the offer is reported `in_stock`. Per-option BigCommerce prices are not available without a `POST`, which this endpoint never makes; supply `content` for them.
+
+### Price and currency parsing
+
+Numbers in structured fields (JSON-LD, microdata `content`, platform JSON) are read as `.`-decimal literals: `"1.299"` is 1.299. Display text (microdata text content, a price string with a symbol) is parsed with an algorithm ported from [scrapinghub/price-parser](https://github.com/scrapinghub/price-parser) (BSD-3-Clause): a separator followed by exactly three digits groups thousands (`Rp 31.500` → 31500, `£1.299` → 1299), a number followed by `%` is skipped, `Free` is 0, `.75 €` and `35€ 99` parse, and the number next to the currency symbol wins (`2 x $5.00` → 5, `Save 20% now $15.99` → 15.99, `Was $20 Now $15` → 15). A decimal separator stated by the platform (Magento `priceFormat.decimalSymbol`, WooCommerce Store API, Shopify `money_format`) overrides the guess. On price-parser's labelled corpus (1,035 amount cases) the parser scores 1035/1035; `product.v1` scored 1016/1035.
 
 ### Variant matching
 
@@ -229,7 +249,7 @@ When a page has no recognizable structured price, the response is still `200` wi
 
 Validation errors use the common `{"error": "…"}` envelope (`400`, or `413` for oversized content) and happen before any fetch. Upstream failures use the same envelope and statuses as other modes; an upstream `403`/`429` in product mode adds a suggestion to retry with `content`, and a `429` is reported as `"The website is rate limiting automated access"`.
 
-Telemetry follows the other modes (purpose `structured-extraction`). A supplied-content request records one `extract` attempt with strategy `supplied` and source mode `supplied`; a fetched request records the page fetch, the optional Shopify `.js` fetch, and the extract. An extraction with no offers is recorded as `extract_failed` even though the HTTP response is `200`.
+Telemetry follows the other modes (purpose `structured-extraction`). A supplied-content request records one `extract` attempt with strategy `supplied` and source mode `supplied`; a fetched request records the page fetch, each optional platform JSON fetch (Shopify `.js`, WooCommerce Store API, Magento GraphQL), the extract, and, with the render fallback, a `render` attempt (strategy and provider `browser-renderer`) and a second extract. An extraction with no offers is recorded as `extract_failed` even though the HTTP response is `200`.
 
 ## Metadata completeness score
 
