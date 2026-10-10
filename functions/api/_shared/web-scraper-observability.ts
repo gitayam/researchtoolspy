@@ -28,7 +28,9 @@ interface ObserveWebScrapeOptions {
   requestId: string
   url: string
   tenantScope: string
-  extractMode: 'metadata' | 'summary' | 'full'
+  extractMode: 'metadata' | 'summary' | 'full' | 'product'
+  /** 'supplied' when the caller provided the page content and nothing is fetched. */
+  strategy?: 'direct' | 'supplied'
   telemetryKey?: string
   analytics?: AnalyticsEngineLike
 }
@@ -114,7 +116,7 @@ export async function observeWebScrapeRequest(
     route: 'web-scraper' as const,
     purpose: options.extractMode === 'metadata' ? 'metadata' as const : 'structured-extraction' as const,
     target: { url: options.url },
-    requestedStrategy: 'direct' as const,
+    requestedStrategy: options.strategy ?? 'direct',
     limits: { timeoutMs: 15_000, maxBytes: 2 * 1024 * 1024, maxAttempts: 2 },
   }
   const attempts: ScrapeAttemptV1[] = []
@@ -157,8 +159,8 @@ export async function observeWebScrapeRequest(
       content: { text: '' },
       provenance: {
         schemaVersion: SCRAPE_SCHEMA_VERSION,
-        sourceMode: 'live' as const,
-        fetchStrategy: 'direct' as const,
+        sourceMode: options.strategy === 'supplied' ? 'supplied' as const : 'live' as const,
+        fetchStrategy: options.strategy ?? 'direct',
         extractorVersion: 'web-scraper-regex-v1',
         quality: {
           version: 'web-scraper-metadata-completeness-v1',

@@ -1,10 +1,10 @@
 # ResearchTools Web Scraper API
 
-**Last updated:** 2026-09-04
+**Last updated:** 2026-10-10
 **Endpoint:** `POST https://researchtools.net/api/web-scraper`  
 **Authentication:** required
 
-The Web Scraper API extracts metadata and optionally bounded semantic article text from one public HTTP(S) page. It is a static-fetch endpoint: it does not execute page JavaScript or attempt to bypass authentication, CAPTCHAs, robots/content policy, or access controls.
+The Web Scraper API extracts metadata and optionally bounded semantic article text, or structured product and price data, from one public HTTP(S) page. It is a static-fetch endpoint: it does not execute page JavaScript or attempt to bypass authentication, CAPTCHAs, robots/content policy, or access controls.
 
 ## Authentication
 
@@ -38,11 +38,12 @@ Content-Type: application/json
 | Field | Type | Required | Default | Description |
 |---|---|---:|---|---|
 | `url` | string | yes | — | Absolute public `http://` or `https://` URL. Embedded credentials, non-default ports, and private/reserved/internal destinations are denied. |
-| `extract_mode` | `metadata` \| `summary` \| `full` | no | `metadata` | `metadata` returns page metadata only. `summary` and `full` also return bounded plain text; `summary` adds the first 500 characters when the text is longer than 500 characters. |
+| `extract_mode` | `metadata` \| `summary` \| `full` \| `product` | no | `metadata` | `metadata` returns page metadata only. `summary` and `full` also return bounded plain text; `summary` adds the first 500 characters when the text is longer than 500 characters. `product` returns structured product/offer data with a different response shape — see [Product mode](#product-mode). |
 | `create_dataset` | boolean | no | `false` | Attempts to create a dataset for the authenticated user. Dataset failure does not fail extraction; `dataset_id` is present only when creation succeeds. |
 
 Unsupported `extract_mode` values or non-boolean `create_dataset` values return
-`400` before a scraping attempt begins.
+`400` before a scraping attempt begins. `content` and `match` are accepted only
+with `extract_mode: "product"`; sending either with another mode returns `400`.
 
 Example:
 
@@ -126,6 +127,109 @@ or factual-reliability judgment. Its versioned signals currently include
 paragraph count, text-to-markup ratio, link density, short login/paywall
 markers, and structured short-document acceptance. Consumers must tolerate
 additional quality signals in future versions.
+
+## Product mode
+
+`extract_mode: "product"` returns the product and every priced offer (variant) on one product page, for checking a price or a buy link. It uses the same authentication, URL validation, SSRF guards, and fetch limits as the other modes.
+
+### Request
+
+```json
+{
+  "url": "https://holybro.com/products/spare-parts-x500-v2-kit",
+  "extract_mode": "product",
+  "match": "Propeller 1045 (2 pair)",
+  "content": {
+    "html": "<!doctype html>…",
+    "shopify_json": { "title": "Spare Parts-X500 V2 Kit", "variants": [ … ] }
+  }
+}
+```
+
+| Field | Type | Required | Description |
+|---|---|---:|---|
+| `url` | string | yes | The product page. Same validation as other modes. When `content` is sent it must be `https://`. |
+| `match` | string | no | 1–300 characters describing the wanted variant, e.g. `"2216 KV920 CW motor"`. Adds `matched_offer` to the response. |
+| `content` | object | no | Page content the caller already fetched. When present **nothing is fetched**; `url` is used only for attribution and resolving relative links. |
+| `content.html` | string | one of the two | The product page HTML. |
+| `content.shopify_json` | object | one of the two | The parsed body of `<product-url>.js` (prices in integer cents) or `<product-url>.json` (decimal-string prices, with or without the `product` wrapper). |
+
+`content` exists for stores that refuse Cloudflare egress — many Shopify stores answer it with HTTP `429` while serving a residential connection normally. The combined size of `content.html` and serialized `content.shopify_json` is limited to 2 MiB, the same bound as a fetched response; larger content returns `413`. Malformed `content` (not an object, wrong field types, or neither field non-empty) returns `400`. Supplied content is reported as `content_source: "supplied"`: the response states what that content says, not that the store currently says it.
+
+Without `content`, the endpoint fetches `url`. If the page looks like a Shopify storefront and its path is `/products/<handle>`, it also fetches `<product-url>.js` from the **same hostname only** (10-second deadline, at most 3 redirects, 2 MiB) to obtain variant titles and availability. A failed `.js` fetch is not an error; extraction continues from the HTML.
+
+### Response
+
+```json
+{
+  "success": true,
+  "url": "https://holybro.com/products/spare-parts-x500-v2-kit",
+  "domain": "holybro.com",
+  "content_source": "fetched",
+  "product": {
+    "name": "Spare Parts-X500 V2 Kit",
+    "brand": "PCBA",
+    "sku": "31063",
+    "image": "https://holybro.com/cdn/shop/products/….jpg",
+    "currency": "USD",
+    "offers": [
+      {
+        "title": "Propeller1045(2pair)",
+        "price": 11.59,
+        "currency": "USD",
+        "availability": "out_of_stock",
+        "sku": "530084",
+        "url": "https://holybro.com/products/spare-parts-x500-v2-kit?variant=41591073669309",
+        "image": "https://holybro.com/cdn/shop/products/….jpg"
+      }
+    ],
+    "sources": ["json-ld", "shopify"],
+    "confidence": 1,
+    "price_range": { "low": 2.59, "high": 30.59, "currency": "USD" },
+    "extractor_version": "product.v1"
+  },
+  "matched_offer": {
+    "title": "Propeller1045(2pair)",
+    "price": 11.59,
+    "currency": "USD",
+    "availability": "out_of_stock",
+    "sku": "530084",
+    "url": "https://holybro.com/products/spare-parts-x500-v2-kit?variant=41591073669309",
+    "image": "https://holybro.com/cdn/shop/products/….jpg",
+    "match_score": 5,
+    "ambiguous_same_price": false
+  },
+  "extracted_at": "2026-10-10T18:00:00.000Z"
+}
+```
+
+Unlike the other modes, the product result is at the top level, not under `data`. `url`/`domain` are the final URL after redirects (or the submitted URL for supplied content).
+
+| Field | Description |
+|---|---|
+| `product.offers[]` | One entry per priced offer or variant, up to 250. `price` is a number in **major units** (dollars, not cents). `availability` is `in_stock`, `out_of_stock`, `preorder` (includes back-order), or `unknown`. `currency` is an ISO 4217 code or `null` when the page does not state one. `url` is the offer/variant link when known. |
+| `offers[].aggregate` | Present only when the page publishes a schema.org `AggregateOffer` without individual offers: `price` is `lowPrice`, and `aggregate` carries `high_price` and `offer_count`. |
+| `product.sources` | Sources that contributed, in priority order: `json-ld` (schema.org `Product`/`ProductGroup` + `hasVariant`, `Offer`, `AggregateOffer`, `@graph`), `shopify` (product JSON), `microdata-meta` (`itemprop` price/priceCurrency/availability), `og-meta` (`product:price:amount`, `og:price:amount`, `product:availability`). Prices come from the highest-priority source that has any; lower sources only fill missing fields such as variant titles. |
+| `product.confidence` | 0–1 heuristic for how structured the price evidence was (structured data with currency and availability scores high; a lone meta price scores low; no offers is `0`). It is not a statement that the price is current or that the seller is reliable. |
+| `product.price_range` | Min/max across offers (including an `AggregateOffer` high price), or `null` when there are no offers. |
+| `content_source` | `fetched` or `supplied`. |
+| `matched_offer` | Present only when `match` was sent. The best offer, with `match_score`, or `null` when nothing matches. |
+
+When a page has no recognizable structured price, the response is still `200` with `success: true` and `offers: []`. A variant title is the store's own label; when a theme's JSON-LD omits variant names and no Shopify JSON is available, the offer's SKU is used as its title.
+
+### Variant matching
+
+`match` and offer titles are tokenized with number+unit pairs canonicalized (`KV920`, `920 kv`, `920KV` → `920kv`; also mAh, GHz, mm, inch, S, V, A, W, g, pc, pair), and letter/digit runs split (`Propeller1045` → `propeller`, `1045`). Rules:
+
+- Every number in `match` must appear in the offer title (or the product name) when the offer title contains numbers. A contradicting number (`1750KV` against a `920KV` variant) disqualifies the offer.
+- Matching numbers score higher than matching words; a SKU contained in `match` scores highest.
+- A tie between offers with the same price and currency (for example CW/CCW motors) returns the first and sets `ambiguous_same_price: true`. Any other tie, or no positive score, returns `null` — a guessed variant is worse than none when verifying a price.
+
+### Product mode errors and telemetry
+
+Validation errors use the common `{"error": "…"}` envelope (`400`, or `413` for oversized content) and happen before any fetch. Upstream failures use the same envelope and statuses as other modes; an upstream `403`/`429` in product mode adds a suggestion to retry with `content`, and a `429` is reported as `"The website is rate limiting automated access"`.
+
+Telemetry follows the other modes (purpose `structured-extraction`). A supplied-content request records one `extract` attempt with strategy `supplied` and source mode `supplied`; a fetched request records the page fetch, the optional Shopify `.js` fetch, and the extract. An extraction with no offers is recorded as `extract_failed` even though the HTTP response is `200`.
 
 ## Metadata completeness score
 

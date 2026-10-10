@@ -211,7 +211,7 @@ loader page as article content.
 
 | Endpoint | Description |
 |----------|-------------|
-| `POST /api/web-scraper` | Authenticated, bounded single-page metadata/text extraction |
+| `POST /api/web-scraper` | Authenticated, bounded single-page metadata/text extraction, and product/price extraction (`extract_mode: "product"`, optionally from caller-supplied content) |
 
 Request, response, safety, dataset, score, and migration details are documented in [`SCRAPING-API.md`](SCRAPING-API.md).
 

@@ -11,11 +11,103 @@ import {
   scrapeHttpStatusClass,
 } from './_shared/web-scraper-observability'
 import type { AnalyticsEngineLike } from './_shared/scrape-metrics'
+import {
+  extractProduct,
+  looksLikeShopify,
+  matchOfferWithScore,
+  shopifyProductJsUrl,
+  type ProductExtraction,
+  type ProductOffer,
+} from './_shared/product-extractor'
 
 interface ScrapingRequest {
   url: string
-  extract_mode?: 'full' | 'metadata' | 'summary'
+  extract_mode?: 'full' | 'metadata' | 'summary' | 'product'
   create_dataset?: boolean
+  /** product mode only: page content the caller already fetched. Nothing is fetched when present. */
+  content?: { html?: string; shopify_json?: Record<string, unknown> }
+  /** product mode only: variant/offer description used to pick `matched_offer`. */
+  match?: string
+}
+
+/** Same bound as a fetched response body, so supplied and fetched content are interchangeable. */
+export const MAX_SUPPLIED_PRODUCT_BYTES = 2 * 1024 * 1024
+export const MAX_PRODUCT_MATCH_LENGTH = 300
+
+export interface SuppliedProductContent {
+  html: string | null
+  shopifyJson: Record<string, unknown> | null
+  bytes: number
+}
+
+export interface ProductScrapeResult {
+  success: true
+  url: string
+  domain: string
+  content_source: 'fetched' | 'supplied'
+  product: ProductExtraction
+  matched_offer?: (ProductOffer & { match_score: number; ambiguous_same_price: boolean }) | null
+  extracted_at: string
+}
+
+/**
+ * Validate caller-supplied product content: the normalized content, or an
+ * error with its status (400 malformed, 413 over the 2 MiB fetch-equivalent bound).
+ */
+export function validateSuppliedProductContent(
+  value: unknown,
+): SuppliedProductContent | { error: string; status: 400 | 413 } {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return { error: 'content must be an object with html and/or shopify_json', status: 400 }
+  }
+  const { html, shopify_json: shopifyJson } = value as Record<string, unknown>
+  if (html !== undefined && typeof html !== 'string') {
+    return { error: 'content.html must be a string', status: 400 }
+  }
+  if (shopifyJson !== undefined
+    && (typeof shopifyJson !== 'object' || shopifyJson === null || Array.isArray(shopifyJson))) {
+    return { error: 'content.shopify_json must be an object', status: 400 }
+  }
+  const cleanHtml = typeof html === 'string' ? html.replace(/\0/g, '') : ''
+  if (!cleanHtml.trim() && shopifyJson === undefined) {
+    return { error: 'content must include non-empty html or shopify_json', status: 400 }
+  }
+  const encoder = new TextEncoder()
+  const bytes = encoder.encode(cleanHtml).byteLength
+    + (shopifyJson === undefined ? 0 : encoder.encode(JSON.stringify(shopifyJson)).byteLength)
+  if (bytes > MAX_SUPPLIED_PRODUCT_BYTES) {
+    return { error: 'Supplied content exceeds the 2 MiB limit', status: 413 }
+  }
+  return {
+    html: cleanHtml.trim() ? cleanHtml : null,
+    shopifyJson: (shopifyJson as Record<string, unknown> | undefined) ?? null,
+    bytes,
+  }
+}
+
+export function buildProductScrapeResult(
+  finalUrl: string,
+  product: ProductExtraction,
+  contentSource: ProductScrapeResult['content_source'],
+  match?: string,
+  extractedAt = new Date().toISOString(),
+): ProductScrapeResult {
+  const provenance = buildScrapingProvenance(finalUrl, extractedAt)
+  const result: ProductScrapeResult = {
+    success: true,
+    url: provenance.url,
+    domain: provenance.domain!,
+    content_source: contentSource,
+    product,
+    extracted_at: provenance.extracted_at,
+  }
+  if (match !== undefined) {
+    const matched = matchOfferWithScore(product.offers, match, { productName: product.name })
+    result.matched_offer = matched
+      ? { ...matched.offer, match_score: matched.score, ambiguous_same_price: matched.ambiguous_same_price }
+      : null
+  }
+  return result
 }
 
 interface ScrapingResult {
@@ -215,6 +307,79 @@ export function safeFetchFailureResponse(error: SafeFetchError): Response {
   }
 }
 
+type RecordWebScrapeAttempt = Parameters<Parameters<typeof observeWebScrapeRequest>[1]>[0]
+
+function productExecution(result: ProductScrapeResult) {
+  return {
+    response: new Response(JSON.stringify(result), { status: 200, headers: JSON_HEADERS }),
+    qualityScore: result.product.confidence,
+    // An empty extraction is still a 200 with offers: [] so callers can tell
+    // "no structured price on this page" from a fetch failure.
+    accepted: result.product.offers.length > 0,
+  }
+}
+
+/**
+ * Shopify publishes per-variant titles, prices (cents) and availability at
+ * `<product-url>.js`. Best effort: any failure leaves extraction to the HTML.
+ */
+export async function fetchShopifyProductJson(
+  html: string,
+  pageUrl: URL,
+  recordAttempt: RecordWebScrapeAttempt,
+  fetchText: typeof safeFetchText = safeFetchText,
+): Promise<Record<string, unknown> | null> {
+  const jsUrl = looksLikeShopify(html) ? shopifyProductJsUrl(pageUrl.href) : null
+  if (!jsUrl) return null
+  const startedAt = Date.now()
+  try {
+    const fetched = await fetchText(jsUrl, {
+      timeoutMs: 10_000,
+      maxRedirects: 3,
+      maxResponseBytes: 2 * 1024 * 1024,
+      // Product JSON is only trusted from the storefront that served the page.
+      allowedHostnames: [pageUrl.hostname],
+      requestInit: { headers: { ...getRandomProfile().headers, Accept: 'application/json, text/javascript, */*;q=0.1' } },
+    })
+    const ok = fetched.response.ok
+    let parsed: unknown = null
+    if (ok) {
+      try {
+        parsed = JSON.parse(fetched.text)
+      } catch {
+        parsed = null
+      }
+    }
+    const usable = typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)
+    recordAttempt({
+      stage: 'fetch',
+      strategy: 'direct',
+      provider: 'none',
+      outcome: usable ? 'succeeded' : 'failed',
+      ...(usable ? {} : {
+        errorCode: !ok
+          ? (fetched.response.status === 429 ? 'rate_limited' : fetched.response.status >= 500 ? 'upstream_5xx' : 'upstream_4xx')
+          : 'extract_failed',
+      }),
+      httpStatusClass: scrapeHttpStatusClass(fetched.response.status),
+      contentTypeClass: scrapeContentTypeClass(fetched.contentType),
+      durationMs: Date.now() - startedAt,
+      responseBytes: fetched.bytesRead,
+    })
+    return usable ? parsed as Record<string, unknown> : null
+  } catch (error) {
+    recordAttempt({
+      stage: 'fetch',
+      strategy: 'direct',
+      provider: 'none',
+      outcome: 'failed',
+      errorCode: normalizeWebScrapeError(error),
+      durationMs: Date.now() - startedAt,
+    })
+    return null
+  }
+}
+
 export async function onRequest(context: WebScraperContext) {
   const { request, env } = context
 
@@ -253,7 +418,8 @@ export async function onRequest(context: WebScraperContext) {
     if (rawExtractMode !== undefined
       && rawExtractMode !== 'metadata'
       && rawExtractMode !== 'summary'
-      && rawExtractMode !== 'full') {
+      && rawExtractMode !== 'full'
+      && rawExtractMode !== 'product') {
       return new Response(JSON.stringify({ error: 'Invalid extract_mode' }), {
         status: 400,
         headers: JSON_HEADERS,
@@ -267,6 +433,31 @@ export async function onRequest(context: WebScraperContext) {
     }
     const extractMode = (rawExtractMode ?? 'metadata') as NonNullable<ScrapingRequest['extract_mode']>
 
+    if (extractMode !== 'product' && (body.content !== undefined || body.match !== undefined)) {
+      return new Response(JSON.stringify({ error: 'content and match are only supported with extract_mode "product"' }), {
+        status: 400,
+        headers: JSON_HEADERS,
+      })
+    }
+    if (body.match !== undefined
+      && (typeof body.match !== 'string' || !body.match.trim() || body.match.length > MAX_PRODUCT_MATCH_LENGTH)) {
+      return new Response(JSON.stringify({ error: `match must be a non-empty string of at most ${MAX_PRODUCT_MATCH_LENGTH} characters` }), {
+        status: 400,
+        headers: JSON_HEADERS,
+      })
+    }
+    let supplied: SuppliedProductContent | null = null
+    if (body.content !== undefined) {
+      const validated = validateSuppliedProductContent(body.content)
+      if ('error' in validated) {
+        return new Response(JSON.stringify({ error: validated.error }), {
+          status: validated.status,
+          headers: JSON_HEADERS,
+        })
+      }
+      supplied = validated
+    }
+
     // Validate URL
     let url: URL
     try {
@@ -276,6 +467,15 @@ export async function onRequest(context: WebScraperContext) {
       }
     } catch {
       return new Response(JSON.stringify({ error: 'Invalid URL' }), {
+        status: 400,
+        headers: JSON_HEADERS,
+      })
+    }
+
+    // Supplied content is attributed to `url` without our own fetch to vouch
+    // for it, so require the stronger form: public HTTPS.
+    if (supplied && url.protocol !== 'https:') {
+      return new Response(JSON.stringify({ error: 'Supplied content requires an https URL' }), {
         status: 400,
         headers: JSON_HEADERS,
       })
@@ -295,9 +495,27 @@ export async function onRequest(context: WebScraperContext) {
       url: url.href,
       tenantScope: String(authUserId),
       extractMode,
+      strategy: supplied ? 'supplied' : 'direct',
       telemetryKey: env.SCRAPE_TELEMETRY_KEY,
       analytics: env.SCRAPE_ANALYTICS,
     }, async recordAttempt => {
+      if (supplied) {
+        const extractionStartedAt = Date.now()
+        const product = extractProduct({ html: supplied.html, shopifyJson: supplied.shopifyJson, url: url.href })
+        recordAttempt({
+          stage: 'extract',
+          strategy: 'supplied',
+          provider: 'none',
+          outcome: product.offers.length > 0 ? 'succeeded' : 'failed',
+          ...(product.offers.length > 0 ? {} : { errorCode: 'extract_failed' as const }),
+          contentTypeClass: supplied.html ? 'html' : 'json',
+          durationMs: Date.now() - extractionStartedAt,
+          responseBytes: supplied.bytes,
+          itemsRead: product.offers.length,
+        })
+        return productExecution(buildProductScrapeResult(url.href, product, 'supplied', body.match))
+      }
+
       // Fetch through the shared outbound policy. It validates DNS and every
       // redirect hop, enforces the deadline, and bounds text response bodies.
       const fetchStartedAt = Date.now()
@@ -376,6 +594,14 @@ export async function onRequest(context: WebScraperContext) {
           ]
         }
 
+        if (extractMode === 'product' && (response.status === 429 || response.status === 403)) {
+          if (response.status === 429) userMessage = 'The website is rate limiting automated access'
+          suggestions = [
+            ...(response.status === 429 ? ['Try again later'] : []),
+            'Fetch the page from your own network and send it as content.html (and content.shopify_json for Shopify stores)',
+          ]
+        }
+
         return { response: new Response(JSON.stringify({
           success: false,
           error: userMessage,
@@ -386,6 +612,23 @@ export async function onRequest(context: WebScraperContext) {
           status: 400,
           headers: JSON_HEADERS,
         }), accepted: false }
+      }
+
+      if (extractMode === 'product') {
+        const shopifyJson = await fetchShopifyProductJson(html, finalUrl, recordAttempt)
+        const extractionStartedAt = Date.now()
+        const product = extractProduct({ html, shopifyJson, url: finalUrl.href })
+        recordAttempt({
+          stage: 'extract',
+          strategy: 'direct',
+          provider: 'none',
+          outcome: product.offers.length > 0 ? 'succeeded' : 'failed',
+          ...(product.offers.length > 0 ? {} : { errorCode: 'extract_failed' as const }),
+          contentTypeClass: 'html',
+          durationMs: Date.now() - extractionStartedAt,
+          itemsRead: product.offers.length,
+        })
+        return productExecution(buildProductScrapeResult(finalUrl.href, product, 'fetched', body.match))
       }
 
       const extractionStartedAt = Date.now()
