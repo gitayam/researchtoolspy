@@ -126,6 +126,8 @@ test.describe('price parsing: currency @smoke', () => {
     expect(detectCurrency('99 lei')).toBe('RON')
     expect(detectCurrency('NZD $12')).toBe('NZD')
     expect(detectCurrency('eur')).toBe('EUR')
+    expect(detectCurrency('&pound;52.90')).toBe('GBP')
+    expect(parsePrice('&euro;1.234,56')).toBe(1234.56)
     // An uppercase word that is also a code needs a number beside it.
     expect(detectCurrency('ALL PRICES INCLUDE VAT')).toBeNull()
   })

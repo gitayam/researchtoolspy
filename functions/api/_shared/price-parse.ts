@@ -189,10 +189,19 @@ function escapeRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
+const CURRENCY_ENTITIES: Record<string, string> = {
+  pound: '£', euro: '€', yen: '¥', cent: '¢', dollar: '$', curren: '¤', inr: '₹',
+}
+
+/** HTML entities, including the currency ones the shared decoder leaves alone (&pound; &euro; &yen;). */
+export function decodePriceEntities(value: string): string {
+  return decodeHtmlEntities(value.replace(/&([a-z]+);/gi, (full, name: string) => CURRENCY_ENTITIES[name.toLowerCase()] ?? full))
+}
+
 function cleanText(value: unknown): string | null {
   if (typeof value === 'number' && Number.isFinite(value)) return String(value)
   if (typeof value !== 'string') return null
-  const text = decodeHtmlEntities(value).replace(/\s+/g, ' ').trim()
+  const text = decodePriceEntities(value).replace(/\s+/g, ' ').trim()
   return text || null
 }
 
@@ -380,7 +389,7 @@ function stripListPricePrefix(text: string): string {
 export function parsePrice(value: unknown, hint?: PriceHint): number | null {
   if (typeof value === 'number') return Number.isFinite(value) && value >= 0 ? round2(value) : null
   if (typeof value !== 'string') return null
-  const original = decodeHtmlEntities(value).replace(/\s+/g, ' ').trim()
+  const original = decodePriceEntities(value).replace(/\s+/g, ' ').trim()
   if (!original) return null
   const text = stripListPricePrefix(original)
 

@@ -365,3 +365,242 @@ test.describe('product extractor: matchOffer @smoke', () => {
     expect(matchOffer(null as never, 'x')).toBeNull()
   })
 })
+
+const HORUS_URL = 'https://www.horusrc.com/vantac-f722-f405-flight-controller.html'
+const FLYINGTECH_URL = 'https://www.flyingtech.co.uk/product/speedybee-mario-5-5%e2%80%b3-fpv-frame-kit-dc-xh-lite-advanced/'
+const SPEEDYBEE_URL = 'https://www.speedybee.com/speedybee-bee25-frame/'
+const UAVMODEL_URL = 'https://www.uavmodel.com/products/gemfan-fixed-wing-saber-propeller-fiberglass-reinforced-nylon'
+
+test.describe('product extractor v2: structured-data correctness @smoke', () => {
+  test('@smoke reports product.v2', () => {
+    expect(extractProduct({ html: '', url: '' }).extractor_version).toBe('product.v2')
+  })
+
+  test('@smoke a StrikethroughPrice spec is the list price, not the price', () => {
+    const product = extractProduct({
+      html: ld({
+        '@type': 'Product',
+        name: 'ESC',
+        offers: {
+          '@type': 'Offer',
+          priceCurrency: 'USD',
+          priceSpecification: [
+            { '@type': 'UnitPriceSpecification', priceType: 'https://schema.org/StrikethroughPrice', price: 59.99, priceCurrency: 'USD' },
+            { '@type': 'UnitPriceSpecification', price: 44.99, priceCurrency: 'USD' },
+          ],
+        },
+      }),
+      url: 'https://shop.example/esc',
+    })
+    expect(product.offers[0]).toMatchObject({ price: 44.99, regular_price: 59.99, currency: 'USD' })
+    expect(product.price_range).toEqual({ low: 44.99, high: 44.99, currency: 'USD' })
+  })
+
+  test('@smoke offer.price equal to the list price yields to the sale spec', () => {
+    const product = extractProduct({
+      html: ld({
+        '@type': 'Product',
+        name: 'Frame',
+        offers: {
+          price: '80.00',
+          priceCurrency: 'EUR',
+          priceSpecification: {
+            '@type': 'CompoundPriceSpecification',
+            priceComponent: [
+              { '@type': 'UnitPriceSpecification', priceType: 'ListPrice', price: '80.00' },
+              { '@type': 'UnitPriceSpecification', price: '64.00' },
+            ],
+          },
+        },
+      }),
+      url: 'https://shop.example/frame',
+    })
+    expect(product.offers[0]).toMatchObject({ price: 64, regular_price: 80, currency: 'EUR' })
+  })
+
+  test('@smoke a sale spec valid today wins; an expired one is ignored', () => {
+    const day = 24 * 3600 * 1000
+    const iso = (offset: number) => new Date(Date.now() + offset).toISOString()
+    const page = (validThrough: string) => ld({
+      '@type': 'Product',
+      name: 'Goggles',
+      offers: {
+        price: 499,
+        priceCurrency: 'USD',
+        priceSpecification: [{ price: 449, priceCurrency: 'USD', validFrom: iso(-7 * day), validThrough }],
+      },
+    })
+    expect(extractProduct({ html: page(iso(7 * day)), url: 'https://shop.example/g' }).offers[0].price).toBe(449)
+    expect(extractProduct({ html: page(iso(-1 * day)), url: 'https://shop.example/g' }).offers[0].price).toBe(499)
+  })
+
+  test('@smoke an Offer with only lowPrice/highPrice is a range', () => {
+    const product = extractProduct({
+      html: ld({ '@type': 'Product', name: 'Props', offers: { '@type': 'Offer', lowPrice: 3.99, highPrice: 5.49, priceCurrency: 'USD' } }),
+      url: 'https://shop.example/props',
+    })
+    expect(product.offers[0]).toMatchObject({ price: 3.99, aggregate: { high_price: 5.49, offer_count: null } })
+    expect(product.price_range).toEqual({ low: 3.99, high: 5.49, currency: 'USD' })
+  })
+
+  test('@smoke structured numbers are never read with display heuristics', () => {
+    const product = extractProduct({
+      html: ld({ '@type': 'Product', name: 'Resistor reel', offers: { price: '1.250', priceCurrency: 'USD' } }),
+      url: 'https://shop.example/r',
+    })
+    expect(product.offers[0].price).toBe(1.25)
+  })
+
+  test('@smoke microdata price as element text, not an attribute', () => {
+    const product = extractProduct({
+      html: `<div itemscope itemtype="https://schema.org/Product"><h1 itemprop="name">Motor</h1>
+        <div itemprop="offers" itemscope itemtype="https://schema.org/Offer">
+          <span itemprop="price">$12.99</span><meta itemprop="priceCurrency" content="USD">
+        </div></div>`,
+      url: 'https://shop.example/motor',
+    })
+    expect(product.sources).toEqual(['microdata-meta'])
+    expect(product.offers).toEqual([{
+      title: 'Motor', price: 12.99, currency: 'USD', availability: 'unknown', sku: null, url: null, image: null,
+    }])
+    expect(product.currency_ambiguous).toBe(false)
+  })
+
+  test('@smoke every microdata Offer itemscope is its own offer', () => {
+    const product = extractProduct({
+      html: `<div itemscope itemtype="https://schema.org/Product"><span itemprop="name">Prop</span>
+        <div itemprop="offers" itemscope itemtype="https://schema.org/Offer"><span itemprop="name">CW</span>
+          <meta itemprop="price" content="3.00"><meta itemprop="priceCurrency" content="USD">
+          <link itemprop="availability" href="https://schema.org/InStock"></div>
+        <div itemprop="offers" itemscope itemtype="https://schema.org/Offer"><span itemprop="name">CCW 4-pack</span>
+          <meta itemprop="price" content="10.00"><meta itemprop="priceCurrency" content="USD">
+          <link itemprop="availability" href="https://schema.org/OutOfStock"></div>
+        <div itemscope itemtype="https://schema.org/Product"><span itemprop="name">Unrelated nested</span></div>
+      </div>`,
+      url: 'https://shop.example/prop',
+    })
+    expect(product.name).toBe('Prop')
+    expect(product.offers.map(o => [o.title, o.price, o.availability])).toEqual([
+      ['CW', 3, 'in_stock'],
+      ['CCW 4-pack', 10, 'out_of_stock'],
+    ])
+  })
+
+  test('@smoke a currency read from "$" alone is flagged ambiguous', () => {
+    const html = (lang: string) => `<html lang="${lang}"><body><div itemscope itemtype="https://schema.org/Product">
+      <span itemprop="name">Battery</span><span itemprop="price">$45.00</span></div></body></html>`
+    const us = extractProduct({ html: html('en'), url: 'https://shop.example/b' })
+    expect(us).toMatchObject({ currency: 'USD', currency_ambiguous: true })
+    const ca = extractProduct({ html: html('en-CA'), url: 'https://shop.example/b' })
+    expect(ca).toMatchObject({ currency: 'CAD', currency_ambiguous: true })
+    expect(ca.confidence).toBeLessThan(extractProduct({
+      html: ld({ '@type': 'Product', name: 'Battery', offers: { price: 45, priceCurrency: 'CAD' } }),
+      url: 'https://shop.example/b',
+    }).confidence)
+  })
+
+  test('@smoke the parent summary offer is dropped when variants exist (uavmodel.com)', () => {
+    const product = extractProduct({ html: fixture('uavmodel-gemfan-saber.html'), url: UAVMODEL_URL })
+    expect(product.offers).toHaveLength(13)
+    expect(product.offers.every(o => o.title !== product.name)).toBe(true)
+    expect(product.offers[0]).toMatchObject({ title: '10x7R CCW', price: 2, currency: 'USD', availability: 'in_stock' })
+    expect(product.price_range).toEqual({ low: 2, high: 9.2, currency: 'USD' })
+  })
+
+  test('@smoke Shopify compare_at_price becomes regular_price', () => {
+    const product = extractProduct({
+      shopifyJson: { title: 'Goggles', variants: [{ id: 7, title: 'Default Title', price: 44900, compare_at_price: 49900, available: true }] },
+      url: 'https://shop.example/products/goggles',
+    })
+    expect(product.offers[0]).toMatchObject({ title: 'Goggles', price: 449, regular_price: 499 })
+  })
+})
+
+test.describe('product extractor v2: platform data in the page @smoke', () => {
+  test('@smoke Magento spConfig gives each configurable child its own price (horusrc.com)', () => {
+    const product = extractProduct({ html: fixture('horusrc-vantac-f722-f405.html'), url: HORUS_URL })
+    expect(product.sources).toContain('magento-spconfig')
+    expect(product.offers.map(o => [o.title, o.price, o.currency])).toEqual([
+      ['F405', 28.99, 'USD'],
+      ['F722', 34.99, 'USD'],
+    ])
+    // product.v1 returned one offer at 28.99, so a F722 lookup got the F405 price.
+    expect(matchOffer(product.offers, 'VANTAC F722 flight controller', { productName: product.name })?.price).toBe(34.99)
+    expect(product.price_range).toEqual({ low: 28.99, high: 34.99, currency: 'USD' })
+  })
+
+  test('@smoke Magento GraphQL adds child SKUs and stated stock', () => {
+    const product = extractProduct({
+      html: fixture('horusrc-vantac-f722-f405.html'),
+      magentoGraphql: jsonFixture('horusrc-vantac-f722-f405.graphql.json'),
+      url: HORUS_URL,
+    })
+    expect(product.sources).toEqual(expect.arrayContaining(['magento-spconfig', 'magento-graphql']))
+    expect(product.offers.map(o => [o.title, o.price, o.sku, o.availability])).toEqual([
+      ['F405', 28.99, '03060111', 'in_stock'],
+      ['F722', 34.99, '03060110', 'in_stock'],
+    ])
+  })
+
+  test('@smoke Magento GraphQL alone is a full variant source', () => {
+    const product = extractProduct({ magentoGraphql: jsonFixture('horusrc-vantac-f722-f405.graphql.json'), url: HORUS_URL })
+    expect(product.sources).toEqual(['magento-graphql'])
+    expect(product.name).toBe('FrSKY VANTAC F722/F405 Flight controller--Betaflight')
+    expect(product.offers.map(o => [o.title, o.price, o.currency])).toEqual([['F405', 28.99, 'USD'], ['F722', 34.99, 'USD']])
+  })
+
+  test('@smoke WooCommerce JSON-LD titles lose the group name and site suffix (flyingtech.co.uk)', () => {
+    const product = extractProduct({ html: fixture('flyingtech-mario5-frame.html'), url: FLYINGTECH_URL })
+    expect(product.sources[0]).toBe('json-ld')
+    expect(product.offers.map(o => [o.title, o.price, o.currency, o.availability, o.sku])).toEqual([
+      ['DC (Deadcat) – Lite', 52.9, 'GBP', 'in_stock', 'SB-MARIO5-FRAME-DC-LITE'],
+      ['DC (Deadcat) – Advanced', 57.9, 'GBP', 'out_of_stock', 'SB-MARIO5-FRAME-DC-ADV'],
+      ['XH – Lite', 52.9, 'GBP', 'in_stock', 'SB-MARIO5-FRAME-XH-LITE'],
+      ['XH – Advanced', 57.9, 'GBP', 'out_of_stock', 'SB-MARIO5-FRAME-XH-ADV'],
+    ])
+  })
+
+  test('@smoke WooCommerce data-product_variations stands in when JSON-LD is missing', () => {
+    const html = fixture('flyingtech-mario5-frame.html').replace(/<script type="application\/ld\+json"[\s\S]*?<\/script>/g, '')
+    const product = extractProduct({ html, url: FLYINGTECH_URL })
+    expect(product.sources[0]).toBe('woo-variations')
+    expect(product.offers.map(o => [o.title, o.price, o.currency, o.availability, o.sku])).toEqual([
+      ['DC (Deadcat) – Lite', 52.9, 'GBP', 'in_stock', 'SB-MARIO5-FRAME-DC-LITE'],
+      ['DC (Deadcat) – Advanced', 57.9, 'GBP', 'out_of_stock', 'SB-MARIO5-FRAME-DC-ADV'],
+      ['XH – Lite', 52.9, 'GBP', 'in_stock', 'SB-MARIO5-FRAME-XH-LITE'],
+      ['XH – Advanced', 57.9, 'GBP', 'out_of_stock', 'SB-MARIO5-FRAME-XH-ADV'],
+    ])
+    expect(product.offers[0].url).toContain('attribute_version=')
+  })
+
+  test('@smoke WooCommerce Store API covers a form whose variations were deferred', () => {
+    const html = fixture('flyingtech-mario5-frame.html')
+      .replace(/<script type="application\/ld\+json"[\s\S]*?<\/script>/g, '')
+      .replace(/data-product_variations="[^"]*"/, 'data-product_variations="false"')
+    expect(extractProduct({ html, url: FLYINGTECH_URL }).sources).not.toContain('woo-variations')
+    const product = extractProduct({
+      html,
+      wooStoreApi: {
+        product: jsonFixture('flyingtech-mario5-frame.store-api.json'),
+        variations: JSON.parse(fixture('flyingtech-mario5-frame.store-api-variations.json')),
+      },
+      url: FLYINGTECH_URL,
+    })
+    expect(product.sources[0]).toBe('woo-store-api')
+    expect(product.currency).toBe('GBP')
+    expect(product.offers).toHaveLength(4)
+    expect(product.offers.find(o => o.sku === 'SB-MARIO5-FRAME-XH-ADV')).toMatchObject({
+      title: 'XH – Advanced', price: 57.9, currency: 'GBP', availability: 'out_of_stock',
+    })
+  })
+
+  test('@smoke BigCommerce BCData overrides the unselected-default OutOfStock (speedybee.com)', () => {
+    const product = extractProduct({ html: fixture('speedybee-bee25-frame.html'), url: SPEEDYBEE_URL })
+    expect(product.sources).toContain('bigcommerce-bcdata')
+    expect(product.offers).toHaveLength(1)
+    // product.v1 reported out_of_stock from the microdata.
+    expect(product.offers[0]).toMatchObject({
+      title: 'SpeedyBee Bee25 Wireless Tuning Frame', price: 34.99, currency: 'USD', availability: 'in_stock', sku: 'SB-BEE25-FRM-PRO-O4P-N',
+    })
+  })
+})

@@ -5,27 +5,65 @@
  * function tolerates arbitrary input: malformed markup or JSON yields empty
  * offers, never an exception.
  *
- * Source priority (highest first):
+ * Offer sources, highest priority first:
  *   1. schema.org JSON-LD Product / ProductGroup (hasVariant), Offer, AggregateOffer, @graph
  *   2. Shopify product JSON (`<product-url>.js`: integer cents; `.json`: decimal strings)
- *   3. Meta tags: itemprop microdata, then product:/og: price metadata
+ *   3. Platform data embedded in the page: WooCommerce `data-product_variations`,
+ *      Magento 2 `spConfig`/`jsonConfig`
+ *   4. Platform JSON fetched by the caller: WooCommerce Store API, Magento GraphQL
+ *   5. BigCommerce `BCData` (product-level price and stock)
+ *   6. schema.org microdata (an item tree: nested offers, text-content values)
+ *   7. product:/og: price meta tags
  *
- * A lower-priority source fills fields a higher one lacks (for example a
- * Shopify variant title for a JSON-LD offer that only carries a SKU and URL),
- * but never replaces a price that a higher-priority source stated.
+ * The first source with offers is primary, except that a variant-level source
+ * with several offers (Shopify, Woo, Magento) replaces a primary source that
+ * has only one. Every other source then fills fields the primary lacks (variant
+ * titles, stock, SKU, list price), matched by variant id, SKU or variant title,
+ * but never replaces a price the primary stated.
+ *
+ * Structured numbers are read literally; display-text heuristics (price-parse)
+ * apply only to strings that are not plain `.`-decimal numbers.
  */
 import { decodeHtmlEntities } from './article-extractor'
+import { findMicrodataItems, parseMicrodata, type MicrodataItem } from './microdata'
+import {
+  detectCurrencyInfo,
+  parseStructuredPrice,
+  type CurrencyHint,
+  type PriceHint,
+} from './price-parse'
+import {
+  fromBigCommerceBCData,
+  fromMagentoGraphql,
+  fromMagentoSpConfig,
+  fromWooStoreApi,
+  fromWooVariations,
+  wooPageCurrencySymbol,
+  type PlatformResult,
+  type PlatformSource,
+} from './product-platforms'
 
-export const PRODUCT_EXTRACTOR_VERSION = 'product.v1' as const
+export { detectCurrency, detectCurrencyInfo, parsePrice, parseStructuredPrice } from './price-parse'
+
+export const PRODUCT_EXTRACTOR_VERSION = 'product.v2' as const
 
 export type ProductAvailability = 'in_stock' | 'out_of_stock' | 'preorder' | 'unknown'
-export type ProductSource = 'json-ld' | 'microdata-meta' | 'shopify' | 'og-meta'
+export type ProductSource = 'json-ld' | 'shopify' | PlatformSource | 'microdata-meta' | 'og-meta'
+
+/** Every source in priority order; `sources` in a result follows this order. */
+const SOURCE_ORDER: ProductSource[] = [
+  'json-ld', 'shopify', 'woo-variations', 'magento-spconfig', 'woo-store-api', 'magento-graphql',
+  'bigcommerce-bcdata', 'microdata-meta', 'og-meta',
+]
+const VARIANT_SOURCES = new Set<ProductSource>(['shopify', 'woo-variations', 'magento-spconfig', 'woo-store-api', 'magento-graphql'])
 
 export interface ProductOffer {
-  /** Variant or offer name. Falls back to the product name for single-offer pages. */
+  /** Variant or offer name. Falls back to the SKU, then the product name. */
   title: string
-  /** Price in major currency units (dollars, euros), never cents. */
+  /** Current (sale) price in major currency units (dollars, euros), never cents. */
   price: number
+  /** The list / struck-through / compare-at price, present only when it is higher than `price`. */
+  regular_price?: number
   currency: string | null
   availability: ProductAvailability
   sku: string | null
@@ -41,6 +79,12 @@ export interface ProductExtraction {
   sku: string | null
   image: string | null
   currency: string | null
+  /**
+   * True when `currency` was read from a symbol shared by several currencies
+   * ($, kr, ¥, Rs) and nothing on the page stated the ISO code. A language or
+   * TLD hint may have chosen a better guess, but it is still a guess.
+   */
+  currency_ambiguous: boolean
   offers: ProductOffer[]
   /** Sources that contributed at least one field, in priority order. */
   sources: ProductSource[]
@@ -58,6 +102,10 @@ export interface ProductExtractionInput {
   html?: string | null
   /** Parsed `<product-url>.js` or `<product-url>.json` body (with or without the `product` wrapper). */
   shopifyJson?: unknown
+  /** WooCommerce Store API `/wc/store/v1/products/<id>` body and, for a variable product, its variation listing. */
+  wooStoreApi?: { product: unknown; variations?: unknown } | null
+  /** Magento GraphQL `products(filter:{url_key…})` response body. */
+  magentoGraphql?: unknown
   url: string
 }
 
@@ -70,68 +118,11 @@ const MAX_NODE_DEPTH = 12
 /* Primitive parsing                                                   */
 /* ------------------------------------------------------------------ */
 
-const SYMBOL_CURRENCIES: ReadonlyArray<[string, string]> = [
-  ['US$', 'USD'], ['CA$', 'CAD'], ['C$', 'CAD'], ['A$', 'AUD'], ['AU$', 'AUD'], ['NZ$', 'NZD'],
-  ['HK$', 'HKD'], ['S$', 'SGD'], ['R$', 'BRL'], ['€', 'EUR'], ['£', 'GBP'], ['¥', 'JPY'],
-  ['₹', 'INR'], ['₩', 'KRW'], ['₽', 'RUB'], ['zł', 'PLN'], ['kr', 'SEK'], ['CHF', 'CHF'], ['$', 'USD'],
-]
-
 function str(value: unknown): string | null {
   if (typeof value === 'number' && Number.isFinite(value)) return String(value)
   if (typeof value !== 'string') return null
   const cleaned = decodeHtmlEntities(value).replace(/\s+/g, ' ').trim()
   return cleaned ? cleaned : null
-}
-
-/** ISO 4217 code from an explicit code or a currency symbol/prefix in free text. */
-export function detectCurrency(value: unknown): string | null {
-  const text = str(value)
-  if (!text) return null
-  const code = text.toUpperCase().match(/(?:^|[^A-Z])([A-Z]{3})(?:[^A-Z]|$)/)
-  if (code && /^(USD|EUR|GBP|CAD|AUD|NZD|JPY|CNY|RMB|HKD|SGD|CHF|SEK|NOK|DKK|PLN|CZK|INR|KRW|BRL|MXN|RUB|TRY|ZAR|TWD|THB|ILS)$/.test(code[1])) {
-    return code[1] === 'RMB' ? 'CNY' : code[1]
-  }
-  for (const [symbol, iso] of SYMBOL_CURRENCIES) {
-    if (text.includes(symbol)) return iso
-  }
-  return null
-}
-
-/**
- * Parse a price in major units from a number or display string.
- *
- * Handles "$1,234.56", "1.234,56 €", "1 234,56", "12,5", "1'234.50", "USD 19.99".
- * When both separators occur, the last one is the decimal separator. A lone comma
- * followed by exactly three digits is a thousands separator ("1,234" → 1234); any
- * other lone comma is decimal ("12,50" → 12.5). A single dot is always decimal.
- * Returns null for anything that is not a finite, non-negative amount.
- */
-export function parsePrice(value: unknown): number | null {
-  if (typeof value === 'number') return Number.isFinite(value) && value >= 0 ? round2(value) : null
-  if (typeof value !== 'string') return null
-  const text = decodeHtmlEntities(value).replace(/[\s\u00a0\u202f']/g, '')
-  const match = text.match(/\d[\d.,]*/)
-  if (!match) return null
-  // "-5", "$-5", "-$5" are negative; "Price-$5" (a dash used as punctuation) is not.
-  if (/(^|[^a-z])-\D{0,3}$/i.test(text.slice(0, match.index ?? 0))) return null
-  let digits = match[0].replace(/[.,]+$/, '')
-  const lastComma = digits.lastIndexOf(',')
-  const lastDot = digits.lastIndexOf('.')
-  if (lastComma >= 0 && lastDot >= 0) {
-    const decimal = lastComma > lastDot ? ',' : '.'
-    const thousands = decimal === ',' ? '.' : ','
-    digits = digits.split(thousands).join('').replace(decimal, '.')
-  } else if (lastComma >= 0) {
-    const commaCount = digits.split(',').length - 1
-    const tail = digits.slice(lastComma + 1)
-    digits = commaCount > 1 || tail.length === 3
-      ? digits.replace(/,/g, '')
-      : digits.replace(',', '.')
-  } else if ((digits.match(/\./g) ?? []).length > 1) {
-    digits = digits.replace(/\./g, '')
-  }
-  const parsed = Number(digits)
-  return Number.isFinite(parsed) && parsed >= 0 ? round2(parsed) : null
 }
 
 function round2(value: number): number {
@@ -202,6 +193,63 @@ function variantIdFromUrl(url: string | null): string | null {
 }
 
 /* ------------------------------------------------------------------ */
+/* Page context: currency and number-format hints                      */
+/* ------------------------------------------------------------------ */
+
+interface PageContext {
+  pageUrl: string
+  currencyHint: CurrencyHint
+  priceHint: PriceHint
+}
+
+/** Read a currency code or symbol, recording whether the symbol was ambiguous. */
+function currencyOf(value: unknown, ctx: PageContext): { code: string | null; ambiguous: boolean } {
+  const info = detectCurrencyInfo(value, ctx.currencyHint)
+  return info ? { code: info.code, ambiguous: info.ambiguous } : { code: null, ambiguous: false }
+}
+
+/** ISO codes the page states outright, in the order a reader would trust them. */
+function statedCurrency(html: string, extra: Array<string | null>): string | null {
+  const patterns = [
+    /"priceCurrency"\s*:\s*"([A-Za-z]{3})"/,
+    /<meta\b[^>]*(?:property|name)=["'](?:product|og):price:currency["'][^>]*content=["']([A-Za-z]{3})["']/i,
+    /<meta\b[^>]*content=["']([A-Za-z]{3})["'][^>]*(?:property|name)=["'](?:product|og):price:currency["']/i,
+    /itemprop=["']priceCurrency["'][^>]*content=["']([A-Za-z]{3})["']/i,
+    /content=["']([A-Za-z]{3})["'][^>]*itemprop=["']priceCurrency["']/i,
+    /Shopify\.currency\s*=\s*\{[^}]*"active"\s*:\s*"([A-Z]{3})"/,
+  ]
+  for (const pattern of patterns) {
+    const match = html.match(pattern)
+    if (match) return match[1].toUpperCase()
+  }
+  return extra.find((code): code is string => !!code) ?? null
+}
+
+/** Shopify `money_format` names its separator ("amount_with_comma_separator" → ","). */
+function shopifyDecimalSeparator(html: string): '.' | ',' | null {
+  const match = html.match(/money_format["']?\s*[:=]\s*["'][^"']*\{\{\s*(amount[a-z_]*)\s*\}\}/i)
+  if (!match) return null
+  return /comma_separator/.test(match[1]) ? ',' : '.'
+}
+
+function pageContext(html: string, pageUrl: string, platforms: PlatformResult[]): PageContext {
+  let hostname: string | null
+  try {
+    hostname = new URL(pageUrl).hostname
+  } catch {
+    hostname = null
+  }
+  const lang = html.match(/<html\b[^>]*\blang=["']([A-Za-z]{2,3}(?:[-_][A-Za-z0-9]{2,8})?)["']/i)?.[1] ?? null
+  const code = statedCurrency(html, platforms.map(p => p.currency))
+  const decimalSeparator = platforms.find(p => p.decimalSeparator)?.decimalSeparator ?? shopifyDecimalSeparator(html)
+  return {
+    pageUrl,
+    currencyHint: { code, lang, hostname },
+    priceHint: { decimalSeparator },
+  }
+}
+
+/* ------------------------------------------------------------------ */
 /* JSON-LD                                                             */
 /* ------------------------------------------------------------------ */
 
@@ -262,84 +310,32 @@ function productNodes(blocks: unknown[]): Record<string, unknown>[] {
   return found
 }
 
+/**
+ * "Kit – DC / XH - Flying Tech" names a variant "Kit – DC / XH – DC (Deadcat) – Lite":
+ * strip the group name, also when the group name carries a " - Site" suffix the variants lack.
+ */
 function stripGroupPrefix(variantName: string | null, groupName: string | null): string | null {
-  if (!variantName) return null
-  if (groupName && variantName.length > groupName.length
-    && variantName.toLowerCase().startsWith(groupName.toLowerCase())) {
-    const rest = variantName.slice(groupName.length).replace(/^\s*[-–—:|/]\s*/, '').trim()
-    if (rest) return rest
+  if (!variantName || !groupName) return variantName
+  const candidates = [groupName]
+  const suffix = groupName.match(/^(.*\S)\s+[-–—|]\s+[^-–—|]{2,40}$/)
+  if (suffix) candidates.push(suffix[1])
+  for (const prefix of candidates) {
+    if (variantName.length > prefix.length && variantName.toLowerCase().startsWith(prefix.toLowerCase())) {
+      const rest = variantName.slice(prefix.length).replace(/^\s*[-–—:|/]\s*/, '').trim()
+      if (rest) return rest
+    }
   }
   return variantName
 }
 
-interface DraftOffer extends Omit<ProductOffer, 'title'> {
+interface DraftOffer extends Omit<ProductOffer, 'title' | 'regular_price'> {
   title: string | null
+  regularPrice: number | null
   variantId: string | null
-}
-
-function offersFromJsonLdOffer(
-  offerValue: unknown,
-  context: { title: string | null; sku: string | null; currency: string | null; image: string | null },
-  base: string,
-  out: DraftOffer[],
-  aggregate: { low: number; high: number | null; count: number | null; currency: string | null }[],
-  depth = 0,
-): void {
-  if (depth > MAX_NODE_DEPTH) return
-  for (const offer of asArray(offerValue)) {
-    if (!isObject(offer) || out.length >= MAX_OFFERS) continue
-    const offerTypes = types(offer)
-    const currency = detectCurrency(offer.priceCurrency) ?? context.currency
-    if (offerTypes.includes('aggregateoffer')) {
-      const nested = asArray(offer.offers)
-      if (nested.length > 0) {
-        offersFromJsonLdOffer(nested, { ...context, currency }, base, out, aggregate, depth + 1)
-        continue
-      }
-      const low = parsePrice(offer.lowPrice) ?? parsePrice(offer.price)
-      if (low === null) continue
-      const high = parsePrice(offer.highPrice)
-      const count = typeof offer.offerCount === 'number' ? offer.offerCount
-        : Number.isFinite(Number(offer.offerCount)) && offer.offerCount !== undefined ? Number(offer.offerCount) : null
-      aggregate.push({ low, high, count, currency })
-      out.push({
-        title: context.title,
-        price: low,
-        currency,
-        availability: normalizeAvailability(offer.availability),
-        sku: str(offer.sku) ?? context.sku,
-        url: absoluteUrl(offer.url, base),
-        image: context.image,
-        aggregate: { high_price: high, offer_count: count },
-        variantId: variantIdFromUrl(absoluteUrl(offer.url, base)),
-      })
-      continue
-    }
-    // Offer (or untyped offer-like object). priceSpecification is the structured alternative to price.
-    let price = parsePrice(offer.price)
-    let specCurrency: string | null = null
-    if (price === null) {
-      for (const spec of asArray(offer.priceSpecification)) {
-        if (!isObject(spec)) continue
-        price = parsePrice(spec.price)
-        specCurrency = detectCurrency(spec.priceCurrency)
-        if (price !== null) break
-      }
-    }
-    if (price === null) continue
-    const url = absoluteUrl(offer.url, base)
-    out.push({
-      title: str(offer.name) ?? context.title,
-      price,
-      currency: detectCurrency(offer.priceCurrency) ?? specCurrency ?? context.currency
-        ?? (typeof offer.price === 'string' ? detectCurrency(offer.price) : null),
-      availability: normalizeAvailability(offer.availability),
-      sku: str(offer.sku) ?? context.sku,
-      url,
-      image: imageOf(offer.image, base) ?? context.image,
-      variantId: variantIdFromUrl(url),
-    })
-  }
+  /** Came from a variant list (hasVariant, Shopify, Woo, Magento), not a product-level offer. */
+  isVariant: boolean
+  availabilityGuessed: boolean
+  currencyAmbiguous: boolean
 }
 
 interface SourceResult {
@@ -348,12 +344,141 @@ interface SourceResult {
   sku: string | null
   image: string | null
   currency: string | null
+  currencyAmbiguous: boolean
   offers: DraftOffer[]
-  aggregate: { low: number; high: number | null; count: number | null; currency: string | null }[]
 }
 
 function emptySource(): SourceResult {
-  return { name: null, brand: null, sku: null, image: null, currency: null, offers: [], aggregate: [] }
+  return { name: null, brand: null, sku: null, image: null, currency: null, currencyAmbiguous: false, offers: [] }
+}
+
+const STRIKETHROUGH = /strikethroughprice|listprice|msrp|srp|retailprice|invoiceprice/i
+
+function validNow(spec: Record<string, unknown>, now: number): { valid: boolean; windowed: boolean } {
+  const from = typeof spec.validFrom === 'string' ? Date.parse(spec.validFrom) : Number.NaN
+  const through = typeof spec.validThrough === 'string' ? Date.parse(spec.validThrough) : Number.NaN
+  const windowed = Number.isFinite(from) || Number.isFinite(through)
+  const valid = (!Number.isFinite(from) || from <= now) && (!Number.isFinite(through) || through >= now)
+  return { valid, windowed }
+}
+
+/**
+ * The current and list prices among an offer's priceSpecification entries
+ * (UnitPriceSpecification, CompoundPriceSpecification.priceComponent).
+ * A spec whose priceType is StrikethroughPrice/ListPrice/MSRP is a list price,
+ * never the current one; a spec outside its validFrom/validThrough window is skipped.
+ */
+function specificationPrices(value: unknown, ctx: PageContext, now: number, depth = 0): {
+  current: number | null
+  currentCurrency: string | null
+  windowed: boolean
+  regular: number | null
+} {
+  const out = { current: null as number | null, currentCurrency: null as string | null, windowed: false, regular: null as number | null }
+  if (depth > 3) return out
+  for (const spec of asArray(value)) {
+    if (!isObject(spec)) continue
+    if (spec.priceComponent) {
+      const nested = specificationPrices(spec.priceComponent, ctx, now, depth + 1)
+      out.regular ??= nested.regular
+      if (out.current === null && nested.current !== null) Object.assign(out, { ...nested, regular: out.regular })
+      continue
+    }
+    const price = parseStructuredPrice(spec.price, ctx.priceHint)
+    if (price === null) continue
+    if (STRIKETHROUGH.test(String(spec.priceType ?? ''))) {
+      out.regular = out.regular === null ? price : Math.max(out.regular, price)
+      continue
+    }
+    const { valid, windowed } = validNow(spec, now)
+    if (!valid) continue
+    // A spec with a validity window that covers today outranks an open-ended one.
+    if (out.current === null || (windowed && !out.windowed)) {
+      out.current = price
+      out.currentCurrency = currencyOf(spec.priceCurrency, ctx).code
+      out.windowed = windowed
+    }
+  }
+  return out
+}
+
+interface OfferContext { title: string | null; sku: string | null; currency: string | null; image: string | null; isVariant: boolean }
+
+function offersFromJsonLdOffer(
+  offerValue: unknown,
+  context: OfferContext,
+  ctx: PageContext,
+  out: DraftOffer[],
+  depth = 0,
+): void {
+  if (depth > MAX_NODE_DEPTH) return
+  const base = ctx.pageUrl
+  const now = Date.now()
+  for (const offer of asArray(offerValue)) {
+    if (!isObject(offer) || out.length >= MAX_OFFERS) continue
+    const offerTypes = types(offer)
+    const stated = currencyOf(offer.priceCurrency, ctx)
+    const currency = stated.code ?? context.currency
+    const isAggregate = offerTypes.includes('aggregateoffer')
+      || (offer.price === undefined && offer.priceSpecification === undefined && offer.lowPrice !== undefined)
+    if (isAggregate) {
+      const nested = asArray(offer.offers)
+      if (nested.length > 0) {
+        offersFromJsonLdOffer(nested, { ...context, currency }, ctx, out, depth + 1)
+        continue
+      }
+      const low = parseStructuredPrice(offer.lowPrice, ctx.priceHint) ?? parseStructuredPrice(offer.price, ctx.priceHint)
+      if (low === null) continue
+      const high = parseStructuredPrice(offer.highPrice, ctx.priceHint)
+      const count = typeof offer.offerCount === 'number' ? offer.offerCount
+        : Number.isFinite(Number(offer.offerCount)) && offer.offerCount !== undefined ? Number(offer.offerCount) : null
+      const url = absoluteUrl(offer.url, base)
+      out.push({
+        title: context.title,
+        price: low,
+        regularPrice: null,
+        currency,
+        availability: normalizeAvailability(offer.availability),
+        sku: str(offer.sku) ?? context.sku,
+        url,
+        image: context.image,
+        aggregate: { high_price: high, offer_count: count },
+        variantId: variantIdFromUrl(url),
+        isVariant: context.isVariant,
+        availabilityGuessed: false,
+        currencyAmbiguous: false,
+      })
+      continue
+    }
+    // Offer (or an untyped offer-like object). priceSpecification is the structured alternative to price.
+    let price = parseStructuredPrice(offer.price, ctx.priceHint)
+    const specs = specificationPrices(offer.priceSpecification, ctx, now)
+    if (specs.current !== null) {
+      if (price === null) price = specs.current
+      else if (specs.windowed && specs.current !== price) price = specs.current
+      else if (specs.regular !== null && price === specs.regular && specs.current < price) price = specs.current
+    }
+    if (price === null) continue
+    let textCurrency = { code: null as string | null, ambiguous: false }
+    if (!stated.code && !specs.currentCurrency && !context.currency && typeof offer.price === 'string') {
+      textCurrency = currencyOf(offer.price, ctx)
+    }
+    const url = absoluteUrl(offer.url, base)
+    out.push({
+      title: str(offer.name) ?? context.title,
+      price,
+      regularPrice: specs.regular !== null && specs.regular > price ? specs.regular : null,
+      currency: stated.code ?? specs.currentCurrency ?? context.currency ?? textCurrency.code,
+      availability: normalizeAvailability(offer.availability),
+      sku: str(offer.sku) ?? context.sku,
+      url,
+      image: imageOf(offer.image, base) ?? context.image,
+      variantId: variantIdFromUrl(url),
+      isVariant: context.isVariant,
+      availabilityGuessed: false,
+      currencyAmbiguous: !stated.code && !specs.currentCurrency && !context.currency && textCurrency.ambiguous,
+    })
+  }
 }
 
 function samePage(nodeUrl: string | null, pageUrl: string): boolean {
@@ -367,15 +492,15 @@ function samePage(nodeUrl: string | null, pageUrl: string): boolean {
   }
 }
 
-function fromJsonLd(html: string, pageUrl: string): SourceResult {
+/** Shared by JSON-LD and microdata: Product/ProductGroup nodes in schema.org JSON shape. */
+function fromProductNodes(allNodes: Record<string, unknown>[], ctx: PageContext): SourceResult {
   const result = emptySource()
-  let nodes = productNodes(jsonLdBlocks(html))
-  if (nodes.length === 0) return result
+  const pageUrl = ctx.pageUrl
+  if (allNodes.length === 0) return result
   // Product carousels ("you may also like") also emit Product nodes. When some
   // node identifies itself as this page, ignore the others.
-  const own = nodes.filter(node => samePage(str(node.url) ?? str(node['@id']), pageUrl))
-  if (own.length > 0) nodes = own
-  else nodes = nodes.slice(0, 1)
+  const own = allNodes.filter(node => samePage(str(node.url) ?? str(node['@id']), pageUrl))
+  let nodes = own.length > 0 ? own : allNodes.slice(0, 1)
   // ProductGroup first: its hasVariant entries carry per-variant names that a
   // sibling Product node's bare offers lack, and dedupe keeps the first title.
   nodes = [...nodes].sort((a, b) => Number(types(b).includes('productgroup')) - Number(types(a).includes('productgroup')))
@@ -383,7 +508,7 @@ function fromJsonLd(html: string, pageUrl: string): SourceResult {
   for (const node of nodes) {
     const name = str(node.name)
     const image = imageOf(node.image, pageUrl)
-    const sku = str(node.sku) ?? str(node.mpn)
+    const sku = str(node.sku) ?? str(node.mpn) ?? str(node.productID)
     result.name ??= name
     result.brand ??= nameOf(node.brand) ?? nameOf(node.manufacturer)
     result.sku ??= sku
@@ -392,37 +517,54 @@ function fromJsonLd(html: string, pageUrl: string): SourceResult {
     const variants = asArray(node.hasVariant)
     for (const variant of variants) {
       if (!isObject(variant)) continue
-      const variantName = stripGroupPrefix(str(variant.name), name)
       offersFromJsonLdOffer(variant.offers, {
-        title: variantName,
+        title: stripGroupPrefix(str(variant.name), name),
         sku: str(variant.sku) ?? str(variant.mpn),
         currency: null,
         image: imageOf(variant.image, pageUrl) ?? image,
-      }, pageUrl, result.offers, result.aggregate)
+        isVariant: true,
+      }, ctx, result.offers)
     }
     // Several offers on one Product are variants whose names the offers rarely
     // carry; leave the title empty so another source (Shopify) can supply it.
-    const single = variants.length === 0 && asArray(node.offers).length <= 1
-    offersFromJsonLdOffer(node.offers, {
+    const offers = asArray(node.offers)
+    const single = variants.length === 0 && offers.length <= 1
+    const before = result.offers.length
+    offersFromJsonLdOffer(offers, {
       title: single ? name : null,
       sku: single ? sku : null,
       currency: null,
       image,
-    }, pageUrl, result.offers, result.aggregate)
+      isVariant: false,
+    }, ctx, result.offers)
+    // Microdata often puts price straight on the Product with no Offer item.
+    if (result.offers.length === before && offers.length === 0 && variants.length === 0
+      && (node.price !== undefined || node.lowPrice !== undefined)) {
+      offersFromJsonLdOffer({ ...node, '@type': 'Offer', name: undefined }, {
+        title: name, sku, currency: null, image, isVariant: false,
+      }, ctx, result.offers)
+    }
   }
   result.offers = dedupeOffers(result.offers)
   result.currency = result.offers.find(o => o.currency)?.currency ?? null
+  result.currencyAmbiguous = result.offers.find(o => o.currency)?.currencyAmbiguous ?? false
   return result
 }
 
-/** Merge duplicates (same variant id, else same SKU+price) keeping the most complete fields. */
+function fromJsonLd(html: string, ctx: PageContext): SourceResult {
+  return fromProductNodes(productNodes(jsonLdBlocks(html)), ctx)
+}
+
+/** Merge duplicates (same variant id, else same SKU+price, else indistinguishable) keeping the most complete fields. */
 function dedupeOffers(offers: DraftOffer[]): DraftOffer[] {
   const out: DraftOffer[] = []
   for (const offer of offers) {
     const existing = out.find(other =>
       (offer.variantId && other.variantId === offer.variantId)
       || (!offer.variantId && !other.variantId && offer.url && other.url === offer.url && other.price === offer.price)
-      || (offer.sku && other.sku === offer.sku && other.price === offer.price && (!offer.variantId || !other.variantId)))
+      || (offer.sku && other.sku === offer.sku && other.price === offer.price && (!offer.variantId || !other.variantId))
+      || (!offer.variantId && !other.variantId && !offer.sku && !other.sku && other.price === offer.price
+        && (offer.title ?? null) === (other.title ?? null) && (!offer.url || !other.url)))
     if (!existing) {
       out.push({ ...offer })
       continue
@@ -433,6 +575,8 @@ function dedupeOffers(offers: DraftOffer[]): DraftOffer[] {
     existing.url ??= offer.url
     existing.image ??= offer.image
     existing.variantId ??= offer.variantId
+    existing.regularPrice ??= offer.regularPrice
+    existing.isVariant ||= offer.isVariant
     if (existing.availability === 'unknown') existing.availability = offer.availability
   }
   return out
@@ -468,14 +612,15 @@ export function looksLikeShopify(html: string | null | undefined): boolean {
   return /cdn\.shopify\.com|\/cdn\/shop\/|Shopify\.shop\s*=|<meta[^>]+name=["']shopify-|shopify-features|window\.ShopifyAnalytics/i.test(head)
 }
 
-function shopifyPageCurrency(html: string | null | undefined): string | null {
-  if (!html) return null
-  const match = html.match(/Shopify\.currency\s*=\s*\{[^}]*"active"\s*:\s*"([A-Z]{3})"/)
-  return match ? match[1] : null
+function shopifyCents(value: unknown, isJsShape: boolean): number | null {
+  if (typeof value === 'number') return Number.isFinite(value) && value >= 0 ? round2(value / 100) : null
+  if (isJsShape && typeof value === 'string' && /^\d+$/.test(value)) return round2(Number(value) / 100)
+  return parseStructuredPrice(value)
 }
 
-function fromShopify(raw: unknown, pageUrl: string, fallbackCurrency: string | null): SourceResult {
+function fromShopify(raw: unknown, ctx: PageContext, fallbackCurrency: string | null): SourceResult {
   const result = emptySource()
+  const pageUrl = ctx.pageUrl
   const product = isObject(raw) && isObject(raw.product) ? raw.product : raw
   if (!isObject(product)) return result
   const variants = asArray(product.variants).filter(isObject)
@@ -494,24 +639,24 @@ function fromShopify(raw: unknown, pageUrl: string, fallbackCurrency: string | n
   const singleDefault = variants.length === 1 && /^default title$/i.test(String(variants[0].title ?? ''))
 
   for (const variant of variants.slice(0, MAX_OFFERS)) {
-    const rawPrice = variant.price
-    const price = typeof rawPrice === 'number'
-      ? (Number.isFinite(rawPrice) && rawPrice >= 0 ? round2(rawPrice / 100) : null)
-      : isJsShape && typeof rawPrice === 'string' && /^\d+$/.test(rawPrice)
-        ? round2(Number(rawPrice) / 100)
-        : parsePrice(rawPrice)
+    const price = shopifyCents(variant.price, isJsShape)
     if (price === null) continue
+    const compareAt = shopifyCents(variant.compare_at_price, isJsShape)
     const id = variant.id !== undefined && variant.id !== null ? String(variant.id) : null
     const image = isObject(variant.featured_image) ? variant.featured_image.src : undefined
     result.offers.push({
       title: singleDefault ? result.name : str(variant.title) ?? str(variant.public_title) ?? result.name,
       price,
-      currency: detectCurrency(variant.price_currency) ?? fallbackCurrency,
+      regularPrice: compareAt !== null && compareAt > price ? compareAt : null,
+      currency: currencyOf(variant.price_currency, ctx).code ?? fallbackCurrency,
       availability: 'available' in variant ? normalizeAvailability(Boolean(variant.available)) : 'unknown',
       sku: str(variant.sku),
       url: id ? `${base}?variant=${encodeURIComponent(id)}` : base,
       image: absoluteUrl(typeof image === 'string' && image.startsWith('//') ? `https:${image}` : image, pageUrl),
       variantId: id,
+      isVariant: !singleDefault,
+      availabilityGuessed: false,
+      currencyAmbiguous: false,
     })
   }
   result.currency = result.offers.find(o => o.currency)?.currency ?? fallbackCurrency
@@ -519,8 +664,51 @@ function fromShopify(raw: unknown, pageUrl: string, fallbackCurrency: string | n
 }
 
 /* ------------------------------------------------------------------ */
-/* Meta tags                                                           */
+/* Platform data (WooCommerce, Magento, BigCommerce)                   */
 /* ------------------------------------------------------------------ */
+
+function fromPlatform(platform: PlatformResult): SourceResult {
+  const result = emptySource()
+  result.name = platform.name
+  result.sku = platform.sku
+  result.image = platform.image
+  result.currency = platform.currency
+  result.offers = platform.offers.map(offer => ({
+    title: offer.title,
+    price: offer.price,
+    regularPrice: offer.regularPrice,
+    currency: offer.currency,
+    availability: offer.availability,
+    sku: offer.sku,
+    url: offer.url,
+    image: offer.image,
+    variantId: offer.variantId,
+    isVariant: platform.source !== 'bigcommerce-bcdata' && platform.offers.length > 1,
+    availabilityGuessed: offer.availabilityGuessed === true,
+    currencyAmbiguous: false,
+  }))
+  return result
+}
+
+/* ------------------------------------------------------------------ */
+/* Microdata and meta tags                                             */
+/* ------------------------------------------------------------------ */
+
+/** A microdata item in schema.org JSON shape, so JSON-LD offer logic applies unchanged. */
+function microdataToNode(item: MicrodataItem, depth = 0): Record<string, unknown> {
+  const node: Record<string, unknown> = { '@type': item.types }
+  if (depth > MAX_NODE_DEPTH) return node
+  const camel: Record<string, string> = {
+    pricecurrency: 'priceCurrency', pricespecification: 'priceSpecification', pricetype: 'priceType',
+    lowprice: 'lowPrice', highprice: 'highPrice', offercount: 'offerCount', hasvariant: 'hasVariant',
+    validfrom: 'validFrom', validthrough: 'validThrough', productid: 'productID', pricecomponent: 'priceComponent',
+  }
+  for (const [name, values] of item.properties) {
+    const converted = values.map(v => typeof v === 'string' ? v : microdataToNode(v, depth + 1))
+    node[camel[name] ?? name] = converted.length === 1 ? converted[0] : converted
+  }
+  return node
+}
 
 function attributesOf(tag: string): Record<string, string> {
   const result: Record<string, string> = {}
@@ -530,56 +718,97 @@ function attributesOf(tag: string): Record<string, string> {
   return result
 }
 
-function fromMeta(html: string, pageUrl: string): { microdata: SourceResult; og: SourceResult } {
-  const og = new Map<string, string>()
+function fromMicrodata(html: string, ctx: PageContext): SourceResult {
+  const items = parseMicrodata(html)
+  let products = findMicrodataItems(items, 'product')
+  if (products.length === 0) products = findMicrodataItems(items, 'productgroup')
+  if (products.length > 0) {
+    const result = fromProductNodes(products.map(item => microdataToNode(item)), ctx)
+    if (result.offers.length > 0 || result.name) return result
+  }
+  const offers = findMicrodataItems(items, 'offer')
+  if (offers.length > 0) {
+    const result = emptySource()
+    offersFromJsonLdOffer(offers.map(item => microdataToNode(item)), {
+      title: null, sku: null, currency: null, image: null, isVariant: false,
+    }, ctx, result.offers)
+    result.offers = dedupeOffers(result.offers)
+    result.currency = result.offers.find(o => o.currency)?.currency ?? null
+    if (result.offers.length > 0) return result
+  }
+  return flatMicrodata(html, ctx)
+}
+
+/** Loose itemprop values with no itemscope tree at all: first value of each property wins. */
+function flatMicrodata(html: string, ctx: PageContext): SourceResult {
   const item = new Map<string, string>()
-  for (const match of html.matchAll(/<(meta|link|span|div|data|p|strong|b)\b[^>]*>/gi)) {
+  for (const match of html.matchAll(/<(meta|link|span|div|data|p|strong|b)\b[^>]*\bitemprop\b[^>]*>/gi)) {
     const attrs = attributesOf(match[0])
-    const property = (attrs.property || attrs.name || '').toLowerCase()
     const value = (attrs.content ?? attrs.href ?? attrs.value ?? '').trim()
-    if (property && value && match[1].toLowerCase() === 'meta' && !og.has(property)) og.set(property, value)
     const itemprop = (attrs.itemprop || '').toLowerCase()
     if (itemprop && value && !item.has(itemprop)) item.set(itemprop, value)
   }
+  const result = emptySource()
+  const price = parseStructuredPrice(item.get('price') ?? item.get('lowprice'), ctx.priceHint)
+  if (price === null) return result
+  const stated = currencyOf(item.get('pricecurrency'), ctx)
+  const fromText = stated.code ? stated : currencyOf(item.get('price'), ctx)
+  result.currency = fromText.code
+  result.currencyAmbiguous = fromText.ambiguous
+  result.name = item.get('name') ? str(item.get('name')) : null
+  result.sku = item.get('sku') ? str(item.get('sku')) : null
+  result.offers.push({
+    title: result.name,
+    price,
+    regularPrice: null,
+    currency: result.currency,
+    availability: normalizeAvailability(item.get('availability')),
+    sku: result.sku,
+    url: absoluteUrl(item.get('url'), ctx.pageUrl),
+    image: null,
+    variantId: null,
+    isVariant: false,
+    availabilityGuessed: false,
+    currencyAmbiguous: fromText.ambiguous,
+  })
+  return result
+}
 
-  const microdata = emptySource()
-  const microPrice = parsePrice(item.get('price') ?? item.get('lowprice'))
-  if (microPrice !== null) {
-    microdata.currency = detectCurrency(item.get('pricecurrency')) ?? detectCurrency(item.get('price'))
-    microdata.name = item.get('name') ? str(item.get('name')) : null
-    microdata.sku = item.get('sku') ? str(item.get('sku')) : null
-    microdata.offers.push({
-      title: microdata.name,
-      price: microPrice,
-      currency: microdata.currency,
-      availability: normalizeAvailability(item.get('availability')),
-      sku: microdata.sku,
-      url: absoluteUrl(item.get('url'), pageUrl),
-      image: null,
-      variantId: null,
-    })
+function fromOgMeta(html: string, ctx: PageContext): SourceResult {
+  const og = new Map<string, string>()
+  for (const match of html.matchAll(/<meta\b[^>]*>/gi)) {
+    const attrs = attributesOf(match[0])
+    const property = (attrs.property || attrs.name || '').toLowerCase()
+    const value = (attrs.content ?? '').trim()
+    if (property && value && !og.has(property)) og.set(property, value)
   }
-
-  const ogResult = emptySource()
+  const result = emptySource()
   const amount = og.get('product:price:amount') ?? og.get('og:price:amount') ?? og.get('product:sale_price:amount')
-  const ogPrice = parsePrice(amount)
-  ogResult.name = str(og.get('og:title'))
-  ogResult.image = absoluteUrl(og.get('og:image'), pageUrl)
-  ogResult.brand = str(og.get('product:brand') ?? og.get('og:brand'))
-  if (ogPrice !== null) {
-    ogResult.currency = detectCurrency(og.get('product:price:currency') ?? og.get('og:price:currency')) ?? detectCurrency(amount)
-    ogResult.offers.push({
-      title: ogResult.name,
-      price: ogPrice,
-      currency: ogResult.currency,
+  const price = parseStructuredPrice(amount, ctx.priceHint)
+  result.name = str(og.get('og:title'))
+  result.image = absoluteUrl(og.get('og:image'), ctx.pageUrl)
+  result.brand = str(og.get('product:brand') ?? og.get('og:brand'))
+  if (price !== null) {
+    const stated = currencyOf(og.get('product:price:currency') ?? og.get('og:price:currency'), ctx)
+    const currency = stated.code ? stated : currencyOf(amount, ctx)
+    result.currency = currency.code
+    result.currencyAmbiguous = currency.ambiguous
+    result.offers.push({
+      title: result.name,
+      price,
+      regularPrice: null,
+      currency: result.currency,
       availability: normalizeAvailability(og.get('product:availability') ?? og.get('og:availability')),
       sku: str(og.get('product:retailer_item_id')),
-      url: absoluteUrl(og.get('og:url'), pageUrl) ?? pageUrl,
-      image: ogResult.image,
+      url: absoluteUrl(og.get('og:url'), ctx.pageUrl) ?? ctx.pageUrl,
+      image: result.image,
       variantId: null,
+      isVariant: false,
+      availabilityGuessed: false,
+      currencyAmbiguous: currency.ambiguous,
     })
   }
-  return { microdata, og: ogResult }
+  return result
 }
 
 /* ------------------------------------------------------------------ */
@@ -588,25 +817,65 @@ function fromMeta(html: string, pageUrl: string): { microdata: SourceResult; og:
 
 function emptyExtraction(): ProductExtraction {
   return {
-    name: null, brand: null, sku: null, image: null, currency: null, offers: [], sources: [],
+    name: null, brand: null, sku: null, image: null, currency: null, currency_ambiguous: false, offers: [], sources: [],
     confidence: 0, price_range: null, extractor_version: PRODUCT_EXTRACTOR_VERSION,
   }
 }
 
-/** Fill a JSON-LD offer's missing title/availability/sku from the matching Shopify variant. */
+function titleKey(title: string | null): string | null {
+  return title ? title.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim() || null : null
+}
+
+/**
+ * Fill a primary offer's missing fields from the matching offer of another
+ * source: same variant id, else same SKU, else the same variant title; two
+ * single-offer sources describe the same thing. Never touches the price.
+ */
 function enrichFrom(primary: DraftOffer[], secondary: DraftOffer[]): boolean {
   let used = false
+  const single = primary.length === 1 && secondary.length === 1
   for (const offer of primary) {
-    const match = secondary.find(other =>
-      (offer.variantId && other.variantId === offer.variantId)
-      || (!offer.variantId && offer.sku && other.sku === offer.sku))
+    const match = secondary.find(other => offer.variantId && other.variantId === offer.variantId)
+      ?? secondary.find(other => offer.sku && other.sku === offer.sku)
+      ?? secondary.find(other => titleKey(offer.title) && titleKey(other.title) === titleKey(offer.title))
+      ?? (single ? secondary[0] : undefined)
     if (!match) continue
-    if ((!offer.title || offer.title === null) && match.title) { offer.title = match.title; used = true }
-    if (offer.availability === 'unknown' && match.availability !== 'unknown') { offer.availability = match.availability; used = true }
+    if (!offer.title && match.title) { offer.title = match.title; used = true }
+    if ((offer.availability === 'unknown' || offer.availabilityGuessed)
+      && match.availability !== 'unknown' && !match.availabilityGuessed) {
+      offer.availability = match.availability
+      offer.availabilityGuessed = false
+      used = true
+    } else if (offer.availability === 'unknown' && match.availability !== 'unknown') {
+      offer.availability = match.availability
+      offer.availabilityGuessed = match.availabilityGuessed
+      used = true
+    }
     if (!offer.sku && match.sku) { offer.sku = match.sku; used = true }
     if (!offer.image && match.image) { offer.image = match.image; used = true }
+    if (offer.regularPrice === null && match.regularPrice !== null && match.regularPrice > offer.price
+      && match.price === offer.price) { offer.regularPrice = match.regularPrice; used = true }
+    if (!offer.currency && match.currency) {
+      offer.currency = match.currency
+      offer.currencyAmbiguous = match.currencyAmbiguous
+      used = true
+    }
   }
   return used
+}
+
+/**
+ * A product-level offer listed beside its own variants ("from $2.00", no stock,
+ * no variant id) is a summary, not something to buy: drop it.
+ */
+function dropParentOffer(offers: DraftOffer[], productSku: string | null): DraftOffer[] {
+  const variants = offers.filter(o => o.variantId || o.isVariant)
+  if (variants.length < 2) return offers
+  const low = Math.min(...variants.map(o => o.price))
+  const high = Math.max(...variants.map(o => o.price))
+  return offers.filter(o => o.variantId || o.isVariant
+    || !(o.price >= low && o.price <= high && (o.availability === 'unknown' || o.aggregate)
+      && (!o.sku || o.sku === productSku)))
 }
 
 export function extractProduct(input: ProductExtractionInput): ProductExtraction {
@@ -622,36 +891,68 @@ function extractProductUnsafe(input: ProductExtractionInput): ProductExtraction 
   const html = typeof input?.html === 'string' ? input.html : ''
   const result = emptyExtraction()
 
-  const jsonLd = html ? fromJsonLd(html, pageUrl) : emptySource()
-  const { microdata, og } = html ? fromMeta(html, pageUrl) : { microdata: emptySource(), og: emptySource() }
-  const pageCurrency = jsonLd.currency ?? og.currency ?? microdata.currency ?? shopifyPageCurrency(html)
+  const platforms: PlatformResult[] = [
+    fromWooVariations(html, pageUrl),
+    fromMagentoSpConfig(html, pageUrl),
+    input?.wooStoreApi ? fromWooStoreApi(input.wooStoreApi.product, input.wooStoreApi.variations, pageUrl) : null,
+    input?.magentoGraphql ? fromMagentoGraphql(input.magentoGraphql, pageUrl) : null,
+    fromBigCommerceBCData(html, pageUrl),
+  ].filter((p): p is PlatformResult => p !== null)
+  const ctx = pageContext(html, pageUrl, platforms)
+
+  const jsonLd = html ? fromJsonLd(html, ctx) : emptySource()
+  const microdata = html ? fromMicrodata(html, ctx) : emptySource()
+  const og = html ? fromOgMeta(html, ctx) : emptySource()
+  const statedCode = ctx.currencyHint.code ?? null
+  const symbol = wooPageCurrencySymbol(html) ?? platforms.find(p => p.currencySymbol)?.currencySymbol ?? null
+  const symbolCurrency = !statedCode && symbol ? currencyOf(symbol, ctx) : null
+  const pageCurrency = jsonLd.currency ?? og.currency ?? microdata.currency ?? statedCode ?? symbolCurrency?.code ?? null
+  const pageCurrencyAmbiguous = jsonLd.currency ? jsonLd.currencyAmbiguous
+    : og.currency ? og.currencyAmbiguous
+      : microdata.currency ? microdata.currencyAmbiguous
+        : statedCode ? false : symbolCurrency?.ambiguous ?? false
   const shopify = input?.shopifyJson !== undefined && input?.shopifyJson !== null
-    ? fromShopify(input.shopifyJson, pageUrl, pageCurrency)
+    ? fromShopify(input.shopifyJson, ctx, pageCurrency)
     : emptySource()
 
+  const bySource = new Map<ProductSource, SourceResult>([
+    ['json-ld', jsonLd],
+    ['shopify', shopify],
+    ...platforms.map(p => [p.source, fromPlatform(p)] as [ProductSource, SourceResult]),
+    ['microdata-meta', microdata],
+    ['og-meta', og],
+  ])
+  const ordered = SOURCE_ORDER.map(source => [source, bySource.get(source) ?? emptySource()] as const)
+
   const sources = new Set<ProductSource>()
+  let primaryIndex = ordered.findIndex(([, data]) => data.offers.length > 0)
+  if (primaryIndex >= 0 && ordered[primaryIndex][1].offers.length <= 1) {
+    const variantSource = ordered.findIndex(([source, data]) => VARIANT_SOURCES.has(source) && data.offers.length > 1)
+    if (variantSource >= 0) primaryIndex = variantSource
+  }
   let offers: DraftOffer[] = []
-  if (jsonLd.offers.length > 0) {
-    offers = jsonLd.offers
-    sources.add('json-ld')
-    // Shopify knows variant titles that some themes leave out of JSON-LD.
-    if (shopify.offers.length > 0 && enrichFrom(offers, shopify.offers)) sources.add('shopify')
-  } else if (shopify.offers.length > 0) {
-    offers = shopify.offers
-    sources.add('shopify')
-  } else if (microdata.offers.length > 0) {
-    offers = microdata.offers
-    sources.add('microdata-meta')
-  } else if (og.offers.length > 0) {
-    offers = og.offers
-    sources.add('og-meta')
+  if (primaryIndex >= 0) {
+    const [primarySource, primary] = ordered[primaryIndex]
+    // Drop the product-level summary offer before enrichment can give it stock.
+    offers = dropParentOffer(primary.offers.map(offer => ({ ...offer })), primary.sku)
+    sources.add(primarySource)
+    for (const [source, data] of ordered) {
+      if (source === primarySource || data.offers.length === 0) continue
+      if (enrichFrom(offers, data.offers)) sources.add(source)
+    }
+    // BigCommerce themes mark the unselected default "OutOfStock" in schema
+    // data while BCData says the product is in stock: trust BCData.
+    const bc = bySource.get('bigcommerce-bcdata')
+    if (bc && bc.offers.length === 1 && offers.length === 1 && primarySource !== 'bigcommerce-bcdata'
+      && bc.offers[0].availability === 'in_stock' && offers[0].availability === 'out_of_stock'
+      && bc.offers[0].price === offers[0].price) {
+      offers[0].availability = 'in_stock'
+      sources.add('bigcommerce-bcdata')
+    }
   }
 
-  const order: Array<[ProductSource, SourceResult]> = [
-    ['json-ld', jsonLd], ['shopify', shopify], ['microdata-meta', microdata], ['og-meta', og],
-  ]
   const pick = <K extends 'name' | 'brand' | 'sku' | 'image'>(key: K): string | null => {
-    for (const [source, data] of order) {
+    for (const [source, data] of ordered) {
       if (data[key]) {
         sources.add(source)
         return data[key]
@@ -664,10 +965,13 @@ function extractProductUnsafe(input: ProductExtractionInput): ProductExtraction 
   result.sku = pick('sku')
   result.image = pick('image')
 
-  const currency = offers.find(o => o.currency)?.currency ?? pageCurrency
+  const firstWithCurrency = offers.find(o => o.currency)
+  const currency = firstWithCurrency?.currency ?? pageCurrency
+  const currencyAmbiguous = firstWithCurrency ? firstWithCurrency.currencyAmbiguous : pageCurrencyAmbiguous
   result.offers = offers.slice(0, MAX_OFFERS).map(offer => {
     const clean: ProductOffer = {
       price: offer.price,
+      ...(offer.regularPrice !== null && offer.regularPrice > offer.price ? { regular_price: offer.regularPrice } : {}),
       availability: offer.availability,
       sku: offer.sku,
       url: offer.url,
@@ -679,11 +983,12 @@ function extractProductUnsafe(input: ProductExtractionInput): ProductExtraction 
     return clean
   })
   result.currency = currency ?? null
-  result.sources = (['json-ld', 'shopify', 'microdata-meta', 'og-meta'] as ProductSource[]).filter(s => sources.has(s))
+  result.currency_ambiguous = result.currency ? currencyAmbiguous : false
+  result.sources = SOURCE_ORDER.filter(s => sources.has(s))
 
   if (result.offers.length > 0) {
     const prices = result.offers.map(o => o.price)
-    const aggregateHigh = jsonLd.aggregate.map(a => a.high).filter((v): v is number => v !== null)
+    const aggregateHigh = result.offers.map(o => o.aggregate?.high_price ?? null).filter((v): v is number => v !== null)
     result.price_range = {
       low: Math.min(...prices),
       high: Math.max(...prices, ...aggregateHigh),
@@ -694,12 +999,18 @@ function extractProductUnsafe(input: ProductExtractionInput): ProductExtraction 
   return result
 }
 
+const STRUCTURED_SOURCES = new Set<ProductSource>([
+  'json-ld', 'shopify', 'woo-variations', 'magento-spconfig', 'woo-store-api', 'magento-graphql',
+])
+
 function scoreConfidence(result: ProductExtraction): number {
   if (result.offers.length === 0) return 0
-  let score = result.sources.includes('json-ld') || result.sources.includes('shopify') ? 0.7
-    : result.sources.includes('microdata-meta') ? 0.5 : 0.4
-  if (result.sources.includes('json-ld') && result.sources.includes('shopify')) score += 0.1
-  if (result.currency) score += 0.1
+  const structured = result.sources.filter(s => STRUCTURED_SOURCES.has(s))
+  let score = structured.length > 0 ? 0.7
+    : result.sources.includes('bigcommerce-bcdata') ? 0.6
+      : result.sources.includes('microdata-meta') ? 0.5 : 0.4
+  if (structured.length > 1) score += 0.1
+  if (result.currency && !result.currency_ambiguous) score += 0.1
   if (result.offers.some(o => o.availability !== 'unknown')) score += 0.05
   if (result.name) score += 0.05
   return Math.min(1, Math.round(score * 100) / 100)
