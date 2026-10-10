@@ -17,8 +17,17 @@ import {
   matchOfferWithScore,
   shopifyProductJsUrl,
   type ProductExtraction,
+  type ProductExtractionInput,
   type ProductOffer,
 } from './_shared/product-extractor'
+import {
+  fromWooVariations,
+  looksLikeMagento,
+  looksLikeWooCommerce,
+  magentoGraphqlUrl,
+  wooProductId,
+  wooStoreApiUrls,
+} from './_shared/product-platforms'
 
 interface ScrapingRequest {
   url: string
@@ -40,11 +49,25 @@ export interface SuppliedProductContent {
   bytes: number
 }
 
+/**
+ * Product mode identifies itself honestly instead of borrowing a browser's
+ * identity: stores that block automated access get to see that they are
+ * blocking it. The URL explains what the agent does and how to reach us.
+ */
+export const PRODUCT_BOT_USER_AGENT = 'ResearchTools/1.0 (+https://researchtools.net/bot)'
+const HTML_ACCEPT = 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+const JSON_ACCEPT = 'application/json, text/javascript, */*;q=0.1'
+
+export function productFetchHeaders(accept: string = HTML_ACCEPT): Record<string, string> {
+  return { 'User-Agent': PRODUCT_BOT_USER_AGENT, Accept: accept }
+}
+
 export interface ProductScrapeResult {
   success: true
   url: string
   domain: string
-  content_source: 'fetched' | 'supplied'
+  /** `rendered`: the static page had no offers and a headless render of it did (PRODUCT_BROWSER_FALLBACK). */
+  content_source: 'fetched' | 'supplied' | 'rendered'
   product: ProductExtraction
   matched_offer?: (ProductOffer & { match_score: number; ambiguous_same_price: boolean }) | null
   extracted_at: string
@@ -134,9 +157,17 @@ interface ScrapingResult {
   extracted_at: string
 }
 
+/** The `researchtools-browser-renderer` service binding (workers/browser-renderer). */
+export interface BrowserRendererBinding {
+  fetch(input: string, init?: RequestInit): Promise<Response>
+}
+
 type WebScraperEnv = Parameters<typeof getUserFromRequest>[1] & {
   SCRAPE_ANALYTICS?: AnalyticsEngineLike
   SCRAPE_TELEMETRY_KEY?: string
+  BROWSER_RENDERER?: BrowserRendererBinding
+  /** "1" lets product mode render a 2xx page that yielded no offers. Off by default: it costs browser time. */
+  PRODUCT_BROWSER_FALLBACK?: string
 }
 
 interface WebScraperContext {
@@ -320,26 +351,26 @@ function productExecution(result: ProductScrapeResult) {
 }
 
 /**
- * Shopify publishes per-variant titles, prices (cents) and availability at
- * `<product-url>.js`. Best effort: any failure leaves extraction to the HTML.
+ * GET a JSON document from the storefront that served the page. Same hostname
+ * only, 10 s, 2 MiB, at most 3 redirects, honest identity. Best effort: any
+ * failure is recorded and returns null, leaving extraction to the HTML.
  */
-export async function fetchShopifyProductJson(
-  html: string,
+export async function fetchSameHostJson(
+  jsonUrl: string,
   pageUrl: URL,
   recordAttempt: RecordWebScrapeAttempt,
   fetchText: typeof safeFetchText = safeFetchText,
-): Promise<Record<string, unknown> | null> {
-  const jsUrl = looksLikeShopify(html) ? shopifyProductJsUrl(pageUrl.href) : null
-  if (!jsUrl) return null
+): Promise<unknown> {
   const startedAt = Date.now()
   try {
-    const fetched = await fetchText(jsUrl, {
+    if (new URL(jsonUrl).hostname !== pageUrl.hostname) return null
+    const fetched = await fetchText(jsonUrl, {
       timeoutMs: 10_000,
       maxRedirects: 3,
       maxResponseBytes: 2 * 1024 * 1024,
       // Product JSON is only trusted from the storefront that served the page.
       allowedHostnames: [pageUrl.hostname],
-      requestInit: { headers: { ...getRandomProfile().headers, Accept: 'application/json, text/javascript, */*;q=0.1' } },
+      requestInit: { method: 'GET', headers: productFetchHeaders(JSON_ACCEPT) },
     })
     const ok = fetched.response.ok
     let parsed: unknown = null
@@ -350,7 +381,7 @@ export async function fetchShopifyProductJson(
         parsed = null
       }
     }
-    const usable = typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)
+    const usable = typeof parsed === 'object' && parsed !== null
     recordAttempt({
       stage: 'fetch',
       strategy: 'direct',
@@ -366,7 +397,7 @@ export async function fetchShopifyProductJson(
       durationMs: Date.now() - startedAt,
       responseBytes: fetched.bytesRead,
     })
-    return usable ? parsed as Record<string, unknown> : null
+    return usable ? parsed : null
   } catch (error) {
     recordAttempt({
       stage: 'fetch',
@@ -374,6 +405,124 @@ export async function fetchShopifyProductJson(
       provider: 'none',
       outcome: 'failed',
       errorCode: normalizeWebScrapeError(error),
+      durationMs: Date.now() - startedAt,
+    })
+    return null
+  }
+}
+
+/**
+ * Shopify publishes per-variant titles, prices (cents) and availability at
+ * `<product-url>.js`. Best effort: any failure leaves extraction to the HTML.
+ */
+export async function fetchShopifyProductJson(
+  html: string,
+  pageUrl: URL,
+  recordAttempt: RecordWebScrapeAttempt,
+  fetchText: typeof safeFetchText = safeFetchText,
+): Promise<Record<string, unknown> | null> {
+  const jsUrl = looksLikeShopify(html) ? shopifyProductJsUrl(pageUrl.href) : null
+  if (!jsUrl) return null
+  const parsed = await fetchSameHostJson(jsUrl, pageUrl, recordAttempt, fetchText)
+  return typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed) ? parsed as Record<string, unknown> : null
+}
+
+/**
+ * WooCommerce Store API (public, read-only): the product, and for a variable
+ * product its variations in one listing call. Prices are minor units. Fetched
+ * only when the page itself did not already give per-variant prices and stock.
+ */
+export async function fetchWooStoreApi(
+  html: string,
+  pageUrl: URL,
+  staticProduct: ProductExtraction,
+  recordAttempt: RecordWebScrapeAttempt,
+  fetchText: typeof safeFetchText = safeFetchText,
+): Promise<NonNullable<ProductExtractionInput['wooStoreApi']> | null> {
+  if (!looksLikeWooCommerce(html)) return null
+  const deferred = fromWooVariations(html, pageUrl.href).deferred
+  const complete = staticProduct.offers.length > 0 && staticProduct.offers.every(o => o.availability !== 'unknown')
+  if (complete && !deferred) return null
+  const id = wooProductId(html)
+  const urls = id ? wooStoreApiUrls(pageUrl.href, id) : null
+  if (!urls) return null
+  const product = await fetchSameHostJson(urls.product, pageUrl, recordAttempt, fetchText)
+  if (typeof product !== 'object' || product === null || Array.isArray(product)) return null
+  const record = product as Record<string, unknown>
+  const variations = record.type === 'variable' && Array.isArray(record.variations) && record.variations.length > 0
+    ? await fetchSameHostJson(urls.variations, pageUrl, recordAttempt, fetchText)
+    : null
+  return { product, variations: Array.isArray(variations) ? variations : null }
+}
+
+/**
+ * Magento 2 GraphQL GET (cacheable, read-only) by url_key: child SKUs, prices
+ * and stock for a configurable product. Many stores disable it; best effort.
+ */
+export async function fetchMagentoGraphql(
+  html: string,
+  pageUrl: URL,
+  staticProduct: ProductExtraction,
+  recordAttempt: RecordWebScrapeAttempt,
+  fetchText: typeof safeFetchText = safeFetchText,
+): Promise<unknown> {
+  if (!looksLikeMagento(html)) return null
+  const complete = staticProduct.offers.length > 0
+    && staticProduct.offers.every(o => o.sku && o.availability !== 'unknown')
+    && !staticProduct.sources.includes('magento-spconfig')
+  if (complete) return null
+  const url = magentoGraphqlUrl(pageUrl.href)
+  if (!url) return null
+  const parsed = await fetchSameHostJson(url, pageUrl, recordAttempt, fetchText)
+  return typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed) ? parsed : null
+}
+
+/** A bot-management interstitial, which a headless render would only hit again. */
+export function looksLikeChallengePage(html: string): boolean {
+  const head = html.slice(0, 50_000)
+  return /<title>\s*(?:Just a moment|Attention Required|Access denied|Please Wait)/i.test(head)
+    || /cf-chl-|challenge-platform|_Incapsula_Resource|px-captcha|datadome/i.test(head)
+}
+
+/**
+ * Render the page with the browser-renderer Worker (Cloudflare Browser Run,
+ * `content` quick action) and return its HTML. Never used on a challenge page:
+ * Browser Run identifies itself and does not get past bot protection.
+ */
+export async function renderProductHtml(
+  renderer: BrowserRendererBinding,
+  pageUrl: URL,
+  recordAttempt: RecordWebScrapeAttempt,
+): Promise<string | null> {
+  const startedAt = Date.now()
+  try {
+    const response = await renderer.fetch('https://browser-renderer.internal/render', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: pageUrl.href, mode: 'html' }),
+      signal: AbortSignal.timeout(45_000),
+    })
+    const payload = response.ok ? await response.json().catch(() => null) as { html?: unknown } | null : null
+    const html = typeof payload?.html === 'string' ? payload.html.slice(0, 2 * 1024 * 1024) : null
+    recordAttempt({
+      stage: 'render',
+      strategy: 'browser-renderer',
+      provider: 'browser-renderer',
+      outcome: html ? 'succeeded' : 'failed',
+      ...(html ? {} : { errorCode: 'render_failed' as const }),
+      httpStatusClass: scrapeHttpStatusClass(response.status),
+      contentTypeClass: html ? 'html' : 'unknown',
+      durationMs: Date.now() - startedAt,
+      ...(html ? { responseBytes: new TextEncoder().encode(html).byteLength } : {}),
+    })
+    return html
+  } catch {
+    recordAttempt({
+      stage: 'render',
+      strategy: 'browser-renderer',
+      provider: 'browser-renderer',
+      outcome: 'failed',
+      errorCode: 'render_failed',
       durationMs: Date.now() - startedAt,
     })
     return null
@@ -527,7 +676,8 @@ export async function onRequest(context: WebScraperContext) {
           timeoutMs: 15_000,
           maxRedirects: 5,
           maxResponseBytes: 2 * 1024 * 1024,
-          requestInit: { headers: getRandomProfile().headers },
+          // Product mode: honest identity. Other modes keep the browser profile for now.
+          requestInit: { headers: extractMode === 'product' ? productFetchHeaders() : getRandomProfile().headers },
         })
         response = fetched.response
         html = fetched.text
@@ -617,7 +767,13 @@ export async function onRequest(context: WebScraperContext) {
       if (extractMode === 'product') {
         const shopifyJson = await fetchShopifyProductJson(html, finalUrl, recordAttempt)
         const extractionStartedAt = Date.now()
-        const product = extractProduct({ html, shopifyJson, url: finalUrl.href })
+        let product = extractProduct({ html, shopifyJson, url: finalUrl.href })
+        // Second same-host GETs, only where the page left variants or stock out.
+        const wooStoreApi = await fetchWooStoreApi(html, finalUrl, product, recordAttempt)
+        const magentoGraphql = await fetchMagentoGraphql(html, finalUrl, product, recordAttempt)
+        if (wooStoreApi || magentoGraphql) {
+          product = extractProduct({ html, shopifyJson, wooStoreApi, magentoGraphql, url: finalUrl.href })
+        }
         recordAttempt({
           stage: 'extract',
           strategy: 'direct',
@@ -628,7 +784,30 @@ export async function onRequest(context: WebScraperContext) {
           durationMs: Date.now() - extractionStartedAt,
           itemsRead: product.offers.length,
         })
-        return productExecution(buildProductScrapeResult(finalUrl.href, product, 'fetched', body.match))
+        let contentSource: ProductScrapeResult['content_source'] = 'fetched'
+        if (product.offers.length === 0 && env.PRODUCT_BROWSER_FALLBACK === '1' && env.BROWSER_RENDERER
+          && !looksLikeChallengePage(html)) {
+          const rendered = await renderProductHtml(env.BROWSER_RENDERER, finalUrl, recordAttempt)
+          if (rendered) {
+            const renderedStartedAt = Date.now()
+            const renderedProduct = extractProduct({ html: rendered, url: finalUrl.href })
+            recordAttempt({
+              stage: 'extract',
+              strategy: 'browser-renderer',
+              provider: 'browser-renderer',
+              outcome: renderedProduct.offers.length > 0 ? 'succeeded' : 'failed',
+              ...(renderedProduct.offers.length > 0 ? {} : { errorCode: 'extract_failed' as const }),
+              contentTypeClass: 'html',
+              durationMs: Date.now() - renderedStartedAt,
+              itemsRead: renderedProduct.offers.length,
+            })
+            if (renderedProduct.offers.length > 0) {
+              product = renderedProduct
+              contentSource = 'rendered'
+            }
+          }
+        }
+        return productExecution(buildProductScrapeResult(finalUrl.href, product, contentSource, body.match))
       }
 
       const extractionStartedAt = Date.now()

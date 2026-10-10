@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { expect, test } from '@playwright/test'
-import { onRequest } from '../../../functions/api/web-scraper'
+import { PRODUCT_BOT_USER_AGENT, fetchSameHostJson, onRequest } from '../../../functions/api/web-scraper'
 
 const fixtures = resolve(process.cwd(), 'tests/fixtures/product-pages')
 const holybroHtml = readFileSync(resolve(fixtures, 'holybro-x500-v2-spares.html'), 'utf8')
@@ -10,14 +10,18 @@ const HOLYBRO_URL = 'https://holybro.com/products/spare-parts-x500-v2-kit'
 
 const env = { SESSIONS: { get: async () => JSON.stringify({ user_id: 42 }) } }
 
-function post(body: unknown, headers: Record<string, string> = { Authorization: 'Bearer test-session' }) {
+function post(
+  body: unknown,
+  headers: Record<string, string> = { Authorization: 'Bearer test-session' },
+  extraEnv: Record<string, unknown> = {},
+) {
   return onRequest({
     request: new Request('https://researchtools.test/api/web-scraper', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...headers },
       body: JSON.stringify(body),
     }),
-    env,
+    env: { ...env, ...extraEnv },
   } as never)
 }
 
@@ -27,11 +31,16 @@ type Payload = Record<string, any>
 
 type Route = (url: URL) => Response | Promise<Response>
 
+/** User-Agent of every non-DNS outbound request, in order. */
+const userAgents: string[] = []
+
 async function withFetch<T>(route: Route, run: (requested: string[]) => Promise<T>): Promise<T> {
   const originalFetch = globalThis.fetch
   const requested: string[] = []
-  globalThis.fetch = (async (input: RequestInfo | URL) => {
+  userAgents.length = 0
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = new URL(input instanceof Request ? input.url : String(input))
+    const headers = new Headers(init?.headers ?? (input instanceof Request ? input.headers : undefined))
     if (url.hostname === 'cloudflare-dns.com' || url.hostname === 'dns.google') {
       const ipv6 = url.searchParams.get('type') === 'AAAA'
       return Response.json({
@@ -40,6 +49,7 @@ async function withFetch<T>(route: Route, run: (requested: string[]) => Promise<
       })
     }
     requested.push(url.href)
+    userAgents.push(headers.get('User-Agent') ?? '')
     return route(url)
   }) as typeof fetch
   try {
@@ -175,5 +185,148 @@ test.describe('web scraper product mode @smoke', () => {
   test('@smoke product mode still requires authentication', async () => {
     const response = await post({ url: HOLYBRO_URL, extract_mode: 'product', content: { html: holybroHtml } }, {})
     expect(response.status).toBe(401)
+  })
+})
+
+const fixtureText = (name: string) => readFileSync(resolve(fixtures, name), 'utf8')
+const FLYINGTECH_URL = 'https://www.flyingtech.co.uk/product/speedybee-mario-5-5%e2%80%b3-fpv-frame-kit-dc-xh-lite-advanced/'
+const HORUS_URL = 'https://www.horusrc.com/vantac-f722-f405-flight-controller.html'
+const html = (body: string) => new Response(body, { headers: { 'Content-Type': 'text/html; charset=utf-8' } })
+const json = (body: string) => new Response(body, { headers: { 'Content-Type': 'application/json' } })
+
+test.describe('web scraper product mode v2 @smoke', () => {
+  test.describe.configure({ mode: 'serial' })
+
+  test('@smoke product mode sends an honest user agent; metadata mode is unchanged', async () => {
+    await withFetch(url => url.pathname.endsWith('.js') ? json(holybroJs) : html(holybroHtml), async () => {
+      await post({ url: HOLYBRO_URL, extract_mode: 'product' })
+      expect(userAgents).toEqual([PRODUCT_BOT_USER_AGENT, PRODUCT_BOT_USER_AGENT])
+      expect(PRODUCT_BOT_USER_AGENT).toBe('ResearchTools/1.0 (+https://researchtools.net/bot)')
+    })
+    await withFetch(() => html('<html><head><title>Article</title></head><body><p>Text</p></body></html>'), async () => {
+      await post({ url: 'https://news.example/story', extract_mode: 'metadata' })
+      expect(userAgents).toHaveLength(1)
+      expect(userAgents[0]).toMatch(/^Mozilla\/5\.0/)
+    })
+  })
+
+  test('@smoke a WooCommerce page with complete variations makes one request', async () => {
+    await withFetch(() => html(fixtureText('flyingtech-mario5-frame.html')), async requested => {
+      const payload = await (await post({ url: FLYINGTECH_URL, extract_mode: 'product', match: 'XH Advanced' })).json() as Payload
+      expect(requested).toEqual([FLYINGTECH_URL])
+      expect(payload.matched_offer).toMatchObject({ title: 'XH – Advanced', price: 57.9, currency: 'GBP', availability: 'out_of_stock' })
+    })
+  })
+
+  test('@smoke deferred WooCommerce variations come from the Store API (two same-host GETs)', async () => {
+    const page = fixtureText('flyingtech-mario5-frame.html')
+      .replace(/<script type="application\/ld\+json"[\s\S]*?<\/script>/g, '')
+      .replace(/data-product_variations="[^"]*"/, 'data-product_variations="false"')
+    await withFetch(url => {
+      if (url.pathname === '/wp-json/wc/store/v1/products/120272') return json(fixtureText('flyingtech-mario5-frame.store-api.json'))
+      if (url.pathname === '/wp-json/wc/store/v1/products') return json(fixtureText('flyingtech-mario5-frame.store-api-variations.json'))
+      return html(page)
+    }, async requested => {
+      const payload = await (await post({ url: FLYINGTECH_URL, extract_mode: 'product', match: 'DC Lite' })).json() as Payload
+      expect(requested).toEqual([
+        FLYINGTECH_URL,
+        'https://www.flyingtech.co.uk/wp-json/wc/store/v1/products/120272',
+        'https://www.flyingtech.co.uk/wp-json/wc/store/v1/products?type=variation&parent=120272&per_page=100',
+      ])
+      expect(userAgents.every(ua => ua === PRODUCT_BOT_USER_AGENT)).toBe(true)
+      expect(payload.product.sources[0]).toBe('woo-store-api')
+      expect(payload.product.offers).toHaveLength(4)
+      expect(payload.matched_offer).toMatchObject({ title: 'DC (Deadcat) – Lite', price: 52.9, currency: 'GBP', sku: 'SB-MARIO5-FRAME-DC-LITE' })
+    })
+  })
+
+  test('@smoke Magento pages ask GraphQL for child SKUs and stock; a 404 falls back to spConfig', async () => {
+    const graphql = fixtureText('horusrc-vantac-f722-f405.graphql.json')
+    await withFetch(url => url.pathname === '/graphql' ? json(graphql) : html(fixtureText('horusrc-vantac-f722-f405.html')), async requested => {
+      const payload = await (await post({ url: HORUS_URL, extract_mode: 'product', match: 'F722' })).json() as Payload
+      expect(requested).toHaveLength(2)
+      const query = new URL(requested[1])
+      expect(query.origin + query.pathname).toBe('https://www.horusrc.com/graphql')
+      expect(query.searchParams.get('query')).toContain('url_key:{eq:"vantac-f722-f405-flight-controller"}')
+      expect(payload.product.sources).toEqual(expect.arrayContaining(['magento-spconfig', 'magento-graphql']))
+      expect(payload.matched_offer).toMatchObject({ title: 'F722', price: 34.99, sku: '03060110', availability: 'in_stock' })
+    })
+    await withFetch(url => url.pathname === '/graphql'
+      ? new Response('Not Found', { status: 404, headers: { 'Content-Type': 'text/html' } })
+      : html(fixtureText('horusrc-vantac-f722-f405.html')), async () => {
+      const payload = await (await post({ url: HORUS_URL, extract_mode: 'product', match: 'F722' })).json() as Payload
+      expect(payload.product.sources).not.toContain('magento-graphql')
+      expect(payload.matched_offer).toMatchObject({ title: 'F722', price: 34.99, sku: null })
+    })
+  })
+
+  test('@smoke platform JSON is never fetched from another hostname', async () => {
+    await withFetch(() => { throw new Error('must not fetch') }, async requested => {
+      const attempts: unknown[] = []
+      const result = await fetchSameHostJson('https://evil.example/wp-json/x', new URL(FLYINGTECH_URL), a => { attempts.push(a) })
+      expect(result).toBeNull()
+      expect(requested).toEqual([])
+    })
+  })
+
+  const shell = '<html><head><title>Shop</title></head><body><div id="app"></div><script src="/app.js"></script></body></html>'
+  const renderedPage = '<html><body>' + '<p>rendered</p>'.repeat(20)
+    + '<script type="application/ld+json">{"@type":"Product","name":"SPA Motor","offers":{"price":"21.50","priceCurrency":"EUR","availability":"InStock"}}</script></body></html>'
+
+  test('@smoke the browser fallback is off unless PRODUCT_BROWSER_FALLBACK=1', async () => {
+    let renders = 0
+    const BROWSER_RENDERER = { fetch: async () => { renders++; return Response.json({ html: renderedPage }) } }
+    await withFetch(() => html(shell), async () => {
+      const payload = await (await post({ url: 'https://spa.example/p/motor', extract_mode: 'product' }, undefined, { BROWSER_RENDERER })).json() as Payload
+      expect(renders).toBe(0)
+      expect(payload).toMatchObject({ content_source: 'fetched', product: { offers: [] } })
+    })
+  })
+
+  test('@smoke an empty 2xx page is rendered and re-extracted when the fallback is on', async () => {
+    const calls: Array<{ url: string; body: unknown }> = []
+    const BROWSER_RENDERER = {
+      fetch: async (url: string, init?: RequestInit) => {
+        calls.push({ url, body: JSON.parse(String(init?.body)) })
+        return Response.json({ html: renderedPage, source: 'cloudflare-browser-run' })
+      },
+    }
+    await withFetch(() => html(shell), async requested => {
+      const payload = await (await post(
+        { url: 'https://spa.example/p/motor', extract_mode: 'product' },
+        undefined,
+        { BROWSER_RENDERER, PRODUCT_BROWSER_FALLBACK: '1' },
+      )).json() as Payload
+      expect(requested).toEqual(['https://spa.example/p/motor'])
+      expect(calls).toEqual([{ url: expect.any(String), body: { url: 'https://spa.example/p/motor', mode: 'html' } }])
+      expect(payload.content_source).toBe('rendered')
+      expect(payload.product.offers[0]).toMatchObject({ title: 'SPA Motor', price: 21.5, currency: 'EUR', availability: 'in_stock' })
+    })
+  })
+
+  test('@smoke challenge pages and pages with offers are never rendered', async () => {
+    let renders = 0
+    const BROWSER_RENDERER = { fetch: async () => { renders++; return Response.json({ html: renderedPage }) } }
+    const extraEnv = { BROWSER_RENDERER, PRODUCT_BROWSER_FALLBACK: '1' }
+    await withFetch(() => html('<html><head><title>Just a moment...</title></head><body>cf-chl</body></html>'), async () => {
+      const payload = await (await post({ url: 'https://walled.example/p/x', extract_mode: 'product' }, undefined, extraEnv)).json() as Payload
+      expect(payload.content_source).toBe('fetched')
+    })
+    await withFetch(() => html('<script type="application/ld+json">{"@type":"Product","name":"Nano RX","offers":{"price":"29.95","priceCurrency":"USD"}}</script>'), async () => {
+      await post({ url: 'https://shop.example/products/nano', extract_mode: 'product' }, undefined, extraEnv)
+    })
+    expect(renders).toBe(0)
+  })
+
+  test('@smoke a failed render keeps the static result', async () => {
+    const BROWSER_RENDERER = { fetch: async () => Response.json({ error: 'Browser rendering failed' }, { status: 502 }) }
+    await withFetch(() => html(shell), async () => {
+      const payload = await (await post(
+        { url: 'https://spa.example/p/motor', extract_mode: 'product' },
+        undefined,
+        { BROWSER_RENDERER, PRODUCT_BROWSER_FALLBACK: '1' },
+      )).json() as Payload
+      expect(payload).toMatchObject({ success: true, content_source: 'fetched', product: { offers: [] } })
+    })
   })
 })
