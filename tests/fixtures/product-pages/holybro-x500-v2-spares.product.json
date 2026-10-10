@@ -1,0 +1,54 @@
+{
+ "product": {
+  "id": 7192472551613,
+  "title": "Spare Parts-X500 V2 Kit",
+  "vendor": "PCBA",
+  "product_type": "Development Drone Kit",
+  "handle": "spare-parts-x500-v2-kit",
+  "variants": [
+   {
+    "id": 41591073571005,
+    "title": "Carbon Fiber Landing Gear with Plastic Connectors (Single Leg)",
+    "price": "18.99",
+    "sku": "31063",
+    "option1": "Carbon Fiber Landing Gear with Plastic Connectors (Single Leg)",
+    "price_currency": "USD"
+   },
+   {
+    "id": 41591073603773,
+    "title": "Landing Gear Plastic Connector A",
+    "price": "3.59",
+    "sku": "31064",
+    "option1": "Landing Gear Plastic Connector A",
+    "price_currency": "USD"
+   },
+   {
+    "id": 41591073636541,
+    "title": "Landing Gear Plastic Connector B",
+    "price": "4.59",
+    "sku": "31065",
+    "option1": "Landing Gear Plastic Connector B",
+    "price_currency": "USD"
+   },
+   {
+    "id": 41591073669309,
+    "title": "Propeller1045(2pair)",
+    "price": "11.59",
+    "sku": "530084",
+    "option1": "Propeller1045(2pair)",
+    "price_currency": "USD"
+   },
+   {
+    "id": 41591073702077,
+    "title": "Battery Mounting Board V2",
+    "price": "6.59",
+    "sku": "31108",
+    "option1": "Battery Mounting Board V2",
+    "price_currency": "USD"
+   }
+  ],
+  "image": {
+   "src": "https://cdn.shopify.com/s/files/1/0604/5905/7341/products/30125-ARF-Kit-12_1800x1800_a65e7a0c-b4cd-4451-ace4-355718d562c4.jpg?v=1672219369"
+  }
+ }
+}
