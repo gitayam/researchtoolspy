@@ -1,0 +1,97 @@
+{
+ "data": {
+  "products": {
+   "items": [
+    {
+     "__typename": "ConfigurableProduct",
+     "sku": "Flight controller F722/F405",
+     "name": "FrSKY VANTAC F722/F405  Flight controller--Betaflight",
+     "url_key": "vantac-f722-f405-flight-controller",
+     "stock_status": "IN_STOCK",
+     "price_range": {
+      "minimum_price": {
+       "final_price": {
+        "value": 28.99,
+        "currency": "USD"
+       },
+       "regular_price": {
+        "value": 28.99,
+        "currency": "USD"
+       }
+      }
+     },
+     "configurable_options": [
+      {
+       "attribute_code": "products_option",
+       "label": "Product Option",
+       "values": [
+        {
+         "value_index": 591,
+         "label": "F722"
+        },
+        {
+         "value_index": 592,
+         "label": "F405"
+        }
+       ]
+      }
+     ],
+     "variants": [
+      {
+       "attributes": [
+        {
+         "label": "F405",
+         "code": "products_option",
+         "value_index": 592
+        }
+       ],
+       "product": {
+        "sku": "03060111",
+        "name": "VANTAC F722/F405  Flight controller-AIRB/FrBallF405",
+        "stock_status": "IN_STOCK",
+        "price_range": {
+         "minimum_price": {
+          "final_price": {
+           "value": 28.99,
+           "currency": "USD"
+          },
+          "regular_price": {
+           "value": 28.99,
+           "currency": "USD"
+          }
+         }
+        }
+       }
+      },
+      {
+       "attributes": [
+        {
+         "label": "F722",
+         "code": "products_option",
+         "value_index": 591
+        }
+       ],
+       "product": {
+        "sku": "03060110",
+        "name": "VANTAC F722/F405  Flight controller-AIRB/FrBallF722",
+        "stock_status": "IN_STOCK",
+        "price_range": {
+         "minimum_price": {
+          "final_price": {
+           "value": 34.99,
+           "currency": "USD"
+          },
+          "regular_price": {
+           "value": 34.99,
+           "currency": "USD"
+          }
+         }
+        }
+       }
+      }
+     ]
+    }
+   ]
+  }
+ }
+}

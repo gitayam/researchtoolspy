@@ -6,7 +6,8 @@
     "/survey/*",
     "/public/intake/*",
     "/dashboard/*",
-    "/present/*"
+    "/present/*",
+    "/bot"
   ],
   "exclude": []
 }

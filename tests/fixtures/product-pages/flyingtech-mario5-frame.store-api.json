@@ -1,0 +1,166 @@
+{
+ "id": 120272,
+ "name": "SpeedyBee Mario 5 5″ FPV Frame Kit – DC / XH – Lite / Advanced",
+ "slug": "speedybee-mario-5-5%e2%80%b3-fpv-frame-kit-dc-xh-lite-advanced",
+ "parent": 0,
+ "type": "variable",
+ "variation": "",
+ "permalink": "https://www.flyingtech.co.uk/product/speedybee-mario-5-5%e2%80%b3-fpv-frame-kit-dc-xh-lite-advanced/",
+ "sku": "",
+ "on_sale": false,
+ "prices": {
+  "price": "5290",
+  "regular_price": "5290",
+  "sale_price": "5290",
+  "price_range": {
+   "min_amount": "5290",
+   "max_amount": "5790"
+  },
+  "currency_code": "GBP",
+  "currency_symbol": "£",
+  "currency_minor_unit": 2,
+  "currency_decimal_separator": ".",
+  "currency_thousand_separator": ",",
+  "currency_prefix": "£",
+  "currency_suffix": ""
+ },
+ "images": [
+  {
+   "id": 120283,
+   "src": "https://www.flyingtech.co.uk/wp-content/uploads/2026/10/Mario-5-XH-Lite.jpg",
+   "name": "Mario 5 XH Lite"
+  }
+ ],
+ "attributes": [
+  {
+   "id": 1,
+   "name": "Brand",
+   "taxonomy": "pa_brand",
+   "has_variations": false,
+   "terms": [
+    {
+     "id": 847,
+     "name": "Speedybee",
+     "slug": "speedybee"
+    }
+   ]
+  },
+  {
+   "id": 236,
+   "name": "Frame Size",
+   "taxonomy": "pa_frame-size",
+   "has_variations": false,
+   "terms": [
+    {
+     "id": 3497,
+     "name": "180-220mm (5 Inch)",
+     "slug": "180-220mm-5-inch"
+    }
+   ]
+  },
+  {
+   "id": 13,
+   "name": "Drone Type",
+   "taxonomy": "pa_drone-type",
+   "has_variations": false,
+   "terms": [
+    {
+     "id": 3484,
+     "name": "Freestyle",
+     "slug": "freestyle"
+    },
+    {
+     "id": 521,
+     "name": "Quadcopter",
+     "slug": "quadcopter"
+    }
+   ]
+  },
+  {
+   "id": 0,
+   "name": "Version",
+   "taxonomy": null,
+   "has_variations": true,
+   "terms": [
+    {
+     "id": 0,
+     "name": "DC (Deadcat) – Lite",
+     "slug": "DC (Deadcat) – Lite"
+    },
+    {
+     "id": 0,
+     "name": "DC (Deadcat) – Advanced",
+     "slug": "DC (Deadcat) – Advanced"
+    },
+    {
+     "id": 0,
+     "name": "XH – Lite",
+     "slug": "XH – Lite"
+    },
+    {
+     "id": 0,
+     "name": "XH – Advanced",
+     "slug": "XH – Advanced"
+    }
+   ]
+  }
+ ],
+ "variations": [
+  {
+   "id": 120279,
+   "attributes": [
+    {
+     "name": "Version",
+     "value": "DC (Deadcat) – Lite"
+    }
+   ]
+  },
+  {
+   "id": 120273,
+   "attributes": [
+    {
+     "name": "Version",
+     "value": "DC (Deadcat) – Advanced"
+    }
+   ]
+  },
+  {
+   "id": 120278,
+   "attributes": [
+    {
+     "name": "Version",
+     "value": "XH – Lite"
+    }
+   ]
+  },
+  {
+   "id": 120274,
+   "attributes": [
+    {
+     "name": "Version",
+     "value": "XH – Advanced"
+    }
+   ]
+  }
+ ],
+ "has_options": true,
+ "is_purchasable": true,
+ "is_in_stock": true,
+ "is_on_backorder": false,
+ "low_stock_remaining": null,
+ "stock_availability": {
+  "text": "",
+  "class": "in-stock"
+ },
+ "sold_individually": false,
+ "add_to_cart": {
+  "text": "Select options",
+  "description": "Select options for &ldquo;SpeedyBee Mario 5 5″ FPV Frame Kit – DC / XH – Lite / Advanced&rdquo;",
+  "url": "https://www.flyingtech.co.uk/product/speedybee-mario-5-5%e2%80%b3-fpv-frame-kit-dc-xh-lite-advanced/",
+  "single_text": "Add to basket",
+  "minimum": 1,
+  "maximum": 9999,
+  "multiple_of": 1
+ },
+ "is_password_protected": false
+}

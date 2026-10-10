@@ -1,0 +1,9489 @@
+{
+"source": "scrapinghub/price-parser tests/test_price_parsing.py @ 6718bfe8447f2de17ecc152d3ad2a4c51520c755 (BSD-3-Clause, see LICENSE in this directory)",
+"fields": "list = the upstream example list; currency_raw/price_raw = inputs; currency = expected symbol as written; amount = expected amount; decimal_separator/digit_group_separator = upstream hints",
+"examples": [
+{
+"list": "PRICE_PARSING_EXAMPLES_BUGS_CAUGHT",
+"currency_raw": null,
+"price_raw": "US$:12.99",
+"currency": "US$",
+"amount_text": "12.99",
+"amount": 12.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_BUGS_CAUGHT",
+"currency_raw": "GBP",
+"price_raw": "34.992001",
+"currency": "GBP",
+"amount_text": "34.992001",
+"amount": 34.992001
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_BUGS_CAUGHT",
+"currency_raw": "GBP",
+"price_raw": "29.1583",
+"currency": "GBP",
+"amount_text": "29.1583",
+"amount": 29.1583
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_BUGS_CAUGHT",
+"currency_raw": null,
+"price_raw": "1.11000000000000009770",
+"currency": null,
+"amount_text": "1.11000000000000009770",
+"amount": 1.11
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_BUGS_CAUGHT",
+"currency_raw": null,
+"price_raw": " 423.923 KD",
+"currency": "KD",
+"amount_text": "423.923",
+"amount": 423.923,
+"decimal_separator": "."
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_BUGS_CAUGHT",
+"currency_raw": null,
+"price_raw": " 123,456.789 OMR",
+"currency": "OMR",
+"amount_text": "123,456.789",
+"amount": 123456.789,
+"decimal_separator": ".",
+"digit_group_separator": ","
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NEW",
+"currency_raw": null,
+"price_raw": "PTE 120 000 000",
+"currency": "PTE",
+"amount_text": "120 000 000",
+"amount": 120000000
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NEW",
+"currency_raw": null,
+"price_raw": "DEM 170 000",
+"currency": "DEM",
+"amount_text": "170 000",
+"amount": 170000
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NEW",
+"currency_raw": null,
+"price_raw": "₤1700.",
+"currency": "₤",
+"amount_text": "1700",
+"amount": 1700
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NEW",
+"currency_raw": null,
+"price_raw": "$ 1.144.000",
+"currency": "$",
+"amount_text": "1.144.000",
+"amount": 1144000
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NEW",
+"currency_raw": null,
+"price_raw": "A$190.00",
+"currency": "A$",
+"amount_text": "190.00",
+"amount": 190
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NEW",
+"currency_raw": null,
+"price_raw": "205,68 € 205.68",
+"currency": "€",
+"amount_text": "205,68",
+"amount": 205.68
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NEW",
+"currency_raw": null,
+"price_raw": "AED 8000 (USD 2179)",
+"currency": "AED",
+"amount_text": "8000",
+"amount": 8000
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NEW",
+"currency_raw": null,
+"price_raw": "13800 ₶",
+"currency": "₶",
+"amount_text": "13800",
+"amount": 13800
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NEW",
+"currency_raw": null,
+"price_raw": "12,000원",
+"currency": "원",
+"amount_text": "12,000",
+"amount": 12000
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NEW",
+"currency_raw": null,
+"price_raw": "3,500円",
+"currency": "円",
+"amount_text": "3,500",
+"amount": 3500
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NEW",
+"currency_raw": null,
+"price_raw": "CHF 1'049,95",
+"currency": "CHF",
+"amount_text": "1049,95",
+"amount": 1049.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NEW",
+"currency_raw": null,
+"price_raw": "€1'049,95",
+"currency": "€",
+"amount_text": "1049,95",
+"amount": 1049.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NEW",
+"currency_raw": null,
+"price_raw": "644.00 جنيه",
+"currency": "جنيه",
+"amount_text": "644.00",
+"amount": 644.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NEW",
+"currency_raw": null,
+"price_raw": "3,439.00 درهم",
+"currency": "درهم",
+"amount_text": "3,439.00",
+"amount": 3439.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NEW",
+"currency_raw": null,
+"price_raw": "106.61 ريال",
+"currency": "ريال",
+"amount_text": "106.61",
+"amount": 106.61
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "90 728.00 руб 103 100.00 руб",
+"price_raw": "399 167.00 руб 420 176.16 руб",
+"currency": "руб",
+"amount_text": "399 167.00",
+"amount": 399167
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "45,00 zł",
+"price_raw": "45,00 zł",
+"currency": "zł",
+"amount_text": "45,00",
+"amount": 45
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "$",
+"price_raw": "$ 22.00",
+"currency": "$",
+"amount_text": "22.00",
+"amount": 22
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "$3.99",
+"price_raw": "$14.99",
+"currency": "$",
+"amount_text": "14.99",
+"amount": 14.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "Price:",
+"price_raw": "$11.95",
+"currency": "$",
+"amount_text": "11.95",
+"amount": 11.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "$19.95",
+"price_raw": "$19.95",
+"currency": "$",
+"amount_text": "19.95",
+"amount": 19.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "Price From £ 39.95",
+"price_raw": "39.95",
+"currency": "£",
+"amount_text": "39.95",
+"amount": 39.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "comprar",
+"price_raw": "R$260,00",
+"currency": "R$",
+"amount_text": "260,00",
+"amount": 260
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "$79.00",
+"price_raw": "$79.00",
+"currency": "$",
+"amount_text": "79.00",
+"amount": 79
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "34,50 € *",
+"price_raw": "34,50 € *",
+"currency": "€",
+"amount_text": "34,50",
+"amount": 34.5
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "35,70 €",
+"price_raw": "35,70 €",
+"currency": "€",
+"amount_text": "35,70",
+"amount": 35.7
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "Price",
+"price_raw": "$147.44",
+"currency": "$",
+"amount_text": "147.44",
+"amount": 147.44
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "Up to",
+"price_raw": "$4.70",
+"currency": "$",
+"amount_text": "4.70",
+"amount": 4.7
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "$999.99",
+"price_raw": "$924.99",
+"currency": "$",
+"amount_text": "924.99",
+"amount": 924.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "€",
+"price_raw": "690,00",
+"currency": "€",
+"amount_text": "690,00",
+"amount": 690
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "Cena",
+"price_raw": "Běžná cena 9 800 Kč",
+"currency": "Kč",
+"amount_text": "9 800",
+"amount": 9800
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "729,00 €",
+"price_raw": "479,00 €",
+"currency": "€",
+"amount_text": "479,00",
+"amount": 479
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "naše cena",
+"price_raw": "běžná cena 590 Kč",
+"currency": "Kč",
+"amount_text": "590",
+"amount": 590
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "Statt 249,00 EUR **",
+"price_raw": "249,00 EUR",
+"currency": "EUR",
+"amount_text": "249,00",
+"amount": 249
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "€13.95",
+"price_raw": "€13.95",
+"currency": "€",
+"amount_text": "13.95",
+"amount": 13.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "€36",
+"price_raw": "€89",
+"currency": "€",
+"amount_text": "89",
+"amount": 89
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "171900 руб.",
+"price_raw": "171900 руб.",
+"currency": "руб.",
+"amount_text": "171900",
+"amount": 171900
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "$1.06",
+"price_raw": "$0.31",
+"currency": "$",
+"amount_text": "0.31",
+"amount": 0.31
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "$45.49",
+"price_raw": "$45.49",
+"currency": "$",
+"amount_text": "45.49",
+"amount": 45.49
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "$",
+"price_raw": "28",
+"currency": "$",
+"amount_text": "28",
+"amount": 28
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "4.81 16 von 5",
+"price_raw": "4.81",
+"currency": null,
+"amount_text": "4.81",
+"amount": 4.81
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "CHF 86.00 *",
+"price_raw": "CHF 47.00 *",
+"currency": "CHF",
+"amount_text": "47.00",
+"amount": 47
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "320 руб. 400 руб.",
+"price_raw": "419 руб.",
+"currency": "руб.",
+"amount_text": "419",
+"amount": 419
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "129,99 €",
+"price_raw": "129,99 €",
+"currency": "€",
+"amount_text": "129,99",
+"amount": 129.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "Cena",
+"price_raw": "1,10 €",
+"currency": "€",
+"amount_text": "1,10",
+"amount": 1.1
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "Price:",
+"price_raw": "$559.00",
+"currency": "$",
+"amount_text": "559.00",
+"amount": 559
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "$49.99",
+"price_raw": "$49.99",
+"currency": "$",
+"amount_text": "49.99",
+"amount": 49.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "Price: $32.00",
+"price_raw": "$32.00",
+"currency": "$",
+"amount_text": "32.00",
+"amount": 32
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "Price (high to low)",
+"price_raw": "$699,000",
+"currency": "$",
+"amount_text": "699,000",
+"amount": 699000
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "€ 11.69",
+"price_raw": "€ 11.69",
+"currency": "€",
+"amount_text": "11.69",
+"amount": 11.69
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "100,00 руб.",
+"price_raw": "100,00",
+"currency": "руб.",
+"amount_text": "100,00",
+"amount": 100
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "€ 1",
+"price_raw": "17,35",
+"currency": "€",
+"amount_text": "17,35",
+"amount": 17.35
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "$19.95",
+"price_raw": "$19.95",
+"currency": "$",
+"amount_text": "19.95",
+"amount": 19.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "-",
+"price_raw": "£11.95",
+"currency": "£",
+"amount_text": "11.95",
+"amount": 11.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "грн.",
+"price_raw": "5 870",
+"currency": "грн.",
+"amount_text": "5 870",
+"amount": 5870
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "Price",
+"price_raw": "80 Kč",
+"currency": "Kč",
+"amount_text": "80",
+"amount": 80
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "€ 640,",
+"price_raw": "€ 610,",
+"currency": "€",
+"amount_text": "610",
+"amount": 610
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "Cena",
+"price_raw": "299 Kč",
+"currency": "Kč",
+"amount_text": "299",
+"amount": 299
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "1128240 рублей",
+"price_raw": "1128240 рублей",
+"currency": "руб",
+"amount_text": "1128240",
+"amount": 1128240
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "Now £9.99 $13.71 11,16 € £8.33 $13.71 9,30 €",
+"price_raw": "£9.99",
+"currency": "£",
+"amount_text": "9.99",
+"amount": 9.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "Free!",
+"price_raw": "Free!",
+"currency": null,
+"amount_text": "0",
+"amount": 0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "49,96€",
+"price_raw": "49,96€",
+"currency": "€",
+"amount_text": "49,96",
+"amount": 49.96
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "SKU:",
+"price_raw": "$9.00",
+"currency": "$",
+"amount_text": "9.00",
+"amount": 9
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "£ 8.29",
+"price_raw": "8.29",
+"currency": "£",
+"amount_text": "8.29",
+"amount": 8.29
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "Р",
+"price_raw": "6 300 Р",
+"currency": "Р",
+"amount_text": "6 300",
+"amount": 6300
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "99,99 EUR (-30,00%) 69,99 EUR",
+"price_raw": "99,99 EUR",
+"currency": "EUR",
+"amount_text": "99,99",
+"amount": 99.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "Р",
+"price_raw": "1 890 Р",
+"currency": "Р",
+"amount_text": "1 890",
+"amount": 1890
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "Disposable Arts",
+"price_raw": "15,95 €",
+"currency": "€",
+"amount_text": "15,95",
+"amount": 15.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "zł",
+"price_raw": "16.00",
+"currency": "zł",
+"amount_text": "16.00",
+"amount": 16
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "£ 4.99",
+"price_raw": "4.99",
+"currency": "£",
+"amount_text": "4.99",
+"amount": 4.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "Price",
+"price_raw": "$119. 95",
+"currency": "$",
+"amount_text": "119. 95",
+"amount": 119.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "269 Kč",
+"price_raw": "269 Kč",
+"currency": "Kč",
+"amount_text": "269",
+"amount": 269
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": ">",
+"price_raw": "13,30 €",
+"currency": "€",
+"amount_text": "13,30",
+"amount": 13.3
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "₪ 115",
+"price_raw": "₪98",
+"currency": "₪",
+"amount_text": "98",
+"amount": 98
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "80,00 €",
+"price_raw": "80,00 €",
+"currency": "€",
+"amount_text": "80,00",
+"amount": 80
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "33,95 €",
+"price_raw": "29,95 €",
+"currency": "€",
+"amount_text": "29,95",
+"amount": 29.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "£ 80.00",
+"price_raw": "80.00",
+"currency": "£",
+"amount_text": "80.00",
+"amount": 80
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "EUR",
+"price_raw": "€16.95",
+"currency": "€",
+"amount_text": "16.95",
+"amount": 16.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "DKK",
+"price_raw": "23,40",
+"currency": "DKK",
+"amount_text": "23,40",
+"amount": 23.4
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "Price: $ 34.44",
+"price_raw": "34.44",
+"currency": "$",
+"amount_text": "34.44",
+"amount": 34.44
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "Rp 31.500",
+"price_raw": "Rp 31.500",
+"currency": "Rp",
+"amount_text": "31.500",
+"amount": 31500
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "běžná cena 6,00 Kč",
+"price_raw": "běžná cena 6,00 Kč",
+"currency": "Kč",
+"amount_text": "6,00",
+"amount": 6
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "€",
+"price_raw": "19,59",
+"currency": "€",
+"amount_text": "19,59",
+"amount": 19.59
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "Out of stock",
+"price_raw": "2 285,81 грн.",
+"currency": "грн.",
+"amount_text": "2 285,81",
+"amount": 2285.81
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "$ 119,999",
+"price_raw": "$ 119,999",
+"currency": "$",
+"amount_text": "119,999",
+"amount": 119999
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "1,20 €",
+"price_raw": "1,20 €",
+"currency": "€",
+"amount_text": "1,20",
+"amount": 1.2
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "€ 1.99",
+"price_raw": "1.99",
+"currency": "€",
+"amount_text": "1.99",
+"amount": 1.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "Cena 283,50 PLN",
+"price_raw": "Cena 283,50 PLN",
+"currency": "PLN",
+"amount_text": "283,50",
+"amount": 283.5
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "SKU:",
+"price_raw": "99.99",
+"currency": null,
+"amount_text": "99.99",
+"amount": 99.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "$",
+"price_raw": "$ 979.00",
+"currency": "$",
+"amount_text": "979.00",
+"amount": 979
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "Cena 169,00 Kč",
+"price_raw": "169,00 Kč",
+"currency": "Kč",
+"amount_text": "169,00",
+"amount": 169
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "Р",
+"price_raw": "94,456 Р",
+"currency": "Р",
+"amount_text": "94,456",
+"amount": 94456
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "€",
+"price_raw": "180",
+"currency": "€",
+"amount_text": "180",
+"amount": 180
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "Savings: $0.90",
+"price_raw": "2.85",
+"currency": "$",
+"amount_text": "2.85",
+"amount": 2.85
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "฿ 3.3900",
+"price_raw": "฿ 3.3900",
+"currency": "฿",
+"amount_text": "3.3900",
+"amount": 3.39
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "5,90 €",
+"price_raw": "5,90 €",
+"currency": "€",
+"amount_text": "5,90",
+"amount": 5.9
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "1 930 р.",
+"price_raw": "1 030 р.",
+"currency": "р.",
+"amount_text": "1 030",
+"amount": 1030
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "$",
+"price_raw": "$ 22.00",
+"currency": "$",
+"amount_text": "22.00",
+"amount": 22
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "HUF",
+"price_raw": "39900",
+"currency": "HUF",
+"amount_text": "39900",
+"amount": 39900
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "59,00 €",
+"price_raw": "79,00 €",
+"currency": "€",
+"amount_text": "79,00",
+"amount": 79
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "(-38,23%)",
+"price_raw": "429,00 EUR",
+"currency": "EUR",
+"amount_text": "429,00",
+"amount": 429
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "302,44€ Χωρίς ΦΠΑ: 243,90€",
+"price_raw": "302,44€",
+"currency": "€",
+"amount_text": "302,44",
+"amount": 302.44
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "RENAULT",
+"price_raw": "129.900",
+"currency": null,
+"amount_text": "129.900",
+"amount": 129900
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "USD",
+"price_raw": "£54.17",
+"currency": "£",
+"amount_text": "54.17",
+"amount": 54.17
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "$3.00",
+"price_raw": "$3.00",
+"currency": "$",
+"amount_text": "3.00",
+"amount": 3
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "3,49 zł 1,75 zł",
+"price_raw": "3,49 zł 1,75 zł",
+"currency": "zł",
+"amount_text": "3,49",
+"amount": 3.49
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "59,90 EUR 599,00 EUR pro Kilogramm",
+"price_raw": "59,90 EUR",
+"currency": "EUR",
+"amount_text": "59,90",
+"amount": 59.9
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "Vanaf € 49.95",
+"price_raw": "Vanaf € 49.95",
+"currency": "€",
+"amount_text": "49.95",
+"amount": 49.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "$299.00",
+"price_raw": "$299.00",
+"currency": "$",
+"amount_text": "299.00",
+"amount": 299
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "€",
+"price_raw": "€30,40 **",
+"currency": "€",
+"amount_text": "30,40",
+"amount": 30.4
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "$59.99",
+"price_raw": "$59.99",
+"currency": "$",
+"amount_text": "59.99",
+"amount": 59.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "EUR",
+"price_raw": "2800",
+"currency": "EUR",
+"amount_text": "2800",
+"amount": 2800
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "225,00 € *",
+"price_raw": "225,00 € *",
+"currency": "€",
+"amount_text": "225,00",
+"amount": 225
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "17 940,00 руб",
+"price_raw": "17 940,00 руб",
+"currency": "руб",
+"amount_text": "17 940,00",
+"amount": 17940
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "159,50 €",
+"price_raw": "159,50 €",
+"currency": "€",
+"amount_text": "159,50",
+"amount": 159.5
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "£18.99",
+"price_raw": "£18.99",
+"currency": "£",
+"amount_text": "18.99",
+"amount": 18.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "2.999,00 EUR (-10,00%) 2.699,00 EUR",
+"price_raw": "699,00 EUR",
+"currency": "EUR",
+"amount_text": "699,00",
+"amount": 699
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "$",
+"price_raw": "45.33",
+"currency": "$",
+"amount_text": "45.33",
+"amount": 45.33
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "грн.",
+"price_raw": "33",
+"currency": "грн.",
+"amount_text": "33",
+"amount": 33
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "EUR",
+"price_raw": "16,50 €",
+"currency": "€",
+"amount_text": "16,50",
+"amount": 16.5
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "₫",
+"price_raw": "880,000 ₫",
+"currency": "₫",
+"amount_text": "880,000",
+"amount": 880000
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "руб.",
+"price_raw": "13.50",
+"currency": "руб.",
+"amount_text": "13.50",
+"amount": 13.5
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "336 р.",
+"price_raw": "336 р.",
+"currency": "р.",
+"amount_text": "336",
+"amount": 336
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "....",
+"price_raw": "200",
+"currency": null,
+"amount_text": "200",
+"amount": 200
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "Our Price:",
+"price_raw": "$860.00",
+"currency": "$",
+"amount_text": "860.00",
+"amount": 860
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "10 €",
+"price_raw": "10 €",
+"currency": "€",
+"amount_text": "10",
+"amount": 10
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "€",
+"price_raw": "13",
+"currency": "€",
+"amount_text": "13",
+"amount": 13
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "60,00 DKK",
+"price_raw": "60,00 DKK",
+"currency": "DKK",
+"amount_text": "60,00",
+"amount": 60
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "63,90 EUR",
+"price_raw": "63,90 EUR",
+"currency": "EUR",
+"amount_text": "63,90",
+"amount": 63.9
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "$",
+"price_raw": "$ 11.99",
+"currency": "$",
+"amount_text": "11.99",
+"amount": 11.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "25,00 €",
+"price_raw": "25,00 €",
+"currency": "€",
+"amount_text": "25,00",
+"amount": 25
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "Cena",
+"price_raw": "106,40 €",
+"currency": "€",
+"amount_text": "106,40",
+"amount": 106.4
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "EA",
+"price_raw": "$426.20/EA",
+"currency": "$",
+"amount_text": "426.20",
+"amount": 426.2
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "zł",
+"price_raw": "5.76",
+"currency": "zł",
+"amount_text": "5.76",
+"amount": 5.76
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "$4.50",
+"price_raw": "$4.50",
+"currency": "$",
+"amount_text": "4.50",
+"amount": 4.5
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "51090 M Фильтроэлемент OMEGA",
+"price_raw": "2 660 руб",
+"currency": "руб",
+"amount_text": "2 660",
+"amount": 2660
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "Р",
+"price_raw": "5 000 Р",
+"currency": "Р",
+"amount_text": "5 000",
+"amount": 5000
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "Add to Cart",
+"price_raw": "$4.60",
+"currency": "$",
+"amount_text": "4.60",
+"amount": 4.6
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "£14.99",
+"price_raw": "£14.99",
+"currency": "£",
+"amount_text": "14.99",
+"amount": 14.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "SKU:",
+"price_raw": "$150.00",
+"currency": "$",
+"amount_text": "150.00",
+"amount": 150
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "€",
+"price_raw": "70,31",
+"currency": "€",
+"amount_text": "70,31",
+"amount": 70.31
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "/",
+"price_raw": "$379",
+"currency": "$",
+"amount_text": "379",
+"amount": 379
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "€",
+"price_raw": "139,95",
+"currency": "€",
+"amount_text": "139,95",
+"amount": 139.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "Add to cart",
+"price_raw": "22,90 €",
+"currency": "€",
+"amount_text": "22,90",
+"amount": 22.9
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "94,99 zł",
+"price_raw": "94,99 zł",
+"currency": "zł",
+"amount_text": "94,99",
+"amount": 94.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "Price",
+"price_raw": "89.99",
+"currency": null,
+"amount_text": "89.99",
+"amount": 89.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "USD",
+"price_raw": "$4.00",
+"currency": "$",
+"amount_text": "4.00",
+"amount": 4
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "$",
+"price_raw": "Type of Transfer *",
+"currency": "$",
+"amount_text": null,
+"amount": null
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "Add to Order",
+"price_raw": "$892.00",
+"currency": "$",
+"amount_text": "892.00",
+"amount": 892
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "грн",
+"price_raw": "60800",
+"currency": "грн",
+"amount_text": "60800",
+"amount": 60800
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "zł",
+"price_raw": "1849.00",
+"currency": "zł",
+"amount_text": "1849.00",
+"amount": 1849
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "OK",
+"price_raw": "0,00 EUR",
+"currency": "EUR",
+"amount_text": "0,00",
+"amount": 0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "руб.",
+"price_raw": "5 450 руб.",
+"currency": "руб.",
+"amount_text": "5 450",
+"amount": 5450
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "Price: $15.95/mo",
+"price_raw": "Price: $15.95/mo",
+"currency": "$",
+"amount_text": "15.95",
+"amount": 15.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "MX924 IX",
+"price_raw": "850 руб.",
+"currency": "руб.",
+"amount_text": "850",
+"amount": 850
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "6,000.00 руб. 5,500.00 руб.",
+"price_raw": "6,000.00 руб. 5,500.00 руб.",
+"currency": "руб.",
+"amount_text": "6,000.00",
+"amount": 6000
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "5.590,00 € *",
+"price_raw": "9.990,00 €",
+"currency": "€",
+"amount_text": "9.990,00",
+"amount": 9990
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30",
+"price_raw": "$175.00",
+"currency": "$",
+"amount_text": "175.00",
+"amount": 175
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "Price",
+"price_raw": "$99.99",
+"currency": "$",
+"amount_text": "99.99",
+"amount": 99.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "€",
+"price_raw": "119,00",
+"currency": "€",
+"amount_text": "119,00",
+"amount": 119
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "$",
+"price_raw": "$ 11.96",
+"currency": "$",
+"amount_text": "11.96",
+"amount": 11.96
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "€",
+"price_raw": "9,94",
+"currency": "€",
+"amount_text": "9,94",
+"amount": 9.94
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "$69.00",
+"price_raw": "$69.00",
+"currency": "$",
+"amount_text": "69.00",
+"amount": 69
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "AQUAFINESSE",
+"price_raw": "AQUAFINESSE",
+"currency": null,
+"amount_text": null,
+"amount": null
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "£55.00",
+"price_raw": "£50.00",
+"currency": "£",
+"amount_text": "50.00",
+"amount": 50
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "$39.99",
+"price_raw": "$39.99",
+"currency": "$",
+"amount_text": "39.99",
+"amount": 39.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "65 000 руб. 75 000 руб.",
+"price_raw": "75 000 руб.",
+"currency": "руб.",
+"amount_text": "75 000",
+"amount": 75000
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "DKK/stk",
+"price_raw": "17,95",
+"currency": "DKK",
+"amount_text": "17,95",
+"amount": 17.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "841,00 zł",
+"price_raw": "841,00 zł – 995,00 zł",
+"currency": "zł",
+"amount_text": "841,00",
+"amount": 841
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "$",
+"price_raw": "$ 18.95",
+"currency": "$",
+"amount_text": "18.95",
+"amount": 18.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "9.0",
+"price_raw": "434",
+"currency": null,
+"amount_text": "434",
+"amount": 434
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "£14.50",
+"price_raw": "£21.00",
+"currency": "£",
+"amount_text": "21.00",
+"amount": 21
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "ab",
+"price_raw": "19,90 €",
+"currency": "€",
+"amount_text": "19,90",
+"amount": 19.9
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "30 руб",
+"price_raw": "30 руб",
+"currency": "руб",
+"amount_text": "30",
+"amount": 30
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "€",
+"price_raw": "684,25",
+"currency": "€",
+"amount_text": "684,25",
+"amount": 684.25
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "€ 125.00",
+"price_raw": "€ 45.00",
+"currency": "€",
+"amount_text": "45.00",
+"amount": 45
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "ht / L'unité",
+"price_raw": "17.90",
+"currency": null,
+"amount_text": "17.90",
+"amount": 17.9
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "$0.00",
+"price_raw": "$0.00",
+"currency": "$",
+"amount_text": "0.00",
+"amount": 0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "49 Kč",
+"price_raw": "49 Kč",
+"currency": "Kč",
+"amount_text": "49",
+"amount": 49
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "Cena 685,00 Kč",
+"price_raw": "1 995,00 Kč",
+"currency": "Kč",
+"amount_text": "1 995,00",
+"amount": 1995
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "€ 2,99",
+"price_raw": "€ 2,99",
+"currency": "€",
+"amount_text": "2,99",
+"amount": 2.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "Cкидка до 10% от цены купона",
+"price_raw": "475 руб.",
+"currency": "руб.",
+"amount_text": "475",
+"amount": 475
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "€",
+"price_raw": "11,76",
+"currency": "€",
+"amount_text": "11,76",
+"amount": 11.76
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "$99.99",
+"price_raw": "$99.99",
+"currency": "$",
+"amount_text": "99.99",
+"amount": 99.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "1 298,00 €",
+"price_raw": "1 298,00 €",
+"currency": "€",
+"amount_text": "1 298,00",
+"amount": 1298.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "$1 298,00",
+"price_raw": "$1 298,00",
+"currency": "$",
+"amount_text": "1 298,00",
+"amount": 1298.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "1 298,00",
+"price_raw": "1 298,00",
+"currency": null,
+"amount_text": "1 298,00",
+"amount": 1298.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": null,
+"price_raw": ".75 €",
+"currency": "€",
+"amount_text": ".75",
+"amount": 0.75
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "$.75",
+"price_raw": "$.75",
+"currency": "$",
+"amount_text": ".75",
+"amount": 0.75
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "$..75",
+"price_raw": "$..75",
+"currency": "$",
+"amount_text": ".75",
+"amount": 0.75
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "$.75,333",
+"price_raw": "$.75,333",
+"currency": "$",
+"amount_text": ".75,333",
+"amount": 75333
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "$.750.30",
+"price_raw": "$.750.30",
+"currency": "$",
+"amount_text": "750.30",
+"amount": 750.3
+},
+{
+"list": "PRICE_PARSING_EXAMPLES",
+"currency_raw": "i",
+"price_raw": "i",
+"currency": null,
+"amount_text": null,
+"amount": null
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "7,99 €",
+"price_raw": "7,99 €",
+"currency": "€",
+"amount_text": "7,99",
+"amount": 7.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "2 Piece - $6.75 2 Piece - $6.75",
+"price_raw": "$6.75",
+"currency": "$",
+"amount_text": "6.75",
+"amount": 6.75
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "£7",
+"price_raw": "£24.99",
+"currency": "£",
+"amount_text": "24.99",
+"amount": 24.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "23,00 €",
+"price_raw": "23,00 €",
+"currency": "€",
+"amount_text": "23,00",
+"amount": 23.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "€",
+"price_raw": "bežná cena 12,96 €",
+"currency": "€",
+"amount_text": "12,96",
+"amount": 12.96
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "$",
+"price_raw": "3,20 €",
+"currency": "€",
+"amount_text": "3,20",
+"amount": 3.2
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "€ 2.109,00",
+"price_raw": "€ 2.109,00",
+"currency": "€",
+"amount_text": "2.109,00",
+"amount": 2109
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "руб.",
+"price_raw": "32690",
+"currency": "руб.",
+"amount_text": "32690",
+"amount": 32690
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": ": 3 250 000 €",
+"price_raw": ": 3 250 000 €",
+"currency": "€",
+"amount_text": "3 250 000",
+"amount": 3250000
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "$20.00",
+"price_raw": "$20.00",
+"currency": "$",
+"amount_text": "20.00",
+"amount": 20
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "Цена:",
+"price_raw": "950 грн.",
+"currency": "грн.",
+"amount_text": "950",
+"amount": 950
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "TTC",
+"price_raw": "149,00",
+"currency": null,
+"amount_text": "149,00",
+"amount": 149.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "A partire da 9,08 €",
+"price_raw": "166,81 € iva inclusa",
+"currency": "€",
+"amount_text": "166,81",
+"amount": 166.81
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "EUR",
+"price_raw": "679.00",
+"currency": "EUR",
+"amount_text": "679.00",
+"amount": 679.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "10,50 € 10,50 €",
+"price_raw": "10,50 €",
+"currency": "€",
+"amount_text": "10,50",
+"amount": 10.5
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "2,20 € *",
+"price_raw": "2,20 € *",
+"currency": "€",
+"amount_text": "2,20",
+"amount": 2.2
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "€",
+"price_raw": "€ 10.00 € 8.00 – € 10.00",
+"currency": "€",
+"amount_text": "10.00",
+"amount": 10
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "Bestellen",
+"price_raw": "€16,95",
+"currency": "€",
+"amount_text": "16,95",
+"amount": 16.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "$",
+"price_raw": "$ 95.00",
+"currency": "$",
+"amount_text": "95.00",
+"amount": 95.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "Р",
+"price_raw": "1 400 Р",
+"currency": "Р",
+"amount_text": "1 400",
+"amount": 1400
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "£",
+"price_raw": "£ 15.00",
+"currency": "£",
+"amount_text": "15.00",
+"amount": 15
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "Price: $119.00",
+"price_raw": "$119.00",
+"currency": "$",
+"amount_text": "119.00",
+"amount": 119
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "50,- Kč",
+"price_raw": "50,- Kč",
+"currency": "Kč",
+"amount_text": "50",
+"amount": 50
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "What is this?",
+"price_raw": "$25.95",
+"currency": "$",
+"amount_text": "25.95",
+"amount": 25.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "$29.99 Excluding Sales Tax in Illinois",
+"price_raw": "$29.99",
+"currency": "$",
+"amount_text": "29.99",
+"amount": 29.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "ID:",
+"price_raw": "125,00 zł",
+"currency": "zł",
+"amount_text": "125,00",
+"amount": 125
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "Offer Price: Rs 1,306.14",
+"price_raw": "Rs 3,600.00",
+"currency": "Rs",
+"amount_text": "3,600.00",
+"amount": 3600
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "29 RON",
+"price_raw": "29 RON",
+"currency": "RON",
+"amount_text": "29",
+"amount": 29
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "Р",
+"price_raw": "2 690 Р",
+"currency": "Р",
+"amount_text": "2 690",
+"amount": 2690
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "$134.96",
+"price_raw": "$134.96",
+"currency": "$",
+"amount_text": "134.96",
+"amount": 134.96
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "362,68 € χωρίς Φ.Π.Α",
+"price_raw": "449,72 €",
+"currency": "€",
+"amount_text": "449,72",
+"amount": 449.72
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "MSRP: $588.00",
+"price_raw": "499.80",
+"currency": "$",
+"amount_text": "499.80",
+"amount": 499.8
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "15.00 €",
+"price_raw": "15.00 €",
+"currency": "€",
+"amount_text": "15.00",
+"amount": 15
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "Цена: от 2 750 руб.",
+"price_raw": "2 750 руб.",
+"currency": "руб.",
+"amount_text": "2 750",
+"amount": 2750
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "P.V.P. 4,56 €",
+"price_raw": "P.V.P. 4,56 €",
+"currency": "€",
+"amount_text": "4,56",
+"amount": 4.56
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "SPECIAL Add to Cart for Price",
+"price_raw": "$40.00",
+"currency": "$",
+"amount_text": "40.00",
+"amount": 40
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "2,90 €",
+"price_raw": "2,90",
+"currency": "€",
+"amount_text": "2,90",
+"amount": 2.9
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "Цена: 19 000 руб.",
+"price_raw": "Цена: 19 000 руб.",
+"currency": "руб.",
+"amount_text": "19 000",
+"amount": 19000
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "COMMANDER",
+"price_raw": "184,20 €HT",
+"currency": "€",
+"amount_text": "184,20",
+"amount": 184.2
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "Цена: 1 849 руб.",
+"price_raw": "1 849 руб.",
+"currency": "руб.",
+"amount_text": "1 849",
+"amount": 1849
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "€",
+"price_raw": "12,00",
+"currency": "€",
+"amount_text": "12,00",
+"amount": 12
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "Discounted Price £ 205.99",
+"price_raw": "205.99",
+"currency": "£",
+"amount_text": "205.99",
+"amount": 205.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "SKU",
+"price_raw": "No longer available",
+"currency": null,
+"amount_text": null,
+"amount": null
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "€14.90",
+"price_raw": "€69.90",
+"currency": "€",
+"amount_text": "69.90",
+"amount": 69.9
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "руб.",
+"price_raw": "876 руб.",
+"currency": "руб.",
+"amount_text": "876",
+"amount": 876
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "$79.95",
+"price_raw": "$79.95",
+"currency": "$",
+"amount_text": "79.95",
+"amount": 79.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "3,990 Ft 2,990 Ft",
+"price_raw": "3,990 Ft",
+"currency": "Ft",
+"amount_text": "3,990",
+"amount": 3990
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "Cena 298,00 Kč",
+"price_raw": "288,00 Kč",
+"currency": "Kč",
+"amount_text": "288,00",
+"amount": 288
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "Pris NOK 899,00",
+"price_raw": "899,00",
+"currency": "NOK",
+"amount_text": "899,00",
+"amount": 899
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "50,00 €",
+"price_raw": "50,00 €",
+"currency": "€",
+"amount_text": "50,00",
+"amount": 50
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "59,99 €",
+"price_raw": "54,99 €",
+"currency": "€",
+"amount_text": "54,99",
+"amount": 54.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "EAN",
+"price_raw": "139,00 € *",
+"currency": "€",
+"amount_text": "139,00",
+"amount": 139
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "Now",
+"price_raw": "238.00",
+"currency": null,
+"amount_text": "238.00",
+"amount": 238
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "(You save $15.01)",
+"price_raw": "$119.99",
+"currency": "$",
+"amount_text": "119.99",
+"amount": 119.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "Item #:",
+"price_raw": "$ 99.95",
+"currency": "$",
+"amount_text": "99.95",
+"amount": 99.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "UK:",
+"price_raw": "£14.99",
+"currency": "£",
+"amount_text": "14.99",
+"amount": 14.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "р.",
+"price_raw": "150",
+"currency": "р.",
+"amount_text": "150",
+"amount": 150
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "12x de R$ 44,00 sem juros",
+"price_raw": "R$ 528,00",
+"currency": "R$",
+"amount_text": "528,00",
+"amount": 528
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "€",
+"price_raw": "14,90",
+"currency": "€",
+"amount_text": "14,90",
+"amount": 14.9
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "5 290 Kč s DPH",
+"price_raw": "5 290 Kč",
+"currency": "Kč",
+"amount_text": "5 290",
+"amount": 5290
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "(Out of Stock)",
+"price_raw": "39.95",
+"currency": null,
+"amount_text": "39.95",
+"amount": 39.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "₪370",
+"price_raw": "₪370",
+"currency": "₪",
+"amount_text": "370",
+"amount": 370
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "HUF",
+"price_raw": "39000",
+"currency": "HUF",
+"amount_text": "39000",
+"amount": 39000
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "Kč",
+"price_raw": "1 995 Kč",
+"currency": "Kč",
+"amount_text": "1 995",
+"amount": 1995
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "C$5.95",
+"price_raw": "C$5.95",
+"currency": "C$",
+"amount_text": "5.95",
+"amount": 5.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "руб.",
+"price_raw": "22800.00",
+"currency": "руб.",
+"amount_text": "22800.00",
+"amount": 22800
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "Cena",
+"price_raw": "359 Kč",
+"currency": "Kč",
+"amount_text": "359",
+"amount": 359
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "Nuestro precio",
+"price_raw": "189,00 €",
+"currency": "€",
+"amount_text": "189,00",
+"amount": 189
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "PLN",
+"price_raw": "179.62",
+"currency": "PLN",
+"amount_text": "179.62",
+"amount": 179.62
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "€",
+"price_raw": "145,79",
+"currency": "€",
+"amount_text": "145,79",
+"amount": 145.79
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "$",
+"price_raw": "$ 695.00",
+"currency": "$",
+"amount_text": "695.00",
+"amount": 695
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "Р",
+"price_raw": "2 999 Р",
+"currency": "Р",
+"amount_text": "2 999",
+"amount": 2999
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "6,50 € *",
+"price_raw": "6,50",
+"currency": "€",
+"amount_text": "6,50",
+"amount": 6.5
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "Price: $61.00",
+"price_raw": "$61.00",
+"currency": "$",
+"amount_text": "61.00",
+"amount": 61.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "Pris NOK 1 999,00",
+"price_raw": "5 799,00",
+"currency": "NOK",
+"amount_text": "5 799,00",
+"amount": 5799
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "7,31 €",
+"price_raw": "7,31 €",
+"currency": "€",
+"amount_text": "7,31",
+"amount": 7.31
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "53,20 €",
+"price_raw": "53,20 €",
+"currency": "€",
+"amount_text": "53,20",
+"amount": 53.2
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "Cena",
+"price_raw": "668 Kč",
+"currency": "Kč",
+"amount_text": "668",
+"amount": 668
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "€ 28,25",
+"price_raw": "€ 27,95",
+"currency": "€",
+"amount_text": "27,95",
+"amount": 27.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "From",
+"price_raw": "From $109.90",
+"currency": "$",
+"amount_text": "109.90",
+"amount": 109.9
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "Unit Price: $4.75",
+"price_raw": "$4.75",
+"currency": "$",
+"amount_text": "4.75",
+"amount": 4.75
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "Więcej",
+"price_raw": "14,90 zł",
+"currency": "zł",
+"amount_text": "14,90",
+"amount": 14.9
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "$23.00",
+"price_raw": "$23.00",
+"currency": "$",
+"amount_text": "23.00",
+"amount": 23
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "€ 0.00",
+"price_raw": "€ 33.00",
+"currency": "€",
+"amount_text": "33.00",
+"amount": 33
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "Zľava 36 €",
+"price_raw": "78 €",
+"currency": "€",
+"amount_text": "78",
+"amount": 78
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "£",
+"price_raw": "5.00",
+"currency": "£",
+"amount_text": "5.00",
+"amount": 5
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "€",
+"price_raw": "29,90",
+"currency": "€",
+"amount_text": "29,90",
+"amount": 29.9
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "Р",
+"price_raw": "860 Р",
+"currency": "Р",
+"amount_text": "860",
+"amount": 860
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "60,55 €",
+"price_raw": "60,55 €",
+"currency": "€",
+"amount_text": "60,55",
+"amount": 60.55
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "€",
+"price_raw": "129.00",
+"currency": "€",
+"amount_text": "129.00",
+"amount": 129
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "£13.50",
+"price_raw": "£13.50",
+"currency": "£",
+"amount_text": "13.50",
+"amount": 13.5
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "SKU:",
+"price_raw": "$39.99",
+"currency": "$",
+"amount_text": "39.99",
+"amount": 39.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "Disponibilidade: Pronta entrega R$60,00 até 2x de R$30,00",
+"price_raw": "R$60,00",
+"currency": "R$",
+"amount_text": "60,00",
+"amount": 60
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "67,99 €",
+"price_raw": "64,59 €",
+"currency": "€",
+"amount_text": "64,59",
+"amount": 64.59
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "€ 9,90",
+"price_raw": "€ 13,50",
+"currency": "€",
+"amount_text": "13,50",
+"amount": 13.5
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "Р",
+"price_raw": "30 Р",
+"currency": "Р",
+"amount_text": "30",
+"amount": 30
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "€",
+"price_raw": "€ 139.00",
+"currency": "€",
+"amount_text": "139.00",
+"amount": 139
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "There are 163 products.",
+"price_raw": "From 26 to 50 €",
+"currency": "€",
+"amount_text": "26",
+"amount": 26
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "Pris NOK 1 999,00",
+"price_raw": "139,00",
+"currency": "NOK",
+"amount_text": "139,00",
+"amount": 139
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "/sqft",
+"price_raw": "1.52",
+"currency": null,
+"amount_text": "1.52",
+"amount": 1.52
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "$4.95",
+"price_raw": "$4.95",
+"currency": "$",
+"amount_text": "4.95",
+"amount": 4.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "$38",
+"price_raw": "$12",
+"currency": "$",
+"amount_text": "12",
+"amount": 12
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "Cena 4.10 €",
+"price_raw": "4.10",
+"currency": "€",
+"amount_text": "4.10",
+"amount": 4.1
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "руб.",
+"price_raw": "590",
+"currency": "руб.",
+"amount_text": "590",
+"amount": 590
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "€",
+"price_raw": "99,90",
+"currency": "€",
+"amount_text": "99,90",
+"amount": 99.9
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "9,50 EUR",
+"price_raw": "9,50 EUR",
+"currency": "EUR",
+"amount_text": "9,50",
+"amount": 9.5
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "$74.99",
+"price_raw": "$74.99",
+"currency": "$",
+"amount_text": "74.99",
+"amount": 74.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "$",
+"price_raw": "$ 3.22",
+"currency": "$",
+"amount_text": "3.22",
+"amount": 3.22
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "£",
+"price_raw": "3,301.00 £",
+"currency": "£",
+"amount_text": "3,301.00",
+"amount": 3301
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "41,78 EUR",
+"price_raw": "41,78 EUR",
+"currency": "EUR",
+"amount_text": "41,78",
+"amount": 41.78
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "44,50 EUR",
+"price_raw": "44,50 EUR",
+"currency": "EUR",
+"amount_text": "44,50",
+"amount": 44.5
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "£4.00",
+"price_raw": "£4.00",
+"currency": "£",
+"amount_text": "4.00",
+"amount": 4
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "Р",
+"price_raw": "7 390 Р",
+"currency": "Р",
+"amount_text": "7 390",
+"amount": 7390
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "eMail",
+"price_raw": "34.99€",
+"currency": "€",
+"amount_text": "34.99",
+"amount": 34.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "€",
+"price_raw": "12,99",
+"currency": "€",
+"amount_text": "12,99",
+"amount": 12.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "RRP: £ 180.00",
+"price_raw": "149.00",
+"currency": "£",
+"amount_text": "149.00",
+"amount": 149
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "9.00 руб.",
+"price_raw": "27.00 руб.",
+"currency": "руб.",
+"amount_text": "27.00",
+"amount": 27
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "Price: $19.95",
+"price_raw": "$7.95",
+"currency": "$",
+"amount_text": "7.95",
+"amount": 7.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "$16,500",
+"price_raw": "$16,500",
+"currency": "$",
+"amount_text": "16,500",
+"amount": 16500
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "•",
+"price_raw": "$59.99",
+"currency": "$",
+"amount_text": "59.99",
+"amount": 59.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "USD",
+"price_raw": "349.95",
+"currency": "USD",
+"amount_text": "349.95",
+"amount": 349.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "35€ 99 dont 0,02 € d'éco-part",
+"price_raw": "35€ 99",
+"currency": "€",
+"amount_text": "35€99",
+"amount": 35.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "5,72 €",
+"price_raw": "5,72 €",
+"currency": "€",
+"amount_text": "5,72",
+"amount": 5.72
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "199,00 грн.",
+"price_raw": "199,00 грн.",
+"currency": "грн.",
+"amount_text": "199,00",
+"amount": 199
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "£4.07",
+"price_raw": "£4.07",
+"currency": "£",
+"amount_text": "4.07",
+"amount": 4.07
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "$15.00",
+"price_raw": "$15.00",
+"currency": "$",
+"amount_text": "15.00",
+"amount": 15
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "€",
+"price_raw": "20.00",
+"currency": "€",
+"amount_text": "20.00",
+"amount": 20
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "€",
+"price_raw": "14.50",
+"currency": "€",
+"amount_text": "14.50",
+"amount": 14.5
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "DKK",
+"price_raw": "59,00",
+"currency": "DKK",
+"amount_text": "59,00",
+"amount": 59
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "9 472 Ft",
+"price_raw": "9 472 Ft",
+"currency": "Ft",
+"amount_text": "9 472",
+"amount": 9472
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "Cena",
+"price_raw": "95 Kč",
+"currency": "Kč",
+"amount_text": "95",
+"amount": 95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "tax excl.",
+"price_raw": "€ 0,00",
+"currency": "€",
+"amount_text": "0,00",
+"amount": 0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "TL",
+"price_raw": "69,50",
+"currency": "TL",
+"amount_text": "69,50",
+"amount": 69.5
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "Price",
+"price_raw": "Rp 169.000",
+"currency": "Rp",
+"amount_text": "169.000",
+"amount": 169000
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "En stock",
+"price_raw": "4,50 €",
+"currency": "€",
+"amount_text": "4,50",
+"amount": 4.5
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "$183.00",
+"price_raw": "$145.00",
+"currency": "$",
+"amount_text": "145.00",
+"amount": 145
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "£",
+"price_raw": "11.70",
+"currency": "£",
+"amount_text": "11.70",
+"amount": 11.7
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "25,13 €",
+"price_raw": "25,13 €",
+"currency": "€",
+"amount_text": "25,13",
+"amount": 25.13
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "58,00 zł",
+"price_raw": "58,00 zł",
+"currency": "zł",
+"amount_text": "58,00",
+"amount": 58
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "€",
+"price_raw": "15,55",
+"currency": "€",
+"amount_text": "15,55",
+"amount": 15.55
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "Prezzo SVB: 19,95 €",
+"price_raw": "Prezzo SVB: 19,95 €",
+"currency": "€",
+"amount_text": "19,95",
+"amount": 19.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "In stock",
+"price_raw": "$185.00",
+"currency": "$",
+"amount_text": "185.00",
+"amount": 185
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "18 €",
+"price_raw": "18 €",
+"currency": "€",
+"amount_text": "18",
+"amount": 18
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "0€",
+"price_raw": "0 €",
+"currency": "€",
+"amount_text": "0",
+"amount": 0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "*",
+"price_raw": "9,41 €",
+"currency": "€",
+"amount_text": "9,41",
+"amount": 9.41
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "грн.",
+"price_raw": "1 075",
+"currency": "грн.",
+"amount_text": "1 075",
+"amount": 1075
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "More",
+"price_raw": "$22.99",
+"currency": "$",
+"amount_text": "22.99",
+"amount": 22.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "Р",
+"price_raw": "9 282 Р",
+"currency": "Р",
+"amount_text": "9 282",
+"amount": 9282
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "RM5",
+"price_raw": "RM50",
+"currency": "RM",
+"amount_text": "50",
+"amount": 50
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "7,60 €",
+"price_raw": "7,60 €",
+"currency": "€",
+"amount_text": "7,60",
+"amount": 7.6
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "$",
+"price_raw": "0.00",
+"currency": "$",
+"amount_text": "0.00",
+"amount": 0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": ". AMOSTRA .",
+"price_raw": "R$ 6,00",
+"currency": "R$",
+"amount_text": "6,00",
+"amount": 6
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "5 833,00 € -5% 6 140,00 € Tasse incl. IVA 4%",
+"price_raw": "5 833,00 €",
+"currency": "€",
+"amount_text": "5 833,00",
+"amount": 5833
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "€ 26,95",
+"price_raw": "€ 26,95",
+"currency": "€",
+"amount_text": "26,95",
+"amount": 26.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "35,00 €",
+"price_raw": "35,00 €",
+"currency": "€",
+"amount_text": "35,00",
+"amount": 35
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "Р",
+"price_raw": "2 500 Р",
+"currency": "Р",
+"amount_text": "2 500",
+"amount": 2500
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "499,00 €",
+"price_raw": "499,00 €",
+"currency": "€",
+"amount_text": "499,00",
+"amount": 499
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "руб.",
+"price_raw": "1 120 900",
+"currency": "руб.",
+"amount_text": "1 120 900",
+"amount": 1120900
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "125,00 125,00 €",
+"price_raw": "125,00",
+"currency": "€",
+"amount_text": "125,00",
+"amount": 125
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "₽",
+"price_raw": "7362",
+"currency": "₽",
+"amount_text": "7362",
+"amount": 7362
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "SKU:",
+"price_raw": "€12.99",
+"currency": "€",
+"amount_text": "12.99",
+"amount": 12.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "р.",
+"price_raw": "600",
+"currency": "р.",
+"amount_text": "600",
+"amount": 600
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "79,50 €",
+"price_raw": "29,90€",
+"currency": "€",
+"amount_text": "29,90",
+"amount": 29.9
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "$150.00",
+"price_raw": "$150.00",
+"currency": "$",
+"amount_text": "150.00",
+"amount": 150
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "Р",
+"price_raw": "1 987 Р",
+"currency": "Р",
+"amount_text": "1 987",
+"amount": 1987
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "€69.00",
+"price_raw": "€69.00",
+"currency": "€",
+"amount_text": "69.00",
+"amount": 69
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "USD",
+"price_raw": "280",
+"currency": "USD",
+"amount_text": "280",
+"amount": 280
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "Rabatt",
+"price_raw": "6 450,00",
+"currency": null,
+"amount_text": "6 450,00",
+"amount": 6450
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "SKU:",
+"price_raw": "$178.00",
+"currency": "$",
+"amount_text": "178.00",
+"amount": 178
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "$",
+"price_raw": "$ 300.00",
+"currency": "$",
+"amount_text": "300.00",
+"amount": 300
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "0€",
+"price_raw": "19,1€",
+"currency": "€",
+"amount_text": "19,1",
+"amount": 19.1
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "R$49,90",
+"price_raw": "R$49,90",
+"currency": "R$",
+"amount_text": "49,90",
+"amount": 49.9
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "En stock",
+"price_raw": "790,00 € HT",
+"currency": "€",
+"amount_text": "790,00",
+"amount": 790
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "Cena",
+"price_raw": "Cena 14,79 €",
+"currency": "€",
+"amount_text": "14,79",
+"amount": 14.79
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "For Sale",
+"price_raw": "$395,000",
+"currency": "$",
+"amount_text": "395,000",
+"amount": 395000
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "€",
+"price_raw": "10.14",
+"currency": "€",
+"amount_text": "10.14",
+"amount": 10.14
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "₫",
+"price_raw": "5.00 trên 5",
+"currency": "₫",
+"amount_text": "5.00",
+"amount": 5
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "$ 599.00",
+"price_raw": "549.00",
+"currency": "$",
+"amount_text": "549.00",
+"amount": 549
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "$19",
+"price_raw": "$19",
+"currency": "$",
+"amount_text": "19",
+"amount": 19
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "$210",
+"price_raw": "$210",
+"currency": "$",
+"amount_text": "210",
+"amount": 210
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "$",
+"price_raw": "$ 79.95",
+"currency": "$",
+"amount_text": "79.95",
+"amount": 79.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "руб.",
+"price_raw": "279 000",
+"currency": "руб.",
+"amount_text": "279 000",
+"amount": 279000
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "2 390 €",
+"price_raw": "2 390 €",
+"currency": "€",
+"amount_text": "2 390",
+"amount": 2390
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "$",
+"price_raw": "$ 281.40 $ 265.70",
+"currency": "$",
+"amount_text": "281.40",
+"amount": 281.4
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "3200 руб. 1500 руб.",
+"price_raw": "3200 руб. 1500 руб.",
+"currency": "руб.",
+"amount_text": "3200",
+"amount": 3200
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "$1,299.00",
+"price_raw": "$999.00",
+"currency": "$",
+"amount_text": "999.00",
+"amount": 999
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "15,00 Kč",
+"price_raw": "15,00 Kč",
+"currency": "Kč",
+"amount_text": "15,00",
+"amount": 15
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "€",
+"price_raw": "€ 20.70",
+"currency": "€",
+"amount_text": "20.70",
+"amount": 20.7
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "out of stock",
+"price_raw": "30.00",
+"currency": null,
+"amount_text": "30.00",
+"amount": 30
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "220,00 €",
+"price_raw": "398,00 €",
+"currency": "€",
+"amount_text": "398,00",
+"amount": 398
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "£94.50 GBP",
+"price_raw": "£94.50 GBP",
+"currency": "£",
+"amount_text": "94.50",
+"amount": 94.5
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "5 427 Kč",
+"price_raw": "5 427 Kč",
+"currency": "Kč",
+"amount_text": "5 427",
+"amount": 5427
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "$ 24.99",
+"price_raw": "$ 24.99",
+"currency": "$",
+"amount_text": "24.99",
+"amount": 24.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "£ 2.00",
+"price_raw": "2.00",
+"currency": "£",
+"amount_text": "2.00",
+"amount": 2
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": ">",
+"price_raw": "10,00 €",
+"currency": "€",
+"amount_text": "10,00",
+"amount": 10
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "32,50 EUR",
+"price_raw": "32,50 EUR",
+"currency": "EUR",
+"amount_text": "32,50",
+"amount": 32.5
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "In stock",
+"price_raw": "Rs1,599.00",
+"currency": "Rs",
+"amount_text": "1,599.00",
+"amount": 1599
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "$",
+"price_raw": "14.95",
+"currency": "$",
+"amount_text": "14.95",
+"amount": 14.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "RRP: £ 49.99",
+"price_raw": "42.90",
+"currency": "£",
+"amount_text": "42.90",
+"amount": 42.9
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "Rs206.00 Rs164.00 SAVE 20%",
+"price_raw": "Rs164.00",
+"currency": "Rs",
+"amount_text": "164.00",
+"amount": 164
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "Price:",
+"price_raw": "$6,200.00",
+"currency": "$",
+"amount_text": "6,200.00",
+"amount": 6200
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "PLN",
+"price_raw": "69.99",
+"currency": "PLN",
+"amount_text": "69.99",
+"amount": 69.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "€",
+"price_raw": "48,39",
+"currency": "€",
+"amount_text": "48,39",
+"amount": 48.39
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "1.350.000",
+"price_raw": "320.000",
+"currency": null,
+"amount_text": "320.000",
+"amount": 320000
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "1.650,00 € *",
+"price_raw": "2.130,00 €",
+"currency": "€",
+"amount_text": "2.130,00",
+"amount": 2130
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "£537.00",
+"price_raw": "£179.00",
+"currency": "£",
+"amount_text": "179.00",
+"amount": 179
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "SKU:",
+"price_raw": "$39.99",
+"currency": "$",
+"amount_text": "39.99",
+"amount": 39.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "SGD$4.90",
+"price_raw": "SGD$4.90",
+"currency": "SGD",
+"amount_text": "4.90",
+"amount": 4.9
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "SGD4.90 $",
+"price_raw": "SGD4.90 $",
+"currency": "SGD",
+"amount_text": "4.90",
+"amount": 4.9
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_2",
+"currency_raw": "$ SGD4.90",
+"price_raw": "$ SGD4.90",
+"currency": "SGD",
+"amount_text": "4.90",
+"amount": 4.9
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_PRICE",
+"currency_raw": "EUR",
+"price_raw": null,
+"currency": "EUR",
+"amount_text": null,
+"amount": null
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_PRICE",
+"currency_raw": "Kč",
+"price_raw": null,
+"currency": "Kč",
+"amount_text": null,
+"amount": null
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_PRICE",
+"currency_raw": "50",
+"price_raw": null,
+"currency": null,
+"amount_text": null,
+"amount": null
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_PRICE",
+"currency_raw": ">",
+"price_raw": null,
+"currency": null,
+"amount_text": null,
+"amount": null
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_PRICE",
+"currency_raw": "REI",
+"price_raw": null,
+"currency": null,
+"amount_text": null,
+"amount": null
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_PRICE",
+"currency_raw": "rate",
+"price_raw": null,
+"currency": null,
+"amount_text": null,
+"amount": null
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "67",
+"currency": null,
+"amount_text": "67",
+"amount": 67
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "naša cena 67,30 €",
+"currency": "€",
+"amount_text": "67,30",
+"amount": 67.3
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "EUR29.66 (inc VAT 20% - UK & EEC) EUR24.71 (exc VAT 20% - UK & EEC)",
+"currency": "EUR",
+"amount_text": "29.66",
+"amount": 29.66
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "17,00 €",
+"currency": "€",
+"amount_text": "17,00",
+"amount": 17
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "0,29 € + iva",
+"currency": "€",
+"amount_text": "0,29",
+"amount": 0.29
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "39,00 €",
+"currency": "€",
+"amount_text": "39,00",
+"amount": 39
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "24,00 Kč",
+"currency": "Kč",
+"amount_text": "24,00",
+"amount": 24
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "běžná cena 7 940 Kč",
+"currency": "Kč",
+"amount_text": "7 940",
+"amount": 7940
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "$46.00",
+"currency": "$",
+"amount_text": "46.00",
+"amount": 46.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "$9.99 & Under",
+"currency": "$",
+"amount_text": "9.99",
+"amount": 9.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "běžná cena 459,00 Kč",
+"currency": "Kč",
+"amount_text": "459,00",
+"amount": 459
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "$60.00",
+"currency": "$",
+"amount_text": "60.00",
+"amount": 60
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "0,82 €",
+"currency": "€",
+"amount_text": "0,82",
+"amount": 0.82
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "599 Kč",
+"currency": "Kč",
+"amount_text": "599",
+"amount": 599
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "€10.90",
+"currency": "€",
+"amount_text": "10.90",
+"amount": 10.9
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "299,00 EUR",
+"currency": "EUR",
+"amount_text": "299,00",
+"amount": 299
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "naša cena 21,95 €",
+"currency": "€",
+"amount_text": "21,95",
+"amount": 21.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "343,05 €",
+"currency": "€",
+"amount_text": "343,05",
+"amount": 343.05
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "1 139,00 €",
+"currency": "€",
+"amount_text": "1 139,00",
+"amount": 1139
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "157,000 تومان",
+"currency": "تومان",
+"amount_text": "157,000",
+"amount": 157000
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "35.00",
+"currency": null,
+"amount_text": "35.00",
+"amount": 35
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "8.000.000 ₫",
+"currency": "₫",
+"amount_text": "8.000.000",
+"amount": 8000000
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "6790 Dinara",
+"currency": "Dinara",
+"amount_text": "6790",
+"amount": 6790
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "3.99",
+"currency": null,
+"amount_text": "3.99",
+"amount": 3.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "£ 165.00",
+"currency": "£",
+"amount_text": "165.00",
+"amount": 165.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "$844,900",
+"currency": "$",
+"amount_text": "844,900",
+"amount": 844900
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "140,00 pln",
+"currency": "pln",
+"amount_text": "140,00",
+"amount": 140
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "2,99 €",
+"currency": "€",
+"amount_text": "2,99",
+"amount": 2.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "145,00 lei",
+"currency": "lei",
+"amount_text": "145,00",
+"amount": 145
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "3,90 €",
+"currency": "€",
+"amount_text": "3,90",
+"amount": 3.9
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "$149.99",
+"currency": "$",
+"amount_text": "149.99",
+"amount": 149.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "4,30 €",
+"currency": "€",
+"amount_text": "4,30",
+"amount": 4.3
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "$36.95",
+"currency": "$",
+"amount_text": "36.95",
+"amount": 36.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "2 499,00 zł",
+"currency": "zł",
+"amount_text": "2 499,00",
+"amount": 2499
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "800 руб.",
+"currency": "руб.",
+"amount_text": "800",
+"amount": 800
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "89.00",
+"currency": null,
+"amount_text": "89.00",
+"amount": 89
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "3 100р.",
+"currency": "р.",
+"amount_text": "3 100",
+"amount": 3100
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "0,85 €",
+"currency": "€",
+"amount_text": "0,85",
+"amount": 0.85
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "35,95 €",
+"currency": "€",
+"amount_text": "35,95",
+"amount": 35.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "$0.42",
+"currency": "$",
+"amount_text": "0.42",
+"amount": 0.42
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "80,000 تومان",
+"currency": "تومان",
+"amount_text": "80,000",
+"amount": 80000
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "550,00 € *",
+"currency": "€",
+"amount_text": "550,00",
+"amount": 550
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "25,00 zł",
+"currency": "zł",
+"amount_text": "25,00",
+"amount": 25
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "17,45 EUR",
+"currency": "EUR",
+"amount_text": "17,45",
+"amount": 17.45
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "49,00 €",
+"currency": "€",
+"amount_text": "49,00",
+"amount": 49
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "169.00",
+"currency": null,
+"amount_text": "169.00",
+"amount": 169
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "8,99 €",
+"currency": "€",
+"amount_text": "8,99",
+"amount": 8.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "1 099 Kč",
+"currency": "Kč",
+"amount_text": "1 099",
+"amount": 1099
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "17.99",
+"currency": null,
+"amount_text": "17.99",
+"amount": 17.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "$274.95",
+"currency": "$",
+"amount_text": "274.95",
+"amount": 274.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "70,20 €",
+"currency": "€",
+"amount_text": "70,20",
+"amount": 70.2
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "289,00 zł",
+"currency": "zł",
+"amount_text": "289,00",
+"amount": 289
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "18,00 €",
+"currency": "€",
+"amount_text": "18,00",
+"amount": 18
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "12,00 €",
+"currency": "€",
+"amount_text": "12,00",
+"amount": 12
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "$19.97",
+"currency": "$",
+"amount_text": "19.97",
+"amount": 19.97
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "749,00 euro",
+"currency": "euro",
+"amount_text": "749,00",
+"amount": 749
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "$48.25",
+"currency": "$",
+"amount_text": "48.25",
+"amount": 48.25
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "5.00",
+"currency": null,
+"amount_text": "5.00",
+"amount": 5.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "18,00 € *",
+"currency": "€",
+"amount_text": "18,00",
+"amount": 18
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "$3.00",
+"currency": "$",
+"amount_text": "3.00",
+"amount": 3.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "1,85 EUR",
+"currency": "EUR",
+"amount_text": "1,85",
+"amount": 1.85
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "4.25",
+"currency": null,
+"amount_text": "4.25",
+"amount": 4.25
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "£1.20",
+"currency": "£",
+"amount_text": "1.20",
+"amount": 1.2
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "$196.50",
+"currency": "$",
+"amount_text": "196.50",
+"amount": 196.5
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "Price: $129.00",
+"currency": "$",
+"amount_text": "129.00",
+"amount": 129.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "179,00 €",
+"currency": "€",
+"amount_text": "179,00",
+"amount": 179.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "$80.00",
+"currency": "$",
+"amount_text": "80.00",
+"amount": 80.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "14.50",
+"currency": null,
+"amount_text": "14.50",
+"amount": 14.5
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "From $ 24.95",
+"currency": "$",
+"amount_text": "24.95",
+"amount": 24.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "$5.11",
+"currency": "$",
+"amount_text": "5.11",
+"amount": 5.11
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "EUR 6,99",
+"currency": "EUR",
+"amount_text": "6,99",
+"amount": 6.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "40% OFF",
+"currency": null,
+"amount_text": null,
+"amount": null
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "29.99",
+"currency": null,
+"amount_text": "29.99",
+"amount": 29.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "14.00€",
+"currency": "€",
+"amount_text": "14.00",
+"amount": 14.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "22.00",
+"currency": null,
+"amount_text": "22.00",
+"amount": 22.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "$1000.00",
+"currency": "$",
+"amount_text": "1000.00",
+"amount": 1000.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "$12.95",
+"currency": "$",
+"amount_text": "12.95",
+"amount": 12.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "běžná cena 987,20 Kč",
+"currency": "Kč",
+"amount_text": "987,20",
+"amount": 987.2
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "104,64 zł",
+"currency": "zł",
+"amount_text": "104,64",
+"amount": 104.64
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "163,80 €",
+"currency": "€",
+"amount_text": "163,80",
+"amount": 163.8
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "$89.00",
+"currency": "$",
+"amount_text": "89.00",
+"amount": 89.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "1 600 руб.",
+"currency": "руб.",
+"amount_text": "1 600",
+"amount": 1600
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "20,95 € *",
+"currency": "€",
+"amount_text": "20,95",
+"amount": 20.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "9,50 €",
+"currency": "€",
+"amount_text": "9,50",
+"amount": 9.5
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "170,00 €",
+"currency": "€",
+"amount_text": "170,00",
+"amount": 170
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "170,00€",
+"currency": "€",
+"amount_text": "170,00",
+"amount": 170
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "6.00",
+"currency": null,
+"amount_text": "6.00",
+"amount": 6.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "$24.00",
+"currency": "$",
+"amount_text": "24.00",
+"amount": 24.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "9.95",
+"currency": null,
+"amount_text": "9.95",
+"amount": 9.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "34.12 (40.94 inc VAT)",
+"currency": null,
+"amount_text": "34.12",
+"amount": 34.12
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "Rp 350.000",
+"currency": "Rp",
+"amount_text": "350.000",
+"amount": 350000
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "$55.00",
+"currency": "$",
+"amount_text": "55.00",
+"amount": 55.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "$595.00",
+"currency": "$",
+"amount_text": "595.00",
+"amount": 595.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "7,00 €",
+"currency": "€",
+"amount_text": "7,00",
+"amount": 7
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "119.95",
+"currency": null,
+"amount_text": "119.95",
+"amount": 119.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "1.95",
+"currency": null,
+"amount_text": "1.95",
+"amount": 1.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "390,00 €",
+"currency": "€",
+"amount_text": "390,00",
+"amount": 390
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "3.24",
+"currency": null,
+"amount_text": "3.24",
+"amount": 3.24
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "12 590 Kč",
+"currency": "Kč",
+"amount_text": "12 590",
+"amount": 12590
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "330 Kč",
+"currency": "Kč",
+"amount_text": "330",
+"amount": 330
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "8 500 руб.",
+"currency": "руб.",
+"amount_text": "8 500",
+"amount": 8500
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "589,00 €",
+"currency": "€",
+"amount_text": "589,00",
+"amount": 589
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "1,099.99",
+"currency": null,
+"amount_text": "1,099.99",
+"amount": 1099.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "14 196 Р",
+"currency": "Р",
+"amount_text": "14 196",
+"amount": 14196
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "19.00",
+"currency": null,
+"amount_text": "19.00",
+"amount": 19.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "870 Kč",
+"currency": "Kč",
+"amount_text": "870",
+"amount": 870
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "59,00 €",
+"currency": "€",
+"amount_text": "59,00",
+"amount": 59
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "Pris från 172 kr",
+"currency": "kr",
+"amount_text": "172",
+"amount": 172
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "1 573 Kč",
+"currency": "Kč",
+"amount_text": "1 573",
+"amount": 1573
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "$2.99",
+"currency": "$",
+"amount_text": "2.99",
+"amount": 2.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "13,90 €",
+"currency": "€",
+"amount_text": "13,90",
+"amount": 13.9
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "29.95",
+"currency": null,
+"amount_text": "29.95",
+"amount": 29.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "/",
+"currency": null,
+"amount_text": null,
+"amount": null
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "16,90 €",
+"currency": "€",
+"amount_text": "16,90",
+"amount": 16.9
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "149.95",
+"currency": null,
+"amount_text": "149.95",
+"amount": 149.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "8.90",
+"currency": null,
+"amount_text": "8.90",
+"amount": 8.9
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "419",
+"currency": null,
+"amount_text": "419",
+"amount": 419
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "$50.00",
+"currency": "$",
+"amount_text": "50.00",
+"amount": 50.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "3 291,00 €",
+"currency": "€",
+"amount_text": "3 291,00",
+"amount": 3291
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "13,00 €",
+"currency": "€",
+"amount_text": "13,00",
+"amount": 13
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "DKK 449,00",
+"currency": "DKK",
+"amount_text": "449,00",
+"amount": 449
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "$20.00",
+"currency": "$",
+"amount_text": "20.00",
+"amount": 20.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "$154",
+"currency": "$",
+"amount_text": "154",
+"amount": 154
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "22.48",
+"currency": null,
+"amount_text": "22.48",
+"amount": 22.48
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "20,00 EUR",
+"currency": "EUR",
+"amount_text": "20,00",
+"amount": 20
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "73,460 €",
+"currency": "€",
+"amount_text": "73,460",
+"amount": 73460
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "850 руб",
+"currency": "руб",
+"amount_text": "850",
+"amount": 850
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "$14.99",
+"currency": "$",
+"amount_text": "14.99",
+"amount": 14.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "$79.95",
+"currency": "$",
+"amount_text": "79.95",
+"amount": 79.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "40,00 €",
+"currency": "€",
+"amount_text": "40,00",
+"amount": 40
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "149,98 €",
+"currency": "€",
+"amount_text": "149,98",
+"amount": 149.98
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "1 150 грн.",
+"currency": "грн.",
+"amount_text": "1 150",
+"amount": 1150
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "399.00",
+"currency": null,
+"amount_text": "399.00",
+"amount": 399.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "33,90 €",
+"currency": "€",
+"amount_text": "33,90",
+"amount": 33.9
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "79,50 €",
+"currency": "€",
+"amount_text": "79,50",
+"amount": 79.5
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "40 130",
+"currency": null,
+"amount_text": "40 130",
+"amount": 40130
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "$69.99",
+"currency": "$",
+"amount_text": "69.99",
+"amount": 69.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "1 090 Kč",
+"currency": "Kč",
+"amount_text": "1 090",
+"amount": 1090
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "395 Kč",
+"currency": "Kč",
+"amount_text": "395",
+"amount": 395
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "53,95 €",
+"currency": "€",
+"amount_text": "53,95",
+"amount": 53.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "£0.99",
+"currency": "£",
+"amount_text": "0.99",
+"amount": 0.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "5,60 € *",
+"currency": "€",
+"amount_text": "5,60",
+"amount": 5.6
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "29,50 zł",
+"currency": "zł",
+"amount_text": "29,50",
+"amount": 29.5
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "2 990",
+"currency": null,
+"amount_text": "2 990",
+"amount": 2990
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "0,00",
+"currency": null,
+"amount_text": "0,00",
+"amount": 0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "$24.99 with card",
+"currency": "$",
+"amount_text": "24.99",
+"amount": 24.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "18,00€",
+"currency": "€",
+"amount_text": "18,00",
+"amount": 18
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "€600,00",
+"currency": "€",
+"amount_text": "600,00",
+"amount": 600
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "£25.00 (tax incl.)",
+"currency": "£",
+"amount_text": "25.00",
+"amount": 25
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "8,55 €",
+"currency": "€",
+"amount_text": "8,55",
+"amount": 8.55
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "1,422.50",
+"currency": null,
+"amount_text": "1,422.50",
+"amount": 1422.5
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "244,00 €",
+"currency": "€",
+"amount_text": "244,00",
+"amount": 244.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "12,90 €",
+"currency": "€",
+"amount_text": "12,90",
+"amount": 12.9
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "12 900,00 руб",
+"currency": "руб",
+"amount_text": "12 900,00",
+"amount": 12900
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "1.727 Ft",
+"currency": "Ft",
+"amount_text": "1.727",
+"amount": 1727
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "79,00 €",
+"currency": "€",
+"amount_text": "79,00",
+"amount": 79
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "NZD $100.70",
+"currency": "NZD",
+"amount_text": "100.70",
+"amount": 100.7
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "479.00",
+"currency": null,
+"amount_text": "479.00",
+"amount": 479.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "$ 69.00",
+"currency": "$",
+"amount_text": "69.00",
+"amount": 69.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "135,00 €",
+"currency": "€",
+"amount_text": "135,00",
+"amount": 135.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "25.00",
+"currency": null,
+"amount_text": "25.00",
+"amount": 25.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "94,90 €",
+"currency": "€",
+"amount_text": "94,90",
+"amount": 94.9
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "149.99",
+"currency": null,
+"amount_text": "149.99",
+"amount": 149.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "44,00 €",
+"currency": "€",
+"amount_text": "44,00",
+"amount": 44.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "$24.99",
+"currency": "$",
+"amount_text": "24.99",
+"amount": 24.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "22,00 EUR",
+"currency": "EUR",
+"amount_text": "22,00",
+"amount": 22.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "89,90 €",
+"currency": "€",
+"amount_text": "89,90",
+"amount": 89.9
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "$24.95",
+"currency": "$",
+"amount_text": "24.95",
+"amount": 24.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "£ 1.99",
+"currency": "£",
+"amount_text": "1.99",
+"amount": 1.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "1 099,00 zł",
+"currency": "zł",
+"amount_text": "1 099,00",
+"amount": 1099
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "běžná cena 28 270,00 Kč",
+"currency": "Kč",
+"amount_text": "28 270,00",
+"amount": 28270
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "da € 72.00",
+"currency": "€",
+"amount_text": "72.00",
+"amount": 72.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "$15.95",
+"currency": "$",
+"amount_text": "15.95",
+"amount": 15.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "تومان56,000",
+"currency": "تومان",
+"amount_text": "56,000",
+"amount": 56000
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "$1,695.00",
+"currency": "$",
+"amount_text": "1,695.00",
+"amount": 1695.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "£595.00",
+"currency": "£",
+"amount_text": "595.00",
+"amount": 595.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "$11.95",
+"currency": "$",
+"amount_text": "11.95",
+"amount": 11.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "290,00 Kč",
+"currency": "Kč",
+"amount_text": "290,00",
+"amount": 290
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "199.90 Fr.",
+"currency": "Fr.",
+"amount_text": "199.90",
+"amount": 199.9
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "197 PLN",
+"currency": "PLN",
+"amount_text": "197",
+"amount": 197
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "9.99",
+"currency": null,
+"amount_text": "9.99",
+"amount": 9.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "$56.00",
+"currency": "$",
+"amount_text": "56.00",
+"amount": 56.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "4 980 Kč",
+"currency": "Kč",
+"amount_text": "4 980",
+"amount": 4980
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "124,00 €",
+"currency": "€",
+"amount_text": "124,00",
+"amount": 124
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "$104.99",
+"currency": "$",
+"amount_text": "104.99",
+"amount": 104.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "39,00 €",
+"currency": "€",
+"amount_text": "39,00",
+"amount": 39
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "1 029,00 €",
+"currency": "€",
+"amount_text": "1 029,00",
+"amount": 1029
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "Běžná cena 299,00 Kč",
+"currency": "Kč",
+"amount_text": "299,00",
+"amount": 299
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "745,00 €",
+"currency": "€",
+"amount_text": "745,00",
+"amount": 745
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "$89.00",
+"currency": "$",
+"amount_text": "89.00",
+"amount": 89
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "$29.95",
+"currency": "$",
+"amount_text": "29.95",
+"amount": 29.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "2.00",
+"currency": null,
+"amount_text": "2.00",
+"amount": 2.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "249.99",
+"currency": null,
+"amount_text": "249.99",
+"amount": 249.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "24.99",
+"currency": null,
+"amount_text": "24.99",
+"amount": 24.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "1 499 Kč",
+"currency": "Kč",
+"amount_text": "1 499",
+"amount": 1499
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "199,95 €",
+"currency": "€",
+"amount_text": "199,95",
+"amount": 199.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "6,00 €",
+"currency": "€",
+"amount_text": "6,00",
+"amount": 6
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "$28.49",
+"currency": "$",
+"amount_text": "28.49",
+"amount": 28.49
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "200.000 đ",
+"currency": "đ",
+"amount_text": "200.000",
+"amount": 200000
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "9,24 €",
+"currency": "€",
+"amount_text": "9,24",
+"amount": 9.24
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "48,00 €",
+"currency": "€",
+"amount_text": "48,00",
+"amount": 48.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "Cena : 890 Kč",
+"currency": "Kč",
+"amount_text": "890",
+"amount": 890
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "790.00",
+"currency": null,
+"amount_text": "790.00",
+"amount": 790.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "17 260 руб.",
+"currency": "руб.",
+"amount_text": "17 260",
+"amount": 17260
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "227,000 تومان",
+"currency": "تومان",
+"amount_text": "227,000",
+"amount": 227000
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "295,88 €",
+"currency": "€",
+"amount_text": "295,88",
+"amount": 295.88
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "£1399",
+"currency": "£",
+"amount_text": "1399",
+"amount": 1399
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "11,33 Br",
+"currency": "Br",
+"amount_text": "11,33",
+"amount": 11.33
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "325.95",
+"currency": null,
+"amount_text": "325.95",
+"amount": 325.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "$19.50",
+"currency": "$",
+"amount_text": "19.50",
+"amount": 19.5
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "19,00 €",
+"currency": "€",
+"amount_text": "19,00",
+"amount": 19
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "2 999,00 €",
+"currency": "€",
+"amount_text": "2 999,00",
+"amount": 2999
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "49.95",
+"currency": null,
+"amount_text": "49.95",
+"amount": 49.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "99 LEI",
+"currency": "LEI",
+"amount_text": "99",
+"amount": 99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "249 Kč",
+"currency": "Kč",
+"amount_text": "249",
+"amount": 249
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "3.79",
+"currency": null,
+"amount_text": "3.79",
+"amount": 3.79
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "běžná cena 890 Kč",
+"currency": "Kč",
+"amount_text": "890",
+"amount": 890
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "$809,000",
+"currency": "$",
+"amount_text": "809,000",
+"amount": 809000
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "450 000 ₫",
+"currency": "₫",
+"amount_text": "450 000",
+"amount": 450000
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "30,00 €",
+"currency": "€",
+"amount_text": "30,00",
+"amount": 30.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "14.95",
+"currency": null,
+"amount_text": "14.95",
+"amount": 14.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "12.50",
+"currency": null,
+"amount_text": "12.50",
+"amount": 12.5
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "129,00 € (-15%)",
+"currency": "€",
+"amount_text": "129,00",
+"amount": 129.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "12,90 €",
+"currency": "€",
+"amount_text": "12,90",
+"amount": 12.9
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "A partir de 11,70 €",
+"currency": "€",
+"amount_text": "11,70",
+"amount": 11.7
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "15.49",
+"currency": null,
+"amount_text": "15.49",
+"amount": 15.49
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "12.34 €",
+"currency": "€",
+"amount_text": "12.34",
+"amount": 12.34
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "€799,00",
+"currency": "€",
+"amount_text": "799,00",
+"amount": 799
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "230 лв.",
+"currency": "лв.",
+"amount_text": "230",
+"amount": 230
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "14.55 €",
+"currency": "€",
+"amount_text": "14.55",
+"amount": 14.55
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "133,86 LEI",
+"currency": "LEI",
+"amount_text": "133,86",
+"amount": 133.86
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "7 990,00 Kč",
+"currency": "Kč",
+"amount_text": "7 990,00",
+"amount": 7990
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "350.00",
+"currency": null,
+"amount_text": "350.00",
+"amount": 350.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "Cena: 55,72 zł brutto",
+"currency": "zł",
+"amount_text": "55,72",
+"amount": 55.72
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "O blenderach Omniblend",
+"currency": null,
+"amount_text": null,
+"amount": null
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "3,822.00",
+"currency": null,
+"amount_text": "3,822.00",
+"amount": 3822
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "0,15 €",
+"currency": "€",
+"amount_text": "0,15",
+"amount": 0.15
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "430,00 €",
+"currency": "€",
+"amount_text": "430,00",
+"amount": 430
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "$29.00",
+"currency": "$",
+"amount_text": "29.00",
+"amount": 29.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "39.99",
+"currency": null,
+"amount_text": "39.99",
+"amount": 39.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "$15.00",
+"currency": "$",
+"amount_text": "15.00",
+"amount": 15.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "21,00 Lei",
+"currency": "Lei",
+"amount_text": "21,00",
+"amount": 21.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "naše cena 250,00 Kč",
+"currency": "Kč",
+"amount_text": "250,00",
+"amount": 250.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "$24.95",
+"currency": "$",
+"amount_text": "24.95",
+"amount": 24.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "162.18",
+"currency": null,
+"amount_text": "162.18",
+"amount": 162.18
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "39,60 EUR",
+"currency": "EUR",
+"amount_text": "39,60",
+"amount": 39.6
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "10,75 €",
+"currency": "€",
+"amount_text": "10,75",
+"amount": 10.75
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "219 руб.",
+"currency": "руб.",
+"amount_text": "219",
+"amount": 219
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "89,00 € *",
+"currency": "€",
+"amount_text": "89,00",
+"amount": 89.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "151,200 تومان",
+"currency": "تومان",
+"amount_text": "151,200",
+"amount": 151200
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "$159.99",
+"currency": "$",
+"amount_text": "159.99",
+"amount": 159.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "2.49",
+"currency": null,
+"amount_text": "2.49",
+"amount": 2.49
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "7.38",
+"currency": null,
+"amount_text": "7.38",
+"amount": 7.38
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "62,00 zł",
+"currency": "zł",
+"amount_text": "62,00",
+"amount": 62.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "$20.00",
+"currency": "$",
+"amount_text": "20.00",
+"amount": 20
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "$ 50.00",
+"currency": "$",
+"amount_text": "50.00",
+"amount": 50
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "34.99",
+"currency": null,
+"amount_text": "34.99",
+"amount": 34.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "318,00 €",
+"currency": "€",
+"amount_text": "318,00",
+"amount": 318
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "11.499,00 EUR",
+"currency": "EUR",
+"amount_text": "11.499,00",
+"amount": 11499
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "571.12坪",
+"currency": null,
+"amount_text": "571.12",
+"amount": 571.12
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "€ 75.00",
+"currency": "€",
+"amount_text": "75.00",
+"amount": 75.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "11,90 € *",
+"currency": "€",
+"amount_text": "11,90",
+"amount": 11.9
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "€0.51",
+"currency": "€",
+"amount_text": "0.51",
+"amount": 0.51
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "6,50 €",
+"currency": "€",
+"amount_text": "6,50",
+"amount": 6.5
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "790 Kč",
+"currency": "Kč",
+"amount_text": "790",
+"amount": 790
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "ab 2.99 €",
+"currency": "€",
+"amount_text": "2.99",
+"amount": 2.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "369",
+"currency": null,
+"amount_text": "369",
+"amount": 369
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "134.96",
+"currency": null,
+"amount_text": "134.96",
+"amount": 134.96
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "135 lei",
+"currency": "lei",
+"amount_text": "135",
+"amount": 135
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "2,99 € *",
+"currency": "€",
+"amount_text": "2,99",
+"amount": 2.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "$9.99",
+"currency": "$",
+"amount_text": "9.99",
+"amount": 9.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "2.950,00 €",
+"currency": "€",
+"amount_text": "2.950,00",
+"amount": 2950
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "19.99",
+"currency": null,
+"amount_text": "19.99",
+"amount": 19.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "49 lei",
+"currency": "lei",
+"amount_text": "49",
+"amount": 49
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "31,07 € (bez DPH)",
+"currency": "€",
+"amount_text": "31,07",
+"amount": 31.07
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "56.00",
+"currency": null,
+"amount_text": "56.00",
+"amount": 56.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "54.95",
+"currency": null,
+"amount_text": "54.95",
+"amount": 54.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "$ 80.00",
+"currency": "$",
+"amount_text": "80.00",
+"amount": 80.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "$39.00",
+"currency": "$",
+"amount_text": "39.00",
+"amount": 39.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "Rp 221.000",
+"currency": "Rp",
+"amount_text": "221.000",
+"amount": 221000
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "35,90 EUR",
+"currency": "EUR",
+"amount_text": "35,90",
+"amount": 35.9
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "4 835,50 €",
+"currency": "€",
+"amount_text": "4 835,50",
+"amount": 4835.5
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "75,00€",
+"currency": "€",
+"amount_text": "75,00",
+"amount": 75
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "$21.95",
+"currency": "$",
+"amount_text": "21.95",
+"amount": 21.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "737,00",
+"currency": null,
+"amount_text": "737,00",
+"amount": 737
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "129,00 € **",
+"currency": "€",
+"amount_text": "129,00",
+"amount": 129
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "2 399 Kč",
+"currency": "Kč",
+"amount_text": "2 399",
+"amount": 2399
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "430 руб",
+"currency": "руб",
+"amount_text": "430",
+"amount": 430
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "69.95",
+"currency": null,
+"amount_text": "69.95",
+"amount": 69.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "$0.00",
+"currency": "$",
+"amount_text": "0.00",
+"amount": 0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "49.56",
+"currency": null,
+"amount_text": "49.56",
+"amount": 49.56
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "0,00 EUR",
+"currency": "EUR",
+"amount_text": "0,00",
+"amount": 0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "145,00 Kč",
+"currency": "Kč",
+"amount_text": "145,00",
+"amount": 145
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "99,00 lei",
+"currency": "lei",
+"amount_text": "99,00",
+"amount": 99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "$750,000",
+"currency": "$",
+"amount_text": "750,000",
+"amount": 750000
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "$49.99",
+"currency": "$",
+"amount_text": "49.99",
+"amount": 49.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "29.00",
+"currency": null,
+"amount_text": "29.00",
+"amount": 29.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "$7.20",
+"currency": "$",
+"amount_text": "7.20",
+"amount": 7.2
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "69.00",
+"currency": null,
+"amount_text": "69.00",
+"amount": 69.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "4.47",
+"currency": null,
+"amount_text": "4.47",
+"amount": 4.47
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "39,90 € *",
+"currency": "€",
+"amount_text": "39,90",
+"amount": 39.9
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "469,00 €",
+"currency": "€",
+"amount_text": "469,00",
+"amount": 469
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "24.38",
+"currency": null,
+"amount_text": "24.38",
+"amount": 24.38
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "6,24",
+"currency": null,
+"amount_text": "6,24",
+"amount": 6.24
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "$89.00",
+"currency": "$",
+"amount_text": "89.00",
+"amount": 89.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "24,35 €",
+"currency": "€",
+"amount_text": "24,35",
+"amount": 24.35
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "Pris från 805 kr",
+"currency": "kr",
+"amount_text": "805",
+"amount": 805
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "295 Kč",
+"currency": "Kč",
+"amount_text": "295",
+"amount": 295
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "175.00",
+"currency": null,
+"amount_text": "175.00",
+"amount": 175.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "7 990 kr",
+"currency": "kr",
+"amount_text": "7 990",
+"amount": 7990
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "14,00 €",
+"currency": "€",
+"amount_text": "14,00",
+"amount": 14
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "249 Kč",
+"currency": "Kč",
+"amount_text": "249",
+"amount": 249
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "£39.95",
+"currency": "£",
+"amount_text": "39.95",
+"amount": 39.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "10,75 TL",
+"currency": "TL",
+"amount_text": "10,75",
+"amount": 10.75
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "$25.00",
+"currency": "$",
+"amount_text": "25.00",
+"amount": 25.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "1 720,00 zł",
+"currency": "zł",
+"amount_text": "1 720,00",
+"amount": 1720
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "běžná cena 749 Kč",
+"currency": "Kč",
+"amount_text": "749",
+"amount": 749
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "425,00 €",
+"currency": "€",
+"amount_text": "425,00",
+"amount": 425
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "59.00",
+"currency": null,
+"amount_text": "59.00",
+"amount": 59.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "1,120.00",
+"currency": null,
+"amount_text": "1,120.00",
+"amount": 1120
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "a partire da 7,32 € *",
+"currency": "€",
+"amount_text": "7,32",
+"amount": 7.32
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "148.50 Inc GST",
+"currency": null,
+"amount_text": "148.50",
+"amount": 148.5
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "7.49",
+"currency": null,
+"amount_text": "7.49",
+"amount": 7.49
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "80.00",
+"currency": null,
+"amount_text": "80.00",
+"amount": 80.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "93 499 Kč",
+"currency": "Kč",
+"amount_text": "93 499",
+"amount": 93499
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "1.599,00 € *",
+"currency": "€",
+"amount_text": "1.599,00",
+"amount": 1599
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "ab 3,63 EUR",
+"currency": "EUR",
+"amount_text": "3,63",
+"amount": 3.63
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "29,90 EUR",
+"currency": "EUR",
+"amount_text": "29,90",
+"amount": 29.9
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "$3.95",
+"currency": "$",
+"amount_text": "3.95",
+"amount": 3.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "3430 лв.",
+"currency": "лв.",
+"amount_text": "3430",
+"amount": 3430
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "724,00 €",
+"currency": "€",
+"amount_text": "724,00",
+"amount": 724
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "18,00 €",
+"currency": "€",
+"amount_text": "18,00",
+"amount": 18
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "6,75 €",
+"currency": "€",
+"amount_text": "6,75",
+"amount": 6.75
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "29,90 € *",
+"currency": "€",
+"amount_text": "29,90",
+"amount": 29.9
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "135.99",
+"currency": null,
+"amount_text": "135.99",
+"amount": 135.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "30,000 تومان",
+"currency": "تومان",
+"amount_text": "30,000",
+"amount": 30000
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "1 500 Kč",
+"currency": "Kč",
+"amount_text": "1 500",
+"amount": 1500
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "349,00 €",
+"currency": "€",
+"amount_text": "349,00",
+"amount": 349
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "$250.00",
+"currency": "$",
+"amount_text": "250.00",
+"amount": 250.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "44.95",
+"currency": null,
+"amount_text": "44.95",
+"amount": 44.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "$22.75",
+"currency": "$",
+"amount_text": "22.75",
+"amount": 22.75
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "250,00 €",
+"currency": "€",
+"amount_text": "250,00",
+"amount": 250
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "14.96 €",
+"currency": "€",
+"amount_text": "14.96",
+"amount": 14.96
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "$4,350.00",
+"currency": "$",
+"amount_text": "4,350.00",
+"amount": 4350
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "379 Kč",
+"currency": "Kč",
+"amount_text": "379",
+"amount": 379
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "19,50 EUR",
+"currency": "EUR",
+"amount_text": "19,50",
+"amount": 19.5
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "33,68 zł",
+"currency": "zł",
+"amount_text": "33,68",
+"amount": 33.68
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "6.70€",
+"currency": "€",
+"amount_text": "6.70",
+"amount": 6.7
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "$29.99",
+"currency": "$",
+"amount_text": "29.99",
+"amount": 29.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_NO_CURRENCY",
+"currency_raw": null,
+"price_raw": "6.50",
+"currency": null,
+"amount_text": "6.50",
+"amount": 6.5
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "R$",
+"price_raw": "R$ 139,99 R$ 135,99",
+"currency": "R$",
+"amount_text": "139,99",
+"amount": 139.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "£",
+"price_raw": "£ 34.99",
+"currency": "£",
+"amount_text": "34.99",
+"amount": 34.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "Price",
+"price_raw": "$7.65",
+"currency": "$",
+"amount_text": "7.65",
+"amount": 7.65
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "€",
+"price_raw": "75,00",
+"currency": "€",
+"amount_text": "75,00",
+"amount": 75
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "34,90 €",
+"currency": "€",
+"amount_text": "34,90",
+"amount": 34.9
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "629.95",
+"currency": null,
+"amount_text": "629.95",
+"amount": 629.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "11000 руб.",
+"price_raw": "47700 руб.",
+"currency": "руб.",
+"amount_text": "47700",
+"amount": 47700
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "$29.99 – $74.99",
+"price_raw": "$29.99",
+"currency": "$",
+"amount_text": "29.99",
+"amount": 29.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "174,00 €",
+"currency": "€",
+"amount_text": "174,00",
+"amount": 174
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "18,00 €",
+"currency": "€",
+"amount_text": "18,00",
+"amount": 18
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "Price:",
+"price_raw": "$19.50",
+"currency": "$",
+"amount_text": "19.50",
+"amount": 19.5
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "8 390 руб.",
+"price_raw": "8 390 руб.",
+"currency": "руб.",
+"amount_text": "8 390",
+"amount": 8390
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "55,00 €",
+"currency": "€",
+"amount_text": "55,00",
+"amount": 55
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "€333.00",
+"price_raw": "€299.71",
+"currency": "€",
+"amount_text": "299.71",
+"amount": 299.71
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "384,00 €",
+"currency": "€",
+"amount_text": "384,00",
+"amount": 384
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "From:",
+"price_raw": "From: $14.97",
+"currency": "$",
+"amount_text": "14.97",
+"amount": 14.97
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "0,00 €",
+"currency": "€",
+"amount_text": "0,00",
+"amount": 0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "€ 280,00",
+"currency": "€",
+"amount_text": "280,00",
+"amount": 280
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "11 450 Kč",
+"currency": "Kč",
+"amount_text": "11 450",
+"amount": 11450
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "Price $118.15",
+"price_raw": "$118.15",
+"currency": "$",
+"amount_text": "118.15",
+"amount": 118.15
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "€",
+"price_raw": "49.99",
+"currency": "€",
+"amount_text": "49.99",
+"amount": 49.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "1,15 €",
+"price_raw": "1,15 €",
+"currency": "€",
+"amount_text": "1,15",
+"amount": 1.15
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "17,99 €",
+"price_raw": "31,93 €",
+"currency": "€",
+"amount_text": "31,93",
+"amount": 31.93
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "र24,401",
+"currency": "र",
+"amount_text": "24,401",
+"amount": 24401
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "$60.00",
+"currency": "$",
+"amount_text": "60.00",
+"amount": 60
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "12,15 €",
+"price_raw": "12,15 €",
+"currency": "€",
+"amount_text": "12,15",
+"amount": 12.15
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "£ 163.95",
+"price_raw": "163.95",
+"currency": "£",
+"amount_text": "163.95",
+"amount": 163.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "30,00 €",
+"currency": "€",
+"amount_text": "30,00",
+"amount": 30
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "zł",
+"price_raw": "165,00 zł",
+"currency": "zł",
+"amount_text": "165,00",
+"amount": 165
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "469.00zł Bez podatku: 381.30zł",
+"price_raw": "469.00zł",
+"currency": "zł",
+"amount_text": "469.00",
+"amount": 469
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "72.95",
+"currency": null,
+"amount_text": "72.95",
+"amount": 72.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "Costo: $2,222.- Más IVA",
+"price_raw": "MX$3,179.00",
+"currency": "MX$",
+"amount_text": "3,179.00",
+"amount": 3179
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "naše cena 4 370 Kč",
+"currency": "Kč",
+"amount_text": "4 370",
+"amount": 4370
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "€",
+"price_raw": "21,33 €",
+"currency": "€",
+"amount_text": "21,33",
+"amount": 21.33
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "49.95",
+"currency": null,
+"amount_text": "49.95",
+"amount": 49.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "Před slevou 59 900 Kč",
+"currency": "Kč",
+"amount_text": "59 900",
+"amount": 59900
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "ab",
+"price_raw": "6,78 € *",
+"currency": "€",
+"amount_text": "6,78",
+"amount": 6.78
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "442",
+"currency": null,
+"amount_text": "442",
+"amount": 442
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "18.10 €",
+"price_raw": "16.00 €",
+"currency": "€",
+"amount_text": "16.00",
+"amount": 16.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "0.00",
+"currency": null,
+"amount_text": "0.00",
+"amount": 0.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "379,00 € *",
+"currency": "€",
+"amount_text": "379,00",
+"amount": 379.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "125.00",
+"currency": null,
+"amount_text": "125.00",
+"amount": 125.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "£ 30.84",
+"currency": "£",
+"amount_text": "30.84",
+"amount": 30.84
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "259,00 €",
+"currency": "€",
+"amount_text": "259,00",
+"amount": 259
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "à partir de 1540 € / pers",
+"price_raw": "1540 €",
+"currency": "€",
+"amount_text": "1540",
+"amount": 1540
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "95 €",
+"currency": "€",
+"amount_text": "95",
+"amount": 95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "53.79",
+"currency": null,
+"amount_text": "53.79",
+"amount": 53.79
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "NT$",
+"price_raw": "NT$ 1,160",
+"currency": "NT$",
+"amount_text": "1,160",
+"amount": 1160
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "ACTIVE",
+"price_raw": "$69,900",
+"currency": "$",
+"amount_text": "69,900",
+"amount": 69900
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "$14.95",
+"currency": "$",
+"amount_text": "14.95",
+"amount": 14.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "₹",
+"price_raw": "₹ 4649",
+"currency": "₹",
+"amount_text": "4649",
+"amount": 4649
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "25 грн",
+"price_raw": "25 грн",
+"currency": "грн",
+"amount_text": "25",
+"amount": 25
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "€",
+"price_raw": "16,40",
+"currency": "€",
+"amount_text": "16,40",
+"amount": 16.4
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "PLN",
+"price_raw": "0,46",
+"currency": "PLN",
+"amount_text": "0,46",
+"amount": 0.46
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "£",
+"price_raw": "£ 261.25",
+"currency": "£",
+"amount_text": "261.25",
+"amount": 261.25
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "$0.00",
+"currency": "$",
+"amount_text": "0.00",
+"amount": 0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "24.95",
+"currency": null,
+"amount_text": "24.95",
+"amount": 24.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "грн.",
+"price_raw": "27.00",
+"currency": "грн.",
+"amount_text": "27.00",
+"amount": 27.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "New",
+"price_raw": "$189,900",
+"currency": "$",
+"amount_text": "189,900",
+"amount": 189900
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "NA",
+"price_raw": "$269",
+"currency": "$",
+"amount_text": "269",
+"amount": 269
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "$279",
+"price_raw": "$189",
+"currency": "$",
+"amount_text": "189",
+"amount": 189
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "160,00 zł",
+"currency": "zł",
+"amount_text": "160,00",
+"amount": 160
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "2 069 рублей",
+"price_raw": "2 400",
+"currency": "руб",
+"amount_text": "2 400",
+"amount": 2400
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "Sale Price: $4.59",
+"price_raw": "$4.59",
+"currency": "$",
+"amount_text": "4.59",
+"amount": 4.59
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "Купить",
+"price_raw": "542 руб.",
+"currency": "руб.",
+"amount_text": "542",
+"amount": 542
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "$19.99",
+"currency": "$",
+"amount_text": "19.99",
+"amount": 19.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "Price",
+"price_raw": "$6.45",
+"currency": "$",
+"amount_text": "6.45",
+"amount": 6.45
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "32.99",
+"currency": null,
+"amount_text": "32.99",
+"amount": 32.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "$86.44",
+"currency": "$",
+"amount_text": "86.44",
+"amount": 86.44
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "25.00€",
+"currency": "€",
+"amount_text": "25.00",
+"amount": 25.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "99,00 €",
+"currency": "€",
+"amount_text": "99,00",
+"amount": 99.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "103.90",
+"currency": null,
+"amount_text": "103.90",
+"amount": 103.9
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "14,00 € *",
+"price_raw": "25,00 € *",
+"currency": "€",
+"amount_text": "25,00",
+"amount": 25.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "$6.49",
+"currency": "$",
+"amount_text": "6.49",
+"amount": 6.49
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "€ 59,95",
+"price_raw": "€ 59,95",
+"currency": "€",
+"amount_text": "59,95",
+"amount": 59.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "Běžná cena 75 990,00 Kč",
+"currency": "Kč",
+"amount_text": "75 990,00",
+"amount": 75990
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "Price",
+"price_raw": "Rp 1.550.000",
+"currency": "Rp",
+"amount_text": "1.550.000",
+"amount": 1550000
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "грн.",
+"price_raw": "1 430",
+"currency": "грн.",
+"amount_text": "1 430",
+"amount": 1430
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "руб. (шт)",
+"price_raw": "1 690,54 руб. (шт)",
+"currency": "руб.",
+"amount_text": "1 690,54",
+"amount": 1690.54
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "69 TL 41.90 TL",
+"price_raw": "69 TL 41.90 TL",
+"currency": "TL",
+"amount_text": "69",
+"amount": 69
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "ALIDAD",
+"price_raw": "960,00 €",
+"currency": "€",
+"amount_text": "960,00",
+"amount": 960
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "184,35 lei",
+"currency": "lei",
+"amount_text": "184,35",
+"amount": 184.35
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 505 Kč",
+"currency": "Kč",
+"amount_text": "1 505",
+"amount": 1505
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "23,00 € *",
+"currency": "€",
+"amount_text": "23,00",
+"amount": 23
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "25.97",
+"currency": null,
+"amount_text": "25.97",
+"amount": 25.97
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "58,19 €",
+"currency": "€",
+"amount_text": "58,19",
+"amount": 58.19
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "27.00 лв.",
+"currency": "лв.",
+"amount_text": "27.00",
+"amount": 27.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "48,00 €",
+"price_raw": "3,85 €",
+"currency": "€",
+"amount_text": "3,85",
+"amount": 3.85
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "10,90 €",
+"currency": "€",
+"amount_text": "10,90",
+"amount": 10.9
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "$ 879.0",
+"price_raw": "$ 879.0",
+"currency": "$",
+"amount_text": "879.0",
+"amount": 879.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "EUR",
+"price_raw": "25.88",
+"currency": "EUR",
+"amount_text": "25.88",
+"amount": 25.88
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "R$215,10",
+"currency": "R$",
+"amount_text": "215,10",
+"amount": 215.1
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "£",
+"price_raw": "£ 12.50",
+"currency": "£",
+"amount_text": "12.50",
+"amount": 12.5
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "3 173,00 €",
+"currency": "€",
+"amount_text": "3 173,00",
+"amount": 3173
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "34,94 € *",
+"currency": "€",
+"amount_text": "34,94",
+"amount": 34.94
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "Ops!",
+"currency": null,
+"amount_text": null,
+"amount": null
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "392. 00",
+"currency": null,
+"amount_text": "392. 00",
+"amount": 392
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "€",
+"price_raw": "213,62",
+"currency": "€",
+"amount_text": "213,62",
+"amount": 213.62
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "3,00 €",
+"price_raw": "3,00 €",
+"currency": "€",
+"amount_text": "3,00",
+"amount": 3
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "£0.00",
+"price_raw": "£0.00",
+"currency": "£",
+"amount_text": "0.00",
+"amount": 0.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "€",
+"price_raw": "10 990,00",
+"currency": "€",
+"amount_text": "10 990,00",
+"amount": 10990
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "€ 24,95",
+"currency": "€",
+"amount_text": "24,95",
+"amount": 24.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "Not Available",
+"currency": null,
+"amount_text": null,
+"amount": null
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "$19.99",
+"currency": "$",
+"amount_text": "19.99",
+"amount": 19.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "Р",
+"price_raw": "15 130 Р",
+"currency": "Р",
+"amount_text": "15 130",
+"amount": 15130
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "$5.95",
+"price_raw": "$5.95",
+"currency": "$",
+"amount_text": "5.95",
+"amount": 5.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "199,99 €",
+"currency": "€",
+"amount_text": "199,99",
+"amount": 199.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "Code",
+"price_raw": "£23.40",
+"currency": "£",
+"amount_text": "23.40",
+"amount": 23.4
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "$29.99",
+"price_raw": "$29.99",
+"currency": "$",
+"amount_text": "29.99",
+"amount": 29.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "795",
+"currency": null,
+"amount_text": "795",
+"amount": 795
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "Sorry, this item is currently out of stock but you can still order, we will send as soon a product arrives",
+"price_raw": "34.99",
+"currency": null,
+"amount_text": "34.99",
+"amount": 34.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "Our Price: $149.95",
+"price_raw": "Our Price: $149.95",
+"currency": "$",
+"amount_text": "149.95",
+"amount": 149.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "$119.95",
+"price_raw": "$119.95",
+"currency": "$",
+"amount_text": "119.95",
+"amount": 119.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "339 грн",
+"currency": "грн",
+"amount_text": "339",
+"amount": 339
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "$0.00",
+"price_raw": "$0.00",
+"currency": "$",
+"amount_text": "0.00",
+"amount": 0.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "€",
+"price_raw": "79,00",
+"currency": "€",
+"amount_text": "79,00",
+"amount": 79.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "378.00",
+"currency": null,
+"amount_text": "378.00",
+"amount": 378.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "Pure & IP BP Ph. Eur. USP ACS AR LR",
+"currency": null,
+"amount_text": null,
+"amount": null
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "$356.03",
+"currency": "$",
+"amount_text": "356.03",
+"amount": 356.03
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "naše cena",
+"price_raw": "běžná cena 890 Kč",
+"currency": "Kč",
+"amount_text": "890",
+"amount": 890
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "$49.99",
+"currency": "$",
+"amount_text": "49.99",
+"amount": 49.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "5 550 Kč",
+"currency": "Kč",
+"amount_text": "5 550",
+"amount": 5550
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "5 770 Kč",
+"currency": "Kč",
+"amount_text": "5 770",
+"amount": 5770
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "Free!",
+"currency": null,
+"amount_text": "0",
+"amount": 0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "194 ₹",
+"price_raw": "199 ₹",
+"currency": "₹",
+"amount_text": "199",
+"amount": 199
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "5€",
+"price_raw": "16,50 € *",
+"currency": "€",
+"amount_text": "16,50",
+"amount": 16.5
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "$42.95",
+"currency": "$",
+"amount_text": "42.95",
+"amount": 42.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1.837, 32 €",
+"currency": "€",
+"amount_text": "1.837, 32",
+"amount": 1837.32
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "$",
+"price_raw": "$ 791.00 $ 479.00",
+"currency": "$",
+"amount_text": "791.00",
+"amount": 791.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "$69.30",
+"currency": "$",
+"amount_text": "69.30",
+"amount": 69.3
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "$163,900",
+"currency": "$",
+"amount_text": "163,900",
+"amount": 163900
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "36.95",
+"currency": null,
+"amount_text": "36.95",
+"amount": 36.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "Rp 235.000",
+"price_raw": "Rp 235.000",
+"currency": "Rp",
+"amount_text": "235.000",
+"amount": 235000
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "£",
+"price_raw": "11,13 €",
+"currency": "€",
+"amount_text": "11,13",
+"amount": 11.13
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "160,00 lei",
+"currency": "lei",
+"amount_text": "160,00",
+"amount": 160
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "3 300 руб",
+"price_raw": "3 300 руб",
+"currency": "руб",
+"amount_text": "3 300",
+"amount": 3300
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "Р",
+"price_raw": "4 690 Р",
+"currency": "Р",
+"amount_text": "4 690",
+"amount": 4690
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "189,00 € *",
+"price_raw": "189,00 € *",
+"currency": "€",
+"amount_text": "189,00",
+"amount": 189
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "€",
+"price_raw": null,
+"currency": "€",
+"amount_text": null,
+"amount": null
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "$ 30.00",
+"price_raw": "$ 30.00",
+"currency": "$",
+"amount_text": "30.00",
+"amount": 30.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "$",
+"price_raw": "$ 5.95",
+"currency": "$",
+"amount_text": "5.95",
+"amount": 5.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "£62.90",
+"price_raw": "£74.00",
+"currency": "£",
+"amount_text": "74.00",
+"amount": 74.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "158,24 €",
+"currency": "€",
+"amount_text": "158,24",
+"amount": 158.24
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "550,00 лв",
+"currency": "лв",
+"amount_text": "550,00",
+"amount": 550
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "7,25 € *",
+"price_raw": "7,25 € *",
+"currency": "€",
+"amount_text": "7,25",
+"amount": 7.25
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "94,000 تومان",
+"currency": "تومان",
+"amount_text": "94,000",
+"amount": 94000
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "$8.27",
+"currency": "$",
+"amount_text": "8.27",
+"amount": 8.27
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "Đã có VAT",
+"price_raw": "12.500 ₫",
+"currency": "₫",
+"amount_text": "12.500",
+"amount": 12500
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "27.50",
+"currency": null,
+"amount_text": "27.50",
+"amount": 27.5
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "23.90",
+"price_raw": "23.90",
+"currency": null,
+"amount_text": "23.90",
+"amount": 23.9
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "Р",
+"price_raw": "18 000 Р",
+"currency": "Р",
+"amount_text": "18 000",
+"amount": 18000
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "48,96 €",
+"currency": "€",
+"amount_text": "48,96",
+"amount": 48.96
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "DKK",
+"price_raw": "199 DKK",
+"currency": "DKK",
+"amount_text": "199",
+"amount": 199
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "Price: £6.95 - £9.95",
+"price_raw": "£6.95 - £9.95",
+"currency": "£",
+"amount_text": "6.95",
+"amount": 6.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "599.97",
+"currency": null,
+"amount_text": "599.97",
+"amount": 599.97
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "$40.00",
+"currency": "$",
+"amount_text": "40.00",
+"amount": 40.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "Cena 300,00 Kč",
+"price_raw": "100,00 Kč",
+"currency": "Kč",
+"amount_text": "100,00",
+"amount": 100
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "18,25 €",
+"price_raw": "18,25 €",
+"currency": "€",
+"amount_text": "18,25",
+"amount": 18.25
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "29,00 €",
+"currency": "€",
+"amount_text": "29,00",
+"amount": 29
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "€",
+"price_raw": "€ 39,95",
+"currency": "€",
+"amount_text": "39,95",
+"amount": 39.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "32.00",
+"currency": null,
+"amount_text": "32.00",
+"amount": 32.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "32.99",
+"currency": null,
+"amount_text": "32.99",
+"amount": 32.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "HUF",
+"price_raw": "39000",
+"currency": "HUF",
+"amount_text": "39000",
+"amount": 39000
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "850,000 ریال",
+"currency": "ریال",
+"amount_text": "850,000",
+"amount": 850000
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "24,00 €",
+"currency": "€",
+"amount_text": "24,00",
+"amount": 24.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "Versand",
+"price_raw": "CHF 19.90",
+"currency": "CHF",
+"amount_text": "19.90",
+"amount": 19.9
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": "",
+"price_raw": "530,42 Zł",
+"currency": "Zł",
+"amount_text": "530,42",
+"amount": 530.42
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "Was: $124.95 Now: $0.00",
+"currency": "$",
+"amount_text": "124.95",
+"amount": 124.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "Our Price 344.99 - 444.99",
+"currency": null,
+"amount_text": "344.99",
+"amount": 344.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "3089.9 *",
+"currency": null,
+"amount_text": "3089.9",
+"amount": 3089.9
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "40.00/each",
+"currency": null,
+"amount_text": "40.00",
+"amount": 40.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "105. –",
+"currency": null,
+"amount_text": "105.",
+"amount": 105.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1.899,-",
+"currency": null,
+"amount_text": "1.899",
+"amount": 1899.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "Sheet Set",
+"currency": null,
+"amount_text": null,
+"amount": null
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "36. 24",
+"currency": null,
+"amount_text": "36. 24",
+"amount": 36.24
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "32جن",
+"currency": null,
+"amount_text": "32",
+"amount": 32.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "Price 29",
+"currency": null,
+"amount_text": "29",
+"amount": 29.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "559. 99 undefined 559.99 inkl. MwSt. zzgl. Versand",
+"currency": null,
+"amount_text": "559. 99",
+"amount": 559.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "$36 /",
+"currency": "$",
+"amount_text": "36",
+"amount": 36.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1.800.000₫",
+"currency": "₫",
+"amount_text": "1.800.000",
+"amount": 1800000.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "0,40 LEI",
+"currency": "LEI",
+"amount_text": "0,40",
+"amount": 0.4
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "R$ 1.500,00",
+"currency": "R$",
+"amount_text": "1.500,00",
+"amount": 1500.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "$ 8. 94",
+"currency": "$",
+"amount_text": "8. 94",
+"amount": 8.94
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "$30.56/Month",
+"currency": "$",
+"amount_text": "30.56",
+"amount": 30.56
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "from $742.50",
+"currency": "$",
+"amount_text": "742.50",
+"amount": 742.5
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "25,00 € *",
+"currency": "€",
+"amount_text": "25,00",
+"amount": 25.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "$3,690.00 (ea)",
+"currency": "$",
+"amount_text": "3,690.00",
+"amount": 3690.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "AED 26.30",
+"currency": "AED",
+"amount_text": "26.30",
+"amount": 26.3
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "15,000 руб.",
+"currency": "руб.",
+"amount_text": "15,000",
+"amount": 15000.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "$5,246.58",
+"currency": "$",
+"amount_text": "5,246.58",
+"amount": 5246.58
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "118, 99 TL",
+"currency": "TL",
+"amount_text": "118, 99",
+"amount": 118.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "$575.00*",
+"currency": "$",
+"amount_text": "575.00",
+"amount": 575.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "150 kr",
+"currency": "kr",
+"amount_text": "150",
+"amount": 150.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "Estimate Price: $45,000 - $70,000",
+"currency": "$",
+"amount_text": "45,000",
+"amount": 45000.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "Your Price: $7.99",
+"currency": "$",
+"amount_text": "7.99",
+"amount": 7.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "$80.00 U.S.",
+"currency": "$",
+"amount_text": "80.00",
+"amount": 80.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "253,89 lei",
+"currency": "lei",
+"amount_text": "253,89",
+"amount": 253.89
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "$1,190.00 AUD",
+"currency": "AUD",
+"amount_text": "1,190.00",
+"amount": 1190.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "€6.56 + VAT",
+"currency": "€",
+"amount_text": "6.56",
+"amount": 6.56
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "4,35 € TTC",
+"currency": "€",
+"amount_text": "4,35",
+"amount": 4.35
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1.890,00 DKK",
+"currency": "DKK",
+"amount_text": "1.890,00",
+"amount": 1890.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "₹397.00",
+"currency": "₹",
+"amount_text": "397.00",
+"amount": 397.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "- $44.99",
+"currency": "$",
+"amount_text": "44.99",
+"amount": 44.99
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "AU$ 1,175",
+"currency": "AU$",
+"amount_text": "1,175",
+"amount": 1175.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "130, 38 zł",
+"currency": "zł",
+"amount_text": "130, 38",
+"amount": 130.38
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "C$1.23",
+"currency": "C$",
+"amount_text": "1.23",
+"amount": 1.23
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "CA$1.23",
+"currency": "CA$",
+"amount_text": "1.23",
+"amount": 1.23
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 ؋",
+"currency": "؋",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 Lek",
+"currency": "Lek",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 ֏",
+"currency": "֏",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 ƒ",
+"currency": "ƒ",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 ₼",
+"currency": "₼",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 ৳",
+"currency": "৳",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 Br",
+"currency": "Br",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 BZ$",
+"currency": "BZ$",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 Nu.",
+"currency": "Nu.",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 KM",
+"currency": "KM",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 R$",
+"currency": "R$",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 лв",
+"currency": "лв",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 FBu",
+"currency": "FBu",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 BD",
+"currency": "BD",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 ៛",
+"currency": "៛",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 CFA",
+"currency": "CFA",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 FCFA",
+"currency": "FCFA",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 KMF",
+"currency": "KMF",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 ₣",
+"currency": "₣",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 ₡",
+"currency": "₡",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 kn",
+"currency": "kn",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 CUC$",
+"currency": "CUC$",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 ₱",
+"currency": "₱",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 Kč",
+"currency": "Kč",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 Fdj",
+"currency": "Fdj",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 RD$",
+"currency": "RD$",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 Nfk",
+"currency": "Nfk",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 GH₵",
+"currency": "GH₵",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 Ft",
+"currency": "Ft",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 Rp",
+"currency": "Rp",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 ﷼",
+"currency": "﷼",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 ₪",
+"currency": "₪",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 J$",
+"currency": "J$",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 KD",
+"currency": "KD",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 ₭",
+"currency": "₭",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 LD",
+"currency": "LD",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 MOP$",
+"currency": "MOP$",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 MK",
+"currency": "MK",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 RM",
+"currency": "RM",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 Rf",
+"currency": "Rf",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 UM",
+"currency": "UM",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 ₨",
+"currency": "₨",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 ₮",
+"currency": "₮",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 ƒ",
+"currency": "ƒ",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 C$",
+"currency": "C$",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 ₦",
+"currency": "₦",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 B/.",
+"currency": "B/.",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 S/.",
+"currency": "S/.",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 ₽",
+"currency": "₽",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 Db",
+"currency": "Db",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 NT$",
+"currency": "NT$",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 ЅM",
+"currency": null,
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 TSh",
+"currency": "TSh",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 T$",
+"currency": "T$",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 TT$",
+"currency": "TT$",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 DT",
+"currency": "DT",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 ₺",
+"currency": "₺",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 USh",
+"currency": "USh",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 ₴",
+"currency": "₴",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 $U",
+"currency": "$U",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 VT",
+"currency": "VT",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 Bs",
+"currency": "Bs",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 ZK",
+"currency": "ZK",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 Z$",
+"currency": "Z$",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 ₿",
+"currency": "₿",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 Br",
+"currency": "Br",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 美股",
+"currency": null,
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 GEL",
+"currency": "GEL",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "1 FG",
+"currency": "FG",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_3",
+"currency_raw": null,
+"price_raw": "14.00 SGD / Each",
+"currency": "SGD",
+"amount_text": "14.00",
+"amount": 14.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL",
+"currency_raw": "3 Ausgaben für nur 14,85 EUR",
+"price_raw": "3 Ausgaben für nur 14,85 EUR",
+"currency": "EUR",
+"amount_text": "14,85",
+"amount": 14.85
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL",
+"currency_raw": null,
+"price_raw": "Buy Now - 2 Litre Was $120.00 Now $60.00",
+"currency": "$",
+"amount_text": "60.00",
+"amount": 60
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL",
+"currency_raw": "Цена: уточняйте (мин. заказ: 1 )",
+"price_raw": "Цена: уточняйте (мин. заказ: 1 )",
+"currency": null,
+"amount_text": null,
+"amount": null
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL",
+"currency_raw": null,
+"price_raw": "50 - $2.00 100 - $2.75 400 - $4.50 1,000 - $9.00 2,000 - $17.00 3,000 - $24.00 10,000 - $75.00",
+"currency": "$",
+"amount_text": "2.00",
+"amount": 2
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL",
+"currency_raw": "R273.00",
+"price_raw": "R273.00",
+"currency": "R",
+"amount_text": "273.00",
+"amount": 273
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL",
+"currency_raw": "R8,499",
+"price_raw": "R8,499",
+"currency": "R",
+"amount_text": "8,499",
+"amount": 8499
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL",
+"currency_raw": "Cuneo",
+"price_raw": "61.858 L",
+"currency": "L",
+"amount_text": "61.858",
+"amount": 61858
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL",
+"currency_raw": ">",
+"price_raw": "См. цену в прайсе",
+"currency": null,
+"amount_text": null,
+"amount": null
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL",
+"currency_raw": "Купить",
+"price_raw": "Печная труба",
+"currency": null,
+"amount_text": null,
+"amount": null
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL",
+"currency_raw": null,
+"price_raw": "Код товара: 884",
+"currency": null,
+"amount_text": "884",
+"amount": 884.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL",
+"currency_raw": null,
+"price_raw": "July, 2004",
+"currency": null,
+"amount_text": null,
+"amount": null
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL",
+"currency_raw": null,
+"price_raw": "15.08.2017",
+"currency": null,
+"amount_text": null,
+"amount": null
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL",
+"currency_raw": "8.5",
+"price_raw": "25-09",
+"currency": null,
+"amount_text": null,
+"amount": null
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL",
+"currency_raw": "of",
+"price_raw": "16.00 ft",
+"currency": null,
+"amount_text": null,
+"amount": null
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL",
+"currency_raw": "Free Shipping on Orders $49+.",
+"price_raw": "Free Shipping on Orders $49+.",
+"currency": "$",
+"amount_text": null,
+"amount": null
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "22000.00元/台",
+"currency": "元",
+"amount_text": "22000.00",
+"amount": 22000.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "2963yen",
+"currency": "yen",
+"amount_text": "2963",
+"amount": 2963
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 บาท",
+"currency": "บาท",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 ر.س",
+"currency": "ر.س",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1.198,- Kr",
+"currency": "Kr",
+"amount_text": "1.198",
+"amount": 1198.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "45 ج.م",
+"currency": "ج.م",
+"amount_text": "45",
+"amount": 45.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "45 E£",
+"currency": "E£",
+"amount_text": "45",
+"amount": 45.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "2000 zl",
+"currency": "zl",
+"amount_text": "2000",
+"amount": 2000.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "CAN$1.23",
+"currency": "CAN$",
+"amount_text": "1.23",
+"amount": 1.23
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "200q",
+"currency": "q",
+"amount_text": "200",
+"amount": 200.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "200Q",
+"currency": "Q",
+"amount_text": "200",
+"amount": 200.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 دج",
+"currency": "دج",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 .د.ب",
+"currency": ".د.ب",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 $b",
+"currency": "$b",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 P",
+"currency": "P",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 franc",
+"currency": "franc",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "2 francs",
+"currency": "francs",
+"amount_text": "2",
+"amount": 2.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 ናቕፋ",
+"currency": "ናቕፋ",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 نافكا",
+"currency": "نافكا",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 E",
+"currency": "E",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 ብር",
+"currency": "ብር",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 D",
+"currency": "D",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 ლ",
+"currency": "ლ",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 ¢",
+"currency": "¢",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 ₵",
+"currency": "₵",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 GFr",
+"currency": "GFr",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 L",
+"currency": "L",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 ع.د",
+"currency": "ع.د",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 د.",
+"currency": "د.",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 KSh",
+"currency": "KSh",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 د.ك",
+"currency": "د.ك",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 ل.د",
+"currency": "ل.د",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 ден",
+"currency": "ден",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 ДЕН",
+"currency": "ДЕН",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 Ar",
+"currency": "Ar",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 د.إ",
+"currency": "د.إ",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 MT",
+"currency": "MT",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 K",
+"currency": "K",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 FRw",
+"currency": "FRw",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 RF",
+"currency": "RF",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 R₣",
+"currency": "R₣",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 Дин",
+"currency": "Дин",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 SPL",
+"currency": "SPL",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 ج.س.",
+"currency": "ج.س.",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 د.ت",
+"currency": "د.ت",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "AU $59.95",
+"currency": "AU $",
+"amount_text": "59.95",
+"amount": 59.95
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "US $1.23",
+"currency": "US $",
+"amount_text": "1.23",
+"amount": 1.23
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "CAD$1.23",
+"currency": "CAD$",
+"amount_text": "1.23",
+"amount": 1.23
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 G$",
+"currency": "G$",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 GY$",
+"currency": "GY$",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 BTC",
+"currency": "BTC",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 CHf",
+"currency": "CHf",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 Dh",
+"currency": "Dh",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 Dhs",
+"currency": "Dhs",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 Esc",
+"currency": "Esc",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 Fbu",
+"currency": "Fbu",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 ID",
+"currency": "ID",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 Ks",
+"currency": "Ks",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 NT",
+"currency": "NT",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 Nu",
+"currency": "Nu",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 Rbl",
+"currency": "Rbl",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 Re",
+"currency": "Re",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 S/",
+"currency": "S/",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 SFr",
+"currency": "SFr",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 Sl",
+"currency": "Sl",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 VNĐ",
+"currency": "VNĐ",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 Vt",
+"currency": "Vt",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 din",
+"currency": "din",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 hrn",
+"currency": "hrn",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 kwz",
+"currency": "kwz",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 lari",
+"currency": "lari",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 nis",
+"currency": "nis",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 pound",
+"currency": "pound",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 Sʻ",
+"currency": "Sʻ",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 S'",
+"currency": "S'",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 so'm",
+"currency": "so'm",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 som",
+"currency": "som",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 stg",
+"currency": "stg",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 yuan",
+"currency": "yuan",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 Ƀ",
+"currency": "Ƀ",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 дин",
+"currency": "дин",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 км",
+"currency": "км",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 с",
+"currency": "с",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 ש״ח",
+"currency": "ש״ח",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 ج.س",
+"currency": "ج.س",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 د.أ",
+"currency": "د.أ",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 د.ا",
+"currency": "د.ا",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 د.ج",
+"currency": "د.ج",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 د.م",
+"currency": "د.م",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 دينار",
+"currency": "دينار",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 دينار أردني",
+"currency": "دينار أردني",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 دينار كويتي",
+"currency": "دينار كويتي",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 ر.ع",
+"currency": "ر.ع",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 ر.ق",
+"currency": "ر.ق",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 ش.ج",
+"currency": "ش.ج",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 ل.س",
+"currency": "ل.س",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 ل.ل",
+"currency": "ل.ل",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 ரூ",
+"currency": "ரூ",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 රු",
+"currency": "රු",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 ლარი",
+"currency": "ლარი",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 人民币",
+"currency": "人民币",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 圆",
+"currency": "圆",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 圓",
+"currency": "圓",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 GBp",
+"currency": "GBp",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 ￡",
+"currency": "￡",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 nzd",
+"currency": "nzd",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 mkd",
+"currency": "mkd",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "CND",
+"currency": "CND",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "KShs",
+"currency": "KShs",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "chf",
+"currency": "chf",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "so'm",
+"currency": "so'm",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "тг",
+"currency": "тг",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "ש\"ח",
+"currency": "ש\"ח",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "ש'ח",
+"currency": "ש'ח",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "د.ع",
+"currency": "د.ع",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "د.ل",
+"currency": "د.ل",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "ر.ي",
+"currency": "ر.ي",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "ش.ص",
+"currency": "ش.ص",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_EXAMPLES_XFAIL_CURRENCIES_TO_BE_ADDED",
+"currency_raw": null,
+"price_raw": "1 G",
+"currency": "G",
+"amount_text": "1",
+"amount": 1.0
+},
+{
+"list": "PRICE_PARSING_DECIMAL_SEPARATOR_EXAMPLES",
+"currency_raw": null,
+"price_raw": "1250€ 600",
+"currency": "€",
+"amount_text": "1250",
+"amount": 1250
+},
+{
+"list": "PRICE_PARSING_DECIMAL_SEPARATOR_EXAMPLES",
+"currency_raw": null,
+"price_raw": "1250€ 60",
+"currency": "€",
+"amount_text": "1250€60",
+"amount": 1250.6
+},
+{
+"list": "PRICE_PARSING_DECIMAL_SEPARATOR_EXAMPLES",
+"currency_raw": null,
+"price_raw": "1250€600",
+"currency": "€",
+"amount_text": "1250€600",
+"amount": 1250.6
+},
+{
+"list": "PRICE_PARSING_DECIMAL_SEPARATOR_EXAMPLES",
+"currency_raw": null,
+"price_raw": ".75 €",
+"currency": "€",
+"amount_text": ".75",
+"amount": 0.75
+},
+{
+"list": "PRICE_PARSING_DECIMAL_SEPARATOR_EXAMPLES",
+"currency_raw": "$.75",
+"price_raw": "$.75",
+"currency": "$",
+"amount_text": ".75",
+"amount": 0.75
+},
+{
+"list": "PRICE_PARSING_DECIMAL_SEPARATOR_EXAMPLES",
+"currency_raw": "$..75",
+"price_raw": "$..75",
+"currency": "$",
+"amount_text": ".75",
+"amount": 0.75
+},
+{
+"list": "PRICE_PARSING_DECIMAL_SEPARATOR_EXAMPLES",
+"currency_raw": "$..75,333",
+"price_raw": "$..75,333",
+"currency": "$",
+"amount_text": ".75,333",
+"amount": 0.75333
+},
+{
+"list": "PRICE_PARSING_DECIMAL_SEPARATOR_EXAMPLES",
+"currency_raw": "$..75,333",
+"price_raw": "$..75,333",
+"currency": "$",
+"amount_text": ".75,333",
+"amount": 75.333
+},
+{
+"list": "PRICE_PARSING_DECIMAL_SEPARATOR_EXAMPLES",
+"currency_raw": "$.750.30",
+"price_raw": "$.750.30",
+"currency": "$",
+"amount_text": "750.30",
+"amount": 750.3
+}
+]
+}
