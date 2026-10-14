@@ -71,17 +71,18 @@ export const INTEGRATION_CAPABILITY_NAMES = [
   'webhookManagement',
   'remarksPlanning',
   'remarksCoaching',
+  'evidenceAnalysis',
 ] as const
 
 export type IntegrationCapabilityName = typeof INTEGRATION_CAPABILITY_NAMES[number]
 export type IntegrationCapabilities = Record<IntegrationCapabilityName, boolean>
 export type AdvertisedIntegrationCapabilities =
-  Omit<IntegrationCapabilities, 'timelineAnalysis' | 'timelineRead' | 'timelineWrite' | 'timelineHandoffMint' | 'remarksPlanning' | 'remarksCoaching'>
-  & Partial<Pick<IntegrationCapabilities, 'timelineAnalysis' | 'timelineRead' | 'timelineWrite' | 'timelineHandoffMint' | 'remarksPlanning' | 'remarksCoaching'>>
+  Omit<IntegrationCapabilities, 'timelineAnalysis' | 'timelineRead' | 'timelineWrite' | 'timelineHandoffMint' | 'remarksPlanning' | 'remarksCoaching' | 'evidenceAnalysis'>
+  & Partial<Pick<IntegrationCapabilities, 'timelineAnalysis' | 'timelineRead' | 'timelineWrite' | 'timelineHandoffMint' | 'remarksPlanning' | 'remarksCoaching' | 'evidenceAnalysis'>>
 
 /** Additive capabilities are omitted from discovery while unavailable, for old strict clients. */
 const OMITTED_WHEN_UNAVAILABLE: ReadonlySet<string> = new Set([
-  'timelineAnalysis', 'timelineRead', 'timelineWrite', 'timelineHandoffMint', 'remarksPlanning', 'remarksCoaching',
+  'timelineAnalysis', 'timelineRead', 'timelineWrite', 'timelineHandoffMint', 'remarksPlanning', 'remarksCoaching', 'evidenceAnalysis',
 ])
 
 const REQUIRED_SCOPE: Partial<Record<IntegrationCapabilityName, IntegrationScope>> = {
@@ -101,6 +102,7 @@ const REQUIRED_SCOPE: Partial<Record<IntegrationCapabilityName, IntegrationScope
   webhookManagement: 'community.webhooks.manage',
   remarksPlanning: 'community.research.execute',
   remarksCoaching: 'community.research.execute',
+  evidenceAnalysis: 'community.research.execute',
 }
 
 /**
@@ -128,6 +130,7 @@ export const TRANCHE_A_SERVER_SUPPORT: Readonly<IntegrationCapabilities> = Objec
   webhookManagement: false,
   remarksPlanning: true,
   remarksCoaching: true,
+  evidenceAnalysis: true,
 })
 
 export interface IntegrationCapabilityLimits {
@@ -142,6 +145,8 @@ export interface IntegrationCapabilityLimits {
   remarksScriptChars?: number
   remarksBranchItems?: number
   remarksVoiceChars?: number
+  evidenceRequestBytes?: number
+  evidenceExcerptChars?: number
 }
 
 export interface IntegrationCapabilitiesDocument {
@@ -163,6 +168,7 @@ export interface IntegrationCapabilitiesDocument {
     artifact?: 'source-artifact.v1'
     projection?: 'community-enrichment.v1'
     remarksPlanning?: 'remarks-plan.v1'
+    evidenceAnalysis?: 'evidence-analysis.v1'
   }
   scopes: IntegrationScope[]
   /** Additive v1 extensions are omitted while unavailable for old strict clients. */
@@ -221,6 +227,7 @@ export function buildIntegrationCapabilitiesDocument(
     remarksPlanning: scoped('remarksPlanning'),
     // Coaching is a mode of remarks-plan.v1, so it is never available without planning.
     remarksCoaching: scoped('remarksCoaching') && scoped('remarksPlanning'),
+    evidenceAnalysis: scoped('evidenceAnalysis'),
   }
   const remarksLimits = options.limits && capabilities.remarksPlanning ? {
     remarksRequestBytes: positiveInteger(options.limits.remarksRequestBytes),
@@ -251,6 +258,7 @@ export function buildIntegrationCapabilitiesDocument(
       ...(capabilities.artifactRead ? { artifact: 'source-artifact.v1' as const } : {}),
       ...(capabilities.projectionRead ? { projection: 'community-enrichment.v1' as const } : {}),
       ...(capabilities.remarksPlanning ? { remarksPlanning: 'remarks-plan.v1' as const } : {}),
+      ...(capabilities.evidenceAnalysis ? { evidenceAnalysis: 'evidence-analysis.v1' as const } : {}),
     },
     scopes: principal ? [...principal.scopes] : [],
     capabilities: Object.fromEntries(
@@ -258,6 +266,10 @@ export function buildIntegrationCapabilitiesDocument(
     ) as AdvertisedIntegrationCapabilities,
     limits: {
       ...(remarksLimitsComplete ? remarksLimits as Record<string, number> : {}),
+      ...(capabilities.evidenceAnalysis && options.limits ? {
+        evidenceRequestBytes: positiveInteger(options.limits.evidenceRequestBytes) ?? undefined,
+        evidenceExcerptChars: positiveInteger(options.limits.evidenceExcerptChars) ?? undefined,
+      } : {}),
       ...(capabilities.claimMatch && claimLimit !== null ? { claimMatchCandidates: claimLimit } : {}),
       ...(capabilities.communityIngest && batchLimit !== null ? { maxBatchUrls: batchLimit } : {}),
       ...(capabilities.timelineRead || capabilities.timelineWrite ? {

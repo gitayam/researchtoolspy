@@ -13,11 +13,13 @@ import {
   type IntegrationAuthEnv,
 } from '../_shared/service-auth'
 import { REMARKS_LIMITS } from '../_shared/remarks-contract'
+import { EVIDENCE_LIMITS } from '../_shared/evidence-analysis-contract'
 
 interface Env extends IntegrationAuthEnv {
   COMMUNITY_INTEGRATIONS_ENABLED?: string
   RESEARCH_QUESTIONS_SERVICE_ENABLED?: string
   REMARKS_SERVICE_ENABLED?: string
+  EVIDENCE_ANALYSIS_SERVICE_ENABLED?: string
   OPENAI_API_KEY?: string
 }
 
@@ -106,6 +108,8 @@ export const onRequest: PagesFunction<Env> = async ({ request, env }) => {
     runtimeReady.remarksPlanning = Boolean(env.OPENAI_API_KEY)
       && env.REMARKS_SERVICE_ENABLED === 'true'
     runtimeReady.remarksCoaching = runtimeReady.remarksPlanning
+    runtimeReady.evidenceAnalysis = Boolean(env.OPENAI_API_KEY)
+      && env.EVIDENCE_ANALYSIS_SERVICE_ENABLED === 'true'
 
     const body = buildIntegrationCapabilitiesDocument({
       requestId,
@@ -119,6 +123,8 @@ export const onRequest: PagesFunction<Env> = async ({ request, env }) => {
         remarksScriptChars: REMARKS_LIMITS.scriptChars,
         remarksBranchItems: REMARKS_LIMITS.branchItems,
         remarksVoiceChars: REMARKS_LIMITS.voiceChars,
+        evidenceRequestBytes: EVIDENCE_LIMITS.requestBytes,
+        evidenceExcerptChars: EVIDENCE_LIMITS.excerptChars,
       },
     })
     return new Response(JSON.stringify(body), { status: 200, headers: RESPONSE_HEADERS })

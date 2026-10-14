@@ -133,6 +133,12 @@ access, or a scoped service capability.
 
 ### Analytical frameworks
 
+Scoped community services can request quote-grounded questions, claims,
+entities and ACH/starbursting gaps through
+[`evidence-analysis.v1`](EVIDENCE-ANALYSIS-API.md). This non-persistent
+operation accepts bounded source excerpts; public URL scraping remains in
+Content Intelligence.
+
 | Prefix | Description |
 |--------|-------------|
 | `/api/frameworks` | List / CRUD for all framework sessions |

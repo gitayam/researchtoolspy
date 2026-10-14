@@ -60,6 +60,8 @@ COMMUNITY_INTEGRATIONS_ENABLED = "true"
 RESEARCH_QUESTIONS_SERVICE_ENABLED = "true"
 # Scoped rt_svc_ callers may plan (never persist) spoken remarks: remarks-plan.v1.
 REMARKS_SERVICE_ENABLED = "true"
+# Non-persistent, quote-grounded analysis for scoped community services.
+EVIDENCE_ANALYSIS_SERVICE_ENABLED = "true"
 # AI_GATEWAY_ACCOUNT_ID is set as a Pages secret (`wrangler pages secret put`).
 # Do NOT also declare it here — a plaintext [vars] copy collides with the secret
 # at deploy time: "Binding name 'AI_GATEWAY_ACCOUNT_ID' already in use".
@@ -81,6 +83,7 @@ COMMUNITY_INTEGRATIONS_ENABLED = "true"
 RESEARCH_QUESTIONS_SERVICE_ENABLED = "true"
 # Scoped rt_svc_ callers may plan (never persist) spoken remarks: remarks-plan.v1.
 REMARKS_SERVICE_ENABLED = "true"
+EVIDENCE_ANALYSIS_SERVICE_ENABLED = "true"
 # AI_GATEWAY_ACCOUNT_ID is set as a Pages secret (`wrangler pages secret put`).
 # Do NOT also declare it here — a plaintext [vars] copy collides with the secret
 # at deploy time: "Binding name 'AI_GATEWAY_ACCOUNT_ID' already in use".

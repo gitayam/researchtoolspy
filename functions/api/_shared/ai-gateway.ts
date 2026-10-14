@@ -114,6 +114,9 @@ interface AIGatewayOptions {
    */
   forceDirect?: boolean
 
+  /** Scoped service calls can refuse a direct-provider bypass of gateway limits. */
+  allowDirectFallback?: boolean
+
   /**
    * Timeout in milliseconds (default: 30000 = 30s)
    */
@@ -154,6 +157,7 @@ export async function callOpenAIViaGateway(
     cacheTTL = 3600,
     metadata = {},
     forceDirect = false,
+    allowDirectFallback = true,
     timeout = 30000
   } = options
 
@@ -191,6 +195,7 @@ export async function callOpenAIViaGateway(
     try {
       data = await callViaGateway(env, openaiRequest, cacheTTL, metadata, timeout)
     } catch (error) {
+      if (!allowDirectFallback) throw error
       console.warn('[AI Gateway] Gateway failed, falling back to direct OpenAI:', error)
       await logEvent(env, { level: 'warn', source, message: 'gateway failed, fell back to direct OpenAI', context: { error: String(error) } })
       // Automatic fallback to direct OpenAI

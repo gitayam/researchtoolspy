@@ -130,6 +130,11 @@ scope — see "Timeline handoff (TL-05)" below.
 questions" below). It is true only when `COMMUNITY_INTEGRATIONS_ENABLED=true`,
 the dedicated `RESEARCH_QUESTIONS_SERVICE_ENABLED=true` flag (unset by default),
 an OpenAI key, valid tenant state, and `community.research.execute` all agree.
+`evidenceAnalysis` is an additive scoped capability for non-persistent,
+quote-grounded analysis. It is advertised with `evidence-analysis.v1` only when
+`EVIDENCE_ANALYSIS_SERVICE_ENABLED=true`, a model key, valid tenant state, and
+the same research scope agree. Its request size and excerpt limits are included
+in discovery when available.
 Other unimplemented service-consuming capabilities remain false. A route file, URL, configured token, or scope alone
 is never proof of executable support.
 
@@ -142,7 +147,7 @@ is never proof of executable support.
 | `community.artifacts.read` | `artifactRead` |
 | `community.projections.read` | `projectionRead` |
 | `community.claims.execute` | `claimMatch` |
-| `community.research.execute` | `timelineAnalysis`, `researchQuestions` |
+| `community.research.execute` | `timelineAnalysis`, `researchQuestions`, `remarksPlanning`, `evidenceAnalysis` |
 | `community.cop.write` | `cop` |
 | `community.behavior.write` | `behaviorIntake` |
 | `community.feeds.manage` | `feedJobs` |
@@ -186,6 +191,12 @@ must keep capability-gated service operations distinct from public analysis and
 legacy user-authenticated calls.
 
 ## Research questions
+
+For quote-grounded analysis of supplied excerpts, including questions, claims,
+entities and ACH/starbursting research gaps, use the separately advertised
+[`evidence-analysis.v1`](EVIDENCE-ANALYSIS-API.md) operation. It is stateless
+and uses the same `community.research.execute` scope; it does not enable
+Content Intelligence persistence or private URL scraping.
 
 `POST /api/research/generate-question` accepts a scoped `rt_svc_` bearer in
 addition to its existing user authentication. A reserved service credential never
