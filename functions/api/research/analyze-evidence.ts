@@ -74,7 +74,7 @@ export const onRequest: PagesFunction<Env> = async ({ request, env }) => {
         { role: 'system', content: system },
         { role: 'user', content: wrapUntrustedContent(JSON.stringify(body)) },
       ],
-    }, { cacheTTL: 0, timeout: 45_000, allowDirectFallback: false,
+    }, { cacheTTL: 0, timeout: 45_000, allowDirectFallback: false, logRefusalPreview: false,
       metadata: { endpoint: 'analyze-evidence', user_id: `service:${clientId}` } })
     if (result?._refusal || result?.choices?.[0]?.finish_reason === 'length') {
       return failure(requestId, correlationId, 502, 'upstream_invalid_response', 'The evidence analysis was incomplete.', true)

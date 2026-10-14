@@ -117,6 +117,9 @@ interface AIGatewayOptions {
   /** Scoped service calls can refuse a direct-provider bypass of gateway limits. */
   allowDirectFallback?: boolean
 
+  /** Disable model-output previews when the prompt contains private supplied text. */
+  logRefusalPreview?: boolean
+
   /**
    * Timeout in milliseconds (default: 30000 = 30s)
    */
@@ -158,6 +161,7 @@ export async function callOpenAIViaGateway(
     metadata = {},
     forceDirect = false,
     allowDirectFallback = true,
+    logRefusalPreview = true,
     timeout = 30000
   } = options
 
@@ -211,7 +215,8 @@ export async function callOpenAIViaGateway(
   const content = data?.choices?.[0]?.message?.content
   if (typeof content === 'string' && detectRefusal(content)) {
     console.warn(`[AI Gateway] model refusal detected (endpoint=${source})`)
-    await logEvent(env, { level: 'refusal', source, message: 'model content-policy refusal', context: { preview: content.slice(0, 300) } })
+    await logEvent(env, { level: 'refusal', source, message: 'model content-policy refusal',
+      context: logRefusalPreview ? { preview: content.slice(0, 300) } : {} })
     data._refusal = true
   }
   return data
