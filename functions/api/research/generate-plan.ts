@@ -11,6 +11,7 @@
 import { requireAuth } from '../_shared/auth-helpers'
 import { callOpenAIViaGateway } from '../_shared/ai-gateway'
 import { JSON_HEADERS, optionsResponse } from '../_shared/api-utils'
+import { checkWorkspaceAccess } from '../_shared/workspace-helpers'
 
 interface Env {
   DB?: D1Database
@@ -289,6 +290,11 @@ Your plan should be:
 
 ${contextGuidance}
 
+Keep it concise so the whole plan fits in one response:
+- at most 5 items in any list, each item under 20 words
+- at most 6 milestones
+- every free-text field under 60 words
+
 Return ONLY valid JSON in this exact structure (no markdown, no explanation):
 {
   "methodology": {
@@ -383,7 +389,12 @@ Make the plan specific to THIS research question and context, not generic advice
         ],
         reasoning_effort: 'none',
         temperature: 0.6,
-        max_completion_tokens: 3500,
+        // 3500 cut plans off mid-JSON once this moved to the cheap tier (2026-09-16), which
+        // writes longer plans: every request ended at exactly 3500 tokens and failed to
+        // parse. The prompt now asks for a shorter plan; 4500 leaves headroom while staying
+        // inside the 45 s timeout at ~105 tokens/s. Two attempts (gateway, then direct)
+        // still finish before Cloudflare's 100 s response limit.
+        max_completion_tokens: 4500,
         response_format: { type: 'json_object' }
       },
       {
@@ -392,6 +403,16 @@ Make the plan specific to THIS research question and context, not generic advice
         timeout: 45000
       }
     )
+
+    if (response?.choices?.[0]?.finish_reason === 'length') {
+      console.error('[generate-plan] Plan cut off at the token limit')
+      return new Response(JSON.stringify({
+        error: 'The plan came out too long to finish. Please try again, or narrow the question.'
+      }), {
+        status: 502,
+        headers: JSON_HEADERS
+      })
+    }
 
     if (!response?.choices?.[0]?.message?.content) {
       throw new Error('No content in AI response')
@@ -412,17 +433,27 @@ Make the plan specific to THIS research question and context, not generic advice
 
     const plan = validatePlan(rawPlan)
 
-    // Save plan to database if research question ID provided
+    // Save plan to database if research question ID provided — only into a question
+    // whose workspace the caller may edit. The id comes from the request body.
     if (body.researchQuestionId && context.env.DB) {
       try {
-        await context.env.DB.prepare(`
-          UPDATE research_questions
-          SET custom_edits = ?, updated_at = datetime('now')
-          WHERE id = ?
-        `).bind(
-          JSON.stringify({ generatedPlan: plan, generatedAt: new Date().toISOString() }),
-          body.researchQuestionId
-        ).run()
+        const question = await context.env.DB.prepare(
+          'SELECT workspace_id FROM research_questions WHERE id = ?'
+        ).bind(body.researchQuestionId).first<{ workspace_id: string | null }>()
+        const mayEdit = !!question?.workspace_id &&
+          await checkWorkspaceAccess(question.workspace_id, userId, context.env, 'EDITOR')
+        if (!mayEdit) {
+          console.warn('[generate-plan] Not saving: caller cannot edit that research question')
+        } else {
+          await context.env.DB.prepare(`
+            UPDATE research_questions
+            SET custom_edits = ?, updated_at = datetime('now')
+            WHERE id = ?
+          `).bind(
+            JSON.stringify({ generatedPlan: plan, generatedAt: new Date().toISOString() }),
+            body.researchQuestionId
+          ).run()
+        }
       } catch (dbError) {
         console.error('[generate-plan] Failed to save plan:', dbError)
         // Non-fatal — still return the plan
