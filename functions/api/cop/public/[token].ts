@@ -63,7 +63,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       SELECT * FROM cop_shares WHERE share_token = ?
     `).bind(token).first() as any
 
-    // expires_at comes from migration 114; a row without it never expires.
+    // expires_at comes from managed migration 0019; a row without it never expires.
     if (!share || shareExpired(share)) {
       return new Response(JSON.stringify({ error: 'Share link not found or expired' }), {
         status: 404, headers: JSON_HEADERS,

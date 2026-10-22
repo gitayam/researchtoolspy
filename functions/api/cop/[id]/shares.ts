@@ -69,7 +69,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!visiblePanels.includes('map')) visiblePanels.unshift('map')
 
     // Optional expiry: ISO 8601, in the future, at most a year away. The column
-    // comes from migration 114; until it is applied, a request that asks for an
+    // comes from managed migration 0019; until it is applied, a request that asks for an
     // expiry is refused rather than given a link that never expires.
     let expiresAt: string | null = null
     if (body.expires_at !== undefined && body.expires_at !== null) {

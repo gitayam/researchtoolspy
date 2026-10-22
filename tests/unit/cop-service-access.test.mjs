@@ -323,7 +323,7 @@ test('an expired share link is refused; a link without an expiry still works', a
   assert.equal((await publicGet(env, 'tok-new')).status, 200)
 })
 
-test('share expiry: validated, stored, and refused cleanly before migration 114', async () => {
+test('share expiry: validated, stored, and refused cleanly before managed migration 0019', async () => {
   const { env } = await fixture()
   const body = (expires_at) => ({ headers: USER_AUTH, body: { expires_at }, handler: mods.shares, params: { id: 'cop-bobs-private' } })
   const bob = { ...env, SESSIONS: { get: async () => JSON.stringify({ user_id: 2 }) } }

@@ -7,7 +7,7 @@
  * archived.
  */
 
-/** True when the share has an expiry (migration 114) that has passed or can't be read. */
+/** True when the share has an expiry (managed migration 0019) that has passed or can't be read. */
 export function shareExpired(share: { expires_at?: unknown }): boolean {
   if (share.expires_at === undefined || share.expires_at === null || share.expires_at === '') return false
   const at = Date.parse(String(share.expires_at))

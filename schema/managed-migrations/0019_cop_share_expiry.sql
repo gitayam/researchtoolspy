@@ -5,6 +5,5 @@
 -- this column being absent: until it is applied, a request asking for an expiry
 -- gets a 503 and existing links behave as before (no expiry).
 --
--- Apply explicitly (not part of a deploy):
---   npx wrangler d1 execute researchtoolspy-prod --remote --file=schema/migrations/114-cop-share-expiry.sql
+-- Applied with the managed runner: npm run migrate:prod
 ALTER TABLE cop_shares ADD COLUMN expires_at TEXT;
