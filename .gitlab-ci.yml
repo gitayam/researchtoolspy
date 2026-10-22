@@ -79,7 +79,11 @@ e2e:smoke:
   timeout: 45m
   script:
     - npm ci --prefer-offline
-    - npx playwright install --with-deps chromium webkit
+    # The image already carries these browsers and their OS packages for the locked
+    # Playwright version. --with-deps tries `su` to reinstall the packages and fails
+    # (the image doesn't run as root), so install only the browsers; a no-op unless
+    # package-lock and the image tag drift apart.
+    - npx playwright install chromium webkit
     - npx playwright test --grep @smoke --reporter=list
   artifacts:
     when: on_failure
