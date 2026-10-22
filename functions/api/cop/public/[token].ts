@@ -6,6 +6,7 @@
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { JSON_HEADERS } from '../../_shared/api-utils'
 import { logEvent } from '../../_shared/event-log'
+import { shareExpired, sharePanels } from '../../_shared/cop-share'
 
 interface Env {
   DB: D1Database
@@ -38,12 +39,6 @@ function publicSessionFields(session: Record<string, unknown>, visiblePanels: st
   const out: Record<string, unknown> = {}
   for (const field of fields) if (field in session) out[field] = session[field]
   return out
-}
-
-function shareExpired(share: { expires_at?: unknown }): boolean {
-  if (share.expires_at === undefined || share.expires_at === null || share.expires_at === '') return false
-  const at = Date.parse(String(share.expires_at))
-  return !Number.isFinite(at) || at <= Date.now()
 }
 
 function parseJsonFields(row: any): any {
@@ -99,12 +94,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     }
 
     const parsed = parseJsonFields(session)
-    let visiblePanels: string[]
-    try {
-      visiblePanels = JSON.parse(share.visible_panels || '["map"]')
-    } catch {
-      visiblePanels = ['map']
-    }
+    const visiblePanels = sharePanels(share)
 
     // Build response based on visible panels
     const response: any = {
@@ -116,7 +106,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     // Include RFIs if rfi panel is visible
     if (visiblePanels.includes('rfi')) {
       const rfis = await env.DB.prepare(`
-        SELECT * FROM cop_rfis WHERE cop_session_id = ? ORDER BY
+        SELECT id, question, priority, status, created_at, updated_at
+        FROM cop_rfis WHERE cop_session_id = ? ORDER BY
           CASE priority WHEN 'critical' THEN 0 WHEN 'high' THEN 1 WHEN 'medium' THEN 2 WHEN 'low' THEN 3 END,
           created_at DESC
       `).bind(share.cop_session_id).all()
@@ -126,7 +117,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       if (rfiIds.length > 0) {
         const placeholders = rfiIds.map(() => '?').join(',')
         const answerResults = await env.DB.prepare(
-          `SELECT * FROM cop_rfi_answers WHERE rfi_id IN (${placeholders}) ORDER BY created_at ASC`
+          `SELECT id, rfi_id, answer_text, source_url, source_description, is_accepted, responder_name, created_at
+           FROM cop_rfi_answers WHERE rfi_id IN (${placeholders}) ORDER BY created_at ASC`
         ).bind(...rfiIds).all()
         answers = answerResults.results
       }

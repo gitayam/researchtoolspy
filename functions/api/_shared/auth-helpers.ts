@@ -8,6 +8,7 @@
 import { AsyncLocalStorage } from 'node:async_hooks'
 import { verifyToken } from '../../utils/jwt'
 import { isReservedIntegrationAuthorization } from './service-auth'
+import { shareExpired, shareMayReadLayer, sharePanels } from './cop-share'
 
 /** Thrown when a D1 error prevents resolving an otherwise-valid auth hash.
  *  Callers must map this to a retryable 503 — NOT a 401 — so clients retry
@@ -511,11 +512,14 @@ export async function verifyCopLayerAccess(
   db: D1Database,
   sessionId: string,
   request: Request,
-  env: Env
-): Promise<{ workspace_id: string } | Response> {
+  env: Env,
+  layer?: string,
+): Promise<{ workspace_id: string; viaShare?: boolean } | Response> {
   const session = await db.prepare(
-    'SELECT workspace_id, created_by, is_public FROM cop_sessions WHERE id = ?'
-  ).bind(sessionId).first<{ workspace_id: string; created_by: number; is_public: number }>()
+    'SELECT workspace_id, created_by, is_public, status, active_layers FROM cop_sessions WHERE id = ?'
+  ).bind(sessionId).first<{
+    workspace_id: string; created_by: number; is_public: number; status?: string; active_layers?: string
+  }>()
 
   if (!session) {
     return new Response(JSON.stringify({ error: 'COP session not found' }), {
@@ -527,20 +531,20 @@ export async function verifyCopLayerAccess(
   // Public sessions — anyone can view layers (map embeds, shared links)
   if (session.is_public) return { workspace_id: session.workspace_id }
 
-  // A share link for this session that shows the map (and hasn't expired) may read
-  // its layers without signing in: the public COP page passes its token as ?share=.
-  const shareToken = new URL(request.url).searchParams.get('share')
+  // A share link for this session (unexpired, showing the map) may read the layers
+  // the session has switched on, without signing in: the public COP page passes its
+  // token as ?share=. Never `assets` unless a panel shares it, never an archived
+  // session, and the handler uses the session's own bbox (viaShare).
+  const url = new URL(request.url)
+  const shareToken = url.searchParams.get('share')
   if (shareToken) {
     const share = await db.prepare(
       'SELECT * FROM cop_shares WHERE share_token = ? AND cop_session_id = ?'
     ).bind(shareToken, sessionId).first<{ visible_panels?: string; expires_at?: string | null }>()
-    if (share) {
-      let panels: unknown
-      try { panels = JSON.parse(share.visible_panels || '["map"]') } catch { panels = [] }
-      const expiresAt = share.expires_at ? Date.parse(String(share.expires_at)) : null
-      const expired = expiresAt !== null && (!Number.isFinite(expiresAt) || expiresAt <= Date.now())
-      if (Array.isArray(panels) && panels.includes('map') && !expired) {
-        return { workspace_id: session.workspace_id }
+    if (share && !shareExpired(share)) {
+      const panels = sharePanels(share)
+      if (panels.includes('map') && shareMayReadLayer(session, layer, panels, url)) {
+        return { workspace_id: session.workspace_id, viaShare: true }
       }
     }
   }

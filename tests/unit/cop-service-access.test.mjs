@@ -34,6 +34,8 @@ const ENTRIES = {
   publicShare: 'functions/api/cop/public/[token].ts',
   authHelpers: 'functions/api/_shared/auth-helpers.ts',
   serviceAuth: 'functions/api/_shared/service-auth.ts',
+  places: 'functions/api/cop/[id]/layers/places.ts',
+  rfiAnswers: 'functions/api/cop/public/[token]/rfis/[rfiId]/answers.ts',
 }
 const mods = {}
 
@@ -100,7 +102,20 @@ async function fixture({ scopes = ['community.cop.write'], shareExpiryColumn = t
   db.exec(migration('0009_community_service_auth.sql'))
   db.exec(migration('0010_service_principal_identity_compat.sql'))
   db.exec(`
-    CREATE TABLE cop_collaborators (cop_session_id TEXT, user_id INTEGER);
+    CREATE TABLE cop_collaborators (cop_session_id TEXT, user_id INTEGER, role TEXT NOT NULL DEFAULT 'viewer');
+    CREATE TABLE places (
+      id TEXT, name TEXT, place_type TEXT, country TEXT, region TEXT, strategic_importance TEXT,
+      controlled_by TEXT, description TEXT, coordinates TEXT, workspace_id TEXT
+    );
+    CREATE TABLE cop_rfis (
+      id TEXT PRIMARY KEY, cop_session_id TEXT NOT NULL, question TEXT NOT NULL, priority TEXT NOT NULL DEFAULT 'medium',
+      status TEXT NOT NULL DEFAULT 'open', created_by INTEGER NOT NULL DEFAULT 1, assigned_to INTEGER,
+      requester_name TEXT, created_at TEXT, updated_at TEXT
+    );
+    CREATE TABLE cop_rfi_answers (
+      id TEXT PRIMARY KEY, rfi_id TEXT NOT NULL, answer_text TEXT NOT NULL, source_url TEXT, source_description TEXT,
+      is_accepted INTEGER NOT NULL DEFAULT 0, created_by INTEGER, responder_name TEXT, created_at TEXT
+    );
     CREATE TABLE cop_sessions (
       id TEXT PRIMARY KEY, name TEXT, description TEXT, template_type TEXT, status TEXT,
       bbox_min_lat REAL, bbox_min_lon REAL, bbox_max_lat REAL, bbox_max_lon REAL,
@@ -143,7 +158,14 @@ async function fixture({ scopes = ['community.cop.write'], shareExpiryColumn = t
        '["markers"]', '{}', '["q1"]', 'protest', 'what happened', '[{"time":"1","text":"fact"}]', '["ca-secret"]',
        'ws-bob', 2, 0),
       ('cop-service-own', 'Bot breakout', 'internal', 'custom', 'ACTIVE', 1, 2, 5,
-       '[]', '{}', '[]', NULL, NULL, '[]', '[]', 'cop-service-own', ${SERVICE_USER}, 0);
+       '[]', '{}', '[]', NULL, NULL, '[]', '[]', 'cop-service-own', ${SERVICE_USER}, 0),
+      ('cop-shared-editor', 'Shared with the bot as editor', NULL, 'custom', 'ACTIVE', 1, 2, 5,
+       '[]', '{}', '[]', NULL, NULL, '[]', '[]', 'ws-bob', 2, 0),
+      ('cop-shared-viewer', 'Shared with the bot as viewer', NULL, 'custom', 'ACTIVE', 1, 2, 5,
+       '[]', '{}', '[]', NULL, NULL, '[]', '[]', 'ws-bob', 2, 0);
+    INSERT INTO cop_collaborators (cop_session_id, user_id, role) VALUES
+      ('cop-shared-editor', ${SERVICE_USER}, 'editor'),
+      ('cop-shared-viewer', ${SERVICE_USER}, 'viewer');
   `)
   const now = Math.floor(Date.now() / 1000)
   const hash = await mods.serviceAuth.deriveIntegrationTokenHash(HASH_KEY, CLIENT_ID, SECRET)
@@ -322,12 +344,138 @@ test("a share token reads its session's map layers; a wrong or expired token doe
   const { db, env } = await fixture()
   await seedShare(db, 'tok-layers', ['map'], null)
   await seedShare(db, 'tok-expired', ['map'], new Date(Date.now() - 60_000).toISOString())
-  const access = (query) =>
+  const accessLayer = (query) =>
     mods.authHelpers.verifyCopLayerAccess(env.DB, 'cop-bobs-private',
-      new Request(`https://researchtools.test/api/cop/cop-bobs-private/layers/markers${query}`), env)
-  const granted = await access('?share=tok-layers')
+      new Request(`https://researchtools.test/api/cop/cop-bobs-private/layers/markers${query}`), env, 'markers')
+  const access = accessLayer
+  const granted = await accessLayer('?share=tok-layers')
   assert.equal(granted.workspace_id, 'ws-bob')
   assert.equal((await access('?share=tok-expired')).status, 401)
   assert.equal((await access('?share=not-a-token')).status, 401)
   assert.equal((await access('')).status, 401)
+})
+
+// ── Security-review fixes and collaborator access ─────────────────────────────
+
+const layerAccess = (env, layer, query) =>
+  mods.authHelpers.verifyCopLayerAccess(env.DB, 'cop-bobs-private',
+    new Request(`https://researchtools.test/api/cop/cop-bobs-private/layers/${layer}${query}`), env, layer)
+
+test('a map-only share cannot read the assets layer, even when the session shows assets', async () => {
+  const { db, env } = await fixture()
+  db.prepare(`UPDATE cop_sessions SET active_layers = '["markers","assets"]' WHERE id = 'cop-bobs-private'`).run()
+  await seedShare(db, 'tok-map', ['map'], null)
+  assert.equal((await layerAccess(env, 'assets', '?share=tok-map')).status, 401)
+  assert.equal((await layerAccess(env, 'markers', '?share=tok-map')).viaShare, true)
+})
+
+test("a share cannot read a layer the session hasn't switched on", async () => {
+  const { db, env } = await fixture()
+  await seedShare(db, 'tok-map', ['map'], null)
+  for (const layer of ['actors', 'places', 'events', 'relationships']) {
+    assert.equal((await layerAccess(env, layer, '?share=tok-map')).status, 401, layer)
+  }
+})
+
+test('a share cannot read the layers of an archived session', async () => {
+  const { db, env } = await fixture()
+  await seedShare(db, 'tok-map', ['map'], null)
+  db.prepare(`UPDATE cop_sessions SET status = 'ARCHIVED' WHERE id = 'cop-bobs-private'`).run()
+  assert.equal((await layerAccess(env, 'markers', '?share=tok-map')).status, 401)
+})
+
+test("a share sees the session's own area, not a wider bbox it asks for", async () => {
+  const { db, env } = await fixture()
+  db.prepare(`UPDATE cop_sessions SET active_layers = '["places"]', bbox_min_lat = 48, bbox_min_lon = 2,
+    bbox_max_lat = 49, bbox_max_lon = 3 WHERE id = 'cop-bobs-private'`).run()
+  db.prepare(`INSERT INTO places (id, name, coordinates, workspace_id) VALUES
+    ('p-paris', 'Paris', '{"lat":48.85,"lng":2.35}', 'ws-bob'),
+    ('p-nyc', 'New York', '{"lat":40.7,"lng":-74.0}', 'ws-bob')`).run()
+  await seedShare(db, 'tok-map', ['map'], null)
+  const get = (headers, query) => mods.places.onRequestGet({
+    request: new Request(`https://researchtools.test/api/cop/cop-bobs-private/layers/places${query}`, { headers }),
+    env, params: { id: 'cop-bobs-private' }, data: {}, waitUntil() {},
+  })
+  const names = async (res) => (await res.json()).features.map((f) => f.properties.name).sort()
+  assert.deepEqual(await names(await get({}, '?share=tok-map&bbox=-180,-90,180,90')), ['Paris'])
+  const bob = { ...env, SESSIONS: { get: async () => JSON.stringify({ user_id: 2 }) } }
+  const owner = await mods.places.onRequestGet({
+    request: new Request('https://researchtools.test/api/cop/cop-bobs-private/layers/places?bbox=-180,-90,180,90', { headers: USER_AUTH }),
+    env: bob, params: { id: 'cop-bobs-private' }, data: {}, waitUntil() {},
+  })
+  assert.deepEqual(await names(owner), ['New York', 'Paris'])
+})
+
+test('a service cannot put a session in workspace "1", by query string or team workspace', async () => {
+  const { db, env } = await fixture()
+  const byQuery = await cop(env, 'POST', '/api/cop/sessions?workspace_id=1', {
+    headers: SERVICE_AUTH, body: { name: 'x' }, handler: mods.sessions,
+  })
+  assert.equal(byQuery.status, 403)
+  const byTeam = await cop(env, 'POST', '/api/cop/sessions', {
+    headers: SERVICE_AUTH, body: { name: 'x', team_workspace_id: '1' }, handler: mods.sessions,
+  })
+  assert.equal(byTeam.status, 403)
+  assert.equal(db.prepare(`SELECT COUNT(*) AS n FROM cop_sessions WHERE workspace_id = '1' OR team_workspace_id = '1'`).get().n, 0)
+})
+
+async function seedRfiShare(db, token, panels, { expiresAt = null, allowAnswers = 1 } = {}) {
+  db.prepare(`INSERT INTO cop_shares (id, cop_session_id, share_token, visible_panels, allow_rfi_answers, created_by, expires_at)
+    VALUES (?, 'cop-bobs-private', ?, ?, ?, 2, ?)`).run(`share-${token}`, token, JSON.stringify(panels), allowAnswers, expiresAt)
+}
+
+const answer = (env, token) =>
+  mods.rfiAnswers.onRequestPost({
+    request: new Request(`https://researchtools.test/api/cop/public/${token}/rfis/rfi-1/answers`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ answer_text: 'seen it' }),
+    }),
+    env, params: { token, rfiId: 'rfi-1' }, data: {}, waitUntil() {},
+  })
+
+test('public RFI answers: refused when the link expired, lacks the RFI panel, or the session is archived', async () => {
+  const { db, env } = await fixture()
+  db.prepare(`INSERT INTO cop_rfis (id, cop_session_id, question, created_by, requester_name) VALUES ('rfi-1', 'cop-bobs-private', 'Who?', 2, 'Bob B')`).run()
+  await seedRfiShare(db, 'tok-expired', ['map', 'rfi'], { expiresAt: '2000-01-01T00:00:00Z' })
+  await seedRfiShare(db, 'tok-no-rfi', ['map'])
+  await seedRfiShare(db, 'tok-ok', ['map', 'rfi'])
+  assert.equal((await answer(env, 'tok-expired')).status, 403)
+  assert.equal((await answer(env, 'tok-no-rfi')).status, 403)
+  assert.equal(db.prepare(`SELECT status FROM cop_rfis WHERE id = 'rfi-1'`).get().status, 'open')
+  assert.equal((await answer(env, 'tok-ok')).status, 201)
+  db.prepare(`UPDATE cop_sessions SET status = 'ARCHIVED' WHERE id = 'cop-bobs-private'`).run()
+  assert.equal((await answer(env, 'tok-ok')).status, 410)
+})
+
+test('the public page sends RFIs and answers without author ids or requester names', async () => {
+  const { db, env } = await fixture()
+  db.prepare(`INSERT INTO cop_rfis (id, cop_session_id, question, created_by, requester_name) VALUES ('rfi-1', 'cop-bobs-private', 'Who?', 2, 'Bob B')`).run()
+  db.prepare(`INSERT INTO cop_rfi_answers (id, rfi_id, answer_text, created_by, responder_name) VALUES ('a-1', 'rfi-1', 'them', 2, 'Anon')`).run()
+  await seedRfiShare(db, 'tok-ok', ['map', 'rfi'])
+  const { rfis } = await (await publicGet(env, 'tok-ok')).json()
+  assert.equal(rfis[0].question, 'Who?')
+  assert.ok(!('created_by' in rfis[0]) && !('requester_name' in rfis[0]))
+  assert.equal(rfis[0].answers[0].answer_text, 'them')
+  assert.ok(!('created_by' in rfis[0].answers[0]))
+})
+
+test('a service works on a session shared with it as an editor', async () => {
+  const { env } = await fixture()
+  const share = await cop(env, 'POST', '/api/cop/cop-shared-editor/shares', {
+    headers: SERVICE_AUTH, body: { visible_panels: ['map'] }, handler: mods.shares, params: { id: 'cop-shared-editor' },
+  })
+  assert.equal(share.status, 201)
+})
+
+test('a service shared as a viewer may read but not write', async () => {
+  const { db, env } = await fixture()
+  const read = await cop(env, 'GET', '/api/cop/cop-shared-viewer/claims', {
+    headers: SERVICE_AUTH, handler: mods.claims, params: { id: 'cop-shared-viewer' },
+  })
+  assert.equal(read.status, 200)
+  const write = await cop(env, 'POST', '/api/cop/cop-shared-viewer/shares', {
+    headers: SERVICE_AUTH, body: {}, handler: mods.shares, params: { id: 'cop-shared-viewer' },
+  })
+  assert.equal(write.status, 403)
+  assert.equal(await errorCode(write), 'workspace_denied')
+  assert.equal(db.prepare(`SELECT COUNT(*) AS n FROM cop_shares WHERE cop_session_id = 'cop-shared-viewer'`).get().n, 0)
 })

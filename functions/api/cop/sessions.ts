@@ -116,6 +116,21 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
+    // A service names no workspace but its own bound one: not through the header (the
+    // credential check enforces that), not through ?workspace_id or team_workspace_id,
+    // and never the shared workspace "1", which checkWorkspaceAccess grants everyone.
+    const service = copServiceCaller(context.data)
+    if (service) {
+      for (const named of [explicitWorkspace, body.team_workspace_id]) {
+        if (named && named !== service.workspaceId) {
+          return new Response(JSON.stringify({ error: 'You do not have access to that workspace' }), {
+            status: 403,
+            headers: JSON_HEADERS
+          })
+        }
+      }
+    }
+
     // A session's workspace is where its entities live, and a team workspace lists it.
     // Both come from the request, so the caller must be able to edit each one named.
     for (const named of [explicitWorkspace, body.team_workspace_id]) {

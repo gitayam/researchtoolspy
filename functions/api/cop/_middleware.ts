@@ -8,7 +8,8 @@
  *   - its credential holds `community.cop.write`,
  *   - the method and path are one of the bot's COP operations (COP_SERVICE_ROUTES),
  *   - and, on a session route, the session was created by the service's principal
- *     user. A service never reaches another caller's session.
+ *     user, or that user is a collaborator on it (editor/admin: any allowed operation;
+ *     viewer: reads only). A service never reaches a session not shared with it.
  * The handler then acts as the principal user (copCallerUserId).
  *
  * Refusals are integration-error.v1 documents, like the other service routes.
@@ -25,7 +26,12 @@ import {
   isReservedIntegrationAuthorization,
   type IntegrationAuthEnv,
 } from '../_shared/service-auth'
-import { COP_SERVICE_ROUTES, copSessionIdFromPath, type CopServiceCaller } from '../_shared/cop-caller'
+import {
+  COP_SERVICE_ROUTES,
+  copSessionIdFromPath,
+  serviceMayUseSession,
+  type CopServiceCaller,
+} from '../_shared/cop-caller'
 
 interface Env extends IntegrationAuthEnv {
   DB: D1Database
@@ -96,15 +102,22 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   const sessionId = copSessionIdFromPath(pathname)
   if (sessionId !== null) {
     let createdBy: number | null
+    let collaboratorRole: string | null = null
     try {
       const row = await env.DB.prepare('SELECT created_by FROM cop_sessions WHERE id = ?')
         .bind(sessionId)
         .first<{ created_by: number }>()
       createdBy = row ? Number(row.created_by) : null
+      if (createdBy !== null && createdBy !== principal.principalUserId) {
+        const collab = await env.DB.prepare(
+          'SELECT role FROM cop_collaborators WHERE cop_session_id = ? AND user_id = ?'
+        ).bind(sessionId, principal.principalUserId).first<{ role?: string | null }>()
+        collaboratorRole = collab ? String(collab.role ?? 'viewer').toLowerCase() : null
+      }
     } catch {
       return refuse(request, 'auth_datastore_unavailable', 'COP session lookup failed.', 503, true)
     }
-    if (createdBy !== principal.principalUserId) {
+    if (!serviceMayUseSession(createdBy, collaboratorRole, principal.principalUserId, request.method)) {
       return refuse(request, 'workspace_denied', 'That COP session is not available to this credential.', 403)
     }
   }

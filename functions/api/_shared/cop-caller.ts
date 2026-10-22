@@ -47,6 +47,23 @@ export function copSessionIdFromPath(pathname: string): string | null {
   }
 }
 
+/**
+ * A service may use a session its principal user created, or one a person shared
+ * with that user as a collaborator: an editor or admin for any allowed operation,
+ * a viewer only for reads. Anything else, including an unknown session, is refused.
+ */
+export function serviceMayUseSession(
+  createdBy: number | null,
+  collaboratorRole: string | null,
+  principalUserId: number,
+  method: string,
+): boolean {
+  if (createdBy === null) return false
+  if (createdBy === principalUserId) return true
+  if (collaboratorRole === 'editor' || collaboratorRole === 'admin') return true
+  return collaboratorRole === 'viewer' && method === 'GET'
+}
+
 export function copServiceCaller(data: unknown): CopServiceCaller | null {
   const service = (data as { copService?: CopServiceCaller } | undefined)?.copService
   return service && Number.isSafeInteger(service.principalUserId) ? service : null

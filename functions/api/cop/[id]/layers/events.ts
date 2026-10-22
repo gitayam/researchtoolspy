@@ -59,7 +59,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   const url = new URL(request.url)
 
   // Auth: public sessions open, private sessions require owner/collaborator
-  const access = await verifyCopLayerAccess(env.DB, sessionId, request, env)
+  const access = await verifyCopLayerAccess(env.DB, sessionId, request, env, 'events')
   if (access instanceof Response) return access
 
   try {
@@ -77,7 +77,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     const workspaceId = access.workspace_id
 
     // 2. Determine bbox
-    const bbox = parseBBoxParam(url.searchParams.get('bbox')) || sessionBBox(session)
+    // A share link sees the session's own area, not one the visitor picks.
+    const bbox = (access.viaShare ? null : parseBBoxParam(url.searchParams.get('bbox'))) || sessionBBox(session)
 
     // 3. Build query
     let sql = `

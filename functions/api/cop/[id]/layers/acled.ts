@@ -146,7 +146,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   const url = new URL(request.url)
 
   // Auth: public sessions open, private sessions require owner/collaborator
-  const access = await verifyCopLayerAccess(env.DB, sessionId, request, env)
+  const access = await verifyCopLayerAccess(env.DB, sessionId, request, env, 'acled')
   if (access instanceof Response) return access
 
   try {
@@ -165,7 +165,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     }
 
     // 2. Determine bbox: query param overrides session bbox
-    const bbox = parseBBoxParam(url.searchParams.get('bbox')) || sessionBBox(session)
+    // A share link sees the session's own area, not one the visitor picks.
+    const bbox = (access.viaShare ? null : parseBBoxParam(url.searchParams.get('bbox'))) || sessionBBox(session)
 
     if (!bbox) {
       return emptyCollection({
