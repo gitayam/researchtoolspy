@@ -458,12 +458,43 @@ test('the public page sends RFIs and answers without author ids or requester nam
   assert.ok(!('created_by' in rfis[0].answers[0]))
 })
 
-test('a service works on a session shared with it as an editor', async () => {
-  const { env } = await fixture()
+test('a service works on a session shared with it as an editor, but cannot publish it', async () => {
+  const { db, env } = await fixture()
+  const read = await cop(env, 'GET', '/api/cop/cop-shared-editor/claims', {
+    headers: SERVICE_AUTH, handler: mods.claims, params: { id: 'cop-shared-editor' },
+  })
+  assert.equal(read.status, 200)
+  // A share link publishes someone else's session: a service may only share its own.
   const share = await cop(env, 'POST', '/api/cop/cop-shared-editor/shares', {
     headers: SERVICE_AUTH, body: { visible_panels: ['map'] }, handler: mods.shares, params: { id: 'cop-shared-editor' },
   })
-  assert.equal(share.status, 201)
+  assert.equal(share.status, 403)
+  assert.equal(db.prepare(`SELECT COUNT(*) AS n FROM cop_shares WHERE cop_session_id = 'cop-shared-editor'`).get().n, 0)
+  const own = await cop(env, 'POST', '/api/cop/cop-service-own/shares', {
+    headers: SERVICE_AUTH, body: { visible_panels: ['map'] }, handler: mods.shares, params: { id: 'cop-service-own' },
+  })
+  assert.equal(own.status, 201)
+})
+
+test('a viewer collaborator cannot create a share link; an editor can', async () => {
+  const { db, env } = await fixture()
+  const post = () => cop(env, 'POST', '/api/cop/cop-bobs-private/shares', {
+    headers: USER_AUTH, body: { visible_panels: ['map'] }, handler: mods.shares, params: { id: 'cop-bobs-private' },
+  })
+  db.prepare(`INSERT INTO cop_collaborators (cop_session_id, user_id, role) VALUES ('cop-bobs-private', 1, 'viewer')`).run()
+  assert.equal((await post()).status, 403)
+  db.prepare(`UPDATE cop_collaborators SET role = 'Editor' WHERE cop_session_id = 'cop-bobs-private' AND user_id = 1`).run()
+  assert.equal((await post()).status, 201)
+})
+
+test('the analysis layer with no type is checked as the deception layer it serves', async () => {
+  const { db, env } = await fixture()
+  db.prepare(`UPDATE cop_sessions SET active_layers = '["framework-overlay"]' WHERE id = 'cop-bobs-private'`).run()
+  await seedShare(db, 'tok-map', ['map'], null)
+  assert.equal((await layerAccess(env, 'analysis', '?share=tok-map')).status, 401)
+  assert.equal((await layerAccess(env, 'analysis', '?share=tok-map&type=deception')).status, 401)
+  assert.equal((await layerAccess(env, 'analysis', '?share=tok-map&type=other')).status, 401)
+  assert.equal((await layerAccess(env, 'analysis', '?share=tok-map&type=framework')).viaShare, true)
 })
 
 test('a service shared as a viewer may read but not write', async () => {

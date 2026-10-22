@@ -10,7 +10,7 @@ import { emitCopEvent } from '../../_shared/cop-events'
 import { SHARE_CREATED } from '../../_shared/cop-event-types'
 import { generatePrefixedId , JSON_HEADERS } from '../../_shared/api-utils'
 import { logEvent } from '../../_shared/event-log'
-import { copCallerUserId } from '../../_shared/cop-caller'
+import { copCallerUserId, copServiceCaller } from '../../_shared/cop-caller'
 
 interface Env {
   DB: D1Database
@@ -32,6 +32,24 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const workspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId)
     if (!workspaceId) {
       return new Response(JSON.stringify({ error: 'Access denied' }), {
+        status: 403, headers: JSON_HEADERS,
+      })
+    }
+
+    // A share link publishes the session to anyone holding it. Only the owner or an
+    // editor/admin collaborator may create one; a service only on its own sessions.
+    const owner = await env.DB.prepare('SELECT created_by FROM cop_sessions WHERE id = ?')
+      .bind(sessionId).first<{ created_by: number | null }>()
+    let mayShare = owner?.created_by != null && String(owner.created_by) === String(userId)
+    if (!mayShare && !copServiceCaller(context.data)) {
+      const collaborator = await env.DB.prepare(
+        'SELECT role FROM cop_collaborators WHERE cop_session_id = ? AND user_id = ?'
+      ).bind(sessionId, userId).first<{ role: string | null }>()
+      const role = String(collaborator?.role ?? '').toLowerCase()
+      mayShare = role === 'editor' || role === 'admin'
+    }
+    if (!mayShare) {
+      return new Response(JSON.stringify({ error: 'Only the session owner or an editor can create share links' }), {
         status: 403, headers: JSON_HEADERS,
       })
     }

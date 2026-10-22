@@ -60,9 +60,11 @@ export function shareMayReadLayer(
   if (layer === 'assets' && !panels.includes('assets')) return false
   let ids = LAYER_IDS[layer] ?? []
   if (layer === 'analysis') {
-    const type = url.searchParams.get('type')
+    // Same default as layers/analysis.ts: no type means deception.
+    const type = url.searchParams.get('type') || 'deception'
     if (type === 'deception') ids = ['deception-risk']
     else if (type === 'framework') ids = ['framework-overlay']
+    else return false
   }
   let active: unknown
   try {
