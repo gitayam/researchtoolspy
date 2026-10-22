@@ -7,6 +7,7 @@
 
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest } from '../_shared/auth-helpers'
+import { checkWorkspaceAccess } from '../_shared/workspace-helpers'
 import { generatePrefixedId , JSON_HEADERS } from '../_shared/api-utils'
 import { logEvent } from '../_shared/event-log'
 
@@ -104,6 +105,18 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         status: 400,
         headers: JSON_HEADERS
       })
+    }
+
+    // A session's workspace is where its entities live, and a team workspace lists it.
+    // Both come from the request, so the caller must be able to edit each one named.
+    for (const named of [explicitWorkspace, body.team_workspace_id]) {
+      if (!named) continue
+      if (typeof named !== 'string' || !(await checkWorkspaceAccess(named, userId, env, 'EDITOR'))) {
+        return new Response(JSON.stringify({ error: 'You do not have access to that workspace' }), {
+          status: 403,
+          headers: JSON_HEADERS
+        })
+      }
     }
 
     const id = generatePrefixedId('cop')
