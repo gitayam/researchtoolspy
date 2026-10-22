@@ -6,10 +6,10 @@
  */
 
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserFromRequest } from '../_shared/auth-helpers'
 import { checkWorkspaceAccess } from '../_shared/workspace-helpers'
-import { generatePrefixedId , JSON_HEADERS } from '../_shared/api-utils'
+import { JSON_HEADERS } from '../_shared/api-utils'
 import { logEvent } from '../_shared/event-log'
+import { copCallerUserId, copServiceCaller } from '../_shared/cop-caller'
 
 interface Env {
   DB: D1Database
@@ -41,7 +41,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   const url = new URL(request.url)
 
   try {
-    const userId = await getUserFromRequest(request, env)
+    const userId = await copCallerUserId(context)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
         status: 401, headers: JSON_HEADERS
@@ -91,7 +91,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const url = new URL(request.url)
 
   try {
-    const userId = await getUserFromRequest(request, env)
+    const userId = await copCallerUserId(context)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
         status: 401, headers: JSON_HEADERS,
@@ -102,6 +102,15 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     if (!body.name) {
       return new Response(JSON.stringify({ error: 'Name is required' }), {
+        status: 400,
+        headers: JSON_HEADERS
+      })
+    }
+
+    // Services (the Signal bot) create private sessions and share them with scoped
+    // share links; a public session is readable by anyone who has its id.
+    if (copServiceCaller(context.data) && body.is_public) {
+      return new Response(JSON.stringify({ error: 'Service credentials cannot create public sessions' }), {
         status: 400,
         headers: JSON_HEADERS
       })
@@ -119,7 +128,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       }
     }
 
-    const id = generatePrefixedId('cop')
+    // A full random UUID: the id names the session in every COP route and in the
+    // dashboard URL, so it must not be guessable (the 12-character form held ~44 bits).
+    const id = `cop-${crypto.randomUUID()}`
     const now = new Date().toISOString()
 
     // Auto-create a dedicated workspace for this COP session unless one was explicitly provided.

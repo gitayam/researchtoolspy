@@ -6,10 +6,11 @@
  * PUT    /api/cop/:id/claims/:claimId - Update claim status (verify/dispute/promote)
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-helpers'
+import { verifyCopSessionAccess } from '../../_shared/auth-helpers'
 import { createTimelineEntry } from '../../_shared/timeline-helper'
 import { generatePrefixedId , JSON_HEADERS } from '../../_shared/api-utils'
 import { logEvent } from '../../_shared/event-log'
+import { copCallerUserId } from '../../_shared/cop-caller'
 
 interface Env {
   DB: D1Database
@@ -21,7 +22,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   const { env, params, request } = context
   const sessionId = params.id as string
 
-  const userId = await getUserFromRequest(request, env)
+  const userId = await copCallerUserId(context)
   if (!userId) {
     return new Response(JSON.stringify({ error: 'Authentication required' }), { status: 401, headers: JSON_HEADERS })
   }
@@ -66,7 +67,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const sessionId = params.id as string
 
   try {
-    const userId = await getUserFromRequest(request, env)
+    const userId = await copCallerUserId(context)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
         status: 401, headers: JSON_HEADERS,
@@ -149,7 +150,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
   const sessionId = params.id as string
 
   try {
-    const userId = await getUserFromRequest(request, env)
+    const userId = await copCallerUserId(context)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
         status: 401, headers: JSON_HEADERS,

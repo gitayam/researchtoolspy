@@ -14,6 +14,38 @@ interface Env {
 
 const jsonFields = ['active_layers', 'layer_config', 'linked_frameworks', 'key_questions', 'event_facts', 'content_analyses'] as const
 
+/**
+ * The session fields a share link may show, by panel. Only these leave the
+ * database: never the owner, workspace ids, visibility, description, mission
+ * brief, linked frameworks or content analyses. The map always renders (shares
+ * always include it), so its fields come with every link.
+ */
+const ALWAYS_FIELDS = ['id', 'name', 'template_type', 'status'] as const
+const PANEL_FIELDS: Record<string, readonly string[]> = {
+  map: [
+    'center_lat', 'center_lon', 'zoom_level',
+    'bbox_min_lat', 'bbox_min_lon', 'bbox_max_lat', 'bbox_max_lon',
+    'active_layers', 'layer_config',
+    'time_window_start', 'time_window_end', 'rolling_hours',
+  ],
+  event: ['event_type', 'event_description', 'event_facts'],
+  questions: ['key_questions'],
+}
+
+function publicSessionFields(session: Record<string, unknown>, visiblePanels: string[]): Record<string, unknown> {
+  const fields = new Set<string>(ALWAYS_FIELDS)
+  for (const panel of visiblePanels) for (const field of PANEL_FIELDS[panel] ?? []) fields.add(field)
+  const out: Record<string, unknown> = {}
+  for (const field of fields) if (field in session) out[field] = session[field]
+  return out
+}
+
+function shareExpired(share: { expires_at?: unknown }): boolean {
+  if (share.expires_at === undefined || share.expires_at === null || share.expires_at === '') return false
+  const at = Date.parse(String(share.expires_at))
+  return !Number.isFinite(at) || at <= Date.now()
+}
+
 function parseJsonFields(row: any): any {
   const parsed = { ...row }
   for (const field of jsonFields) {
@@ -36,7 +68,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       SELECT * FROM cop_shares WHERE share_token = ?
     `).bind(token).first() as any
 
-    if (!share) {
+    // expires_at comes from migration 114; a row without it never expires.
+    if (!share || shareExpired(share)) {
       return new Response(JSON.stringify({ error: 'Share link not found or expired' }), {
         status: 404, headers: JSON_HEADERS,
       })
@@ -75,7 +108,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     // Build response based on visible panels
     const response: any = {
-      session: parsed,
+      session: publicSessionFields(parsed, visiblePanels),
       visible_panels: visiblePanels,
       allow_rfi_answers: share.allow_rfi_answers === 1,
     }

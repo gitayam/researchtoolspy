@@ -527,6 +527,24 @@ export async function verifyCopLayerAccess(
   // Public sessions — anyone can view layers (map embeds, shared links)
   if (session.is_public) return { workspace_id: session.workspace_id }
 
+  // A share link for this session that shows the map (and hasn't expired) may read
+  // its layers without signing in: the public COP page passes its token as ?share=.
+  const shareToken = new URL(request.url).searchParams.get('share')
+  if (shareToken) {
+    const share = await db.prepare(
+      'SELECT * FROM cop_shares WHERE share_token = ? AND cop_session_id = ?'
+    ).bind(shareToken, sessionId).first<{ visible_panels?: string; expires_at?: string | null }>()
+    if (share) {
+      let panels: unknown
+      try { panels = JSON.parse(share.visible_panels || '["map"]') } catch { panels = [] }
+      const expiresAt = share.expires_at ? Date.parse(String(share.expires_at)) : null
+      const expired = expiresAt !== null && (!Number.isFinite(expiresAt) || expiresAt <= Date.now())
+      if (Array.isArray(panels) && panels.includes('map') && !expired) {
+        return { workspace_id: session.workspace_id }
+      }
+    }
+  }
+
   // Private session — require authentication
   const userId = await getUserFromRequest(request, env)
   if (!userId) {
