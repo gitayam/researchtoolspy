@@ -35,6 +35,16 @@ lint:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == "main"
 
+unit:
+  stage: validate
+  image: node:${NODE_VERSION}-alpine
+  script:
+    - npm ci --prefer-offline
+    - npm run test:unit
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+
 # --- Build Stage ---
 
 build:

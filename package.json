@@ -34,7 +34,8 @@
     "test:e2e:ui": "npx playwright test --ui",
     "test:e2e:debug": "npx playwright test --debug",
     "benchmark:scraping": "npx playwright test tests/e2e/benchmark/scraping-extractor-benchmark.spec.ts --project=chromium",
-    "test:timeline": "node scripts/verify-timeline.mjs"
+    "test:timeline": "node scripts/verify-timeline.mjs",
+    "test:unit": "node --test tests/unit/"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
