@@ -52,9 +52,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       SELECT
         id, url, title, summary, extracted_text, entities, publish_date, author
       FROM content_analysis
-      WHERE id IN (${placeholders})
+      WHERE id IN (${placeholders}) AND user_id = ?
       ORDER BY created_at DESC
-    `).bind(...analysis_ids).all()
+    `).bind(...analysis_ids, userId).all()
 
     if (!results.results || results.results.length === 0) {
       return new Response(JSON.stringify({

@@ -75,8 +75,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const analysis = await context.env.DB.prepare(`
       SELECT extracted_text, summary, entities, title
       FROM content_analysis
-      WHERE id = ?
-    `).bind(contentAnalysisId).first()
+      WHERE id = ? AND user_id = ?
+    `).bind(contentAnalysisId, userId).first()
 
     if (!analysis) {
       return new Response(JSON.stringify({

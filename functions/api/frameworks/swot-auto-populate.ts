@@ -95,9 +95,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const { results } = await context.env.DB.prepare(`
       SELECT id, url, title, summary, extracted_text, entities, keyphrases, top_phrases
       FROM content_analysis
-      WHERE id IN (${placeholders})
+      WHERE id IN (${placeholders}) AND user_id = ?
       LIMIT 5
-    `).bind(...body.contentIds).all()
+    `).bind(...body.contentIds, userId).all()
 
     if (!results || results.length === 0) {
       return new Response(JSON.stringify({ error: 'No content found for provided IDs' }), {
