@@ -8,7 +8,7 @@
  * a minimal D1 shim. The caller is resolved through the real requireAuth (a
  * Bearer token found in a fake SESSIONS store).
  *
- * Run: node --test tests/unit/
+ * Run: npm run test:unit
  */
 import { test, before } from 'node:test'
 import assert from 'node:assert/strict'
