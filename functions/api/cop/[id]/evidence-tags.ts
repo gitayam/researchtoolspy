@@ -5,9 +5,10 @@
  * POST   /api/cop/:id/evidence-tags                 - Create a tag
  * DELETE  /api/cop/:id/evidence-tags?tag_id=xxx      - Remove a tag
  *
- * Every call is scoped to evidence in this session's workspace, in SQL: another
- * workspace's evidence id is 404 (read) or refused (write), never touched. Writes
- * need the session owner or an editor/admin collaborator.
+ * Every call is scoped to this COP's own evidence, in SQL (the session rule in
+ * functions/api/_shared/cop-input.ts): any other evidence id, in this workspace or
+ * another, is 404 (read) or refused (write), never touched. Writes need the session
+ * owner or an editor/admin collaborator.
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-helpers'
@@ -16,11 +17,14 @@ import { EVIDENCE_TAGGED } from '../../_shared/cop-event-types'
 import { generatePrefixedId , JSON_HEADERS } from '../../_shared/api-utils'
 import { logEvent } from '../../_shared/event-log'
 import { mayEditCopSession } from '../../_shared/cop-webcams'
+import { queryEvidenceInSession, type EvidenceSessionScope } from '../../_shared/cop-input'
 
-/** True when the evidence item belongs to the workspace. */
-async function evidenceInWorkspace(db: D1Database, evidenceId: string, workspaceId: string): Promise<boolean> {
-  const row = await db.prepare('SELECT 1 FROM evidence_items WHERE CAST(id AS TEXT) = ? AND workspace_id = ?')
-    .bind(evidenceId, workspaceId).first()
+/** True when the evidence item is this COP session's own. */
+async function evidenceInSession(db: D1Database, evidenceId: string, scope: EvidenceSessionScope): Promise<boolean> {
+  const row = await queryEvidenceInSession(
+    db, 'SELECT 1 AS found FROM evidence_items WHERE CAST(id AS TEXT) = ? AND {EVIDENCE_SCOPE}',
+    scope, [evidenceId], [], (statement) => statement.first(),
+  )
   return Boolean(row)
 }
 
@@ -53,16 +57,17 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       })
     }
 
-    if (!(await evidenceInWorkspace(env.DB, evidenceId, accessWorkspaceId))) {
+    const scope = { sessionId, workspaceId: accessWorkspaceId }
+    if (!(await evidenceInSession(env.DB, evidenceId, scope))) {
       return new Response(JSON.stringify({ error: 'Evidence not found' }), { status: 404, headers: JSON_HEADERS })
     }
-    const tags = await env.DB.prepare(`
+    const tags = await queryEvidenceInSession(env.DB, `
       SELECT t.id, t.evidence_id, t.tag_category, t.tag_value, t.confidence, t.created_by, t.created_at
       FROM cop_evidence_tags t
       WHERE t.evidence_id = ?
-        AND EXISTS (SELECT 1 FROM evidence_items e WHERE CAST(e.id AS TEXT) = t.evidence_id AND e.workspace_id = ?)
+        AND EXISTS (SELECT 1 FROM evidence_items e WHERE CAST(e.id AS TEXT) = t.evidence_id AND {EVIDENCE_SCOPE})
       ORDER BY t.tag_category, t.tag_value
-    `).bind(evidenceId, accessWorkspaceId).all()
+    `, scope, [evidenceId], [], (statement) => statement.all(), 'e')
 
     return new Response(JSON.stringify({ tags: tags.results }), { headers: JSON_HEADERS })
   } catch (error) {
@@ -113,7 +118,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    if (typeof body.evidence_id !== 'string' || !(await evidenceInWorkspace(env.DB, body.evidence_id.trim(), workspaceId))) {
+    if (typeof body.evidence_id !== 'string' || !(await evidenceInSession(env.DB, body.evidence_id.trim(), { sessionId, workspaceId }))) {
       return new Response(JSON.stringify({ error: 'Evidence not found' }), { status: 404, headers: JSON_HEADERS })
     }
 
@@ -175,11 +180,11 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     }
 
     // Only delete if the tag belongs to evidence in this session's workspace
-    await env.DB.prepare(`
+    await queryEvidenceInSession(env.DB, `
       DELETE FROM cop_evidence_tags WHERE id = ? AND EXISTS (
-        SELECT 1 FROM evidence_items e WHERE CAST(e.id AS TEXT) = cop_evidence_tags.evidence_id AND e.workspace_id = ?
+        SELECT 1 FROM evidence_items e WHERE CAST(e.id AS TEXT) = cop_evidence_tags.evidence_id AND {EVIDENCE_SCOPE}
       )
-    `).bind(tagId, accessWorkspaceId).run()
+    `, { sessionId, workspaceId: accessWorkspaceId }, [tagId], [], (statement) => statement.run(), 'e')
 
     return new Response(JSON.stringify({ message: 'Evidence tag deleted' }), { headers: JSON_HEADERS })
   } catch (error) {

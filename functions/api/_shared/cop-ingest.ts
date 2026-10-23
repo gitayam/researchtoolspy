@@ -18,6 +18,7 @@
  */
 import { applyItemTags, cleanTagName, dropItemTags, tagsTableMissing } from './cop-tags'
 import { emitCopEventLoose } from './cop-events-loose'
+import { queryEvidenceInSession } from './cop-input'
 import { columnMissing, copSessionScope, insertCopEvidence, insertCopMarker } from './cop-records'
 import { cleanFile, copUploadPath, storeCopUpload, type R2Like } from './cop-uploads'
 import { IMAGE_TYPES, type SniffedType } from './image-sanitize'
@@ -204,16 +205,17 @@ interface ResponseRow {
   linked_evidence_id: string | null
   linked_marker_id?: string | null
   auto_ingested?: number | null
+  ingested_evidence_id?: string | null
 }
 
 async function loadResponse(db: D1Database, responseId: string, sessionId: string): Promise<ResponseRow | null> {
   try {
     return await db.prepare(`
-      SELECT id, survey_id, form_data, cop_session_id, linked_evidence_id, linked_marker_id, auto_ingested
+      SELECT id, survey_id, form_data, cop_session_id, linked_evidence_id, linked_marker_id, auto_ingested, ingested_evidence_id
       FROM survey_responses WHERE id = ? AND cop_session_id = ?
     `).bind(responseId, sessionId).first<ResponseRow>()
   } catch (error) {
-    if (!columnMissing(error, 'linked_marker_id') && !columnMissing(error, 'auto_ingested')) throw error
+    if (!columnMissing(error, 'linked_marker_id') && !columnMissing(error, 'auto_ingested') && !columnMissing(error, 'ingested_evidence_id')) throw error
     return db.prepare(`
       SELECT id, survey_id, form_data, cop_session_id, linked_evidence_id
       FROM survey_responses WHERE id = ? AND cop_session_id = ?
@@ -343,11 +345,12 @@ export async function ingestSubmission(
   try {
     await db.prepare(`
       UPDATE survey_responses
-      SET linked_evidence_id = ?, linked_marker_id = ?, auto_ingested = ?, status = 'accepted', triaged_by = ?, updated_at = ?
+      SET linked_evidence_id = ?, linked_marker_id = ?, auto_ingested = ?, ingested_evidence_id = ?,
+          status = 'accepted', triaged_by = ?, updated_at = ?
       WHERE id = ? AND linked_evidence_id = ?
-    `).bind(evidenceId, markerId, input.auto ? 1 : 0, input.actorUserId, now, input.responseId, claim).run()
+    `).bind(evidenceId, markerId, input.auto ? 1 : 0, input.auto ? evidenceId : null, input.actorUserId, now, input.responseId, claim).run()
   } catch (error) {
-    if (!columnMissing(error, 'linked_marker_id') && !columnMissing(error, 'auto_ingested')) throw error
+    if (!columnMissing(error, 'linked_marker_id') && !columnMissing(error, 'auto_ingested') && !columnMissing(error, 'ingested_evidence_id')) throw error
     await db.prepare(`
       UPDATE survey_responses SET linked_evidence_id = ?, status = 'accepted', triaged_by = ?, updated_at = ?
       WHERE id = ? AND linked_evidence_id = ?
@@ -425,8 +428,11 @@ async function takeIngestSlot(db: D1Database, formId: string): Promise<boolean> 
 }
 
 /**
- * A reviewer rejected an auto-ingested submission: take its evidence, marker,
- * uploads and tags back off the COP. Items a person accepted are left alone.
+ * A reviewer rejected an auto-ingested submission: take back exactly what auto-ingest
+ * created for it (the evidence recorded in ingested_evidence_id, its uploads and tags,
+ * and the marker pointing at that evidence), and nothing else: not evidence the
+ * submission was later linked to, not anything outside the COP. Items a person
+ * accepted are left alone.
  */
 export async function retractAutoIngest(
   env: IngestEnv,
@@ -434,40 +440,60 @@ export async function retractAutoIngest(
 ): Promise<boolean> {
   const { DB: db } = env
   const response = await loadResponse(db, input.responseId, input.sessionId)
-  if (!response || Number(response.auto_ingested) !== 1 || !response.linked_evidence_id) return false
+  if (!response || Number(response.auto_ingested) !== 1) return false
   const scope = await copSessionScope(db, input.sessionId)
   if (!scope) return false
-  const evidenceId = response.linked_evidence_id
+  const evidenceId = response.ingested_evidence_id ?? null
 
-  const uploads = await db.prepare('SELECT id, r2_key FROM cop_uploads WHERE cop_session_id = ? AND evidence_id = ? AND archived_at IS NULL')
-    .bind(input.sessionId, evidenceId).all<{ id: string; r2_key: string }>()
-  for (const upload of uploads.results ?? []) {
-    await db.prepare("UPDATE cop_uploads SET archived_at = ? WHERE id = ? AND cop_session_id = ?")
-      .bind(new Date().toISOString(), upload.id, input.sessionId).run()
-    await env.UPLOADS?.delete?.(upload.r2_key).catch(() => {})
-    await dropItemTags(db, input.sessionId, 'upload', upload.id)
-  }
-  const removed = await db.prepare('DELETE FROM evidence_items WHERE CAST(id AS TEXT) = ? AND workspace_id = ?')
-    .bind(evidenceId, scope.workspaceId).run()
-  await dropItemTags(db, input.sessionId, 'evidence', evidenceId)
-  if (removed.meta?.changes) {
-    await emitCopEventLoose(db, {
-      copSessionId: input.sessionId, eventType: 'evidence.deleted', entityType: 'evidence', entityId: evidenceId,
-      payload: { reason: 'submission_rejected' }, createdBy: input.actorUserId,
-    })
-  }
-  if (response.linked_marker_id) {
-    await db.prepare('DELETE FROM cop_marker_changelog WHERE marker_id = ? AND cop_session_id = ?').bind(response.linked_marker_id, input.sessionId).run().catch(() => {})
-    const gone = await db.prepare('DELETE FROM cop_markers WHERE id = ? AND cop_session_id = ?').bind(response.linked_marker_id, input.sessionId).run()
-    await dropItemTags(db, input.sessionId, 'marker', response.linked_marker_id)
-    if (gone.meta?.changes) {
+  if (evidenceId) {
+    const uploads = await db.prepare('SELECT id, r2_key FROM cop_uploads WHERE cop_session_id = ? AND evidence_id = ? AND archived_at IS NULL')
+      .bind(input.sessionId, evidenceId).all<{ id: string; r2_key: string }>()
+    for (const upload of uploads.results ?? []) {
+      await db.prepare("UPDATE cop_uploads SET archived_at = ? WHERE id = ? AND cop_session_id = ?")
+        .bind(new Date().toISOString(), upload.id, input.sessionId).run()
+      await env.UPLOADS?.delete?.(upload.r2_key).catch(() => {})
+      await dropItemTags(db, input.sessionId, 'upload', upload.id)
+    }
+    // Only the item ingest wrote for this submission, and only within the COP.
+    const removed = await queryEvidenceInSession(
+      db,
+      `DELETE FROM evidence_items
+       WHERE CAST(id AS TEXT) = ?
+         AND (CASE WHEN json_valid(metadata) THEN json_extract(metadata, '$.response_id') END) = ?
+         AND {EVIDENCE_SCOPE}`,
+      { sessionId: input.sessionId, workspaceId: scope.workspaceId },
+      [evidenceId, input.responseId],
+      [],
+      (statement) => statement.run(),
+    )
+    if (removed.meta?.changes) {
+      await dropItemTags(db, input.sessionId, 'evidence', evidenceId)
       await emitCopEventLoose(db, {
-        copSessionId: input.sessionId, eventType: 'marker.deleted', entityType: 'marker', entityId: response.linked_marker_id,
+        copSessionId: input.sessionId, eventType: 'evidence.deleted', entityType: 'evidence', entityId: evidenceId,
         payload: { reason: 'submission_rejected' }, createdBy: input.actorUserId,
       })
     }
+    // The marker ingest placed for that evidence.
+    if (response.linked_marker_id) {
+      const gone = await db.prepare(
+        "DELETE FROM cop_markers WHERE id = ? AND cop_session_id = ? AND source_type = 'EVIDENCE' AND source_id = ?"
+      ).bind(response.linked_marker_id, input.sessionId, evidenceId).run()
+      if (gone.meta?.changes) {
+        await db.prepare('DELETE FROM cop_marker_changelog WHERE marker_id = ? AND cop_session_id = ?').bind(response.linked_marker_id, input.sessionId).run().catch(() => {})
+        await dropItemTags(db, input.sessionId, 'marker', response.linked_marker_id)
+        await emitCopEventLoose(db, {
+          copSessionId: input.sessionId, eventType: 'marker.deleted', entityType: 'marker', entityId: response.linked_marker_id,
+          payload: { reason: 'submission_rejected' }, createdBy: input.actorUserId,
+        })
+      }
+    }
   }
-  await db.prepare('UPDATE survey_responses SET linked_evidence_id = NULL, linked_marker_id = NULL, auto_ingested = 0 WHERE id = ? AND cop_session_id = ?')
-    .bind(input.responseId, input.sessionId).run()
+  // A link a reviewer made to other evidence stays; the link to what was removed goes.
+  await db.prepare(`
+    UPDATE survey_responses
+    SET linked_evidence_id = CASE WHEN linked_evidence_id = ? THEN NULL ELSE linked_evidence_id END,
+        linked_marker_id = NULL, auto_ingested = 0, ingested_evidence_id = NULL
+    WHERE id = ? AND cop_session_id = ?
+  `).bind(evidenceId, input.responseId, input.sessionId).run()
   return true
 }

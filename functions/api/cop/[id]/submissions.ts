@@ -21,6 +21,7 @@ import { JSON_HEADERS } from '../../_shared/api-utils'
 import { logEvent } from '../../_shared/event-log'
 import { mayEditCopSession } from '../../_shared/cop-webcams'
 import { ingestSubmission, retractAutoIngest } from '../../_shared/cop-ingest'
+import { queryEvidenceInSession } from '../../_shared/cop-input'
 import type { R2Like } from '../../_shared/cop-uploads'
 
 interface Env {
@@ -39,7 +40,9 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   if (!userId) {
     return new Response(JSON.stringify({ error: 'Authentication required' }), { status: 401, headers: JSON_HEADERS })
   }
-  const accessWorkspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId, { readOnly: true })
+  // Submissions (answers, inline photos) are for the session's owner and collaborators,
+  // not any signed-in user who can open a public session.
+  const accessWorkspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId)
   if (!accessWorkspaceId) {
     return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
   }
@@ -127,10 +130,16 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
     if (body.linked_evidence_id !== undefined && body.linked_evidence_id !== null) {
       const linked = String(body.linked_evidence_id)
-      const inWorkspace = await env.DB.prepare(
-        'SELECT 1 FROM evidence_items WHERE CAST(id AS TEXT) = ? AND workspace_id = ?'
-      ).bind(linked, workspaceId).first()
-      if (!inWorkspace) {
+      // The COP's own evidence, not anything else in its workspace.
+      const inSession = await queryEvidenceInSession(
+        env.DB,
+        'SELECT 1 AS found FROM evidence_items WHERE CAST(id AS TEXT) = ? AND {EVIDENCE_SCOPE}',
+        { sessionId, workspaceId },
+        [linked],
+        [],
+        (statement) => statement.first(),
+      )
+      if (!inSession) {
         return new Response(JSON.stringify({ error: 'linked_evidence_id must be evidence in this COP' }), {
           status: 400, headers: JSON_HEADERS,
         })

@@ -199,7 +199,8 @@ test('triage: editors only; a caller-chosen linked_evidence_id must be in this w
 })
 
 test('triage: accept files the submission once; reject takes auto-ingested items back off the COP', async () => {
-  const { db, env } = await fixture()
+  // The schema after migration 0022 (evidence carries its COP session).
+  const { db, env } = await fixture({ channel: true })
   db.prepare("UPDATE survey_drops SET auto_ingest = 0 WHERE id = 'srv-paris'").run()
   await drop(env, TIP)
   const manual = db.prepare("SELECT id FROM survey_responses WHERE survey_id = 'srv-paris'").get().id
