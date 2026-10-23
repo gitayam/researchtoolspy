@@ -45,7 +45,8 @@ export function nearbyErrorMessage(
 ): string {
   switch (failure.code) {
     case 'WEBCAM_DISCOVERY_UNAVAILABLE':
-      return "Webcam search isn't enabled on this server yet. You can still paste a camera link with Add webcam."
+      // Also answered while Windy's app-wide allowance is used up, so not "not enabled".
+      return "Webcam search isn't available right now. Try again in a minute, or paste a camera link with Add webcam."
     case 'PLACE_NOT_FOUND':
       return fromUrl
         ? "Couldn't tell which place that page is about. Type a place name instead."

@@ -11,6 +11,10 @@
  *   and are handed to the browser as-is, never fetched or stored here.
  * - Terms: show "Webcams provided by windy.com" near the cameras and link each image
  *   to the camera's Windy page.
+ * - Spend: at most WINDY_CALLS_PER_MINUTE calls a minute across the whole app (a
+ *   global KV counter that refuses when KV is missing or failing), "no such camera"
+ *   cached an hour, facts cached 6 hours, nearby results 8 minutes. Cache hits are
+ *   free. Callers also charge the person asking (webcam-discovery.ts chargeSpend).
  */
 import { getOutboundJson } from './outbound-json'
 import { kvGetJson, kvPutJson, type KvLike } from './kv-json'
@@ -19,7 +23,9 @@ export const WINDY_API_BASE = 'https://api.windy.com/webcams/api/v3'
 export const WINDY_API_HOSTS: ReadonlySet<string> = new Set(['api.windy.com'])
 const WINDY_ID = /^\d{6,12}$/
 const META_TTL_S = 6 * 3600
+const NOT_FOUND_TTL_S = 3600
 const NEARBY_TTL_S = 8 * 60
+export const WINDY_CALLS_PER_MINUTE = 60
 
 /** Windy statuses that mean the camera cannot be shown at all. */
 export const WINDY_UNAVAILABLE_STATUSES: ReadonlySet<string> = new Set([
@@ -51,7 +57,7 @@ export interface WindyNearbyCamera extends WindyCamera {
   preview_url: string | null
 }
 
-export type WindyFailure = 'key_missing' | 'not_found' | 'auth' | 'unavailable'
+export type WindyFailure = 'key_missing' | 'not_found' | 'auth' | 'unavailable' | 'throttled'
 
 export class WindyError extends Error {
   constructor(public readonly kind: WindyFailure, public readonly status: number | null = null) {
@@ -160,8 +166,23 @@ function factsOnly(cam: WindyNearbyCamera): WindyCamera {
 
 // ── Calls ────────────────────────────────────────────────────────────────
 
+/** Count one Windy call against the app-wide per-minute cap. No KV or a KV error: refuse. */
+async function takeWindySlot(kv: KvLike | undefined): Promise<boolean> {
+  if (!kv) return false
+  const key = `quota:windy:global:${Math.floor(Date.now() / 60_000)}`
+  try {
+    const used = Number.parseInt((await kv.get(key)) ?? '0', 10) || 0
+    if (used >= WINDY_CALLS_PER_MINUTE) return false
+    await kv.put(key, String(used + 1), { expirationTtl: 120 })
+    return true
+  } catch {
+    return false
+  }
+}
+
 async function windyGet(env: WindyEnv, path: string, params: Record<string, string>): Promise<unknown> {
   if (!windyKeyConfigured(env)) throw new WindyError('key_missing')
+  if (!(await takeWindySlot(env.CACHE))) throw new WindyError('throttled')
   const url = new URL(`${WINDY_API_BASE}${path}`)
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v)
   const result = await getOutboundJson(url.href, {
@@ -174,17 +195,46 @@ async function windyGet(env: WindyEnv, path: string, params: Record<string, stri
   throw new WindyError('unavailable', result.status)
 }
 
-/** One camera's facts (cached 6 h, without image URLs). Throws WindyError. */
-export async function windyCamera(env: WindyEnv, id: string): Promise<WindyCamera> {
-  if (!WINDY_ID.test(id)) throw new WindyError('not_found')
-  const cacheKey = `windy:cam:v1:${id}`
-  const cached = await kvGetJson<WindyCamera>(env.CACHE, cacheKey)
-  if (cached?.windy_id === id) return cached
-  const data = await windyGet(env, `/webcams/${id}`, { include: 'location,player,urls,categories', lang: 'en' })
+type CachedCamera = WindyCamera | { not_found: true }
+
+const cameraCacheKey = (id: string) => `windy:cam:v1:${id}`
+
+/**
+ * What the cache already knows about a camera, without asking Windy: its facts,
+ * 'not_found', or null (unknown, so a lookup would cost a call).
+ */
+export async function cachedWindyCamera(env: WindyEnv, id: string): Promise<WindyCamera | 'not_found' | null> {
+  if (!WINDY_ID.test(id)) return 'not_found'
+  const cached = await kvGetJson<CachedCamera>(env.CACHE, cameraCacheKey(id))
+  if (cached && 'not_found' in cached && cached.not_found === true) return 'not_found'
+  return cached && 'windy_id' in cached && cached.windy_id === id ? cached : null
+}
+
+/**
+ * One camera's facts (cached 6 h, without image URLs; "no such camera" cached 1 h).
+ * `fresh` skips the cache read, for status checks. Throws WindyError.
+ */
+export async function windyCamera(env: WindyEnv, id: string, options: { fresh?: boolean } = {}): Promise<WindyCamera> {
+  if (!options.fresh) {
+    const cached = await cachedWindyCamera(env, id)
+    if (cached === 'not_found') throw new WindyError('not_found')
+    if (cached) return cached
+  } else if (!WINDY_ID.test(id)) {
+    throw new WindyError('not_found')
+  }
+  let data: unknown
+  try {
+    data = await windyGet(env, `/webcams/${id}`, { include: 'location,player,urls,categories', lang: 'en' })
+  } catch (error) {
+    if (error instanceof WindyError && error.kind === 'not_found') {
+      await kvPutJson(env.CACHE, cameraCacheKey(id), { not_found: true }, NOT_FOUND_TTL_S)
+    }
+    throw error
+  }
   const parsed = parseWindyCamera(data)
   if (!parsed || parsed.windy_id !== id) throw new WindyError('unavailable')
   const facts = factsOnly(parsed)
-  await kvPutJson(env.CACHE, cacheKey, facts, META_TTL_S)
+  await kvPutJson(env.CACHE, cameraCacheKey(id), facts, META_TTL_S)
   return facts
 }
 

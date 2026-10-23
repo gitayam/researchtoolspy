@@ -23,6 +23,7 @@ import {
 import type { CopWebcam, CopWebcamCandidate, CopWebcamNearbyResponse } from '@/types/cop'
 import OsmCredit from '../OsmCredit'
 import { camRequest, isWindyHttpsUrl, nearbyErrorMessage } from './webcam-api'
+import { pageAddressForSearch } from './page-address'
 
 const RADII_KM = [2, 5, 10, 25] as const
 const DEFAULT_RADIUS_KM = 5
@@ -99,7 +100,16 @@ export default function FindWebcamsDialog({
     const params = new URLSearchParams({ radius_km: String(opts.radiusKm), limit: String(RESULT_LIMIT) })
     const placeText = opts.place.trim()
     if (placeText) params.set('place', placeText)
-    else if (opts.fromUrl) params.set('from_url', opts.fromUrl)
+    else if (opts.fromUrl) {
+      // Host and path only: the query and fragment never leave the browser.
+      const address = pageAddressForSearch(opts.fromUrl)
+      if (!address) {
+        setResult(null)
+        setError("That link can't be searched. Type a place name instead.")
+        return
+      }
+      params.set('from_url', address)
+    }
 
     setLoading(true)
     setError(null)

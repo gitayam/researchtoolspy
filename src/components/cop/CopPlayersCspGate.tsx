@@ -42,7 +42,9 @@ export default function CopPlayersCspGate({ children }: { children: ReactNode })
     } catch {
       // Storage was readable a moment ago; the reloaded document passes the check anyway.
     }
-    window.location.replace(href)
+    // reload(), not replace(href): replacing with the same URL is only a fragment
+    // jump when it has a #hash, and the document (with its CSP) would stay.
+    window.location.reload()
   }, [mode])
 
   if (mode === 'reload') {

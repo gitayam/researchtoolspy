@@ -10,7 +10,9 @@
  * `place` is geocoded, and only an ambiguous result goes to the model, which rewrites
  * the text into one geocoder query (functions/api/_shared/webcam-discovery.ts).
  * `from_url` is never fetched: the model reads its host and path. Coordinates always
- * come from the geocoder. Each caller gets 20 searches per 10 minutes.
+ * come from the geocoder. Searches are charged to the caller and to its
+ * CF-Connecting-IP address (NEARBY_LIMITS: 20 a person, 60 the bot service, 30 an
+ * address, per 10 minutes); without KV to count with, search is refused (503).
  *
  * Errors carry `code`: WEBCAM_INVALID, WEBCAM_NO_CENTER (400); PLACE_NOT_FOUND (422);
  * RATE_LIMITED (429); WINDY_ERROR (502); WEBCAM_DISCOVERY_UNAVAILABLE (no Windy key),
@@ -21,17 +23,20 @@ import { JSON_HEADERS } from '../../../_shared/api-utils'
 import { logEvent } from '../../../_shared/event-log'
 import { copCallerUserId, copServiceCaller } from '../../../_shared/cop-caller'
 import { mayEditCopSession, webcamsTableMissing } from '../../../_shared/cop-webcams'
-import { consumeQuota, type KvLike } from '../../../_shared/kv-json'
+import type { KvLike } from '../../../_shared/kv-json'
 import { GEOCODER_ATTRIBUTION_FIELDS } from '../../../_shared/geocoder'
 import { WINDY_ATTRIBUTION } from '../../../_shared/webcam-url'
 import { WINDY_UNAVAILABLE_STATUSES, WindyError, windyKeyConfigured, windyNearby } from '../../../_shared/windy-webcams'
 import {
+  chargeSpend,
   distanceKm,
   errorResponse,
+  NEARBY_LIMITS,
   pageAddressHint,
   RATE_LIMITED,
   resolvePageUrl,
   resolvePlaceText,
+  spendCaller,
   WEBCAM_DISCOVERY_UNAVAILABLE,
   WEBCAM_INVALID,
   WEBCAM_NO_CENTER,
@@ -51,8 +56,6 @@ interface Env {
   COP_WEBCAM_EXTRA_HOSTS?: string
 }
 
-const SEARCHES_PER_WINDOW = 20
-const WINDOW_S = 10 * 60
 const DEFAULT_RADIUS_KM = 5
 const DEFAULT_LIMIT = 20
 
@@ -108,11 +111,14 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     return errorResponse(503, WEBCAM_DISCOVERY_UNAVAILABLE, 'Webcam search is not configured on this server.')
   }
 
-  const service = copServiceCaller(context.data)
-  const caller = { userId: service ? `service:${service.clientId}` : String(userId) }
-  if (!(await consumeQuota(env.CACHE, 'webcams-nearby', caller.userId, SEARCHES_PER_WINDOW, WINDOW_S))) {
-    return errorResponse(429, RATE_LIMITED, 'Too many webcam searches. Try again in a few minutes.')
+  const spender = spendCaller(request, userId, copServiceCaller(context.data))
+  const charge = await chargeSpend(env.CACHE, 'webcams-nearby', spender, NEARBY_LIMITS)
+  if (charge === 'over') return errorResponse(429, RATE_LIMITED, 'Too many webcam searches. Try again in a few minutes.')
+  if (charge === 'unavailable') {
+    await logEvent(env, { level: 'error', source: 'cop/webcams/nearby', message: 'No KV to count webcam searches with: search refused' })
+    return errorResponse(503, WEBCAM_DISCOVERY_UNAVAILABLE, 'Webcam search is unavailable right now. Try again shortly.')
   }
+  const caller = { userId: spender.who }
 
   try {
     const session = await env.DB.prepare('SELECT name, description, center_lat, center_lon FROM cop_sessions WHERE id = ?')
@@ -147,6 +153,9 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       if (!(error instanceof WindyError)) throw error
       if (error.kind === 'key_missing') {
         return errorResponse(503, WEBCAM_DISCOVERY_UNAVAILABLE, 'Webcam search is not configured on this server.')
+      }
+      if (error.kind === 'throttled') {
+        return errorResponse(503, WEBCAM_DISCOVERY_UNAVAILABLE, 'Webcam search is busy right now. Try again in a minute.')
       }
       if (error.kind === 'auth') {
         console.error('[cop/webcams/nearby] Windy refused WINDY_WEBCAMS_API_KEY')

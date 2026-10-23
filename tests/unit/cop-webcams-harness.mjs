@@ -36,6 +36,8 @@ export const ENTRIES = {
   discovery: 'functions/api/_shared/webcam-discovery.ts',
   webcamAi: 'functions/api/_shared/webcam-ai.ts',
   windy: 'functions/api/_shared/windy-webcams.ts',
+  kvJson: 'functions/api/_shared/kv-json.ts',
+  pageAddress: 'src/components/cop/cams/page-address.ts',
 }
 
 const built = {}

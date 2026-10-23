@@ -9,25 +9,30 @@
  * great-circle bearing from the camera to the nearest match 0.05–15 km away.
  *
  * Errors carry `code`: WEBCAM_NO_POSITION, NO_VIEW_TARGET (422); AI_UNAVAILABLE,
- * GEOCODER_UNAVAILABLE (503); RATE_LIMITED (429).
+ * GEOCODER_UNAVAILABLE (503); RATE_LIMITED (429). Estimates are charged to the
+ * caller and its CF-Connecting-IP address (ESTIMATE_LIMITS); without KV to count
+ * with, they are refused.
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { JSON_HEADERS } from '../../../../_shared/api-utils'
 import { logEvent } from '../../../../_shared/event-log'
-import { copCallerUserId } from '../../../../_shared/cop-caller'
+import { copCallerUserId, copServiceCaller } from '../../../../_shared/cop-caller'
 import { getSessionWebcam, mayEditCopSession, webcamsTableMissing, webcamsUnavailable } from '../../../../_shared/cop-webcams'
-import { consumeQuota, type KvLike } from '../../../../_shared/kv-json'
+import type { KvLike } from '../../../../_shared/kv-json'
 import { boxAround, geocode, GEOCODER_ATTRIBUTION_FIELDS, GeocoderError } from '../../../../_shared/geocoder'
 import { viewTargetFromTitle, webcamAiAvailable } from '../../../../_shared/webcam-ai'
 import { windyCamera, windyKeyConfigured } from '../../../../_shared/windy-webcams'
 import {
   AI_UNAVAILABLE,
+  chargeSpend,
   distanceKm,
+  ESTIMATE_LIMITS,
   errorResponse,
   GEOCODER_UNAVAILABLE,
   initialBearingDeg,
   NO_VIEW_TARGET,
   RATE_LIMITED,
+  spendCaller,
   WEBCAM_NO_POSITION,
 } from '../../../../_shared/webcam-discovery'
 
@@ -40,15 +45,13 @@ interface Env {
   AI_GATEWAY_ACCOUNT_ID?: string
 }
 
-const ESTIMATES_PER_WINDOW = 20
-const WINDOW_S = 10 * 60
 const MIN_TARGET_KM = 0.05
 const MAX_TARGET_KM = 15
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: JSON_HEADERS })
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
-  const { env, params } = context
+  const { request, env, params } = context
   const sessionId = params.id as string
   const camId = params.camId as string
 
@@ -67,8 +70,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!webcamAiAvailable(env)) {
       return errorResponse(503, AI_UNAVAILABLE, 'Estimating a direction needs the AI service, which is not configured.')
     }
-    if (!(await consumeQuota(env.CACHE, 'webcams-bearing', String(userId), ESTIMATES_PER_WINDOW, WINDOW_S))) {
-      return errorResponse(429, RATE_LIMITED, 'Too many direction estimates. Try again in a few minutes.')
+    const spender = spendCaller(request, userId, copServiceCaller(context.data))
+    const charge = await chargeSpend(env.CACHE, 'webcams-bearing', spender, ESTIMATE_LIMITS)
+    if (charge === 'over') return errorResponse(429, RATE_LIMITED, 'Too many direction estimates. Try again in a few minutes.')
+    if (charge === 'unavailable') {
+      return errorResponse(503, AI_UNAVAILABLE, 'Direction estimates are unavailable right now. Try again shortly.')
     }
 
     let title: string | null = null
@@ -85,7 +91,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       }
     }
 
-    const target = await viewTargetFromTitle(env, { userId: String(userId) }, { label: cam.label, title, city, country })
+    const target = await viewTargetFromTitle(env, { userId: spender.who }, { label: cam.label, title, city, country })
     if (!target) {
       return errorResponse(422, NO_VIEW_TARGET, "The camera's name doesn't say what it looks at. Set the direction by hand.")
     }

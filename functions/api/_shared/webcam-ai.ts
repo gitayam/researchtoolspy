@@ -32,6 +32,18 @@ export function webcamAiAvailable(env: WebcamAiEnv): boolean {
 const QUERY_MAX = 120
 const TARGET_MAX = 80
 
+/**
+ * Coordinates are the geocoder's job; a query that carries them in any common
+ * spelling is ignored: a decimal number (48.85, 48,85), a degree sign (DMS), or two
+ * numbers of two or more digits side by side ("48 51", "48; 2", "N 48 E 02").
+ * Single numbers in names stay valid: "Pier 39", "Terminal 2E", "Route 66".
+ */
+export function looksLikeCoordinates(text: string): boolean {
+  if (/\d[.,]\d/.test(text)) return true
+  if (/[°º˚]/.test(text)) return true
+  return /\d{2,}\s*[,; ]\s*(?:[NSEW]\s*)?\d{2,}/i.test(text)
+}
+
 /** A geocoder query a model wrote: plain words, no links or markup, bounded length. */
 export function cleanModelQuery(value: unknown, max = QUERY_MAX): string | null {
   if (typeof value !== 'string') return null
@@ -40,8 +52,7 @@ export function cleanModelQuery(value: unknown, max = QUERY_MAX): string | null 
   const text = value.replace(/\s+/g, ' ').trim()
   if (text.length < 2 || text.length > max) return null
   if (/:\/\/|\bwww\./i.test(text)) return null
-  // Coordinates are the geocoder's job; a model that writes them is ignored.
-  if (/-?\d{1,3}\.\d{3,}\s*,\s*-?\d{1,3}\.\d{3,}/.test(text)) return null
+  if (looksLikeCoordinates(text)) return null
   return text
 }
 

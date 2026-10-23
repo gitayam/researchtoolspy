@@ -20,7 +20,7 @@ import type { PagesFunction } from '@cloudflare/workers-types'
 import { verifyCopSessionAccess } from '../../_shared/auth-helpers'
 import { JSON_HEADERS } from '../../_shared/api-utils'
 import { logEvent } from '../../_shared/event-log'
-import { copCallerUserId } from '../../_shared/cop-caller'
+import { copCallerUserId, copServiceCaller } from '../../_shared/cop-caller'
 import {
   getSessionWebcam,
   insertWebcam,
@@ -37,7 +37,7 @@ import {
 } from '../../_shared/cop-webcams'
 import { claimStatusRefresh, enrichWebcamInput, refreshWindyStatuses, staleWindyCameras } from '../../_shared/webcam-enrich'
 import { windyKeyConfigured } from '../../_shared/windy-webcams'
-import { WEBCAM_INVALID } from '../../_shared/webcam-discovery'
+import { spendCaller, WEBCAM_INVALID } from '../../_shared/webcam-discovery'
 import type { KvLike } from '../../_shared/kv-json'
 
 interface Env {
@@ -103,7 +103,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   if (!input.ok) return json({ error: input.error, code: input.code }, 400)
 
   const now = new Date().toISOString()
-  const enriched = await enrichWebcamInput(env, input.value, now, (message) => logEvent(env, {
+  const caller = spendCaller(request, userId, copServiceCaller(context.data))
+  const enriched = await enrichWebcamInput(env, input.value, now, caller, (message) => logEvent(env, {
     level: 'warn',
     source: 'cop/webcams',
     message: message.slice(0, 500),

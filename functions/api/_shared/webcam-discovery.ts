@@ -14,7 +14,7 @@
  */
 import { boxAround, geocode, GeocoderError, type GeocodeResult } from './geocoder'
 import { placeQueryFromText, placeQueryFromUrl, webcamAiAvailable, type AiCaller, type CopContext, type WebcamAiEnv } from './webcam-ai'
-import type { KvLike } from './kv-json'
+import { takeQuota, type KvLike, type QuotaResult } from './kv-json'
 import { JSON_HEADERS } from './api-utils'
 import { parseWebcamUrl } from './webcam-url'
 
@@ -35,6 +35,55 @@ export const WINDY_ATTRIBUTION_URL = 'https://www.windy.com/webcams'
 
 export function errorResponse(status: number, code: string, error: string): Response {
   return new Response(JSON.stringify({ error, code }), { status, headers: JSON_HEADERS })
+}
+
+// ── Spend quotas ─────────────────────────────────────────────────────────
+
+/**
+ * Who pays for a call that spends Windy, Nominatim or model capacity: the user or
+ * service client, and the client address Cloudflare saw (CF-Connecting-IP, which
+ * the edge sets; X-Forwarded-For is client-written and never read). Without that
+ * header (local runs) only the caller is counted.
+ */
+export interface SpendCaller {
+  who: string
+  service: boolean
+  ip: string | null
+}
+
+/** Allowances per window: a person, the bot service (one client serves every room), one address. */
+export interface SpendLimits {
+  person: number
+  service: number
+  address: number
+}
+
+export const SPEND_WINDOW_S = 10 * 60
+export const NEARBY_LIMITS: SpendLimits = { person: 20, service: 60, address: 30 }
+export const ADD_LOOKUP_LIMITS: SpendLimits = { person: 20, service: 60, address: 30 }
+export const ESTIMATE_LIMITS: SpendLimits = { person: 20, service: 20, address: 30 }
+
+export function spendCaller(request: Request, userId: number, service: { clientId: string } | null): SpendCaller {
+  const raw = (request.headers.get('CF-Connecting-IP') ?? '').trim()
+  const ip = /^[0-9A-Fa-f:.]{2,45}$/.test(raw) ? raw.toLowerCase() : null
+  return { who: service ? `service:${service.clientId}` : `user:${userId}`, service: Boolean(service), ip }
+}
+
+/**
+ * Charge one call to the caller and to its address; both must have allowance left.
+ * Fails closed: no KV, or a KV error, is 'unavailable'. A service's address gets the
+ * service allowance, so the bot host is not held to one person's.
+ */
+export async function chargeSpend(
+  kv: KvLike | undefined,
+  name: string,
+  caller: SpendCaller,
+  limits: SpendLimits,
+): Promise<QuotaResult> {
+  const allowance = caller.service ? limits.service : limits.person
+  const own = await takeQuota(kv, name, caller.who, allowance, SPEND_WINDOW_S)
+  if (own !== 'ok' || !caller.ip) return own
+  return takeQuota(kv, name, `ip:${caller.ip}`, caller.service ? limits.service : limits.address, SPEND_WINDOW_S)
 }
 
 // ── Geometry ─────────────────────────────────────────────────────────────
@@ -155,7 +204,12 @@ export function pageAddressHint(raw: string, extraHosts?: string | null): string
   }
   if (url.protocol !== 'https:' || url.username || url.password || url.port) return null
   if (url.hostname.startsWith('[') || /^\d{1,3}(?:\.\d{1,3}){3}$/.test(url.hostname) || !url.hostname.includes('.')) return null
-  if (parseWebcamUrl(raw, extraHosts).ok) return null
+  // The model sees host and path only, so the camera check reads the same address;
+  // a link that is a camera only with its query (youtube.com/watch?v=…) is refused too.
+  const bare = new URL(url.href)
+  bare.search = ''
+  bare.hash = ''
+  if (parseWebcamUrl(bare.href, extraHosts).ok || parseWebcamUrl(raw, extraHosts).ok) return null
   const segments = url.pathname.split('/').filter(Boolean).map((s) => {
     try {
       return decodeURIComponent(s)
