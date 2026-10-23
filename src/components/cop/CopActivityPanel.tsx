@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { useCopChangeListener } from '@/hooks/useCopChanges'
 import {
   FileText,
   Brain,
@@ -64,7 +65,6 @@ export default function CopActivityPanel({ sessionId, expanded }: CopActivityPan
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   // ── Fetch activity ──────────────────────────────────────────────
 
@@ -110,17 +110,14 @@ export default function CopActivityPanel({ sessionId, expanded }: CopActivityPan
 
   useEffect(() => {
     const controller = new AbortController()
+    // fetchActivity sets state only after its request resolves.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchActivity(0, false, controller.signal)
-
-    intervalRef.current = setInterval(() => {
-      fetchActivity(0, false, controller.signal)
-    }, 30_000)
-
-    return () => {
-      controller.abort()
-      if (intervalRef.current) clearInterval(intervalRef.current)
-    }
+    return () => controller.abort()
   }, [fetchActivity])
+
+  // Activity is a log of everything: refresh on any change.
+  useCopChangeListener('*', () => { fetchActivity(0, false) })
 
   // ── Load more handler ──────────────────────────────────────────
 

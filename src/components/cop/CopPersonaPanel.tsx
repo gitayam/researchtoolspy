@@ -6,6 +6,8 @@
  */
 
 import { useState, useEffect, useCallback } from 'react'
+import { useCopChangeListener } from '@/hooks/useCopChanges'
+import { notifyCopChanged } from '@/lib/cop-request'
 import { useConfirm } from '@/components/ui/confirm-dialog'
 import {
   Plus,
@@ -135,6 +137,9 @@ export default function CopPersonaPanel({ sessionId, expanded, onPromoteToActor 
     return () => controller.abort()
   }, [fetchPersonas])
 
+  // Live: refetch when the change feed reports persona changes.
+  useCopChangeListener(['persona'], () => { fetchPersonas() })
+
   // Auto-refresh when entities are extracted in Claims panel
   useEffect(() => {
     const handler = () => fetchPersonas()
@@ -201,6 +206,7 @@ export default function CopPersonaPanel({ sessionId, expanded, onPromoteToActor 
         if (!res.ok) throw new Error('Failed to create persona')
       }
       closeForm()
+      notifyCopChanged(['persona'])
       await fetchPersonas()
       window.dispatchEvent(new CustomEvent('cop:personas-updated'))
     } catch {
@@ -220,6 +226,7 @@ export default function CopPersonaPanel({ sessionId, expanded, onPromoteToActor 
     try {
       await deleteCopPersona({ sessionId, id: persona.id, headers: getCopHeaders() })
       setExpandedId((cur) => (cur === persona.id ? null : cur))
+      notifyCopChanged(['persona'])
       await fetchPersonas()
       window.dispatchEvent(new CustomEvent('cop:personas-updated'))
     } catch {

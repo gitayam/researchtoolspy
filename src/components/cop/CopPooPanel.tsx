@@ -7,6 +7,8 @@
  */
 
 import { useState, useEffect, useCallback } from 'react'
+import { useCopChangeListener } from '@/hooks/useCopChanges'
+import { notifyCopChanged } from '@/lib/cop-request'
 import {
   Target,
   Plus,
@@ -113,8 +115,8 @@ export default function CopPooPanel({
 
   // ── Fetch estimates ──────────────────────────────────────────
 
-  const fetchEstimates = useCallback(async () => {
-    setLoading(true)
+  const fetchEstimates = useCallback(async (quiet = false) => {
+    if (!quiet) setLoading(true)
     setError(null)
     try {
       const res = await fetch(`/api/cop/${sessionId}/poo-estimates`, {
@@ -131,8 +133,12 @@ export default function CopPooPanel({
   }, [sessionId])
 
   useEffect(() => {
+    // fetchEstimates sets its loading flag before awaiting, as it did on mount before.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchEstimates()
   }, [fetchEstimates])
+
+  useCopChangeListener(['poo'], () => { fetchEstimates(true) })
 
   // ── Apply picked location from map ───────────────────────────
 
@@ -194,6 +200,7 @@ export default function CopPooPanel({
       setShowForm(false)
       setEditingId(null)
       setForm(EMPTY_FORM)
+      notifyCopChanged(['poo'])
       await fetchEstimates()
       onEstimateCreated?.()
     } catch (err) {
@@ -212,6 +219,7 @@ export default function CopPooPanel({
         { method: 'DELETE', headers: getCopHeaders() },
       )
       if (!res.ok) throw new Error(`Delete failed (${res.status})`)
+      notifyCopChanged(['poo'])
       await fetchEstimates()
       onEstimateCreated?.()
     } catch (err) {

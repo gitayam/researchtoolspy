@@ -6,6 +6,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react'
+import { useCopChangeListener } from '@/hooks/useCopChanges'
 import { AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -43,13 +44,14 @@ export default function CopBlockerStrip({ sessionId, onGoToBlocker }: CopBlocker
 
   useEffect(() => {
     const controller = new AbortController()
+    // fetchBlockers sets state only after its request resolves.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchBlockers(controller.signal)
-    const interval = setInterval(() => fetchBlockers(controller.signal), 30_000)
-    return () => {
-      controller.abort()
-      clearInterval(interval)
-    }
+    return () => controller.abort()
   }, [fetchBlockers])
+
+  // Blockers are RFIs and tasks.
+  useCopChangeListener(['rfi', 'task'], () => { fetchBlockers() })
 
   // Don't render if no blockers
   if (blockers.length === 0) return null

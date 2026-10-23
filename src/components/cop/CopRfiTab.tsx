@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { useCopChangeListener } from '@/hooks/useCopChanges'
 import { getCopHeaders } from '@/lib/cop-auth'
 import {
   HelpCircle,
@@ -64,7 +65,6 @@ export default function CopRfiTab({ sessionId, onRfiCountChange, keyQuestions }:
   const [isBlocker, setIsBlocker] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   // ── Fetch RFIs ──────────────────────────────────────────────
 
@@ -87,16 +87,13 @@ export default function CopRfiTab({ sessionId, onRfiCountChange, keyQuestions }:
     }
   }, [sessionId, onRfiCountChange])
 
-  // Initial fetch + poll every 30s
+  // Initial fetch; afterwards the COP change feed says when RFIs changed.
   useEffect(() => {
     const controller = new AbortController()
     fetchRfis(false, controller.signal)
-    intervalRef.current = setInterval(() => fetchRfis(true, controller.signal), 30000)
-    return () => {
-      controller.abort()
-      if (intervalRef.current) clearInterval(intervalRef.current)
-    }
+    return () => controller.abort()
   }, [fetchRfis])
+  useCopChangeListener(['rfi'], () => { fetchRfis(true) })
 
   // ── Sort RFIs: priority then date ──────────────────────────
 

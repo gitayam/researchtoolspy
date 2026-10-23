@@ -1,4 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useCopChangeListener } from '@/hooks/useCopChanges'
+import { notifyCopChanged } from '@/lib/cop-request'
+import { CopItemTags } from '@/components/cop/CopItemTags'
+import { TagFilterNote } from '@/components/cop/CopTagFilter'
+import { useCopTagFilter } from '@/components/cop/tag-filter-context'
+import { StaleWriteNotice } from '@/components/cop/CopStaleWrite'
+import { copPutWithPrecondition } from '@/lib/cop-stale-write'
 import {
   Brain,
   Plus,
@@ -108,6 +115,12 @@ export default function CopHypothesisTab({ sessionId, onPinToMap }: CopHypothesi
     return () => controller.abort()
   }, [fetchHypotheses])
 
+  useCopChangeListener(['hypothesis'], () => { fetchHypotheses() })
+
+  const tagFilter = useCopTagFilter()
+  /** An update someone else's edit got in the way of. */
+  const [stale, setStale] = useState<{ hypId: string; updates: { status?: string; confidence?: number } } | null>(null)
+
   // New Hypothesis Form - confidence
   const [newConfidence, setNewConfidence] = useState(50)
 
@@ -132,6 +145,7 @@ export default function CopHypothesisTab({ sessionId, onPinToMap }: CopHypothesi
         setNewStatement('')
         setNewConfidence(50)
         setShowForm(false)
+        notifyCopChanged(['hypothesis'])
         await fetchHypotheses()
       }
     } catch {
@@ -143,17 +157,14 @@ export default function CopHypothesisTab({ sessionId, onPinToMap }: CopHypothesi
 
   // ── Update Status/Confidence ──────────────────────────────────
 
-  const handleUpdateHypothesis = async (hypId: string, updates: { status?: string; confidence?: number }) => {
-    try {
-      await fetch(`/api/cop/${sessionId}/hypotheses`, {
-        method: 'PUT',
-        headers: getCopHeaders(),
-        body: JSON.stringify({ id: hypId, ...updates }),
-      })
-      await fetchHypotheses()
-    } catch {
-      // ignore
-    }
+  const handleUpdateHypothesis = async (hypId: string, updates: { status?: string; confidence?: number }, opts: { force?: boolean } = {}) => {
+    // The version this edit is based on; the server refuses it if someone saved since.
+    const seen = opts.force ? null : hypotheses.find(h => h.id === hypId)?.updated_at ?? null
+    setStale(null)
+    const result = await copPutWithPrecondition(`/api/cop/${sessionId}/hypotheses`, { id: hypId, ...updates }, seen)
+    if (result.kind === 'stale') setStale({ hypId, updates })
+    else if (result.kind === 'ok') notifyCopChanged(['hypothesis'])
+    await fetchHypotheses()
   }
 
   // ── Link Evidence ─────────────────────────────────────────────
@@ -250,7 +261,20 @@ export default function CopHypothesisTab({ sessionId, onPinToMap }: CopHypothesi
             <Loader2 className="h-5 w-5 animate-spin text-gray-500 dark:text-gray-400" />
           </div>
         ) : hypotheses.length > 0 ? (
-          hypotheses.map(h => (
+          <>
+          {stale && (
+            <StaleWriteNotice
+              what="hypothesis"
+              onReload={() => { setStale(null); fetchHypotheses() }}
+              onKeepMine={() => handleUpdateHypothesis(stale.hypId, stale.updates, { force: true })}
+              onDismiss={() => setStale(null)}
+            />
+          )}
+          <TagFilterNote
+            shown={hypotheses.filter(h => tagFilter.passes('hypothesis', h.id)).length}
+            total={hypotheses.length}
+          />
+          {hypotheses.filter(h => tagFilter.passes('hypothesis', h.id)).map(h => (
             <div key={h.id} className="relative rounded border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/30 overflow-hidden">
                <button
                   type="button"
@@ -302,6 +326,8 @@ export default function CopHypothesisTab({ sessionId, onPinToMap }: CopHypothesi
                    <MapPin className="h-3.5 w-3.5" />
                  </button>
                )}
+
+               <CopItemTags targetType="hypothesis" targetId={h.id} label="hypothesis" max={3} className="px-2.5 pb-1.5 -mt-1" />
 
                {expandedId === h.id && (
                  <div className="px-2.5 pb-2 border-t border-gray-200 dark:border-gray-700 pt-2 space-y-2">
@@ -420,7 +446,8 @@ export default function CopHypothesisTab({ sessionId, onPinToMap }: CopHypothesi
                  </div>
                )}
             </div>
-          ))
+          ))}
+          </>
         ) : (
           <div className="text-center py-8">
             <Brain className="h-6 w-6 text-gray-500 dark:text-gray-400 mx-auto mb-2" />

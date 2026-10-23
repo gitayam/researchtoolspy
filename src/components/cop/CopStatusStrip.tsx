@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useCopChangeListener } from '@/hooks/useCopChanges'
 import {
   FileText,
   Users,
@@ -149,13 +150,14 @@ export default function CopStatusStrip({ sessionId, className, missionBrief: ini
 
   useEffect(() => {
     const controller = new AbortController()
+    // fetchStats sets state only after its request resolves.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchStats(controller.signal)
-    const interval = setInterval(() => fetchStats(controller.signal), 30000)
-    return () => {
-      controller.abort()
-      clearInterval(interval)
-    }
+    return () => controller.abort()
   }, [fetchStats])
+
+  // The counts cover everything in the COP: refresh on any change.
+  useCopChangeListener('*', () => { fetchStats() })
 
   const handleSaveBrief = () => {
     onUpdateMissionBrief?.(brief)

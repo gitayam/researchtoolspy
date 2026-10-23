@@ -3,6 +3,20 @@ import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import type { CopSession, CopFeatureCollection } from '@/types/cop'
 import { convertPooLayerData } from '@/components/cop/poo-geometry'
+import { useCopTagFilter } from '@/components/cop/tag-filter-context'
+import { useCopTagsContext } from '@/components/cop/tags'
+import type { CopTagTargetType } from '@/types/cop'
+
+type TagsFor = (targetType: CopTagTargetType, targetId: string) => string[]
+const NO_TAGS: TagsFor = () => []
+
+/** The taggable item a map feature stands for, if any (markers and webcams). */
+function featureTarget(layerId: string, props: Record<string, unknown> | null | undefined): { type: CopTagTargetType; id: string } | null {
+  if (!props || props.id == null) return null
+  if (props.entity_type === 'marker') return { type: 'marker', id: String(props.id) }
+  if (layerId === WEBCAM_LAYER_ID) return { type: 'webcam', id: String(props.id) }
+  return null
+}
 
 // ── Color mapping per layer id ──────────────────────────────────
 const LAYER_COLORS: Record<string, string> = {
@@ -92,6 +106,14 @@ export default function CopMap({
   useEffect(() => {
     onWebcamOpenRef.current = onWebcamOpen
   }, [onWebcamOpen])
+
+  // Tags (for popups) and the page's tag filter (hides untagged markers and cameras).
+  const tagsContext = useCopTagsContext()
+  const tagFilter = useCopTagFilter()
+  const tagsForRef = useRef<TagsFor>(NO_TAGS)
+  useEffect(() => {
+    tagsForRef.current = tagsContext?.available ? tagsContext.tagsFor : NO_TAGS
+  }, [tagsContext])
 
   // ── Fire bbox on current bounds ─────────────────────────────
   const emitBbox = useCallback((map: maplibregl.Map) => {
@@ -205,6 +227,15 @@ export default function CopMap({
 
         // Transform POO layer data from points to polygons before rendering
         let resolvedData: GeoJSON.FeatureCollection = fc as unknown as GeoJSON.FeatureCollection
+        if (tagFilter.filtering) {
+          resolvedData = {
+            ...resolvedData,
+            features: (resolvedData.features ?? []).filter((f) => {
+              const target = featureTarget(layerId, f.properties as Record<string, unknown> | null)
+              return !target || tagFilter.passes(target.type, target.id)
+            }),
+          }
+        }
         if (layerId === POO_LAYER_ID) {
           resolvedData = convertPooLayerData(resolvedData)
         }
@@ -256,7 +287,7 @@ export default function CopMap({
         } else if (isLine) {
           addLineLayer(map, sourceId, layerId, color)
         } else {
-          addPointLayers(map, sourceId, layerId, color, popupRef, onMarkerOpenInFeedRef)
+          addPointLayers(map, sourceId, layerId, color, popupRef, onMarkerOpenInFeedRef, tagsForRef)
         }
       }
 
@@ -305,7 +336,7 @@ export default function CopMap({
         map.off('load', guardedApply)
       }
     }
-  }, [layers])
+  }, [layers, tagFilter])
 
   if (mapError) {
     return (
@@ -382,6 +413,7 @@ function addPointLayers(
   color: string,
   popupRef: React.MutableRefObject<maplibregl.Popup | null>,
   onMarkerOpenInFeedRef?: React.MutableRefObject<((sourceType: string, sourceId: string) => void) | undefined>,
+  tagsForRef?: React.MutableRefObject<TagsFor>,
 ) {
   const clusterId = `cop-cluster-${layerId}`
   const clusterCountId = `cop-cluster-count-${layerId}`
@@ -452,25 +484,12 @@ function addPointLayers(
     const coords = (feature.geometry as GeoJSON.Point).coordinates.slice() as [number, number]
     const props = feature.properties ?? {}
 
-    const name = String(props.name ?? props.callsign ?? props.label ?? 'Untitled')
-    const description = String(props.description ?? '')
-    const entityType = String(props.entity_type ?? props.event_type ?? props.source_type ?? '')
-
     const sourceType = String(props.source_type ?? '')
     const sourceId = String(props.source_id ?? '')
-    const hasBacklink = sourceId && (sourceType === 'EVIDENCE' || sourceType === 'HYPOTHESIS')
-
-    const backlinkLabel = sourceType === 'EVIDENCE' ? 'View Evidence' : sourceType === 'HYPOTHESIS' ? 'View Hypothesis' : ''
-    const backlinkBtnId = hasBacklink ? `cop-backlink-${Date.now()}` : ''
-
-    const html = `
-      <div style="max-width: 240px; font-family: system-ui, sans-serif;">
-        <strong style="font-size: 13px; color: #e2e8f0;">${escapeHtml(name)}</strong>
-        ${entityType ? `<div style="font-size: 11px; color: ${sanitizeColor(color)}; margin-top: 2px;">${escapeHtml(entityType)}</div>` : ''}
-        ${description ? `<div style="font-size: 12px; color: #94a3b8; margin-top: 4px;">${escapeHtml(description)}</div>` : ''}
-        ${hasBacklink ? `<button id="${backlinkBtnId}" style="margin-top: 6px; padding: 3px 8px; font-size: 11px; background: #3b82f6; color: #fff; border: none; border-radius: 4px; cursor: pointer;">${backlinkLabel}</button>` : ''}
-      </div>
-    `
+    const hasBacklink = !!sourceId && (sourceType === 'EVIDENCE' || sourceType === 'HYPOTHESIS')
+    const tags = props.entity_type === 'marker' && props.id != null
+      ? tagsForRef?.current('marker', String(props.id)) ?? []
+      : []
 
     // Ensure that if the map is zoomed out such that multiple copies of the
     // feature are visible, the popup appears over the copy being pointed at.
@@ -479,22 +498,18 @@ function addPointLayers(
     }
 
     popupRef.current?.remove()
-    const popup = new maplibregl.Popup({ closeButton: true, closeOnClick: true })
-      .setLngLat(coords)
-      .setHTML(html)
-      .addTo(map)
-    popupRef.current = popup
-
-    // Wire backlink button click (use onclick to avoid listener accumulation)
-    if (hasBacklink && backlinkBtnId) {
-      const btn = document.getElementById(backlinkBtnId)
-      if (btn) {
-        btn.onclick = () => {
-          onMarkerOpenInFeedRef?.current?.(sourceType, sourceId)
-          popup.remove()
+    const popup = new maplibregl.Popup({ closeButton: true, closeOnClick: true }).setLngLat(coords)
+    popup.setDOMContent(pointPopupContent(props, color, tags, hasBacklink
+      ? {
+          label: sourceType === 'EVIDENCE' ? 'View Evidence' : 'View Hypothesis',
+          onClick: () => {
+            onMarkerOpenInFeedRef?.current?.(sourceType, sourceId)
+            popup.remove()
+          },
         }
-      }
-    }
+      : null))
+    popup.addTo(map)
+    popupRef.current = popup
   })
 
   // Click on a cluster: zoom in
@@ -521,6 +536,67 @@ function addPointLayers(
   map.on('mouseleave', clusterId, () => {
     map.getCanvas().style.cursor = ''
   })
+}
+
+/** A point's popup, built from DOM nodes: every value is set as text, never HTML. */
+function pointPopupContent(
+  props: Record<string, unknown>,
+  color: string,
+  tags: readonly string[],
+  backlink: { label: string; onClick: () => void } | null,
+): HTMLElement {
+  const root = document.createElement('div')
+  root.style.cssText = 'max-width: 240px; font-family: system-ui, sans-serif;'
+
+  const title = document.createElement('strong')
+  title.style.cssText = 'font-size: 13px; color: #e2e8f0;'
+  title.textContent = String(props.name ?? props.callsign ?? props.label ?? 'Untitled')
+  root.appendChild(title)
+
+  const entityType = String(props.entity_type ?? props.event_type ?? props.source_type ?? '')
+  if (entityType) {
+    const kind = document.createElement('div')
+    kind.style.cssText = `font-size: 11px; margin-top: 2px; color: ${sanitizeColor(color)};`
+    kind.textContent = entityType
+    root.appendChild(kind)
+  }
+
+  const description = String(props.description ?? '')
+  if (description) {
+    const text = document.createElement('div')
+    text.style.cssText = 'font-size: 12px; color: #94a3b8; margin-top: 4px;'
+    text.textContent = description
+    root.appendChild(text)
+  }
+
+  if (tags.length > 0) {
+    const list = document.createElement('div')
+    list.style.cssText = 'display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px;'
+    list.setAttribute('aria-label', 'Tags')
+    for (const name of tags.slice(0, 6)) {
+      const chip = document.createElement('span')
+      chip.style.cssText = 'font-size: 11px; padding: 1px 6px; border-radius: 9999px; background: #334155; color: #e2e8f0;'
+      chip.textContent = `#${name}`
+      list.appendChild(chip)
+    }
+    if (tags.length > 6) {
+      const more = document.createElement('span')
+      more.style.cssText = 'font-size: 11px; color: #94a3b8;'
+      more.textContent = `+${tags.length - 6}`
+      list.appendChild(more)
+    }
+    root.appendChild(list)
+  }
+
+  if (backlink) {
+    const button = document.createElement('button')
+    button.type = 'button'
+    button.style.cssText = 'margin-top: 6px; padding: 3px 8px; font-size: 11px; background: #3b82f6; color: #fff; border: none; border-radius: 4px; cursor: pointer;'
+    button.textContent = backlink.label
+    button.onclick = backlink.onClick
+    root.appendChild(button)
+  }
+  return root
 }
 
 // ── Webcam layers ───────────────────────────────────────────────

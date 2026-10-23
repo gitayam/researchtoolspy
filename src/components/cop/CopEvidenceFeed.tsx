@@ -15,12 +15,22 @@ import {
   LayoutList,
   AtSign,
   X,
+  CheckSquare,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { getCopHeaders } from '@/lib/cop-auth'
 import CopArtifactLightbox from '@/components/cop/CopArtifactLightbox'
+import { CopItemTags } from '@/components/cop/CopItemTags'
+import { useBulkSelection } from '@/hooks/useBulkSelection'
+import { TagFilterNote } from '@/components/cop/CopTagFilter'
+import { useCopTagFilter } from '@/components/cop/tag-filter-context'
+import { CopUploadDownload, CopUploadImage } from '@/components/cop/CopUploadPreview'
+import { isCopUploadPath } from '@/lib/cop-upload-preview'
+import { BulkTagBar, useCopTagsContext } from '@/components/cop/tags'
+import { useCopChangeListener, useCopHighlight } from '@/hooks/useCopChanges'
+import { notifyCopChanged } from '@/lib/cop-request'
 
 // ── Types ────────────────────────────────────────────────────────
 
@@ -160,8 +170,9 @@ export default function CopEvidenceFeed({
   const [typeFilter, setTypeFilter] = useState<string>('all')
   const [newItemCount, setNewItemCount] = useState(0)
   const [autoScroll, setAutoScroll] = useState(true)
-  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const prevItemCountRef = useRef(0)
+  const tagFilter = useCopTagFilter()
+  const tagsContext = useCopTagsContext()
+  const bulk = useBulkSelection('evidence')
 
   // View mode (local state if not controlled externally)
   const [localViewMode, setLocalViewMode] = useState<'feed' | 'gallery'>('feed')
@@ -202,127 +213,115 @@ export default function CopEvidenceFeed({
   }, [fetchTagsForItems])
 
   // ── Fetch evidence ──────────────────────────────────────────
+  // One loader: on mount, then whenever the page's change feed reports new or
+  // changed evidence, uploads or submissions (in every mode, not only Monitor).
 
-  useEffect(() => {
-    const controller = new AbortController()
+  const knownIdsRef = useRef<Set<string> | null>(null)
 
-    async function fetchEvidence() {
-      setLoading(true)
-      try {
-        const headers = getCopHeaders()
-        if (copWorkspaceId) headers['X-Workspace-ID'] = copWorkspaceId
+  const loadEvidence = useCallback(async (signal?: AbortSignal, quiet = false) => {
+    if (!quiet) setLoading(true)
+    try {
+      const headers = getCopHeaders()
+      if (copWorkspaceId) headers['X-Workspace-ID'] = copWorkspaceId
 
-        const res = await fetch(`/api/cop/${sessionId}/evidence`, { headers, signal: controller.signal })
-        if (!res.ok) throw new Error(`Failed to fetch evidence (${res.status})`)
+      const res = await fetch(`/api/cop/${sessionId}/evidence`, { headers, signal })
+      if (!res.ok) throw new Error(`Failed to fetch evidence (${res.status})`)
 
-        const data = await res.json()
-        const evidenceData = Array.isArray(data) ? data : data.evidence ?? data.items ?? []
+      const data = await res.json()
+      const evidenceData = Array.isArray(data) ? data : data.evidence ?? data.items ?? []
 
-        // Fetch tags for these items
-        const tagsMap = await fetchTagsForItems(evidenceData.map((e: any) => e.id).filter(Boolean))
+      // Image-clue tags from the older tagging (lightbox)
+      const tagsMap = await fetchTagsForItems(evidenceData.map((e: any) => e.id).filter(Boolean))
 
-        const list: FeedItem[] = evidenceData.map(
-          (e: any) => ({
-            id: e.id ?? crypto.randomUUID(),
-            type: e.type ?? 'evidence',
-            evidence_type: e.evidence_type ?? undefined,
-            title: e.title ?? e.name ?? 'Untitled',
-            description: e.description ?? e.summary ?? undefined,
-            url: e.url ?? e.source_url ?? undefined,
-            og_image: e.og_image ?? e.thumbnail_url ?? undefined,
-            created_at: e.created_at ?? e.created ?? new Date().toISOString(),
-            entities: e.entities ?? undefined,
-            status: 'completed' as const,
-            tags: tagsMap[e.id] ?? [],
-          })
-        )
-
-        list.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-        setItems(prev => {
-          const pending = prev.filter(i => i.status === 'pending')
-          return [...pending, ...list.filter(ni => !pending.some(pi => pi.url === ni.url))]
-        })
-      } catch (e: any) {
-        if (e?.name !== 'AbortError') {
-          console.error('[CopEvidenceFeed] fetch error:', e)
-          // An empty feed and an unreachable feed looked identical: this used to
-          // log and render nothing, so a workspace the caller could not read
-          // presented as "no evidence yet".
-          setError(e?.message ?? 'Could not load evidence for this workspace.')
-        }
-      } finally {
-        if (!controller.signal.aborted) setLoading(false)
-      }
-    }
-
-    fetchEvidence()
-    return () => controller.abort()
-  }, [sessionId, fetchTagsForItems])
-
-  // Polling in monitor mode
-  useEffect(() => {
-    if (!monitorMode) {
-      if (pollingRef.current) {
-        clearInterval(pollingRef.current)
-        pollingRef.current = null
-      }
-      return
-    }
-
-    const controller = new AbortController()
-    pollingRef.current = setInterval(async () => {
-      try {
-        const headers = getCopHeaders()
-        if (copWorkspaceId) headers['X-Workspace-ID'] = copWorkspaceId
-
-        const res = await fetch(`/api/cop/${sessionId}/evidence`, { headers, signal: controller.signal })
-        if (!res.ok) return
-        const data = await res.json()
-        const evidenceData = data.evidence ?? data.items ?? []
-
-        // Fetch tags for new items
-        const tagsMap = await fetchTagsForItems(evidenceData.map((e: any) => e.id).filter(Boolean))
-
-        const newItems: FeedItem[] = evidenceData.map((e: any) => ({
-          id: e.id,
-          type: 'evidence' as const,
-          evidence_type: e.evidence_type ?? e.type,
+      const list: FeedItem[] = evidenceData.map(
+        (e: any) => ({
+          id: String(e.id ?? crypto.randomUUID()),
+          type: e.type ?? 'evidence',
+          evidence_type: e.evidence_type ?? undefined,
           title: e.title ?? e.name ?? 'Untitled',
-          description: e.description ?? e.content?.substring(0, 200),
-          url: e.source_url ?? e.url,
+          description: e.description ?? e.summary ?? undefined,
+          url: e.source_url ?? e.url ?? undefined,
           og_image: e.og_image ?? e.thumbnail_url ?? undefined,
-          created_at: e.created_at ?? new Date().toISOString(),
-          entities: e.entities,
+          created_at: e.created_at ?? e.created ?? new Date().toISOString(),
+          entities: e.entities ?? undefined,
           status: 'completed' as const,
           tags: tagsMap[e.id] ?? [],
-        }))
-
-        // Check for new items
-        const currentCount = newItems.length
-        if (currentCount > prevItemCountRef.current && prevItemCountRef.current > 0) {
-          setNewItemCount(currentCount - prevItemCountRef.current)
-        }
-        prevItemCountRef.current = currentCount
-
-        // Update items (preserve pending ones)
-        setItems(prev => {
-          const pending = prev.filter(i => i.status === 'pending')
-          const filteredNew = newItems.filter(ni => !pending.some(pi => pi.url === ni.url))
-          return [...pending, ...filteredNew]
         })
-      } catch (e: any) {
-        if (e?.name === 'AbortError') return
-      }
-    }, 30000)
+      )
 
-    return () => {
-      controller.abort()
-      if (pollingRef.current) {
-        clearInterval(pollingRef.current)
-        pollingRef.current = null
+      list.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+
+      // Count what arrived since the last load (shown as "n new" in Monitor mode).
+      const ids = new Set(list.map(i => i.id))
+      if (knownIdsRef.current) {
+        const known = knownIdsRef.current
+        const fresh = list.filter(i => !known.has(i.id)).length
+        if (fresh > 0) setNewItemCount(n => n + fresh)
       }
+      knownIdsRef.current = ids
+
+      setItems(prev => {
+        const pending = prev.filter(i => i.status === 'pending')
+        return [...pending, ...list.filter(ni => !pending.some(pi => pi.url === ni.url))]
+      })
+      setError(null)
+    } catch (e: any) {
+      if (e?.name !== 'AbortError' && !quiet) {
+        console.error('[CopEvidenceFeed] fetch error:', e)
+        // An empty feed and an unreachable feed looked identical: this used to
+        // log and render nothing, so a workspace the caller could not read
+        // presented as "no evidence yet".
+        setError(e?.message ?? 'Could not load evidence for this workspace.')
+      }
+    } finally {
+      if (!quiet && !signal?.aborted) setLoading(false)
     }
-  }, [monitorMode, sessionId, fetchTagsForItems])
+  }, [sessionId, copWorkspaceId, fetchTagsForItems])
+
+  useEffect(() => {
+    const controller = new AbortController()
+    // loadEvidence sets state only after its request resolves.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadEvidence(controller.signal)
+    return () => controller.abort()
+  }, [loadEvidence])
+
+  useCopChangeListener(['evidence', 'upload', 'submission'], () => {
+    loadEvidence(undefined, true)
+  })
+
+  // ── Highlight (an item just submitted or opened from elsewhere) ──
+
+  const [highlightId, setHighlightId] = useState<string | null>(null)
+  const pendingHighlightRef = useRef<string | null>(null)
+
+  const revealItem = useCallback((evidenceId: string) => {
+    const el = document.querySelector<HTMLElement>(`[data-evidence-id="${CSS.escape(evidenceId)}"]`)
+    if (!el) return false
+    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    el.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' })
+    setHighlightId(evidenceId)
+    window.setTimeout(() => setHighlightId(current => (current === evidenceId ? null : current)), 3000)
+    return true
+  }, [])
+
+  useCopHighlight('evidence', (evidenceId) => {
+    // The item may not have arrived yet: try now, and again when the feed reloads.
+    pendingHighlightRef.current = evidenceId
+    if (revealItem(evidenceId)) pendingHighlightRef.current = null
+    else loadEvidence(undefined, true)
+  })
+
+  useEffect(() => {
+    const wanted = pendingHighlightRef.current
+    if (wanted && items.some(i => i.id === wanted)) {
+      // Wait for the row to render before scrolling to it.
+      const frame = requestAnimationFrame(() => {
+        if (revealItem(wanted)) pendingHighlightRef.current = null
+      })
+      return () => cancelAnimationFrame(frame)
+    }
+  }, [items, revealItem])
 
   // Auto-dismiss handle detections after 8s
   useEffect(() => {
@@ -387,7 +386,8 @@ export default function CopEvidenceFeed({
         })
         if (persistRes.ok) {
           const persistData = await persistRes.json()
-          persistedId = persistData.id
+          persistedId = persistData.id ?? persistData.evidence?.id
+          notifyCopChanged(['evidence'])
         }
       } catch {
         // Non-fatal — URL was analyzed even if persistence fails
@@ -453,7 +453,7 @@ export default function CopEvidenceFeed({
 
   // ── Derived ─────────────────────────────────────────────────
 
-  const filteredItems = typeFilter === 'all'
+  const typeFiltered = typeFilter === 'all'
     ? items
     : items.filter(item => {
         const itemType = item.evidence_type ?? item.type ?? 'evidence'
@@ -463,6 +463,10 @@ export default function CopEvidenceFeed({
         if (typeFilter === 'url_analysis') return itemType === 'url_analysis'
         return true
       })
+  // The page's tag filter applies to saved items; ones still being analysed stay visible.
+  const filteredItems = tagFilter.filtering
+    ? typeFiltered.filter(item => item.status !== 'completed' || tagFilter.passes('evidence', item.id))
+    : typeFiltered
 
   const visibleItems = expanded ? filteredItems.slice(0, 100) : filteredItems.slice(0, 10)
 
@@ -483,6 +487,23 @@ export default function CopEvidenceFeed({
         <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-200 uppercase tracking-wider">Evidence</h2>
         {/* View mode toggle */}
         <div className="flex items-center gap-1">
+          {tagsContext?.available && viewMode === 'feed' && (
+            <button
+              type="button"
+              onClick={() => (bulk.active ? bulk.stop() : bulk.setActive(true))}
+              aria-pressed={bulk.active}
+              className={cn(
+                'inline-flex items-center gap-1 rounded px-1.5 py-1 text-[11px] transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-blue-500',
+                bulk.active
+                  ? 'bg-blue-500/15 text-blue-700 dark:text-blue-300'
+                  : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300',
+              )}
+              title="Select items to tag them together"
+            >
+              <CheckSquare className="h-3.5 w-3.5" aria-hidden="true" />
+              {bulk.active ? 'Done' : 'Select'}
+            </button>
+          )}
           <button
             type="button"
             onClick={() => setLocalViewMode('feed')}
@@ -588,6 +609,21 @@ export default function CopEvidenceFeed({
           </div>
         )}
 
+        {bulk.active && tagsContext?.available && (
+          bulk.targets.length > 0 ? (
+            <BulkTagBar
+              targets={bulk.targets}
+              vocabulary={tagsContext.tags}
+              onApply={tagsContext.bulk}
+              onClearSelection={bulk.clear}
+            />
+          ) : (
+            <p className="text-[11px] text-gray-500 dark:text-gray-400" role="status">Select items to tag them together.</p>
+          )
+        )}
+
+        <TagFilterNote shown={filteredItems.length} total={typeFiltered.length} />
+
         {/* Handle detection prompts */}
         {handleDetections.length > 0 && (
           <div className="space-y-1">
@@ -684,15 +720,30 @@ export default function CopEvidenceFeed({
                   const cfg = TYPE_CONFIG[item.type] ?? TYPE_CONFIG.evidence
                   const Icon = cfg.icon
 
+                  const saved = item.status === 'completed' && /^\d+$/.test(item.id)
+                  const upload = isCopUploadPath(item.url, sessionId)
+                  const uploadImage = upload && (item.evidence_type === 'image' || item.evidence_type === 'photo')
                   return (
                     <div
                       key={item.id}
+                      data-evidence-id={item.id}
                       className={cn(
-                        "flex items-start gap-2 rounded border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 px-2.5 py-2 transition-opacity",
+                        "flex items-start gap-2 rounded border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 px-2.5 py-2 transition-[opacity,box-shadow]",
                         item.status === 'pending' && "opacity-70",
-                        item.status === 'failed' && "border-red-900/50 bg-red-900/10"
+                        item.status === 'failed' && "border-red-900/50 bg-red-900/10",
+                        highlightId === item.id && "ring-2 ring-blue-500 ring-offset-1 ring-offset-white dark:ring-offset-gray-900",
+                        bulk.active && bulk.isSelected(item.id) && "border-blue-500/60 bg-blue-500/5"
                       )}
                     >
+                      {bulk.active && saved && (
+                        <input
+                          type="checkbox"
+                          checked={bulk.isSelected(item.id)}
+                          onChange={() => bulk.toggle(item.id)}
+                          aria-label={`Select ${item.title}`}
+                          className="mt-1 h-4 w-4 shrink-0 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus-visible:ring-2 focus-visible:ring-blue-500"
+                        />
+                      )}
                       {/* Type icon badge */}
                       <Badge
                         variant="secondary"
@@ -709,8 +760,17 @@ export default function CopEvidenceFeed({
                         )}
                       </Badge>
 
+                      {/* Uploaded photo: fetched with the COP credentials (the route needs them) */}
+                      {uploadImage && (
+                        <CopUploadImage
+                          path={item.url!}
+                          alt={item.title}
+                          className="h-14 w-14 sm:h-12 sm:w-12 shrink-0 rounded border border-gray-200 dark:border-gray-700"
+                        />
+                      )}
+
                       {/* URL Thumbnail */}
-                      {item.url && item.status !== 'pending' && (isImageUrl(item.url) || item.og_image) && (
+                      {!upload && item.url && item.status !== 'pending' && (isImageUrl(item.url) || item.og_image) && (
                         <div
                           className="h-10 w-10 rounded overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 shrink-0 cursor-pointer"
                           onClick={() => {
@@ -768,7 +828,7 @@ export default function CopEvidenceFeed({
                               <Link2 className="h-3.5 w-3.5 text-gray-500 dark:text-gray-400" />
                             </button>
                           )}
-                          {item.url && item.status !== 'pending' && (
+                          {item.url && !upload && item.status !== 'pending' && (
                             <a
                               href={item.url}
                               target="_blank"
@@ -780,7 +840,7 @@ export default function CopEvidenceFeed({
                           )}
                         </div>
                         {/* URL domain badge */}
-                        {item.url && item.status === 'completed' && !isImageUrl(item.url) && (
+                        {item.url && !upload && item.status === 'completed' && !isImageUrl(item.url) && (
                           <span className="text-[10px] text-gray-500 dark:text-gray-400 truncate block">
                             {(() => { try { return new URL(item.url).hostname.replace('www.', '') } catch { return '' } })()}
                           </span>
@@ -808,6 +868,10 @@ export default function CopEvidenceFeed({
                             )}
                           </div>
                         )}
+                        {upload && !uploadImage && (
+                          <CopUploadDownload path={item.url!} filename={`${item.title}.pdf`} className="mt-1" />
+                        )}
+                        {saved && <CopItemTags targetType="evidence" targetId={item.id} label="evidence item" />}
                         <div className="flex items-center gap-2 mt-0.5">
                           <span className="text-[10px] text-gray-500">
                             {timeAgo(item.created_at)}

@@ -1,5 +1,14 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { getCopHeaders } from '@/lib/cop-auth'
+import { notifyCopChanged } from '@/lib/cop-request'
+import { useCopChangeListener } from '@/hooks/useCopChanges'
+import { CopItemTags } from '@/components/cop/CopItemTags'
+import { useBulkSelection } from '@/hooks/useBulkSelection'
+import { TagFilterNote } from '@/components/cop/CopTagFilter'
+import { useCopTagFilter } from '@/components/cop/tag-filter-context'
+import { StaleWriteNotice } from '@/components/cop/CopStaleWrite'
+import { copPutWithPrecondition } from '@/lib/cop-stale-write'
+import { BulkTagBar, useCopTagsContext } from '@/components/cop/tags'
 import {
   Plus,
   Loader2,
@@ -16,6 +25,7 @@ import {
   Shield,
   ChevronDown,
   ChevronRight,
+  CheckSquare,
 } from 'lucide-react'
 
 // ── Types ─────────────────────────────────────────────────────────
@@ -151,7 +161,12 @@ export default function CopTaskBoard({ sessionId, expanded = true }: CopTaskBoar
   // Blocked section collapsed
   const [blockedOpen, setBlockedOpen] = useState(false)
 
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const tagFilter = useCopTagFilter()
+  const tagsContext = useCopTagsContext()
+  const bulk = useBulkSelection('task')
+  /** A status change someone else's edit got in the way of. */
+  const [stale, setStale] = useState<{ taskId: string; status: TaskStatus } | null>(null)
+  const [writeError, setWriteError] = useState<string | null>(null)
 
   // ── Fetch tasks ──────────────────────────────────────────────
 
@@ -175,13 +190,14 @@ export default function CopTaskBoard({ sessionId, expanded = true }: CopTaskBoar
 
   useEffect(() => {
     const controller = new AbortController()
+    // fetchTasks sets state only after its request resolves.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchTasks(false, controller.signal)
-    intervalRef.current = setInterval(() => fetchTasks(true, controller.signal), 30000)
-    return () => {
-      controller.abort()
-      if (intervalRef.current) clearInterval(intervalRef.current)
-    }
+    return () => controller.abort()
   }, [fetchTasks])
+
+  // Live: refetch when the page's change feed reports task changes.
+  useCopChangeListener(['task'], () => { fetchTasks(true) })
 
   // ── Create task ──────────────────────────────────────────────
 
@@ -209,6 +225,7 @@ export default function CopTaskBoard({ sessionId, expanded = true }: CopTaskBoar
       setNewPriority('medium')
       setNewAssignedTo('')
       setShowForm(false)
+      notifyCopChanged(['task'])
       await fetchTasks()
     } catch (err) {
       console.error('[CopTaskBoard] Create task failed:', err)
@@ -219,7 +236,11 @@ export default function CopTaskBoard({ sessionId, expanded = true }: CopTaskBoar
 
   // ── Update task status ───────────────────────────────────────
 
-  const handleStatusChange = useCallback(async (taskId: string, newStatus: TaskStatus) => {
+  const handleStatusChange = useCallback(async (taskId: string, newStatus: TaskStatus, opts: { force?: boolean } = {}) => {
+    // The version this change is based on; the server refuses it if someone saved since.
+    const seen = opts.force ? null : tasks.find(t => t.id === taskId)?.updated_at ?? null
+    setStale(null)
+    setWriteError(null)
     // Optimistic update
     setTasks(prev =>
       prev.map(t =>
@@ -228,22 +249,17 @@ export default function CopTaskBoard({ sessionId, expanded = true }: CopTaskBoar
           : t
       )
     )
-    try {
-      const res = await fetch(`/api/cop/${sessionId}/tasks`, {
-        method: 'PUT',
-        headers: getCopHeaders(),
-        body: JSON.stringify({ id: taskId, status: newStatus }),
-      })
-      if (!res.ok) throw new Error('Failed to update task')
-      await fetchTasks()
-    } catch {
-      await fetchTasks()
-    }
-  }, [sessionId, fetchTasks])
+    const result = await copPutWithPrecondition(`/api/cop/${sessionId}/tasks`, { id: taskId, status: newStatus }, seen)
+    if (result.kind === 'stale') setStale({ taskId, status: newStatus })
+    else if (result.kind === 'error') setWriteError(result.message)
+    else notifyCopChanged(['task'])
+    await fetchTasks()
+  }, [sessionId, fetchTasks, tasks])
 
   // ── Derived data ─────────────────────────────────────────────
 
-  const tasksByStatus = (status: TaskStatus) => sortTasks(tasks.filter(t => t.status === status))
+  const visibleTasks = tagFilter.filtering ? tasks.filter(t => tagFilter.passes('task', t.id)) : tasks
+  const tasksByStatus = (status: TaskStatus) => sortTasks(visibleTasks.filter(t => t.status === status))
 
   const todoTasks = tasksByStatus('todo')
   const inProgressTasks = tasksByStatus('in_progress')
@@ -269,8 +285,20 @@ export default function CopTaskBoard({ sessionId, expanded = true }: CopTaskBoar
     return (
       <div
         key={task.id}
-        className="rounded border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/30 transition-colors duration-200"
+        className={`rounded border bg-gray-50 dark:bg-gray-800/30 transition-colors duration-200 ${
+          bulk.active && bulk.isSelected(task.id) ? 'border-blue-500/60' : 'border-gray-200 dark:border-gray-700'
+        }`}
       >
+        <div className="flex items-start">
+        {bulk.active && (
+          <input
+            type="checkbox"
+            checked={bulk.isSelected(task.id)}
+            onChange={() => bulk.toggle(task.id)}
+            aria-label={`Select task ${task.title}`}
+            className="ml-2 mt-2.5 h-4 w-4 shrink-0 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus-visible:ring-2 focus-visible:ring-blue-500"
+          />
+        )}
         <button
           type="button"
           onClick={() => setExpandedTask(prev => (prev === task.id ? null : task.id))}
@@ -314,6 +342,8 @@ export default function CopTaskBoard({ sessionId, expanded = true }: CopTaskBoar
             <ChevronRight className="h-3 w-3 text-gray-500 mt-0.5 shrink-0" />
           )}
         </button>
+        </div>
+        <CopItemTags targetType="task" targetId={task.id} label="task" max={3} className="px-2.5 pb-1.5 -mt-1" />
 
         {/* Expanded detail */}
         {isExpanded && (
@@ -468,17 +498,54 @@ export default function CopTaskBoard({ sessionId, expanded = true }: CopTaskBoar
           )}
           {polling && <Loader2 className="h-3 w-3 text-gray-500 animate-spin" />}
         </div>
-        <button
-          type="button"
-          onClick={() => setShowForm(!showForm)}
-          className="inline-flex items-center h-6 text-[10px] font-medium px-2 rounded border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition-colors duration-200"
-        >
-          <Plus className="h-3 w-3 mr-0.5" />
-          Add Task
-        </button>
+        <div className="flex items-center gap-1.5">
+          {tagsContext?.available && totalCount > 0 && (
+            <button
+              type="button"
+              onClick={() => (bulk.active ? bulk.stop() : bulk.setActive(true))}
+              aria-pressed={bulk.active}
+              className={`inline-flex items-center h-6 text-[10px] font-medium px-2 rounded border cursor-pointer transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500 ${
+                bulk.active
+                  ? 'border-blue-500/50 bg-blue-500/10 text-blue-700 dark:text-blue-300'
+                  : 'border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+              }`}
+              title="Select tasks to tag them together"
+            >
+              <CheckSquare className="h-3 w-3 mr-0.5" aria-hidden="true" />
+              {bulk.active ? 'Done' : 'Select'}
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => setShowForm(!showForm)}
+            className="inline-flex items-center h-6 text-[10px] font-medium px-2 rounded border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition-colors duration-200"
+          >
+            <Plus className="h-3 w-3 mr-0.5" />
+            Add Task
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto px-3 py-2 space-y-3">
+        {stale && (
+          <StaleWriteNotice
+            what="task"
+            onReload={() => { setStale(null); fetchTasks() }}
+            onKeepMine={() => handleStatusChange(stale.taskId, stale.status, { force: true })}
+            onDismiss={() => setStale(null)}
+          />
+        )}
+        {writeError && (
+          <p role="alert" className="text-[11px] text-red-600 dark:text-red-400">{writeError}</p>
+        )}
+        {bulk.active && tagsContext?.available && (
+          bulk.targets.length > 0 ? (
+            <BulkTagBar targets={bulk.targets} vocabulary={tagsContext.tags} onApply={tagsContext.bulk} onClearSelection={bulk.clear} />
+          ) : (
+            <p className="text-[11px] text-gray-500 dark:text-gray-400" role="status">Select tasks to tag them together.</p>
+          )
+        )}
+        <TagFilterNote shown={visibleTasks.length} total={tasks.length} />
         {/* Create form */}
         {showForm && (
           <div className="rounded border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 p-2 space-y-2">

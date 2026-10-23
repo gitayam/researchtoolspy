@@ -1,4 +1,4 @@
-import type { CopLayerDef, CopTemplateType } from '@/types/cop'
+import type { CopLayerDef, CopTemplateType, CopEntityType } from '@/types/cop'
 
 export const COP_LAYERS: CopLayerDef[] = [
   // ── Entity Layers ────────────────────────────────────────
@@ -185,7 +185,7 @@ export const COP_LAYERS: CopLayerDef[] = [
     description: 'User-placed markers (CoT-compatible)',
     category: 'tactical',
     icon: 'Crosshair',
-    source: { type: 'api', endpoint: '/layers/markers', refreshSeconds: 30 },
+    source: { type: 'api', endpoint: '/layers/markers' },
     render: { type: 'point', color: '#eab308' },
     defaultFor: ['crisis_response', 'event_analysis'],
     filterable: false,
@@ -196,7 +196,7 @@ export const COP_LAYERS: CopLayerDef[] = [
     description: "Public cameras shown through their provider's own player (Windy, YouTube, open-data feeds)",
     category: 'tactical',
     icon: 'Video',
-    source: { type: 'api', endpoint: '/layers/webcams', refreshSeconds: 300 },
+    source: { type: 'api', endpoint: '/layers/webcams' },
     render: { type: 'cluster', color: '#06b6d4', clusterRadius: 50 },
     defaultFor: [],
     filterable: false,
@@ -220,4 +220,18 @@ export function getLayersForTemplate(templateType: CopTemplateType): CopLayerDef
 
 export function getLayerById(id: string): CopLayerDef | undefined {
   return COP_LAYERS.find(l => l.id === id)
+}
+
+/**
+ * The COP changes that refresh a map layer (the page's change feed announces them;
+ * see useCopChanges). Layers fed from outside the COP (ACLED, GDELT) keep their own
+ * `refreshSeconds` instead; layers not listed here load when switched on.
+ */
+export const LAYER_REFETCH_ON: Readonly<Record<string, readonly CopEntityType[]>> = {
+  'cop-markers': ['marker'],
+  webcams: ['webcam'],
+  'poo-estimates': ['poo'],
+  assets: ['asset'],
+  actors: ['persona'],
+  events: ['timeline'],
 }

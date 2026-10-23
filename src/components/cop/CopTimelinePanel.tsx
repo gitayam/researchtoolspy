@@ -5,7 +5,12 @@
  * Displays events chronologically with category badges and importance indicators.
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { useCopChangeListener } from '@/hooks/useCopChanges'
+import { notifyCopChanged } from '@/lib/cop-request'
+import { CopItemTags } from '@/components/cop/CopItemTags'
+import { TagFilterNote } from '@/components/cop/CopTagFilter'
+import { useCopTagFilter } from '@/components/cop/tag-filter-context'
 import {
   Clock,
   Loader2,
@@ -135,14 +140,17 @@ export default function CopTimelinePanel({ sessionId, expanded, onScrollToPanel 
 
   const isUrl = looksLikeUrl(input)
 
-  // Load persisted timeline entries on mount
-  useEffect(() => {
+  // Load persisted timeline entries on mount, and again whenever the change feed
+  // reports timeline changes (entries from the Signal room, other analysts).
+  const firstLoadRef = useRef(true)
+  const tagFilter = useCopTagFilter()
+
+  const loadEntries = useCallback((signal?: AbortSignal) => {
     if (!sessionId) return
-    const controller = new AbortController()
-    fetch(`/api/cop/${sessionId}/timeline`, { headers: getCopHeaders(), signal: controller.signal })
+    return fetch(`/api/cop/${sessionId}/timeline`, { headers: getCopHeaders(), signal })
       .then(r => r.ok ? r.json() : null)
       .then(data => {
-        if (data?.entries?.length) {
+        if (data && Array.isArray(data.entries) && (data.entries.length > 0 || !firstLoadRef.current)) {
           const mapped = data.entries.map((e: any) => ({
             id: e.id,
             event_date: e.event_date,
@@ -158,24 +166,36 @@ export default function CopTimelinePanel({ sessionId, expanded, onScrollToPanel 
             action: e.action,
           }))
           setEntries(mapped)
-          // Default to "all" if no manual events exist (only system entries)
-          if (mapped.every((e: TimelineEvent) => e.source_type === 'system')) {
+          // Default to "all" if no manual events exist (only system entries), first load only
+          if (firstLoadRef.current && mapped.length > 0 && mapped.every((e: TimelineEvent) => e.source_type === 'system')) {
             setActiveTab('all')
           }
         }
+        firstLoadRef.current = false
       })
       .catch((e) => { if (e?.name !== 'AbortError') console.error('Failed to load timeline:', e) })
       .finally(() => setInitialLoading(false))
-    return () => controller.abort()
   }, [sessionId])
+
+  useEffect(() => {
+    const controller = new AbortController()
+    loadEntries(controller.signal)
+    return () => controller.abort()
+  }, [loadEntries])
+
+  useCopChangeListener(['timeline'], () => { loadEntries() })
 
   // ── Filtered entries + tab counts ─────────────────────────────
 
-  const filteredEntries = useMemo(() => {
+  const tabEntries = useMemo(() => {
     if (activeTab === 'events') return entries.filter(e => e.source_type !== 'system')
     if (activeTab === 'activity') return entries.filter(e => e.source_type === 'system')
     return entries
   }, [entries, activeTab])
+  const filteredEntries = useMemo(
+    () => (tagFilter.filtering ? tabEntries.filter(e => e.id && tagFilter.passes('timeline', e.id)) : tabEntries),
+    [tabEntries, tagFilter],
+  )
 
   const tabCounts = useMemo(() => ({
     all: entries.length,
@@ -206,6 +226,7 @@ export default function CopTimelinePanel({ sessionId, expanded, onScrollToPanel 
         const data = await res.json()
         setEntries(prev => [...prev, { ...entry, id: data.ids?.[0] }]
           .sort((a, b) => a.event_date.localeCompare(b.event_date)))
+        notifyCopChanged(['timeline'])
         setPendingClassification(null)
         setInput('')
         setEventDate('')
@@ -319,6 +340,7 @@ export default function CopTimelinePanel({ sessionId, expanded, onScrollToPanel 
 
       setEntries(prev => [...prev, ...savedEntries]
         .sort((a, b) => a.event_date.localeCompare(b.event_date)))
+      notifyCopChanged(['timeline'])
       setExtractedPreview(null)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save events')
@@ -336,6 +358,7 @@ export default function CopTimelinePanel({ sessionId, expanded, onScrollToPanel 
         headers: getCopHeaders(),
       })
       setEntries(prev => prev.filter(e => e.id !== entryId))
+      notifyCopChanged(['timeline'])
     } catch {
       // Non-fatal
     }
@@ -352,6 +375,7 @@ export default function CopTimelinePanel({ sessionId, expanded, onScrollToPanel 
       })
       if (!res.ok) return
       setEntries(prev => prev.map(e => e.id === entryId ? { ...e, [field]: value } : e))
+      notifyCopChanged(['timeline'])
     } catch { /* non-fatal */ }
   }, [sessionId])
 
@@ -605,6 +629,8 @@ export default function CopTimelinePanel({ sessionId, expanded, onScrollToPanel 
               ))}
             </div>
 
+            <TagFilterNote shown={filteredEntries.length} total={tabEntries.length} />
+
             {/* Event list with timeline line */}
             <div className="relative">
               {/* Vertical line */}
@@ -724,6 +750,10 @@ export default function CopTimelinePanel({ sessionId, expanded, onScrollToPanel 
                         <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">
                           {entry.description}
                         </p>
+                      )}
+
+                      {entry.id && entry.source_type !== 'system' && (
+                        <CopItemTags targetType="timeline" targetId={entry.id} label="timeline entry" max={3} />
                       )}
 
                       {/* Meta badges */}
