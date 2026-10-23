@@ -36,6 +36,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { CopWorkspaceMode } from '@/types/cop'
+import { jumpToCopPanel } from '@/components/cop/cop-jump'
 
 // ── Panel metadata for sidebar ──────────────────────────────────
 
@@ -148,13 +149,24 @@ export default function CopSidebar({ mode, stats, panelOrder, onResetLayout, cla
   }, [mode, panelOrder])
 
   const handleNavClick = useCallback((panelId: string) => {
-    const el = document.querySelector(`[data-panel="${panelId}"]`)
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-      setActivePanel(panelId)
+    // The first copy of a panel that is actually laid out (layouts can render a hidden one).
+    const target = () =>
+      Array.from(document.querySelectorAll<HTMLElement>(`[data-panel="${panelId}"]`))
+        .find((el) => el.getClientRects().length > 0)
+    if (!isMenu) {
+      const el = target()
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        setActivePanel(panelId)
+      }
+      onNavClick?.()
+      return
     }
+    // Phone side menu: close it first; the jump waits until its history entry is gone.
+    setActivePanel(panelId)
     onNavClick?.()
-  }, [onNavClick])
+    jumpToCopPanel(panelId)
+  }, [onNavClick, isMenu])
 
   const collapsed = isMenu ? false : railCollapsed
 

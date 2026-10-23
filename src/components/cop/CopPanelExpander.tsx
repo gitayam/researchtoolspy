@@ -90,8 +90,17 @@ export default function CopPanelExpander({
     localStorage.setItem(storageKey, 'false')
   }, [storageKey])
 
-  // Focus management: focus overlay on expand, restore trigger on collapse
+  // Focus management: focus overlay on expand, restore trigger on collapse — only when
+  // the state changes. On mount every collapsed panel used to focus its own Expand
+  // button, so the page loaded scrolled to the last panel (on phones: near the bottom).
+  const previousExpanded = useRef(expanded)
   useEffect(() => {
+    if (previousExpanded.current === expanded) {
+      // Restored already expanded (a full-screen dialog): it still takes focus, without scrolling.
+      if (expanded) overlayRef.current?.focus({ preventScroll: true })
+      return
+    }
+    previousExpanded.current = expanded
     if (expanded && overlayRef.current) {
       overlayRef.current.focus()
     } else if (!expanded && triggerRef.current) {
