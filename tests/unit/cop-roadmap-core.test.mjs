@@ -56,11 +56,23 @@ test('the bot updates its own task (status, priority, assignee, due date) and no
   assert.deepEqual({ ...row, completed_at: Boolean(row.completed_at) }, { status: 'done', priority: 'high', assigned_to: 'a member', due_date: '2026-10-27', completed_at: true })
 
   assert.equal((await service(env, 'tasks', 'PUT', `${P}/tasks`, { id: 'tsk-human', status: 'done' })).status, 403)
-  const widened = await service(env, 'tasks', 'PUT', `${P}/tasks`, { id: 'tsk-bot', title: 'Renamed by the bot' })
+  // The bot may retitle its own task (a cancelled task becomes 'Cancelled: …'), never another field.
+  const retitled = await service(env, 'tasks', 'PUT', `${P}/tasks`, { id: 'tsk-bot', title: 'Cancelled: Renamed by the bot' })
+  assert.ok(ok(retitled.status), `${retitled.status} ${await retitled.text()}`)
+  assert.equal(db.prepare("SELECT title FROM cop_tasks WHERE id = 'tsk-bot'").get().title, 'Cancelled: Renamed by the bot')
+  assert.equal((await service(env, 'tasks', 'PUT', `${P}/tasks`, { id: 'tsk-human', title: 'Not mine' })).status, 403)
+  const widened = await service(env, 'tasks', 'PUT', `${P}/tasks`, { id: 'tsk-bot', description: 'Not allowed' })
   assert.equal(widened.status, 400)
-  assert.match((await widened.json()).error, /status, priority, assigned_to and due_date/)
+  assert.match((await widened.json()).error, /status, priority, assigned_to, due_date and title/)
   // A person with write access changes any task, title included.
   assert.ok(ok((await call(env, 'tasks', 'PUT', `${P}/tasks`, { who: 'editor', body: { id: 'tsk-human', title: 'Renamed' }, params: S })).status))
+})
+
+test('the bot lists the session\'s RFIs (for its q-numbers)', async () => {
+  const { env } = await scoped()
+  const res = await service(env, 'rfis', 'GET', `${P}/rfis`)
+  assert.equal(res.status, 200, await res.clone().text())
+  assert.ok(Array.isArray((await res.json()).rfis))
 })
 
 test('the bot answers (resolves) only RFIs it created', async () => {
