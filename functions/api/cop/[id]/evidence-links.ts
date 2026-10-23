@@ -2,12 +2,15 @@
  * COP evidence links: evidence filed under questions (RFIs, key questions) and tasks.
  *
  * GET    /api/cop/:id/evidence-links[?target_type=&target_id=][&evidence_id=]
- *          → { links: [{ id, evidence_id, target_type, target_id, relation, note, created_at }] }
+ *          → { links: [{ id, evidence_id, target_type, target_id, relation, note, created_at,
+ *                        up, down, my_vote }] }
+ *          ranked per question/task: score (up − down), then newest evidence
  *          (owner, collaborators, or any signed-in reader of a public session)
  * POST   /api/cop/:id/evidence-links { evidence_id, target_type, target_id, relation?, note? }
  *          → 201 { link } (200 when the link existed: relation/note updated)
  *          (owner, editor/admin, the bot service)
  * DELETE /api/cop/:id/evidence-links { id }  (owner, editor/admin; a service only its own)
+ * Votes: PUT /api/cop/:id/evidence-links/:linkId/vote (evidence-links/[linkId]/vote.ts).
  *
  * Linking never answers, closes or otherwise changes the question or task. Both ends
  * are checked in SQL to belong to this session (functions/api/_shared/cop-evidence-links.ts).
@@ -74,7 +77,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       targetType,
       targetId,
       evidenceId,
-    })
+    }, userId)
     return json({ links })
   } catch (error) {
     return failed(env, error, 'list evidence links')

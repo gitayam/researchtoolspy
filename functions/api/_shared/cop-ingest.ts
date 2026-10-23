@@ -332,10 +332,11 @@ export async function ingestSubmission(
     }
   }
 
-  // The key question the tipster picked, if the form offers that (migration 0024).
+  // The question the tipster picked, as drop-submit checked it (migrations 0024, 0026).
   try {
     await fileTipUnderChosenQuestion(db, {
       formId: form.id,
+      responseId: input.responseId,
       scope: { sessionId: input.sessionId, workspaceId: scope.workspaceId },
       evidenceId,
       formData,
