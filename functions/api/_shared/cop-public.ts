@@ -90,8 +90,29 @@ export async function takePublicChangesSlot(kv: KvLike | undefined, request: Req
 }
 
 /**
+ * The address a limit counts by: an IPv4 address as is, an IPv6 address by its /64 (one
+ * subscriber usually holds a whole /64, so per-address counting is free to dodge), an
+ * IPv4-mapped IPv6 address as its IPv4 address. 'no-address' when there is none.
+ */
+export function limiterAddress(raw: string | null | undefined): string {
+  const ip = String(raw ?? '').trim().toLowerCase()
+  if (!ip) return 'no-address'
+  if (!ip.includes(':')) return ip
+  const mapped = /^[0:]*:ffff:(\d{1,3}(?:\.\d{1,3}){3})$/.exec(ip)
+  if (mapped) return mapped[1]
+  const [head, tail] = ip.split('::', 2)
+  const left = head ? head.split(':') : []
+  const right = tail !== undefined && tail !== '' ? tail.split(':') : []
+  const groups = tail === undefined ? left : [...left, ...Array(Math.max(8 - left.length - right.length, 0)).fill('0'), ...right]
+  const prefix = groups.slice(0, 4).map((g) => (g.replace(/^0+(?=.)/, '') || '0'))
+  if (prefix.length < 4 || prefix.some((g) => !/^[0-9a-f]{1,4}$/.test(g))) return ip
+  return `${prefix.join(':')}::/64`
+}
+
+/**
  * One use of a public (sign-in free) action by this client address (CF-Connecting-IP,
- * set by Cloudflare; never X-Forwarded-For), stored as a digest. Fails closed without
+ * set by Cloudflare; never X-Forwarded-For; IPv6 by its /64, limiterAddress), stored as
+ * a digest. Fails closed without
  * KV or when the count can't be read; a failed counter write fails closed too unless
  * `allowUncountedWrite` (reads that many viewers behind one address poll together).
  */
@@ -104,7 +125,7 @@ export async function takePublicSlot(
   options: { allowUncountedWrite?: boolean } = {},
 ): Promise<'ok' | 'over' | 'unavailable'> {
   if (!kv) return 'unavailable'
-  const ip = (request.headers.get('CF-Connecting-IP') ?? '').trim() || 'no-address'
+  const ip = limiterAddress(request.headers.get('CF-Connecting-IP'))
   const bucket = Math.floor(Date.now() / 1000 / windowSeconds)
   const key = `quota:${name}:${await keyDigest(ip)}:${bucket}`
   let used: number

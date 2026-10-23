@@ -6,9 +6,11 @@
  *     plus the panels chosen here, optionally letting viewers answer questions
  *     and submit evidence (when the session has an evidence form linked), with an
  *     expiry. Existing links can be copied or revoked.
+ *   - Link a Signal room: a one-time code (24 hours) the room's organizer sends as
+ *     `!cop link <code>`; the room then gets this COP's updates and its posts come here.
  */
 import { useCallback, useEffect, useState } from 'react'
-import { Check, Copy, Link2, Loader2, Trash2 } from 'lucide-react'
+import { Check, Copy, Link2, Loader2, MessageSquare, Trash2 } from 'lucide-react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { getCopHeaders } from '@/lib/cop-auth'
 import { cn } from '@/lib/utils'
@@ -66,6 +68,10 @@ export default function CopShareDialog({ open, onOpenChange, sessionId, hasEvide
   const [expiryDays, setExpiryDays] = useState<string>('7')
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
+
+  const [roomCode, setRoomCode] = useState<{ command: string; expires_at: string } | null>(null)
+  const [makingCode, setMakingCode] = useState(false)
+  const [codeError, setCodeError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!open) return
@@ -147,6 +153,29 @@ export default function CopShareDialog({ open, onOpenChange, sessionId, hasEvide
       reload()
     } catch (error) {
       setListError(error instanceof Error ? error.message : "Couldn't revoke the link.")
+    }
+  }
+
+  const makeRoomCode = async () => {
+    setMakingCode(true)
+    setCodeError(null)
+    try {
+      const res = await fetch(`/api/cop/${sessionId}/room-link-codes`, { method: 'POST', headers: getCopHeaders() })
+      const data = await res.json().catch(() => null)
+      if (!res.ok || typeof data?.command !== 'string') {
+        throw new Error(
+          res.status === 403
+            ? 'Only the session owner, an editor or an admin can link a Signal room.'
+            : res.status === 503
+              ? 'Linking Signal rooms isn’t available on this server yet.'
+              : data?.error ?? `Couldn't make a code (HTTP ${res.status}).`,
+        )
+      }
+      setRoomCode({ command: data.command, expires_at: data.expires_at })
+    } catch (error) {
+      setCodeError(error instanceof Error ? error.message : "Couldn't make a code.")
+    } finally {
+      setMakingCode(false)
     }
   }
 
@@ -283,6 +312,34 @@ export default function CopShareDialog({ open, onOpenChange, sessionId, hasEvide
               />
             </div>
           )}
+        </section>
+
+        <section className="space-y-2 border-t border-slate-200 pt-4 dark:border-slate-800" aria-labelledby="share-room-heading">
+          <h3 id="share-room-heading" className="text-sm font-semibold">Link a Signal room</h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            The room’s organizer sends the command in the room. What happens in this COP then appears in the room’s digest, and what the room posts comes here. The code works once, for 24 hours.
+          </p>
+          {roomCode ? (
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <code className="min-w-0 flex-1 truncate rounded-md bg-slate-100 px-2 py-2 text-sm font-semibold tracking-wide dark:bg-slate-800">{roomCode.command}</code>
+                <CopyButton copied={copied === 'room-code'} onClick={() => copy('room-code', roomCode.command)} />
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Works once, until {new Date(roomCode.expires_at).toLocaleString()}. It won’t be shown again.
+              </p>
+            </div>
+          ) : null}
+          {codeError && <p className="text-sm text-red-600 dark:text-red-400" role="alert">{codeError}</p>}
+          <button
+            type="button"
+            onClick={makeRoomCode}
+            disabled={makingCode}
+            className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-slate-300 px-4 text-sm font-semibold hover:bg-slate-50 disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 dark:border-slate-700 dark:hover:bg-slate-800"
+          >
+            {makingCode ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <MessageSquare className="h-4 w-4" aria-hidden="true" />}
+            {roomCode ? 'Make another code' : 'Make a room link code'}
+          </button>
         </section>
       </DialogContent>
     </Dialog>

@@ -19,7 +19,7 @@
 import { deleteLinksOf, fileTipUnderChosenQuestions, linksTableMissing } from './cop-evidence-links'
 import { applyItemTags, cleanTagName, dropItemTags, tagsTableMissing } from './cop-tags'
 import { emitCopEventLoose } from './cop-events-loose'
-import { queryEvidenceInSession } from './cop-input'
+import { queryEvidenceInSession, UNTITLED_TIP_TITLE } from './cop-input'
 import { columnMissing, copSessionScope, insertCopEvidence, insertCopMarker } from './cop-records'
 import { cleanFile, copUploadPath, storeCopUpload, type R2Like } from './cop-uploads'
 import { IMAGE_TYPES, type SniffedType } from './image-sanitize'
@@ -179,13 +179,24 @@ export function describeSubmission(formData: Record<string, unknown>, schema: Fo
   return lines.join('\n').slice(0, 5000) || '(no answers)'
 }
 
-function tipTitle(formData: Record<string, unknown>, schema: FormField[], formTitle: string | null): string {
+/**
+ * Fields that ask who or where the tipster is: never a tip's title (titles travel into the
+ * COP's lists and its linked Signal rooms), even when the form makes them optional.
+ */
+const IDENTIFYING_FIELD = /name|contact|email|e-mail|phone|signal|telegram|whatsapp|address|location|where|coordinates|lat|lon/i
+
+/**
+ * A tip's title: its first text answer from a field that doesn't ask for a name, contact
+ * or place; UNTITLED_TIP_TITLE when there is none.
+ */
+export function tipTitle(formData: Record<string, unknown>, schema: FormField[]): string {
   for (const field of schema) {
     if (field.type !== 'text' && field.type !== 'textarea') continue
+    if (IDENTIFYING_FIELD.test(field.name) || IDENTIFYING_FIELD.test(field.label)) continue
     const text = oneLine(formData[field.name], 100)
     if (text) return `Tip: ${text}`
   }
-  return `Tip via ${oneLine(formTitle, 80) || 'the evidence form'}`
+  return UNTITLED_TIP_TITLE
 }
 
 // ── Ingest ─────────────────────────────────────────────────────────────────
@@ -290,7 +301,7 @@ export async function ingestSubmission(
     }
     const sourceUrl = sourceUrlFrom(formData, schema) ?? (imageUpload ? copUploadPath(input.sessionId, imageUpload) : null)
     evidenceId = await insertCopEvidence(db, scope, {
-      title: tipTitle(formData, schema, form.title),
+      title: tipTitle(formData, schema),
       description: describeSubmission(formData, schema),
       sourceUrl,
       evidenceType: imageUpload ? 'image' : uploadIds.length > 0 ? 'document' : 'observation',
@@ -318,7 +329,7 @@ export async function ingestSubmission(
       markerId = await insertCopMarker(db, scope, {
         lat: point.lat,
         lon: point.lon,
-        label: tipTitle(formData, schema, form.title).slice(0, 80),
+        label: tipTitle(formData, schema).slice(0, 80),
         description: `From the evidence form (${point.field}). Unverified.`,
         confidence: 'POSSIBLE',
         rationale: 'Location given in an evidence-form submission; not verified.',

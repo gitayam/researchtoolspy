@@ -278,13 +278,14 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
         VALUES (?, ?, ?, ?, ?, ?, ?)
       `).bind(answerId, body.id, body.answer.trim(), body.source_description || null, userId, body.responder_name || null, now).run()
       answeredWith = answerId
-      // The answer itself, as the answers route records it (the chat feed shows its text).
+      // The answer itself, as the answers route records it (the chat feed shows its text),
+      // with new_status as the status event carried before (playbook conditions read it).
       await emitCopEvent(env.DB, {
         copSessionId: sessionId,
         eventType: RFI_ANSWERED,
         entityType: 'rfi',
         entityId: body.id,
-        payload: { answer_id: answerId },
+        payload: { answer_id: answerId, new_status: body.status ?? existing.status },
         createdBy: userId,
       })
 

@@ -14,7 +14,7 @@ import { generatePrefixedId , JSON_HEADERS } from '../../_shared/api-utils'
 import { logEvent } from '../../_shared/event-log'
 import { copCallerUserId } from '../../_shared/cop-caller'
 import { emitCopEvent, emitCopEvents } from '../../_shared/cop-events'
-import { CLAIM_CREATED, CLAIM_DELETED, CLAIM_UPDATED, EVIDENCE_CREATED } from '../../_shared/cop-event-types'
+import { CLAIM_CREATED, CLAIM_DELETED, CLAIM_EXTRACTED, CLAIM_UPDATED, EVIDENCE_CREATED } from '../../_shared/cop-event-types'
 import {
   copSourceChannel, copSourceRef, expectedUpdatedAt, serviceChangeRefused, serviceDeleteRefused, serviceMayChange, serviceMayDelete, setEvidenceSession, setProvenance,
   staleWriteResponse,
@@ -124,13 +124,21 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const channel = copSourceChannel(context)
     const ref = copSourceRef(context)
     for (const id of ids) await setProvenance(env.DB, 'cop_claims', id, channel, ref)
-    // One event per claim, each with its id (the chat feed and panels see every claim).
-    await emitCopEvents(env.DB, ids.map((id) => ({
+    // The request's event, as before (playbooks trigger on it), then one claim.extracted
+    // per claim with its id, which the chat feed reads and playbook triggers don't offer.
+    await emitCopEvent(env.DB, {
       copSessionId: sessionId,
       eventType: CLAIM_CREATED,
+      entityType: 'claim',
+      entityId: ids.length === 1 ? ids[0] : null,
+      payload: { count: ids.length },
+      createdBy: userId,
+    })
+    await emitCopEvents(env.DB, ids.map((id) => ({
+      copSessionId: sessionId,
+      eventType: CLAIM_EXTRACTED,
       entityType: 'claim' as const,
       entityId: id,
-      payload: { count: ids.length },
       createdBy: userId,
     })))
 

@@ -16,9 +16,13 @@
  * repeat an entity with newer state.
  *
  * Item: { event_id, at, kind, action, entity_id, title, status, labels, actor,
- *         question_id?, question_title?, task_id?, evidence_id?, relation?, domain? }
+ *         question_id?, question_title?, task_id?, evidence_id?, relation?, domain?,
+ *         count? }
  *   kind   rfi | answer | task | evidence | evidence_link | marker | timeline |
- *          hypothesis | claim
+ *          hypothesis | claim | summary (more than 3 unreviewed anonymous tips or
+ *          answers in one page, with their markers and filings: one item,
+ *          entity_id 'anonymous', title null, labels ['anonymous'], count = how many
+ *          tips and answers)
  *   action created | updated | status | answered | closed (an RFI closed, a task done) |
  *          reopened | confirmed (a marker) | assigned (a task; never to whom) |
  *          starred | unstarred (key question) | filed | unfiled (evidence under a
@@ -32,7 +36,9 @@
  *          null when deleted. Anonymous input keeps its text, labelled: a tip
  *          "anonymous tip" + "unverified" (then "reviewed"), its marker "anonymous
  *          tip" + "possible", a share-link answer "anonymous" + "proposed" (then
- *          "accepted"); never the submitter's own fields
+ *          "accepted"); never the submitter's own fields (a tip is titled from its
+ *          first answer that doesn't ask for a name, contact or place; with none,
+ *          title null)
  *   status rfi/task/hypothesis/claim status; evidence credibility; marker confidence;
  *          answer 'proposed' | 'accepted'; null for filings and timeline lines
  *   labels from the team | from chat | anonymous tip | anonymous | scraped |
@@ -41,6 +47,8 @@
  *          high priority | critical |
  *          confirmed | doubtful | accepted | AI first pass (an unverified claim) |
  *          verified | disputed | false | important | supports | contradicts | context
+ *   ids                 entity_id, question_id, task_id, evidence_id match
+ *                       ^[A-Za-z0-9_-]{1,64}$ (an item whose id doesn't is skipped)
  *   question_id/_title  answer, and evidence filed under a question
  *   task_id             evidence filed under a task
  *   evidence_id         the evidence item of a filing (to match an earlier evidence item)
@@ -66,8 +74,7 @@ import type { PagesFunction } from '@cloudflare/workers-types'
 import { verifyCopSessionAccess } from '../../_shared/auth-helpers'
 import { JSON_HEADERS } from '../../_shared/api-utils'
 import { logEvent } from '../../_shared/event-log'
-import { copCallerUserId, copServiceCaller } from '../../_shared/cop-caller'
-import { copSourceChannel } from '../../_shared/cop-input'
+import { copCallerUserId, copServiceCaller, isSignalBotClient } from '../../_shared/cop-caller'
 import { chatFeedLimit, listChatFeed } from '../../_shared/cop-chat-feed'
 
 interface Env {
@@ -92,7 +99,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   if (!userId) return reply({ error: 'Authentication required' }, 401)
   const service = copServiceCaller(context.data)
   // Of the services, only the Signal bot words the feed for a chat.
-  if (service && copSourceChannel(context) !== 'signal') {
+  if (service && !isSignalBotClient(service.clientId)) {
     return reply({ error: 'This feed is for the Signal bot', code: 'SERVICE_NOT_ALLOWED' }, 403)
   }
   // The owner and collaborators (any role); not a signed-in reader of a public COP.

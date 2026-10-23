@@ -584,13 +584,20 @@ test('typed: changing evidence credibility emits evidence.reviewed; other edits 
   assert.deepEqual(typed(at, 'evidence.reviewed').map((e) => [e.entity_id, JSON.parse(e.payload)]), [['101', { credibility: 'confirmed' }]])
 })
 
-test('typed: a bulk claim extraction emits one claim.created per claim, each with its id', async () => {
+test('typed: a bulk claim extraction keeps its one claim.created (playbooks) and adds one claim.extracted per claim', async () => {
   const { db, since, typed, a } = await typedFixture()
-  const at = since()
+  let at = since()
   await a('claims', 'POST', `${P}/claims`, { claims: [{ claim: 'One' }, { claim: 'Two' }, { claim: 'Three' }] })
   const claimIds = db.prepare('SELECT id FROM cop_claims WHERE cop_session_id = ? ORDER BY rowid').all(SESSION).map((r) => r.id)
   assert.equal(claimIds.length, 3)
-  assert.deepEqual(typed(at, 'claim.created').map((e) => e.entity_id), claimIds)
+  assert.deepEqual(typed(at, 'claim.created').map((e) => [e.entity_id, JSON.parse(e.payload)]), [[null, { count: 3 }]])
+  assert.deepEqual(typed(at, 'claim.extracted').map((e) => e.entity_id), claimIds)
+  // A single claim's claim.created still names it, as before.
+  at = since()
+  await a('claims', 'POST', `${P}/claims`, { claims: [{ claim: 'Four' }] })
+  const four = db.prepare("SELECT id FROM cop_claims WHERE claim_text = 'Four'").get().id
+  assert.deepEqual(typed(at, 'claim.created').map((e) => e.entity_id), [four])
+  assert.deepEqual(typed(at, 'claim.extracted').map((e) => e.entity_id), [four])
 })
 
 test('typed: a share-link answer is anonymous (created_by 0, its answer id), even on a link the bot made', async () => {

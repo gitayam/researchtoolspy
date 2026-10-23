@@ -30,7 +30,7 @@
  * coordinates, upload ids, payloads.
  */
 import { resolveSinceCursor } from './cop-events'
-import { evidenceInSession, isMissingColumn, type EvidenceSessionScope } from './cop-input'
+import { evidenceInSession, isMissingColumn, UNTITLED_TIP_TITLE, type EvidenceSessionScope } from './cop-input'
 
 export const CHAT_FEED_DEFAULT_LIMIT = 50
 export const CHAT_FEED_MAX_LIMIT = 100
@@ -39,7 +39,7 @@ export const CHAT_FEED_SCAN_MAX = 500
 export const CHAT_TITLE_MAX = 140
 
 export const CHAT_KINDS = [
-  'rfi', 'answer', 'task', 'evidence', 'evidence_link', 'marker', 'timeline', 'hypothesis', 'claim',
+  'rfi', 'answer', 'task', 'evidence', 'evidence_link', 'marker', 'timeline', 'hypothesis', 'claim', 'summary',
 ] as const
 export type ChatKind = (typeof CHAT_KINDS)[number]
 
@@ -67,7 +67,21 @@ export interface ChatFeedItem {
   evidence_id?: string
   relation?: ChatRelation
   domain?: string
+  /** kind 'summary': how many anonymous tips and answers it stands for. */
+  count?: number
 }
+
+/**
+ * More than this many unreviewed anonymous submissions (tips still unverified, share-link
+ * answers nobody accepted) in one page become one 'summary' item: share links and drop
+ * forms are open to anyone, and a flood must not become a flood in the chat.
+ */
+export const CHAT_ANONYMOUS_PER_PAGE = 3
+
+/** Ids an item may carry: anything else (an id a client chose, say) drops the item. */
+const SAFE_ID = /^[A-Za-z0-9_-]{1,64}$/
+const safeId = (value: unknown): string | undefined =>
+  value !== null && value !== undefined && SAFE_ID.test(String(value)) ? String(value) : undefined
 
 export type ChatFeedResult =
   | { ok: true; items: ChatFeedItem[]; cursor: string; has_more: boolean; skipped: number; from_chat: number }
@@ -119,6 +133,8 @@ const SIMPLE_EVENTS: Readonly<Record<string, readonly [ChatKind, ChatAction]>> =
   'hypothesis.evidence_linked': ['hypothesis', 'filed'],
   'hypothesis.deleted': ['hypothesis', 'deleted'],
   'claim.created': ['claim', 'created'],
+  // One per claim of a bulk extraction (claim.created stays one event per request, for playbooks).
+  'claim.extracted': ['claim', 'created'],
   'claim.updated': ['claim', 'status'],
   'claim.deleted': ['claim', 'deleted'],
 }
@@ -180,11 +196,7 @@ function readPayload(raw: string | null): Record<string, unknown> {
   }
 }
 
-const idText = (value: unknown): string | null => {
-  if (value === null || value === undefined) return null
-  const text = String(value).trim()
-  return text && text.length <= 200 ? text : null
-}
+const idText = (value: unknown): string | null => safeId(value) ?? null
 
 function classify(row: EventRow): Classified {
   const entityId = idText(row.entity_id)
@@ -267,12 +279,15 @@ export function chooseAction(kind: ChatKind, events: readonly { action: ChatActi
 
 // ── Text ─────────────────────────────────────────────────────────
 
-// eslint-disable-next-line no-control-regex
-const INVISIBLE = /[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u2028-\u202e\u2060-\u2069\ufeff]+/g
+// Line and paragraph breaks and other controls become a space; format characters and
+// default-ignorable ones (bidi controls, zero-width, soft hyphen, Hangul fillers, tag
+// characters) are removed, so nothing hidden can reorder the text or split a link.
+const BREAKS = /[\p{Cc}\p{Zl}\p{Zp}]+/gu
+const INVISIBLE = /[\p{Cf}\p{Default_Ignorable_Code_Point}]+/gu
 
 const WEB_LINK = /\bhttps?:\/\/[^\s<>"'()]+/gi
-/** A host with a path but no scheme ("example.com/a/b") still reads as a link. */
-const BARE_LINK = /\b([a-z0-9][a-z0-9.-]*\.[a-z]{2,})(?::\d{1,5})?\/[^\s<>"'()[\]{}]*/gi
+/** A host with a path, query or fragment but no scheme ("example.com/a?b") still reads as a link. */
+const BARE_LINK = /\b([a-z0-9][a-z0-9.-]*\.[a-z]{2,})(?::\d{1,5})?[/?#][^\s<>"'()[\]{}]*/gi
 
 /**
  * One line of plain text, at most CHAT_TITLE_MAX characters; null when empty. A link
@@ -281,7 +296,7 @@ const BARE_LINK = /\b([a-z0-9][a-z0-9.-]*\.[a-z]{2,})(?::\d{1,5})?\/[^\s<>"'()[\
  */
 export function chatLine(value: unknown): string | null {
   if (value === null || value === undefined) return null
-  const text = String(value).replace(INVISIBLE, ' ').replace(WEB_LINK, (link) => chatDomain(link) ?? 'link')
+  const text = String(value).replace(BREAKS, ' ').replace(INVISIBLE, '').replace(WEB_LINK, (link) => chatDomain(link) ?? 'link')
     .replace(BARE_LINK, '$1').replace(/\s+/g, ' ').trim()
   if (!text) return null
   const chars = Array.from(text)
@@ -378,16 +393,25 @@ async function answerRows(db: D1Database, sessionId: string, ids: readonly strin
   return out
 }
 
-/** Answers this session received from share-link visitors (their rfi.answered event is anonymous). */
-async function anonymousAnswerIds(db: D1Database, sessionId: string, ids: readonly string[]): Promise<Set<string>> {
-  const out = new Set<string>()
+/**
+ * Who answered, by the answer's own rfi.answered event: an answer is the team's (or the
+ * bot's) only when such an event with created_by > 0 names it. Anything else (a
+ * share-link visitor's answer, one from before answer ids were recorded, one whose
+ * event was lost) counts as anonymous. answer id → created_by.
+ */
+async function answerAuthors(db: D1Database, sessionId: string, ids: readonly string[]): Promise<Map<string, number>> {
+  const out = new Map<string, number>()
   for (const part of chunks([...new Set(ids)])) {
     const result = await db.prepare(
-      `SELECT json_extract(payload, '$.answer_id') AS answer_id FROM cop_events
-       WHERE cop_session_id = ? AND event_type = 'rfi.answered' AND created_by = 0
-         AND (CASE WHEN json_valid(payload) THEN json_extract(payload, '$.answer_id') END) IN (${marks(part.length)})`
-    ).bind(sessionId, ...part).all<{ answer_id: unknown }>()
-    for (const row of result.results ?? []) out.add(String(row.answer_id))
+      `SELECT json_extract(payload, '$.answer_id') AS answer_id, created_by FROM cop_events
+       WHERE cop_session_id = ? AND event_type = 'rfi.answered' AND created_by > 0
+         AND (CASE WHEN json_valid(payload) THEN json_extract(payload, '$.answer_id') END) IN (${marks(part.length)})
+       ORDER BY rowid`
+    ).bind(sessionId, ...part).all<{ answer_id: unknown; created_by: unknown }>()
+    for (const row of result.results ?? []) {
+      const id = String(row.answer_id)
+      if (!out.has(id)) out.set(id, Number(row.created_by))
+    }
   }
   return out
 }
@@ -441,6 +465,12 @@ function evidenceLabels(row: Record<string, unknown>): string[] {
   if (row.credibility === 'confirmed') labels.push('confirmed')
   if (row.credibility === 'doubtful') labels.push('doubtful')
   return labels
+}
+
+/** A title, except a drop-form tip's placeholder (no safe field to name it): null, never a guess. */
+function itemTitle(row: Record<string, unknown>, value: unknown): string | null {
+  if (row.source_channel === 'drop' && String(value ?? '').trim() === UNTITLED_TIP_TITLE) return null
+  return chatLine(value)
 }
 
 const tidy = (labels: (string | null | undefined | false)[]): string[] => [...new Set(labels.filter((l): l is string => Boolean(l)))]
@@ -533,10 +563,10 @@ export async function listChatFeed(
     'id, statement, status, source_channel', 'id, statement, status')
   const claims = await rowsInSession(db, 'cop_claims', sessionId, idsOf('claim'),
     'id, claim_text, status, url, source_channel', 'id, claim_text, status, url')
-  const anonymousAnswers = await anonymousAnswerIds(db, sessionId, idsOf('answer'))
+  const authors = await answerAuthors(db, sessionId, idsOf('answer'))
   const services = await serviceUserIds(db, [
     ...[...groups.values()].flatMap((g) => g.events.map((e) => e.createdBy)),
-    ...[...answers.values()].map((a) => Number(a.created_by) || 0),
+    ...authors.values(),
   ])
 
   const items: { item: ChatFeedItem; seq: number }[] = []
@@ -578,14 +608,16 @@ export async function listChatFeed(
         const row = answers.get(group.entityId)
         const q = question(row ? String(row.rfi_id) : undefined)
         if (!row || !q) { resolved = false; break }
-        const anonymous = anonymousAnswers.has(group.entityId)
+        const author = authors.get(group.entityId)
+        const anonymous = author === undefined
         const accepted = Number(row.is_accepted) === 1
-        item.question_id = String(row.rfi_id)
+        const questionId = safeId(row.rfi_id)
+        if (questionId) item.question_id = questionId
         item.question_title = chatLine(q.question) ?? undefined
         item.title = chatLine(row.answer_text)
         item.status = accepted ? 'accepted' : 'proposed'
         item.labels = tidy([
-          anonymous ? 'anonymous' : services.has(Number(row.created_by)) ? 'from chat' : 'from the team',
+          anonymous ? 'anonymous' : services.has(author) ? 'from chat' : 'from the team',
           anonymous && !accepted && 'proposed', accepted && 'accepted', Number(q.is_key) === 1 && 'key question',
         ])
         if (anonymous && action === 'answered' && !group.fromChat) item.actor = 'anonymous'
@@ -605,7 +637,7 @@ export async function listChatFeed(
       case 'evidence': {
         const row = evidence.get(group.entityId)
         if (!row) { resolved = gone; break }
-        item.title = chatLine(row.title)
+        item.title = itemTitle(row, row.title)
         item.status = chatLine(row.credibility)
         item.labels = evidenceLabels(row)
         const domain = chatDomain(row.source_url)
@@ -620,17 +652,20 @@ export async function listChatFeed(
         if (!gone && (!link || !row)) { resolved = false; break }
         const q = ends.targetType === 'rfi' ? question(ends.targetId) : undefined
         if (q) {
-          item.question_id = String(q.id)
+          const questionId = safeId(q.id)
+          if (questionId) item.question_id = questionId
           const qt = chatLine(q.question)
           if (qt) item.question_title = qt
         } else if (ends.targetType === 'task' && ends.targetId && tasks.has(ends.targetId)) {
-          item.task_id = ends.targetId
+          const taskId = safeId(ends.targetId)
+          if (taskId) item.task_id = taskId
         }
-        if (row) item.evidence_id = String(row.id)
+        const evidenceId = row ? safeId(row.id) : undefined
+        if (evidenceId) item.evidence_id = evidenceId
         const relation = link ? String(link.relation) : ''
         if (relation === 'supports' || relation === 'contradicts' || relation === 'context') item.relation = relation
         if (row) {
-          item.title = chatLine(row.title)
+          item.title = itemTitle(row, row.title)
           item.labels = tidy([item.relation, ...evidenceLabels(row), q && Number(q.is_key) === 1 && 'key question'])
           const domain = chatDomain(row.source_url)
           if (domain) item.domain = domain
@@ -640,7 +675,7 @@ export async function listChatFeed(
       case 'marker': {
         const row = markers.get(group.entityId)
         if (!row) { resolved = gone; break }
-        item.title = chatLine(row.label)
+        item.title = itemTitle(row, row.label)
         item.status = chatLine(String(row.confidence ?? '').toLowerCase())
         item.labels = tidy([
           originLabel(row.source_channel),
@@ -702,5 +737,42 @@ export async function listChatFeed(
 
   // Oldest first, by each item's latest event (the order the chat would have seen them).
   items.sort((a, b) => a.seq - b.seq)
-  return { ok: true, items: items.map((i) => i.item), cursor: String(consumed), has_more: hasMore, skipped, from_chat: fromChatEvents }
+  return { ok: true, items: collapseAnonymous(items), cursor: String(consumed), has_more: hasMore, skipped, from_chat: fromChatEvents }
+}
+
+/** Anonymous input nobody on the team has looked at yet (a tip, its marker and filing, an answer). */
+function unreviewedAnonymous(item: ChatFeedItem): boolean {
+  if (item.actor !== 'anonymous') return false
+  const has = (label: string) => item.labels.includes(label)
+  switch (item.kind) {
+    case 'answer': return item.status === 'proposed'
+    case 'evidence': case 'evidence_link': return has('anonymous tip') && has('unverified')
+    case 'marker': return has('anonymous tip') && has('possible')
+    default: return false
+  }
+}
+
+/**
+ * More than CHAT_ANONYMOUS_PER_PAGE unreviewed anonymous tips and answers in a page: all
+ * of them (their markers and filings too) become one 'summary' item with their count,
+ * where the latest of them was.
+ */
+function collapseAnonymous(sorted: { item: ChatFeedItem; seq: number }[]): ChatFeedItem[] {
+  const anonymous = sorted.filter((i) => unreviewedAnonymous(i.item))
+  const count = anonymous.filter((i) => i.item.kind === 'answer' || i.item.kind === 'evidence').length
+  if (count <= CHAT_ANONYMOUS_PER_PAGE) return sorted.map((i) => i.item)
+  const last = anonymous[anonymous.length - 1]
+  const summary: ChatFeedItem = {
+    event_id: last.item.event_id,
+    at: last.item.at,
+    kind: 'summary',
+    action: 'created',
+    entity_id: 'anonymous',
+    title: null,
+    status: null,
+    labels: ['anonymous'],
+    actor: 'anonymous',
+    count,
+  }
+  return sorted.flatMap((i) => (i === last ? [summary] : unreviewedAnonymous(i.item) ? [] : [i.item]))
 }

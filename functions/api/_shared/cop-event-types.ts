@@ -140,6 +140,11 @@ export const EVIDENCE_LINK_UPDATED = 'evidence.link_updated' as const
 export const EVIDENCE_UNLINKED = 'evidence.unlinked' as const
 /** A team vote on a filing: counts only, created_by 0. Never in the chat feed. */
 export const EVIDENCE_LINK_VOTED = 'evidence.link_voted' as const
+/**
+ * One claim of a bulk extraction, with its id (claim.created stays one event per request,
+ * with an id only for a single claim, as playbooks expect).
+ */
+export const CLAIM_EXTRACTED = 'claim.extracted' as const
 /** Emitted by functions/api/cop/_middleware.ts for a successful write that emitted nothing. */
 export const ENTITY_CHANGED = 'entity.changed' as const
 
@@ -210,3 +215,4 @@ export type CopEventType =
   | typeof ACTIVITY_LOGGED | typeof ENTITY_CHANGED
   | typeof RFI_REOPENED | typeof TASK_REOPENED | typeof TASK_PRIORITY_CHANGED | typeof MARKER_CONFIRMED
   | typeof EVIDENCE_REVIEWED | typeof EVIDENCE_LINK_UPDATED | typeof EVIDENCE_UNLINKED | typeof EVIDENCE_LINK_VOTED
+  | typeof CLAIM_EXTRACTED
