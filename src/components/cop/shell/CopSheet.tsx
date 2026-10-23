@@ -10,7 +10,7 @@
  *     was typed; the caller decides when to reset.
  *   - reduced motion: no slide.
  */
-import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useId, useRef, useState, type ReactNode, type RefObject } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -28,6 +28,11 @@ interface CopSheetProps {
   children: ReactNode
   /** Extra classes on the portal root (e.g. `dark`). */
   rootClassName?: string
+  /**
+   * What to focus on open (e.g. the answer field). Default: Close. A ref that is empty
+   * at open falls back to the first focusable element, which is Close.
+   */
+  initialFocusRef?: RefObject<HTMLElement | null>
 }
 
 const EASE = 'cubic-bezier(0.32, 0.72, 0, 1)'
@@ -54,7 +59,7 @@ function useVisualViewport(active: boolean) {
   return state
 }
 
-export default function CopSheet({ open, onOpenChange, title, description, headerActions, children, rootClassName }: CopSheetProps) {
+export default function CopSheet({ open, onOpenChange, title, description, headerActions, children, rootClassName, initialFocusRef }: CopSheetProps) {
   const isPhone = useIsPhone()
   const titleId = useId()
   const descriptionId = useId()
@@ -76,7 +81,7 @@ export default function CopSheet({ open, onOpenChange, title, description, heade
   }
 
   const close = useCallback(() => onOpenChange(false), [onOpenChange])
-  useModalOverlay({ open, onClose: close, containerRef: panelRef, initialFocusRef: closeRef })
+  useModalOverlay({ open, onClose: close, containerRef: panelRef, initialFocusRef: initialFocusRef ?? closeRef })
   const viewport = useVisualViewport(open && isPhone)
 
   const height = () => panelRef.current?.getBoundingClientRect().height || window.innerHeight * 0.9
