@@ -10,7 +10,8 @@
  * every route a share link, an anonymous reader of a public session or a signed-in
  * non-collaborator reads drops it entirely — its position is the photo's GPS — the
  * markers layer, the CoT feed, the markers list and the marker changelog
- * (teamOnlyPhotoMarker / PUBLIC_MARKERS_SQL). Once CONFIRMED it shows like any marker.
+ * (teamOnlyPhotoMarker / PUBLIC_MARKERS_SQL). Once CONFIRMED it shows like any marker,
+ * except its changelog, whose values (the photo's position and every move) stay the team's.
  * PROBABLE, SUSPECTED and DOUBTFUL stay team-only: "confirmed" is the editor's call.
  *
  * Dedupe: one per evidence item, checked in the INSERT (insertCopMarkerOnce) and backed
@@ -22,9 +23,14 @@ import type { StoredLocation } from './cop-uploads'
 export const PHOTO_GPS_SOURCE = 'PHOTO_GPS'
 export const PHOTO_LOCATION_LABEL = 'Photo location'
 
+/** A marker placed from a photo's GPS. */
+export function photoGpsMarker(row: { source_type?: unknown }): boolean {
+  return String(row.source_type ?? '').toUpperCase() === PHOTO_GPS_SOURCE
+}
+
 /** A photo-location marker no editor has confirmed: never shown outside the team. */
 export function teamOnlyPhotoMarker(row: { source_type?: unknown; confidence?: unknown }): boolean {
-  return String(row.source_type ?? '').toUpperCase() === PHOTO_GPS_SOURCE && row.confidence !== 'CONFIRMED'
+  return photoGpsMarker(row) && row.confidence !== 'CONFIRMED'
 }
 
 /** SQL for the markers a non-collaborator may see (alias-free; for `FROM cop_markers`). */

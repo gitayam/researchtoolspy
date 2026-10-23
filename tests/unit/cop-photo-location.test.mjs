@@ -491,3 +491,24 @@ test('surveys and intake forms still strip a photo completely (only the drop for
   const kept = await sanitizeFormDataFiles(formData, schema, { keepLocation: true })
   assert.ok(tiffPosition(exifBlocks(Buffer.from(kept.formData.photo.split(',')[1], 'base64'), 'image/jpeg')[0]))
 })
+
+test('a photo marker\'s changelog never gives a non-collaborator its coordinates, before or after it is confirmed', async () => {
+  const { db, env } = await photoFixture()
+  const { evidence } = await (await uploadPhoto(env, 'editor', phonePhoto('image/jpeg'))).json()
+  const markerId = evidence.photo_marker_id
+  const put = (body) => cop(env, 'PUT', `/api/cop/${SESSION}/markers`, { who: 'editor', body: { id: markerId, ...body }, handler: mod('markers'), params: { id: SESSION } })
+  assert.equal((await put({ lat: 48.87, lon: 2.3 })).status, 200, 'an editor moves it')
+  assert.equal((await put({ confidence: 'CONFIRMED' })).status, 200, 'and confirms it')
+  db.prepare('UPDATE cop_sessions SET is_public = 1 WHERE id = ?').run(SESSION)
+  const read = async (who) => {
+    const res = await cop(env, 'GET', `/api/cop/${SESSION}/marker-changelog?marker_id=${markerId}`, { who, handler: mod('markerChangelog'), params: { id: SESSION } })
+    assert.equal(res.status, 200)
+    return (await res.json()).changelog
+  }
+  const team = await read('viewer')
+  assert.match(JSON.stringify(team), /48\.858/, 'positive control: the team sees where the photo said it was')
+  const theirs = await read('attacker')
+  assert.equal(theirs.length, team.length, 'the entries are listed')
+  assert.ok(theirs.every((e) => e.old_value === null && e.new_value === null))
+  assert.doesNotMatch(JSON.stringify(theirs), /48\.858|2\.294|48\.87/, 'no coordinates in any entry')
+})

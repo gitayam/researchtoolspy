@@ -6,7 +6,7 @@
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { unreviewedTipIds } from '../../_shared/cop-input'
-import { teamOnlyPhotoMarker } from '../../_shared/cop-photo-location'
+import { photoGpsMarker, teamOnlyPhotoMarker } from '../../_shared/cop-photo-location'
 import { emitCopEvent } from '../../_shared/cop-events'
 import { MARKER_LOGGED } from '../../_shared/cop-event-types'
 import { getUserFromRequest, verifyCopSessionAccess, requireCopEditor } from '../../_shared/auth-helpers'
@@ -53,12 +53,15 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     let changelog = rows.results ?? []
 
     if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
-      // A photo-location marker no editor has confirmed is the team's only (its entries
-      // carry the photo's position).
+      // A photo-location marker's entries carry positions from the photo's GPS (where it
+      // was placed, and every move): none for one no editor has confirmed, and once
+      // confirmed the entries without their values.
       const marker = await env.DB.prepare('SELECT source_type, confidence FROM cop_markers WHERE id = ? AND cop_session_id = ?')
         .bind(markerId, sessionId).first<{ source_type: string | null; confidence: string | null }>()
       if (marker && teamOnlyPhotoMarker(marker)) {
         changelog = []
+      } else if (marker && photoGpsMarker(marker)) {
+        changelog = changelog.map((row) => ({ ...row, old_value: null, new_value: null }))
       } else if ((await unreviewedTipIds(env.DB, sessionId)).markers.has(markerId)) {
         // A public session's other readers don't see an unreviewed drop-form tip's text.
         changelog = changelog.map((row) => ({ ...row, old_value: null, new_value: null, rationale: null, created_by_name: null }))
