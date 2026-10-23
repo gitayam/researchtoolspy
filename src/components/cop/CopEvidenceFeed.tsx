@@ -30,6 +30,7 @@ import { useBulkSelection } from '@/hooks/useBulkSelection'
 import { TagFilterNote } from '@/components/cop/CopTagFilter'
 import { useCopTagFilter } from '@/components/cop/tag-filter-context'
 import { CopUploadDownload, CopUploadImage } from '@/components/cop/CopUploadPreview'
+import { CopArchiveLink } from '@/components/cop/CopArchiveLink'
 import { isCopUploadPath } from '@/lib/cop-upload-preview'
 import { BulkTagBar, useCopTagsContext } from '@/components/cop/tags'
 import { useCopChangeListener, useCopHighlight } from '@/hooks/useCopChanges'
@@ -52,6 +53,10 @@ interface FeedItem {
   /** True when this evidence item has a map marker linked */
   hasPinned?: boolean
   tags?: Array<{ id: string; tag_category: string; tag_value: string }>
+  /** Collaborators only: where the original lives (Silo / PeerTube) and the scan hold. */
+  archive_url?: string | null
+  archived_in?: string | null
+  held?: boolean
 }
 
 interface HandleDetection {
@@ -253,6 +258,9 @@ export default function CopEvidenceFeed({
           entities: e.entities ?? undefined,
           status: 'completed' as const,
           tags: tagsMap[e.id] ?? [],
+          archive_url: typeof e.archive_url === 'string' ? e.archive_url : null,
+          archived_in: typeof e.archived_in === 'string' ? e.archived_in : null,
+          held: e.held === true,
         })
       )
 
@@ -894,6 +902,7 @@ export default function CopEvidenceFeed({
                         {upload && !uploadImage && (
                           <CopUploadDownload path={item.url!} title={item.title} className="mt-1" />
                         )}
+                        <CopArchiveLink item={item} className="mt-1" />
                         {saved && <CopItemTags targetType="evidence" targetId={item.id} label="evidence item" />}
                         {saved && <FileUnderQuestions sessionId={sessionId} evidenceId={String(item.id)} />}
                         <div className="flex items-center gap-2 mt-0.5">
