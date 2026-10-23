@@ -26,6 +26,11 @@ export const COP_SERVICE_ROUTES: readonly { method: string; path: RegExp }[] = [
     method: 'GET',
     path: /^\/api\/cop\/(?!public(?:\/|$)|sessions(?:\/|$))[^/]+\/(?:claims|stats|webcams\/nearby|tags|item-tags|geocode|rfis)$/,
   },
+  // What happened in the COP, for the linked rooms' digest ("From the COP"); never the bot's own.
+  {
+    method: 'GET',
+    path: /^\/api\/cop\/(?!public(?:\/|$)|sessions(?:\/|$))[^/]+\/chat-feed$/,
+  },
   {
     method: 'POST',
     path: /^\/api\/cop\/(?!public(?:\/|$)|sessions(?:\/|$))[^/]+\/(?:shares|rfis|evidence|markers|timeline|tasks|poo-estimates|personas|claims|hypotheses|webcams|tags|item-tags|suggest|uploads|evidence-links)$/,

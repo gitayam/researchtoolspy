@@ -13,7 +13,7 @@ import { createTimelineEntry } from '../../_shared/timeline-helper'
 import { generatePrefixedId , JSON_HEADERS } from '../../_shared/api-utils'
 import { logEvent } from '../../_shared/event-log'
 import { copCallerUserId } from '../../_shared/cop-caller'
-import { emitCopEvent } from '../../_shared/cop-events'
+import { emitCopEvent, emitCopEvents } from '../../_shared/cop-events'
 import { CLAIM_CREATED, CLAIM_DELETED, CLAIM_UPDATED, EVIDENCE_CREATED } from '../../_shared/cop-event-types'
 import {
   copSourceChannel, copSourceRef, expectedUpdatedAt, serviceChangeRefused, serviceDeleteRefused, serviceMayChange, serviceMayDelete, setEvidenceSession, setProvenance,
@@ -124,14 +124,15 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const channel = copSourceChannel(context)
     const ref = copSourceRef(context)
     for (const id of ids) await setProvenance(env.DB, 'cop_claims', id, channel, ref)
-    await emitCopEvent(env.DB, {
+    // One event per claim, each with its id (the chat feed and panels see every claim).
+    await emitCopEvents(env.DB, ids.map((id) => ({
       copSessionId: sessionId,
       eventType: CLAIM_CREATED,
-      entityType: 'claim',
-      entityId: ids.length === 1 ? ids[0] : null,
+      entityType: 'claim' as const,
+      entityId: id,
       payload: { count: ids.length },
       createdBy: userId,
-    })
+    })))
 
     try {
       const domain = body.url ? new URL(body.url).hostname.replace(/^www\./, '') : 'unknown'

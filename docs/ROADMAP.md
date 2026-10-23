@@ -10,6 +10,8 @@ This is the living roadmap — the single source of truth for "what's next." Det
 
 **Subsystem roadmap:** getting everything a Signal breakout room produces (links, files archived in Silo, `!action`/`!rfi`/`!objective` and the rest, with their later state changes) into its linked COP is planned in the bot's [chat-to-COP capture roadmap](https://git.juntogroups.org/irregulars/irregularchat-monorepo/-/blob/main/selfhost/messaging-apps/docs/chat-to-cop-roadmap.md) (2026-10-23).
 
+**COP → chat** (the reverse direction): what happens in a COP (new tips, answers, closed and reopened questions, confirmed markers, reviewed tips, evidence filed under a question) goes back to each linked Signal room's digest, labelled for a chat reader and never echoing what the room itself posted. It is the item "COP → chat" on the monorepo roadmap above; the ResearchTools side is `GET /api/cop/:id/chat-feed` (contract at the top of `functions/api/cop/[id]/chat-feed.ts`, 2026-10-23).
+
 ---
 
 ## Direction

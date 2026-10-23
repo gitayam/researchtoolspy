@@ -80,6 +80,35 @@ export async function emitCopEvent(
   }
 }
 
+/**
+ * Emit several events in one D1 batch (e.g. one per claim of a bulk create), so each
+ * carries its own entity id without a round trip per row. Same fire-and-forget rule.
+ */
+export async function emitCopEvents(db: D1Database, events: EmitCopEventParams[]): Promise<void> {
+  // D1 binds at most 100 parameters per statement; one row per statement keeps it simple.
+  for (let i = 0; i < events.length; i += 50) {
+    const chunk = events.slice(i, i + 50)
+    try {
+      await db.batch(chunk.map((params) => db.prepare(`
+        INSERT INTO cop_events (id, cop_session_id, event_type, entity_type, entity_id, payload, created_by)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).bind(
+        generateEventId(),
+        params.copSessionId,
+        params.eventType,
+        params.entityType,
+        params.entityId ?? null,
+        JSON.stringify(params.payload ?? {}),
+        params.createdBy,
+      )))
+      const store = emitTracker.getStore()
+      if (store) store.emitted += chunk.length
+    } catch (error) {
+      console.error('[COP Events] Failed to emit events:', chunk[0]?.eventType, error)
+    }
+  }
+}
+
 // ── Change feed ──────────────────────────────────────────────────
 
 const FEED_TYPES: ReadonlySet<string> = new Set(COP_FEED_ENTITY_TYPES)
@@ -112,6 +141,34 @@ export function changesLimit(raw: string | null): number {
   return Math.min(n, CHANGES_MAX_LIMIT)
 }
 
+export type SinceCursor =
+  | { ok: true; fromNow: true; cursor: string }
+  | { ok: true; fromNow: false; after: number }
+  | { ok: false; status: 400; error: string }
+
+/**
+ * Where a feed read starts (the change feed and the chat feed). `since` '' or absent:
+ * from now (fromNow, with the session's latest cursor). A cursor from an earlier answer
+ * (the event row's rowid), or an event id of this session: after that row. Anything
+ * else is a 400.
+ */
+export async function resolveSinceCursor(db: D1Database, sessionId: string, since: string | null): Promise<SinceCursor> {
+  const raw = (since ?? '').trim()
+  if (raw === '') {
+    const latest = await db.prepare('SELECT MAX(rowid) AS seq FROM cop_events WHERE cop_session_id = ?')
+      .bind(sessionId).first<{ seq: number | null }>()
+    return { ok: true, fromNow: true, cursor: String(latest?.seq ?? 0) }
+  }
+  if (/^\d{1,15}$/.test(raw)) return { ok: true, fromNow: false, after: Number(raw) }
+  if (/^evt-[a-z0-9-]{1,64}$/i.test(raw)) {
+    const row = await db.prepare('SELECT rowid AS seq FROM cop_events WHERE id = ? AND cop_session_id = ?')
+      .bind(raw, sessionId).first<{ seq: number }>()
+    if (!row) return { ok: false, status: 400, error: 'Unknown since cursor' }
+    return { ok: true, fromNow: false, after: Number(row.seq) }
+  }
+  return { ok: false, status: 400, error: 'Invalid since cursor' }
+}
+
 /**
  * The session's changes after `since`, oldest first.
  *
@@ -134,24 +191,10 @@ export async function listCopChanges(
   allowed?: ReadonlySet<CopFeedEntityType>,
   redactIds?: ReadonlySet<CopFeedEntityType>,
 ): Promise<CopChangesResult> {
-  const raw = (since ?? '').trim()
-  if (raw === '') {
-    const latest = await db.prepare('SELECT MAX(rowid) AS seq FROM cop_events WHERE cop_session_id = ?')
-      .bind(sessionId).first<{ seq: number | null }>()
-    return { ok: true, events: [], cursor: String(latest?.seq ?? 0), has_more: false }
-  }
-
-  let after: number
-  if (/^\d{1,15}$/.test(raw)) {
-    after = Number(raw)
-  } else if (/^evt-[a-z0-9-]{1,64}$/i.test(raw)) {
-    const row = await db.prepare('SELECT rowid AS seq FROM cop_events WHERE id = ? AND cop_session_id = ?')
-      .bind(raw, sessionId).first<{ seq: number }>()
-    if (!row) return { ok: false, status: 400, error: 'Unknown since cursor' }
-    after = Number(row.seq)
-  } else {
-    return { ok: false, status: 400, error: 'Invalid since cursor' }
-  }
+  const start = await resolveSinceCursor(db, sessionId, since)
+  if (start.ok === false) return start
+  if (start.fromNow === true) return { ok: true, events: [], cursor: start.cursor, has_more: false }
+  const after = start.after
 
   const rows = await db.prepare(`
     SELECT rowid AS seq, id, entity_type, entity_id, event_type, created_at

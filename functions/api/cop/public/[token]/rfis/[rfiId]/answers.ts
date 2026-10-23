@@ -147,8 +147,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       eventType: RFI_ANSWERED,
       entityType: 'rfi',
       entityId: rfiId,
-      payload: { via: 'share' },
-      createdBy: Number((share as { created_by?: unknown }).created_by) || 1,
+      // An anonymous visitor's answer: created_by 0, never the share's creator (who may be
+      // the Signal bot, whose own events the chat feed leaves out).
+      payload: { via: 'share', answer_id: id },
+      createdBy: 0,
     })
 
     return new Response(JSON.stringify({ id, message: 'Answer submitted' }), {

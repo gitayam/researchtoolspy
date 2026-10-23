@@ -120,6 +120,26 @@ export const PLAYBOOK_DELETED = 'playbook.deleted' as const
 export const INTAKE_FORM_CREATED = 'intake_form.created' as const
 export const INTAKE_FORM_UPDATED = 'intake_form.updated' as const
 export const ACTIVITY_LOGGED = 'activity.logged' as const
+
+// -- Typed changes the chat feed (GET /api/cop/:id/chat-feed) words for a chat reader.
+// Each is emitted next to the generic *.updated event of the same write, with the entity
+// id and the real actor as created_by, and no user id, name or email in the payload.
+/** An RFI moved back to open from answered, accepted or closed. */
+export const RFI_REOPENED = 'rfi.reopened' as const
+/** A task left 'done'. */
+export const TASK_REOPENED = 'task.reopened' as const
+/** A task's priority changed; payload { priority }. */
+export const TASK_PRIORITY_CHANGED = 'task.priority_changed' as const
+/** A marker's confidence became CONFIRMED. */
+export const MARKER_CONFIRMED = 'marker.confirmed' as const
+/** An evidence item's credibility changed (an editor reviewed it); payload { credibility }. */
+export const EVIDENCE_REVIEWED = 'evidence.reviewed' as const
+// Evidence filed under a question or task (cop-evidence-links.ts): one event on each end,
+// payload { link_id, target_type } (+ via: 'tip' when the tipster chose the question).
+export const EVIDENCE_LINK_UPDATED = 'evidence.link_updated' as const
+export const EVIDENCE_UNLINKED = 'evidence.unlinked' as const
+/** A team vote on a filing: counts only, created_by 0. Never in the chat feed. */
+export const EVIDENCE_LINK_VOTED = 'evidence.link_voted' as const
 /** Emitted by functions/api/cop/_middleware.ts for a successful write that emitted nothing. */
 export const ENTITY_CHANGED = 'entity.changed' as const
 
@@ -188,3 +208,5 @@ export type CopEventType =
   | typeof PLAYBOOK_CREATED | typeof PLAYBOOK_UPDATED | typeof PLAYBOOK_DELETED
   | typeof INTAKE_FORM_CREATED | typeof INTAKE_FORM_UPDATED
   | typeof ACTIVITY_LOGGED | typeof ENTITY_CHANGED
+  | typeof RFI_REOPENED | typeof TASK_REOPENED | typeof TASK_PRIORITY_CHANGED | typeof MARKER_CONFIRMED
+  | typeof EVIDENCE_REVIEWED | typeof EVIDENCE_LINK_UPDATED | typeof EVIDENCE_UNLINKED | typeof EVIDENCE_LINK_VOTED
