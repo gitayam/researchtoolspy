@@ -196,7 +196,7 @@ export default function CopSidebar({ mode, stats, panelOrder, onResetLayout, cla
                   onClick={() => handleNavClick(item.id)}
                   title={item.label}
                   className={cn(
-                    'w-full flex items-center gap-2 rounded-md transition-colors duration-100 cursor-pointer focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none',
+                    'relative w-full flex items-center gap-2 rounded-md transition-colors duration-100 cursor-pointer focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none',
                     collapsed ? 'justify-center px-1 py-1.5' : isMenu ? 'min-h-11 px-3 py-2' : 'px-2 py-1.5',
                     isActive
                       ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100'
@@ -224,7 +224,7 @@ export default function CopSidebar({ mode, stats, panelOrder, onResetLayout, cla
                     </>
                   )}
                   {collapsed && badge != null && (
-                    <span className="absolute -top-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-amber-500" />
+                    <span className="absolute top-0.5 right-0.5 h-1.5 w-1.5 rounded-full bg-amber-500" aria-hidden="true" />
                   )}
                 </button>
               </li>
