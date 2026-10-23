@@ -16,7 +16,7 @@ import { logEvent } from '../../_shared/event-log'
 import { shareExpired, sharePanels } from '../../_shared/cop-share'
 import { listSessionWebcams, publicWebcam } from '../../_shared/cop-webcams'
 import { publicEvidence, publicEvidenceForm, publicKeyRfis } from '../../_shared/cop-public'
-import { evidenceCounts, publicEvidenceByRfi } from '../../_shared/cop-evidence-links'
+import { filedCounts, publicEvidenceByRfi } from '../../_shared/cop-evidence-links'
 
 interface Env {
   DB: D1Database
@@ -162,22 +162,25 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       }))
     }
 
-    // Evidence filed under the questions this link shows: counts always; the items only
-    // with the evidence panel (unreviewed drop tips masked as in the evidence list).
-    const shownRfis: { id: string; evidence_count?: number; evidence?: unknown }[] =
+    // Evidence filed under the questions this link shows. evidence_count counts reviewed
+    // evidence only — an unreviewed drop-form tip never counts toward what the public
+    // sees. With the evidence panel the items come too (tips masked, no relation), and
+    // unreviewed_count says how many of them are unreviewed tips.
+    const shownRfis: { id: string; evidence_count?: number; unreviewed_count?: number; evidence?: unknown }[] =
       [...(response.key_rfis ?? []), ...(response.rfis ?? [])]
     if (shownRfis.length > 0) {
+      const scope = { sessionId: share.cop_session_id, workspaceId: String((session as { workspace_id?: unknown }).workspace_id) }
       const ids = [...new Set(shownRfis.map((r) => String(r.id)))]
-      const counts = await evidenceCounts(env.DB, share.cop_session_id, 'rfi', ids)
-      const filed = visiblePanels.includes('evidence')
-        ? await publicEvidenceByRfi(env.DB, {
-            sessionId: share.cop_session_id,
-            workspaceId: String((session as { workspace_id?: unknown }).workspace_id),
-          }, ids)
-        : null
+      const counts = await filedCounts(env.DB, scope, 'rfi', ids)
+      const showsEvidence = visiblePanels.includes('evidence')
+      const filed = showsEvidence ? await publicEvidenceByRfi(env.DB, scope, ids) : null
       for (const rfi of shownRfis) {
-        rfi.evidence_count = counts.get(String(rfi.id)) ?? 0
-        if (filed) rfi.evidence = filed.get(String(rfi.id)) ?? []
+        const c = counts.get(String(rfi.id)) ?? { all: 0, unreviewed: 0 }
+        rfi.evidence_count = c.all - c.unreviewed
+        if (filed) {
+          rfi.unreviewed_count = c.unreviewed
+          rfi.evidence = filed.get(String(rfi.id)) ?? []
+        }
       }
     }
 

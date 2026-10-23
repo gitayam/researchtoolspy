@@ -64,7 +64,7 @@ import {
 // ── Types ────────────────────────────────────────────────────────
 
 /** Evidence filed under a question: the count always, the items only with the evidence panel. */
-type FiledOnShare = { evidence_count?: number; evidence?: CopPublicFiledEvidence[] }
+type FiledOnShare = { evidence_count?: number; unreviewed_count?: number; evidence?: CopPublicFiledEvidence[] }
 type PublicRfi = CopRfi & QuestionLike & { answer_count?: number } & FiledOnShare
 
 /** A starred RFI as the share sends it with the `questions` panel. */
@@ -471,7 +471,7 @@ export default function PublicCopPage() {
         <ul className="space-y-1.5">
           {rfi.evidence.map((item, i) => (
             <li key={`${item.created_at}-${i}`} className="flex items-start gap-2 rounded-md bg-gray-800 p-2">
-              <RelationChip relation={item.relation} onDark className="mt-0.5 shrink-0" />
+              {item.relation && <RelationChip relation={item.relation} onDark className="mt-0.5 shrink-0" />}
               <div className="min-w-0 flex-1">
                 <p className="break-words text-sm text-gray-200">{item.title}</p>
                 <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-gray-500">
@@ -494,8 +494,13 @@ export default function PublicCopPage() {
             </li>
           ))}
         </ul>
-        {count > rfi.evidence.length && (
-          <p className="text-xs text-gray-500">Showing the newest {rfi.evidence.length} of {count}.</p>
+        {(rfi.unreviewed_count ?? 0) > 0 && (
+          <p className="text-xs text-gray-500">
+            {rfi.unreviewed_count} unverified tip{rfi.unreviewed_count !== 1 ? 's are' : ' is'} listed but not counted until reviewed.
+          </p>
+        )}
+        {count + (rfi.unreviewed_count ?? 0) > rfi.evidence.length && (
+          <p className="text-xs text-gray-500">Showing the newest {rfi.evidence.length}.</p>
         )}
       </div>
     )

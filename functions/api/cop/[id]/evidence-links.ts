@@ -29,6 +29,11 @@ interface Env {
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: JSON_HEADERS })
 
+async function sessionArchived(db: D1Database, sessionId: string): Promise<boolean> {
+  const row = await db.prepare('SELECT status FROM cop_sessions WHERE id = ?').bind(sessionId).first<{ status: string | null }>()
+  return String(row?.status ?? '').toUpperCase() === 'ARCHIVED'
+}
+
 const unavailable = () => json({
   error: 'Filing evidence under questions is not available on this server yet.',
   code: 'EVIDENCE_LINKS_UNAVAILABLE',
@@ -50,9 +55,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   const sessionId = params.id as string
   const userId = await copCallerUserId(context)
   if (!userId) return json({ error: 'Authentication required' }, 401)
-  if (!(await verifyCopSessionAccess(env.DB, sessionId, userId, { readOnly: true }))) {
-    return json({ error: 'Access denied' }, 403)
-  }
+  const workspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId, { readOnly: true })
+  if (!workspaceId) return json({ error: 'Access denied' }, 403)
 
   const query = new URL(request.url).searchParams
   const rawType = query.get('target_type')
@@ -66,7 +70,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   if (evidenceId === null) return json({ error: 'evidence_id is not valid' }, 400)
 
   try {
-    const links = await listEvidenceLinks(env.DB, sessionId, {
+    const links = await listEvidenceLinks(env.DB, { sessionId, workspaceId }, {
       targetType,
       targetId,
       evidenceId,
@@ -84,6 +88,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   if (!userId) return json({ error: 'Authentication required' }, 401)
   const workspaceId = await requireCopEditor(env.DB, sessionId, userId)
   if (!workspaceId) return json({ error: 'Only the session owner or an editor can file evidence' }, 403)
+  if (await sessionArchived(env.DB, sessionId)) return json({ error: 'This COP session is archived' }, 410)
 
   let body: Record<string, unknown>
   try {
@@ -130,6 +135,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
   if (!(await requireCopEditor(env.DB, sessionId, userId))) {
     return json({ error: 'Only the session owner or an editor can remove a link' }, 403)
   }
+  if (await sessionArchived(env.DB, sessionId)) return json({ error: 'This COP session is archived' }, 410)
   let linkId: string | null = new URL(request.url).searchParams.get('id')
   if (!linkId) {
     try {

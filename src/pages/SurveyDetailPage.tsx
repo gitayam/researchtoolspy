@@ -1149,7 +1149,7 @@ function SettingsTab({
             <span>
               Let tipsters pick a question
               <span className="block text-xs text-gray-500 dark:text-gray-400">
-                The form lists this COP’s key questions; a tip is filed under the one chosen, without answering it.
+                This publishes the COP’s key questions to anyone who has this form’s link, or a share link that lets viewers submit evidence. A tip is filed under the question chosen, without answering it.
               </span>
             </span>
           </label>

@@ -286,7 +286,8 @@ export interface CopPublicFiledEvidence {
   title: string
   url: string | null
   credibility: string | null
-  relation: CopEvidenceRelation
+  /** null for an unreviewed drop-form tip (its tipster's say-so is not shown). */
+  relation: CopEvidenceRelation | null
   created_at: string
 }
 

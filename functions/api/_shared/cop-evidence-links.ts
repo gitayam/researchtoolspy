@@ -121,16 +121,18 @@ export async function upsertEvidenceLink(
   }
 
   const existing = await db.prepare(
-    `SELECT ${LINK_COLUMNS}, created_by FROM cop_evidence_links WHERE evidence_id = ? AND target_type = ? AND target_id = ?`
-  ).bind(input.evidenceId, input.targetType, input.targetId).first<EvidenceLink & { created_by: number }>()
+    `SELECT ${LINK_COLUMNS}, created_by FROM cop_evidence_links
+     WHERE cop_session_id = ? AND evidence_id = ? AND target_type = ? AND target_id = ?`
+  ).bind(scope.sessionId, input.evidenceId, input.targetType, input.targetId).first<EvidenceLink & { created_by: number }>()
 
   if (existing) {
     if (input.serviceUserId !== null && String(existing.created_by) !== String(input.serviceUserId)) {
       return { ok: false, status: 403, error: 'A service may only change links it created', code: 'NOT_OWN_LINK' }
     }
     if (existing.relation !== input.relation || (existing.note ?? null) !== input.note) {
-      await db.prepare('UPDATE cop_evidence_links SET relation = ?, note = ? WHERE id = ? AND cop_session_id = ?')
+      const updated = await db.prepare('UPDATE cop_evidence_links SET relation = ?, note = ? WHERE id = ? AND cop_session_id = ?')
         .bind(input.relation, input.note, existing.id, scope.sessionId).run()
+      if (!updated.meta?.changes) return { ok: false, status: 404, error: 'Link not found in this COP' }
       await emitLinkEvents(db, scope.sessionId, 'evidence.link_updated', input, existing.id)
     }
     return {
@@ -145,18 +147,29 @@ export async function upsertEvidenceLink(
 
   const id = `evl-${crypto.randomUUID()}`
   const now = new Date().toISOString()
-  // The unique key settles a race between two writers: the loser keeps the winner's row.
+  // One statement: the per-evidence cap and the unique key are checked as the row is
+  // written, so neither a race nor parallel callers can pass them. A lost race keeps
+  // the winner's row.
   const inserted = await db.prepare(`
     INSERT INTO cop_evidence_links (id, cop_session_id, evidence_id, target_type, target_id, relation, note, created_by, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?
+    WHERE (SELECT COUNT(*) FROM cop_evidence_links WHERE cop_session_id = ? AND evidence_id = ?) < ?
     ON CONFLICT (evidence_id, target_type, target_id) DO NOTHING
-  `).bind(id, scope.sessionId, input.evidenceId, input.targetType, input.targetId, input.relation, input.note, input.actorUserId, now).run()
+  `).bind(
+    id, scope.sessionId, input.evidenceId, input.targetType, input.targetId, input.relation, input.note, input.actorUserId, now,
+    scope.sessionId, input.evidenceId, MAX_LINKS_PER_EVIDENCE,
+  ).run()
   if (!inserted.meta?.changes) {
     const winner = await db.prepare(
-      `SELECT ${LINK_COLUMNS} FROM cop_evidence_links WHERE evidence_id = ? AND target_type = ? AND target_id = ?`
-    ).bind(input.evidenceId, input.targetType, input.targetId).first<EvidenceLink>()
-    if (!winner) return { ok: false, status: 409, error: 'The link changed while saving; try again' }
-    return { ok: true, created: false, link: winner }
+      `SELECT ${LINK_COLUMNS} FROM cop_evidence_links WHERE cop_session_id = ? AND evidence_id = ? AND target_type = ? AND target_id = ?`
+    ).bind(scope.sessionId, input.evidenceId, input.targetType, input.targetId).first<EvidenceLink>()
+    if (winner) return { ok: true, created: false, link: winner }
+    return {
+      ok: false,
+      status: 409,
+      error: `An evidence item can be filed under at most ${MAX_LINKS_PER_EVIDENCE} questions and tasks`,
+      code: 'LINK_LIMIT',
+    }
   }
   await emitLinkEvents(db, scope.sessionId, 'evidence.linked', input, id)
   return {
@@ -205,21 +218,32 @@ async function emitLinkEvents(
   })
 }
 
-/** The session's links, optionally narrowed; [] before migration 0024. */
+/**
+ * The session's links, optionally narrowed; [] before migration 0024. Joined to the
+ * session's evidence (evidenceInSession), so a link whose evidence is gone or isn't
+ * this COP's is never listed.
+ */
 export async function listEvidenceLinks(
   db: D1Database,
-  sessionId: string,
+  scope: EvidenceSessionScope,
   filter: { targetType?: LinkTargetType; targetId?: string; evidenceId?: string } = {},
 ): Promise<EvidenceLink[]> {
-  const where = ['cop_session_id = ?']
-  const binds: unknown[] = [sessionId]
-  if (filter.targetType) { where.push('target_type = ?'); binds.push(filter.targetType) }
-  if (filter.targetId) { where.push('target_id = ?'); binds.push(filter.targetId) }
-  if (filter.evidenceId) { where.push('evidence_id = ?'); binds.push(filter.evidenceId) }
+  const where = ['l.cop_session_id = ?']
+  const binds: unknown[] = [scope.sessionId]
+  if (filter.targetType) { where.push('l.target_type = ?'); binds.push(filter.targetType) }
+  if (filter.targetId) { where.push('l.target_id = ?'); binds.push(filter.targetId) }
+  if (filter.evidenceId) { where.push('l.evidence_id = ?'); binds.push(filter.evidenceId) }
   try {
-    const rows = await db.prepare(
-      `SELECT ${LINK_COLUMNS} FROM cop_evidence_links WHERE ${where.join(' AND ')} ORDER BY created_at ASC, id ASC LIMIT 5000`
-    ).bind(...binds).all<EvidenceLink>()
+    const rows = await queryEvidenceInSession(
+      db,
+      `SELECT l.id, l.evidence_id, l.target_type, l.target_id, l.relation, l.note, l.created_at
+       FROM cop_evidence_links l JOIN evidence_items e ON CAST(e.id AS TEXT) = l.evidence_id
+       WHERE ${where.join(' AND ')} AND {EVIDENCE_SCOPE}
+       ORDER BY l.created_at ASC, l.id ASC LIMIT 5000`,
+      scope, binds, [],
+      (statement) => statement.all<EvidenceLink>(),
+      'e',
+    )
     return rows.results ?? []
   } catch (error) {
     if (linksTableMissing(error)) return []
@@ -227,29 +251,70 @@ export async function listEvidenceLinks(
   }
 }
 
-/** How much evidence is filed under each of these RFIs/tasks; empty before migration 0024. */
-export async function evidenceCounts(
+/** SQL (on evidence_items as `e`): a drop-form tip no editor has reviewed yet. Needs migration 0022. */
+const UNREVIEWED_TIP_SQL = "(e.source_channel = 'drop' AND (e.credibility IS NULL OR e.credibility = 'unverified'))"
+
+export interface FiledCounts {
+  /** Everything filed under it that is the session's evidence. */
+  all: number
+  /** Unreviewed drop-form tips among them (what a share leaves out of its count). */
+  unreviewed: number
+}
+
+/**
+ * How much evidence is filed under each of these RFIs/tasks: only links whose evidence
+ * is the session's (evidenceInSession), so an orphaned link never counts. Empty before
+ * migration 0024; `unreviewed` is 0 before migration 0022.
+ */
+export async function filedCounts(
   db: D1Database,
-  sessionId: string,
+  scope: EvidenceSessionScope,
   targetType: LinkTargetType,
   targetIds: readonly string[],
-): Promise<Map<string, number>> {
-  const counts = new Map<string, number>()
+): Promise<Map<string, FiledCounts>> {
+  const counts = new Map<string, FiledCounts>()
   if (targetIds.length === 0) return counts
+  const run = async (chunk: readonly string[], unreviewedSql: string) => queryEvidenceInSession(
+    db,
+    `SELECT l.target_id, COUNT(*) AS n, SUM(CASE WHEN ${unreviewedSql} THEN 1 ELSE 0 END) AS tips
+     FROM cop_evidence_links l JOIN evidence_items e ON CAST(e.id AS TEXT) = l.evidence_id
+     WHERE l.cop_session_id = ? AND l.target_type = ? AND l.target_id IN (${chunk.map(() => '?').join(',')})
+       AND {EVIDENCE_SCOPE}
+     GROUP BY l.target_id`,
+    scope, [scope.sessionId, targetType, ...chunk], [],
+    (statement) => statement.all<{ target_id: string; n: number; tips: number }>(),
+    'e',
+  )
   try {
     for (let i = 0; i < targetIds.length; i += 90) {
       const chunk = targetIds.slice(i, i + 90)
-      const rows = await db.prepare(`
-        SELECT target_id, COUNT(*) AS n FROM cop_evidence_links
-        WHERE cop_session_id = ? AND target_type = ? AND target_id IN (${chunk.map(() => '?').join(',')})
-        GROUP BY target_id
-      `).bind(sessionId, targetType, ...chunk).all<{ target_id: string; n: number }>()
-      for (const row of rows.results ?? []) counts.set(String(row.target_id), Number(row.n) || 0)
+      let rows
+      try {
+        rows = await run(chunk, UNREVIEWED_TIP_SQL)
+      } catch (error) {
+        if (!isMissingColumn(error) || linksTableMissing(error)) throw error
+        rows = await run(chunk, '0 = 1')
+      }
+      for (const row of rows.results ?? []) {
+        counts.set(String(row.target_id), { all: Number(row.n) || 0, unreviewed: Number(row.tips) || 0 })
+      }
     }
   } catch (error) {
     if (!linksTableMissing(error)) throw error
   }
   return counts
+}
+
+/** The number of evidence items filed under each of these RFIs/tasks (for the team). */
+export async function evidenceCounts(
+  db: D1Database,
+  scope: EvidenceSessionScope,
+  targetType: LinkTargetType,
+  targetIds: readonly string[],
+): Promise<Map<string, number>> {
+  const out = new Map<string, number>()
+  for (const [id, c] of await filedCounts(db, scope, targetType, targetIds)) out.set(id, c.all)
+  return out
 }
 
 /** Remove the links of a deleted evidence item, RFI or task; nothing before migration 0024. */
@@ -266,6 +331,15 @@ export async function deleteLinksOf(
       await db.prepare('DELETE FROM cop_evidence_links WHERE cop_session_id = ? AND target_type = ? AND target_id = ?')
         .bind(sessionId, end.targetType, end.targetId).run()
     }
+  } catch (error) {
+    if (!linksTableMissing(error)) throw error
+  }
+}
+
+/** Remove every link of an evidence item deleted outside a COP route (the evidence library). */
+export async function deleteLinksOfEvidenceAnywhere(db: D1Database, evidenceId: string): Promise<void> {
+  try {
+    await db.prepare('DELETE FROM cop_evidence_links WHERE evidence_id = ?').bind(evidenceId).run()
   } catch (error) {
     if (!linksTableMissing(error)) throw error
   }
@@ -320,7 +394,8 @@ export interface PublicLinkedEvidence {
   title: string
   url: string | null
   credibility: string | null
-  relation: LinkRelation
+  /** null for an unreviewed drop-form tip: its tipster's say-so is not shown. */
+  relation: LinkRelation | null
   created_at: string
 }
 
@@ -339,9 +414,10 @@ export const PUBLIC_EVIDENCE_PER_QUESTION = 20
 
 /**
  * The evidence filed under these RFIs, for a share showing the evidence panel: title,
- * link (http(s) only), credibility, relation and date. Only the session's evidence;
- * an unreviewed drop-form tip shows as "Unverified tip" without its link, exactly as
- * the share's evidence list does. Never notes or descriptions.
+ * link (http(s) only), credibility, relation and date, at most
+ * PUBLIC_EVIDENCE_PER_QUESTION per question (limited in SQL). Only the session's
+ * evidence; an unreviewed drop-form tip shows as "Unverified tip" without its link or
+ * relation, exactly as the share's evidence list does. Never notes or descriptions.
  */
 export async function publicEvidenceByRfi(
   db: D1Database,
@@ -350,26 +426,28 @@ export async function publicEvidenceByRfi(
 ): Promise<Map<string, PublicLinkedEvidence[]>> {
   const out = new Map<string, PublicLinkedEvidence[]>()
   if (rfiIds.length === 0) return out
-  const clause = evidenceInSession(scope, 'e')
   const ids = rfiIds.slice(0, 200)
   const marks = ids.map(() => '?').join(',')
+  const query = (columns: string) => queryEvidenceInSession(
+    db,
+    `SELECT target_id, relation, ${columns} FROM (
+       SELECT l.target_id, l.relation, ${columns.split(', ').map((c) => `e.${c}`).join(', ')},
+         ROW_NUMBER() OVER (PARTITION BY l.target_id ORDER BY e.created_at DESC, e.id DESC) AS rn
+       FROM cop_evidence_links l JOIN evidence_items e ON CAST(e.id AS TEXT) = l.evidence_id
+       WHERE l.cop_session_id = ? AND l.target_type = 'rfi' AND l.target_id IN (${marks}) AND {EVIDENCE_SCOPE}
+     ) WHERE rn <= ${PUBLIC_EVIDENCE_PER_QUESTION}
+     ORDER BY target_id, rn`,
+    scope, [scope.sessionId, ...ids], [],
+    (statement) => statement.all<Record<string, unknown>>(),
+    'e',
+  )
   let rows: Record<string, unknown>[]
   try {
     try {
-      rows = ((await db.prepare(`
-        SELECT l.target_id, l.relation, e.title, e.source_url, e.credibility, e.source_channel, e.created_at
-        FROM cop_evidence_links l JOIN evidence_items e ON CAST(e.id AS TEXT) = l.evidence_id
-        WHERE l.cop_session_id = ? AND l.target_type = 'rfi' AND l.target_id IN (${marks}) AND ${clause.sql}
-        ORDER BY e.created_at DESC, e.id DESC
-      `).bind(scope.sessionId, ...ids, ...clause.binds).all<Record<string, unknown>>()).results ?? [])
+      rows = (await query('title, source_url, credibility, source_channel, created_at')).results ?? []
     } catch (error) {
       if (!isMissingColumn(error) || linksTableMissing(error)) throw error
-      rows = ((await db.prepare(`
-        SELECT l.target_id, l.relation, e.title, e.source_url, e.credibility, e.created_at
-        FROM cop_evidence_links l JOIN evidence_items e ON CAST(e.id AS TEXT) = l.evidence_id
-        WHERE l.cop_session_id = ? AND l.target_type = 'rfi' AND l.target_id IN (${marks}) AND ${clause.legacySql}
-        ORDER BY e.created_at DESC, e.id DESC
-      `).bind(scope.sessionId, ...ids, ...clause.legacyBinds).all<Record<string, unknown>>()).results ?? [])
+      rows = (await query('title, source_url, credibility, created_at')).results ?? []
     }
   } catch (error) {
     if (linksTableMissing(error)) return out
@@ -378,13 +456,12 @@ export async function publicEvidenceByRfi(
   for (const row of rows) {
     const key = String(row.target_id)
     const list = out.get(key) ?? []
-    if (list.length >= PUBLIC_EVIDENCE_PER_QUESTION) continue
     const unreviewed = unreviewedTipEvidence(row)
     list.push({
       title: unreviewed ? UNVERIFIED_TIP_LABEL : String(row.title ?? '').slice(0, 300),
       url: unreviewed ? null : httpUrl(row.source_url),
       credibility: (row.credibility as string | null) ?? null,
-      relation: (cleanRelation(row.relation) ?? 'supports'),
+      relation: unreviewed ? null : (cleanRelation(row.relation) ?? 'supports'),
       created_at: String(row.created_at ?? ''),
     })
     out.set(key, list)
@@ -413,6 +490,7 @@ export async function questionChoicesForDrop(db: D1Database, formId: string): Pr
       JOIN cop_sessions s ON s.id = d.cop_session_id
       JOIN cop_rfis r ON r.cop_session_id = s.id AND r.is_key = 1
       WHERE d.id = ? AND d.question_picker = 1
+        AND upper(coalesce(s.status, '')) <> 'ARCHIVED'
         AND (
           s.created_by = d.created_by
           OR EXISTS (

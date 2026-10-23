@@ -77,7 +77,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     }
 
     // Evidence filed under each question (migration 0024); filing never changes the status.
-    const evidenceCount = await evidenceCounts(env.DB, sessionId, 'rfi', rfiIds.map(String))
+    const evidenceCount = await evidenceCounts(env.DB, { sessionId, workspaceId: accessWorkspaceId }, 'rfi', rfiIds.map(String))
     const enriched = (rfis.results || []).map((r: any) => ({
       ...r,
       is_key: r.is_key ? 1 : 0,

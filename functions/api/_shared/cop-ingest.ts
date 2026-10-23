@@ -16,7 +16,7 @@
  * NULL in one UPDATE) makes a double submit, a retry or two reviewers clicking at
  * once produce one evidence item.
  */
-import { fileTipUnderChosenQuestion, linksTableMissing } from './cop-evidence-links'
+import { deleteLinksOf, fileTipUnderChosenQuestion, linksTableMissing } from './cop-evidence-links'
 import { applyItemTags, cleanTagName, dropItemTags, tagsTableMissing } from './cop-tags'
 import { emitCopEventLoose } from './cop-events-loose'
 import { queryEvidenceInSession } from './cop-input'
@@ -482,6 +482,8 @@ export async function retractAutoIngest(
     )
     if (removed.meta?.changes) {
       await dropItemTags(db, input.sessionId, 'evidence', evidenceId)
+      // Its filings under questions go with it (else they'd linger as orphans).
+      await deleteLinksOf(db, input.sessionId, { evidenceId })
       await emitCopEventLoose(db, {
         copSessionId: input.sessionId, eventType: 'evidence.deleted', entityType: 'evidence', entityId: evidenceId,
         payload: { reason: 'submission_rejected' }, createdBy: input.actorUserId,

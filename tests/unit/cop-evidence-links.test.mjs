@@ -31,6 +31,9 @@ Object.assign(ENTRIES, {
   surveyPublic: 'functions/api/surveys/public/[token].ts',
   dropSubmit: 'functions/api/surveys/public/[token]/drop-submit.ts',
   surveyItem: 'functions/api/surveys/[id].ts',
+  submissions: `${R}submissions.ts`,
+  verifyPassword: 'functions/api/surveys/public/[token]/verify-password.ts',
+  evidenceItems: 'functions/api/evidence-items.ts',
 })
 setupCoreSuite()
 
@@ -274,11 +277,13 @@ test('a share shows evidence counts; the filed items only with the evidence pane
 
   const full = await publicPayload(env, SHARE)
   const key = full.key_rfis.find((r) => r.id === keyRfi)
-  assert.equal(key.evidence_count, 2)
+  // The unreviewed tip is listed (masked) but not counted, and shows no relation.
+  assert.equal(key.evidence_count, 1)
+  assert.equal(key.unreviewed_count, 1)
   assert.equal(key.evidence.length, 2)
-  const tip = key.evidence.find((e) => e.relation === 'contradicts')
-  assert.equal(tip.title, 'Unverified tip')
+  const tip = key.evidence.find((e) => e.title === 'Unverified tip')
   assert.equal(tip.url, null)
+  assert.equal(tip.relation, null)
   const notice = key.evidence.find((e) => e.relation === 'supports')
   assert.equal(notice.title, 'Police notice')
   assert.equal(notice.url, 'https://example.org/notice')
@@ -288,8 +293,9 @@ test('a share shows evidence counts; the filed items only with the evidence pane
 
   const lean = await publicPayload(env, SHARE_NO_EVIDENCE)
   const leanKey = lean.key_rfis.find((r) => r.id === keyRfi)
-  assert.equal(leanKey.evidence_count, 2)
+  assert.equal(leanKey.evidence_count, 1)
   assert.equal('evidence' in leanKey, false)
+  assert.equal('unreviewed_count' in leanKey, false)
   assert.equal('rfis' in lean, false)
 })
 
@@ -381,4 +387,118 @@ test('before migration 0024: lists work with zero counts, writes answer 503 and 
   seedShares(db)
   const payload = await publicPayload(env, SHARE)
   assert.ok(payload.key_rfis.every((r) => r.evidence_count === 0 && Array.isArray(r.evidence)))
+})
+
+// ── Security review follow-ups ─────────────────────────────────────
+
+test('rejecting an auto-filed tip removes its filing: nothing orphaned, counted or listed', async () => {
+  const { db, env } = await linksFixture()
+  seedDrop(db)
+  seedShares(db)
+  const [keyRfi] = rfiIds(db)
+  const sent = await submitTip(env, { what: 'spam spam', _question: keyRfi, _question_relation: 'contradicts' })
+  const evId = String(sent.ingested.evidence_id)
+  assert.equal(count(db, 'cop_evidence_links', 'evidence_id = ?', evId), 1)
+  const sub = db.prepare('SELECT id FROM survey_responses WHERE ingested_evidence_id = ?').get(evId)
+
+  const rej = await call(env, 'submissions', 'PUT', `${P}/submissions`, { who: 'owner', params: S, body: { id: sub.id, status: 'rejected' } })
+  assert.equal(rej.status, 200, await rej.clone().text())
+  assert.equal(count(db, 'evidence_items', 'id = ?', Number(evId)), 0)
+  assert.equal(count(db, 'cop_evidence_links', 'evidence_id = ?', evId), 0)
+  const links = (await (await call(env, 'evidenceLinks', 'GET', `${P}/evidence-links`, { who: 'owner', params: S })).json()).links
+  assert.ok(!links.some((l) => l.evidence_id === evId))
+  assert.equal((await publicPayload(env, SHARE)).key_rfis.find((r) => r.id === keyRfi).evidence_count, 0)
+})
+
+test('an orphaned or foreign link never counts or lists', async () => {
+  const { db, env } = await linksFixture()
+  seedShares(db)
+  const [keyRfi] = rfiIds(db)
+  await link(env, 'owner', { evidence_id: 101, target_type: 'rfi', target_id: keyRfi })
+  // Rows the routes would never write: evidence that is gone, and another COP's evidence.
+  db.exec(`
+    INSERT INTO cop_evidence_links (id, cop_session_id, evidence_id, target_type, target_id, relation, created_by)
+    VALUES ('evl-orphan', '${SESSION}', '999', 'rfi', '${keyRfi}', 'supports', 1),
+           ('evl-foreign', '${SESSION}', '201', 'rfi', '${keyRfi}', 'supports', 1);
+  `)
+  const links = (await (await call(env, 'evidenceLinks', 'GET', `${P}/evidence-links`, { who: 'owner', params: S })).json()).links
+  assert.deepEqual(links.map((l) => l.evidence_id), ['101'])
+  const rfi = (await (await call(env, 'rfis', 'GET', `${P}/rfis`, { who: 'owner', params: S })).json()).rfis.find((r) => r.id === keyRfi)
+  assert.equal(rfi.evidence_count, 1)
+  const pub = (await publicPayload(env, SHARE)).key_rfis.find((r) => r.id === keyRfi)
+  assert.equal(pub.evidence_count, 1)
+  assert.equal(pub.evidence.length, 1)
+})
+
+test('deleting evidence from the library removes its filings', async () => {
+  const { db, env } = await linksFixture()
+  const [keyRfi] = rfiIds(db)
+  await link(env, 'owner', { evidence_id: 102, target_type: 'rfi', target_id: keyRfi })
+  db.exec('CREATE TABLE IF NOT EXISTS evidence_citations (id TEXT PRIMARY KEY, evidence_id INTEGER)') // as in production
+  const request = new Request('https://researchtools.test/api/evidence-items?id=102', {
+    method: 'DELETE',
+    headers: { Authorization: 'Bearer session-owner', 'X-Workspace-ID': WS },
+  })
+  const res = await mod('evidenceItems').onRequest({ request, env, params: {}, data: {}, waitUntil() {} })
+  assert.equal(res.status, 200, await res.clone().text())
+  assert.equal(count(db, 'evidence_items', 'id = 102'), 0)
+  assert.equal(count(db, 'cop_evidence_links', "evidence_id = '102'"), 0)
+})
+
+test('a share lists at most 20 items per question, newest first, and counts them all', async () => {
+  const { db, env } = await linksFixture()
+  seedShares(db)
+  const [keyRfi] = rfiIds(db)
+  const insert = db.prepare(`INSERT INTO evidence_items (id, title, description, source_url, evidence_type, credibility, reliability, workspace_id, created_by, cop_session_id, source_channel, created_at)
+    VALUES (?, ?, 'x', NULL, 'observation', 'probable', 'unknown', ?, 1, ?, 'web', ?)`)
+  for (let i = 0; i < 25; i++) {
+    insert.run(500 + i, `Report ${i}`, WS, SESSION, new Date(Date.UTC(2026, 9, 1, 0, i)).toISOString())
+    db.prepare("INSERT INTO cop_evidence_links (id, cop_session_id, evidence_id, target_type, target_id, relation, created_by) VALUES (?, ?, ?, 'rfi', ?, 'supports', 1)")
+      .run(`evl-bulk-${i}`, SESSION, String(500 + i), keyRfi)
+  }
+  const key = (await publicPayload(env, SHARE)).key_rfis.find((r) => r.id === keyRfi)
+  assert.equal(key.evidence_count, 25)
+  assert.equal(key.evidence.length, 20)
+  assert.equal(key.evidence[0].title, 'Report 24')
+})
+
+test('an evidence item can be filed under at most 50 questions and tasks', async () => {
+  const { db, env } = await linksFixture()
+  const insert = db.prepare('INSERT INTO cop_rfis (id, cop_session_id, question, created_by) VALUES (?, ?, ?, 1)')
+  for (let i = 0; i < 51; i++) insert.run(`rfi-cap-${i}`, SESSION, `Question ${i}`)
+  for (let i = 0; i < 50; i++) {
+    const res = await link(env, 'owner', { evidence_id: 101, target_type: 'rfi', target_id: `rfi-cap-${i}` })
+    assert.equal(res.status, 201, `link ${i}: ${await res.clone().text()}`)
+  }
+  const over = await link(env, 'owner', { evidence_id: 101, target_type: 'rfi', target_id: 'rfi-cap-50' })
+  assert.equal(over.status, 409)
+  assert.equal((await over.json()).code, 'LINK_LIMIT')
+  assert.equal(count(db, 'cop_evidence_links', "evidence_id = '101'"), 50)
+  // Updating an existing filing still works at the cap.
+  assert.equal((await link(env, 'owner', { evidence_id: 101, target_type: 'rfi', target_id: 'rfi-cap-0', relation: 'context' })).status, 200)
+})
+
+test('an archived COP refuses filing and unfiling, and its form offers no questions', async () => {
+  const { db, env } = await linksFixture()
+  seedDrop(db)
+  const [keyRfi] = rfiIds(db)
+  const created = await (await link(env, 'owner', { evidence_id: 101, target_type: 'rfi', target_id: keyRfi })).json()
+  db.exec(`UPDATE cop_sessions SET status = 'ARCHIVED' WHERE id = '${SESSION}'`)
+  assert.equal((await link(env, 'owner', { evidence_id: 102, target_type: 'rfi', target_id: keyRfi })).status, 410)
+  assert.equal((await call(env, 'evidenceLinks', 'DELETE', `${P}/evidence-links?id=${created.link.id}`, { who: 'owner', params: S })).status, 410)
+  assert.equal(count(db, 'cop_evidence_links'), 1)
+  assert.deepEqual((await formConfig(env)).question_choices, [])
+})
+
+test('the password route applies the form\'s country gate before handing out the form', async () => {
+  const { db, env } = await linksFixture()
+  seedDrop(db)
+  db.exec(`UPDATE survey_drops SET access_level = 'password', password_hash = 'x', allowed_countries = '["FR"]' WHERE id = 'drop-links'`)
+  const res = await call(env, 'verifyPassword', 'POST', `/api/surveys/public/${DROP}/verify-password`, {
+    who: 'anonymous', params: { token: DROP }, body: { password: 'anything' }, headers: { 'CF-IPCountry': 'US' },
+  })
+  assert.equal(res.status, 403)
+  const body = await res.json()
+  assert.equal(body.country_blocked, true)
+  assert.equal('question_choices' in body, false)
 })

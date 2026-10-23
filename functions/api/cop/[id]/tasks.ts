@@ -70,7 +70,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     const rows = await env.DB.prepare(query).bind(...bindings).all()
 
     const tasks = (rows.results || []) as Record<string, unknown>[]
-    const counts = await evidenceCounts(env.DB, sessionId, 'task', tasks.map((t) => String(t.id)))
+    const counts = await evidenceCounts(env.DB, { sessionId, workspaceId: accessWorkspaceId }, 'task', tasks.map((t) => String(t.id)))
     return new Response(JSON.stringify({
       tasks: tasks.map((t) => ({ ...t, evidence_count: counts.get(String(t.id)) ?? 0 })),
     }), { headers: JSON_HEADERS })
