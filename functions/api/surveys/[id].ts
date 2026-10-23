@@ -6,7 +6,7 @@
  * DELETE /api/surveys/:id  — archive (soft delete)
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserFromRequest } from '../_shared/auth-helpers'
+import { getUserFromRequest, requireCopEditor } from '../_shared/auth-helpers'
 import { JSON_HEADERS, safeJsonParse } from '../_shared/api-utils'
 import { hashPassword, isValidAccessLevel, isValidSlug } from '../_shared/survey-drops'
 
@@ -100,10 +100,27 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       bindings.push(title)
     }
 
+    // Linking to a COP files the form's submissions there: only the session's owner
+    // or an editor/admin may set it. Unlinking (null) is the form owner's choice.
+    if (body.cop_session_id !== undefined) {
+      const target = body.cop_session_id
+      if (target === null || target === '') {
+        sets.push('cop_session_id = ?')
+        bindings.push(null)
+      } else if (typeof target !== 'string' || !(await requireCopEditor(env.DB, target, userId))) {
+        return new Response(JSON.stringify({ error: 'Only the COP session owner or an editor can link a form to it' }), {
+          status: 403, headers: JSON_HEADERS,
+        })
+      } else {
+        sets.push('cop_session_id = ?')
+        bindings.push(target)
+      }
+    }
+
     // Simple text fields
     const textFields = [
       'description', 'status', 'expires_at', 'theme_color', 'logo_url',
-      'success_message', 'redirect_url', 'auto_tag_category', 'cop_session_id',
+      'success_message', 'redirect_url', 'auto_tag_category',
     ] as const
     for (const field of textFields) {
       if (body[field] !== undefined) {

@@ -7,7 +7,7 @@
  * maps ref IDs to real IDs, creates subtasks and dependency rows.
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserFromRequest, verifyCopSessionAccess } from '../../../_shared/auth-helpers'
+import { getUserFromRequest, requireCopEditor } from '../../../_shared/auth-helpers'
 import { emitCopEvent } from '../../../_shared/cop-events'
 import { TASK_CREATED } from '../../../_shared/cop-event-types'
 import { JSON_HEADERS } from '../../../_shared/api-utils'
@@ -39,7 +39,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         status: 401, headers: JSON_HEADERS,
       })
     }
-    if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
+    if (!(await requireCopEditor(env.DB, sessionId, userId))) {
       return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
     }
     const body = await request.json() as any

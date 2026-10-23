@@ -8,6 +8,8 @@ This is the living roadmap — the single source of truth for "what's next." Det
 
 **Subsystem roadmap:** scraping/content extraction now has a dedicated delivery roadmap at [`SCRAPING_ROADMAP.md`](SCRAPING_ROADMAP.md), backed by the production evidence and falsifiable experiment plan in [`plans/2026-08-30-scraping-modernization.md`](plans/2026-08-30-scraping-modernization.md).
 
+**Subsystem roadmap:** getting everything a Signal breakout room produces (links, files archived in Silo, `!action`/`!rfi`/`!objective` and the rest, with their later state changes) into its linked COP is planned in the bot's [chat-to-COP capture roadmap](https://git.juntogroups.org/irregulars/irregularchat-monorepo/-/blob/main/selfhost/messaging-apps/docs/chat-to-cop-roadmap.md) (2026-10-23).
+
 ---
 
 ## Direction

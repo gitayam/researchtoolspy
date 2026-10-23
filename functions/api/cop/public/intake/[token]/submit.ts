@@ -13,6 +13,7 @@ import {
   type PublicSubmissionBody, type PublicSubmissionFormRow,
 } from '../../../../_shared/survey-drops'
 import { enrichResponseUrls } from '../../../../_shared/url-enrichment'
+import { formDataTooLarge, readCappedJson } from '../../../../_shared/capped-body'
 
 interface Env {
   DB: D1Database
@@ -68,7 +69,18 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       }), { status: 403, headers: JSON_HEADERS })
     }
 
-    const body = await request.json() as PublicSubmissionBody
+    // Size first: the body is read with a byte cap before it is parsed; the answers
+    // follow the survey route's 64K-character limit (same survey_responses rows).
+    const parsed = await readCappedJson<PublicSubmissionBody>(request)
+    if (parsed.ok === false) {
+      return parsed.reason === 'too_large'
+        ? new Response(JSON.stringify({ error: 'Form data too large (max 64KB)' }), { status: 413, headers: JSON_HEADERS })
+        : new Response(JSON.stringify({ error: 'Invalid request body' }), { status: 400, headers: JSON_HEADERS })
+    }
+    const body = parsed.value
+    if (formDataTooLarge(body.form_data)) {
+      return new Response(JSON.stringify({ error: 'Form data too large (max 64KB)' }), { status: 413, headers: JSON_HEADERS })
+    }
 
     // Password check (for password-protected forms)
     if (form.access_level === 'password') {
@@ -191,8 +203,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       entityId: id,
       payload: {
         survey_id: form.id,
-        submitter_name: body.submitter_name || null,
-        submitter_country: geo.country,
+        // No submitter name, contact or IP-derived place in COP events.
         has_location: body.lat != null || geo.lat != null,
       },
       createdBy: 0,

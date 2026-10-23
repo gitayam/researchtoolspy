@@ -99,7 +99,10 @@ function LazyPanel({ children }: { children: ReactNode }) {
 }
 
 import CopSidebar from '@/components/cop/CopSidebar'
-import { getLayerById } from '@/components/cop/CopLayerCatalog'
+import { getLayerById, LAYER_REFETCH_ON } from '@/components/cop/CopLayerCatalog'
+import { CopTagsProvider } from '@/components/cop/tags'
+import { CopTagFilterProvider, CopTagFilterStrip } from '@/components/cop/CopTagFilter'
+import { useCopChangeListener, useCopChanges } from '@/hooks/useCopChanges'
 import { usePanelLayout } from '@/hooks/usePanelLayout'
 import { useMediaQuery } from '@/hooks/useMediaQuery'
 import type { CopSession, CopFeatureCollection, CopLayerDef, CopWorkspaceMode } from '@/types/cop'
@@ -336,11 +339,7 @@ export default function CopWorkspacePage() {
     if (!id) return
     const controller = new AbortController()
     refetchStats(controller.signal)
-    // Refresh stats every 60s to keep isEmpty panels responsive to changes.
-    // Pass the signal so polled fetches are aborted on unmount (else WebKit logs
-    // "TypeError: Load failed" when a poll is torn down mid-flight on navigation).
-    const interval = setInterval(() => refetchStats(controller.signal), 60000)
-    return () => { controller.abort(); clearInterval(interval) }
+    return () => controller.abort()
   }, [id, refetchStats])
 
   // ── Fetch a single layer as GeoJSON ────────────────────────────
@@ -410,6 +409,21 @@ export default function CopWorkspacePage() {
       timersRef.current.clear()
     }
   }, [activeLayers, fetchLayerData])
+
+  // ── Live updates ───────────────────────────────────────────────
+  // One change-feed poller for the page (panels each listen for their own types).
+  // The counts follow any change; a map layer follows the types it shows
+  // (LAYER_REFETCH_ON). An empty list is the two-minute safety refresh.
+  useCopChanges(id)
+  useCopChangeListener('*', (changed) => {
+    refetchStats()
+    for (const layerId of activeLayers) {
+      const on = LAYER_REFETCH_ON[layerId]
+      if (!on || (changed.length > 0 && !changed.some(t => on.includes(t)))) continue
+      const def = getLayerById(layerId)
+      if (def) fetchLayerData(def)
+    }
+  })
 
   // ── Keyboard shortcuts ────────────────────────────────────────
 
@@ -750,6 +764,8 @@ export default function CopWorkspacePage() {
   const evidenceLabel = evidenceForm ? 'Submit evidence' : 'Add evidence'
 
   return (
+    <CopTagsProvider sessionId={id!}>
+    <CopTagFilterProvider>
     <div className="flex flex-col bg-background min-h-dvh">
       {/* ── Header + capture: stay on screen on phones, so input is always one tap away ── */}
       <div className="sticky top-0 z-30 bg-background md:static">
@@ -909,6 +925,9 @@ export default function CopWorkspacePage() {
       />
 
       <CopBlockerStrip sessionId={id!} onGoToBlocker={handleGoToBlocker} />
+
+      {/* ── One tag filter for every panel and the map ───────────── */}
+      <CopTagFilterStrip />
 
       {/* ── Phone side menu: actions + jump-to navigation ───────── */}
       {isPhone && (
@@ -1167,6 +1186,8 @@ export default function CopWorkspacePage() {
         />
       )}
     </div>
+    </CopTagFilterProvider>
+    </CopTagsProvider>
   )
 }
 

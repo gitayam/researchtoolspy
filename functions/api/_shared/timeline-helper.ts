@@ -1,3 +1,6 @@
+import { emitCopEvent } from './cop-events'
+import { TIMELINE_CREATED } from './cop-event-types'
+
 /**
  * Shared helper for creating timeline entries with dedup.
  * Called fire-and-forget from COP API endpoints to auto-generate
@@ -61,6 +64,16 @@ export async function createTimelineEntry(
     userId, // INTEGER — do not cast to string
     now, now,
   ).run()
+
+  // The change feed: open COPs refetch their timeline.
+  await emitCopEvent(db, {
+    copSessionId: sessionId,
+    eventType: TIMELINE_CREATED,
+    entityType: 'timeline',
+    entityId: id,
+    payload: { source_type: 'system', entity_type: entry.entity_type, action: entry.action },
+    createdBy: userId,
+  })
 
   return id
 }

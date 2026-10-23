@@ -9,10 +9,10 @@
  */
 
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-helpers'
+import { getUserFromRequest, verifyCopSessionAccess, requireCopEditor } from '../../_shared/auth-helpers'
 import { logEvent } from '../../_shared/event-log'
 import { emitCopEvent } from '../../_shared/cop-events'
-import { COLLABORATOR_ADDED, COLLABORATOR_REMOVED } from '../../_shared/cop-event-types'
+import { COLLABORATOR_ADDED, COLLABORATOR_REMOVED, COLLABORATOR_UPDATED } from '../../_shared/cop-event-types'
 
 interface Env {
   DB: D1Database
@@ -83,7 +83,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         status: 401, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       })
     }
-    const accessWorkspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId)
+    const accessWorkspaceId = await requireCopEditor(env.DB, sessionId, userId)
     if (!accessWorkspaceId) {
       return new Response(JSON.stringify({ error: 'Access denied' }), {
         status: 403, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
@@ -143,7 +143,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     await emitCopEvent(env.DB, {
       copSessionId: sessionId,
       eventType: COLLABORATOR_ADDED,
-      entityType: 'collaborator',
+      entityType: 'activity',
       entityId: id,
       payload: { email: body.email ?? null, role },
       createdBy: invitedBy,
@@ -182,7 +182,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
         status: 401, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       })
     }
-    const accessWorkspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId)
+    const accessWorkspaceId = await requireCopEditor(env.DB, sessionId, userId)
     if (!accessWorkspaceId) {
       return new Response(JSON.stringify({ error: 'Access denied' }), {
         status: 403, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
@@ -235,6 +235,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       `UPDATE cop_collaborators SET ${updates.join(', ')} WHERE id = ? AND cop_session_id = ?`
     ).bind(...bindings).run()
 
+    await emitCopEvent(env.DB, { copSessionId: sessionId, eventType: COLLABORATOR_UPDATED, entityType: 'activity', entityId: sessionId, createdBy: userId })
     return new Response(JSON.stringify({ success: true }), { headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } })
   } catch (error) {
     await logEvent(env, {
@@ -263,7 +264,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
         status: 401, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       })
     }
-    const accessWorkspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId)
+    const accessWorkspaceId = await requireCopEditor(env.DB, sessionId, userId)
     if (!accessWorkspaceId) {
       return new Response(JSON.stringify({ error: 'Access denied' }), {
         status: 403, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
@@ -315,7 +316,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     await emitCopEvent(env.DB, {
       copSessionId: sessionId,
       eventType: COLLABORATOR_REMOVED,
-      entityType: 'collaborator',
+      entityType: 'activity',
       entityId: body.collaborator_id,
       payload: {},
       createdBy: removedBy,

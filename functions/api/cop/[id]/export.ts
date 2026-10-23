@@ -10,6 +10,7 @@
  * as a downloadable blob.
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
+import { queryEvidenceInSession } from '../../_shared/cop-input'
 import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-helpers'
 import { emitCopEvent } from '../../_shared/cop-events'
 import { EXPORT_REQUESTED, EXPORT_COMPLETED, EXPORT_FAILED } from '../../_shared/cop-event-types'
@@ -192,9 +193,11 @@ async function fetchEntityData(
 
   if (shouldFetch('evidence') || scope === 'full') {
     queries.push(
-      db.prepare('SELECT * FROM evidence_items WHERE workspace_id = ? LIMIT 1000')
-        .bind(workspaceId).all()
-        .then(r => { entities.evidence = r.results || [] }),
+      // This COP's evidence only, not everything in its workspace.
+      queryEvidenceInSession(
+        db, 'SELECT * FROM evidence_items WHERE {EVIDENCE_SCOPE} LIMIT 1000',
+        { sessionId, workspaceId }, [], [], (statement) => statement.all(),
+      ).then(r => { entities.evidence = r.results || [] }),
     )
   }
 
@@ -284,7 +287,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     await emitCopEvent(env.DB, {
       copSessionId: sessionId,
       eventType: EXPORT_REQUESTED,
-      entityType: 'export',
+      entityType: 'activity',
       entityId: exportId,
       payload: { format, scope },
       createdBy: userId,
@@ -333,7 +336,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       await emitCopEvent(env.DB, {
         copSessionId: sessionId,
         eventType: EXPORT_COMPLETED,
-        entityType: 'export',
+        entityType: 'activity',
         entityId: exportId,
         payload: { format, scope, file_size_bytes: fileSize },
         createdBy: userId,
@@ -362,7 +365,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       await emitCopEvent(env.DB, {
         copSessionId: sessionId,
         eventType: EXPORT_FAILED,
-        entityType: 'export',
+        entityType: 'activity',
         entityId: exportId,
         payload: { format, scope, error: 'Export serialization failed' },
         createdBy: userId,

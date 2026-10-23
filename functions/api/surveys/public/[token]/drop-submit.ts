@@ -9,16 +9,29 @@
  *
  * Anti-abuse: Turnstile (fail-open) when TURNSTILE_SECRET is set.
  * When unset: no gate at all — reviewer triages manually.
+ *
+ * Inline files (data: URLs) are typed from their bytes and images stripped of
+ * metadata (GPS and the rest) before the row is stored; an unreadable image is
+ * refused. For a form linked to a COP with auto_ingest on, the tip becomes
+ * unverified COP evidence at once (functions/api/_shared/cop-ingest.ts); the
+ * response then says `ingested: { evidence_id, marker_id }` (else null) and
+ * nothing else about the COP.
  */
 import { generatePrefixedId, JSON_HEADERS } from '../../../_shared/api-utils'
 import { hashFormData } from '../../../_shared/survey-drops'
 import { emitCopEvent } from '../../../_shared/cop-events'
 import { INGEST_SUBMISSION_RECEIVED } from '../../../_shared/cop-event-types'
+import { autoIngestSubmission, parseFormSchema, sanitizeFormDataFiles } from '../../../_shared/cop-ingest'
+import type { R2Like } from '../../../_shared/cop-uploads'
+import { formDataTooLarge, readCappedText, SUBMISSION_BODY_MAX_BYTES } from '../../../_shared/capped-body'
 
 interface Env {
   DB: D1Database
   TURNSTILE_SECRET?: string
+  UPLOADS?: R2Like
 }
+
+const TOO_LARGE = 'Submission too large (max 64 KB)'
 
 async function verifyTurnstile(secret: string, token: string): Promise<boolean> {
   try {
@@ -82,9 +95,16 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
+    // Size first: nothing is parsed, decoded or sanitized past the cap.
+    const raw = await readCappedText(context.request, SUBMISSION_BODY_MAX_BYTES)
+    if (raw === null) {
+      return new Response(JSON.stringify({ ok: false, error: TOO_LARGE }), {
+        status: 200, headers: JSON_HEADERS,
+      })
+    }
     let body: any
     try {
-      body = await context.request.json()
+      body = JSON.parse(raw)
     } catch {
       return new Response(JSON.stringify({ ok: false, error: 'Invalid request body' }), {
         status: 200, headers: JSON_HEADERS,
@@ -107,11 +127,27 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       }
     }
 
+    // Inline files: typed from their bytes, image metadata stripped before storage —
+    // after the answers are known to be within the 64K-character limit.
+    const formSchemaFields = parseFormSchema(form.form_schema)
+    const rawFormData = body.form_data && typeof body.form_data === 'object' && !Array.isArray(body.form_data) ? body.form_data : {}
+    if (formDataTooLarge(rawFormData)) {
+      return new Response(JSON.stringify({ ok: false, error: TOO_LARGE }), {
+        status: 200, headers: JSON_HEADERS,
+      })
+    }
+    const cleaned = sanitizeFormDataFiles(rawFormData, formSchemaFields)
+    if (cleaned.ok === false) {
+      return new Response(JSON.stringify({ ok: false, error: cleaned.error }), {
+        status: 200, headers: JSON_HEADERS,
+      })
+    }
+
     // Size limit
-    const formData = body.form_data || {}
+    const formData = cleaned.formData
     const formDataStr = JSON.stringify(formData)
     if (formDataStr.length > 65536) {
-      return new Response(JSON.stringify({ ok: false, error: 'Submission too large (max 64 KB)' }), {
+      return new Response(JSON.stringify({ ok: false, error: TOO_LARGE }), {
         status: 200, headers: JSON_HEADERS,
       })
     }
@@ -151,6 +187,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     ).bind(form.id).run()
 
     // Emit COP event if linked to a session
+    let ingested: { evidence_id: string; marker_id: string | null } | null = null
     if (form.cop_session_id) {
       await emitCopEvent(env.DB, {
         copSessionId: form.cop_session_id,
@@ -164,11 +201,18 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         },
         createdBy: 0,
       }).catch(() => {})
+      // The tip is stored; putting it on the COP must never cost the submitter their tip.
+      try {
+        ingested = await autoIngestSubmission(env, { formId: form.id, responseId: id, sessionId: form.cop_session_id })
+      } catch (ingestError) {
+        console.error('[Drop Submit] Auto-ingest failed:', ingestError instanceof Error ? ingestError.message : ingestError)
+      }
     }
 
     return new Response(JSON.stringify({
       ok: true,
       message: 'Your tip has been received anonymously.',
+      ingested,
     }), { status: 201, headers: JSON_HEADERS })
   } catch (error) {
     // Never expose internal error details to the submitter

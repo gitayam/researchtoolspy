@@ -7,12 +7,13 @@
  * DELETE /api/cop/:id/tasks?task_id=x - Delete task
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { verifyCopSessionAccess } from '../../_shared/auth-helpers'
+import { verifyCopSessionAccess, requireCopEditor } from '../../_shared/auth-helpers'
 import { emitCopEvent } from '../../_shared/cop-events'
-import { TASK_CREATED, TASK_COMPLETED, TASK_STARTED, TASK_BLOCKED, TASK_UNBLOCKED, TASK_DELETED } from '../../_shared/cop-event-types'
+import { TASK_CREATED, TASK_COMPLETED, TASK_STARTED, TASK_BLOCKED, TASK_UNBLOCKED, TASK_DELETED, TASK_UPDATED } from '../../_shared/cop-event-types'
 import { generatePrefixedId , JSON_HEADERS } from '../../_shared/api-utils'
 import { logEvent } from '../../_shared/event-log'
 import { copCallerUserId } from '../../_shared/cop-caller'
+import { copSourceChannel, copSourceRef, expectedUpdatedAt, serviceDeleteRefused, serviceMayDelete, setProvenance, staleWriteResponse } from '../../_shared/cop-input'
 
 interface Env {
   DB: D1Database
@@ -93,7 +94,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         status: 401, headers: JSON_HEADERS,
       })
     }
-    const workspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId)
+    const workspaceId = await requireCopEditor(env.DB, sessionId, userId)
     if (!workspaceId) {
       return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
     }
@@ -154,6 +155,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       parentTaskId, depth, position,
       userId, workspaceId, now, now,
     ).run()
+    await setProvenance(env.DB, 'cop_tasks', id, copSourceChannel(context), copSourceRef(context))
 
     await emitCopEvent(env.DB, {
       copSessionId: sessionId,
@@ -192,7 +194,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
         status: 401, headers: JSON_HEADERS,
       })
     }
-    const putWorkspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId)
+    const putWorkspaceId = await requireCopEditor(env.DB, sessionId, userId)
     if (!putWorkspaceId) {
       return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
     }
@@ -215,6 +217,9 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
         status: 404, headers: JSON_HEADERS,
       })
     }
+
+    const expected = expectedUpdatedAt(request, body)
+    if (expected && expected !== existing.updated_at) return staleWriteResponse(existing)
 
     const now = new Date().toISOString()
 
@@ -307,9 +312,22 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     bindings.push(now)
     bindings.push(body.id, sessionId)
 
-    await env.DB.prepare(
-      `UPDATE cop_tasks SET ${updates.join(', ')} WHERE id = ? AND cop_session_id = ?`
-    ).bind(...bindings).run()
+    // With a version from the client, the update only lands on that version.
+    const updated = await env.DB.prepare(
+      `UPDATE cop_tasks SET ${updates.join(', ')} WHERE id = ? AND cop_session_id = ?${expected ? ' AND updated_at = ?' : ''}`
+    ).bind(...bindings, ...(expected ? [expected] : [])).run()
+    if (expected && !updated.meta?.changes) {
+      const current = await env.DB.prepare('SELECT * FROM cop_tasks WHERE id = ? AND cop_session_id = ?')
+        .bind(body.id, sessionId).first()
+      return staleWriteResponse(current)
+    }
+    await emitCopEvent(env.DB, {
+      copSessionId: sessionId,
+      eventType: TASK_UPDATED,
+      entityType: 'task',
+      entityId: body.id,
+      createdBy: userId,
+    })
 
     // Emit event for status transitions
     if (body.status && body.status !== existing.status) {
@@ -409,6 +427,10 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       })
     }
 
+    if (!(await requireCopEditor(env.DB, sessionId, userId))) {
+      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
+    }
+
     if (!taskId) {
       return new Response(JSON.stringify({ error: 'task_id query param is required' }), {
         status: 400, headers: JSON_HEADERS,
@@ -417,8 +439,14 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
 
     // Fetch task before deleting for event payload
     const existing = await env.DB.prepare(
-      'SELECT title FROM cop_tasks WHERE id = ? AND cop_session_id = ?'
+      'SELECT title, created_by FROM cop_tasks WHERE id = ? AND cop_session_id = ?'
     ).bind(taskId, sessionId).first() as any
+    if (!existing) {
+      return new Response(JSON.stringify({ error: 'Task not found in this session' }), {
+        status: 404, headers: JSON_HEADERS,
+      })
+    }
+    if (!serviceMayDelete(context, existing.created_by)) return serviceDeleteRefused()
 
     // Clean up dependencies for subtasks first, then the parent task
     const subtasks = await env.DB.prepare(

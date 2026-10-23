@@ -182,8 +182,18 @@ async function fixture({ scopes = ['community.cop.write'], shareExpiryColumn = t
     INTEGRATION_TOKEN_HASH_KEY: HASH_KEY,
     COMMUNITY_INTEGRATIONS_ENABLED: 'true',
     COP_SERVICE_ENABLED: 'true',
+    // KV for the per-address limit on answers through share links.
+    CACHE: memoryKv(),
   }
   return { db, env }
+}
+
+function memoryKv() {
+  const store = new Map()
+  return {
+    async get(key) { return store.has(key) ? store.get(key) : null },
+    async put(key, value) { store.set(key, String(value)) },
+  }
 }
 
 const SERVICE_AUTH = { Authorization: `Bearer rt_svc_${CLIENT_ID}.${SECRET}` }
@@ -271,8 +281,10 @@ test('a service works on its own session, and only through allow-listed operatio
     headers: SERVICE_AUTH, handler: mods.claims, params: { id: 'cop-service-own' },
   })
   assert.equal(claims.status, 200)
-  const del = await cop(env, 'DELETE', '/api/cop/cop-service-own/timeline', {
-    headers: SERVICE_AUTH, handler: mods.timeline, params: { id: 'cop-service-own' },
+  // Deleting a share is not on the service allow-list. (Undo of the bot's own items
+  // is, and each handler refuses items a service didn't create: cop-core-access.)
+  const del = await cop(env, 'DELETE', '/api/cop/cop-service-own/shares?token=x', {
+    headers: SERVICE_AUTH, handler: mods.shares, params: { id: 'cop-service-own' },
   })
   assert.equal(del.status, 403)
   assert.equal(await errorCode(del), 'scope_denied')

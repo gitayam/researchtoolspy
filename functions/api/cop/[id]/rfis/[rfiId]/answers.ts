@@ -5,9 +5,13 @@
  * PUT  /api/cop/:id/rfis/:rfiId/answers - Accept/reject answer (body: { answer_id, is_accepted })
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserFromRequest, verifyCopSessionAccess } from '../../../../_shared/auth-helpers'
+import { requireCopEditor } from '../../../../_shared/auth-helpers'
 import { generatePrefixedId, JSON_HEADERS } from '../../../../_shared/api-utils'
 import { logEvent } from '../../../../_shared/event-log'
+import { copCallerUserId } from '../../../../_shared/cop-caller'
+import { emitCopEvent } from '../../../../_shared/cop-events'
+import { EVIDENCE_CREATED, RFI_ANSWERED, RFI_ANSWER_UPDATED } from '../../../../_shared/cop-event-types'
+import { setEvidenceSession } from '../../../../_shared/cop-input'
 
 interface Env {
   DB: D1Database
@@ -22,13 +26,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const rfiId = params.rfiId as string
 
   try {
-    const userId = await getUserFromRequest(request, env)
+    const userId = await copCallerUserId(context)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
         status: 401, headers: JSON_HEADERS,
       })
     }
-    if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
+    if (!(await requireCopEditor(env.DB, sessionId, userId))) {
       return new Response(JSON.stringify({ error: 'Access denied' }), {
         status: 403, headers: JSON_HEADERS,
       })
@@ -78,14 +82,21 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       ).bind(sessionId).first<{ workspace_id: string }>()
       const workspaceId = session?.workspace_id ?? sessionId
 
-      await env.DB.prepare(`
-        INSERT INTO evidence_items (title, description, evidence_type, credibility, confidence_level, workspace_id, created_by, created_at, updated_at)
-        VALUES (?, ?, 'rfi_answer', 'unverified', 'medium', ?, ?, ?, ?)
+      const seeded = await env.DB.prepare(`
+        INSERT INTO evidence_items (title, description, evidence_type, credibility, reliability, confidence_level, workspace_id, created_by, created_at, updated_at)
+        VALUES (?, ?, 'rfi_answer', 'unverified', 'unknown', 'medium', ?, ?, ?, ?)
       `).bind(
         `RFI Answer: ${(rfi?.question ?? 'Unknown').substring(0, 80)}`,
         body.answer_text.trim(),
         workspaceId, userId, now, now,
       ).run()
+      if (seeded.meta?.last_row_id) await setEvidenceSession(env.DB, seeded.meta.last_row_id, sessionId)
+      await emitCopEvent(env.DB, {
+        copSessionId: sessionId,
+        eventType: EVIDENCE_CREATED,
+        entityType: 'evidence',
+        createdBy: userId,
+      })
     } catch (err) {
       await logEvent(env, {
         level: 'error',
@@ -94,6 +105,15 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         context: { error: String(err) },
       })
     }
+
+    await emitCopEvent(env.DB, {
+      copSessionId: sessionId,
+      eventType: RFI_ANSWERED,
+      entityType: 'rfi',
+      entityId: rfiId,
+      payload: { answer_id: id },
+      createdBy: userId,
+    })
 
     return new Response(JSON.stringify({ id, message: 'Answer submitted' }), {
       status: 201, headers: JSON_HEADERS,
@@ -117,13 +137,13 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
   const rfiId = params.rfiId as string
 
   try {
-    const userId = await getUserFromRequest(request, env)
+    const userId = await copCallerUserId(context)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
         status: 401, headers: JSON_HEADERS,
       })
     }
-    if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
+    if (!(await requireCopEditor(env.DB, sessionId, userId))) {
       return new Response(JSON.stringify({ error: 'Access denied' }), {
         status: 403, headers: JSON_HEADERS,
       })
@@ -166,6 +186,15 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     await env.DB.prepare(`
       UPDATE cop_rfis SET status = ?, updated_at = ? WHERE id = ? AND cop_session_id = ?
     `).bind(newStatus, now, rfiId, sessionId).run()
+
+    await emitCopEvent(env.DB, {
+      copSessionId: sessionId,
+      eventType: RFI_ANSWER_UPDATED,
+      entityType: 'rfi',
+      entityId: rfiId,
+      payload: { answer_id: body.answer_id ?? null, is_accepted: isAccepted === 1 },
+      createdBy: userId,
+    })
 
     return new Response(JSON.stringify({ message: 'Answer updated' }), { headers: JSON_HEADERS })
   } catch (error) {

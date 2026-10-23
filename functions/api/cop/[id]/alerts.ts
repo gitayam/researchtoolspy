@@ -5,7 +5,7 @@
  * POST /api/cop/:id/alerts          - Action an alert (dismiss, mark_action, mark_analysis, link_rfi, link_task)
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-helpers'
+import { getUserFromRequest, verifyCopSessionAccess, requireCopEditor } from '../../_shared/auth-helpers'
 import { emitCopEvent } from '../../_shared/cop-events'
 import { ALERT_DISMISSED, ALERT_ACTIONED, ALERT_LINKED } from '../../_shared/cop-event-types'
 import { createTimelineEntry } from '../../_shared/timeline-helper'
@@ -278,7 +278,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   }
 
   // Verify session access
-  const workspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId)
+  const workspaceId = await requireCopEditor(env.DB, sessionId, userId)
   if (!workspaceId) {
     return new Response(JSON.stringify({ error: 'Access denied' }), {
       status: 403, headers: JSON_HEADERS,
@@ -417,7 +417,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     await emitCopEvent(env.DB, {
       copSessionId: sessionId,
       eventType: eventTypeMap[body.action] as any,
-      entityType: 'alert',
+      entityType: 'activity',
       entityId: body.incident_id,
       payload: {
         action: body.action,

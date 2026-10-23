@@ -7,7 +7,9 @@
  * DELETE /api/cop/:id/playbooks/:pbId/rules?rule_id=x  - Delete rule
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserFromRequest, verifyCopSessionAccess } from '../../../../_shared/auth-helpers'
+import { emitCopEvent } from '../../../../_shared/cop-events'
+import { PLAYBOOK_UPDATED } from '../../../../_shared/cop-event-types'
+import { getUserFromRequest, verifyCopSessionAccess, requireCopEditor } from '../../../../_shared/auth-helpers'
 import { generatePrefixedId } from '../../../../_shared/api-utils'
 import { logEvent } from '../../../../_shared/event-log'
 
@@ -106,7 +108,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         status: 401, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       })
     }
-    if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
+    if (!(await requireCopEditor(env.DB, sessionId, userId))) {
       return new Response(JSON.stringify({ error: 'Access denied' }), {
         status: 403, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       })
@@ -170,6 +172,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       now, now,
     ).run()
 
+    await emitCopEvent(env.DB, { copSessionId: sessionId, eventType: PLAYBOOK_UPDATED, entityType: 'playbook', entityId: pbId, createdBy: userId })
     return new Response(JSON.stringify({ id, message: 'Rule created' }), {
       status: 201, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
     })
@@ -198,7 +201,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
         status: 401, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       })
     }
-    if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
+    if (!(await requireCopEditor(env.DB, sessionId, userId))) {
       return new Response(JSON.stringify({ error: 'Access denied' }), {
         status: 403, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       })
@@ -287,6 +290,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       `UPDATE cop_playbook_rules SET ${updates.join(', ')} WHERE id = ? AND playbook_id = ?`
     ).bind(...bindings).run()
 
+    await emitCopEvent(env.DB, { copSessionId: sessionId, eventType: PLAYBOOK_UPDATED, entityType: 'playbook', entityId: pbId, createdBy: userId })
     return new Response(JSON.stringify({ id: body.rule_id, message: 'Rule updated' }), { headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } })
   } catch (error) {
     await logEvent(env, {
@@ -315,7 +319,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
         status: 401, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       })
     }
-    if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
+    if (!(await requireCopEditor(env.DB, sessionId, userId))) {
       return new Response(JSON.stringify({ error: 'Access denied' }), {
         status: 403, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       })
@@ -347,6 +351,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     await env.DB.prepare('DELETE FROM cop_playbook_log WHERE rule_id = ?').bind(ruleId).run()
     await env.DB.prepare('DELETE FROM cop_playbook_rules WHERE id = ? AND playbook_id = ?').bind(ruleId, pbId).run()
 
+    await emitCopEvent(env.DB, { copSessionId: sessionId, eventType: PLAYBOOK_UPDATED, entityType: 'playbook', entityId: pbId, createdBy: userId })
     return new Response(JSON.stringify({ message: 'Rule deleted' }), { headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } })
   } catch (error) {
     await logEvent(env, {

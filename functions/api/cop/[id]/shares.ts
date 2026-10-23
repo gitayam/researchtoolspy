@@ -1,16 +1,40 @@
 /**
- * COP Share API
+ * COP Share API (owner or editor/admin collaborator; a service only on its own sessions)
  *
- * POST /api/cop/:id/shares - Create share link with panel config
- * GET  /api/cop/:id/shares - List existing share links
+ * POST   /api/cop/:id/shares          - Create share link with panel config and allow_evidence
+ * GET    /api/cop/:id/shares          - List existing share links
+ * PATCH  /api/cop/:id/shares?token=   - Change a link's panels or allow_evidence
+ * DELETE /api/cop/:id/shares?token=   - Delete a share link
+ *
+ * allow_evidence (managed migration 0022): the shared view offers the session's evidence
+ * form (an active drop linked to the session), so viewers can submit evidence in place.
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { verifyCopSessionAccess } from '../../_shared/auth-helpers'
+import { requireCopEditor, verifyCopSessionAccess } from '../../_shared/auth-helpers'
 import { emitCopEvent } from '../../_shared/cop-events'
-import { SHARE_CREATED } from '../../_shared/cop-event-types'
+import { SHARE_CREATED, SHARE_DELETED, SHARE_UPDATED } from '../../_shared/cop-event-types'
 import { generatePrefixedId , JSON_HEADERS } from '../../_shared/api-utils'
 import { logEvent } from '../../_shared/event-log'
 import { copCallerUserId, copServiceCaller } from '../../_shared/cop-caller'
+import { isMissingColumn } from '../../_shared/cop-input'
+
+/** The panels a share link may show. 'evidence' lists the session's evidence (opt-in). */
+export const SHARE_PANELS = ['map', 'event', 'claims', 'rfi', 'questions', 'network', 'cams', 'evidence'] as const
+
+function sharePanelList(raw: unknown): string[] | null {
+  if (!Array.isArray(raw)) return null
+  const panels = raw.filter((p): p is string => typeof p === 'string' && (SHARE_PANELS as readonly string[]).includes(p))
+  const unique = [...new Set(panels)]
+  // Always include map
+  if (!unique.includes('map')) unique.unshift('map')
+  return unique
+}
+
+function denied(): Response {
+  return new Response(JSON.stringify({ error: 'Only the session owner or an editor can manage share links' }), {
+    status: 403, headers: JSON_HEADERS,
+  })
+}
 
 interface Env {
   DB: D1Database
@@ -60,13 +84,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const token = crypto.randomUUID()
     const now = new Date().toISOString()
 
-    const validPanels = ['map', 'event', 'claims', 'rfi', 'questions', 'network', 'cams']
-    const visiblePanels = Array.isArray(body.visible_panels)
-      ? body.visible_panels.filter((p: string) => validPanels.includes(p))
-      : ['map', 'event']
-
-    // Always include map
-    if (!visiblePanels.includes('map')) visiblePanels.unshift('map')
+    const visiblePanels = sharePanelList(body.visible_panels) ?? ['map', 'event']
+    const allowEvidence = body.allow_evidence === true
 
     // Optional expiry: ISO 8601, in the future, at most a year away. The column
     // comes from managed migration 0019; until it is applied, a request that asks for an
@@ -114,12 +133,26 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       ).run()
     }
 
+    if (allowEvidence) {
+      try {
+        await env.DB.prepare('UPDATE cop_shares SET allow_evidence = 1 WHERE id = ? AND cop_session_id = ?')
+          .bind(id, sessionId).run()
+      } catch (error) {
+        if (!isMissingColumn(error)) throw error
+        // Before migration 0022 the link works, without the evidence form.
+        await env.DB.prepare('DELETE FROM cop_shares WHERE id = ? AND cop_session_id = ?').bind(id, sessionId).run()
+        return new Response(JSON.stringify({ error: 'Evidence submission through share links is not available yet' }), {
+          status: 503, headers: JSON_HEADERS,
+        })
+      }
+    }
+
     await emitCopEvent(env.DB, {
       copSessionId: sessionId,
       eventType: SHARE_CREATED,
       entityType: 'share',
       entityId: id,
-      payload: { share_token: token, visible_panels: visiblePanels, allow_rfi_answers: !!body.allow_rfi_answers, expires_at: expiresAt },
+      payload: { visible_panels: visiblePanels, allow_rfi_answers: !!body.allow_rfi_answers, allow_evidence: allowEvidence, expires_at: expiresAt },
       createdBy: userId,
     })
 
@@ -127,6 +160,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       id,
       share_token: token,
       url: `/public/cop/${token}`,
+      visible_panels: visiblePanels,
+      allow_evidence: allowEvidence,
       expires_at: expiresAt,
       message: 'Share link created',
     }), { status: 201, headers: JSON_HEADERS })
@@ -155,18 +190,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       })
     }
 
-    // Verify user has access: must be session owner or a collaborator
-    const access = await env.DB.prepare(`
-      SELECT 1 FROM cop_sessions WHERE id = ? AND created_by = ?
-      UNION
-      SELECT 1 FROM cop_collaborators WHERE cop_session_id = ? AND user_id = ?
-    `).bind(sessionId, userId, sessionId, userId).first()
-
-    if (!access) {
-      return new Response(JSON.stringify({ error: 'Access denied' }), {
-        status: 403, headers: JSON_HEADERS,
-      })
-    }
+    // Share tokens are capability URLs: only those who may create links may list them.
+    if (!(await requireCopEditor(env.DB, sessionId, userId))) return denied()
 
     const results = await env.DB.prepare(`
       SELECT * FROM cop_shares WHERE cop_session_id = ? ORDER BY created_at DESC
@@ -175,6 +200,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     const shares = (results.results || []).map((r: any) => ({
       ...r,
       visible_panels: JSON.parse(r.visible_panels || '["map"]'),
+      allow_evidence: r.allow_evidence === 1,
     }))
 
     return new Response(JSON.stringify({ shares }), { headers: JSON_HEADERS })
@@ -222,23 +248,19 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       })
     }
 
-    // Verify user has access to the session
-    const access = await env.DB.prepare(`
-      SELECT 1 FROM cop_sessions WHERE id = ? AND created_by = ?
-      UNION
-      SELECT 1 FROM cop_collaborators WHERE cop_session_id = ? AND user_id = ?
-    `).bind(sessionId, userId, sessionId, userId).first()
-
-    if (!access) {
-      return new Response(JSON.stringify({ error: 'Access denied' }), {
-        status: 403, headers: JSON_HEADERS,
-      })
-    }
+    if (!(await requireCopEditor(env.DB, sessionId, userId))) return denied()
 
     await env.DB.prepare(
       'DELETE FROM cop_shares WHERE share_token = ? AND cop_session_id = ?'
     ).bind(shareToken, sessionId).run()
 
+    await emitCopEvent(env.DB, {
+      copSessionId: sessionId,
+      eventType: SHARE_DELETED,
+      entityType: 'share',
+      entityId: share.id,
+      createdBy: userId,
+    })
     return new Response(JSON.stringify({ message: 'Share link deleted' }), { headers: JSON_HEADERS })
   } catch (error) {
     await logEvent(env, {
@@ -250,6 +272,80 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     return new Response(JSON.stringify({
       error: 'Failed to delete share link',
     }), { status: 500, headers: JSON_HEADERS })
+  }
+}
+
+export const onRequestPatch: PagesFunction<Env> = async (context) => {
+  const { request, env, params } = context
+  const sessionId = params.id as string
+
+  try {
+    const userId = await copCallerUserId(context)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), { status: 401, headers: JSON_HEADERS })
+    }
+    if (!(await requireCopEditor(env.DB, sessionId, userId))) return denied()
+
+    const shareToken = new URL(request.url).searchParams.get('token')
+    if (!shareToken) {
+      return new Response(JSON.stringify({ error: 'token query parameter required' }), { status: 400, headers: JSON_HEADERS })
+    }
+    const share = await env.DB.prepare('SELECT id FROM cop_shares WHERE share_token = ? AND cop_session_id = ?')
+      .bind(shareToken, sessionId).first<{ id: string }>()
+    if (!share) {
+      return new Response(JSON.stringify({ error: 'Share not found in this session' }), { status: 404, headers: JSON_HEADERS })
+    }
+
+    let body: { visible_panels?: unknown; allow_rfi_answers?: unknown; allow_evidence?: unknown }
+    try {
+      body = await request.json()
+    } catch {
+      return new Response(JSON.stringify({ error: 'Expected a JSON body' }), { status: 400, headers: JSON_HEADERS })
+    }
+    const sets: string[] = []
+    const values: unknown[] = []
+    const panels = body.visible_panels === undefined ? null : sharePanelList(body.visible_panels)
+    if (body.visible_panels !== undefined && !panels) {
+      return new Response(JSON.stringify({ error: 'visible_panels must be a list' }), { status: 400, headers: JSON_HEADERS })
+    }
+    if (panels) { sets.push('visible_panels = ?'); values.push(JSON.stringify(panels)) }
+    if (typeof body.allow_rfi_answers === 'boolean') { sets.push('allow_rfi_answers = ?'); values.push(body.allow_rfi_answers ? 1 : 0) }
+    if (typeof body.allow_evidence === 'boolean') { sets.push('allow_evidence = ?'); values.push(body.allow_evidence ? 1 : 0) }
+    if (sets.length === 0) {
+      return new Response(JSON.stringify({ error: 'Nothing to change' }), { status: 400, headers: JSON_HEADERS })
+    }
+
+    try {
+      await env.DB.prepare(`UPDATE cop_shares SET ${sets.join(', ')} WHERE id = ? AND cop_session_id = ?`)
+        .bind(...values, share.id, sessionId).run()
+    } catch (error) {
+      if (!isMissingColumn(error)) throw error
+      return new Response(JSON.stringify({ error: 'Evidence submission through share links is not available yet' }), {
+        status: 503, headers: JSON_HEADERS,
+      })
+    }
+
+    await emitCopEvent(env.DB, {
+      copSessionId: sessionId,
+      eventType: SHARE_UPDATED,
+      entityType: 'share',
+      entityId: share.id,
+      payload: { visible_panels: panels ?? undefined, allow_evidence: body.allow_evidence, allow_rfi_answers: body.allow_rfi_answers },
+      createdBy: userId,
+    })
+    const row = await env.DB.prepare('SELECT * FROM cop_shares WHERE id = ? AND cop_session_id = ?')
+      .bind(share.id, sessionId).first<Record<string, unknown> & { visible_panels: string | null; allow_evidence?: number }>()
+    return new Response(JSON.stringify({
+      share: row ? { ...row, visible_panels: JSON.parse(row.visible_panels || '["map"]'), allow_evidence: row.allow_evidence === 1 } : null,
+    }), { headers: JSON_HEADERS })
+  } catch (error) {
+    await logEvent(env, {
+      level: 'error',
+      source: 'cop/shares',
+      message: String(error instanceof Error ? error.message : error).slice(0, 500),
+      context: { error: String(error) },
+    })
+    return new Response(JSON.stringify({ error: 'Failed to update share link' }), { status: 500, headers: JSON_HEADERS })
   }
 }
 

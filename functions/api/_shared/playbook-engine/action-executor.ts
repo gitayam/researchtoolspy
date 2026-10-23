@@ -7,6 +7,7 @@
  */
 
 import { autoAssignTask } from '../auto-assign'
+import { setEvidenceSession } from '../cop-input'
 import { emitCopEvent } from '../cop-events'
 import {
   WORKFLOW_STAGE_ENTERED,
@@ -124,6 +125,7 @@ const createEvidence: ActionHandler = async (db, sessionId, params, userId) => {
     JSON.stringify({ cop_session_id: sessionId, origin: 'playbook' }),
     userId, workspaceId, now, now,
   ).run()
+  if (result.meta?.last_row_id) await setEvidenceSession(db, result.meta.last_row_id, sessionId)
 
   const id = result.meta.last_row_id
   return { id, title: params.title }

@@ -1,15 +1,21 @@
 /**
  * COP Sessions API - Single Item Operations
  *
- * GET    /api/cop/sessions/:id - Get single COP session
+ * GET    /api/cop/sessions/:id - Get single COP session → { session, evidence_form }.
+ *                               evidence_form: the session's active evidence form (a drop
+ *                               linked to it) for the owner or an editor/admin; else null.
  * PUT    /api/cop/sessions/:id - Update COP session
  * DELETE /api/cop/sessions/:id - Soft delete (archive) COP session
  */
 
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserFromRequest } from '../../_shared/auth-helpers'
+import { getUserFromRequest, requireCopEditor } from '../../_shared/auth-helpers'
+import { sessionEvidenceForm } from '../../_shared/cop-public'
 import { JSON_HEADERS } from '../../_shared/api-utils'
 import { logEvent } from '../../_shared/event-log'
+import { emitCopEvent } from '../../_shared/cop-events'
+import { SESSION_UPDATED } from '../../_shared/cop-event-types'
+import { cleanKeyQuestions, syncKeyQuestionsToRfis } from '../../_shared/cop-input'
 
 interface Env {
   DB: D1Database
@@ -55,8 +61,9 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     }
 
     // For non-public sessions, verify the caller has access
+    let userId: number | null = null
     if (!result.is_public) {
-      const userId = await getUserFromRequest(request, env)
+      userId = await getUserFromRequest(request, env)
       if (!userId) {
         return new Response(JSON.stringify({ error: 'Authentication required' }), {
           status: 401, headers: JSON_HEADERS
@@ -77,7 +84,14 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     const session = parseJsonFields(result)
 
-    return new Response(JSON.stringify({ session }), { headers: JSON_HEADERS })
+    // The evidence form is for those who manage the session: the workspace can't find
+    // the drop otherwise (/api/surveys lists only the caller's own drops).
+    if (userId === null) userId = await getUserFromRequest(request, env)
+    const evidenceForm = userId !== null && (await requireCopEditor(env.DB, id, userId))
+      ? await sessionEvidenceForm(env.DB, id)
+      : null
+
+    return new Response(JSON.stringify({ session, evidence_form: evidenceForm }), { headers: JSON_HEADERS })
   } catch (error) {
     await logEvent(env, {
       level: 'error',
@@ -138,11 +152,13 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       }
     }
 
-    // JSON fields that need stringify
+    // JSON fields that need stringify. Key questions are stored as a clean list and
+    // kept in step with the starred RFIs (below).
+    const keyQuestions = body.key_questions !== undefined ? cleanKeyQuestions(body.key_questions) : null
     for (const field of jsonFields) {
       if (body[field] !== undefined) {
         updates.push(`${field} = ?`)
-        values.push(JSON.stringify(body[field]))
+        values.push(JSON.stringify(field === 'key_questions' ? keyQuestions : body[field]))
       }
     }
 
@@ -169,6 +185,16 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       SET ${updates.join(', ')}
       WHERE id = ?
     `).bind(...values).run()
+
+    if (keyQuestions) await syncKeyQuestionsToRfis(env.DB, id, keyQuestions, userId)
+    await emitCopEvent(env.DB, {
+      copSessionId: id,
+      eventType: SESSION_UPDATED,
+      entityType: 'session',
+      entityId: id,
+      payload: { fields: Object.keys(body).filter((k) => typeof k === 'string').slice(0, 30) },
+      createdBy: userId,
+    })
 
     // --- Auto-sync event_facts to events table (append-only) ---
     if (body.event_facts !== undefined && Array.isArray(body.event_facts) && body.event_facts.length > 0) {
@@ -271,6 +297,14 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       'DELETE FROM cop_shares WHERE cop_session_id = ?'
     ).bind(id).run()
 
+    await emitCopEvent(env.DB, {
+      copSessionId: id,
+      eventType: SESSION_UPDATED,
+      entityType: 'session',
+      entityId: id,
+      payload: { status: 'ARCHIVED' },
+      createdBy: userId,
+    })
     return new Response(JSON.stringify({ message: 'COP session archived' }), { headers: JSON_HEADERS })
   } catch (error) {
     await logEvent(env, {

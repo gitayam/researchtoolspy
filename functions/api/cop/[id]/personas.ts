@@ -4,15 +4,17 @@
  * GET  /api/cop/:id/personas       - List all personas for session (with links)
  * POST /api/cop/:id/personas       - Create or update a persona
  * POST /api/cop/:id/personas/link  - Create a persona link (handled via ?action=link query param)
+ * DELETE /api/cop/:id/personas?id=  - Delete a persona and its links (a service: only its own)
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { verifyCopSessionAccess } from '../../_shared/auth-helpers'
+import { verifyCopSessionAccess, requireCopEditor } from '../../_shared/auth-helpers'
 import { emitCopEvent } from '../../_shared/cop-events'
-import { PERSONA_CREATED, PERSONA_LINKED } from '../../_shared/cop-event-types'
+import { PERSONA_CREATED, PERSONA_DELETED, PERSONA_LINKED, PERSONA_UPDATED } from '../../_shared/cop-event-types'
 import { createTimelineEntry } from '../../_shared/timeline-helper'
 import { generatePrefixedId , JSON_HEADERS } from '../../_shared/api-utils'
 import { logEvent } from '../../_shared/event-log'
 import { copCallerUserId } from '../../_shared/cop-caller'
+import { serviceDeleteRefused, serviceMayDelete } from '../../_shared/cop-input'
 
 interface Env {
   DB: D1Database
@@ -106,7 +108,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         status: 401, headers: JSON_HEADERS,
       })
     }
-    const workspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId)
+    const workspaceId = await requireCopEditor(env.DB, sessionId, userId)
     if (!workspaceId) {
       return new Response(JSON.stringify({ error: 'Access denied' }), {
         status: 403, headers: JSON_HEADERS,
@@ -276,6 +278,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         })
       }
 
+      await emitCopEvent(env.DB, {
+        copSessionId: sessionId,
+        eventType: PERSONA_UPDATED,
+        entityType: 'persona',
+        entityId: body.id,
+        createdBy: userId,
+      })
       return new Response(JSON.stringify({ id: body.id, message: 'Persona updated' }), { headers: JSON_HEADERS })
     }
 
@@ -328,6 +337,52 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     return new Response(JSON.stringify({
       error: 'Failed to create/update persona',
     }), { status: 500, headers: JSON_HEADERS })
+  }
+}
+
+export const onRequestDelete: PagesFunction<Env> = async (context) => {
+  const { request, env, params } = context
+  const sessionId = params.id as string
+
+  try {
+    const userId = await copCallerUserId(context)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), { status: 401, headers: JSON_HEADERS })
+    }
+    if (!(await requireCopEditor(env.DB, sessionId, userId))) {
+      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
+    }
+    const personaId = new URL(request.url).searchParams.get('id')
+    if (!personaId) {
+      return new Response(JSON.stringify({ error: 'id query parameter is required' }), { status: 400, headers: JSON_HEADERS })
+    }
+    const existing = await env.DB.prepare('SELECT id, created_by FROM cop_personas WHERE id = ? AND cop_session_id = ?')
+      .bind(personaId, sessionId).first<{ id: string; created_by: number }>()
+    if (!existing) {
+      return new Response(JSON.stringify({ error: 'Persona not found in this session' }), { status: 404, headers: JSON_HEADERS })
+    }
+    if (!serviceMayDelete(context, existing.created_by)) return serviceDeleteRefused()
+    await env.DB.prepare('DELETE FROM cop_persona_links WHERE persona_a_id = ? OR persona_b_id = ?')
+      .bind(personaId, personaId).run()
+    await env.DB.prepare('UPDATE cop_tasks SET linked_persona_id = NULL WHERE linked_persona_id = ? AND cop_session_id = ?')
+      .bind(personaId, sessionId).run()
+    await env.DB.prepare('DELETE FROM cop_personas WHERE id = ? AND cop_session_id = ?').bind(personaId, sessionId).run()
+    await emitCopEvent(env.DB, {
+      copSessionId: sessionId,
+      eventType: PERSONA_DELETED,
+      entityType: 'persona',
+      entityId: personaId,
+      createdBy: userId,
+    })
+    return new Response(JSON.stringify({ message: 'Persona deleted' }), { headers: JSON_HEADERS })
+  } catch (error) {
+    await logEvent(env, {
+      level: 'error',
+      source: 'cop/personas',
+      message: String(error instanceof Error ? error.message : error).slice(0, 500),
+      context: { error: String(error) },
+    })
+    return new Response(JSON.stringify({ error: 'Failed to delete persona' }), { status: 500, headers: JSON_HEADERS })
   }
 }
 

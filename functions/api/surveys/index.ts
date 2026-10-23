@@ -5,7 +5,7 @@
  * POST /api/surveys      — create a new survey
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserFromRequest } from '../_shared/auth-helpers'
+import { getUserFromRequest, requireCopEditor } from '../_shared/auth-helpers'
 import { generatePrefixedId, JSON_HEADERS, safeJsonParse } from '../_shared/api-utils'
 import { hashPassword, isValidAccessLevel, isValidSlug } from '../_shared/survey-drops'
 
@@ -156,6 +156,18 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const facts = Array.isArray(body.facts) ? JSON.stringify(body.facts) : '[]'
     const changelog = Array.isArray(body.changelog) ? JSON.stringify(body.changelog) : '[]'
 
+    // A form linked to a COP files its submissions there: only the session's owner
+    // or an editor/admin may link one.
+    let copSessionId: string | null = null
+    if (body.cop_session_id !== undefined && body.cop_session_id !== null && body.cop_session_id !== '') {
+      if (typeof body.cop_session_id !== 'string' || !(await requireCopEditor(env.DB, body.cop_session_id, userId))) {
+        return new Response(JSON.stringify({ error: 'Only the COP session owner or an editor can link a form to it' }), {
+          status: 403, headers: JSON_HEADERS,
+        })
+      }
+      copSessionId = body.cop_session_id
+    }
+
     // E-11: validate intent (drop-spot mode)
     const VALID_INTENTS = ['survey', 'drop']
     const intent = body.intent && VALID_INTENTS.includes(body.intent) ? body.intent : 'survey'
@@ -191,7 +203,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       body.auto_tag_category || null,
       body.require_location ? 1 : 0,
       body.require_contact ? 1 : 0,
-      body.cop_session_id || null,
+      copSessionId,
       facts,
       changelog,
       intent,

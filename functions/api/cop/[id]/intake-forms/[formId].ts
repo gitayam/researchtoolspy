@@ -5,7 +5,9 @@
  * PUT /api/cop/:id/intake-forms/:formId  - Update an intake form
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserFromRequest, verifyCopSessionAccess } from '../../../_shared/auth-helpers'
+import { emitCopEvent } from '../../../_shared/cop-events'
+import { INTAKE_FORM_UPDATED } from '../../../_shared/cop-event-types'
+import { getUserFromRequest, verifyCopSessionAccess, requireCopEditor } from '../../../_shared/auth-helpers'
 import { JSON_HEADERS } from '../../../_shared/api-utils'
 import { logEvent } from '../../../_shared/event-log'
 
@@ -89,7 +91,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     // Authentication alone let any signed-in user rewrite another team's form
     // -- including form_schema and status -- because the only guard was the
     // (guessable-by-enumeration) id pair. Writes require real session access.
-    const writeWorkspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId)
+    const writeWorkspaceId = await requireCopEditor(env.DB, sessionId, userId)
     if (!writeWorkspaceId) {
       return new Response(JSON.stringify({ error: 'Access denied' }), {
         status: 403, headers: JSON_HEADERS,
@@ -134,6 +136,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       `UPDATE cop_intake_forms SET ${updates.join(', ')} WHERE id = ? AND cop_session_id = ?`
     ).bind(...bindings).run()
 
+    await emitCopEvent(env.DB, { copSessionId: sessionId, eventType: INTAKE_FORM_UPDATED, entityType: 'submission', entityId: formId, createdBy: userId })
     return new Response(JSON.stringify({ id: formId, message: 'Intake form updated' }), { headers: JSON_HEADERS })
   } catch (error) {
     await logEvent(env, {

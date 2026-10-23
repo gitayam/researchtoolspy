@@ -5,7 +5,10 @@
  * POST /api/cop/:id/marker-changelog               - Create changelog entry
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-helpers'
+import { unreviewedTipIds } from '../../_shared/cop-input'
+import { emitCopEvent } from '../../_shared/cop-events'
+import { MARKER_LOGGED } from '../../_shared/cop-event-types'
+import { getUserFromRequest, verifyCopSessionAccess, requireCopEditor } from '../../_shared/auth-helpers'
 import { generatePrefixedId , JSON_HEADERS } from '../../_shared/api-utils'
 import { logEvent } from '../../_shared/event-log'
 
@@ -45,9 +48,16 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       SELECT * FROM cop_marker_changelog
       WHERE marker_id = ? AND cop_session_id = ?
       ORDER BY created_at DESC
-    `).bind(markerId, sessionId).all()
+    `).bind(markerId, sessionId).all<Record<string, unknown>>()
+    let changelog = rows.results ?? []
 
-    return new Response(JSON.stringify({ changelog: rows.results || [] }), { headers: JSON_HEADERS })
+    // A public session's other readers don't see an unreviewed drop-form tip's text.
+    if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))
+      && (await unreviewedTipIds(env.DB, sessionId)).markers.has(markerId)) {
+      changelog = changelog.map((row) => ({ ...row, old_value: null, new_value: null, rationale: null, created_by_name: null }))
+    }
+
+    return new Response(JSON.stringify({ changelog }), { headers: JSON_HEADERS })
   } catch (error) {
     await logEvent(env, {
       level: 'error',
@@ -73,7 +83,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         status: 401, headers: JSON_HEADERS,
       })
     }
-    if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
+    if (!(await requireCopEditor(env.DB, sessionId, userId))) {
       return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
     }
     const body = await request.json() as any
@@ -118,6 +128,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       now,
     ).run()
 
+    await emitCopEvent(env.DB, { copSessionId: sessionId, eventType: MARKER_LOGGED, entityType: 'marker', entityId: body.marker_id ?? null, createdBy: userId })
     return new Response(JSON.stringify({ id, message: 'Changelog entry created' }), {
       status: 201, headers: JSON_HEADERS,
     })

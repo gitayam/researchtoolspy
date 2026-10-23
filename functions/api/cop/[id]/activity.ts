@@ -10,7 +10,9 @@
  */
 
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-helpers'
+import { emitCopEvent } from '../../_shared/cop-events'
+import { ACTIVITY_LOGGED } from '../../_shared/cop-event-types'
+import { getUserFromRequest, verifyCopSessionAccess, requireCopEditor } from '../../_shared/auth-helpers'
 import { logEvent } from '../../_shared/event-log'
 
 interface Env {
@@ -89,7 +91,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         status: 401, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       })
     }
-    const accessWorkspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId)
+    const accessWorkspaceId = await requireCopEditor(env.DB, sessionId, userId)
     if (!accessWorkspaceId) {
       return new Response(JSON.stringify({ error: 'Access denied' }), {
         status: 403, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
@@ -149,6 +151,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       }), { status: 500, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } })
     }
 
+    await emitCopEvent(env.DB, { copSessionId: sessionId, eventType: ACTIVITY_LOGGED, entityType: 'activity', entityId: id, createdBy: userId })
     return new Response(JSON.stringify({ activity }), { status: 201, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } })
   } catch (error) {
     await logEvent(env, {

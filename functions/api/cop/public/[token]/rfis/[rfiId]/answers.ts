@@ -7,9 +7,33 @@ import type { PagesFunction } from '@cloudflare/workers-types'
 import { generatePrefixedId, JSON_HEADERS } from '../../../../../_shared/api-utils'
 import { logEvent } from '../../../../../_shared/event-log'
 import { sessionArchived, shareExpired, sharePanels } from '../../../../../_shared/cop-share'
+import { emitCopEvent } from '../../../../../_shared/cop-events'
+import { RFI_ANSWERED } from '../../../../../_shared/cop-event-types'
+import { isMissingColumn } from '../../../../../_shared/cop-input'
+import { takePublicSlot } from '../../../../../_shared/cop-public'
+import type { KvLike } from '../../../../../_shared/kv-json'
 
 interface Env {
   DB: D1Database
+  CACHE?: KvLike
+}
+
+/** Answers per client address per 10 minutes through share links (anonymous writes). */
+export const PUBLIC_ANSWERS_PER_WINDOW = 10
+const ANSWER_MAX = 4000
+const URL_MAX = 2000
+const NAME_MAX = 100
+const SOURCE_DESCRIPTION_MAX = 1000
+
+function httpLink(raw: unknown): string | null | 'invalid' {
+  if (raw === undefined || raw === null || raw === '') return null
+  if (typeof raw !== 'string' || raw.length > URL_MAX) return 'invalid'
+  try {
+    const url = new URL(raw.trim())
+    return url.protocol === 'https:' || url.protocol === 'http:' ? url.href : 'invalid'
+  } catch {
+    return 'invalid'
+  }
 }
 
 
@@ -24,9 +48,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       SELECT * FROM cop_shares WHERE share_token = ? AND allow_rfi_answers = 1
     `).bind(token).first()
 
-    // The same rules as the public page: an expired link, one that doesn't show the
-    // RFI panel, or an archived session takes no answers.
-    if (!share || shareExpired(share) || !sharePanels(share).includes('rfi')) {
+    // The same rules as the public page: an expired link, one that shows neither the RFI
+    // panel nor (for a key question) the questions panel, or an archived session takes
+    // no answers.
+    const panels = share ? sharePanels(share) : []
+    if (!share || shareExpired(share) || (!panels.includes('rfi') && !panels.includes('questions'))) {
       return new Response(JSON.stringify({ error: 'Share not found or RFI answers not allowed' }), {
         status: 403, headers: JSON_HEADERS,
       })
@@ -42,39 +68,88 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
 
     // Verify the RFI belongs to the share's session
-    const rfiCheck = await env.DB.prepare(
-      'SELECT id FROM cop_rfis WHERE id = ? AND cop_session_id = ?'
-    ).bind(rfiId, shareSessionId).first()
+    let rfiCheck: { id: string; is_key?: number } | null
+    try {
+      rfiCheck = await env.DB.prepare('SELECT id, is_key FROM cop_rfis WHERE id = ? AND cop_session_id = ?')
+        .bind(rfiId, shareSessionId).first()
+    } catch (error) {
+      if (!isMissingColumn(error)) throw error
+      rfiCheck = await env.DB.prepare('SELECT id FROM cop_rfis WHERE id = ? AND cop_session_id = ?')
+        .bind(rfiId, shareSessionId).first()
+    }
     if (!rfiCheck) {
       return new Response(JSON.stringify({ error: 'RFI not found' }), {
         status: 404, headers: JSON_HEADERS,
       })
     }
+    // Through the questions panel alone, only key questions (starred RFIs) are shown.
+    if (!panels.includes('rfi') && rfiCheck.is_key !== 1) {
+      return new Response(JSON.stringify({ error: 'Share not found or RFI answers not allowed' }), {
+        status: 403, headers: JSON_HEADERS,
+      })
+    }
+
+    // Anonymous writes, counted after the link checks and before the body is read:
+    // limited per client address, and refused when the count can't be kept.
+    const slot = await takePublicSlot(env.CACHE, request, 'cop-public-answers', PUBLIC_ANSWERS_PER_WINDOW, 600)
+    if (slot !== 'ok') {
+      return new Response(JSON.stringify(slot === 'over'
+        ? { error: 'Too many answers from this address; try again later', code: 'RATE_LIMITED' }
+        : { error: 'Answers are unavailable right now', code: 'RATE_LIMIT_UNAVAILABLE' }), {
+        status: slot === 'over' ? 429 : 503, headers: { ...JSON_HEADERS, 'Retry-After': '60' },
+      })
+    }
 
     const body = await request.json() as any
 
-    if (!body.answer_text?.trim()) {
+    if (typeof body.answer_text !== 'string' || !body.answer_text.trim()) {
       return new Response(JSON.stringify({ error: 'Answer text is required' }), {
         status: 400, headers: JSON_HEADERS,
       })
     }
+    if (body.answer_text.trim().length > ANSWER_MAX) {
+      return new Response(JSON.stringify({ error: `Answer text is limited to ${ANSWER_MAX} characters` }), {
+        status: 400, headers: JSON_HEADERS,
+      })
+    }
+    const sourceUrl = httpLink(body.source_url)
+    if (sourceUrl === 'invalid') {
+      return new Response(JSON.stringify({ error: `source_url must be an http(s) link of at most ${URL_MAX} characters` }), {
+        status: 400, headers: JSON_HEADERS,
+      })
+    }
+    const responderName = typeof body.responder_name === 'string' && body.responder_name.trim()
+      ? body.responder_name.trim().slice(0, NAME_MAX) : 'Anonymous'
+    const sourceDescription = typeof body.source_description === 'string' && body.source_description.trim()
+      ? body.source_description.trim().slice(0, SOURCE_DESCRIPTION_MAX) : null
 
     const id = generatePrefixedId('rfia')
     const now = new Date().toISOString()
 
+    // created_by is NOT NULL (default 1) in production: an anonymous answer leaves it to
+    // the default and names its responder instead. An explicit NULL failed every answer.
     await env.DB.prepare(`
-      INSERT INTO cop_rfi_answers (id, rfi_id, answer_text, source_url, source_description, is_accepted, created_by, responder_name, created_at)
-      VALUES (?, ?, ?, ?, ?, 0, NULL, ?, ?)
+      INSERT INTO cop_rfi_answers (id, rfi_id, answer_text, source_url, source_description, is_accepted, responder_name, created_at)
+      VALUES (?, ?, ?, ?, ?, 0, ?, ?)
     `).bind(
       id, rfiId, body.answer_text.trim(),
-      body.source_url || null, body.source_description || null,
-      body.responder_name || 'Anonymous', now
+      sourceUrl, sourceDescription,
+      responderName, now
     ).run()
 
     // Update RFI status to 'answered' if currently 'open' — scoped to session
     await env.DB.prepare(`
       UPDATE cop_rfis SET status = 'answered', updated_at = ? WHERE id = ? AND cop_session_id = ? AND status = 'open'
     `).bind(now, rfiId, shareSessionId).run()
+
+    await emitCopEvent(env.DB, {
+      copSessionId: shareSessionId,
+      eventType: RFI_ANSWERED,
+      entityType: 'rfi',
+      entityId: rfiId,
+      payload: { via: 'share' },
+      createdBy: Number((share as { created_by?: unknown }).created_by) || 1,
+    })
 
     return new Response(JSON.stringify({ id, message: 'Answer submitted' }), {
       status: 201, headers: JSON_HEADERS,

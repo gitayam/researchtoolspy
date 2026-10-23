@@ -500,6 +500,32 @@ export async function verifyCopSessionAccess(
 }
 
 /**
+ * Write access to a COP session: the owner, or a collaborator whose role is editor or
+ * admin. A viewer reads (verifyCopSessionAccess with readOnly) but never writes.
+ * Every COP write handler uses this instead of verifyCopSessionAccess.
+ *
+ * @returns workspace_id string if the caller may write, null if not
+ */
+export async function requireCopEditor(
+  db: D1Database,
+  sessionId: string,
+  userId: number,
+): Promise<string | null> {
+  const session = await db.prepare(
+    'SELECT workspace_id, created_by FROM cop_sessions WHERE id = ?'
+  ).bind(sessionId).first<{ workspace_id: string; created_by: number }>()
+
+  if (!session) return null
+  if (String(session.created_by) === String(userId)) return session.workspace_id
+
+  const collab = await db.prepare(
+    'SELECT role FROM cop_collaborators WHERE cop_session_id = ? AND user_id = ?'
+  ).bind(sessionId, userId).first<{ role: string | null }>()
+  const role = String(collab?.role ?? '').trim().toLowerCase()
+  return role === 'editor' || role === 'admin' ? session.workspace_id : null
+}
+
+/**
  * Verify access to COP layer endpoints (GeoJSON map layers).
  *
  * Layer endpoints are READ-only and serve GeoJSON for the map.

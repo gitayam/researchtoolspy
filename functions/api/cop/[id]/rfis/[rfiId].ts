@@ -1,14 +1,26 @@
 /**
  * COP RFI Single Item API
  *
- * PUT /api/cop/:id/rfis/:rfiId - Update RFI (status, priority)
+ * PUT    /api/cop/:id/rfis/:rfiId - Update RFI (status, priority, assignee, is_key star).
+ *                                  Optional if_updated_at / If-Match → 409 STALE_WRITE.
+ * DELETE /api/cop/:id/rfis/:rfiId - Delete RFI and its answers (a service: only its own)
+ *
+ * Starring an RFI (is_key) makes it a key question: the session's key_questions list is
+ * rewritten from the starred RFIs.
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserFromRequest, verifyCopSessionAccess } from '../../../_shared/auth-helpers'
+import { requireCopEditor } from '../../../_shared/auth-helpers'
 import { emitCopEvent } from '../../../_shared/cop-events'
-import { RFI_ANSWERED, RFI_ACCEPTED, RFI_CLOSED } from '../../../_shared/cop-event-types'
+import {
+  RFI_ANSWERED, RFI_ACCEPTED, RFI_CLOSED, RFI_DELETED, RFI_STARRED, RFI_UNSTARRED, RFI_UPDATED,
+} from '../../../_shared/cop-event-types'
 import { JSON_HEADERS } from '../../../_shared/api-utils'
 import { logEvent } from '../../../_shared/event-log'
+import { copCallerUserId } from '../../../_shared/cop-caller'
+import {
+  expectedUpdatedAt, isMissingColumn, rewriteSessionKeyQuestions, serviceChangeRefused, serviceDeleteRefused,
+  serviceMayChange, serviceMayDelete, staleWriteResponse,
+} from '../../../_shared/cop-input'
 
 interface Env {
   DB: D1Database
@@ -23,13 +35,13 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
   const rfiId = params.rfiId as string
 
   try {
-    const userId = await getUserFromRequest(request, env)
+    const userId = await copCallerUserId(context)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
         status: 401, headers: JSON_HEADERS,
       })
     }
-    if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
+    if (!(await requireCopEditor(env.DB, sessionId, userId))) {
       return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
     }
     const body = await request.json() as any
@@ -37,7 +49,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
     // Fetch existing RFI — scoped to this session
     const existing = await env.DB.prepare(
-      'SELECT status, question FROM cop_rfis WHERE id = ? AND cop_session_id = ?'
+      'SELECT * FROM cop_rfis WHERE id = ? AND cop_session_id = ?'
     ).bind(rfiId, sessionId).first() as any
 
     if (!existing) {
@@ -45,6 +57,11 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
         status: 404, headers: JSON_HEADERS,
       })
     }
+    // A service (the Signal bot) may change only the RFIs it created.
+    if (!serviceMayChange(context, existing.created_by)) return serviceChangeRefused()
+
+    const expected = expectedUpdatedAt(request, body)
+    if (expected && expected !== existing.updated_at) return staleWriteResponse(existing)
 
     const updates: string[] = ['updated_at = ?']
     const values: any[] = [now]
@@ -66,15 +83,47 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       updates.push('assigned_to = ?')
       values.push(body.assigned_to)
     }
+    const starChange = typeof body.is_key === 'boolean' && 'is_key' in existing && Boolean(existing.is_key) !== body.is_key
+    if (typeof body.is_key === 'boolean' && !('is_key' in existing)) {
+      return new Response(JSON.stringify({ error: 'Starring questions is not available yet' }), {
+        status: 503, headers: JSON_HEADERS,
+      })
+    }
+    if (starChange) {
+      updates.push('is_key = ?')
+      values.push(body.is_key ? 1 : 0)
+    }
 
-    values.push(rfiId)
+    // With a version from the client, the update only lands on that version.
+    const updated = await env.DB.prepare(`
+      UPDATE cop_rfis SET ${updates.join(', ')} WHERE id = ? AND cop_session_id = ?${expected ? ' AND updated_at = ?' : ''}
+    `).bind(...values, rfiId, sessionId, ...(expected ? [expected] : [])).run()
+    if (expected && !updated.meta?.changes) {
+      const current = await env.DB.prepare('SELECT * FROM cop_rfis WHERE id = ? AND cop_session_id = ?')
+        .bind(rfiId, sessionId).first()
+      return staleWriteResponse(current)
+    }
 
-    await env.DB.prepare(`
-      UPDATE cop_rfis SET ${updates.join(', ')} WHERE id = ? AND cop_session_id = ?
-    `).bind(...values, sessionId).run()
+    await emitCopEvent(env.DB, {
+      copSessionId: sessionId,
+      eventType: RFI_UPDATED,
+      entityType: 'rfi',
+      entityId: rfiId,
+      createdBy: userId,
+    })
+    if (starChange) {
+      await emitCopEvent(env.DB, {
+        copSessionId: sessionId,
+        eventType: body.is_key ? RFI_STARRED : RFI_UNSTARRED,
+        entityType: 'rfi',
+        entityId: rfiId,
+        createdBy: userId,
+      })
+      await rewriteSessionKeyQuestions(env.DB, sessionId, userId)
+    }
 
     // Emit event for status transitions
-    if (body.status && existing && body.status !== existing.status) {
+    if (body.status && body.status !== existing.status) {
       const statusEventMap: Record<string, string> = {
         'answered': RFI_ANSWERED,
         'accepted': RFI_ACCEPTED,
@@ -93,7 +142,9 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       }
     }
 
-    return new Response(JSON.stringify({ message: 'RFI updated' }), { headers: JSON_HEADERS })
+    const row = await env.DB.prepare('SELECT * FROM cop_rfis WHERE id = ? AND cop_session_id = ?')
+      .bind(rfiId, sessionId).first()
+    return new Response(JSON.stringify({ message: 'RFI updated', rfi: row }), { headers: JSON_HEADERS })
   } catch (error) {
     await logEvent(env, {
       level: 'error',
@@ -108,20 +159,36 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 }
 
 export const onRequestDelete: PagesFunction<Env> = async (context) => {
-  const { request, env, params } = context
+  const { env, params } = context
   const sessionId = params.id as string
   const rfiId = params.rfiId as string
 
   try {
-    const userId = await getUserFromRequest(request, env)
+    const userId = await copCallerUserId(context)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
         status: 401, headers: JSON_HEADERS,
       })
     }
-    if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
+    if (!(await requireCopEditor(env.DB, sessionId, userId))) {
       return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
     }
+
+    let existing: { created_by: number; is_key?: number } | null
+    try {
+      existing = await env.DB.prepare('SELECT created_by, is_key FROM cop_rfis WHERE id = ? AND cop_session_id = ?')
+        .bind(rfiId, sessionId).first()
+    } catch (error) {
+      if (!isMissingColumn(error)) throw error
+      existing = await env.DB.prepare('SELECT created_by FROM cop_rfis WHERE id = ? AND cop_session_id = ?')
+        .bind(rfiId, sessionId).first()
+    }
+    if (!existing) {
+      return new Response(JSON.stringify({ error: 'RFI not found' }), {
+        status: 404, headers: JSON_HEADERS,
+      })
+    }
+    if (!serviceMayDelete(context, existing.created_by)) return serviceDeleteRefused()
 
     // Delete answers first (child records)
     await env.DB.prepare(
@@ -138,6 +205,15 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
         status: 404, headers: JSON_HEADERS,
       })
     }
+
+    await emitCopEvent(env.DB, {
+      copSessionId: sessionId,
+      eventType: RFI_DELETED,
+      entityType: 'rfi',
+      entityId: rfiId,
+      createdBy: userId,
+    })
+    if (existing.is_key) await rewriteSessionKeyQuestions(env.DB, sessionId, userId)
 
     return new Response(JSON.stringify({ message: 'RFI deleted' }), { headers: JSON_HEADERS })
   } catch (error) {

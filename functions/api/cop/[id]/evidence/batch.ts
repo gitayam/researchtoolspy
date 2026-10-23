@@ -1,12 +1,20 @@
 /**
  * COP Batch Evidence API - Create multiple evidence items in one request
  *
- * POST /api/cop/:id/evidence/batch - Insert up to 100 evidence items via D1 batch
+ * POST /api/cop/:id/evidence/batch - Insert up to 100 evidence items via D1 batch.
+ *   A link already in the workspace (or earlier in the batch) is not saved twice: it is
+ *   listed in `duplicates` with the existing item's id.
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserFromRequest, verifyCopSessionAccess } from '../../../_shared/auth-helpers'
+import { requireCopEditor } from '../../../_shared/auth-helpers'
 import { JSON_HEADERS } from '../../../_shared/api-utils'
 import { logEvent } from '../../../_shared/event-log'
+import { copCallerUserId } from '../../../_shared/cop-caller'
+import { emitCopEvent } from '../../../_shared/cop-events'
+import { EVIDENCE_BATCH_CREATED } from '../../../_shared/cop-event-types'
+import {
+  canonicalUrl, copSourceChannel, copSourceRef, evidenceInSession, isMissingColumn, setEvidenceSession, setProvenance,
+} from '../../../_shared/cop-input'
 
 interface Env {
   DB: D1Database
@@ -37,13 +45,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const sessionId = params.id as string
 
   try {
-    const userId = await getUserFromRequest(request, env)
+    const userId = await copCallerUserId(context)
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
         status: 401, headers: JSON_HEADERS,
       })
     }
-    if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
+    if (!(await requireCopEditor(env.DB, sessionId, userId))) {
       return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
     }
     const workspaceId = await getSessionWorkspaceId(env.DB, sessionId)
@@ -69,7 +77,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
-    // Validate all items have a title before inserting any
+    // Validate all items have a title (and any link is http(s)) before inserting any
+    const canonicals: (string | null)[] = []
     for (let i = 0; i < body.items.length; i++) {
       const item = body.items[i] as EvidenceInput
       if (!item.title?.trim()) {
@@ -79,12 +88,51 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           status: 400, headers: JSON_HEADERS,
         })
       }
+      const raw = typeof item.url === 'string' && item.url.trim() ? item.url.trim() : null
+      const canonical = raw ? canonicalUrl(raw) : null
+      if (raw && !canonical) {
+        return new Response(JSON.stringify({ error: `Item at index ${i} has a link that is not http(s)` }), {
+          status: 400, headers: JSON_HEADERS,
+        })
+      }
+      canonicals.push(canonical)
+    }
+
+    // Links already in this COP, and repeats inside this batch, are not saved again.
+    const scope = evidenceInSession({ sessionId, workspaceId })
+    const duplicates: { index: number; id: number | null }[] = []
+    const seen = new Map<string, number>()
+    const fresh: number[] = []
+    for (let i = 0; i < body.items.length; i++) {
+      const canonical = canonicals[i]
+      if (!canonical) { fresh.push(i); continue }
+      if (seen.has(canonical)) { duplicates.push({ index: i, id: null }); continue }
+      seen.set(canonical, i)
+      const raw = String((body.items[i] as EvidenceInput).url).trim()
+      let existing: { id: number } | null
+      try {
+        existing = await env.DB.prepare(`
+          SELECT id FROM evidence_items
+          WHERE ${scope.sql} AND (canonical_url = ? OR (canonical_url IS NULL AND source_url IN (?, ?)))
+          ORDER BY id ASC LIMIT 1
+        `).bind(...scope.binds, canonical, raw, canonical).first<{ id: number }>()
+      } catch (error) {
+        if (!isMissingColumn(error)) throw error
+        existing = await env.DB.prepare(
+          `SELECT id FROM evidence_items WHERE ${scope.legacySql} AND source_url IN (?, ?) ORDER BY id ASC LIMIT 1`
+        ).bind(...scope.legacyBinds, raw, canonical).first<{ id: number }>()
+      }
+      if (existing) duplicates.push({ index: i, id: Number(existing.id) })
+      else fresh.push(i)
     }
 
     const now = new Date().toISOString()
+    const channel = copSourceChannel(context)
+    const ref = copSourceRef(context)
+    const toInsert: EvidenceInput[] = fresh.map((i) => body.items[i])
 
     // Build prepared statements for D1 batch insert
-    const statements = body.items.map((item: EvidenceInput) => {
+    const statements = toInsert.map((item: EvidenceInput) => {
       return env.DB.prepare(`
         INSERT INTO evidence_items (
           title, description, source_url, evidence_type, confidence_level,
@@ -94,7 +142,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       `).bind(
         item.title.trim(),
         (item.description ?? '').trim(),
-        item.url ?? null,
+        typeof item.url === 'string' && item.url.trim() ? item.url.trim() : null,
         item.source_type ?? 'observation',
         'medium',
         'unverified',
@@ -106,10 +154,34 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       )
     })
 
-    const results = await env.DB.batch(statements)
+    const results = statements.length ? await env.DB.batch(statements) : []
+
+    for (let k = 0; k < results.length; k++) {
+      const id = (results[k] as D1Result).meta?.last_row_id
+      if (!id) continue
+      await setEvidenceSession(env.DB, id, sessionId)
+      await setProvenance(env.DB, 'evidence_items', id, channel, ref)
+      const canonical = canonicals[fresh[k]]
+      if (canonical) {
+        try {
+          await env.DB.prepare('UPDATE evidence_items SET canonical_url = ? WHERE id = ?').bind(canonical, id).run()
+        } catch (error) {
+          if (!isMissingColumn(error)) throw error
+        }
+      }
+    }
+    if (results.length) {
+      await emitCopEvent(env.DB, {
+        copSessionId: sessionId,
+        eventType: EVIDENCE_BATCH_CREATED,
+        entityType: 'evidence',
+        payload: { created: results.length },
+        createdBy: userId,
+      })
+    }
 
     // Build response items with auto-incremented IDs from each insert result
-    const items = body.items.map((item: EvidenceInput, i: number) => ({
+    const items = toInsert.map((item: EvidenceInput, i: number) => ({
       id: (results[i] as any).meta?.last_row_id ?? 0,
       title: item.title.trim(),
       url: item.url ?? null,
@@ -125,6 +197,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     return new Response(JSON.stringify({
       created: items.length,
       items,
+      duplicates,
     }), {
       status: 201, headers: JSON_HEADERS,
     })

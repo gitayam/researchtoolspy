@@ -5,6 +5,9 @@
  * GET  /api/cop/:id/scrape?run_id=xxx — Check run status / fetch results
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
+import { emitCopEvent } from '../../_shared/cop-events'
+import { EVIDENCE_IMPORTED } from '../../_shared/cop-event-types'
+import { isMissingColumn } from '../../_shared/cop-input'
 import { getUserFromRequest } from '../../_shared/auth-helpers'
 import { JSON_HEADERS } from '../../_shared/api-utils'
 import { assertApifyIdentifier, fetchApifyJson } from '../../_shared/apify-client'
@@ -878,10 +881,31 @@ async function batchInsertEvidence(
   })
 
   const results = await db.batch(stmts)
-  return results.reduce(
+  const inserted = results.reduce(
     (count, result, index) => count + (index % 3 === 1 ? Number(result.meta?.changes || 0) : 0),
     0,
   )
+  if (inserted > 0) {
+    // Provenance (migration 0022) and the change feed for open COPs.
+    try {
+      await db.prepare(`
+        UPDATE evidence_items SET source_channel = 'scrape', source_ref = ?, cop_session_id = ?
+        WHERE source_channel IS NULL AND id IN (
+          SELECT evidence_item_id FROM cop_scrape_imports WHERE run_id = ? AND cop_session_id = ? AND evidence_item_id IS NOT NULL
+        )
+      `).bind(scraperType, sessionId, runId, sessionId).run()
+    } catch (error) {
+      if (!isMissingColumn(error)) throw error
+    }
+    await emitCopEvent(db, {
+      copSessionId: sessionId,
+      eventType: EVIDENCE_IMPORTED,
+      entityType: 'evidence',
+      payload: { imported: inserted, scraper_type: scraperType },
+      createdBy: userId,
+    })
+  }
+  return inserted
 }
 
 export const onRequestOptions: PagesFunction = async () => {
