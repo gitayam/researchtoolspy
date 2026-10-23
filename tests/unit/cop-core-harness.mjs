@@ -25,6 +25,7 @@ export const ENTRIES = {
   copEvents: 'functions/api/_shared/cop-events.ts',
   copInput: 'functions/api/_shared/cop-input.ts',
   copPublic: 'functions/api/_shared/cop-public.ts',
+  copArchive: 'functions/api/_shared/cop-archive.ts',
   middleware: 'functions/api/cop/_middleware.ts',
   activity: `${R}activity.ts`,
   alerts: `${R}alerts.ts`,

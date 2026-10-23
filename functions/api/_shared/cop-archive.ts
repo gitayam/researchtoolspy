@@ -14,6 +14,11 @@
  * Neither the reference nor the scan state leaves for anyone outside the COP: public
  * payloads and feeds never carry them, and non-collaborators reading a public session
  * get evidence rows without them (stripPrivateEvidenceFields).
+ *
+ * Collaborators also get `archive_url`: for `silo:<id>`, the community portal's member
+ * download for that file (SILO_PORTAL_BASE + id; the portal checks the signed-in member
+ * belongs to the room), and for `peertube:<url>`, the video link. It is derived here on
+ * read, never stored, and only archiveFields() — the collaborator view — adds it.
  */
 
 export const SCAN_STATES = ['pending', 'clean', 'quarantined'] as const
@@ -24,6 +29,44 @@ const MAX_REF_LENGTH = 500
 
 export interface ArchiveEnv {
   COP_PEERTUBE_HOST?: string
+  /** https prefix ending in '/', e.g. https://irregulars.io/files/breakout/ (wrangler vars). */
+  SILO_PORTAL_BASE?: string
+}
+
+/** The configured portal prefix, or null when unset or not a plain https prefix ending in '/'. */
+export function siloPortalBase(env: ArchiveEnv | undefined): string | null {
+  const raw = (env?.SILO_PORTAL_BASE ?? '').trim()
+  if (!raw) return null
+  try {
+    const url = new URL(raw)
+    if (url.protocol !== 'https:' || url.username || url.password || url.search || url.hash || !url.pathname.endsWith('/')) return null
+    return url.href
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Where a collaborator can open an item's original: the portal download for a Silo file,
+ * the PeerTube page for a saved video; null for anything else (or when unconfigured).
+ */
+export function archiveUrl(sourceRef: unknown, env: ArchiveEnv | undefined): string | null {
+  if (typeof sourceRef !== 'string') return null
+  const silo = SILO_REF.exec(sourceRef)
+  if (silo) {
+    const base = siloPortalBase(env)
+    return base ? `${base}${encodeURIComponent(silo[1].toLowerCase())}` : null
+  }
+  if (sourceRef.startsWith('peertube:')) {
+    try {
+      const url = new URL(sourceRef.slice('peertube:'.length))
+      const host = (env?.COP_PEERTUBE_HOST ?? '').trim().toLowerCase()
+      return url.protocol === 'https:' && !url.username && !url.password && (!host || url.hostname === host) ? url.href : null
+    } catch {
+      return null
+    }
+  }
+  return null
 }
 
 export type CleanResult<T> = { ok: true; value: T; error?: undefined } | { ok: false; error: string; value?: undefined }
@@ -98,16 +141,20 @@ export function isArchiveRef(value: unknown): value is string {
  * Collaborator-facing extras for an evidence row: whether it is archived in Silo or
  * saved to PeerTube, and its scan state ("held pending a virus scan" while pending).
  */
-export function archiveFields(row: { source_ref?: unknown; metadata?: unknown }): {
+export function archiveFields(row: { source_ref?: unknown; metadata?: unknown }, env?: ArchiveEnv): {
   archived_in: 'silo' | 'peertube' | null
+  archive_url: string | null
   scan_state: ScanState | null
   held: boolean
 } {
   const ref = typeof row.source_ref === 'string' ? row.source_ref : ''
+  const held = evidenceHeld(row)
   return {
     archived_in: ref.startsWith('silo:') ? 'silo' : ref.startsWith('peertube:') ? 'peertube' : null,
+    // The portal refuses a file the scan hasn't cleared, so a held Silo item gets no link.
+    archive_url: held && ref.startsWith('silo:') ? null : archiveUrl(ref, env),
     scan_state: scanStateOf(row),
-    held: evidenceHeld(row),
+    held,
   }
 }
 
@@ -120,5 +167,8 @@ export function stripPrivateEvidenceFields(row: Record<string, unknown>): Record
   const rest: Record<string, unknown> = { ...row }
   delete rest.source_ref
   delete rest.metadata
+  delete rest.archive_url
+  delete rest.archived_in
+  delete rest.scan_state
   return held ? { ...rest, source_url: null, held: true } : { ...rest, held: false }
 }

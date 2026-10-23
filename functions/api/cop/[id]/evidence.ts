@@ -32,6 +32,7 @@ import { deleteLinksOf, findDuplicateEvidence } from '../../_shared/cop-evidence
 interface Env {
   DB: D1Database
   COP_PEERTUBE_HOST?: string
+  SILO_PORTAL_BASE?: string
 }
 
 const ALLOWED_CREDIBILITY = ['confirmed', 'probable', 'possible', 'doubtful', 'unverified']
@@ -87,7 +88,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     // Archive references and scan states stay inside the COP too (cop-archive.ts).
     const collaborator = Boolean(await verifyCopSessionAccess(env.DB, sessionId, userId))
     const evidence = (results.results ?? []).map((row) => (collaborator
-      ? { ...row, ...archiveFields(row) }
+      ? { ...row, ...archiveFields(row, env) }
       : stripPrivateEvidenceFields(maskTipEvidenceRow(row))))
 
     return new Response(JSON.stringify({ evidence }), { headers: JSON_HEADERS })

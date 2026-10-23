@@ -67,6 +67,8 @@ EVIDENCE_ANALYSIS_SERVICE_ENABLED = "true"
 COP_SERVICE_ENABLED = "true"
 # Public PeerTube host whose video links may be stored as COP evidence source_ref (peertube:<url>).
 COP_PEERTUBE_HOST = "videos.irregularchat.com"
+# Community-portal prefix for a room member's download of a Silo original (+ archived_files id).
+SILO_PORTAL_BASE = "https://irregulars.io/files/breakout/"
 # AI_GATEWAY_ACCOUNT_ID is set as a Pages secret (`wrangler pages secret put`).
 # Do NOT also declare it here — a plaintext [vars] copy collides with the secret
 # at deploy time: "Binding name 'AI_GATEWAY_ACCOUNT_ID' already in use".
@@ -94,6 +96,8 @@ EVIDENCE_ANALYSIS_SERVICE_ENABLED = "true"
 COP_SERVICE_ENABLED = "true"
 # Public PeerTube host whose video links may be stored as COP evidence source_ref (peertube:<url>).
 COP_PEERTUBE_HOST = "videos.irregularchat.com"
+# Community-portal prefix for a room member's download of a Silo original (+ archived_files id).
+SILO_PORTAL_BASE = "https://irregulars.io/files/breakout/"
 # AI_GATEWAY_ACCOUNT_ID is set as a Pages secret (`wrangler pages secret put`).
 # Do NOT also declare it here — a plaintext [vars] copy collides with the secret
 # at deploy time: "Binding name 'AI_GATEWAY_ACCOUNT_ID' already in use".
