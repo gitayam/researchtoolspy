@@ -19,11 +19,11 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
   b64, cop, dataUrl, DROP_TOKEN, events, fixture, jpegWithMetadata, leaksMetadata, mod, publicCall, SESSION,
-  setupInputSuite, SURVEY_TOKEN,
+  setupInputSuite, SURVEY_TOKEN, INTAKE_TOKEN,
 } from './cop-input-harness.mjs'
 import { JPEG_PLAIN } from './fixtures/images.mjs'
 
-setupInputSuite(['serviceAuth', 'copCaller', 'middleware', 'copIngest', 'submissions', 'dropSubmit', 'surveySubmit', 'pushToCop'])
+setupInputSuite(['serviceAuth', 'copCaller', 'middleware', 'copIngest', 'submissions', 'dropSubmit', 'surveySubmit', 'pushToCop', 'intakeSubmit'])
 
 const TIP = {
   what: 'Two vans unloading barriers at the north gate',
@@ -222,4 +222,47 @@ test('triage: accept files the submission once; reject takes auto-ingested items
   const row = db.prepare('SELECT status, linked_evidence_id, auto_ingested FROM survey_responses WHERE id = ?').get(auto)
   assert.deepEqual({ ...row }, { status: 'rejected', linked_evidence_id: null, auto_ingested: 0 })
   assert.ok(events(db, 'evidence').some((e) => e.event_type === 'evidence.deleted'))
+})
+
+test('submission list: who sent it is for owners and editors; viewers get null', async () => {
+  const { db, env } = await fixture()
+  db.prepare(`INSERT INTO survey_responses (id, survey_id, cop_session_id, form_data, submitter_name, submitter_contact, lat, lon, submitter_country, submitter_city)
+    VALUES ('sub-who', 'srv-survey', ?, '{}', 'Alice Example', 'alice@example.org', 48.1, 2.1, 'FR', 'Paris')`).run(SESSION)
+  const list = async (who) => {
+    const res = await cop(env, 'GET', `/api/cop/${SESSION}/submissions`, { who, handler: mod('submissions'), params: { id: SESSION } })
+    assert.equal(res.status, 200, who)
+    return (await res.json()).submissions.find((s) => s.id === 'sub-who')
+  }
+  const viewer = await list('viewer')
+  assert.deepEqual(
+    [viewer.submitter_name, viewer.submitter_contact, viewer.lat, viewer.lon, viewer.submitter_country, viewer.submitter_city],
+    [null, null, null, null, null, null],
+  )
+  for (const who of ['editor', 'owner']) {
+    const seen = await list(who)
+    assert.equal(seen.submitter_contact, 'alice@example.org', who)
+    assert.equal(seen.submitter_name, 'Alice Example', who)
+  }
+  // A service cannot list submissions at all (not on its allow-list).
+  assert.equal((await cop(env, 'GET', `/api/cop/${SESSION}/submissions`, { who: 'service', handler: mod('submissions'), params: { id: SESSION } })).status, 403)
+})
+
+test('COP events never carry a submitter\'s name, contact or country (survey and intake forms)', async () => {
+  const { db, env } = await fixture()
+  const person = { submitter_name: 'Alice Example', submitter_contact: 'alice@example.org', lat: 48.1, lon: 2.1 }
+  const survey = await publicCall(env, mod('surveySubmit'), 'POST', `/api/surveys/public/${SURVEY_TOKEN}/submit`, {
+    body: { form_data: { what: 'Barricade on rue Y' }, ...person }, params: { token: SURVEY_TOKEN },
+    headers: { 'CF-IPCountry': 'FR' },
+  })
+  assert.equal(survey.status, 201)
+  const intake = await publicCall(env, mod('intakeSubmit'), 'POST', `/api/cop/public/intake/${INTAKE_TOKEN}/submit`, {
+    body: { form_data: { note: 'seen at the gate' }, ...person }, params: { token: INTAKE_TOKEN },
+    headers: { 'CF-IPCountry': 'FR' },
+  })
+  assert.equal(intake.status, 201, await intake.clone().text())
+  const payloads = db.prepare('SELECT payload FROM cop_events').all().map((r) => r.payload)
+  assert.ok(payloads.length >= 2)
+  for (const payload of payloads) {
+    assert.doesNotMatch(payload, /Alice|alice@example|submitter_(?:name|contact|country|city)/, payload)
+  }
 })

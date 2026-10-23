@@ -1,7 +1,9 @@
 /**
  * COP Submissions API - Triage Queue
  *
- * GET /api/cop/:id/submissions         - List submissions (optional ?status=pending&form_id=x)
+ * GET /api/cop/:id/submissions         - List submissions (optional ?status=pending&form_id=x).
+ *                                         Who sent it (name, contact, their position, country and
+ *                                         city) only for the owner or an editor/admin; null for viewers.
  * PUT /api/cop/:id/submissions         - Triage a submission (id in body; editors)
  *
  * Accepting a submission that has no evidence yet files it on the COP (unverified
@@ -61,10 +63,15 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     const results = await env.DB.prepare(query).bind(...bindings).all()
 
-    const submissions = (results.results || []).map((row: any) => {
+    // Submitters' identity and whereabouts are for the people who triage, not viewers.
+    const mayTriage = await mayEditCopSession(env.DB, sessionId, userId)
+    const submissions = (results.results || []).map((row: Record<string, unknown>) => {
       let form_data = {}
-      try { form_data = row.form_data ? JSON.parse(row.form_data) : {} } catch { form_data = {} }
-      return { ...row, form_data }
+      try { form_data = row.form_data ? JSON.parse(String(row.form_data)) : {} } catch { /* unreadable: empty */ }
+      const submitter = mayTriage
+        ? {}
+        : { submitter_name: null, submitter_contact: null, lat: null, lon: null, submitter_country: null, submitter_city: null }
+      return { ...row, ...submitter, form_data }
     })
 
     return new Response(JSON.stringify({ submissions }), { headers: JSON_HEADERS })

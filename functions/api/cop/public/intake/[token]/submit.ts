@@ -191,8 +191,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       entityId: id,
       payload: {
         survey_id: form.id,
-        submitter_name: body.submitter_name || null,
-        submitter_country: geo.country,
+        // No submitter name, contact or IP-derived place in COP events.
         has_location: body.lat != null || geo.lat != null,
       },
       createdBy: 0,

@@ -44,6 +44,7 @@ export const ENTRIES = {
   surveySubmit: 'functions/api/surveys/public/[token]/submit.ts',
   surveyUpload: 'functions/api/surveys/public/[token]/upload.ts',
   pushToCop: 'functions/api/surveys/[id]/responses/[rid]/push-to-cop.ts',
+  intakeSubmit: 'functions/api/cop/public/intake/[token]/submit.ts',
 }
 
 const built = {}
@@ -190,6 +191,7 @@ export const SHARE_NO_FEED = '11111111-2222-4333-8444-666666666666'
 export const SHARE_EXPIRED = '11111111-2222-4333-8444-777777777777'
 export const DROP_TOKEN = 'drop-token-paris'
 export const SURVEY_TOKEN = 'survey-token-paris'
+export const INTAKE_TOKEN = 'intake-token-paris'
 export const migration = (name) => readFileSync(join(ROOT, 'schema/managed-migrations', name), 'utf8')
 
 const PROD_TABLES = `
@@ -266,6 +268,14 @@ const PROD_TABLES = `
     workspace_id TEXT NOT NULL DEFAULT '1', created_by INTEGER NOT NULL, created_at TEXT DEFAULT (datetime('now')),
     updated_at TEXT DEFAULT (datetime('now')), facts TEXT DEFAULT '[]', changelog TEXT DEFAULT '[]',
     intent TEXT NOT NULL DEFAULT 'survey' CHECK(intent IN ('survey', 'drop'))
+  );
+  CREATE TABLE cop_intake_forms (
+    id TEXT PRIMARY KEY, cop_session_id TEXT NOT NULL, title TEXT NOT NULL, description TEXT, form_schema TEXT DEFAULT '[]',
+    share_token TEXT UNIQUE NOT NULL, status TEXT DEFAULT 'draft', auto_tag_category TEXT, require_location INTEGER DEFAULT 0,
+    require_contact INTEGER DEFAULT 0, submission_count INTEGER DEFAULT 0, created_by INTEGER NOT NULL,
+    workspace_id TEXT NOT NULL DEFAULT '1', created_at TEXT DEFAULT (datetime('now')), updated_at TEXT DEFAULT (datetime('now')),
+    access_level TEXT DEFAULT 'public', password_hash TEXT, allowed_countries TEXT DEFAULT '[]', rate_limit_per_hour INTEGER DEFAULT 0,
+    custom_slug TEXT, expires_at TEXT, theme_color TEXT, logo_url TEXT, success_message TEXT, redirect_url TEXT
   );
   CREATE TABLE survey_responses (
     id TEXT PRIMARY KEY, survey_id TEXT NOT NULL, form_data TEXT DEFAULT '{}', submitter_name TEXT, submitter_contact TEXT,
@@ -348,6 +358,9 @@ export async function fixture({ tags = true, channel = false, kv = true, r2 = tr
       ('srv-paris', 'Paris evidence form', '${JSON.stringify(DROP_SCHEMA).replace(/'/g, "''")}', '${DROP_TOKEN}', 'active', 'drop', 'tip', '${SESSION}', 'ws-owner', 1),
       ('srv-survey', 'Paris survey', '${JSON.stringify(DROP_SCHEMA).replace(/'/g, "''")}', '${SURVEY_TOKEN}', 'active', 'survey', NULL, '${SESSION}', 'ws-owner', 1);
   `)
+
+  db.exec(`INSERT INTO cop_intake_forms (id, cop_session_id, title, form_schema, share_token, status, created_by, workspace_id)
+    VALUES ('intake-paris', '${SESSION}', 'Paris intake', '[]', '${INTAKE_TOKEN}', 'active', 1, 'ws-owner')`)
 
   const now = Math.floor(Date.now() / 1000)
   const hash = await mod('serviceAuth').deriveIntegrationTokenHash(HASH_KEY, CLIENT_ID, SECRET)
