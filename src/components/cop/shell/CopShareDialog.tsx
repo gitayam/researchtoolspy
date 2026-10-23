@@ -8,6 +8,7 @@
  *     expiry. Existing links can be copied or revoked.
  *   - Link a Signal room: a one-time code (24 hours) the room's organizer sends as
  *     `!cop link <code>`; the room then gets this COP's updates and its posts come here.
+ *     The owner or an admin makes codes, and can revoke every open one at once.
  */
 import { useCallback, useEffect, useState } from 'react'
 import { Check, Copy, Link2, Loader2, MessageSquare, Trash2 } from 'lucide-react'
@@ -72,6 +73,9 @@ export default function CopShareDialog({ open, onOpenChange, sessionId, hasEvide
   const [roomCode, setRoomCode] = useState<{ command: string; expires_at: string } | null>(null)
   const [makingCode, setMakingCode] = useState(false)
   const [codeError, setCodeError] = useState<string | null>(null)
+  const [confirmRevokeCodes, setConfirmRevokeCodes] = useState(false)
+  const [revokingCodes, setRevokingCodes] = useState(false)
+  const [codesNotice, setCodesNotice] = useState<string | null>(null)
 
   useEffect(() => {
     if (!open) return
@@ -159,13 +163,15 @@ export default function CopShareDialog({ open, onOpenChange, sessionId, hasEvide
   const makeRoomCode = async () => {
     setMakingCode(true)
     setCodeError(null)
+    setCodesNotice(null)
+    setConfirmRevokeCodes(false)
     try {
       const res = await fetch(`/api/cop/${sessionId}/room-link-codes`, { method: 'POST', headers: getCopHeaders() })
       const data = await res.json().catch(() => null)
       if (!res.ok || typeof data?.command !== 'string') {
         throw new Error(
           res.status === 403
-            ? 'Only the session owner, an editor or an admin can link a Signal room.'
+            ? 'Only the COP owner or an admin can link a Signal room.'
             : res.status === 503
               ? 'Linking Signal rooms isn’t available on this server yet.'
               : data?.error ?? `Couldn't make a code (HTTP ${res.status}).`,
@@ -176,6 +182,36 @@ export default function CopShareDialog({ open, onOpenChange, sessionId, hasEvide
       setCodeError(error instanceof Error ? error.message : "Couldn't make a code.")
     } finally {
       setMakingCode(false)
+    }
+  }
+
+  const revokeRoomCodes = async () => {
+    setConfirmRevokeCodes(false)
+    setRevokingCodes(true)
+    setCodeError(null)
+    setCodesNotice(null)
+    try {
+      const res = await fetch(`/api/cop/${sessionId}/room-link-codes`, { method: 'DELETE', headers: getCopHeaders() })
+      const data = await res.json().catch(() => null)
+      if (!res.ok || typeof data?.revoked !== 'number') {
+        throw new Error(
+          res.status === 403
+            ? 'Only the COP owner or an admin can revoke room link codes.'
+            : res.status === 503
+              ? 'Linking Signal rooms isn’t available on this server yet.'
+              : data?.error ?? `Couldn't revoke the codes (HTTP ${res.status}).`,
+        )
+      }
+      setRoomCode(null)
+      setCodesNotice(
+        data.revoked === 0
+          ? 'There were no open codes to revoke.'
+          : `Revoked ${data.revoked} open code${data.revoked === 1 ? '' : 's'}. Rooms already linked stay linked.`,
+      )
+    } catch (error) {
+      setCodeError(error instanceof Error ? error.message : "Couldn't revoke the codes.")
+    } finally {
+      setRevokingCodes(false)
     }
   }
 
@@ -340,6 +376,39 @@ export default function CopShareDialog({ open, onOpenChange, sessionId, hasEvide
             {makingCode ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <MessageSquare className="h-4 w-4" aria-hidden="true" />}
             {roomCode ? 'Make another code' : 'Make a room link code'}
           </button>
+          {confirmRevokeCodes ? (
+            <div className="space-y-2 rounded-lg border border-red-200 p-3 dark:border-red-900/60">
+              <p className="text-sm">Revoke every unused code for this COP? Nobody can link a room with them afterwards. Rooms already linked stay linked.</p>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <button
+                  type="button"
+                  onClick={revokeRoomCodes}
+                  className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg bg-red-600 px-4 text-sm font-semibold text-white hover:bg-red-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500"
+                >
+                  <Trash2 className="h-4 w-4" aria-hidden="true" />
+                  Revoke open codes
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmRevokeCodes(false)}
+                  className="inline-flex min-h-11 flex-1 items-center justify-center rounded-lg border border-slate-300 px-4 text-sm font-semibold hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 dark:border-slate-700 dark:hover:bg-slate-800"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => { setCodesNotice(null); setConfirmRevokeCodes(true) }}
+              disabled={revokingCodes}
+              className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg px-4 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 dark:text-red-400 dark:hover:bg-red-950/40"
+            >
+              {revokingCodes ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Trash2 className="h-4 w-4" aria-hidden="true" />}
+              Revoke open codes
+            </button>
+          )}
+          <p className="text-sm text-slate-600 dark:text-slate-300" role="status" aria-live="polite">{codesNotice}</p>
         </section>
       </DialogContent>
     </Dialog>

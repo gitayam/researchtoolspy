@@ -23,20 +23,29 @@
  * Anonymous input comes with its text, labelled so a chat reader can weigh it: a
  * drop-form tip "anonymous tip" + "unverified" (then "reviewed" once an editor sets its
  * credibility), its marker "anonymous tip" + "possible", and an answer through a share
- * link "anonymous" + "proposed" (then "accepted"). Never its submitter's fields: the
- * title is the tip's first text answer, the domain only the host of its link.
+ * link "anonymous" + "proposed" (then "accepted"). Never its submitter's fields: a tip
+ * (its evidence, marker and filings) has a title only when ingest recorded `title_safe`
+ * (the title came from the form's summary or long-text answer; cop-ingest tipTitle), so
+ * a tip titled before that, or from nothing safe, has title null and no domain. Until
+ * the team reviews it, anonymous text has its hosts defanged ("evil[.]example", so no
+ * chat client makes a link of them) and no domain. At most CHAT_ANONYMOUS_PER_HOUR
+ * anonymous tips and answers per COP per rolling hour carry text; the rest, and more
+ * than CHAT_ANONYMOUS_PER_PAGE in one page, become a summary item with their count.
  *
  * Never in an item: user ids, names, emails, assignees, responders, full URLs,
  * coordinates, upload ids, payloads.
  */
+import { isSignalBotClient } from './cop-caller'
 import { resolveSinceCursor } from './cop-events'
-import { evidenceInSession, isMissingColumn, UNTITLED_TIP_TITLE, type EvidenceSessionScope } from './cop-input'
+import { evidenceInSession, isMissingColumn, type EvidenceSessionScope } from './cop-input'
 
 export const CHAT_FEED_DEFAULT_LIMIT = 50
 export const CHAT_FEED_MAX_LIMIT = 100
 /** Event rows read per request at most (skips included). */
 export const CHAT_FEED_SCAN_MAX = 500
 export const CHAT_TITLE_MAX = 140
+/** Characters of an entity's text read to make its title. */
+const CHAT_TEXT_SCAN = 2000
 
 export const CHAT_KINDS = [
   'rfi', 'answer', 'task', 'evidence', 'evidence_link', 'marker', 'timeline', 'hypothesis', 'claim', 'summary',
@@ -77,6 +86,14 @@ export interface ChatFeedItem {
  * forms are open to anyone, and a flood must not become a flood in the chat.
  */
 export const CHAT_ANONYMOUS_PER_PAGE = 3
+
+/**
+ * Anonymous tips and share-link answers per COP per rolling hour that carry their text:
+ * a tip or answer is shown only when at most this many (itself included) arrived in the
+ * COP in the hour up to its arrival, whatever page it lands on. The rest go into a
+ * summary item's count, so no hour of a flood puts more than this into the chat.
+ */
+export const CHAT_ANONYMOUS_PER_HOUR = 20
 
 /** Ids an item may carry: anything else (an id a client chose, say) drops the item. */
 const SAFE_ID = /^[A-Za-z0-9_-]{1,64}$/
@@ -283,21 +300,46 @@ export function chooseAction(kind: ChatKind, events: readonly { action: ChatActi
 // default-ignorable ones (bidi controls, zero-width, soft hyphen, Hangul fillers, tag
 // characters) are removed, so nothing hidden can reorder the text or split a link.
 const BREAKS = /[\p{Cc}\p{Zl}\p{Zp}]+/gu
-const INVISIBLE = /[\p{Cf}\p{Default_Ignorable_Code_Point}]+/gu
+// Lone surrogates (\p{Cs} in a u-regex) go too: they are no character at all.
+const INVISIBLE = /[\p{Cf}\p{Cs}\p{Default_Ignorable_Code_Point}]+/gu
 
 const WEB_LINK = /\bhttps?:\/\/[^\s<>"'()]+/gi
-/** A host with a path, query or fragment but no scheme ("example.com/a?b") still reads as a link. */
-const BARE_LINK = /\b([a-z0-9][a-z0-9.-]*\.[a-z]{2,})(?::\d{1,5})?[/?#][^\s<>"'()[\]{}]*/gi
+
+/** One label of a host name, in any script: letters, marks, digits, emoji and other symbols, '-' and '_'. */
+const LABEL = String.raw`[\p{L}\p{M}\p{N}\p{So}\p{Sk}_-]`
+/**
+ * A host name in any script ("пример.рф", "пример.com", "example.xn--p1ai", "i❤.ws"):
+ * labels and dots, ending in a top-level label of 2 or more characters with a letter or
+ * symbol in it (so "3.5" is no host); or an IPv4 address. Labels are at most 63
+ * characters (as in DNS), which also bounds the regex's backtracking.
+ */
+const HOST = String.raw`(?:${LABEL}{1,63}\.)+(?=${LABEL}{0,62}[\p{L}\p{So}])${LABEL}{2,63}|\d{1,3}(?:\.\d{1,3}){3}`
+/**
+ * A host with a path, query or fragment but no scheme ("example.com/a?b", "10.0.0.1:8080/x",
+ * "пример.рф/путь") still reads as a link: cut to the host. A backslash or a fullwidth
+ * solidus starts a path too (browsers read them as "/").
+ */
+const BARE_LINK = new RegExp(String.raw`(${HOST})(?::\d{1,5})?[/?#\\／][^\s<>"'()\[\]{}]*`, 'gu')
+const HOST_IN_TEXT = new RegExp(HOST, 'gu')
+
+/** "evil.example" → "evil[.]example": still readable, never made a link by a chat client. */
+const defangHosts = (text: string): string => text.replace(HOST_IN_TEXT, (host) => host.replace(/\./g, '[.]'))
 
 /**
  * One line of plain text, at most CHAT_TITLE_MAX characters; null when empty. A link
  * inside the text, with or without a scheme, is cut to its hostname: a path never
- * leaves in a title.
+ * leaves in a title. `defang`: every host left in the text is defanged (anonymous text
+ * nobody on the team has reviewed: a tipster's "signal-help.example" is no link in chat).
  */
-export function chatLine(value: unknown): string | null {
+export function chatLine(value: unknown, { defang = false }: { defang?: boolean } = {}): string | null {
   if (value === null || value === undefined) return null
-  const text = String(value).replace(BREAKS, ' ').replace(INVISIBLE, '').replace(WEB_LINK, (link) => chatDomain(link) ?? 'link')
+  // A title shows CHAT_TITLE_MAX characters; reading at most CHAT_TEXT_SCAN keeps the link
+  // patterns linear on long input (a link cut here still loses its path; a split
+  // surrogate pair is removed with INVISIBLE).
+  const raw = String(value)
+  let text = (raw.length > CHAT_TEXT_SCAN ? raw.slice(0, CHAT_TEXT_SCAN) : raw).replace(BREAKS, ' ').replace(INVISIBLE, '').replace(WEB_LINK, (link) => chatDomain(link) ?? 'link')
     .replace(BARE_LINK, '$1').replace(/\s+/g, ' ').trim()
+  if (defang) text = defangHosts(text)
   if (!text) return null
   const chars = Array.from(text)
   return chars.length > CHAT_TITLE_MAX ? `${chars.slice(0, CHAT_TITLE_MAX - 1).join('').trimEnd()}…` : text
@@ -358,6 +400,9 @@ async function rowsInSession(
   return out
 }
 
+/** evidence_items.metadata's title_safe (set by cop-ingest for a drop-form tip titled from a safe field). */
+const TITLE_SAFE = "CASE WHEN json_valid(metadata) THEN json_extract(metadata, '$.title_safe') END AS title_safe"
+
 async function evidenceRows(db: D1Database, scope: EvidenceSessionScope, ids: readonly string[]): Promise<Map<string, Record<string, unknown>>> {
   const out = new Map<string, Record<string, unknown>>()
   const numeric = [...new Set(ids)].filter((id) => /^\d{1,15}$/.test(id))
@@ -367,12 +412,12 @@ async function evidenceRows(db: D1Database, scope: EvidenceSessionScope, ids: re
     let result
     try {
       result = await db.prepare(
-        `SELECT id, title, credibility, source_url, source_channel FROM evidence_items WHERE id IN (${marks(part.length)}) AND ${clause.sql}`
+        `SELECT id, title, credibility, source_url, source_channel, ${TITLE_SAFE} FROM evidence_items WHERE id IN (${marks(part.length)}) AND ${clause.sql}`
       ).bind(...binds, ...clause.binds).all<Record<string, unknown>>()
     } catch (error) {
       if (!isMissingColumn(error)) throw error
       result = await db.prepare(
-        `SELECT id, title, credibility, source_url FROM evidence_items WHERE id IN (${marks(part.length)}) AND ${clause.legacySql}`
+        `SELECT id, title, credibility, source_url, ${TITLE_SAFE} FROM evidence_items WHERE id IN (${marks(part.length)}) AND ${clause.legacySql}`
       ).bind(...binds, ...clause.legacyBinds).all<Record<string, unknown>>()
     }
     for (const row of result.results ?? []) out.set(String(row.id), row)
@@ -436,6 +481,94 @@ async function serviceUserIds(db: D1Database, ids: readonly number[]): Promise<S
   return out
 }
 
+/**
+ * The service users among `ids` that are the Signal bot (the principal of an integration
+ * client in SIGNAL_BOT_CLIENT_IDS): their answers are "from chat"; any other service's
+ * are "automated".
+ */
+async function signalBotUserIds(db: D1Database, ids: readonly number[]): Promise<Set<number>> {
+  const out = new Set<number>()
+  for (const part of chunks([...new Set(ids)].filter((id) => id > 0))) {
+    let result
+    try {
+      result = await db.prepare(`SELECT id, principal_user_id FROM integration_clients WHERE principal_user_id IN (${marks(part.length)})`)
+        .bind(...part).all<{ id: string; principal_user_id: number }>()
+    } catch (error) {
+      if (/no such table:?\s*(?:main\.)?integration_clients\b/i.test(String(error instanceof Error ? error.message : error))) return out
+      throw error
+    }
+    for (const row of result.results ?? []) if (isSignalBotClient(String(row.id))) out.add(Number(row.principal_user_id))
+  }
+  return out
+}
+
+// ── Anonymous input per hour ─────────────────────────────────────
+
+/** A cop_events row `p` that is an anonymous arrival: a drop-form tip's evidence, or a share-link answer. */
+const ANONYMOUS_ARRIVAL = `(
+  (p.event_type = 'evidence.created' AND p.entity_type = 'evidence'
+    AND (CASE WHEN json_valid(p.payload) THEN json_extract(p.payload, '$.source_channel') END) = 'drop')
+  OR (p.event_type = 'rfi.answered'
+    AND (p.created_by = 0 OR (CASE WHEN json_valid(p.payload) THEN json_extract(p.payload, '$.via') END) = 'share'))
+)`
+
+const eventMillis = (value: unknown): number => Date.parse(isoTime(value == null ? null : String(value)) ?? '')
+
+/**
+ * For each anonymous tip (`tip:<evidence id>`) and share-link answer (`answer:<answer id>`),
+ * how many anonymous tips and answers arrived in the COP in the hour up to and including
+ * its own arrival (its evidence.created / rfi.answered event), from the events' own
+ * timestamps. A key whose arrival event isn't found is left out (and not capped).
+ */
+async function anonymousArrivalRanks(db: D1Database, sessionId: string, keys: readonly string[]): Promise<Map<string, number>> {
+  const ranks = new Map<string, number>()
+  const tipIds = [...new Set(keys.filter((k) => k.startsWith('tip:')).map((k) => k.slice(4)))]
+  const answerIds = [...new Set(keys.filter((k) => k.startsWith('answer:')).map((k) => k.slice(7)))]
+  if (tipIds.length === 0 && answerIds.length === 0) return ranks
+
+  // Each key's arrival: its first event.
+  const arrivalOf = new Map<string, { seq: number; at: number }>()
+  const note = (key: string, seq: unknown, at: unknown) => {
+    if (!arrivalOf.has(key)) arrivalOf.set(key, { seq: Number(seq), at: eventMillis(at) })
+  }
+  for (const part of chunks(tipIds)) {
+    const rows = (await db.prepare(`
+      SELECT rowid AS seq, entity_id, created_at FROM cop_events
+      WHERE cop_session_id = ? AND event_type = 'evidence.created' AND entity_type = 'evidence' AND entity_id IN (${marks(part.length)})
+      ORDER BY rowid
+    `).bind(sessionId, ...part).all<{ seq: number; entity_id: string; created_at: string }>()).results ?? []
+    for (const row of rows) note(`tip:${row.entity_id}`, row.seq, row.created_at)
+  }
+  for (const part of chunks(answerIds)) {
+    const rows = (await db.prepare(`
+      SELECT rowid AS seq, json_extract(payload, '$.answer_id') AS answer_id, created_at FROM cop_events
+      WHERE cop_session_id = ? AND event_type = 'rfi.answered'
+        AND (CASE WHEN json_valid(payload) THEN json_extract(payload, '$.answer_id') END) IN (${marks(part.length)})
+      ORDER BY rowid
+    `).bind(sessionId, ...part).all<{ seq: number; answer_id: string; created_at: string }>()).results ?? []
+    for (const row of rows) note(`answer:${row.answer_id}`, row.seq, row.created_at)
+  }
+  const arrivals = [...arrivalOf.values()].filter((a) => Number.isFinite(a.at))
+  if (arrivals.length === 0) return ranks
+
+  // Every anonymous arrival in the COP from an hour before the earliest to the latest of them.
+  const HOUR = 3_600_000
+  const from = new Date(Math.min(...arrivals.map((a) => a.at)) - HOUR).toISOString().replace('T', ' ').slice(0, 19)
+  const upTo = Math.max(...arrivals.map((a) => a.seq))
+  const nearby = ((await db.prepare(`
+    SELECT p.rowid AS seq, p.created_at FROM cop_events p
+    WHERE p.cop_session_id = ? AND p.event_type IN ('evidence.created', 'rfi.answered') AND p.rowid <= ?
+      AND julianday(p.created_at) >= julianday(?) AND ${ANONYMOUS_ARRIVAL}
+  `).bind(sessionId, upTo, from).all<{ seq: number; created_at: string }>()).results ?? [])
+    .map((row) => ({ seq: Number(row.seq), at: eventMillis(row.created_at) }))
+
+  for (const [key, own] of arrivalOf) {
+    if (!Number.isFinite(own.at)) continue
+    ranks.set(key, nearby.filter((p) => p.seq <= own.seq && p.at > own.at - HOUR).length)
+  }
+  return ranks
+}
+
 // ── Labels ───────────────────────────────────────────────────────
 
 /** Where an item came from, as a chat reader would say it. */
@@ -467,10 +600,32 @@ function evidenceLabels(row: Record<string, unknown>): string[] {
   return labels
 }
 
-/** A title, except a drop-form tip's placeholder (no safe field to name it): null, never a guess. */
-function itemTitle(row: Record<string, unknown>, value: unknown): string | null {
-  if (row.source_channel === 'drop' && String(value ?? '').trim() === UNTITLED_TIP_TITLE) return null
-  return chatLine(value)
+/**
+ * Whether a drop-form tip's text may be a title: only when ingest recorded that it came
+ * from the form's summary or long-text answer (metadata title_safe). A tip titled before
+ * that (from any text field, its tipster's name included) or from nothing safe has none.
+ */
+const tipTitleSafe = (tipEvidence: Record<string, unknown> | undefined): boolean =>
+  !!tipEvidence && tipEvidence.source_channel === 'drop' && (tipEvidence.title_safe === 1 || tipEvidence.title_safe === true)
+
+/**
+ * A drop-form tip's text (its evidence title or its marker's label) as a chat title: null
+ * unless `tipEvidence` is marked safe; without the stored "Tip: " prefix (the labels say
+ * "anonymous tip"); hosts defanged while unreviewed.
+ */
+function tipText(tipEvidence: Record<string, unknown> | undefined, value: unknown, unreviewed: boolean): string | null {
+  if (!tipTitleSafe(tipEvidence)) return null
+  return chatLine(String(value ?? '').trim().replace(/^Tip:\s+/, ''), { defang: unreviewed })
+}
+
+/** An evidence row's title and domain: a tip's under tipText's rule, with a domain only once reviewed. */
+function evidenceText(row: Record<string, unknown>): { title: string | null; domain: string | undefined } {
+  if (row.source_channel !== 'drop') return { title: chatLine(row.title), domain: chatDomain(row.source_url) }
+  const unreviewed = isUnreviewedTipEvidence(row)
+  return {
+    title: tipText(row, row.title, unreviewed),
+    domain: tipTitleSafe(row) && !unreviewed ? chatDomain(row.source_url) : undefined,
+  }
 }
 
 const tidy = (labels: (string | null | undefined | false)[]): string[] => [...new Set(labels.filter((l): l is string => Boolean(l)))]
@@ -551,12 +706,16 @@ export async function listChatFeed(
     ...idsOf('task'),
     ...linkGroups.map(linkEnds).filter((e) => e.targetType === 'task' && e.targetId).map((e) => e.targetId as string),
   ], 'id, title, status, priority, source_channel', 'id, title, status, priority')
+  const markers = await rowsInSession(db, 'cop_markers', sessionId, idsOf('marker'),
+    'id, label, confidence, source_type, source_id, source_channel', 'id, label, confidence, source_type, source_id')
+  // A drop-form marker's label is its tip's title: the tip's evidence says whether it is safe.
+  const tipOfMarker = (row: Record<string, unknown>): string | undefined =>
+    row.source_channel === 'drop' && String(row.source_type ?? '').toUpperCase() === 'EVIDENCE' ? safeId(row.source_id) : undefined
   const evidence = await evidenceRows(db, scope, [
     ...idsOf('evidence'),
     ...linkGroups.map(linkEnds).map((e) => e.evidenceId).filter((id): id is string => Boolean(id)),
+    ...[...markers.values()].map(tipOfMarker).filter((id): id is string => Boolean(id)),
   ])
-  const markers = await rowsInSession(db, 'cop_markers', sessionId, idsOf('marker'),
-    'id, label, confidence, source_channel', 'id, label, confidence')
   const timeline = await rowsInSession(db, 'cop_timeline_entries', sessionId, idsOf('timeline'),
     'id, title, importance, source_type, source_url, source_channel', 'id, title, importance, source_type, source_url')
   const hypotheses = await rowsInSession(db, 'cop_hypotheses', sessionId, idsOf('hypothesis'),
@@ -568,8 +727,9 @@ export async function listChatFeed(
     ...[...groups.values()].flatMap((g) => g.events.map((e) => e.createdBy)),
     ...authors.values(),
   ])
+  const signalBots = await signalBotUserIds(db, [...authors.values()].filter((id) => services.has(id)))
 
-  const items: { item: ChatFeedItem; seq: number }[] = []
+  const items: FeedEntry[] = []
   for (const group of groups.values()) {
     const action = chooseAction(group.kind, group.events)
     if (action === null) { skipped += group.events.length; continue }
@@ -590,6 +750,8 @@ export async function listChatFeed(
     const gone = action === 'deleted' || action === 'unfiled'
     const question = (id: string | undefined) => (id ? rfis.get(id) : undefined)
     let resolved = true
+    /** The anonymous submission the item's text comes from (tip:<evidence id> | answer:<id>), for the hourly cap. */
+    let anonymousKey: string | undefined
 
     switch (group.kind) {
       case 'rfi': {
@@ -614,13 +776,16 @@ export async function listChatFeed(
         const questionId = safeId(row.rfi_id)
         if (questionId) item.question_id = questionId
         item.question_title = chatLine(q.question) ?? undefined
-        item.title = chatLine(row.answer_text)
+        // A share-link answer nobody accepted: its hosts defanged.
+        item.title = chatLine(row.answer_text, { defang: anonymous && !accepted })
         item.status = accepted ? 'accepted' : 'proposed'
         item.labels = tidy([
-          anonymous ? 'anonymous' : services.has(author) ? 'from chat' : 'from the team',
+          // "from chat" only for the Signal bot; another integration's answer is "automated".
+          anonymous ? 'anonymous' : signalBots.has(author) ? 'from chat' : services.has(author) ? 'automated' : 'from the team',
           anonymous && !accepted && 'proposed', accepted && 'accepted', Number(q.is_key) === 1 && 'key question',
         ])
         if (anonymous && action === 'answered' && !group.fromChat) item.actor = 'anonymous'
+        if (anonymous) anonymousKey = `answer:${group.entityId}`
         break
       }
       case 'task': {
@@ -637,12 +802,13 @@ export async function listChatFeed(
       case 'evidence': {
         const row = evidence.get(group.entityId)
         if (!row) { resolved = gone; break }
-        item.title = itemTitle(row, row.title)
+        const text = evidenceText(row)
+        item.title = text.title
         item.status = chatLine(row.credibility)
         item.labels = evidenceLabels(row)
-        const domain = chatDomain(row.source_url)
-        if (domain) item.domain = domain
+        if (text.domain) item.domain = text.domain
         if (action === 'created' && row.source_channel === 'drop' && !group.fromChat) item.actor = 'anonymous'
+        if (row.source_channel === 'drop') anonymousKey = `tip:${group.entityId}`
         break
       }
       case 'evidence_link': {
@@ -665,17 +831,25 @@ export async function listChatFeed(
         const relation = link ? String(link.relation) : ''
         if (relation === 'supports' || relation === 'contradicts' || relation === 'context') item.relation = relation
         if (row) {
-          item.title = itemTitle(row, row.title)
+          const text = evidenceText(row)
+          item.title = text.title
           item.labels = tidy([item.relation, ...evidenceLabels(row), q && Number(q.is_key) === 1 && 'key question'])
-          const domain = chatDomain(row.source_url)
-          if (domain) item.domain = domain
+          if (text.domain) item.domain = text.domain
+          if (row.source_channel === 'drop' && evidenceId) anonymousKey = `tip:${evidenceId}`
         }
         break
       }
       case 'marker': {
         const row = markers.get(group.entityId)
         if (!row) { resolved = gone; break }
-        item.title = itemTitle(row, row.label)
+        if (row.source_channel === 'drop') {
+          // Its label is its tip's title: shown only when the tip's evidence is marked safe.
+          const tipId = tipOfMarker(row)
+          item.title = tipText(tipId ? evidence.get(tipId) : undefined, row.label, isUnreviewedTipMarker(row))
+          if (tipId) anonymousKey = `tip:${tipId}`
+        } else {
+          item.title = chatLine(row.label)
+        }
         item.status = chatLine(String(row.confidence ?? '').toLowerCase())
         item.labels = tidy([
           originLabel(row.source_channel),
@@ -732,12 +906,26 @@ export async function listChatFeed(
       if (group.kind !== 'evidence_link') item.labels = []
       delete item.domain
     }
-    items.push({ item, seq: latest.seq })
+    items.push({ item, seq: latest.seq, events: group.events.length, anonymousKey })
   }
 
   // Oldest first, by each item's latest event (the order the chat would have seen them).
   items.sort((a, b) => a.seq - b.seq)
-  return { ok: true, items: collapseAnonymous(items), cursor: String(consumed), has_more: hasMore, skipped, from_chat: fromChatEvents }
+  // The hourly cap: an unreviewed anonymous tip or answer past CHAT_ANONYMOUS_PER_HOUR in
+  // its hour carries no text (nor do its marker and filings).
+  const capped = items.filter((e) => e.anonymousKey && unreviewedAnonymous(e.item)).map((e) => e.anonymousKey as string)
+  const ranks = await anonymousArrivalRanks(db, sessionId, capped)
+  const overCap = (e: FeedEntry) => e.anonymousKey !== undefined && (ranks.get(e.anonymousKey) ?? 0) > CHAT_ANONYMOUS_PER_HOUR
+  const collapsed = collapseAnonymous(items, overCap)
+  return { ok: true, items: collapsed.items, cursor: String(consumed), has_more: hasMore, skipped: skipped + collapsed.dropped, from_chat: fromChatEvents }
+}
+
+interface FeedEntry {
+  item: ChatFeedItem
+  seq: number
+  /** How many events the item stands for. */
+  events: number
+  anonymousKey?: string
 }
 
 /** Anonymous input nobody on the team has looked at yet (a tip, its marker and filing, an answer). */
@@ -753,15 +941,24 @@ function unreviewedAnonymous(item: ChatFeedItem): boolean {
 }
 
 /**
- * More than CHAT_ANONYMOUS_PER_PAGE unreviewed anonymous tips and answers in a page: all
- * of them (their markers and filings too) become one 'summary' item with their count,
- * where the latest of them was.
+ * Unreviewed anonymous tips and answers that don't carry their text: those past the
+ * hourly cap (`overCap`), or all of them when more than CHAT_ANONYMOUS_PER_PAGE of the
+ * rest are in this page. With their markers and filings they become one 'summary' item
+ * with the count of tips and answers, where the latest of them was. Markers and filings
+ * of a tip summarised on an earlier page (count 0 here) are dropped, their events counted
+ * in `dropped` (they go into `skipped`).
  */
-function collapseAnonymous(sorted: { item: ChatFeedItem; seq: number }[]): ChatFeedItem[] {
+function collapseAnonymous(sorted: FeedEntry[], overCap: (entry: FeedEntry) => boolean): { items: ChatFeedItem[]; dropped: number } {
   const anonymous = sorted.filter((i) => unreviewedAnonymous(i.item))
-  const count = anonymous.filter((i) => i.item.kind === 'answer' || i.item.kind === 'evidence').length
-  if (count <= CHAT_ANONYMOUS_PER_PAGE) return sorted.map((i) => i.item)
-  const last = anonymous[anonymous.length - 1]
+  const counted = (list: FeedEntry[]) => list.filter((i) => i.item.kind === 'answer' || i.item.kind === 'evidence').length
+  const shown = anonymous.filter((i) => !overCap(i))
+  const hidden = new Set(counted(shown) > CHAT_ANONYMOUS_PER_PAGE ? anonymous : anonymous.filter(overCap))
+  if (hidden.size === 0) return { items: sorted.map((i) => i.item), dropped: 0 }
+  const count = counted([...hidden])
+  if (count === 0) {
+    return { items: sorted.filter((i) => !hidden.has(i)).map((i) => i.item), dropped: [...hidden].reduce((n, i) => n + i.events, 0) }
+  }
+  const last = [...hidden].at(-1) as FeedEntry
   const summary: ChatFeedItem = {
     event_id: last.item.event_id,
     at: last.item.at,
@@ -774,5 +971,5 @@ function collapseAnonymous(sorted: { item: ChatFeedItem; seq: number }[]): ChatF
     actor: 'anonymous',
     count,
   }
-  return sorted.flatMap((i) => (i === last ? [summary] : unreviewedAnonymous(i.item) ? [] : [i.item]))
+  return { items: sorted.flatMap((i) => (i === last ? [summary] : hidden.has(i) ? [] : [i.item])), dropped: 0 }
 }

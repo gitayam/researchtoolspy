@@ -3,19 +3,21 @@
  *
  * The Signal bot redeems a room link code an organizer typed ("!cop link <code>"). The
  * Signal bot's service credential only (COP_SERVICE_ROUTES; SIGNAL_BOT_CLIENT_IDS): never
- * a person or another integration. The code is used once (the UPDATE that marks it used
- * checks it is unused and unexpired), its issuer must still be allowed to share the COP,
- * and the bot's principal becomes an editor collaborator of the session (rooms write
- * their captures there). Unknown, used and expired codes all answer 404
- * LINK_CODE_INVALID. 30 attempts per client per hour (429). 503 while migration 0027 is
- * pending.
+ * a person or another integration. The code is used once, in one transaction with the
+ * collaborator write (functions/api/_shared/cop-room-link-codes.ts): its issuer must still
+ * be the COP's owner or an admin, and the bot's principal becomes an editor collaborator
+ * when it isn't one yet (rooms write their captures there). An existing collaborator row
+ * is never changed: a bot that is a viewer gets 409 BOT_ROLE_TOO_LOW and the code stays
+ * unspent. Unknown, used, revoked and expired codes all answer 404 LINK_CODE_INVALID.
+ * LINK_CODE_REDEEMS_PER_HOUR attempts per client per hour (429; the bot also limits each
+ * sender). 503 while migration 0027 is pending.
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { JSON_HEADERS } from '../../_shared/api-utils'
 import { logEvent } from '../../_shared/event-log'
 import { copServiceCaller, isSignalBotClient } from '../../_shared/cop-caller'
 import { emitCopEvent } from '../../_shared/cop-events'
-import { COLLABORATOR_ADDED } from '../../_shared/cop-event-types'
+import { ACTIVITY_LOGGED, COLLABORATOR_ADDED } from '../../_shared/cop-event-types'
 import { linkCodesTableMissing, normalizeLinkCode, redeemLinkCode, takeRedeemSlot } from '../../_shared/cop-room-link-codes'
 
 interface Env {
@@ -45,11 +47,19 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const code = normalizeLinkCode((body as { code?: unknown } | null)?.code)
     if (!code) return reply(INVALID, 404)
     const result = await redeemLinkCode(env.DB, { code, clientId: service.clientId, principalUserId: service.principalUserId })
-    if (result.ok === false) return reply(INVALID, 404)
-    await emitCopEvent(env.DB, {
-      copSessionId: result.sessionId, eventType: COLLABORATOR_ADDED, entityType: 'collaborator',
-      entityId: result.collaboratorId, payload: { via: 'room_link_code' }, createdBy: result.issuer,
-    })
+    if (result.ok === false) {
+      return result.status === 409 ? reply({ error: result.error, code: result.code }, 409) : reply(INVALID, 404)
+    }
+    // The issuer's consent, recorded as theirs; the code itself is in no event.
+    await emitCopEvent(env.DB, result.added
+      ? {
+          copSessionId: result.sessionId, eventType: COLLABORATOR_ADDED, entityType: 'collaborator',
+          entityId: result.collaboratorId, payload: { via: 'room_link_code' }, createdBy: result.issuer,
+        }
+      : {
+          copSessionId: result.sessionId, eventType: ACTIVITY_LOGGED, entityType: 'activity',
+          entityId: result.codeId, payload: { action: 'room_link_code_used' }, createdBy: result.issuer,
+        })
     return reply({ session_id: result.sessionId })
   } catch (error) {
     if (linkCodesTableMissing(error)) return reply({ error: 'Room link codes are not available on this server yet', code: 'NOT_READY' }, 503)

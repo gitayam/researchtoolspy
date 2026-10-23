@@ -11,7 +11,7 @@
  *   confirming its marker, filing its evidence, reopening its task).
  * - A drop-form tip and a share-link answer come with their text, labelled
  *   ("anonymous tip" / "unverified" / "possible", "anonymous" / "proposed"), links cut
- *   to hosts, never the submitter's own fields.
+ *   to hosts (defanged, and no domain, until reviewed), never the submitter's own fields.
  * - No user id, name or email anywhere in the JSON.
  * - Votes and the middleware's generic events are skipped and counted; events on one
  *   entity in a page coalesce; ids from another COP never resolve; limit/has_more
@@ -295,7 +295,7 @@ function seedDrop(db) {
 const RLO = String.fromCharCode(0x202e)
 const BEL = String.fromCharCode(7)
 
-test('an anonymous tip comes with its text, labelled "anonymous tip" / "unverified" (its marker "possible"), links cut to hosts, no submitter fields', async () => {
+test('an anonymous tip comes with its text, labelled "anonymous tip" / "unverified" (its marker "possible"), links cut to defanged hosts, no domain until reviewed, no submitter fields', async () => {
   const { db, env } = await feedFixture()
   seedDrop(db)
   const cursor = await start(env)
@@ -312,21 +312,24 @@ test('an anonymous tip comes with its text, labelled "anonymous tip" / "unverifi
   const submitted = await res.json()
   assert.equal(submitted.ok, true, JSON.stringify(submitted))
   const evidenceId = String(submitted.ingested.evidence_id)
-  const title = 'Tip: Crowd at gate C, see pics.example or pics2.example'
+  // Unreviewed: hosts defanged (no chat client links them), no domain. Reviewed: plain.
+  const title = 'Crowd at gate C, see pics[.]example or pics2[.]example'
+  const reviewedTitle = 'Crowd at gate C, see pics.example or pics2.example'
+  assert.equal(JSON.parse(db.prepare('SELECT metadata FROM evidence_items WHERE id = ?').get(Number(evidenceId)).metadata).title_safe, true)
 
   const page = await feed(env, cursor)
   assertShape(page.items)
   const tip = page.items.find((i) => i.kind === 'evidence')
   assert.deepEqual(tip, {
     event_id: tip.event_id, at: tip.at, kind: 'evidence', action: 'created', entity_id: evidenceId,
-    title, status: 'unverified', labels: ['anonymous tip', 'unverified'], actor: 'anonymous', domain: 'tipster.example',
+    title, status: 'unverified', labels: ['anonymous tip', 'unverified'], actor: 'anonymous',
   })
   const marker = page.items.find((i) => i.kind === 'marker')
   assert.deepEqual([marker.action, marker.title, marker.status, marker.labels, marker.actor],
     ['created', title, 'possible', ['anonymous tip', 'possible'], 'anonymous'])
   const filing = page.items.find((i) => i.kind === 'evidence_link')
   assert.deepEqual([filing.action, filing.actor, filing.relation, filing.question_id, filing.title, filing.domain, filing.evidence_id],
-    ['filed', 'anonymous', 'supports', 'rfi-existing', title, 'tipster.example', evidenceId])
+    ['filed', 'anonymous', 'supports', 'rfi-existing', title, undefined, evidenceId])
   assert.deepEqual(filing.labels, ['supports', 'anonymous tip', 'unverified', 'key question'])
   // Never the submitter's own fields, the link's path, the position or anyone's id.
   for (const secret of ['555-0100', 'Your phone', '/private', 'u=me', '/a?', '/x/y', '48.857', '2.341', RLO, BEL, 'drop-', 'survey', 'response', 'upload', 'created_by']) {
@@ -340,7 +343,7 @@ test('an anonymous tip comes with its text, labelled "anonymous tip" / "unverifi
   assert.equal((await as('editor', env, 'evidence', 'PUT', `${P}/evidence`, { id: evidenceId, credibility: 'probable' })).status, 200)
   const reviewed = await feed(env, page.cursor)
   assert.deepEqual(reviewed.items.map((i) => [i.kind, i.action, i.title, i.status, i.labels, i.actor, i.domain]), [
-    ['evidence', 'status', title, 'probable', ['anonymous tip', 'reviewed'], 'team', 'tipster.example'],
+    ['evidence', 'status', reviewedTitle, 'probable', ['anonymous tip', 'reviewed'], 'team', 'tipster.example'],
   ])
   assert.ok(!reviewed.text.includes('/private'), 'no path')
 })
@@ -361,7 +364,7 @@ test('an answer through a share link comes with its text, "anonymous" / "propose
   const page = await feed(env, cursor)
   assertShape(page.items)
   assert.deepEqual(page.items.map((i) => [i.kind, i.action, i.entity_id, i.title, i.status, i.labels, i.actor, i.question_id]), [
-    ['answer', 'answered', answerId, 'Police at the gate, photo on news.example', 'proposed', ['anonymous', 'proposed', 'key question'], 'anonymous', 'rfi-existing'],
+    ['answer', 'answered', answerId, 'Police at the gate, photo on news[.]example', 'proposed', ['anonymous', 'proposed', 'key question'], 'anonymous', 'rfi-existing'],
   ])
   assert.ok(!page.text.includes('Bloggs'))
   assert.ok(!page.text.includes('/live'))

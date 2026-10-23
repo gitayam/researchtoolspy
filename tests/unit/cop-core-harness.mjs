@@ -195,13 +195,19 @@ export function d1(db) {
   })
   return {
     prepare: (sql) => statement(sql),
-    // D1 runs a batch as one transaction.
+    // D1 runs a batch as one transaction, on one connection (so changes() in a statement
+    // reads the one before it), and gives each statement its rows (RETURNING, SELECT).
     async batch(statements) {
       db.exec('BEGIN')
       try {
         const out = statements.map((s) => {
+          if (/^\s*(?:select|with)\b/i.test(s.sql) || /\breturning\b/i.test(s.sql)) {
+            const results = db.prepare(s.sql).all(...s.args)
+            const changes = /^\s*(?:select|with)\b/i.test(s.sql) ? 0 : Number(db.prepare('SELECT changes() AS n').get().n)
+            return { success: true, results, meta: { changes, last_row_id: 0 } }
+          }
           const r = db.prepare(s.sql).run(...s.args)
-          return { success: true, meta: { changes: Number(r.changes), last_row_id: Number(r.lastInsertRowid) } }
+          return { success: true, results: [], meta: { changes: Number(r.changes), last_row_id: Number(r.lastInsertRowid) } }
         })
         db.exec('COMMIT')
         return out

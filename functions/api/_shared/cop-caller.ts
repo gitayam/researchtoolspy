@@ -34,7 +34,7 @@ export function isSignalBotClient(clientId: string | null | undefined): boolean 
  */
 export const COP_SERVICE_ROUTES: readonly { method: string; path: RegExp }[] = [
   { method: 'POST', path: /^\/api\/cop\/sessions$/ },
-  // !cop link <code>: a room link code the COP's owner or an editor made.
+  // !cop link <code>: a room link code the COP's owner or an admin made.
   { method: 'POST', path: /^\/api\/cop\/room-link-codes\/redeem$/ },
   {
     method: 'GET',

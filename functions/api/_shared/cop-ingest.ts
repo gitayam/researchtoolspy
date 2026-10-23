@@ -31,6 +31,8 @@ export interface FormField {
   name: string
   type: string
   label: string
+  /** The form marks this field as its summary: a tip may be titled from it (text or long text only). */
+  summary?: boolean
 }
 
 export function parseFormSchema(raw: unknown): FormField[] {
@@ -48,6 +50,7 @@ export function parseFormSchema(raw: unknown): FormField[] {
       name: field.name,
       type: typeof field.type === 'string' ? field.type : 'text',
       label: typeof field.label === 'string' && field.label.trim() ? field.label.trim() : field.name,
+      ...(field.summary === true ? { summary: true } : {}),
     })
   }
   return out
@@ -179,24 +182,34 @@ export function describeSubmission(formData: Record<string, unknown>, schema: Fo
   return lines.join('\n').slice(0, 5000) || '(no answers)'
 }
 
-/**
- * Fields that ask who or where the tipster is: never a tip's title (titles travel into the
- * COP's lists and its linked Signal rooms), even when the form makes them optional.
- */
-const IDENTIFYING_FIELD = /name|contact|email|e-mail|phone|signal|telegram|whatsapp|address|location|where|coordinates|lat|lon/i
+/** Characters of a tip's answer kept in its title (after the "Tip: " prefix). */
+const TIP_TITLE_MAX = 100
 
 /**
- * A tip's title: its first text answer from a field that doesn't ask for a name, contact
- * or place; UNTITLED_TIP_TITLE when there is none.
+ * A tip's title comes from an allow-list of fields, never a word list: the field the form
+ * marks as its summary (`summary: true`, a text or long-text field), else its first
+ * long-text (textarea) answer. A short single-line field never names a tip: those are
+ * where forms ask for a name, handle, callsign, unit, phone, grid or place, in any
+ * language ("Your handle", "Callsign", "Reach me at", "MGRS grid", "Nombre", "Kontakt"),
+ * and titles travel into the COP's lists and its linked Signal rooms.
+ *
+ * `safe` says the title came from such a field; ingest records it in the evidence's
+ * metadata (`title_safe`), and the chat feed shows a drop-form tip's title only with it.
+ * With no such answer: UNTITLED_TIP_TITLE, not safe.
  */
-export function tipTitle(formData: Record<string, unknown>, schema: FormField[]): string {
-  for (const field of schema) {
-    if (field.type !== 'text' && field.type !== 'textarea') continue
-    if (IDENTIFYING_FIELD.test(field.name) || IDENTIFYING_FIELD.test(field.label)) continue
-    const text = oneLine(formData[field.name], 100)
-    if (text) return `Tip: ${text}`
+export function tipTitle(formData: Record<string, unknown>, schema: FormField[]): { title: string; safe: boolean } {
+  const answer = (field: FormField): string => {
+    const value = formData[field.name]
+    if (typeof value !== 'string' || value.trim().startsWith('data:')) return ''
+    return oneLine(value, TIP_TITLE_MAX)
   }
-  return UNTITLED_TIP_TITLE
+  const summaries = schema.filter((f) => f.summary === true && (f.type === 'text' || f.type === 'textarea'))
+  const longText = schema.filter((f) => f.type === 'textarea')
+  for (const field of [...summaries, ...longText]) {
+    const text = answer(field)
+    if (text) return { title: `Tip: ${text}`, safe: true }
+  }
+  return { title: UNTITLED_TIP_TITLE, safe: false }
 }
 
 // ── Ingest ─────────────────────────────────────────────────────────────────
@@ -278,6 +291,7 @@ export async function ingestSubmission(
     if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) formData = parsed
   } catch { /* an unreadable row still becomes a (bare) evidence item */ }
   const schema = parseFormSchema(form.form_schema)
+  const tip = tipTitle(formData, schema)
 
   let evidenceId: string
   const uploadIds: string[] = []
@@ -301,14 +315,15 @@ export async function ingestSubmission(
     }
     const sourceUrl = sourceUrlFrom(formData, schema) ?? (imageUpload ? copUploadPath(input.sessionId, imageUpload) : null)
     evidenceId = await insertCopEvidence(db, scope, {
-      title: tipTitle(formData, schema),
+      title: tip.title,
       description: describeSubmission(formData, schema),
       sourceUrl,
       evidenceType: imageUpload ? 'image' : uploadIds.length > 0 ? 'document' : 'observation',
       credibility: 'unverified',
       sourceName: 'Evidence form',
       sourceChannel: 'drop',
-      metadata: { survey_id: form.id, response_id: input.responseId, upload_ids: uploadIds, auto_ingested: input.auto },
+      // title_safe: the title came from the form's summary or long-text answer (tipTitle).
+      metadata: { survey_id: form.id, response_id: input.responseId, upload_ids: uploadIds, auto_ingested: input.auto, title_safe: tip.safe },
       createdBy: actor,
     })
   } catch (error) {
@@ -329,7 +344,7 @@ export async function ingestSubmission(
       markerId = await insertCopMarker(db, scope, {
         lat: point.lat,
         lon: point.lon,
-        label: tipTitle(formData, schema).slice(0, 80),
+        label: tip.title.slice(0, 80),
         description: `From the evidence form (${point.field}). Unverified.`,
         confidence: 'POSSIBLE',
         rationale: 'Location given in an evidence-form submission; not verified.',

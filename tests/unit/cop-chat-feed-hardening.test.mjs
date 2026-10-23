@@ -10,7 +10,8 @@
  * - Titles lose every control, format and default-ignorable character, and links with or
  *   without a scheme (path, query or fragment) are cut to the host; items with an id that
  *   isn't a plain id are dropped.
- * - A tip's title never comes from a field asking for a name, contact or place.
+ * - A tip's title comes from its long-text answer, never a short field
+ *   (cop-chat-feed-anonymous.test.mjs has the rest).
  * - Compatibility: PUT /rfis with an answer keeps new_status on rfi.answered.
  * - Only the Signal bot's exact client ids count as the Signal bot.
  *
@@ -234,7 +235,7 @@ test('an item whose id is not a plain id is dropped and counted', async () => {
 
 // ── 4. Tip titles ────────────────────────────────────────────────
 
-test('a tip is never titled from a field asking for a name, contact or place; with none left it has no title', async () => {
+test('a tip is titled from its long-text answer, never a short field; with none it has no title', async () => {
   const { db, env } = await hardFixture()
   db.prepare(`INSERT INTO survey_drops (id, title, form_schema, share_token, status, cop_session_id, workspace_id, created_by, intent, auto_ingest)
     VALUES ('drop-t', 'Tips', ?, ?, 'active', ?, ?, 1, 'drop', 1)`)
@@ -251,7 +252,7 @@ test('a tip is never titled from a field asking for a name, contact or place; wi
   let cursor = await start(env)
   await submit({ your_name: 'Jo Bloggs', reach: '555-0100', place: 'Rue Royale 12', what: 'Vans at gate B' })
   let page = await feed(env, cursor)
-  assert.deepEqual(page.items.map((i) => [i.kind, i.title]), [['evidence', 'Tip: Vans at gate B']])
+  assert.deepEqual(page.items.map((i) => [i.kind, i.title]), [['evidence', 'Vans at gate B']])
   for (const secret of ['Jo', '555', 'Royale']) assert.ok(!page.text.includes(secret), secret)
 
   cursor = page.cursor

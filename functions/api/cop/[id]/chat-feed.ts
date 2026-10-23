@@ -19,10 +19,10 @@
  *         question_id?, question_title?, task_id?, evidence_id?, relation?, domain?,
  *         count? }
  *   kind   rfi | answer | task | evidence | evidence_link | marker | timeline |
- *          hypothesis | claim | summary (more than 3 unreviewed anonymous tips or
- *          answers in one page, with their markers and filings: one item,
- *          entity_id 'anonymous', title null, labels ['anonymous'], count = how many
- *          tips and answers)
+ *          hypothesis | claim | summary (unreviewed anonymous tips and answers past 20
+ *          per COP per rolling hour, or all of them when more than 3 are in one page,
+ *          with their markers and filings: one item, entity_id 'anonymous', title
+ *          null, labels ['anonymous'], count = how many tips and answers)
  *   action created | updated | status | answered | closed (an RFI closed, a task done) |
  *          reopened | confirmed (a marker) | assigned (a task; never to whom) |
  *          starred | unstarred (key question) | filed | unfiled (evidence under a
@@ -32,13 +32,15 @@
  *          tipster chose) | system (cron, other integrations) | chat (the calling
  *          bot itself: a room's capture or the bot's own sync; never which room)
  *   title  the entity's current text, one line, ≤140 characters, control characters
- *          stripped, any link in it (with or without a scheme) cut to its hostname;
- *          null when deleted. Anonymous input keeps its text, labelled: a tip
- *          "anonymous tip" + "unverified" (then "reviewed"), its marker "anonymous
- *          tip" + "possible", a share-link answer "anonymous" + "proposed" (then
- *          "accepted"); never the submitter's own fields (a tip is titled from its
- *          first answer that doesn't ask for a name, contact or place; with none,
- *          title null)
+ *          stripped, any link in it (with or without a scheme; a host in any script
+ *          or an IPv4 address) cut to its hostname; null when deleted. Anonymous
+ *          input keeps its text, labelled: a tip "anonymous tip" + "unverified" (then
+ *          "reviewed"), its marker "anonymous tip" + "possible", a share-link answer
+ *          "anonymous" + "proposed" (then "accepted"); until reviewed its hosts are
+ *          defanged ("evil[.]example"). Never the submitter's own fields: a tip is
+ *          titled from the form's summary field or a long-text answer, never a short
+ *          field; a tip without that record (ingested earlier, or with no such
+ *          answer) has title null, its marker and filings too
  *   status rfi/task/hypothesis/claim status; evidence credibility; marker confidence;
  *          answer 'proposed' | 'accepted'; null for filings and timeline lines
  *   labels from the team | from chat | anonymous tip | anonymous | scraped |
@@ -54,7 +56,10 @@
  *   evidence_id         the evidence item of a filing (to match an earlier evidence item)
  *   relation            supports | contradicts | context (filings)
  *   domain              hostname of an http(s) source (evidence, claim, timeline);
- *                       never a path
+ *                       never a path; never for an unreviewed tip or one with title null
+ *
+ * "from chat" is the Signal bot's own input (SIGNAL_BOT_CLIENT_IDS); another
+ * integration's is actor system, "automated".
  *
  * Echoes are the bot's call, per room: what the calling bot itself did (its principal
  * created the event) comes back as actor 'chat', in items of its own, never merged
