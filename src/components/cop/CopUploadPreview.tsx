@@ -9,7 +9,8 @@
 import { useState } from 'react'
 import { Download, FileText, ImageOff, Loader2 } from 'lucide-react'
 import { useCopUploadBlob } from '@/hooks/useCopUploadBlob'
-import { fetchUploadBlob, safeDownloadName } from '@/lib/cop-upload-preview'
+import { fetchUploadFile } from '@/lib/cop-upload-preview'
+import { downloadName } from '@/lib/download-name'
 import { cn } from '@/lib/utils'
 
 /** An uploaded photo, drawn from a blob URL. */
@@ -44,8 +45,12 @@ export function CopUploadImage({ path, alt, className, onClick }: {
   )
 }
 
-/** A download button for an uploaded document (PDF). Fetched only when pressed. */
-export function CopUploadDownload({ path, filename, className }: { path: string; filename: string; className?: string }) {
+/**
+ * A download button for an uploaded document or audio file. Fetched only when pressed;
+ * saved under `title` with the extension the server gave the stored type (never one
+ * taken from the title or the original file name).
+ */
+export function CopUploadDownload({ path, title, className }: { path: string; title: string; className?: string }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -53,11 +58,11 @@ export function CopUploadDownload({ path, filename, className }: { path: string;
     setBusy(true)
     setError(null)
     try {
-      const blob = await fetchUploadBlob(path)
+      const { blob, ext } = await fetchUploadFile(path)
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = safeDownloadName(filename)
+      a.download = downloadName(title, ext)
       document.body.appendChild(a)
       a.click()
       a.remove()

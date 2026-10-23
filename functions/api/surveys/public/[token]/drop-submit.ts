@@ -136,7 +136,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         status: 200, headers: JSON_HEADERS,
       })
     }
-    const cleaned = sanitizeFormDataFiles(rawFormData, formSchemaFields)
+    const cleaned = await sanitizeFormDataFiles(rawFormData, formSchemaFields)
     if (cleaned.ok === false) {
       return new Response(JSON.stringify({ ok: false, error: cleaned.error }), {
         status: 200, headers: JSON_HEADERS,

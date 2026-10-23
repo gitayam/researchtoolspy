@@ -8,7 +8,7 @@
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { JSON_HEADERS } from '../../../../_shared/api-utils'
 import { sessionArchived, shareExpired, sharePanels } from '../../../../_shared/cop-share'
-import { getSessionUpload, serveUpload, uploadHeld, type R2Like } from '../../../../_shared/cop-uploads'
+import { getSessionUpload, serveUpload, uploadServable, type R2Like } from '../../../../_shared/cop-uploads'
 
 interface Env {
   DB: D1Database
@@ -33,6 +33,6 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
   const row = await getSessionUpload(env.DB, share.cop_session_id, uploadId)
   // A file held pending a virus scan is not offered through a share at all.
-  if (!row || (await uploadHeld(env.DB, row))) return notFound()
+  if (!row || (await uploadServable(env.DB, row)) !== 'ok') return notFound()
   return serveUpload(env, row, 'private, max-age=300')
 }

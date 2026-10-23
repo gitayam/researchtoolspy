@@ -238,7 +238,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     for (const file of files) {
       const key = uploadObjectKey(token, form.id, file.name)
       // Type from the bytes; images stripped of metadata before the write.
-      const clean = cleanFile(new Uint8Array(await file.arrayBuffer()))
+      const clean = await cleanFile(new Uint8Array(await file.arrayBuffer()))
       if (clean.ok === false) {
         // All or nothing: take back what this request already stored.
         for (const done of stored) await env.UPLOADS.delete(done.key).catch(() => {})

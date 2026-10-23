@@ -8,7 +8,7 @@
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { copCollaborator, json } from '../../../_shared/cop-route-auth'
-import { getSessionUpload, heldResponse, serveUpload, uploadHeld, type R2Like } from '../../../_shared/cop-uploads'
+import { getSessionUpload, heldResponse, serveUpload, uploadServable, type R2Like } from '../../../_shared/cop-uploads'
 
 interface Env {
   DB: D1Database
@@ -23,6 +23,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   if (access.ok === false) return access.response
   const row = await getSessionUpload(context.env.DB, sessionId, uploadId)
   if (!row) return json({ error: 'Not found' }, 404)
-  if (await uploadHeld(context.env.DB, row)) return heldResponse()
+  const servable = await uploadServable(context.env.DB, row)
+  if (servable === 'held') return heldResponse()
+  if (servable === 'gone') return json({ error: 'Not found' }, 404)
   return serveUpload(context.env, row, 'private, max-age=3600')
 }

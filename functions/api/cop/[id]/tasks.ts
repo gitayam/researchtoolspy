@@ -267,8 +267,12 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
     // Build dynamic update
     if (body.title !== undefined) {
+      const title = typeof body.title === 'string' ? body.title.trim() : ''
+      if (!title || title.length > 300) {
+        return new Response(JSON.stringify({ error: 'title must be 1–300 characters' }), { status: 400, headers: JSON_HEADERS })
+      }
       updates.push('title = ?')
-      bindings.push(body.title.trim())
+      bindings.push(title)
     }
     if (body.description !== undefined) {
       updates.push('description = ?')

@@ -892,7 +892,7 @@ export default function CopEvidenceFeed({
                           </div>
                         )}
                         {upload && !uploadImage && (
-                          <CopUploadDownload path={item.url!} filename={`${item.title}.pdf`} className="mt-1" />
+                          <CopUploadDownload path={item.url!} title={item.title} className="mt-1" />
                         )}
                         {saved && <CopItemTags targetType="evidence" targetId={item.id} label="evidence item" />}
                         {saved && <FileUnderQuestions sessionId={sessionId} evidenceId={String(item.id)} />}

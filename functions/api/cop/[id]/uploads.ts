@@ -33,6 +33,7 @@ import {
   FILE_TOO_LARGE,
   MAX_COP_UPLOAD_BYTES,
   publicUpload,
+  archiveOtherUploads,
   storeCopUpload,
   uploadKind,
   type R2Like,
@@ -153,7 +154,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
 
     const stored = await storeCopUpload(env, {
-      sessionId, bytes: parsed.bytes, originalName: parsed.name, createdBy: access.userId, sourceChannel: channel,
+      sessionId, bytes: parsed.bytes, originalName: parsed.name, createdBy: access.userId, sourceChannel: channel, documents: true,
     })
     if (stored.ok === false) return coded(stored.status, stored.code, stored.error)
     const upload = publicUpload(stored.row)
@@ -168,6 +169,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       if (archiveRef.value !== undefined) await setArchiveRef(env.DB, attachTo.id, archiveRef.value)
       await env.DB.prepare('UPDATE cop_uploads SET evidence_id = ? WHERE id = ? AND cop_session_id = ?')
         .bind(String(attachTo.id), upload.id, sessionId).run()
+      // The new file replaces any earlier one: a held or quarantined original must not
+      // become downloadable when the hold is lifted for this copy.
+      await archiveOtherUploads(env.DB, sessionId, attachTo.id, upload.id)
       return json({ upload, evidence: { id: attachTo.id, tags: [] } }, 201)
     }
 

@@ -16,12 +16,15 @@ import {
 } from '../../../_shared/cop-event-types'
 import { JSON_HEADERS } from '../../../_shared/api-utils'
 import { logEvent } from '../../../_shared/event-log'
-import { copCallerUserId } from '../../../_shared/cop-caller'
+import { copCallerUserId, copServiceCaller } from '../../../_shared/cop-caller'
 import { deleteLinksOf } from '../../../_shared/cop-evidence-links'
 import {
   expectedUpdatedAt, isMissingColumn, rewriteSessionKeyQuestions, serviceChangeRefused, serviceDeleteRefused,
   serviceMayChange, serviceMayDelete, staleWriteResponse,
 } from '../../../_shared/cop-input'
+
+/** What a service (the Signal bot's !cop star, status sync) may change on its own RFIs. */
+const SERVICE_RFI_FIELDS = new Set(['status', 'is_key', 'priority', 'if_updated_at'])
 
 interface Env {
   DB: D1Database
@@ -58,8 +61,17 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
         status: 404, headers: JSON_HEADERS,
       })
     }
-    // A service (the Signal bot) may change only the RFIs it created.
+    // A service (the Signal bot) may change only the RFIs it created, and only their
+    // status, star (is_key) and priority.
     if (!serviceMayChange(context, existing.created_by)) return serviceChangeRefused()
+    if (copServiceCaller(context.data)) {
+      const extra = Object.keys(body ?? {}).filter((key) => !SERVICE_RFI_FIELDS.has(key))
+      if (extra.length > 0) {
+        return new Response(JSON.stringify({ error: `A service may only change status, is_key and priority (not ${extra.join(', ')})` }), {
+          status: 400, headers: JSON_HEADERS,
+        })
+      }
+    }
 
     const expected = expectedUpdatedAt(request, body)
     if (expected && expected !== existing.updated_at) return staleWriteResponse(existing)

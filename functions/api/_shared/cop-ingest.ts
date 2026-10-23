@@ -134,17 +134,18 @@ export function fileAnswers(formData: Record<string, unknown>, schema: FormField
  * that isn't an accepted type, or an image that can't be parsed, refuses the
  * submission with a message for the submitter.
  */
-export function sanitizeFormDataFiles(
+export async function sanitizeFormDataFiles(
   formData: Record<string, unknown>,
   schema: FormField[],
-): { ok: true; formData: Record<string, unknown>; error?: undefined } | { ok: false; error: string; formData?: undefined } {
+): Promise<{ ok: true; formData: Record<string, unknown>; error?: undefined } | { ok: false; error: string; formData?: undefined }> {
   const files = fileAnswers(formData, schema)
   if (files.length === 0) return { ok: true, formData }
   const next = { ...formData }
   for (const { field, value } of files) {
     const bytes = decodeDataUrl(value)
     if (!bytes) return { ok: false, error: `The file in "${field.label}" could not be read.` }
-    const clean = cleanFile(bytes)
+    // Images and PDFs only: anonymous submitters never add documents or audio.
+    const clean = await cleanFile(bytes)
     if (clean.ok === false) return { ok: false, error: `The file in "${field.label}" was not accepted: ${clean.error}` }
     next[field.name] = encodeDataUrl(clean.type, clean.bytes)
     next[`${field.name}_type`] = clean.type
@@ -275,6 +276,7 @@ export async function ingestSubmission(
       for (const { value } of fileAnswers(formData, schema).slice(0, MAX_FILES)) {
         const bytes = decodeDataUrl(value)
         if (!bytes) continue
+        // documents stays off: a submitter's file is an image or a PDF, never more.
         const stored = await storeCopUpload({ DB: db, UPLOADS: env.UPLOADS }, {
           sessionId: input.sessionId, bytes, originalName: null, createdBy: actor, sourceChannel: 'drop',
         })

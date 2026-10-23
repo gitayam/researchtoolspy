@@ -17,7 +17,7 @@
 import { emitCopEventLoose } from './cop-events-loose'
 import { IMAGE_TYPES, sanitizeImage, sniffFileType, type SniffedType } from './image-sanitize'
 import { DOWNLOAD_EXTENSIONS, sniffDocument } from './document-sniff'
-import { evidenceHeld } from './cop-archive'
+import { evidenceHeld, readMetadata } from './cop-archive'
 import type { SourceChannel } from './cop-records'
 
 export const MAX_COP_UPLOAD_BYTES = 10 * 1024 * 1024
@@ -112,7 +112,7 @@ export interface CleanFileOptions {
  * Type a file from its bytes: strip an image's metadata; accept a PDF (and, with
  * `documents`, a document or audio file) as it is, download-only; refuse the rest.
  */
-export function cleanFile(bytes: Uint8Array, options: CleanFileOptions = {}): CleanFileResult {
+export async function cleanFile(bytes: Uint8Array, options: CleanFileOptions = {}): Promise<CleanFileResult> {
   if (bytes.length === 0) return { ok: false, status: 400, code: UNSUPPORTED_FILE, error: 'The file is empty.' }
   if (bytes.length > MAX_COP_UPLOAD_BYTES) {
     return { ok: false, status: 413, code: FILE_TOO_LARGE, error: `Files are limited to ${MAX_COP_UPLOAD_BYTES / (1024 * 1024)} MB.` }
@@ -129,7 +129,7 @@ export function cleanFile(bytes: Uint8Array, options: CleanFileOptions = {}): Cl
   if (!options.documents) {
     return { ok: false, status: 415, code: UNSUPPORTED_FILE, error: 'Only JPEG, PNG, WebP or GIF images and PDF documents can be added.' }
   }
-  const document = sniffDocument(bytes, options.name ?? null)
+  const document = await sniffDocument(bytes, options.name ?? null)
   if (document.ok === false) {
     return { ok: false, status: 415, code: UNSUPPORTED_FILE, error: `That file can't be added: ${document.reason}. ${UNSUPPORTED_HINT}` }
   }
@@ -147,6 +147,9 @@ export interface StoreUploadInput {
   originalName: string | null
   createdBy: number
   sourceChannel: SourceChannel
+  /** Accept documents and audio too. Only the COP upload route (editors, the bot) sets
+   *  it; anything from an anonymous submitter stays images and PDFs. */
+  documents?: boolean
 }
 
 export type StoreUploadResult =
@@ -159,7 +162,7 @@ export async function storeCopUpload(
   input: StoreUploadInput,
 ): Promise<StoreUploadResult> {
   if (!env.UPLOADS) return { ok: false, status: 503, code: UPLOADS_UNAVAILABLE, error: 'File uploads are not configured on this server.' }
-  const clean = cleanFile(input.bytes, { name: input.originalName, documents: true })
+  const clean = await cleanFile(input.bytes, { name: input.originalName, documents: input.documents === true })
   if (clean.ok === false) return clean
 
   const id = `upl-${crypto.randomUUID()}`
@@ -223,14 +226,27 @@ export async function getSessionUpload(db: D1Database, sessionId: string, upload
 }
 
 /**
- * Whether an upload's evidence item is held (virus scan pending or quarantined): a held
- * file is not served. An upload without an evidence item is never held.
+ * Whether an upload may be served, judged per file:
+ *   - 'held': its evidence item is held (virus scan pending or quarantined);
+ *   - 'gone': its evidence item now points at another file (metadata.upload_id), so this
+ *     one was superseded — e.g. a quarantined original replaced by a cleared copy;
+ *   - 'ok' otherwise (an upload without an evidence item is never held).
  */
-export async function uploadHeld(db: D1Database, row: Pick<UploadRow, 'evidence_id'>): Promise<boolean> {
-  if (!row.evidence_id || !/^\d{1,15}$/.test(String(row.evidence_id))) return false
+export async function uploadServable(db: D1Database, row: Pick<UploadRow, 'id' | 'evidence_id'>): Promise<'ok' | 'held' | 'gone'> {
+  if (!row.evidence_id || !/^\d{1,15}$/.test(String(row.evidence_id))) return 'ok'
   const evidence = await db.prepare('SELECT metadata FROM evidence_items WHERE id = ?')
     .bind(Number(row.evidence_id)).first<{ metadata: string | null }>()
-  return evidence ? evidenceHeld(evidence) : false
+  if (!evidence) return 'ok'
+  if (evidenceHeld(evidence)) return 'held'
+  const current = readMetadata(evidence.metadata).upload_id
+  return typeof current === 'string' && current && current !== row.id ? 'gone' : 'ok'
+}
+
+/** Archive an evidence item's uploads other than `keepId` (they are no longer its file). */
+export async function archiveOtherUploads(db: D1Database, sessionId: string, evidenceId: string | number, keepId: string): Promise<void> {
+  await db.prepare(`
+    UPDATE cop_uploads SET archived_at = ? WHERE cop_session_id = ? AND evidence_id = ? AND id != ? AND archived_at IS NULL
+  `).bind(new Date().toISOString(), sessionId, String(evidenceId), keepId).run()
 }
 
 export function heldResponse(): Response {
@@ -249,7 +265,8 @@ export function uploadHeaders(row: Pick<UploadRow, 'id' | 'content_type'>, cache
   headers.set('Content-Security-Policy', "default-src 'none'; sandbox")
   headers.set('Cross-Origin-Resource-Policy', 'same-origin')
   headers.set('Referrer-Policy', 'no-referrer')
-  headers.set('Cache-Control', cache)
+  // Documents, audio and PDFs are never kept in a cache.
+  headers.set('Cache-Control', image ? cache : 'no-store')
   if (image) {
     headers.set('Content-Disposition', 'inline')
   } else {
