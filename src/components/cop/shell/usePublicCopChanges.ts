@@ -61,7 +61,10 @@ export function usePublicCopChanges(
       try {
         const url = `/api/cop/public/${encodeURIComponent(token)}/changes?since=${encodeURIComponent(cursor ?? '')}`
         const res = await fetch(url, { signal: controller.signal })
-        if (res.status === 404 || res.status === 405) {
+        // A server without the feed answers 404/405, or (Pages' SPA fallback) the app's
+        // HTML with 200: either way there is no live feed, so refresh on the slow timer.
+        const isJson = (res.headers.get('content-type') ?? '').includes('application/json')
+        if (res.status === 404 || res.status === 405 || (res.ok && !isJson)) {
           fallback = true
           setMode('fallback')
           schedule(FALLBACK_INTERVAL_MS)
