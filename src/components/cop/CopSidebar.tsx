@@ -82,13 +82,16 @@ interface CopSidebarProps {
   className?: string
   /** Called when a nav item is clicked — useful for closing mobile drawer */
   onNavClick?: () => void
+  /** 'menu': inside the phone side menu — always labelled, 44 px rows, no collapse toggle. */
+  variant?: 'rail' | 'menu'
 }
 
 // ── Component ────────────────────────────────────────────────────
 
-export default function CopSidebar({ mode, stats, panelOrder, onResetLayout, className, onNavClick }: CopSidebarProps) {
+export default function CopSidebar({ mode, stats, panelOrder, onResetLayout, className, onNavClick, variant = 'rail' }: CopSidebarProps) {
+  const isMenu = variant === 'menu'
   const [activePanel, setActivePanel] = useState<string>('')
-  const [collapsed, setCollapsed] = useState(() => {
+  const [railCollapsed, setCollapsed] = useState(() => {
     const saved = localStorage.getItem('cop_sidebar_collapsed')
     // Default to collapsed for more content space
     return saved === null ? true : saved === 'true'
@@ -153,6 +156,8 @@ export default function CopSidebar({ mode, stats, panelOrder, onResetLayout, cla
     onNavClick?.()
   }, [onNavClick])
 
+  const collapsed = isMenu ? false : railCollapsed
+
   const toggleCollapsed = useCallback(() => {
     setCollapsed(prev => {
       const next = !prev
@@ -192,22 +197,23 @@ export default function CopSidebar({ mode, stats, panelOrder, onResetLayout, cla
                   title={item.label}
                   className={cn(
                     'w-full flex items-center gap-2 rounded-md transition-colors duration-100 cursor-pointer focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none',
-                    collapsed ? 'justify-center px-1 py-1.5' : 'px-2 py-1.5',
+                    collapsed ? 'justify-center px-1 py-1.5' : isMenu ? 'min-h-11 px-3 py-2' : 'px-2 py-1.5',
                     isActive
                       ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100'
                       : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200',
                   )}
                   aria-current={isActive ? 'true' : undefined}
                 >
-                  <Icon className={cn('h-3.5 w-3.5 shrink-0', isActive ? item.color : '')} />
+                  <Icon className={cn(isMenu ? 'h-4 w-4' : 'h-3.5 w-3.5', 'shrink-0', isActive ? item.color : '')} />
                   {!collapsed && (
                     <>
-                      <span className="text-[11px] font-medium truncate flex-1 text-left">
+                      <span className={cn(isMenu ? 'text-sm' : 'text-[11px]', 'font-medium truncate flex-1 text-left')}>
                         {item.label}
                       </span>
                       {badge != null && (
                         <span className={cn(
-                          'text-[9px] tabular-nums font-semibold min-w-[16px] text-center rounded-full px-1',
+                          isMenu ? 'text-xs' : 'text-[9px]',
+                          'tabular-nums font-semibold min-w-[16px] text-center rounded-full px-1',
                           item.statKey === 'open_rfis'
                             ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400'
                             : 'text-slate-400 dark:text-slate-500',
@@ -233,14 +239,17 @@ export default function CopSidebar({ mode, stats, panelOrder, onResetLayout, cla
           <button
             type="button"
             onClick={onResetLayout}
-            className="w-full flex items-center gap-2 px-2 py-1 rounded text-[10px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer"
+            className={cn(
+              'w-full flex items-center gap-2 px-2 rounded text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer',
+              isMenu ? 'min-h-11 text-sm' : 'py-1 text-[10px]',
+            )}
             title="Reset panel layout"
           >
             <RotateCcw className="h-3 w-3" />
             <span>Reset layout</span>
           </button>
         )}
-        <button
+        {!isMenu && <button
           type="button"
           onClick={toggleCollapsed}
           className="w-full flex items-center justify-center py-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 transition-colors cursor-pointer"
@@ -251,7 +260,7 @@ export default function CopSidebar({ mode, stats, panelOrder, onResetLayout, cla
           ) : (
             <ChevronLeft className="h-3.5 w-3.5" />
           )}
-        </button>
+        </button>}
       </div>
     </aside>
   )

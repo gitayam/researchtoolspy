@@ -39,9 +39,11 @@ import {
   FileWarning,
   Download,
   Menu,
-  X as XIcon,
   Target,
   Video,
+  FilePlus2,
+  Sun,
+  Moon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -54,6 +56,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { ThemeToggle } from '@/components/ThemeToggle'
+import { useTheme } from '@/hooks/useTheme'
 
 import CopStatusStrip from '@/components/cop/CopStatusStrip'
 import CopPanelExpander from '@/components/cop/CopPanelExpander'
@@ -102,7 +105,10 @@ import { useMediaQuery } from '@/hooks/useMediaQuery'
 import type { CopSession, CopFeatureCollection, CopLayerDef, CopWorkspaceMode } from '@/types/cop'
 import { getCopHeaders } from '@/lib/cop-auth'
 import { downloadCotExport } from '@/lib/cop-cot-export'
-import { shareLinkToast } from '@/lib/cop-share-message'
+import CopSideMenu from '@/components/cop/shell/CopSideMenu'
+import CopShareDialog from '@/components/cop/shell/CopShareDialog'
+import EvidenceSubmitSheet from '@/components/cop/shell/EvidenceSubmitSheet'
+import { useIsPhone } from '@/components/cop/shell/useMediaQuery'
 import { isTransientFetchError } from '@/lib/transient-fetch-error'
 import { useToast } from '@/components/ui/use-toast'
 
@@ -244,8 +250,15 @@ export default function CopWorkspacePage() {
     poo_count?: number
   }>({})
 
-  // ── Mobile sidebar toggle ───────────────────────────────────
-  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
+  // ── Phone side menu, share dialog, evidence sheet ────────────
+  const isPhone = useIsPhone()
+  const { theme, toggleTheme } = useTheme()
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [shareOpen, setShareOpen] = useState(false)
+  const [evidenceOpen, setEvidenceOpen] = useState(false)
+  const headerRef = useRef<HTMLElement>(null)
+  /** The active evidence form (drop) linked to this session, if the user can see one. */
+  const [linkedDrop, setLinkedDrop] = useState<{ token: string; title: string | null } | null>(null)
 
   // ── Invite dialog state ───────────────────────────────────────
   const [inviteOpen, setInviteOpen] = useState(false)
@@ -480,6 +493,29 @@ export default function CopWorkspacePage() {
     [],
   )
 
+  /**
+   * Save a map marker and show it at once. `stale_minutes: null` keeps it until
+   * someone removes it (the server's default expires a marker after 5 minutes).
+   */
+  const saveMarker = useCallback(
+    async (body: Record<string, unknown>, failure: { title: string; description: string }) => {
+      try {
+        const res = await fetch(`/api/cop/${id}/markers`, {
+          method: 'POST',
+          headers: getCopHeaders(),
+          body: JSON.stringify({ ...body, stale_minutes: null }),
+        })
+        if (!res.ok) throw new Error(`Server responded with ${res.status}`)
+        const markers = getLayerById('cop-markers')
+        if (markers) fetchLayerData(markers)
+      } catch (err) {
+        console.error('Failed to save map marker:', err)
+        toast({ ...failure, variant: 'destructive' })
+      }
+    },
+    [id, fetchLayerData, toast],
+  )
+
   const handlePinPlaced = useCallback(
     async (lat: number, lon: number) => {
       setPinPlacementMode(false)
@@ -500,25 +536,19 @@ export default function CopWorkspacePage() {
         return
       }
 
-      try {
-        await fetch(`/api/cop/${id}/markers`, {
-          method: 'POST',
-          headers: getCopHeaders(),
-          body: JSON.stringify({
-            lat,
-            lon,
-            callsign: source.text.slice(0, 50),
-            label: source.text.slice(0, 100),
-            source_type: source.type === 'evidence' ? 'EVIDENCE' : 'HYPOTHESIS',
-            source_id: source.id,
-          }),
-        })
-      } catch (err) {
-        console.error('Failed to place map pin marker:', err)
-        toast({ title: 'Failed to save marker', description: 'The map pin could not be created — try again.', variant: 'destructive' })
-      }
+      await saveMarker(
+        {
+          lat,
+          lon,
+          callsign: source.text.slice(0, 50),
+          label: source.text.slice(0, 100),
+          source_type: source.type === 'evidence' ? 'EVIDENCE' : 'HYPOTHESIS',
+          source_id: source.id,
+        },
+        { title: 'Failed to save marker', description: 'The map pin could not be created — try again.' },
+      )
     },
-    [id],
+    [id, saveMarker],
   )
 
   const handlePooPickFromMap = useCallback(() => {
@@ -631,21 +661,52 @@ export default function CopWorkspacePage() {
   // ── Share handler ──────────────────────────────────────────────
 
   const handleShare = useCallback(() => {
-    const url = `${window.location.origin}/dashboard/cop/${id}`
-    navigator.clipboard.writeText(url).then(
-      () => {
-        toast(shareLinkToast({ isPublic: session?.is_public === 1 }))
-      },
-      (err) => {
-        console.error('Failed to copy share link to clipboard:', err)
-        toast({
-          title: "Couldn't copy link",
-          description: 'Copy the page URL from your browser address bar to share it.',
-          variant: 'destructive',
-        })
-      },
-    )
-  }, [id, session, toast])
+    setMenuOpen(false)
+    setShareOpen(true)
+  }, [])
+
+  // The evidence form linked to this session: the server's `evidence_form` when it
+  // sends one, else an active drop of the user's that points at this session.
+  useEffect(() => {
+    if (!id) return
+    const controller = new AbortController()
+    fetch('/api/surveys?status=active', { headers: getCopHeaders(), signal: controller.signal })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        const drop = (data?.surveys ?? []).find((survey: { cop_session_id?: string; share_token?: string; expires_at?: string | null }) =>
+          survey.cop_session_id === id
+          && typeof survey.share_token === 'string'
+          && (!survey.expires_at || Date.parse(survey.expires_at) > Date.now()))
+        setLinkedDrop(drop ? { token: drop.share_token, title: drop.title ?? null } : null)
+      })
+      .catch(() => { /* no drop list: the button falls back to the capture bar */ })
+    return () => controller.abort()
+  }, [id])
+
+  const evidenceForm = (() => {
+    const fromServer = (session as (CopSession & { evidence_form?: { token?: string; title?: string | null } | null }) | null)?.evidence_form
+    if (fromServer?.token) return { token: fromServer.token, title: fromServer.title ?? null }
+    return linkedDrop
+  })()
+
+  /** Without an evidence form, "Add evidence" goes to the capture bar. */
+  const focusCapture = useCallback(() => {
+    setMenuOpen(false)
+    requestAnimationFrame(() => {
+      const input = document.querySelector<HTMLElement>('[data-cop-capture] input, [data-cop-capture] textarea')
+      input?.scrollIntoView({ block: 'nearest' })
+      input?.focus()
+    })
+  }, [])
+
+  const handleAddEvidence = useCallback(() => {
+    if (evidenceForm) {
+      setMenuOpen(false)
+      setEvidenceOpen(true)
+    } else {
+      focusCapture()
+    }
+  }, [evidenceForm, focusCapture])
 
   const handleExportCot = useCallback(async () => {
     if (!id) return
@@ -686,84 +747,119 @@ export default function CopWorkspacePage() {
 
   // ── Main layout ────────────────────────────────────────────────
 
+  const evidenceLabel = evidenceForm ? 'Submit evidence' : 'Add evidence'
+
   return (
     <div className="flex flex-col bg-background min-h-dvh">
-      {/* ── Header bar ──────────────────────────────────────────── */}
-      <header className="flex flex-wrap items-center gap-1.5 sm:gap-2 md:gap-3 px-2 sm:px-3 md:px-4 py-2 bg-background border-b shrink-0">
+      {/* ── Header + capture: stay on screen on phones, so input is always one tap away ── */}
+      <div className="sticky top-0 z-30 bg-background md:static">
+      <header
+        ref={headerRef}
+        className="flex flex-wrap items-center gap-1.5 sm:gap-2 md:gap-3 px-1 sm:px-3 md:px-4 py-1.5 md:py-2 bg-background border-b shrink-0 [touch-action:pan-y] md:[touch-action:auto]"
+      >
+        {/* Phones: the side menu holds navigation and the less frequent actions */}
+        <button
+          type="button"
+          onClick={() => setMenuOpen(true)}
+          aria-label="Open menu"
+          aria-expanded={menuOpen}
+          aria-haspopup="dialog"
+          className="md:hidden flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-slate-700 hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-blue-500 dark:text-slate-200 dark:hover:bg-slate-800"
+        >
+          <Menu className="h-6 w-6" aria-hidden="true" />
+        </button>
+
         {/* Back button */}
         <Button
           variant="ghost"
           size="sm"
           onClick={() => navigate('/dashboard/cop')}
-          className="shrink-0 cursor-pointer h-8 w-8 sm:h-auto sm:w-auto p-0 sm:px-3"
+          className="hidden md:inline-flex shrink-0 cursor-pointer"
           aria-label="Back to sessions"
         >
-          <ArrowLeft className="h-4 w-4 sm:mr-1" />
-          <span className="hidden sm:inline">Back</span>
+          <ArrowLeft className="h-4 w-4 mr-1" />
+          <span>Back</span>
         </Button>
 
         {/* Session name + template badge */}
         <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1">
-          <h1 className="font-semibold text-xs sm:text-sm truncate text-gray-900 dark:text-gray-100">{session.name}</h1>
+          <h1 className="font-semibold text-sm truncate text-gray-900 dark:text-gray-100">{session.name}</h1>
           <Badge variant="secondary" className="shrink-0 text-[10px] hidden sm:inline-flex">
             {TEMPLATE_LABELS[session.template_type] ?? session.template_type}
           </Badge>
           {session.status === 'ACTIVE' && (
             <span className="inline-flex items-center gap-1 text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 motion-safe:animate-pulse" />
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 motion-safe:animate-pulse" aria-hidden="true" />
               <span className="hidden sm:inline">Live</span>
+              <span className="sr-only sm:hidden">Live</span>
             </span>
           )}
         </div>
 
-        {/* Mode toggle (segmented control) */}
-        <div className="flex items-center bg-muted rounded-md p-0.5 shrink-0">
+        {/* Evidence: the form in place when one is linked, else the capture bar */}
+        <button
+          type="button"
+          onClick={handleAddEvidence}
+          className="inline-flex min-h-11 md:min-h-8 shrink-0 items-center gap-1.5 rounded-full bg-emerald-600 px-3 md:px-3.5 text-sm md:text-xs font-semibold text-white shadow-sm hover:bg-emerald-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500 cursor-pointer"
+          title={evidenceForm ? 'Open the evidence form here' : 'Add a link or note to this COP'}
+        >
+          <FilePlus2 className="h-4 w-4" aria-hidden="true" />
+          <span className="hidden xs:inline">{evidenceLabel}</span>
+          <span className="xs:hidden">{evidenceForm ? 'Submit' : 'Add'}</span>
+        </button>
+
+        {/* Mode toggle (segmented control); on phones it lives in the side menu */}
+        <div className="hidden md:flex items-center bg-muted rounded-md p-0.5 shrink-0" role="group" aria-label="Workspace mode">
           <button
             type="button"
             data-testid="mode-progress"
             onClick={() => setMode('progress')}
+            aria-pressed={mode === 'progress'}
+            aria-label="Progress mode"
             className={cn(
-              'flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded text-xs font-medium transition-colors cursor-pointer',
+              'flex items-center justify-center gap-1 min-h-11 min-w-11 md:min-h-0 md:min-w-0 px-2 sm:px-2.5 py-1 rounded text-xs font-medium transition-colors cursor-pointer',
               mode === 'progress'
                 ? 'bg-background text-foreground shadow-sm'
                 : 'text-muted-foreground hover:text-foreground',
             )}
           >
-            <BarChart3 className="h-3.5 w-3.5" />
-            <span className="hidden xs:inline">Progress</span>
+            <BarChart3 className="h-3.5 w-3.5" aria-hidden="true" />
+            <span className="hidden lg:inline">Progress</span>
           </button>
           <button
             type="button"
             data-testid="mode-monitor"
             onClick={() => setMode('monitor')}
+            aria-pressed={mode === 'monitor'}
+            aria-label="Monitor mode"
             className={cn(
-              'flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded text-xs font-medium transition-colors cursor-pointer',
+              'flex items-center justify-center gap-1 min-h-11 min-w-11 md:min-h-0 md:min-w-0 px-2 sm:px-2.5 py-1 rounded text-xs font-medium transition-colors cursor-pointer',
               mode === 'monitor'
                 ? 'bg-background text-foreground shadow-sm'
                 : 'text-muted-foreground hover:text-foreground',
             )}
           >
-            <MonitorPlay className="h-3.5 w-3.5" />
-            <span className="hidden xs:inline">Monitor</span>
+            <MonitorPlay className="h-3.5 w-3.5" aria-hidden="true" />
+            <span className="hidden lg:inline">Monitor</span>
           </button>
         </div>
 
-        {/* Actions */}
-        <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
+        {/* Actions (tablet/desktop; on phones they live in the side menu) */}
+        <div className="hidden md:flex items-center gap-1 shrink-0">
           <Button
             variant="outline"
             size="sm"
             onClick={() => setEntityDrawerOpen(true)}
             title="Entity Drawer (Cmd+E)"
-            className="h-7 text-[11px] px-1.5 sm:px-2.5 gap-1 sm:gap-1.5 border-purple-500/30 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/30 cursor-pointer"
+            className="h-7 text-[11px] px-2.5 gap-1.5 border-purple-500/30 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/30 cursor-pointer"
           >
             <Database className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Entities</span>
+            <span>Entities</span>
           </Button>
-          <Button variant="ghost" size="sm" title="Invite collaborator" onClick={() => setInviteOpen(true)} className="cursor-pointer h-7 w-7 sm:h-auto sm:w-auto p-0 sm:p-2" aria-label="Invite collaborator">
+          <Button variant="ghost" size="sm" title="Invite collaborator" onClick={() => setInviteOpen(true)} className="cursor-pointer p-2" aria-label="Invite collaborator">
             <UserPlus className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="sm" onClick={handleShare} title="Copy share link" className="cursor-pointer h-7 w-7 sm:h-auto sm:w-auto p-0 sm:p-2" aria-label="Copy share link">
+          <Button variant="ghost" size="sm" onClick={handleShare} title="Share links" className="cursor-pointer p-2" aria-label="Share links">
             <Share2 className="h-4 w-4" />
           </Button>
           <Button
@@ -771,7 +867,7 @@ export default function CopWorkspacePage() {
             size="sm"
             onClick={() => setExportOpen(true)}
             title="Export data"
-            className="cursor-pointer h-7 w-7 sm:h-auto sm:w-auto p-0 sm:p-2"
+            className="cursor-pointer p-2"
             aria-label="Export data"
           >
             <Download className="h-4 w-4" />
@@ -781,7 +877,7 @@ export default function CopWorkspacePage() {
             size="sm"
             onClick={handleExportCot}
             title="Export as Cursor-on-Target (ATAK compatible)"
-            className="cursor-pointer hidden sm:inline-flex"
+            className="cursor-pointer"
             aria-label="Export as Cursor-on-Target"
           >
             <Radio className="h-4 w-4" />
@@ -790,61 +886,114 @@ export default function CopWorkspacePage() {
         </div>
       </header>
 
+        {/* ── Global Quick Capture Bar ────────────────────────────── */}
+        <div data-cop-capture="">
+          <CopGlobalCaptureBar
+            sessionId={id!}
+            workspaceId={session?.workspace_id}
+            onLocationDetected={handleLocationDetected}
+            // Counts refresh on a 60s poll. For an analyst capturing into a live
+            // picture that is long enough to doubt whether the entry landed, so a
+            // capture refreshes them at once.
+            onSuccess={() => refetchStats()}
+            onJumpToPanel={handleGoToPanel}
+          />
+        </div>
+      </div>
+
       {/* ── Status strip ────────────────────────────────────────── */}
       <CopStatusStrip
         sessionId={id!}
         missionBrief={session.mission_brief ?? undefined}
         onUpdateMissionBrief={handleUpdateMissionBrief}
-        />
-
-        {/* ── Global Quick Capture Bar ────────────────────────────── */}
-        <CopGlobalCaptureBar
-          sessionId={id!}
-          workspaceId={session?.workspace_id}
-          onLocationDetected={handleLocationDetected}
-          // Counts refresh on a 60s poll. For an analyst capturing into a live
-          // picture that is long enough to doubt whether the entry landed, so a
-          // capture refreshes them at once.
-          onSuccess={() => refetchStats()}
-          onJumpToPanel={handleGoToPanel}
-        />
-
-        {/* ── Panel grid ──────────────────────────────────────────── */}
+      />
 
       <CopBlockerStrip sessionId={id!} onGoToBlocker={handleGoToBlocker} />
 
-      {/* ── Mobile sidebar toggle (visible < md only) ────────── */}
-      <Button
-        variant="outline"
-        size="sm"
-        className="fixed bottom-4 left-4 z-50 md:hidden h-10 w-10 rounded-full shadow-lg bg-white dark:bg-slate-900 p-0"
-        onClick={() => setMobileSidebarOpen(true)}
-        aria-label="Open panel navigation"
-      >
-        <Menu className="h-5 w-5" />
-      </Button>
-
-      {/* ── Mobile sidebar drawer overlay ─────────────────────── */}
-      {mobileSidebarOpen && (
-        <div className="fixed inset-0 z-50 md:hidden">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setMobileSidebarOpen(false)} />
-          <div className="absolute left-0 top-0 bottom-0 w-[220px] bg-white dark:bg-slate-900 shadow-xl animate-in slide-in-from-left duration-200">
-            <div className="flex items-center justify-between p-2 border-b border-slate-200 dark:border-slate-700">
-              <span className="text-xs font-semibold text-slate-500">Panels</span>
-              <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => setMobileSidebarOpen(false)}>
-                <XIcon className="h-4 w-4" />
-              </Button>
+      {/* ── Phone side menu: actions + jump-to navigation ───────── */}
+      {isPhone && (
+        <CopSideMenu
+          open={menuOpen}
+          onOpenChange={setMenuOpen}
+          title={session.name}
+          subtitle={TEMPLATE_LABELS[session.template_type] ?? session.template_type}
+          openGestureRef={headerRef}
+        >
+          <div className="border-b border-slate-200 p-3 dark:border-slate-800">
+            <p className="mb-2 text-xs font-semibold text-slate-500 dark:text-slate-400" id="menu-view-label">View</p>
+            <div className="grid grid-cols-2 gap-1 rounded-lg bg-slate-100 p-1 dark:bg-slate-800" role="group" aria-labelledby="menu-view-label">
+              {([
+                { value: 'progress', label: 'Progress', icon: BarChart3 },
+                { value: 'monitor', label: 'Monitor', icon: MonitorPlay },
+              ] as const).map(({ value, label, icon: Icon }) => (
+                <button
+                  key={value}
+                  type="button"
+                  aria-pressed={mode === value}
+                  onClick={() => { setMode(value); setMenuOpen(false) }}
+                  className={cn(
+                    'flex min-h-11 items-center justify-center gap-2 rounded-md text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-blue-500',
+                    mode === value
+                      ? 'bg-white text-slate-900 shadow-sm dark:bg-slate-900 dark:text-slate-100'
+                      : 'text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100',
+                  )}
+                >
+                  <Icon className="h-4 w-4" aria-hidden="true" />
+                  {label}
+                </button>
+              ))}
             </div>
-            <CopSidebar
-              mode={mode}
-              stats={workspaceStats}
-              panelOrder={panelLayout.visiblePanels.map((p) => p.id)}
-              onResetLayout={panelLayout.resetLayout}
-              className="flex flex-col flex-1 w-full"
-              onNavClick={() => setMobileSidebarOpen(false)}
-            />
           </div>
-        </div>
+          <nav aria-label="Workspace actions" className="border-b border-slate-200 p-2 dark:border-slate-800">
+            <ul className="space-y-0.5">
+              {[
+                { label: evidenceLabel, icon: FilePlus2, onClick: handleAddEvidence, accent: true },
+                { label: 'Entities', icon: Database, onClick: () => { setMenuOpen(false); setEntityDrawerOpen(true) } },
+                { label: 'Invite collaborator', icon: UserPlus, onClick: () => { setMenuOpen(false); setInviteOpen(true) } },
+                { label: 'Share links', icon: Share2, onClick: handleShare },
+                { label: 'Export data', icon: Download, onClick: () => { setMenuOpen(false); setExportOpen(true) } },
+                { label: 'Export for ATAK (CoT)', icon: Radio, onClick: () => { setMenuOpen(false); handleExportCot() } },
+                { label: 'All sessions', icon: ArrowLeft, onClick: () => { setMenuOpen(false); navigate('/dashboard/cop') } },
+              ].map(({ label, icon: Icon, onClick, accent }) => (
+                <li key={label}>
+                  <button
+                    type="button"
+                    onClick={onClick}
+                    className={cn(
+                      'flex min-h-11 w-full items-center gap-3 rounded-md px-3 text-left text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-blue-500',
+                      accent
+                        ? 'text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/40'
+                        : 'text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800',
+                    )}
+                  >
+                    <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+                    {label}
+                  </button>
+                </li>
+              ))}
+              <li>
+                <button
+                  type="button"
+                  onClick={toggleTheme}
+                  className="flex min-h-11 w-full items-center gap-3 rounded-md px-3 text-left text-sm font-medium text-slate-700 hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-blue-500 dark:text-slate-200 dark:hover:bg-slate-800"
+                >
+                  {theme === 'dark' ? <Sun className="h-4 w-4 shrink-0" aria-hidden="true" /> : <Moon className="h-4 w-4 shrink-0" aria-hidden="true" />}
+                  {theme === 'dark' ? 'Light theme' : 'Dark theme'}
+                </button>
+              </li>
+            </ul>
+          </nav>
+          <p className="px-5 pt-3 pb-1 text-xs font-semibold text-slate-500 dark:text-slate-400">Jump to</p>
+          <CopSidebar
+            variant="menu"
+            mode={mode}
+            stats={workspaceStats}
+            panelOrder={panelLayout.visiblePanels.map((p) => p.id)}
+            onResetLayout={panelLayout.resetLayout}
+            className="flex flex-col w-full"
+            onNavClick={() => setMenuOpen(false)}
+          />
+        </CopSideMenu>
       )}
 
       {/* ── Sidebar + Panel grid ────────────────────────────────── */}
@@ -978,21 +1127,44 @@ export default function CopWorkspacePage() {
             prefill={entityDrawerPrefill}
             onPinToMap={(lat, lon, label) => {
               setShowMap(true)
-              fetch(`/api/cop/${id}/markers`, {
-                method: 'POST',
-                headers: getCopHeaders(),
-                body: JSON.stringify({
+              saveMarker(
+                {
                   lat, lon,
                   label,
                   callsign: label,
                   cot_type: 'a-f-G',
                   source_type: 'ENTITY',
                   description: `Pinned from Entity Drawer: ${label}`,
-                }),
-              }).catch((err) => { console.error('Failed to create entity pin marker:', err); toast({ title: 'Failed to pin entity', description: 'The map marker could not be created — try again.', variant: 'destructive' }) })
+                },
+                { title: 'Failed to pin entity', description: 'The map marker could not be created — try again.' },
+              )
             }}
           />
         </LazyPanel>
+      )}
+
+      <CopShareDialog
+        open={shareOpen}
+        onOpenChange={setShareOpen}
+        sessionId={id!}
+        hasEvidenceForm={!!evidenceForm}
+      />
+
+      {evidenceForm && (
+        <EvidenceSubmitSheet
+          open={evidenceOpen}
+          onOpenChange={setEvidenceOpen}
+          dropToken={evidenceForm.token}
+          formTitle={evidenceForm.title}
+          onSubmitted={(ingested) => {
+            refetchStats()
+            // Panels that listen refetch; the feed can highlight the new item when it lands.
+            window.dispatchEvent(new CustomEvent('cop:changed', { detail: { types: ['evidence', 'submission', 'marker'] } }))
+            if (ingested?.evidence_id != null) {
+              window.dispatchEvent(new CustomEvent('cop:highlight', { detail: { type: 'evidence', id: String(ingested.evidence_id) } }))
+            }
+          }}
+        />
       )}
     </div>
   )
@@ -1172,7 +1344,7 @@ function ProgressLayout({
             <h3 className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">
               Requests for Information
             </h3>
-            <CopRfiTab sessionId={sessionId} onRfiCountChange={setRfiCount} />
+            <CopRfiTab sessionId={sessionId} onRfiCountChange={setRfiCount} keyQuestions={session.key_questions} />
           </div>
           {expanded && (
             <div className="border-t border-slate-200 dark:border-slate-800 pt-4">

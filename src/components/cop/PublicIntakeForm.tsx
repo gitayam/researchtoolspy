@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useId } from 'react'
 import { Send, CheckCircle2, AlertCircle, MapPin, Upload, Camera, X, ClipboardPaste, ChevronDown, ChevronRight, Clock, FileText } from 'lucide-react'
 import type { IntakeFormField } from '../../types/cop'
 import UrlConfirmCard from './UrlConfirmCard'
@@ -69,6 +69,15 @@ function isGeopointComplete(val: string | undefined): boolean {
   return parts.length === 2 && parts[0].trim() !== '' && parts[1].trim() !== ''
 }
 
+/** Field types rendered as one control, so the field's label can name it. */
+const LABELLED_TYPES = new Set<string>(["text", "textarea", "number", "datetime", "select", "multiselect", "url", "email", "phone", "ip_address", "onion", "handle", "crypto_address", "country"])
+
+/** What a submission created in the linked COP, when the server ingested it at once. */
+export interface IntakeIngested {
+  evidence_id: string | number | null
+  marker_id: string | null
+}
+
 interface PublicIntakeFormProps {
   token: string
   /**
@@ -76,9 +85,20 @@ interface PublicIntakeFormProps {
    * drop-submit instead of submit. No IP hash is collected.
    */
   isDropMode?: boolean
+  /**
+   * Rendered inside a COP sheet rather than as its own page: no full-screen
+   * wrappers, a smaller title. With `onSubmitted`, a successful submission is
+   * reported to the host and the form clears for the next one.
+   */
+  embedded?: boolean
+  onSubmitted?: (result: { ingested: IntakeIngested | null }) => void
 }
 
-export default function PublicIntakeForm({ token, isDropMode = false }: PublicIntakeFormProps) {
+export default function PublicIntakeForm({ token, isDropMode = false, embedded = false, onSubmitted }: PublicIntakeFormProps) {
+  // Full-page screens fill the window; embedded ones fit their sheet.
+  const screen = embedded ? 'py-10' : 'min-h-screen'
+  const idBase = useId()
+  const controlId = (name: string) => `${idBase}-field-${name}`
   const [formMeta, setFormMeta] = useState<{
     title: string; description: string | null
     form_schema: IntakeFormField[]
@@ -241,17 +261,28 @@ export default function PublicIntakeForm({ token, isDropMode = false }: PublicIn
         throw new Error(data.error || 'Submission failed')
       }
 
-      setSubmitted(true)
+      if (embedded && onSubmitted) {
+        const ingested = data && typeof data.ingested === 'object' && data.ingested ? data.ingested as IntakeIngested : null
+        setFormData({})
+        setSubmitterName('')
+        setSubmitterContact('')
+        setLat(null)
+        setLon(null)
+        setError(null)
+        onSubmitted({ ingested })
+      } else {
+        setSubmitted(true)
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Submission failed')
     } finally {
       setSubmitting(false)
     }
-  }, [formMeta, formData, submitterName, submitterContact, lat, lon, token, formPassword])
+  }, [formMeta, formData, submitterName, submitterContact, lat, lon, token, formPassword, isDropMode, embedded, onSubmitted])
 
-  if (loading) return <div className="flex items-center justify-center min-h-screen"><span className="text-sm text-muted-foreground">Loading...</span></div>
+  if (loading) return <div className={`flex items-center justify-center ${screen}`}><span className="text-sm text-muted-foreground">Loading...</span></div>
   if (error && !formMeta) return (
-    <div className="flex items-center justify-center min-h-screen">
+    <div className={`flex items-center justify-center ${screen}`}>
       <div className="text-center space-y-2">
         <AlertCircle className="h-8 w-8 text-red-400 mx-auto" />
         <p className="text-sm text-red-400">{error}</p>
@@ -261,7 +292,7 @@ export default function PublicIntakeForm({ token, isDropMode = false }: PublicIn
   // Country blocked screen
   if (countryBlocked) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 p-4">
+      <div className={`${screen} flex items-center justify-center ${embedded ? '' : 'bg-slate-50 dark:bg-slate-950'} p-4`}>
         <div className="max-w-md text-center space-y-4">
           <AlertCircle className="h-12 w-12 text-amber-500 mx-auto" />
           <h1 className="text-xl font-bold text-slate-800 dark:text-slate-200">Region Restricted</h1>
@@ -274,7 +305,7 @@ export default function PublicIntakeForm({ token, isDropMode = false }: PublicIn
   // Expired screen
   if (expired) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 p-4">
+      <div className={`${screen} flex items-center justify-center ${embedded ? '' : 'bg-slate-50 dark:bg-slate-950'} p-4`}>
         <div className="max-w-md text-center space-y-4">
           <AlertCircle className="h-12 w-12 text-slate-400 mx-auto" />
           <h1 className="text-xl font-bold text-slate-800 dark:text-slate-200">Form Expired</h1>
@@ -287,7 +318,7 @@ export default function PublicIntakeForm({ token, isDropMode = false }: PublicIn
   // Password gate
   if (requiresPassword) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 p-4">
+      <div className={`${screen} flex items-center justify-center ${embedded ? '' : 'bg-slate-50 dark:bg-slate-950'} p-4`}>
         <div className="max-w-md w-full space-y-6">
           {logoUrl && <img src={logoUrl} alt="" className="h-12 mx-auto" />}
           <div className="text-center">
@@ -339,7 +370,7 @@ export default function PublicIntakeForm({ token, isDropMode = false }: PublicIn
   if (!formMeta) return null
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 py-4 sm:py-8 px-4" style={{ touchAction: 'manipulation' }}>
+    <div className={embedded ? 'px-4 pt-3' : 'min-h-screen bg-slate-50 dark:bg-slate-950 py-4 sm:py-8 px-4'} style={{ touchAction: 'manipulation' }}>
       <div className="max-w-lg mx-auto space-y-4">
         {logoUrl && <img src={logoUrl} alt="" className="h-10 mx-auto mb-2" />}
         {/* E-11: anonymous tip-line banner */}
@@ -348,12 +379,14 @@ export default function PublicIntakeForm({ token, isDropMode = false }: PublicIn
             <svg className="h-4 w-4 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.955 11.955 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" /></svg>
             <div>
               <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-300">Anonymous Tip Line</p>
-              <p className="text-xs text-emerald-700 dark:text-emerald-400 mt-0.5">Your identity is protected. We cannot see who you are \u2014 no IP address or identifying information is collected.</p>
+              <p className="text-xs text-emerald-700 dark:text-emerald-400 mt-0.5">Your identity is protected. We cannot see who you are — no IP address or identifying information is collected.</p>
             </div>
           </div>
         )}
         <div className="space-y-3">
-          <h1 className="text-2xl sm:text-xl font-bold tracking-tight">{formMeta.title}</h1>
+          {embedded
+            ? <h3 className="text-lg font-semibold tracking-tight">{formMeta.title}</h3>
+            : <h1 className="text-2xl sm:text-xl font-bold tracking-tight">{formMeta.title}</h1>}
           <ExpandableContext
             description={formMeta.description}
             facts={formMeta.facts}
@@ -394,13 +427,17 @@ export default function PublicIntakeForm({ token, isDropMode = false }: PublicIn
           {/* Dynamic form fields */}
           {formMeta.form_schema.map(field => (
             <div key={field.name} className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 p-4 space-y-2">
-              <label className="block text-sm font-semibold text-slate-800 dark:text-slate-200">
+              <label
+                htmlFor={LABELLED_TYPES.has(field.type) ? controlId(field.name) : undefined}
+                className="block text-sm font-semibold text-slate-800 dark:text-slate-200"
+              >
                 {field.label}
                 {field.required && <span className="text-red-400 ml-0.5">*</span>}
               </label>
 
               {field.type === 'text' && (
                 <input
+                  id={controlId(field.name)}
                   type="text"
                   required={field.required}
                   placeholder={field.placeholder}
@@ -412,6 +449,7 @@ export default function PublicIntakeForm({ token, isDropMode = false }: PublicIn
 
               {field.type === 'textarea' && (
                 <textarea
+                  id={controlId(field.name)}
                   required={field.required}
                   placeholder={field.placeholder}
                   value={formData[field.name] || ''}
@@ -423,6 +461,7 @@ export default function PublicIntakeForm({ token, isDropMode = false }: PublicIn
 
               {field.type === 'number' && (
                 <input
+                  id={controlId(field.name)}
                   type="number"
                   required={field.required}
                   value={formData[field.name] || ''}
@@ -433,6 +472,7 @@ export default function PublicIntakeForm({ token, isDropMode = false }: PublicIn
 
               {field.type === 'datetime' && (
                 <input
+                  id={controlId(field.name)}
                   type="datetime-local"
                   required={field.required}
                   value={formData[field.name] || ''}
@@ -443,6 +483,7 @@ export default function PublicIntakeForm({ token, isDropMode = false }: PublicIn
 
               {field.type === 'select' && (
                 <select
+                  id={controlId(field.name)}
                   required={field.required}
                   value={formData[field.name] || ''}
                   onChange={e => setFormData(prev => ({ ...prev, [field.name]: e.target.value }))}
@@ -468,6 +509,7 @@ export default function PublicIntakeForm({ token, isDropMode = false }: PublicIn
 
               {field.type === 'multiselect' && (
                 <select
+                  id={controlId(field.name)}
                   multiple
                   required={field.required}
                   value={formData[field.name] ? String(formData[field.name]).split(',') : []}
@@ -486,6 +528,7 @@ export default function PublicIntakeForm({ token, isDropMode = false }: PublicIn
 
               {field.type === 'url' && (
                 <input
+                  id={controlId(field.name)}
                   type="url"
                   required={field.required}
                   placeholder={field.placeholder || 'https://example.com'}
@@ -521,6 +564,7 @@ export default function PublicIntakeForm({ token, isDropMode = false }: PublicIn
 
               {field.type === 'email' && (
                 <input
+                  id={controlId(field.name)}
                   type="email"
                   required={field.required}
                   placeholder={field.placeholder || 'name@example.com'}
@@ -532,6 +576,7 @@ export default function PublicIntakeForm({ token, isDropMode = false }: PublicIn
 
               {field.type === 'phone' && (
                 <input
+                  id={controlId(field.name)}
                   type="tel"
                   required={field.required}
                   placeholder={field.placeholder || '+1 (555) 000-0000'}
@@ -543,6 +588,7 @@ export default function PublicIntakeForm({ token, isDropMode = false }: PublicIn
 
               {field.type === 'ip_address' && (
                 <input
+                  id={controlId(field.name)}
                   type="text"
                   required={field.required}
                   placeholder={field.placeholder || '192.168.1.1 or 192.168.1.1:8080'}
@@ -555,6 +601,7 @@ export default function PublicIntakeForm({ token, isDropMode = false }: PublicIn
 
               {field.type === 'onion' && (
                 <input
+                  id={controlId(field.name)}
                   type="text"
                   required={field.required}
                   placeholder={field.placeholder || 'abcdef1234567890.onion'}
@@ -566,6 +613,7 @@ export default function PublicIntakeForm({ token, isDropMode = false }: PublicIn
 
               {field.type === 'handle' && (
                 <input
+                  id={controlId(field.name)}
                   type="text"
                   required={field.required}
                   placeholder={field.placeholder || '@username or platform:username'}
@@ -577,6 +625,7 @@ export default function PublicIntakeForm({ token, isDropMode = false }: PublicIn
 
               {field.type === 'crypto_address' && (
                 <input
+                  id={controlId(field.name)}
                   type="text"
                   required={field.required}
                   placeholder={field.placeholder || 'BTC, ETH, or other wallet address'}
@@ -742,6 +791,7 @@ export default function PublicIntakeForm({ token, isDropMode = false }: PublicIn
 
               {field.type === 'country' && (
                 <select
+                  id={controlId(field.name)}
                   required={field.required}
                   value={formData[field.name] || ''}
                   onChange={e => setFormData(prev => ({ ...prev, [field.name]: e.target.value }))}
@@ -835,28 +885,35 @@ export default function PublicIntakeForm({ token, isDropMode = false }: PublicIn
             </div>
           ))}
 
-          {/* About you section */}
+          {/* About you section. An anonymous drop sends no name or contact (drop-submit
+              takes form_data only), so it doesn't ask for them. */}
+          {(!isDropMode || formMeta.require_location) && (
           <div className="space-y-3 pt-2">
             <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">About you</p>
             <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 p-4 space-y-3">
               {/* Name (always optional) */}
+              {!isDropMode && (
               <div className="space-y-1">
-                <label className="block text-sm font-semibold text-slate-800 dark:text-slate-200">Your name (optional)</label>
+                <label htmlFor={controlId('__submitter_name')} className="block text-sm font-semibold text-slate-800 dark:text-slate-200">Your name (optional)</label>
                 <input
+                  id={controlId('__submitter_name')}
                   type="text"
+                  autoComplete="name"
                   value={submitterName}
                   onChange={e => setSubmitterName(e.target.value)}
                   className="w-full px-3 py-2 text-base rounded border border-slate-300 dark:border-slate-700 bg-background min-h-[44px]"
                 />
               </div>
+              )}
 
               {/* Contact */}
-              {formMeta.require_contact && (
+              {!isDropMode && formMeta.require_contact && (
                 <div className="space-y-1">
-                  <label className="block text-sm font-semibold text-slate-800 dark:text-slate-200">
+                  <label htmlFor={controlId('__submitter_contact')} className="block text-sm font-semibold text-slate-800 dark:text-slate-200">
                     Contact (email or phone) <span className="text-red-400">*</span>
                   </label>
                   <input
+                    id={controlId('__submitter_contact')}
                     type="text"
                     required
                     value={submitterContact}
@@ -890,9 +947,10 @@ export default function PublicIntakeForm({ token, isDropMode = false }: PublicIn
               )}
             </div>
           </div>
+          )}
 
           {/* Sticky submit footer */}
-          <div className="sticky bottom-0 -mx-4 px-4 py-3 bg-slate-50/95 dark:bg-slate-950/95 backdrop-blur-sm border-t border-slate-200 dark:border-slate-800 mt-6">
+          <div className={`sticky bottom-0 -mx-4 px-4 py-3 ${embedded ? 'bg-white dark:bg-slate-900' : 'bg-slate-50/95 dark:bg-slate-950/95 backdrop-blur-sm'} border-t border-slate-200 dark:border-slate-800 mt-6`}>
             {error && (
               <p className="text-sm text-red-500 text-center mb-2" role="alert">{error}</p>
             )}
