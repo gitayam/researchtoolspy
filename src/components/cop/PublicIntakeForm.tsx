@@ -6,7 +6,7 @@ import {
 } from '@/lib/cop-evidence-links'
 import UrlConfirmCard from './UrlConfirmCard'
 import { TipPhotoLocationNote } from '@/components/cop/TipPhotoLocationNote'
-import { TIP_IDENTITY_PROMISE } from '@/lib/tip-privacy'
+import { offersPublicResults, TIP_IDENTITY_PROMISE } from '@/lib/tip-privacy'
 
 // Auto-detect platform from URL domain
 function detectPlatformFromUrl(url: string): string | null {
@@ -457,6 +457,7 @@ export default function PublicIntakeForm({
     <SubmittedScreen
       token={token}
       successMessage={successMessage}
+      showResultsLink={offersPublicResults(isDropMode)}
       onSubmitAnother={() => {
         setSubmitted(false)
         setFormData({})
@@ -1195,9 +1196,11 @@ function ExpandableContext({ description, facts, changelog }: {
 
 // ── Submitted Screen with Results ───────────────────────────────
 
-function SubmittedScreen({ token, successMessage, onSubmitAnother }: {
+/** After a submission. `showResultsLink`: offer everyone's answers (ordinary surveys only). */
+export function SubmittedScreen({ token, successMessage, showResultsLink, onSubmitAnother }: {
   token: string
   successMessage: string | null
+  showResultsLink: boolean
   onSubmitAnother: () => void
 }) {
   const [showResults, setShowResults] = useState(false)
@@ -1233,14 +1236,16 @@ function SubmittedScreen({ token, successMessage, onSubmitAnother }: {
             {successMessage || 'Your submission has been received and will be reviewed by the research team.'}
           </p>
           <div className="flex flex-col gap-2 pt-2">
-            <button
-              type="button"
-              onClick={fetchResults}
-              disabled={loadingResults}
-              className="w-full min-h-[44px] rounded-xl border border-blue-300 dark:border-blue-800 text-blue-600 dark:text-blue-400 text-sm font-medium hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
-            >
-              {loadingResults ? 'Loading...' : 'View all responses'}
-            </button>
+            {showResultsLink && (
+              <button
+                type="button"
+                onClick={fetchResults}
+                disabled={loadingResults}
+                className="w-full min-h-[44px] rounded-xl border border-blue-300 dark:border-blue-800 text-blue-600 dark:text-blue-400 text-sm font-medium hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+              >
+                {loadingResults ? 'Loading...' : 'View all responses'}
+              </button>
+            )}
             <button
               type="button"
               onClick={onSubmitAnother}

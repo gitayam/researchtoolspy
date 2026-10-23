@@ -4,7 +4,10 @@
  * GET /api/surveys/public/:token/results
  *
  * Returns aggregated and individual results for a survey.
- * Available to anyone with the share token (same access as submitting).
+ * Available to anyone with the share token (same access as submitting), for ordinary
+ * surveys only. An anonymous tip form (intent 'drop') or any form linked to a COP
+ * answers exactly as an unknown token does (404): its submissions are the team's to
+ * review, and its token travels on every share link of that COP.
  * Strips PII (submitter_name, submitter_contact, ip_hash) from results.
  * Inline images are re-cleaned to the public copy (publicFormData): a drop-form tip's
  * row holds the team copy, with the photo's GPS position and capture time.
@@ -16,6 +19,8 @@ interface Env {
   DB: D1Database
 }
 
+const notFound = () => new Response(JSON.stringify({ error: 'Survey not found' }), { status: 404, headers: JSON_HEADERS })
+
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   const { env, params } = context
   const token = params.token as string
@@ -23,18 +28,17 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   try {
     // Verify survey exists and is active
     const survey = await env.DB.prepare(
-      `SELECT id, title, description, submission_count, form_schema, status
+      `SELECT id, title, description, submission_count, form_schema, status, intent, cop_session_id
        FROM survey_drops WHERE share_token = ?`
     ).bind(token).first<{
       id: string; title: string; description: string | null
       submission_count: number; form_schema: string; status: string
+      intent: string | null; cop_session_id: string | null
     }>()
 
-    if (!survey) {
-      return new Response(JSON.stringify({ error: 'Survey not found' }), {
-        status: 404, headers: JSON_HEADERS,
-      })
-    }
+    // A tip form or a COP's form looks exactly like an unknown token (checked before the
+    // status, so an inactive one doesn't answer differently either).
+    if (!survey || survey.intent === 'drop' || survey.cop_session_id) return notFound()
 
     if (survey.status !== 'active') {
       return new Response(JSON.stringify({ error: 'Survey is not active' }), {

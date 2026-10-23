@@ -17,3 +17,12 @@ export const TIP_PHOTO_LOCATION_NOTICE =
 
 /** How, briefly. */
 export const TIP_PHOTO_LOCATION_HOWTO = 'Most phones can leave location out in their share options; a screenshot carries none.'
+
+/**
+ * Whether the submitted screen offers everyone's answers ("View all responses"). Never
+ * for the anonymous tip form: its tips are the team's to review (and the results route
+ * answers 404 for tip forms and COP-linked forms).
+ */
+export function offersPublicResults(isDropMode: boolean): boolean {
+  return !isDropMode
+}

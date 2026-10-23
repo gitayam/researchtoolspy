@@ -15,7 +15,7 @@
  * - An unconfirmed photo marker is the team's only: not on the share map layer, the CoT
  *   share feed, a public session's markers list or changelog; shown once CONFIRMED.
  * - Drop-form tips: the stored answer keeps the team copy, ingest places a 'drop' photo
- *   marker, the public results route re-cleans images, a reject takes it all back.
+ *   marker, answers shown publicly are re-cleaned (publicFormData), a reject takes it all back.
  * - Old uploads (stripped, no team copy) and a server without 0029 keep working.
  * - Team evidence list carries photo_location; nobody else's does. The chat feed labels
  *   the marker "photo location" without coordinates.
@@ -436,7 +436,7 @@ test('before migration 0029: the upload works as before (stripped copy only) and
 
 const dataUrl = (type, bytes) => `data:${type};base64,${Buffer.from(bytes).toString('base64')}`
 
-test('drop-form tip: the stored answer keeps the team copy, ingest places a drop photo marker, public results get no position', async () => {
+test('drop-form tip: the stored answer keeps the team copy, ingest places a drop photo marker, public answers get no position', async () => {
   const { db, env, r2 } = await photoFixture()
   const photo = phonePhoto('image/jpeg')
   const res = await publicCall(env, mod('dropSubmit'), 'POST', `/api/surveys/public/${DROP_TOKEN}/drop-submit`, {
@@ -462,11 +462,14 @@ test('drop-form tip: the stored answer keeps the team copy, ingest places a drop
   assert.equal(marker.source_id, String(body.ingested.evidence_id))
   assert.equal(marker.confidence, 'POSSIBLE')
 
-  // The public results route (its token is on every share) re-cleans the image.
-  const results = await (await publicCall(env, mod('surveyResults'), 'GET', `/api/surveys/public/${DROP_TOKEN}/results`, { params: { token: DROP_TOKEN } })).json()
-  const shown = Buffer.from(results.results[0].data.photo.split(',')[1], 'base64')
-  assert.equal(exifBlocks(shown, 'image/jpeg').some((b) => readTiff(b).gps || readTiff(b).exif), false, 'no position or time in public results')
-  assert.equal(results.results[0].data.what, 'Crowd at the gate')
+  // The public results route never serves a tip form (survey-results-privacy.test.mjs);
+  // answers it does serve are re-cleaned whatever the row holds.
+  const results = await publicCall(env, mod('surveyResults'), 'GET', `/api/surveys/public/${DROP_TOKEN}/results`, { params: { token: DROP_TOKEN } })
+  assert.equal(results.status, 404)
+  const publicAnswers = mod('copIngest').publicFormData(JSON.parse(row.form_data))
+  const shown = Buffer.from(publicAnswers.photo.split(',')[1], 'base64')
+  assert.equal(exifBlocks(shown, 'image/jpeg').some((b) => readTiff(b).gps || readTiff(b).exif), false, 'no position or time in public answers')
+  assert.equal(publicAnswers.what, 'Crowd at the gate')
 
   // A reviewer's reject takes back the marker and both copies.
   const reject = await cop(env, 'PUT', `/api/cop/${SESSION}/submissions`, {
