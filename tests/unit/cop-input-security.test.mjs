@@ -31,7 +31,7 @@ Object.assign(ENTRIES, {
 })
 setupInputSuite([
   'serviceAuth', 'copCaller', 'middleware', 'sanitize', 'copIngest', 'itemTags', 'dropSubmit', 'surveys', 'survey', 'linkCop', 'apiMiddleware',
-  'surveySubmit', 'intakeSubmit',
+  'surveySubmit', 'intakeSubmit', 'submissions', 'evidenceTags',
 ])
 
 const auth = (who) => ({ Authorization: `Bearer session-${who}` })
@@ -319,4 +319,92 @@ test('survey and intake submit read no more than the cap: a declared length or a
     params: { token: SURVEY_TOKEN }, body: { form_data: { what: '北'.repeat(60000) } },
   })
   assert.equal(ok.status, 201)
+})
+
+// ── Re-verification: submissions, evidence tags, limiter keys ─────
+
+const triage = (env, who, body) =>
+  cop(env, 'PUT', `/api/cop/${SESSION}/submissions`, { who, body, handler: mod('submissions'), params: { id: SESSION } })
+const tip = (env, what) => publicCall(env, mod('dropSubmit'), 'POST', `/api/surveys/public/${DROP_TOKEN}/drop-submit`, {
+  params: { token: DROP_TOKEN }, body: { form_data: { what, where: '48.86,2.29' } },
+})
+
+test('a submission links only to evidence of this COP, not to the workspace library', async () => {
+  const { db, env } = await fixture()
+  db.exec(`INSERT INTO evidence_items (id, title, description, evidence_type, credibility, reliability, workspace_id, created_by, cop_session_id)
+    VALUES (10, 'Library item, in no COP', 'x', 'observation', 'confirmed', 'A', 'ws-owner', 1, NULL)`)
+  db.prepare("UPDATE survey_drops SET auto_ingest = 0 WHERE id = 'srv-paris'").run()
+  await tip(env, 'manual tip')
+  const sub = db.prepare("SELECT id FROM survey_responses WHERE survey_id = 'srv-paris'").get().id
+  assert.equal((await triage(env, 'editor', { id: sub, linked_evidence_id: '10' })).status, 400)
+  assert.equal(db.prepare('SELECT linked_evidence_id FROM survey_responses WHERE id = ?').get(sub).linked_evidence_id, null)
+  assert.equal((await triage(env, 'editor', { id: sub, linked_evidence_id: '1' })).status, 200, 'the COP\'s own evidence')
+})
+
+test('rejecting removes only what auto-ingest created for that submission', async () => {
+  // The schema after migration 0022 (evidence carries its COP session).
+  const { db, env } = await fixture({ channel: true })
+  db.exec(`INSERT INTO evidence_items (id, title, description, evidence_type, credibility, reliability, workspace_id, created_by, cop_session_id)
+    VALUES (10, 'Library item, in no COP', 'x', 'observation', 'confirmed', 'A', 'ws-owner', 1, NULL)`)
+  const { ingested } = await (await tip(env, 'auto tip')).json()
+  const sub = db.prepare('SELECT id FROM survey_responses WHERE linked_evidence_id = ?').get(ingested.evidence_id).id
+  // Relinked to the COP's existing evidence 1, then rejected: evidence 1 stays.
+  assert.equal((await triage(env, 'editor', { id: sub, linked_evidence_id: '1' })).status, 200)
+  assert.equal((await triage(env, 'editor', { id: sub, status: 'rejected' })).status, 200)
+  const left = (id) => db.prepare('SELECT COUNT(*) AS n FROM evidence_items WHERE CAST(id AS TEXT) = ?').get(String(id)).n
+  assert.equal(left(1), 1, 'evidence the submission was relinked to')
+  assert.equal(left(10), 1, 'the library item')
+  assert.equal(left(ingested.evidence_id), 0, 'the item auto-ingest created')
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM cop_markers WHERE id = ?').get(ingested.marker_id).n, 0)
+  // Forced at the database: a link to the library item still can't make reject delete it.
+  const { ingested: second } = await (await tip(env, 'second tip')).json()
+  const sub2 = db.prepare('SELECT id FROM survey_responses WHERE linked_evidence_id = ?').get(second.evidence_id).id
+  db.prepare("UPDATE survey_responses SET linked_evidence_id = '10' WHERE id = ?").run(sub2)
+  await triage(env, 'editor', { id: sub2, status: 'rejected' })
+  assert.equal(left(10), 1)
+  assert.equal(left(second.evidence_id), 0)
+})
+
+test('evidence-tags reach only evidence of this COP, not the rest of the workspace', async () => {
+  const { db, env } = await fixture()
+  db.exec(`INSERT INTO evidence_items (id, title, description, evidence_type, credibility, reliability, workspace_id, created_by, cop_session_id)
+    VALUES (10, 'Library item, in no COP', 'x', 'observation', 'confirmed', 'A', 'ws-owner', 1, NULL)`)
+  db.prepare("INSERT INTO cop_evidence_tags (id, evidence_id, tag_category, tag_value, created_by) VALUES ('etg-lib', '10', 'loc', 'library secret', 1)").run()
+  const call = (method, { query = '', body } = {}) =>
+    cop(env, method, `/api/cop/${SESSION}/evidence-tags${query}`, { who: 'editor', body, handler: mod('evidenceTags'), params: { id: SESSION } })
+  const read = await call('GET', { query: '?evidence_id=10' })
+  assert.equal(read.status, 404)
+  assert.equal((await call('POST', { body: { evidence_id: '10', tag_category: 'x', tag_value: 'planted' } })).status, 404)
+  await call('DELETE', { query: '?tag_id=etg-lib' })
+  assert.equal(db.prepare("SELECT COUNT(*) AS n FROM cop_evidence_tags WHERE id = 'etg-lib'").get().n, 1)
+  assert.equal(db.prepare("SELECT COUNT(*) AS n FROM cop_evidence_tags WHERE tag_value = 'planted'").get().n, 0)
+  assert.equal((await call('POST', { body: { evidence_id: '1', tag_category: 'x', tag_value: 'ok' } })).status, 201)
+})
+
+test('the submission list is for collaborators: a signed-in stranger on a public COP gets 403', async () => {
+  const { db, env } = await fixture()
+  db.prepare("UPDATE survey_drops SET auto_ingest = 0 WHERE id = 'srv-paris'").run()
+  await tip(env, 'Tip text Alice at 12 Rue X')
+  db.prepare("UPDATE cop_sessions SET is_public = 1 WHERE id = ?").run(SESSION)
+  const list = (who) => cop(env, 'GET', `/api/cop/${SESSION}/submissions`, { who, handler: mod('submissions'), params: { id: SESSION } })
+  const stranger = await list('attacker')
+  assert.equal(stranger.status, 403)
+  assert.equal((await stranger.text()).includes('Alice'), false)
+  const viewer = await list('viewer')
+  assert.equal(viewer.status, 200)
+  assert.equal((await viewer.json()).submissions[0].submitter_contact, null)
+  assert.equal((await list('editor')).status, 200)
+})
+
+test('the /api/surveys limiter keeps no raw client address in its KV keys', async () => {
+  const cache = fakeKv()
+  const request = new Request(`https://researchtools.test/api/surveys/public/${DROP_TOKEN}/drop-submit`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', 'CF-Connecting-IP': '203.0.113.77' }, body: '{}',
+  })
+  await mod('apiMiddleware').onRequest({
+    request, env: { CACHE: cache }, params: {}, data: {}, waitUntil() {}, next: async () => new Response('{}', { status: 201 }),
+  })
+  const keys = [...cache.store.keys()]
+  assert.ok(keys.length > 0, 'the limiter counted the request')
+  for (const key of keys) assert.equal(key.includes('203.0.113.77'), false, key)
 })

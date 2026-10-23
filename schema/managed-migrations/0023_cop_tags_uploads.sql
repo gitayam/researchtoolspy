@@ -10,8 +10,9 @@
 --   /api/uploads route only serves uploads/* keys, so it cannot reach these.
 -- survey_drops.auto_ingest: a submission to a form linked to a COP becomes
 --   unverified evidence at once (default on); 0 keeps it in the review inbox.
--- survey_responses.auto_ingested / linked_marker_id: what ingest created, so a
---   reviewer's reject can take it back off the COP.
+-- survey_responses.auto_ingested / linked_marker_id / ingested_evidence_id: what
+--   auto-ingest created (ingested_evidence_id is set only by ingest and never by a
+--   relink), so a reviewer's reject takes back exactly that and nothing else.
 -- survey_drop_ingest_slots: the per-form, per-UTC-hour auto-ingest count. A slot is
 --   taken with one INSERT … ON CONFLICT DO UPDATE … WHERE n < cap RETURNING, so
 --   concurrent tips can't pass the cap together.
@@ -72,6 +73,7 @@ CREATE INDEX IF NOT EXISTS idx_cop_uploads_session ON cop_uploads(cop_session_id
 ALTER TABLE survey_drops ADD COLUMN auto_ingest INTEGER NOT NULL DEFAULT 1;
 ALTER TABLE survey_responses ADD COLUMN auto_ingested INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE survey_responses ADD COLUMN linked_marker_id TEXT;
+ALTER TABLE survey_responses ADD COLUMN ingested_evidence_id TEXT;
 
 CREATE TABLE IF NOT EXISTS survey_drop_ingest_slots (
     survey_id TEXT NOT NULL,
