@@ -358,7 +358,7 @@ export default function CopShareDialog({ open, onOpenChange, sessionId, hasEvide
           {roomCode ? (
             <div className="space-y-1">
               <div className="flex items-center gap-2">
-                <code className="min-w-0 flex-1 truncate rounded-md bg-slate-100 px-2 py-2 text-sm font-semibold tracking-wide dark:bg-slate-800">{roomCode.command}</code>
+                <code className="min-w-0 flex-1 break-all rounded-md bg-slate-100 px-2 py-2 text-sm font-semibold tracking-wide dark:bg-slate-800">{roomCode.command}</code>
                 <CopyButton copied={copied === 'room-code'} onClick={() => copy('room-code', roomCode.command)} />
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400">
