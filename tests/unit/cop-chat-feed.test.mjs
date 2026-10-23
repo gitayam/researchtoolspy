@@ -5,11 +5,13 @@
  *   and collaborators. Share links, strangers, readers of a public COP, anonymous
  *   callers and other services are refused.
  * - since= empty: the current cursor and nothing else.
- * - No echo: what the bot created or changed never comes back; the team's changes to
- *   it do (an answer to the bot's question, closing it, confirming its marker, filing
- *   its evidence, reopening its task).
- * - A drop-form tip is "anonymous tip" / "unverified", without its text, link or
- *   submitter; once an editor reviews it, its title and source domain (never the path).
+ * - What the calling bot did comes back as actor 'chat' (the bot drops a room's own
+ *   captures and shows another linked room's), never merged with the team's changes,
+ *   which come back as actor team (an answer to the bot's question, closing it,
+ *   confirming its marker, filing its evidence, reopening its task).
+ * - A drop-form tip and a share-link answer come with their text, labelled
+ *   ("anonymous tip" / "unverified" / "possible", "anonymous" / "proposed"), links cut
+ *   to hosts, never the submitter's own fields.
  * - No user id, name or email anywhere in the JSON.
  * - Votes and the middleware's generic events are skipped and counted; events on one
  *   entity in a page coalesce; ids from another COP never resolve; limit/has_more
@@ -105,7 +107,7 @@ const ITEM_KEYS = new Set([
 function assertShape(items) {
   for (const item of items) {
     for (const key of Object.keys(item)) assert.ok(ITEM_KEYS.has(key), `unexpected field ${key}`)
-    assert.ok(['team', 'anonymous', 'system'].includes(item.actor), item.actor)
+    assert.ok(['team', 'anonymous', 'system', 'chat'].includes(item.actor), item.actor)
     assert.ok(Array.isArray(item.labels))
     assert.ok(item.title === null || (typeof item.title === 'string' && item.title.length <= 140 && !/\n/.test(item.title)))
   }
@@ -183,26 +185,40 @@ test('share links, strangers, readers of a public COP, anonymous callers and oth
   assert.equal(allowed('GET', '/api/cop/cop-x/chat-feed/x'), false)
 })
 
-// ── No echo ──────────────────────────────────────────────────────
+// ── The bot's own events ─────────────────────────────────────────
 
-test('no echo: what the bot posted and synced never comes back; the team\'s changes to it do', async () => {
+test('what the bot posted and synced comes back as actor "chat"; the team\'s changes to it come back as team', async () => {
   const { env } = await feedFixture()
   const cursor = await start(env)
 
   // The chat posts a question, a second question, a task, a marker and a link; the bot
-  // files the link under its question, answers it (!resolve) and marks its task done (!done).
+  // files a link under its question, answers the other (!resolve) and marks its task done (!done).
   const q1 = await created(await bot(env, 'rfis', 'POST', `${P}/rfis`, { question: 'Who is at the east gate?' }))
   const q2 = await created(await bot(env, 'rfis', 'POST', `${P}/rfis`, { question: 'Is the metro running?' }))
   const task = await created(await bot(env, 'tasks', 'POST', `${P}/tasks`, { title: 'Check the metro map' }))
   const marker = await created(await bot(env, 'markers', 'POST', `${P}/markers`, { lat: 48.85, lon: 2.35, label: 'Crowd at the east gate' }))
   const ev = await created(await bot(env, 'evidence', 'POST', `${P}/evidence`, { title: 'Video of the gate', url: 'https://video.example/gate?t=1' }))
-  await created(await bot(env, 'rfiEvidence', 'POST', `${P}/rfis/${q1.id}/evidence`, { url: 'https://news.example/gate' }, { ...S, rfiId: q1.id }))
+  const filedByBot = await created(await bot(env, 'rfiEvidence', 'POST', `${P}/rfis/${q1.id}/evidence`, { url: 'https://news.example/gate' }, { ...S, rfiId: q1.id }))
   await created(await bot(env, 'rfiAnswers', 'POST', `${P}/rfis/${q2.id}/answers`, { answer_text: 'Yes, every 4 minutes' }, { ...S, rfiId: q2.id }))
   assert.equal((await bot(env, 'tasks', 'PUT', `${P}/tasks`, { id: task.id, status: 'done' })).status, 200)
 
-  const quiet = await feed(env, cursor)
-  assert.deepEqual(quiet.items, [])
-  assert.ok(quiet.echoes >= 9, String(quiet.echoes))
+  const own = await feed(env, cursor)
+  assertShape(own.items)
+  assert.ok(own.items.every((i) => i.actor === 'chat'), JSON.stringify(own.items.map((i) => i.actor)))
+  assert.ok(own.from_chat >= 9, String(own.from_chat))
+  const row = (kind, id) => own.items.find((i) => i.kind === kind && i.entity_id === id)
+  assert.deepEqual([row('rfi', q1.id).action, row('rfi', q1.id).title, row('rfi', q1.id).labels], ['created', 'Who is at the east gate?', ['from chat']])
+  assert.deepEqual([row('rfi', q2.id).action, row('rfi', q2.id).status, row('rfi', q2.id).labels], ['created', 'answered', ['from chat', 'answered']])
+  assert.deepEqual([row('task', task.id).action, row('task', task.id).status], ['created', 'done'])
+  assert.equal(row('marker', marker.id).action, 'created')
+  assert.equal(row('evidence', String(ev.id)).title, 'Video of the gate')
+  const answer = own.items.find((i) => i.kind === 'answer')
+  assert.deepEqual([answer.title, answer.question_id, answer.labels], ['Yes, every 4 minutes', q2.id, ['from chat']])
+  const filing = own.items.find((i) => i.kind === 'evidence_link')
+  assert.deepEqual([filing.question_id, filing.evidence_id, filing.title, filing.relation],
+    [q1.id, String(filedByBot.evidence.id), 'news.example', 'supports'])
+  assert.equal(own.items.length, 8, JSON.stringify(own.items.map((i) => [i.kind, i.action])))
+  assert.ok(!/created_by|user_id|"73"/.test(own.text))
 
   // The team acts on the chat's items.
   await created(await as('editor', env, 'rfiAnswers', 'POST', `${P}/rfis/${q1.id}/answers`, { answer_text: 'Two police vans', responder_name: ANALYST_NAME }, { ...S, rfiId: q1.id }))
@@ -211,29 +227,46 @@ test('no echo: what the bot posted and synced never comes back; the team\'s chan
   await created(await as('editor', env, 'evidenceLinks', 'POST', `${P}/evidence-links`, { evidence_id: String(ev.id), target_type: 'rfi', target_id: 'rfi-existing', relation: 'contradicts' }))
   assert.equal((await as('editor', env, 'tasks', 'PUT', `${P}/tasks`, { id: task.id, status: 'todo' })).status, 200)
 
-  const back = await feed(env, quiet.cursor)
+  const back = await feed(env, own.cursor)
   assertShape(back.items)
-  assert.equal(back.echoes, 0)
-  const [answer] = byKind(back.items, 'answer')
+  assert.equal(back.from_chat, 0)
+  assert.ok(back.items.every((i) => i.actor === 'team'))
+  const [teamAnswer] = byKind(back.items, 'answer')
   assert.deepEqual(
-    { kind: answer.kind, action: answer.action, title: answer.title, status: answer.status, actor: answer.actor, question_id: answer.question_id, question_title: answer.question_title },
-    { kind: 'answer', action: 'answered', title: 'Two police vans', status: 'proposed', actor: 'team', question_id: q1.id, question_title: 'Who is at the east gate?' },
+    { kind: teamAnswer.kind, action: teamAnswer.action, title: teamAnswer.title, status: teamAnswer.status, question_id: teamAnswer.question_id, question_title: teamAnswer.question_title },
+    { kind: 'answer', action: 'answered', title: 'Two police vans', status: 'proposed', question_id: q1.id, question_title: 'Who is at the east gate?' },
   )
-  assert.ok(answer.labels.includes('from the team'))
+  assert.ok(teamAnswer.labels.includes('from the team'))
   const closed = back.items.find((i) => i.kind === 'rfi' && i.entity_id === q2.id)
   assert.equal(closed.action, 'closed')
   assert.deepEqual(closed.labels, ['from chat', 'closed'])
   const confirmed = back.items.find((i) => i.kind === 'marker')
   assert.deepEqual([confirmed.action, confirmed.title, confirmed.status, confirmed.labels], ['confirmed', 'Crowd at the east gate', 'confirmed', ['from chat', 'confirmed']])
   const filed = back.items.find((i) => i.kind === 'evidence_link')
-  assert.deepEqual([filed.action, filed.title, filed.relation, filed.question_id, filed.question_title, filed.domain, filed.actor, filed.evidence_id],
-    ['filed', 'Video of the gate', 'contradicts', 'rfi-existing', 'who is at the gate', 'video.example', 'team', String(ev.id)])
+  assert.deepEqual([filed.action, filed.title, filed.relation, filed.question_id, filed.question_title, filed.domain, filed.evidence_id],
+    ['filed', 'Video of the gate', 'contradicts', 'rfi-existing', 'who is at the gate', 'video.example', String(ev.id)])
   assert.deepEqual(filed.labels, ['contradicts', 'from chat', 'unverified', 'key question'])
   const reopened = back.items.find((i) => i.kind === 'task')
   assert.deepEqual([reopened.action, reopened.title, reopened.status], ['reopened', 'Check the metro map', 'todo'])
   assert.equal(back.items.length, 5, JSON.stringify(back.items))
-  // The bot's own answer (and the RFI it resolved) never appear.
   assert.ok(!back.text.includes('every 4 minutes'))
+})
+
+test('the bot\'s events and the team\'s on one entity in one page are two items, never merged', async () => {
+  const { env } = await feedFixture()
+  const cursor = await start(env)
+  const task = await created(await bot(env, 'tasks', 'POST', `${P}/tasks`, { title: 'Walk the route' }))
+  assert.equal((await as('editor', env, 'tasks', 'PUT', `${P}/tasks`, { id: task.id, status: 'done' })).status, 200)
+  assert.equal((await bot(env, 'tasks', 'PUT', `${P}/tasks`, { id: task.id, priority: 'high' })).status, 200)
+  const { items } = await feed(env, cursor)
+  assert.deepEqual(items.map((i) => [i.kind, i.entity_id, i.action, i.actor, i.status]), [
+    ['task', task.id, 'closed', 'team', 'done'],
+    ['task', task.id, 'created', 'chat', 'done'],
+  ])
+  // A person reading the feed (no bot calling) gets one item: nothing is "chat" then.
+  const asOwner = await feed(env, cursor, { who: 'owner' })
+  assert.deepEqual(asOwner.items.map((i) => [i.action, i.actor]), [['created', 'system']])
+  assert.equal(asOwner.from_chat, 0)
 })
 
 test('the team answering a question the bot asked, by status, comes back as "answered"', async () => {
@@ -254,51 +287,65 @@ function seedDrop(db) {
     .run(JSON.stringify([
       { name: 'what', label: 'What did you see?', type: 'textarea' },
       { name: 'link', label: 'A link', type: 'url' },
+      { name: 'where', label: 'Where?', type: 'geopoint' },
       { name: 'contact', label: 'Your phone (optional)', type: 'text' },
     ]), DROP, SESSION, WS)
 }
 
-test('an anonymous tip: "anonymous tip" and "unverified", without its text, link or submitter; reviewed, its title and domain', async () => {
+const RLO = String.fromCharCode(0x202e)
+const BEL = String.fromCharCode(7)
+
+test('an anonymous tip comes with its text, labelled "anonymous tip" / "unverified" (its marker "possible"), links cut to hosts, no submitter fields', async () => {
   const { db, env } = await feedFixture()
   seedDrop(db)
   const cursor = await start(env)
   const res = await call(env, 'dropSubmit', 'POST', `/api/surveys/public/${DROP}/drop-submit`, {
     who: 'anonymous', params: { token: DROP },
-    body: { form_data: { what: 'Crowd at gate C, call me 555-0100', link: 'https://tipster.example/private/path?u=me', contact: '555-0100', _questions: [{ id: 'rfi-existing' }] } },
+    body: { form_data: {
+      what: `Crowd${RLO} at${BEL} gate C, see https://pics.example/a?u=me or pics2.example/x/y`,
+      link: 'https://tipster.example/private/path?u=me',
+      where: '48.8571,2.3412',
+      contact: '555-0100',
+      _questions: [{ id: 'rfi-existing' }],
+    } },
   })
   const submitted = await res.json()
   assert.equal(submitted.ok, true, JSON.stringify(submitted))
   const evidenceId = String(submitted.ingested.evidence_id)
+  const title = 'Tip: Crowd at gate C, see pics.example or pics2.example'
 
   const page = await feed(env, cursor)
   assertShape(page.items)
   const tip = page.items.find((i) => i.kind === 'evidence')
   assert.deepEqual(tip, {
     event_id: tip.event_id, at: tip.at, kind: 'evidence', action: 'created', entity_id: evidenceId,
-    title: null, status: 'unverified', labels: ['anonymous tip', 'unverified'], actor: 'anonymous',
+    title, status: 'unverified', labels: ['anonymous tip', 'unverified'], actor: 'anonymous', domain: 'tipster.example',
   })
+  const marker = page.items.find((i) => i.kind === 'marker')
+  assert.deepEqual([marker.action, marker.title, marker.status, marker.labels, marker.actor],
+    ['created', title, 'possible', ['anonymous tip', 'possible'], 'anonymous'])
   const filing = page.items.find((i) => i.kind === 'evidence_link')
   assert.deepEqual([filing.action, filing.actor, filing.relation, filing.question_id, filing.title, filing.domain, filing.evidence_id],
-    ['filed', 'anonymous', 'supports', 'rfi-existing', null, undefined, evidenceId])
+    ['filed', 'anonymous', 'supports', 'rfi-existing', title, 'tipster.example', evidenceId])
   assert.deepEqual(filing.labels, ['supports', 'anonymous tip', 'unverified', 'key question'])
-  for (const secret of ['555-0100', 'tipster', 'private', 'Crowd at gate', 'Your phone', 'drop-', 'survey', 'response', 'upload']) {
-    assert.ok(!page.text.includes(secret), secret)
+  // Never the submitter's own fields, the link's path, the position or anyone's id.
+  for (const secret of ['555-0100', 'Your phone', '/private', 'u=me', '/a?', '/x/y', '48.857', '2.341', RLO, BEL, 'drop-', 'survey', 'response', 'upload', 'created_by']) {
+    assert.ok(!page.text.includes(secret), JSON.stringify(secret))
   }
-  // Submissions, tags and the server's timeline line are not chat items.
-  assert.deepEqual(page.items.map((i) => i.kind).sort(), ['evidence', 'evidence_link'])
+  // Submissions, tags and the server's timeline lines are not chat items.
+  assert.deepEqual(page.items.map((i) => i.kind).sort(), ['evidence', 'evidence_link', 'marker'])
   assert.ok(page.skipped >= 2, String(page.skipped))
 
-  // An editor reviews it: the next page carries its title and the source's domain only.
+  // An editor reviews it: "reviewed" instead of "unverified", the same text.
   assert.equal((await as('editor', env, 'evidence', 'PUT', `${P}/evidence`, { id: evidenceId, credibility: 'probable' })).status, 200)
   const reviewed = await feed(env, page.cursor)
   assert.deepEqual(reviewed.items.map((i) => [i.kind, i.action, i.title, i.status, i.labels, i.actor, i.domain]), [
-    ['evidence', 'status', 'Tip: Crowd at gate C, call me 555-0100', 'probable', ['anonymous tip', 'reviewed'], 'team', 'tipster.example'],
+    ['evidence', 'status', title, 'probable', ['anonymous tip', 'reviewed'], 'team', 'tipster.example'],
   ])
   assert.ok(!reviewed.text.includes('/private'), 'no path')
-  assert.ok(!reviewed.text.includes('u=me'), 'no query')
 })
 
-test('an answer through a share link is anonymous and unverified, without its text, until the team accepts it', async () => {
+test('an answer through a share link comes with its text, "anonymous" / "proposed", then "accepted"; never the responder\'s name', async () => {
   const { db, env } = await feedFixture()
   // A share link the bot made: its visitors' answers are still theirs, not the bot's.
   db.prepare('INSERT INTO cop_shares (id, cop_session_id, share_token, visible_panels, allow_rfi_answers, created_by) VALUES (?, ?, ?, ?, 1, ?)')
@@ -306,23 +353,25 @@ test('an answer through a share link is anonymous and unverified, without its te
   const cursor = await start(env)
   const res = await call(env, 'publicAnswers', 'POST', `/api/cop/public/${SHARE}/rfis/rfi-existing/answers`, {
     who: 'anonymous', params: { token: SHARE, rfiId: 'rfi-existing' },
-    body: { answer_text: 'My neighbour Jo saw it', responder_name: 'Jo Bloggs' },
+    body: { answer_text: 'Police at the gate, photo on news.example/live/42', responder_name: 'Jo Bloggs', source_url: 'https://news.example/live/42' },
   })
   assert.equal(res.status, 201, await res.clone().text())
   const answerId = (await res.json()).id
 
   const page = await feed(env, cursor)
+  assertShape(page.items)
   assert.deepEqual(page.items.map((i) => [i.kind, i.action, i.entity_id, i.title, i.status, i.labels, i.actor, i.question_id]), [
-    ['answer', 'answered', answerId, null, 'proposed', ['anonymous', 'unverified', 'key question'], 'anonymous', 'rfi-existing'],
+    ['answer', 'answered', answerId, 'Police at the gate, photo on news.example', 'proposed', ['anonymous', 'proposed', 'key question'], 'anonymous', 'rfi-existing'],
   ])
-  assert.ok(!page.text.includes('Jo'))
+  assert.ok(!page.text.includes('Bloggs'))
+  assert.ok(!page.text.includes('/live'))
 
   const accepted = await as('owner', env, 'rfiAnswers', 'PUT', `${P}/rfis/rfi-existing/answers`, { answer_id: answerId, is_accepted: true }, { ...S, rfiId: 'rfi-existing' })
   assert.equal(accepted.status, 200, await accepted.clone().text())
   const after = await feed(env, page.cursor)
   const item = after.items.find((i) => i.kind === 'answer')
   assert.deepEqual([item.action, item.title, item.status, item.labels, item.actor],
-    ['status', 'My neighbour Jo saw it', 'accepted', ['anonymous', 'accepted', 'key question'], 'team'])
+    ['status', 'Police at the gate, photo on news.example', 'accepted', ['anonymous', 'accepted', 'key question'], 'team'])
   assert.ok(!after.text.includes('Bloggs'))
 })
 
@@ -337,7 +386,7 @@ test('no user id, name or email anywhere in the feed, whatever the team does', a
   const task = await created(await a('tasks', 'POST', `${P}/tasks`, { title: 'Map the route from https://maps.example/route?token=abc', assigned_to: ANALYST_NAME }))
   assert.equal((await a('tasks', 'PUT', `${P}/tasks`, { id: task.id, assigned_to: ANALYST_EMAIL, priority: 'critical', status: 'in_progress' })).status, 200)
   await created(await a('markers', 'POST', `${P}/markers`, { lat: 48.86, lon: 2.29, label: 'Start of the march', updated_by_name: ANALYST_NAME }))
-  await created(await a('timeline', 'POST', `${P}/timeline`, { title: 'March leaves the square', event_date: '2026-10-20', source_url: 'https://www.press.example/live' }))
+  await created(await a('timeline', 'POST', `${P}/timeline`, { title: 'March leaves the square (press.example/live/123?x=1)', event_date: '2026-10-20', source_url: 'https://www.press.example/live' }))
   await created(await a('hypotheses', 'POST', `${P}/hypotheses`, { statement: 'The march was planned online' }))
   await created(await a('claims', 'POST', `${P}/claims`, { url: 'https://press.example/story', claims: [{ claim: 'The march began at noon' }, { claim: 'Police closed the bridge' }] }))
   await created(await a('evidence', 'POST', `${P}/evidence`, { title: 'Route photo', url: 'https://photos.example/p/1' }))
@@ -351,7 +400,8 @@ test('no user id, name or email anywhere in the feed, whatever the team does', a
     ['The march began at noon', ['from the team', 'AI first pass', 'unverified'], 'press.example'],
     ['Police closed the bridge', ['from the team', 'AI first pass', 'unverified'], 'press.example'],
   ])
-  assert.deepEqual(byKind(page.items, 'timeline').map((t) => [t.title, t.domain]), [['March leaves the square', 'press.example']])
+  assert.deepEqual(byKind(page.items, 'timeline').map((t) => [t.title, t.domain]), [['March leaves the square (press.example)', 'press.example']])
+  assert.ok(!page.text.includes('/live'), 'a host/path without a scheme is cut to its host too')
   const t = byKind(page.items, 'task')[0]
   assert.deepEqual([t.action, t.title, t.status, t.labels], ['created', 'Map the route from maps.example', 'in_progress', ['from the team', 'in progress', 'critical']])
   assert.ok(!page.text.includes('token=abc'), 'a link in a title is cut to its host')
@@ -450,8 +500,8 @@ test('limit and has_more page through the feed without losing or repeating an it
   const cursor = await start(env)
   const ids = []
   for (let i = 1; i <= 7; i += 1) ids.push((await created(await as('editor', env, 'rfis', 'POST', `${P}/rfis`, { question: `Question ${i}?` }))).id)
-  // A bot echo between them takes no item slot.
-  await created(await bot(env, 'rfis', 'POST', `${P}/rfis`, { question: 'From the chat?' }))
+  // The bot's own question takes a slot too (actor 'chat').
+  ids.push((await created(await bot(env, 'rfis', 'POST', `${P}/rfis`, { question: 'From the chat?' }))).id)
 
   const seen = []
   let since = cursor
@@ -463,7 +513,7 @@ test('limit and has_more page through the feed without losing or repeating an it
     since = page.cursor
     if (!page.has_more) break
   }
-  assert.deepEqual(pages, [[3, true], [3, true], [1, false]])
+  assert.deepEqual(pages, [[3, true], [3, true], [2, false]])
   assert.deepEqual(seen, ids)
   assert.equal(since, String(db.prepare('SELECT MAX(rowid) AS n FROM cop_events WHERE cop_session_id = ?').get(SESSION).n))
   // limit is clamped: 0 and junk fall back to the default, a huge one to the maximum.

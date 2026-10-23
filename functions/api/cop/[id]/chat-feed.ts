@@ -3,7 +3,7 @@
  * posts it in the room's digest message, under "From the COP").
  *
  * GET /api/cop/:id/chat-feed?since=<cursor>&limit=50
- *   → 200 { items, cursor, has_more, skipped, echoes }   Cache-Control: no-store
+ *   → 200 { items, cursor, has_more, skipped, from_chat }   Cache-Control: no-store
  *
  * Callers: the Signal bot's service credential (COP_SERVICE_ROUTES; a Signal client
  * only) and the COP's owner and collaborators. Share links, signed-in readers of a
@@ -25,16 +25,20 @@
  *          question or task; under a hypothesis: kind hypothesis, action filed) |
  *          deleted
  *   actor  team | anonymous (a drop-form tip, a share-link answer, a question the
- *          tipster chose) | system (cron, other integrations)
- *   title  the entity's current text, one line, ≤140 characters, a web link in it cut
- *          to its hostname; null when deleted
- *          and while anonymous input is unreviewed (a tip still unverified, a tip
- *          marker still POSSIBLE, a share-link answer not accepted)
+ *          tipster chose) | system (cron, other integrations) | chat (the calling
+ *          bot itself: a room's capture or the bot's own sync; never which room)
+ *   title  the entity's current text, one line, ≤140 characters, control characters
+ *          stripped, any link in it (with or without a scheme) cut to its hostname;
+ *          null when deleted. Anonymous input keeps its text, labelled: a tip
+ *          "anonymous tip" + "unverified" (then "reviewed"), its marker "anonymous
+ *          tip" + "possible", a share-link answer "anonymous" + "proposed" (then
+ *          "accepted"); never the submitter's own fields
  *   status rfi/task/hypothesis/claim status; evidence credibility; marker confidence;
  *          answer 'proposed' | 'accepted'; null for filings and timeline lines
  *   labels from the team | from chat | anonymous tip | anonymous | scraped |
- *          automated | unverified | reviewed | key question | answered | closed |
- *          done | in progress | blocked | blocker | high priority | critical |
+ *          automated | unverified | possible | proposed | reviewed | key question |
+ *          answered | closed | done | in progress | blocked | blocker |
+ *          high priority | critical |
  *          confirmed | doubtful | accepted | AI first pass (an unverified claim) |
  *          verified | disputed | false | important | supports | contradicts | context
  *   question_id/_title  answer, and evidence filed under a question
@@ -42,18 +46,21 @@
  *   evidence_id         the evidence item of a filing (to match an earlier evidence item)
  *   relation            supports | contradicts | context (filings)
  *   domain              hostname of an http(s) source (evidence, claim, timeline);
- *                       never a path, never for unreviewed tips
+ *                       never a path
  *
- * No echo: events made by the calling service's principal are left out (counted in
- * `echoes`): the chat's own posts and the bot's own syncs never come back. The team's
- * changes to them do. `skipped` counts events with nothing to say in a chat (votes,
- * the middleware's generic entity.changed, events without an entity id, system
- * timeline lines, tags, uploads, submissions, personas, shares, the session itself,
- * ids that don't resolve in this COP, items created and deleted in one page).
+ * Echoes are the bot's call, per room: what the calling bot itself did (its principal
+ * created the event) comes back as actor 'chat', in items of its own, never merged
+ * with the team's changes to the same entity, and is counted in `from_chat` (events).
+ * The bot drops a room's own captures and shows another linked room's; the team's
+ * changes to a room's items come back as actor team. `skipped` counts events with
+ * nothing to say in a chat (votes, the middleware's generic entity.changed, events
+ * without an entity id, system timeline lines, tags, uploads, submissions, personas,
+ * shares, the session itself, ids that don't resolve in this COP, items created and
+ * deleted in one page).
  *
  * Never in the answer: user ids, names or emails, assignees, responders, full URLs,
  * coordinates, upload ids, event payloads. Events on one entity in one page are one
- * item (functions/api/_shared/cop-chat-feed.ts).
+ * item, the bot's own apart (functions/api/_shared/cop-chat-feed.ts).
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { verifyCopSessionAccess } from '../../_shared/auth-helpers'
@@ -106,7 +113,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       cursor: result.cursor,
       has_more: result.has_more,
       skipped: result.skipped,
-      echoes: result.echoes,
+      from_chat: result.from_chat,
     })
   } catch (error) {
     await logEvent(env, {

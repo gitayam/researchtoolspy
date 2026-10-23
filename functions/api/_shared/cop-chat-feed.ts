@@ -4,9 +4,11 @@
  *
  * Built on the change feed's cursor (cop_events rowid, resolveSinceCursor). Each event
  * is read server-side with its created_by and payload; neither leaves. Then:
- *   1. No echo: an event whose created_by is the calling service's principal (the
- *      Signal bot) is left out, so what the chat sent, and the bot's own syncs, never
- *      come back. The team's changes to those items do.
+ *   1. What the calling bot itself did (an event whose created_by is the calling
+ *      service's principal) comes back with actor 'chat' and in items of its own,
+ *      never merged with the team's changes to the same entity. The bot decides per
+ *      room: it drops a room's own captures (no echo) and shows another linked
+ *      room's. Which room is never said here.
  *   2. Noise and what the feed doesn't cover are skipped and counted (`skipped`):
  *      votes, the middleware's generic entity.changed, events without an entity id,
  *      system timeline lines, tags, uploads, submissions, personas, shares, sessions,
@@ -18,10 +20,11 @@
  *      the session IN SQL (evidence through evidenceInSession). An id that doesn't
  *      resolve in this session yields nothing, except a deletion (no title).
  *
- * Unreviewed anonymous input keeps its text out of the chat, as share links do
- * (maskTipEvidenceRow): a drop-form tip still 'unverified', a tip marker still
- * POSSIBLE, and an answer from a share link nobody accepted come with labels and no
- * title or domain. Once an editor reviews them, the next item carries the text.
+ * Anonymous input comes with its text, labelled so a chat reader can weigh it: a
+ * drop-form tip "anonymous tip" + "unverified" (then "reviewed" once an editor sets its
+ * credibility), its marker "anonymous tip" + "possible", and an answer through a share
+ * link "anonymous" + "proposed" (then "accepted"). Never its submitter's fields: the
+ * title is the tip's first text answer, the domain only the host of its link.
  *
  * Never in an item: user ids, names, emails, assignees, responders, full URLs,
  * coordinates, upload ids, payloads.
@@ -31,7 +34,7 @@ import { evidenceInSession, isMissingColumn, type EvidenceSessionScope } from '.
 
 export const CHAT_FEED_DEFAULT_LIMIT = 50
 export const CHAT_FEED_MAX_LIMIT = 100
-/** Event rows read per request at most (echoes and skips included). */
+/** Event rows read per request at most (skips included). */
 export const CHAT_FEED_SCAN_MAX = 500
 export const CHAT_TITLE_MAX = 140
 
@@ -45,7 +48,7 @@ export const CHAT_ACTIONS = [
   'starred', 'unstarred', 'filed', 'unfiled', 'deleted',
 ] as const
 export type ChatAction = (typeof CHAT_ACTIONS)[number]
-export type ChatActor = 'team' | 'anonymous' | 'system'
+export type ChatActor = 'team' | 'anonymous' | 'system' | 'chat'
 export type ChatRelation = 'supports' | 'contradicts' | 'context'
 
 export interface ChatFeedItem {
@@ -67,7 +70,7 @@ export interface ChatFeedItem {
 }
 
 export type ChatFeedResult =
-  | { ok: true; items: ChatFeedItem[]; cursor: string; has_more: boolean; skipped: number; echoes: number }
+  | { ok: true; items: ChatFeedItem[]; cursor: string; has_more: boolean; skipped: number; from_chat: number }
   | { ok: false; status: 400; error: string }
 
 export function chatFeedLimit(raw: string | null): number {
@@ -152,6 +155,8 @@ interface Group {
   key: string
   kind: ChatKind
   entityId: string
+  /** The calling bot's own events (actor 'chat'), kept apart from everyone else's. */
+  fromChat: boolean
   events: FeedEvent[]
   /** answer: the RFI it answers (from the event's entity id). */
   questionId?: string
@@ -266,15 +271,18 @@ export function chooseAction(kind: ChatKind, events: readonly { action: ChatActi
 const INVISIBLE = /[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u2028-\u202e\u2060-\u2069\ufeff]+/g
 
 const WEB_LINK = /\bhttps?:\/\/[^\s<>"'()]+/gi
+/** A host with a path but no scheme ("example.com/a/b") still reads as a link. */
+const BARE_LINK = /\b([a-z0-9][a-z0-9.-]*\.[a-z]{2,})(?::\d{1,5})?\/[^\s<>"'()[\]{}]*/gi
 
 /**
- * One line of plain text, at most CHAT_TITLE_MAX characters; null when empty. A web
- * link inside the text is cut to its hostname (a full URL never leaves in a title).
+ * One line of plain text, at most CHAT_TITLE_MAX characters; null when empty. A link
+ * inside the text, with or without a scheme, is cut to its hostname: a path never
+ * leaves in a title.
  */
 export function chatLine(value: unknown): string | null {
   if (value === null || value === undefined) return null
   const text = String(value).replace(INVISIBLE, ' ').replace(WEB_LINK, (link) => chatDomain(link) ?? 'link')
-    .replace(/\s+/g, ' ').trim()
+    .replace(BARE_LINK, '$1').replace(/\s+/g, ' ').trim()
   if (!text) return null
   const chars = Array.from(text)
   return chars.length > CHAT_TITLE_MAX ? `${chars.slice(0, CHAT_TITLE_MAX - 1).join('').trimEnd()}…` : text
@@ -420,6 +428,7 @@ function originLabel(channel: unknown): string {
 const priorityLabel = (priority: unknown): string | null =>
   priority === 'critical' ? 'critical' : priority === 'high' ? 'high priority' : null
 
+/** A drop-form tip nobody has reviewed yet (labelled "unverified" / "possible", text shown). */
 const isUnreviewedTipEvidence = (row: Record<string, unknown>) =>
   row.source_channel === 'drop' && (row.credibility == null || row.credibility === 'unverified')
 const isUnreviewedTipMarker = (row: Record<string, unknown>) =>
@@ -439,20 +448,20 @@ const tidy = (labels: (string | null | undefined | false)[]): string[] => [...ne
 // ── The feed ─────────────────────────────────────────────────────
 
 /**
- * The chat feed of a session after `since`. `echoUserId` is the calling service's
- * principal (its events are left out), or null for a person.
+ * The chat feed of a session after `since`. `chatUserId` is the calling service's
+ * principal (its events come back as actor 'chat'), or null for a person.
  */
 export async function listChatFeed(
   db: D1Database,
   scope: EvidenceSessionScope,
   since: string | null,
   limit: number,
-  echoUserId: number | null,
+  chatUserId: number | null,
 ): Promise<ChatFeedResult> {
   const { sessionId } = scope
   const start = await resolveSinceCursor(db, sessionId, since)
   if (start.ok === false) return start
-  if (start.fromNow === true) return { ok: true, items: [], cursor: start.cursor, has_more: false, skipped: 0, echoes: 0 }
+  if (start.fromNow === true) return { ok: true, items: [], cursor: start.cursor, has_more: false, skipped: 0, from_chat: 0 }
 
   const rows = (await db.prepare(`
     SELECT rowid AS seq, id, event_type, entity_type, entity_id, payload, created_by, created_at
@@ -466,21 +475,22 @@ export async function listChatFeed(
   let consumed = start.after
   let stoppedEarly = false
   let skipped = 0
-  let echoes = 0
+  let fromChatEvents = 0
   for (const row of rows.slice(0, CHAT_FEED_SCAN_MAX)) {
-    const isEcho = echoUserId !== null && Number(row.created_by) === echoUserId
-    const classified = isEcho ? null : classify(row)
-    if (classified?.type === 'item' && !groups.has(classified.key) && groups.size >= limit) {
+    const fromChat = chatUserId !== null && Number(row.created_by) === chatUserId
+    const classified = classify(row)
+    const key = classified.type === 'item' ? `${classified.key}${fromChat ? '|chat' : ''}` : ''
+    if (classified.type === 'item' && !groups.has(key) && groups.size >= limit) {
       stoppedEarly = true
       break
     }
     consumed = Number(row.seq)
-    if (isEcho) { echoes += 1; continue }
-    if (!classified || classified.type === 'skip') { skipped += 1; continue }
-    let group = groups.get(classified.key)
+    if (fromChat) fromChatEvents += 1
+    if (classified.type === 'skip') { skipped += 1; continue }
+    let group = groups.get(key)
     if (!group) {
-      group = { key: classified.key, kind: classified.kind, entityId: classified.entityId, events: [] }
-      groups.set(classified.key, group)
+      group = { key, kind: classified.kind, entityId: classified.entityId, fromChat, events: [] }
+      groups.set(key, group)
     }
     group.events.push(classified.event)
     Object.assign(group, Object.fromEntries(Object.entries(classified.extra ?? {}).filter(([, v]) => v !== undefined)))
@@ -535,7 +545,7 @@ export async function listChatFeed(
     if (action === null) { skipped += group.events.length; continue }
     const latest = group.events.reduce((a, b) => (b.seq > a.seq ? b : a))
     const actorOf = (e: FeedEvent): ChatActor =>
-      e.createdBy === 0 ? (e.publicInput ? 'anonymous' : 'system') : services.has(e.createdBy) ? 'system' : 'team'
+      group.fromChat ? 'chat' : e.createdBy === 0 ? (e.publicInput ? 'anonymous' : 'system') : services.has(e.createdBy) ? 'system' : 'team'
     const item: ChatFeedItem = {
       event_id: latest.id,
       at: latest.at,
@@ -572,13 +582,13 @@ export async function listChatFeed(
         const accepted = Number(row.is_accepted) === 1
         item.question_id = String(row.rfi_id)
         item.question_title = chatLine(q.question) ?? undefined
-        item.title = anonymous && !accepted ? null : chatLine(row.answer_text)
+        item.title = chatLine(row.answer_text)
         item.status = accepted ? 'accepted' : 'proposed'
         item.labels = tidy([
           anonymous ? 'anonymous' : services.has(Number(row.created_by)) ? 'from chat' : 'from the team',
-          anonymous && !accepted && 'unverified', accepted && 'accepted', Number(q.is_key) === 1 && 'key question',
+          anonymous && !accepted && 'proposed', accepted && 'accepted', Number(q.is_key) === 1 && 'key question',
         ])
-        if (anonymous && action === 'answered') item.actor = 'anonymous'
+        if (anonymous && action === 'answered' && !group.fromChat) item.actor = 'anonymous'
         break
       }
       case 'task': {
@@ -595,13 +605,12 @@ export async function listChatFeed(
       case 'evidence': {
         const row = evidence.get(group.entityId)
         if (!row) { resolved = gone; break }
-        const masked = isUnreviewedTipEvidence(row)
-        item.title = masked ? null : chatLine(row.title)
+        item.title = chatLine(row.title)
         item.status = chatLine(row.credibility)
         item.labels = evidenceLabels(row)
-        const domain = masked ? undefined : chatDomain(row.source_url)
+        const domain = chatDomain(row.source_url)
         if (domain) item.domain = domain
-        if (action === 'created' && row.source_channel === 'drop') item.actor = 'anonymous'
+        if (action === 'created' && row.source_channel === 'drop' && !group.fromChat) item.actor = 'anonymous'
         break
       }
       case 'evidence_link': {
@@ -621,10 +630,9 @@ export async function listChatFeed(
         const relation = link ? String(link.relation) : ''
         if (relation === 'supports' || relation === 'contradicts' || relation === 'context') item.relation = relation
         if (row) {
-          const masked = isUnreviewedTipEvidence(row)
-          item.title = masked ? null : chatLine(row.title)
+          item.title = chatLine(row.title)
           item.labels = tidy([item.relation, ...evidenceLabels(row), q && Number(q.is_key) === 1 && 'key question'])
-          const domain = masked ? undefined : chatDomain(row.source_url)
+          const domain = chatDomain(row.source_url)
           if (domain) item.domain = domain
         }
         break
@@ -632,15 +640,14 @@ export async function listChatFeed(
       case 'marker': {
         const row = markers.get(group.entityId)
         if (!row) { resolved = gone; break }
-        const masked = isUnreviewedTipMarker(row)
-        item.title = masked ? null : chatLine(row.label)
+        item.title = chatLine(row.label)
         item.status = chatLine(String(row.confidence ?? '').toLowerCase())
         item.labels = tidy([
           originLabel(row.source_channel),
-          row.source_channel === 'drop' && (masked ? 'unverified' : 'reviewed'),
+          row.source_channel === 'drop' && (isUnreviewedTipMarker(row) ? 'possible' : 'reviewed'),
           row.confidence === 'CONFIRMED' && 'confirmed',
         ])
-        if (action === 'created' && row.source_channel === 'drop') item.actor = 'anonymous'
+        if (action === 'created' && row.source_channel === 'drop' && !group.fromChat) item.actor = 'anonymous'
         break
       }
       case 'timeline': {
@@ -695,5 +702,5 @@ export async function listChatFeed(
 
   // Oldest first, by each item's latest event (the order the chat would have seen them).
   items.sort((a, b) => a.seq - b.seq)
-  return { ok: true, items: items.map((i) => i.item), cursor: String(consumed), has_more: hasMore, skipped, echoes }
+  return { ok: true, items: items.map((i) => i.item), cursor: String(consumed), has_more: hasMore, skipped, from_chat: fromChatEvents }
 }
