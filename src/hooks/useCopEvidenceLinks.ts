@@ -103,6 +103,10 @@ export interface EvidenceSummary {
   evidence_type: string | null
   source_channel: string | null
   created_at: string
+  /** Collaborators only: where the original lives (Silo / PeerTube) and the scan hold. */
+  archive_url: string | null
+  archived_in: string | null
+  held: boolean
 }
 
 const EMPTY_EVIDENCE: EvidenceSummary[] = []
@@ -122,6 +126,9 @@ export function useCopEvidenceIndex(sessionId: string) {
         evidence_type: typeof r.evidence_type === 'string' ? r.evidence_type : null,
         source_channel: typeof r.source_channel === 'string' ? r.source_channel : null,
         created_at: typeof r.created_at === 'string' ? r.created_at : '',
+        archive_url: typeof r.archive_url === 'string' ? r.archive_url : null,
+        archived_in: typeof r.archived_in === 'string' ? r.archived_in : null,
+        held: r.held === true,
       })),
     }
   })

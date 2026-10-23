@@ -11,6 +11,7 @@ import { ExternalLink, FileUp, Link2, Loader2, Paperclip, Plus, Search, X } from
 import { cn } from '@/lib/utils'
 import { CopItemTags } from '@/components/cop/CopItemTags'
 import { RelationChip, RelationPicker } from '@/components/cop/evidence-links/RelationChip'
+import { CopArchiveLink } from '@/components/cop/CopArchiveLink'
 import { useCopEvidenceIndex, useCopEvidenceLinks } from '@/hooks/useCopEvidenceLinks'
 import {
   addEvidenceToQuestion, addEvidenceToTask, cleanLinkInput, fileEvidence, groupByTarget, linkErrorMessage, NOTE_MAX,
@@ -99,6 +100,7 @@ export function FiledEvidence({ sessionId, targetType, targetId, label, classNam
                         </a>
                       )}
                     </p>
+                    <CopArchiveLink item={item} className="mt-0.5" />
                     {link.note && <p className="mt-0.5 whitespace-pre-wrap break-words text-[11px] text-gray-600 dark:text-gray-400">{link.note}</p>}
                     <CopItemTags targetType="evidence" targetId={link.evidence_id} label="evidence item" max={3} />
                   </div>
