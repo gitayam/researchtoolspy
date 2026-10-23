@@ -26,7 +26,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   const sessionId = params.id as string
 
   // Auth: public sessions open, private sessions require owner/collaborator
-  const access = await verifyCopLayerAccess(env.DB, sessionId, request, env)
+  const access = await verifyCopLayerAccess(env.DB, sessionId, request, env, 'poo-estimates')
   if (access instanceof Response) return access
 
   try {

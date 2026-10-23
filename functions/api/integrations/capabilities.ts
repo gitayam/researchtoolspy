@@ -20,6 +20,7 @@ interface Env extends IntegrationAuthEnv {
   RESEARCH_QUESTIONS_SERVICE_ENABLED?: string
   REMARKS_SERVICE_ENABLED?: string
   EVIDENCE_ANALYSIS_SERVICE_ENABLED?: string
+  COP_SERVICE_ENABLED?: string
   OPENAI_API_KEY?: string
 }
 
@@ -110,6 +111,10 @@ export const onRequest: PagesFunction<Env> = async ({ request, env }) => {
     runtimeReady.remarksCoaching = runtimeReady.remarksPlanning
     runtimeReady.evidenceAnalysis = Boolean(env.OPENAI_API_KEY)
       && env.EVIDENCE_ANALYSIS_SERVICE_ENABLED === 'true'
+    // COP for scoped services: off unless the operator sets the exact flag;
+    // functions/api/cop/_middleware.ts enforces the same check. Server support
+    // (TRANCHE_A_SERVER_SUPPORT.cop) is a separate switch and is still false.
+    runtimeReady.cop = Boolean(env.DB) && env.COP_SERVICE_ENABLED === 'true'
 
     const body = buildIntegrationCapabilitiesDocument({
       requestId,

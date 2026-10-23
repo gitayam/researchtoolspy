@@ -6,6 +6,7 @@
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { generatePrefixedId, JSON_HEADERS } from '../../../../../_shared/api-utils'
 import { logEvent } from '../../../../../_shared/event-log'
+import { sessionArchived, shareExpired, sharePanels } from '../../../../../_shared/cop-share'
 
 interface Env {
   DB: D1Database
@@ -23,13 +24,22 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       SELECT * FROM cop_shares WHERE share_token = ? AND allow_rfi_answers = 1
     `).bind(token).first()
 
-    if (!share) {
+    // The same rules as the public page: an expired link, one that doesn't show the
+    // RFI panel, or an archived session takes no answers.
+    if (!share || shareExpired(share) || !sharePanels(share).includes('rfi')) {
       return new Response(JSON.stringify({ error: 'Share not found or RFI answers not allowed' }), {
         status: 403, headers: JSON_HEADERS,
       })
     }
 
     const shareSessionId = (share as any).cop_session_id
+    const session = await env.DB.prepare('SELECT status FROM cop_sessions WHERE id = ?')
+      .bind(shareSessionId).first<{ status?: string }>()
+    if (!session || sessionArchived(session)) {
+      return new Response(JSON.stringify({ error: 'This COP session is no longer taking answers' }), {
+        status: 410, headers: JSON_HEADERS,
+      })
+    }
 
     // Verify the RFI belongs to the share's session
     const rfiCheck = await env.DB.prepare(

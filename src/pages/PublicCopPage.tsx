@@ -120,8 +120,11 @@ export default function PublicCopPage() {
       if (!data?.session?.id) return
       if (layerDef.source.type === 'static') return
       try {
+        // The share token lets layers load for a private session shared with this link.
         const endpoint = `/api/cop/${data.session.id}${layerDef.source.endpoint}`
-        const res = await fetch(endpoint)
+        const url = new URL(endpoint, window.location.origin)
+        if (token) url.searchParams.set('share', token)
+        const res = await fetch(`${url.pathname}${url.search}`)
         if (!res.ok) return
         const fc: CopFeatureCollection = await res.json()
         setLayerData(prev => ({ ...prev, [layerDef.id]: fc }))
@@ -129,7 +132,7 @@ export default function PublicCopPage() {
         // Silently skip
       }
     },
-    [data?.session?.id]
+    [data?.session?.id, token]
   )
 
   useEffect(() => {

@@ -123,7 +123,7 @@ export const TRANCHE_A_SERVER_SUPPORT: Readonly<IntegrationCapabilities> = Objec
   projectionRead: false,
   persistentWorkspace: false,
   researchQuestions: true,
-  cop: false,
+  cop: true,
   behaviorIntake: false,
   claimMatch: false,
   feedJobs: false,
