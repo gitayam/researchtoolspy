@@ -231,7 +231,8 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
     }
 
-    const raw = new URL(request.url).searchParams.get('id') ?? ''
+    const query = new URL(request.url).searchParams
+    const raw = query.get('id') ?? query.get('evidence_id') ?? ''
     if (!/^\d{1,15}$/.test(raw)) {
       return new Response(JSON.stringify({ error: 'id query parameter is required' }), { status: 400, headers: JSON_HEADERS })
     }

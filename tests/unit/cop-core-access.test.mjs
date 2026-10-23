@@ -227,3 +227,27 @@ for (const [handler, ownPath, otherPath, ownParams, otherParams] of SERVICE_DELE
     assert.ok(ok(person.status), `${person.status} ${await person.text()}`)
   })
 }
+
+// The bot's !cop confirm (marker PUT) and !cop star (RFI PUT) follow the same rule.
+test('a service changes only the markers and RFIs it created', async () => {
+  const { env } = await fixture({ seed: seedItems })
+  const human = await call(env, 'markers', 'PUT', `${P}/markers`, { who: 'service-admitted', params: S, body: { id: 'mkr-1', confidence: 'PROBABLE' } })
+  assert.equal(human.status, 403, await human.text())
+  const own = await call(env, 'markers', 'PUT', `${P}/markers`, { who: 'service-admitted', params: S, body: { id: 'mkr-bot', confidence: 'PROBABLE' } })
+  assert.ok(ok(own.status), `${own.status} ${await own.text()}`)
+  const humanRfi = await call(env, 'rfi', 'PUT', `${P}/rfis/rfi-existing`, { who: 'service-admitted', params: { ...S, rfiId: 'rfi-existing' }, body: { priority: 'high' } })
+  assert.equal(humanRfi.status, 403, await humanRfi.text())
+  const ownRfi = await call(env, 'rfi', 'PUT', `${P}/rfis/rfi-bot`, { who: 'service-admitted', params: { ...S, rfiId: 'rfi-bot' }, body: { priority: 'high' } })
+  assert.ok(ok(ownRfi.status), `${ownRfi.status} ${await ownRfi.text()}`)
+  // A person with write access changes anyone's.
+  const person = await call(env, 'markers', 'PUT', `${P}/markers`, { who: 'editor', params: S, body: { id: 'mkr-1', confidence: 'PROBABLE' } })
+  assert.ok(ok(person.status), `${person.status} ${await person.text()}`)
+})
+
+test('the bot\'s delete parameter names (marker_id, evidence_id) work like id', async () => {
+  const { env } = await fixture({ seed: seedItems })
+  const marker = await call(env, 'markers', 'DELETE', `${P}/markers?marker_id=mkr-bot`, { who: 'service-admitted', params: S })
+  assert.ok(ok(marker.status), `${marker.status} ${await marker.text()}`)
+  const evidence = await call(env, 'evidence', 'DELETE', `${P}/evidence?evidence_id=1002`, { who: 'service-admitted', params: S })
+  assert.ok(ok(evidence.status), `${evidence.status} ${await evidence.text()}`)
+})

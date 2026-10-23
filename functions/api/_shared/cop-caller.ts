@@ -30,13 +30,15 @@ export const COP_SERVICE_ROUTES: readonly { method: string; path: RegExp }[] = [
     method: 'POST',
     path: /^\/api\/cop\/(?!public(?:\/|$)|sessions(?:\/|$))[^/]+\/(?:shares|rfis|evidence|markers|timeline|tasks|poo-estimates|personas|claims|hypotheses|webcams|tags|item-tags|suggest|uploads)$/,
   },
+  // Undo of the bot's own captures; each handler refuses items a service didn't create.
   {
     method: 'DELETE',
-    path: /^\/api\/cop\/(?!public(?:\/|$)|sessions(?:\/|$))[^/]+\/item-tags$/,
+    path: /^\/api\/cop\/(?!public(?:\/|$)|sessions(?:\/|$))[^/]+\/(?:item-tags|evidence|markers|tasks|timeline|rfis\/[^/]+)$/,
   },
+  // Confirming a bot marker and starring a bot RFI; same own-items rule.
   {
     method: 'PUT',
-    path: /^\/api\/cop\/(?!public(?:\/|$)|sessions(?:\/|$))[^/]+\/(?:claims|hypotheses)$/,
+    path: /^\/api\/cop\/(?!public(?:\/|$)|sessions(?:\/|$))[^/]+\/(?:claims|hypotheses|markers|rfis\/[^/]+)$/,
   },
 ]
 

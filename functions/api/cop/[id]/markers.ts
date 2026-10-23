@@ -23,7 +23,7 @@ import { createTimelineEntry } from '../../_shared/timeline-helper'
 import { JSON_HEADERS } from '../../_shared/api-utils'
 import { logEvent } from '../../_shared/event-log'
 import { copCallerUserId, copServiceCaller } from '../../_shared/cop-caller'
-import { copSourceChannel, copSourceRef, serviceDeleteRefused, serviceMayDelete, setProvenance } from '../../_shared/cop-input'
+import { copSourceChannel, copSourceRef, serviceChangeRefused, serviceDeleteRefused, serviceMayChange, serviceMayDelete, setProvenance } from '../../_shared/cop-input'
 
 /** The marker fields a write answers with. */
 const MARKER_COLUMNS = 'id, uid, cot_type, callsign, lat, lon, hae, label, description, icon, color, ' +
@@ -281,6 +281,16 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       })
     }
 
+    // A service (the Signal bot) may change only the markers it created.
+    if (copServiceCaller(context.data)) {
+      const own = await env.DB.prepare('SELECT created_by FROM cop_markers WHERE id = ? AND cop_session_id = ?')
+        .bind(body.id, sessionId).first<{ created_by: number | null }>()
+      if (!own) {
+        return new Response(JSON.stringify({ error: 'Marker not found in this session' }), { status: 404, headers: JSON_HEADERS })
+      }
+      if (!serviceMayChange(context, own.created_by)) return serviceChangeRefused()
+    }
+
     // Build SET clause dynamically from allowed fields
     const allowed: Record<string, any> = {}
     if (body.confidence && ['CONFIRMED', 'PROBABLE', 'POSSIBLE', 'SUSPECTED', 'DOUBTFUL'].includes(body.confidence)) {
@@ -369,7 +379,8 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     if (!(await requireCopEditor(env.DB, sessionId, userId))) {
       return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
     }
-    const markerId = new URL(request.url).searchParams.get('id')
+    const markerQuery = new URL(request.url).searchParams
+    const markerId = markerQuery.get('id') ?? markerQuery.get('marker_id')
     if (!markerId) {
       return new Response(JSON.stringify({ error: 'id query parameter is required' }), { status: 400, headers: JSON_HEADERS })
     }

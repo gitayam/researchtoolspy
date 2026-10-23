@@ -18,8 +18,8 @@ import { JSON_HEADERS } from '../../../_shared/api-utils'
 import { logEvent } from '../../../_shared/event-log'
 import { copCallerUserId } from '../../../_shared/cop-caller'
 import {
-  expectedUpdatedAt, isMissingColumn, rewriteSessionKeyQuestions, serviceDeleteRefused, serviceMayDelete,
-  staleWriteResponse,
+  expectedUpdatedAt, isMissingColumn, rewriteSessionKeyQuestions, serviceChangeRefused, serviceDeleteRefused,
+  serviceMayChange, serviceMayDelete, staleWriteResponse,
 } from '../../../_shared/cop-input'
 
 interface Env {
@@ -57,6 +57,8 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
         status: 404, headers: JSON_HEADERS,
       })
     }
+    // A service (the Signal bot) may change only the RFIs it created.
+    if (!serviceMayChange(context, existing.created_by)) return serviceChangeRefused()
 
     const expected = expectedUpdatedAt(request, body)
     if (expected && expected !== existing.updated_at) return staleWriteResponse(existing)

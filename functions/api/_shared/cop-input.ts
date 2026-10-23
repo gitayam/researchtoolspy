@@ -126,6 +126,15 @@ export function serviceMayDelete(context: { data?: unknown }, createdBy: unknown
   return createdBy != null && String(createdBy) === String(service.principalUserId)
 }
 
+/** The same rule for edits a service makes (confirming a marker, starring an RFI). */
+export const serviceMayChange = serviceMayDelete
+
+export function serviceChangeRefused(): Response {
+  return new Response(JSON.stringify({ error: 'A service may only change items it created' }), {
+    status: 403, headers: JSON_HEADERS,
+  })
+}
+
 export function serviceDeleteRefused(): Response {
   return new Response(JSON.stringify({ error: 'A service may only delete items it created' }), {
     status: 403, headers: JSON_HEADERS,
