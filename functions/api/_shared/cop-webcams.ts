@@ -168,8 +168,9 @@ export function validateWebcamInput(
       fov_deg: bearing === null ? null : fov,
       delivery: cam.delivery,
       refresh_s: refresh,
-      // Windy's terms fix its attribution; other sources take the caller's or their default.
-      attribution: cam.provider === 'windy' ? WINDY_ATTRIBUTION : attribution ?? cam.attribution,
+      // A source whose terms require a credit (Windy, an allow-listed host's licence) always
+      // shows it; only sources without one take the caller's text.
+      attribution: cam.provider === 'windy' ? WINDY_ATTRIBUTION : cam.attribution ?? attribution,
     },
   }
 }

@@ -170,6 +170,9 @@ test('webcam links: COP_WEBCAM_EXTRA_HOSTS adds exact hosts, never IPs or camera
   assert.equal(parseWebcamUrl('https://streams.example.net/live/x.m3u8', extra).cam.provider, 'hls')
   assert.equal(parseWebcamUrl('https://streams.example.net/other/x.m3u8', extra).ok, false)
   assert.deepEqual(parseExtraHosts(extra).map((r) => r.host), ['cams.example.org', 'streams.example.net'])
+  // A prefix written without its trailing slash still matches whole path segments only.
+  assert.equal(parseWebcamUrl('https://streams.example.net/feeds/x.m3u8', 'streams.example.net/feeds').ok, true)
+  assert.equal(parseWebcamUrl('https://streams.example.net/feeds-other/x.m3u8', 'streams.example.net/feeds').ok, false)
 })
 
 // ── Fixture ───────────────────────────────────────────────────────
@@ -376,6 +379,17 @@ test('POST validates the link, label and position', async () => {
   assert.equal(webcam.lat, null)
 })
 
+test('a source with a required credit keeps it whatever the caller sends', async () => {
+  const { env } = await fixture()
+  const add = async (body) => (await (await addCam(env, 'owner', { label: 'Cam', ...body })).json()).webcam
+  const road = await add({ url: 'https://weathercam.digitraffic.fi/C0150200.jpg', attribution: 'Verified live feed' })
+  assert.equal(road.attribution, 'Fintraffic / digitraffic.fi, CC BY 4.0')
+  const windy = await add({ url: `windy:${WINDY_ID}`, attribution: 'Verified live feed' })
+  assert.equal(windy.attribution, 'Webcams provided by windy.com')
+  const youtube = await add({ url: `https://youtu.be/${YT_ID}`, attribution: 'Channel: City of Paris' })
+  assert.equal(youtube.attribution, 'Channel: City of Paris')
+})
+
 test('a camera already on the session answers 409 WEBCAM_DUPLICATE until it is removed', async () => {
   const { db, env } = await fixture()
   const first = await (await addCam(env, 'owner')).json()
@@ -425,7 +439,7 @@ test('GET lists explicit fields for any collaborator, nothing for a stranger', a
   assert.equal((await list('stranger')).status, 403)
 })
 
-test('a service adds and lists webcams through the allow-list, and cannot delete', async () => {
+test('a service adds webcams through the allow-list, and cannot list or delete them', async () => {
   const { env } = await fixture()
   const add = await cop(env, 'POST', '/api/cop/cop-service-own/webcams', {
     headers: SERVICE_AUTH, body: PARIS_CAM, handler: mod('webcams'), params: { id: 'cop-service-own' },
@@ -435,8 +449,7 @@ test('a service adds and lists webcams through the allow-list, and cannot delete
   const list = await cop(env, 'GET', '/api/cop/cop-service-own/webcams', {
     headers: SERVICE_AUTH, handler: mod('webcams'), params: { id: 'cop-service-own' },
   })
-  assert.equal(list.status, 200)
-  assert.equal((await list.json()).webcams.length, 1)
+  assert.equal(list.status, 403)
   const del = await cop(env, 'DELETE', `/api/cop/cop-service-own/webcams/${webcam.id}`, {
     headers: SERVICE_AUTH, handler: mod('webcam'), params: { id: 'cop-service-own', camId: webcam.id },
   })
@@ -448,11 +461,11 @@ test('a service adds and lists webcams through the allow-list, and cannot delete
   assert.equal(foreign.status, 403)
 })
 
-test('COP_SERVICE_ROUTES admits POST and GET webcams only', () => {
+test('COP_SERVICE_ROUTES admits POST webcams only (the bot never reads them)', () => {
   const { COP_SERVICE_ROUTES } = mod('copCaller')
   const allowed = (method, path) => COP_SERVICE_ROUTES.some((r) => r.method === method && r.path.test(path))
   assert.equal(allowed('POST', '/api/cop/cop-x/webcams'), true)
-  assert.equal(allowed('GET', '/api/cop/cop-x/webcams'), true)
+  assert.equal(allowed('GET', '/api/cop/cop-x/webcams'), false)
   assert.equal(allowed('DELETE', '/api/cop/cop-x/webcams/abc'), false)
   assert.equal(allowed('POST', '/api/cop/public/webcams'), false)
 })
@@ -546,4 +559,53 @@ test('without the cop_webcams table: writes answer 503, reads are empty', async 
   const shared = await mod('publicShare').onRequestGet({ env, params: { token: 'tok-cams' }, request: new Request('https://researchtools.test/') })
   assert.equal(shared.status, 200)
   assert.deepEqual((await shared.json()).webcams, [])
+})
+
+// ── public/_headers: the COP policy stays in step with the global one ──
+
+function headerRules() {
+  const rules = []
+  for (const line of readFileSync(join(ROOT, 'public/_headers'), 'utf8').split('\n')) {
+    if (!line.trim() || line.trimStart().startsWith('#')) continue
+    if (!/^\s/.test(line)) rules.push({ pattern: line.trim(), lines: [] })
+    else rules.at(-1).lines.push(line.trim())
+  }
+  return rules
+}
+
+function cspOf(rule) {
+  const value = rule.lines.find((l) => l.startsWith('Content-Security-Policy:')).slice('Content-Security-Policy:'.length)
+  return Object.fromEntries(value.split(';').map((d) => d.trim().split(/\s+/)).filter((d) => d[0]).map(([k, ...v]) => [k, v]))
+}
+
+test('_headers: COP pages replace the global policy with a copy that only adds the player and stream hosts', () => {
+  const { HLS_HOSTS } = mod('webcamUrl')
+  const rules = headerRules()
+  const globalAt = rules.findIndex((r) => r.pattern === '/*')
+  const global = cspOf(rules[globalAt])
+  for (const pattern of ['/dashboard/cop/*', '/public/cop/*']) {
+    const at = rules.findIndex((r) => r.pattern === pattern)
+    assert.ok(at > globalAt, `${pattern} must come after /*`)
+    const rule = rules[at]
+    // Only the policy is detached, and before it is set; the other security headers stay.
+    assert.deepEqual(rule.lines.filter((l) => l.startsWith('!')), ['! Content-Security-Policy'], pattern)
+    assert.ok(rule.lines.indexOf('! Content-Security-Policy') < rule.lines.findIndex((l) => l.startsWith('Content-Security-Policy:')))
+    assert.equal(rule.lines.filter((l) => l.startsWith('Content-Security-Policy:')).length, 1)
+
+    const cop = cspOf(rule)
+    const extra = {
+      'frame-src': ['https://webcams.windy.com', 'https://www.youtube-nocookie.com'],
+      'connect-src': HLS_HOSTS.map((h) => `https://${h.host}`),
+      'media-src': ["'self'", 'blob:', ...HLS_HOSTS.map((h) => `https://${h.host}`)],
+    }
+    assert.deepEqual(Object.keys(cop).sort(), [...new Set([...Object.keys(global), ...Object.keys(extra)])].sort(), pattern)
+    for (const [directive, values] of Object.entries(cop)) {
+      const base = global[directive] ?? []
+      assert.deepEqual(values.filter((v) => !base.includes(v)).sort(), (extra[directive] ?? []).filter((v) => !base.includes(v)).sort(), `${pattern} ${directive} adds`)
+      assert.deepEqual(base.filter((v) => !values.includes(v)), [], `${pattern} ${directive} drops`)
+    }
+  }
+  for (const header of ['X-Frame-Options', 'X-Content-Type-Options', 'Referrer-Policy', 'Permissions-Policy']) {
+    assert.ok(rules[globalAt].lines.some((l) => l.startsWith(`${header}:`)), header)
+  }
 })

@@ -118,7 +118,8 @@ export function parseExtraHosts(raw: string | undefined | null): WebcamHostRule[
     if (!value) continue
     const slash = value.indexOf('/')
     const host = slash === -1 ? value : value.slice(0, slash)
-    const pathPrefix = slash === -1 ? undefined : value.slice(slash)
+    // A prefix ends in '/', so `host/feeds` cannot admit `/feeds-other/`.
+    const pathPrefix = slash === -1 ? undefined : value.slice(slash).replace(/\/?$/, '/')
     if (!HOSTNAME.test(host) || deniedDomain(host)) continue
     rules.push(pathPrefix ? { host, pathPrefix } : { host })
   }
