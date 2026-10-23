@@ -191,6 +191,17 @@ export const COP_LAYERS: CopLayerDef[] = [
     filterable: false,
   },
   {
+    id: 'webcams',
+    name: 'Webcams',
+    description: "Public cameras shown through their provider's own player (Windy, YouTube, open-data feeds)",
+    category: 'tactical',
+    icon: 'Video',
+    source: { type: 'api', endpoint: '/layers/webcams', refreshSeconds: 300 },
+    render: { type: 'cluster', color: '#06b6d4', clusterRadius: 50 },
+    defaultFor: [],
+    filterable: false,
+  },
+  {
     id: 'user-drawings',
     name: 'Drawings',
     description: 'Freehand lines, polygons, and annotations (client-side only)',

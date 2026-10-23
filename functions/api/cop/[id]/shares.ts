@@ -60,7 +60,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const token = crypto.randomUUID()
     const now = new Date().toISOString()
 
-    const validPanels = ['map', 'event', 'claims', 'rfi', 'questions', 'network']
+    const validPanels = ['map', 'event', 'claims', 'rfi', 'questions', 'network', 'cams']
     const visiblePanels = Array.isArray(body.visible_panels)
       ? body.visible_panels.filter((p: string) => validPanels.includes(p))
       : ['map', 'event']

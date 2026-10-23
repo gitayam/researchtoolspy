@@ -41,6 +41,7 @@ import {
   Menu,
   X as XIcon,
   Target,
+  Video,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -83,6 +84,7 @@ const CopPlaybookPanel = lazy(() => import('@/components/cop/CopPlaybookPanel'))
 const CopPlaybookLog = lazy(() => import('@/components/cop/CopPlaybookLog'))
 const CopClaimsPanel = lazy(() => import('@/components/cop/CopClaimsPanel'))
 const CopPooPanel = lazy(() => import('@/components/cop/CopPooPanel'))
+const CopCamsPanel = lazy(() => import('@/components/cop/cams/CopCamsPanel'))
 
 /** Suspense wrapper for lazy-loaded panels — shows a subtle loading indicator */
 function LazyPanel({ children }: { children: ReactNode }) {
@@ -264,8 +266,9 @@ export default function CopWorkspacePage() {
 
   // ── Pin placement state ─────────────────────────────────────
   const [pinPlacementMode, setPinPlacementMode] = useState(false)
-  const pinSourceRef = useRef<{ type: 'evidence' | 'hypothesis' | 'poo'; id: string; text: string } | null>(null)
+  const pinSourceRef = useRef<{ type: 'evidence' | 'hypothesis' | 'poo' | 'cam'; id: string; text: string } | null>(null)
   const [pooPickedLocation, setPooPickedLocation] = useState<{ lat: number; lon: number } | null>(null)
+  const [camPickedLocation, setCamPickedLocation] = useState<{ lat: number; lon: number } | null>(null)
 
   // ── Layer state ────────────────────────────────────────────────
   const [activeLayers, setActiveLayers] = useState<string[]>([])
@@ -491,6 +494,12 @@ export default function CopWorkspacePage() {
         return
       }
 
+      // Webcam pick-from-map: coordinates for the Add webcam dialog
+      if (source.type === 'cam') {
+        setCamPickedLocation({ lat, lon })
+        return
+      }
+
       try {
         await fetch(`/api/cop/${id}/markers`, {
           method: 'POST',
@@ -514,6 +523,11 @@ export default function CopWorkspacePage() {
 
   const handlePooPickFromMap = useCallback(() => {
     pinSourceRef.current = { type: 'poo', id: 'poo-pick', text: 'POO Impact Point' }
+    setPinPlacementMode(true)
+  }, [])
+
+  const handleCamPickFromMap = useCallback(() => {
+    pinSourceRef.current = { type: 'cam', id: 'cam-pick', text: 'Webcam location' }
     setPinPlacementMode(true)
   }, [])
 
@@ -872,6 +886,8 @@ export default function CopWorkspacePage() {
                 }}
                 onPooPickFromMap={handlePooPickFromMap}
                 pooPickedLocation={pooPickedLocation}
+                onCamPickFromMap={handleCamPickFromMap}
+                camPickedLocation={camPickedLocation}
                 onOpenEntityDrawer={(tab?: string, prefill?: any) => {
                   if (tab) setEntityDrawerTab(tab)
                   if (prefill) setEntityDrawerPrefill(prefill)
@@ -1006,6 +1022,8 @@ interface ProgressLayoutProps {
   onRefreshLayer?: (layerId: string) => void
   onPooPickFromMap?: () => void
   pooPickedLocation?: { lat: number; lon: number } | null
+  onCamPickFromMap?: () => void
+  camPickedLocation?: { lat: number; lon: number } | null
   panelLayout: ReturnType<typeof usePanelLayout>
 }
 
@@ -1050,6 +1068,8 @@ function ProgressLayout({
   onRefreshLayer,
   onPooPickFromMap,
   pooPickedLocation,
+  onCamPickFromMap,
+  camPickedLocation,
   panelLayout,
 }: ProgressLayoutProps) {
   const { visiblePanels, hiddenPanels, movePanel, toggleWidth, toggleVisible, resetLayout } = panelLayout
@@ -1069,6 +1089,12 @@ function ProgressLayout({
     }, 100)
     setTimeout(() => setForceOpenPanel(null), 3000)
   }, [])
+
+  // "Open" on a webcam on the map: reveal the Cams panel and point at that camera.
+  const handleWebcamOpen = useCallback((camId: string) => {
+    if (hiddenPanels.some((p) => p.id === 'cams')) toggleVisible('cams')
+    handleScrollToPanel('cams', camId)
+  }, [hiddenPanels, toggleVisible, handleScrollToPanel])
 
   // ── Panel definitions (render functions keyed by id) ──────────
 
@@ -1261,6 +1287,23 @@ function ProgressLayout({
         />
       ),
     },
+    cams: {
+      id: 'cams',
+      title: 'Webcams',
+      icon: <Video className="h-4 w-4 text-cyan-400" />,
+      height: 'tall',
+      render: () => (
+        <LazyPanel>
+          <CopCamsPanel
+            sessionId={sessionId}
+            focusCamId={forceOpenPanel?.panelId === 'cams' ? forceOpenPanel.entityId : null}
+            onChanged={() => onRefreshLayer?.('webcams')}
+            onPickFromMap={onCamPickFromMap}
+            pickedLocation={camPickedLocation}
+          />
+        </LazyPanel>
+      ),
+    },
     activity: {
       id: 'activity',
       title: 'Activity Log',
@@ -1324,6 +1367,7 @@ function ProgressLayout({
                 pinPlacementMode,
                 onPinPlaced,
                 onMarkerOpenInFeed,
+                onWebcamOpen: handleWebcamOpen,
               }}
               layerProps={{
                 activeLayers,

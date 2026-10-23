@@ -7,6 +7,7 @@ import type { PagesFunction } from '@cloudflare/workers-types'
 import { JSON_HEADERS } from '../../_shared/api-utils'
 import { logEvent } from '../../_shared/event-log'
 import { shareExpired, sharePanels } from '../../_shared/cop-share'
+import { listSessionWebcams, publicWebcam } from '../../_shared/cop-webcams'
 
 interface Env {
   DB: D1Database
@@ -134,6 +135,12 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         ...r,
         answers: answersByRfi[r.id] || [],
       }))
+    }
+
+    // Webcams only with the cams panel: explicit fields, never who added them.
+    // Empty until managed migration 0020 is applied.
+    if (visiblePanels.includes('cams')) {
+      response.webcams = (await listSessionWebcams(env.DB, share.cop_session_id)).map(publicWebcam)
     }
 
     return new Response(JSON.stringify(response), { headers: JSON_HEADERS })

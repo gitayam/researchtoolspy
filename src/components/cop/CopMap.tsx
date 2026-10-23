@@ -17,6 +17,7 @@ const LAYER_COLORS: Record<string, string> = {
   'cop-markers': '#eab308',
   'poo-estimates': '#ef4444',
   'user-drawings': '#f97316',
+  webcams: '#06b6d4',
 }
 
 function getLayerColor(layerId: string): string {
@@ -40,6 +41,9 @@ function isPolygonLayer(layerId: string): boolean {
 // ── Layers that need data transformation before rendering ───────
 const POO_LAYER_ID = 'poo-estimates'
 
+// ── Webcams: clustered camera points plus unclustered view cones ──
+const WEBCAM_LAYER_ID = 'webcams'
+
 // ── Props ───────────────────────────────────────────────────────
 export interface CopMapProps {
   session: CopSession
@@ -52,6 +56,8 @@ export interface CopMapProps {
   onPinPlaced?: (lat: number, lon: number) => void
   /** Called when user clicks "Open in Feed" on a marker with a backlink */
   onMarkerOpenInFeed?: (sourceType: string, sourceId: string) => void
+  /** Called when user clicks "Open" on a webcam; without it the popup links to the provider's page */
+  onWebcamOpen?: (camId: string) => void
 }
 
 // ── Component ───────────────────────────────────────────────────
@@ -63,6 +69,7 @@ export default function CopMap({
   pinPlacementMode = false,
   onPinPlaced,
   onMarkerOpenInFeed,
+  onWebcamOpen,
 }: CopMapProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)
@@ -81,6 +88,10 @@ export default function CopMap({
   onPinPlacedRef.current = onPinPlaced
   const onMarkerOpenInFeedRef = useRef(onMarkerOpenInFeed)
   onMarkerOpenInFeedRef.current = onMarkerOpenInFeed
+  const onWebcamOpenRef = useRef(onWebcamOpen)
+  useEffect(() => {
+    onWebcamOpenRef.current = onWebcamOpen
+  }, [onWebcamOpen])
 
   // ── Fire bbox on current bounds ─────────────────────────────
   const emitBbox = useCallback((map: maplibregl.Map) => {
@@ -196,6 +207,25 @@ export default function CopMap({
         let resolvedData: GeoJSON.FeatureCollection = fc as unknown as GeoJSON.FeatureCollection
         if (layerId === POO_LAYER_ID) {
           resolvedData = convertPooLayerData(resolvedData)
+        }
+
+        // Webcams: clustering drops non-point features, so the view cones get
+        // their own unclustered source beside the clustered camera points.
+        if (layerId === WEBCAM_LAYER_ID) {
+          const { points, cones } = splitWebcamLayer(resolvedData)
+          const pointSource = map.getSource(sourceId) as maplibregl.GeoJSONSource | undefined
+          if (pointSource) {
+            pointSource.setData(points)
+            ;(map.getSource(`${sourceId}-cones`) as maplibregl.GeoJSONSource | undefined)?.setData(cones)
+            continue
+          }
+          map.addSource(`${sourceId}-cones`, { type: 'geojson', data: cones })
+          map.addSource(sourceId, { type: 'geojson', data: points, cluster: true, clusterMaxZoom: 14, clusterRadius: 50 })
+          addedSourcesRef.current.add(`${sourceId}-cones`)
+          addedSourcesRef.current.add(sourceId)
+          newSourceAdded = true
+          addWebcamLayers(map, sourceId, getLayerColor(layerId), popupRef, onWebcamOpenRef)
+          continue
         }
 
         // If the source already exists, update its data
@@ -490,6 +520,199 @@ function addPointLayers(
   })
   map.on('mouseleave', clusterId, () => {
     map.getCanvas().style.cursor = ''
+  })
+}
+
+// ── Webcam layers ───────────────────────────────────────────────
+
+const WEBCAM_ICON_ID = 'cop-webcam-icon'
+const WEBCAM_PROVIDER_LABELS: Record<string, string> = {
+  windy: 'Windy',
+  youtube: 'YouTube',
+  image: 'Image feed',
+  hls: 'Video stream',
+}
+const WEBCAM_DELIVERY_LABELS: Record<string, string> = {
+  live: 'Live',
+  timelapse: 'Timelapse',
+  snapshot: 'Snapshot',
+}
+
+function splitWebcamLayer(fc: GeoJSON.FeatureCollection): {
+  points: GeoJSON.FeatureCollection
+  cones: GeoJSON.FeatureCollection
+} {
+  const features = fc.features ?? []
+  return {
+    points: { type: 'FeatureCollection', features: features.filter((f) => f.geometry?.type === 'Point') },
+    cones: { type: 'FeatureCollection', features: features.filter((f) => f.geometry?.type === 'Polygon') },
+  }
+}
+
+/** A white camera glyph on a transparent square, drawn once per map. */
+function addWebcamIcon(map: maplibregl.Map) {
+  if (map.hasImage(WEBCAM_ICON_ID)) return
+  const size = 32
+  const canvas = document.createElement('canvas')
+  canvas.width = size
+  canvas.height = size
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return
+  ctx.fillStyle = '#ffffff'
+  ctx.beginPath()
+  if ('roundRect' in ctx) ctx.roundRect(4, 10, 17, 13, 3)
+  else (ctx as CanvasRenderingContext2D).rect(4, 10, 17, 13)
+  ctx.fill()
+  ctx.beginPath()
+  ctx.moveTo(21, 16.5)
+  ctx.lineTo(28, 11)
+  ctx.lineTo(28, 22)
+  ctx.closePath()
+  ctx.fill()
+  map.addImage(WEBCAM_ICON_ID, ctx.getImageData(0, 0, size, size), { pixelRatio: 2 })
+}
+
+function webcamPopupContent(
+  props: Record<string, unknown>,
+  onOpen: ((camId: string) => void) | undefined,
+  close: () => void,
+): HTMLElement {
+  const root = document.createElement('div')
+  root.style.cssText = 'max-width: 240px; font-family: system-ui, sans-serif;'
+
+  const title = document.createElement('strong')
+  title.style.cssText = 'font-size: 13px; color: #e2e8f0;'
+  title.textContent = String(props.name ?? 'Webcam')
+  root.appendChild(title)
+
+  const meta = document.createElement('div')
+  meta.style.cssText = 'font-size: 11px; color: #22d3ee; margin-top: 2px;'
+  const provider = WEBCAM_PROVIDER_LABELS[String(props.provider)] ?? String(props.provider ?? '')
+  const delivery = WEBCAM_DELIVERY_LABELS[String(props.delivery)] ?? String(props.delivery ?? '')
+  meta.textContent = [provider, delivery].filter(Boolean).join(' · ')
+  root.appendChild(meta)
+
+  if (props.attribution) {
+    const attribution = document.createElement('div')
+    attribution.style.cssText = 'font-size: 11px; color: #94a3b8; margin-top: 4px;'
+    attribution.textContent = String(props.attribution)
+    root.appendChild(attribution)
+  }
+
+  const camId = String(props.id ?? '')
+  const pageUrl = String(props.page_url ?? '')
+  if (onOpen && camId) {
+    const button = document.createElement('button')
+    button.type = 'button'
+    button.textContent = 'Open'
+    button.style.cssText = 'margin-top: 6px; padding: 3px 8px; font-size: 11px; background: #0891b2; color: #fff; border: none; border-radius: 4px; cursor: pointer;'
+    button.onclick = () => {
+      onOpen(camId)
+      close()
+    }
+    root.appendChild(button)
+  } else if (/^https:\/\//.test(pageUrl)) {
+    const link = document.createElement('a')
+    link.href = pageUrl
+    link.target = '_blank'
+    link.rel = 'noopener noreferrer'
+    link.referrerPolicy = 'no-referrer'
+    link.textContent = 'Open on provider'
+    link.style.cssText = 'display: inline-block; margin-top: 6px; font-size: 11px; color: #22d3ee;'
+    root.appendChild(link)
+  }
+  return root
+}
+
+function addWebcamLayers(
+  map: maplibregl.Map,
+  sourceId: string,
+  color: string,
+  popupRef: React.MutableRefObject<maplibregl.Popup | null>,
+  onWebcamOpenRef: React.MutableRefObject<((camId: string) => void) | undefined>,
+) {
+  const coneId = `cop-cone-${WEBCAM_LAYER_ID}`
+  const clusterId = `cop-cluster-${WEBCAM_LAYER_ID}`
+  const clusterCountId = `cop-cluster-count-${WEBCAM_LAYER_ID}`
+  const unclusteredId = `cop-unclustered-${WEBCAM_LAYER_ID}`
+  const iconId = `cop-icon-${WEBCAM_LAYER_ID}`
+
+  addWebcamIcon(map)
+
+  map.addLayer({
+    id: coneId,
+    type: 'fill',
+    source: `${sourceId}-cones`,
+    minzoom: 11,
+    paint: { 'fill-color': color, 'fill-opacity': 0.15, 'fill-outline-color': color },
+  })
+  map.addLayer({
+    id: clusterId,
+    type: 'circle',
+    source: sourceId,
+    filter: ['has', 'point_count'],
+    paint: {
+      'circle-color': color,
+      'circle-opacity': 0.75,
+      'circle-radius': ['step', ['get', 'point_count'], 15, 10, 20, 50, 25],
+    },
+  })
+  map.addLayer({
+    id: clusterCountId,
+    type: 'symbol',
+    source: sourceId,
+    filter: ['has', 'point_count'],
+    layout: { 'text-field': '{point_count_abbreviated}', 'text-size': 12 },
+    paint: { 'text-color': '#ffffff' },
+  })
+  map.addLayer({
+    id: unclusteredId,
+    type: 'circle',
+    source: sourceId,
+    filter: ['!', ['has', 'point_count']],
+    paint: {
+      'circle-color': color,
+      'circle-radius': 10,
+      'circle-stroke-width': 2,
+      'circle-stroke-color': '#ffffff',
+    },
+  })
+  if (map.hasImage(WEBCAM_ICON_ID)) {
+    map.addLayer({
+      id: iconId,
+      type: 'symbol',
+      source: sourceId,
+      filter: ['!', ['has', 'point_count']],
+      layout: { 'icon-image': WEBCAM_ICON_ID, 'icon-allow-overlap': true, 'icon-ignore-placement': true },
+    })
+  }
+
+  for (const id of [unclusteredId, clusterId]) {
+    map.on('mouseenter', id, () => { map.getCanvas().style.cursor = 'pointer' })
+    map.on('mouseleave', id, () => { map.getCanvas().style.cursor = '' })
+  }
+
+  map.on('click', unclusteredId, (e) => {
+    const feature = e.features?.[0]
+    if (!feature || feature.geometry.type !== 'Point') return
+    const coords = (feature.geometry as GeoJSON.Point).coordinates.slice() as [number, number]
+    while (Math.abs(e.lngLat.lng - coords[0]) > 180) {
+      coords[0] += e.lngLat.lng > coords[0] ? 360 : -360
+    }
+    popupRef.current?.remove()
+    const popup = new maplibregl.Popup({ closeButton: true, closeOnClick: true }).setLngLat(coords)
+    popup.setDOMContent(webcamPopupContent(feature.properties ?? {}, onWebcamOpenRef.current, () => popup.remove()))
+    popup.addTo(map)
+    popupRef.current = popup
+  })
+
+  map.on('click', clusterId, (e) => {
+    const feature = e.features?.[0]
+    const clusterKey = feature?.properties?.cluster_id as number | undefined
+    if (!feature || feature.geometry.type !== 'Point' || clusterKey == null) return
+    ;(map.getSource(sourceId) as maplibregl.GeoJSONSource).getClusterExpansionZoom(clusterKey).then((zoom) => {
+      map.easeTo({ center: (feature.geometry as GeoJSON.Point).coordinates as [number, number], zoom })
+    })
   })
 }
 

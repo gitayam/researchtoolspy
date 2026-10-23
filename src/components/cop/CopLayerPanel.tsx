@@ -12,6 +12,7 @@ import {
   Brain,
   Crosshair,
   Pencil,
+  Video,
 } from 'lucide-react'
 import { COP_LAYERS } from '@/components/cop/CopLayerCatalog'
 import type { CopLayerCategory, CopLayerDef } from '@/types/cop'
@@ -28,6 +29,7 @@ const ICON_MAP: Record<string, React.FC<{ size?: number; className?: string; sty
   Brain,
   Crosshair,
   Pencil,
+  Video,
 }
 
 // ── Category metadata ───────────────────────────────────────────

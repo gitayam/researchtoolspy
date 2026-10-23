@@ -21,17 +21,20 @@ import {
   CheckCircle2,
   Clock,
   Link2,
+  Video,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import CopMap from '@/components/cop/CopMap'
+import CopCamGrid from '@/components/cop/cams/CopCamGrid'
 import { getLayerById } from '@/components/cop/CopLayerCatalog'
 import type {
   CopSession,
   CopFeatureCollection,
   CopLayerDef,
   CopRfi,
+  CopWebcam,
   EventFact,
 } from '@/types/cop'
 import {
@@ -47,6 +50,8 @@ interface PublicCopData {
   visible_panels: string[]
   allow_rfi_answers: boolean
   rfis?: CopRfi[]
+  /** Present only when the share shows the cams panel. */
+  webcams?: CopWebcam[]
 }
 
 // ── Template labels ──────────────────────────────────────────────
@@ -71,6 +76,7 @@ export default function PublicCopPage() {
 
   const [layerData, setLayerData] = useState<Record<string, CopFeatureCollection>>({})
   const [activePanel, setActivePanel] = useState<string | null>(null)
+  const [focusCamId, setFocusCamId] = useState<string | null>(null)
 
   // RFI answer form state
   const [answerFormRfiId, setAnswerFormRfiId] = useState<string | null>(null)
@@ -221,7 +227,7 @@ export default function PublicCopPage() {
     )
   }
 
-  const { session, visible_panels = [], allow_rfi_answers, rfis } = data
+  const { session, visible_panels = [], allow_rfi_answers, rfis, webcams } = data
   const hasSidePanels = visible_panels?.some(p => p !== 'map') ?? false
   const eventType = session.event_type as keyof typeof EVENT_TYPE_LABELS | null
 
@@ -449,8 +455,8 @@ export default function PublicCopPage() {
     .filter(p => p !== 'map')
     .map(p => ({
       id: p,
-      label: p === 'event' ? 'Event' : p === 'rfi' ? 'RFI' : p === 'questions' ? 'Questions' : p === 'claims' ? 'Claims' : p === 'network' ? 'Network' : p,
-      icon: p === 'event' ? ClipboardList : p === 'rfi' ? HelpCircle : p === 'questions' ? Star : Layers,
+      label: p === 'event' ? 'Event' : p === 'rfi' ? 'RFI' : p === 'questions' ? 'Questions' : p === 'claims' ? 'Claims' : p === 'network' ? 'Network' : p === 'cams' ? 'Cams' : p,
+      icon: p === 'event' ? ClipboardList : p === 'rfi' ? HelpCircle : p === 'questions' ? Star : p === 'cams' ? Video : Layers,
     }))
 
   // ── Main layout ────────────────────────────────────────────────
@@ -479,7 +485,7 @@ export default function PublicCopPage() {
       <div className="flex flex-1 min-h-0 overflow-hidden">
         {/* Side panel (only if panels beyond map exist) */}
         {hasSidePanels && (
-          <aside className="w-72 bg-gray-900 border-r border-gray-700 flex flex-col overflow-hidden shrink-0">
+          <aside className={`${activePanel === 'cams' ? 'w-72 sm:w-80 lg:w-96' : 'w-72'} bg-gray-900 border-r border-gray-700 flex flex-col overflow-hidden shrink-0`}>
             {/* Tab strip */}
             {panelTabs.length > 1 && (
               <div className="flex border-b border-gray-700">
@@ -516,13 +522,25 @@ export default function PublicCopPage() {
               {activePanel === 'network' && (
                 <div className="p-4 text-center text-sm text-gray-500">Network view coming soon.</div>
               )}
+              {activePanel === 'cams' && (
+                <div className="p-3 dark">
+                  <CopCamGrid cams={webcams ?? []} focusCamId={focusCamId} />
+                </div>
+              )}
             </div>
           </aside>
         )}
 
         {/* Map */}
         <div className="flex-1 overflow-hidden" style={{ position: 'relative', minHeight: 0 }}>
-          <CopMap session={session} layers={layerData} />
+          <CopMap
+            session={session}
+            layers={layerData}
+            onWebcamOpen={visible_panels.includes('cams') ? (camId) => {
+              setActivePanel('cams')
+              setFocusCamId(camId)
+            } : undefined}
+          />
         </div>
       </div>
 
