@@ -1,4 +1,6 @@
 import { analyzableUrlFrom } from '@/lib/content-url'
+import { uniqueTagNames } from '@/components/cop/tags/tag-names'
+import type { CopEntityType, CopSuggestKind, CopTagTargetType } from '@/types/cop'
 
 /**
  * What the COP capture bar does with a line an analyst typed.
@@ -23,6 +25,11 @@ import { analyzableUrlFrom } from '@/lib/content-url'
  *   nai: 34.05,-118.24 North bridge  -> a named area of interest, on the map
  *   task!: confirm the bridge status -> task, high
  *   t: 2026-03-14 convoy departed    -> timeline entry on that date
+ *
+ * `#words` become tags on whatever is created, in any kind of capture:
+ *
+ *   convoy at the north gate #bridge #convoy ~probable
+ *     -> a note, tagged bridge and convoy, probable
  */
 
 export type CaptureKind = 'rfi' | 'nai' | 'task' | 'timeline' | 'hypothesis' | 'survey' | 'url' | 'note'
@@ -50,6 +57,10 @@ export interface ParsedCapture {
   problem?: string
   /** How well corroborated, when the analyst said. */
   credibility?: Credibility
+  /** `#tags` written in the capture, to put on the created item. */
+  tags?: string[]
+  /** True when the analyst wrote a prefix (`note:` included); false for plain text. */
+  explicit?: boolean
 }
 
 /** `rfi`, `rfi!`, `rfi!!` … then a colon. */
@@ -110,15 +121,21 @@ function priorityFor(bangs: number): { priority: Priority; isBlocker: boolean } 
 }
 
 export function parseCapture(raw: string): ParsedCapture | null {
-  const { text: trimmed, credibility } = splitCredibility(raw.trim())
+  const { text: untagged, tags } = extractHashtags(raw)
+  const { text: trimmed, credibility } = splitCredibility(untagged.trim())
   if (!trimmed) return null
 
   const withCredibility = (parsed: ParsedCapture): ParsedCapture => {
-    if (!credibility) return parsed
-    return {
+    const tagged: ParsedCapture = {
       ...parsed,
+      explicit: parsed.explicit ?? true,
+      ...(tags.length && parsed.kind !== 'survey' ? { tags } : {}),
+    }
+    if (!credibility) return tagged
+    return {
+      ...tagged,
       credibility,
-      label: `${parsed.label} · ${credibility}`,
+      label: `${tagged.label} · ${credibility}`,
     }
   }
 
@@ -203,7 +220,7 @@ export function parseCapture(raw: string): ParsedCapture | null {
   if (survey) {
     const body = trimmed.slice(survey[0].length).trim()
     // A survey with no title is still a survey; it just needs a name.
-    return { kind: 'survey', body: body || 'Untitled Drop', label: 'New collection form' }
+    return withCredibility({ kind: 'survey', body: body || 'Untitled Drop', label: 'New collection form' })
   }
 
   // An explicit `note:` beats URL detection, so an analyst can file a link as a
@@ -216,9 +233,9 @@ export function parseCapture(raw: string): ParsedCapture | null {
   }
 
   const url = analyzableUrlFrom(trimmed)
-  if (url) return withCredibility({ kind: 'url', body: trimmed, url, label: 'Evidence feed — fetch and analyse' })
+  if (url) return withCredibility({ kind: 'url', body: trimmed, url, label: 'Evidence feed — save and analyse the link', explicit: false })
 
-  return withCredibility({ kind: 'note', body: trimmed, label: 'Evidence feed — note' })
+  return withCredibility({ kind: 'note', body: trimmed, label: 'Evidence feed — note', explicit: false })
 }
 
 /**
@@ -296,3 +313,144 @@ export const HYPOTHESIS_CONFIDENCE: Record<Credibility, number> = {
   doubtful: 25,
 }
 
+
+// ── #tags ──────────────────────────────────────────────────────────
+
+/** `#word`: starts after whitespace (so URL fragments and C# are left alone). */
+const HASHTAG = /(^|\s)#([\p{L}\p{N}][\p{L}\p{N}_.-]*)/gu
+/** The same, anchored at the end of the text, or a trailing ~credibility word. */
+const TRAILING_TAG_OR_CREDIBILITY = /(?:^|\s)(#[\p{L}\p{N}][\p{L}\p{N}_.-]*|~[a-z]+)\s*$/iu
+
+function tagWord(word: string): string | null {
+  const clean = word.replace(/[._-]+$/, '')
+  // `#1` is a number, not a tag.
+  return clean && /\p{L}/u.test(clean) ? clean : null
+}
+
+/**
+ * Pull `#tags` out of a capture.
+ *
+ * A run of tags at the end ("… at the gate #bridge #convoy") is removed from the
+ * text; a tag inside a sentence keeps its word ("#convoy left at 9" -> "convoy
+ * left at 9"), because there it is part of what was said. A trailing
+ * `~credibility` word may sit among the trailing tags and stays in the text for
+ * `parseCapture`. Tags come back unique, valid and capped at ten.
+ */
+export function extractHashtags(raw: string): { text: string; tags: string[] } {
+  let text = raw.replace(/\s+$/, '')
+  const trailing: string[] = []
+  const keptCredibility: string[] = []
+  for (;;) {
+    const match = TRAILING_TAG_OR_CREDIBILITY.exec(text)
+    if (!match) break
+    const token = match[1]
+    if (token.startsWith('#')) {
+      const word = tagWord(token.slice(1))
+      if (!word) break
+      trailing.unshift(word)
+    } else {
+      keptCredibility.unshift(token)
+    }
+    text = text.slice(0, match.index).replace(/\s+$/, '')
+  }
+  const inline: string[] = []
+  text = text.replace(HASHTAG, (whole, lead: string, word: string) => {
+    const tag = tagWord(word)
+    if (!tag) return whole
+    inline.push(tag)
+    return `${lead}${word}`
+  })
+  if (keptCredibility.length) text = `${text} ${keptCredibility.join(' ')}`.trim()
+  return { text, tags: uniqueTagNames([...inline, ...trailing]) }
+}
+
+// ── Several lines at once ──────────────────────────────────────────
+
+/** The most lines one paste may file as separate items. */
+export const MAX_BATCH_LINES = 50
+
+/** A list bullet or number at the start of a pasted line. */
+const LIST_MARKER = /^\s*(?:[-*•–]|\d{1,3}[.)])\s+/
+
+/**
+ * A pasted block as one capture per line: blank lines dropped, list bullets
+ * and numbering removed, each line trimmed. The caller decides (with the
+ * analyst) whether a multi-line paste is several items or one note.
+ */
+export function splitCaptureLines(raw: string): string[] {
+  return raw
+    .split(/\r?\n/)
+    .map(line => line.replace(LIST_MARKER, '').trim())
+    .filter(Boolean)
+}
+
+// ── A free hint for plain text ─────────────────────────────────────
+
+const QUESTION_START = /^(?:who|what|where|when|why|how|which|is|are|was|were|does|do|did|can|could|will|would|should|has|have)\b/i
+const TASK_START = /^(?:check|confirm|verify|find|call|ask|contact|send|follow up|look into|monitor|watch|track|investigate|get|geolocate|identify|collect|review)\b/i
+const LEADING_TIME = /^(?:\d{4}-\d{2}-\d{2}|\d{1,2}:\d{2})\b/
+
+/**
+ * What plain text looks like, from its wording alone: a question, an
+ * instruction, a timed event. Free and instant, so it runs as the analyst types;
+ * only "Suggest" asks the server (and a model). It never routes anything by
+ * itself: the bar offers it as a one-tap chip.
+ */
+export function localKindHint(body: string): CopSuggestKind | null {
+  const text = body.trim()
+  if (!text) return null
+  if (text.endsWith('?') || QUESTION_START.test(text)) return 'rfi'
+  if (TASK_START.test(text)) return 'task'
+  if (LEADING_TIME.test(text)) return 'timeline'
+  return null
+}
+
+/** The prefix a suggested kind maps to in this grammar (none for a plain note). */
+export const PREFIX_FOR_SUGGESTION: Partial<Record<CopSuggestKind, string>> = {
+  rfi: 'rfi: ',
+  task: 'task: ',
+  timeline: 't: ',
+  hypothesis: 'hyp: ',
+}
+
+export const SUGGESTION_LABEL: Record<CopSuggestKind, string> = {
+  rfi: 'File as an RFI',
+  task: 'File as a task',
+  timeline: 'Put on the timeline',
+  hypothesis: 'File as a hypothesis',
+  marker: 'Put on the map',
+  note: 'Keep as a note',
+  evidence: 'Keep as evidence',
+}
+
+/** Rewrite plain text with the prefix for a kind, so the analyst sees and sends it. */
+export function withKindPrefix(text: string, kind: CopSuggestKind): string {
+  const prefix = PREFIX_FOR_SUGGESTION[kind]
+  return prefix ? `${prefix}${text.trim()}` : text
+}
+
+// ── What a capture creates ─────────────────────────────────────────
+
+/** The `cop:changed` entity type each kind of capture writes. */
+export const ENTITY_TYPE_FOR_KIND: Record<CaptureKind, CopEntityType> = {
+  rfi: 'rfi',
+  nai: 'marker',
+  task: 'task',
+  timeline: 'timeline',
+  hypothesis: 'hypothesis',
+  survey: 'submission',
+  note: 'evidence',
+  url: 'evidence',
+}
+
+/** What the created item is called when tagging it (surveys are not taggable). */
+export const TAG_TARGET_FOR_KIND: Record<CaptureKind, CopTagTargetType | null> = {
+  rfi: 'rfi',
+  nai: 'marker',
+  task: 'task',
+  timeline: 'timeline',
+  hypothesis: 'hypothesis',
+  survey: null,
+  note: 'evidence',
+  url: 'evidence',
+}
