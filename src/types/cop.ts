@@ -315,6 +315,75 @@ export interface CopWebcam {
   refresh_s: number | null
   attribution: string | null
   created_at: string
+  /** The camera operator's own page (Windy urls.provider); https only. Absent on older servers. */
+  source_url?: string | null
+  /** Windy's last reported status (active, inactive, …); null for non-Windy cameras. */
+  windy_status?: string | null
+  status_checked_at?: string | null
+  position_source?: 'user' | 'windy' | null
+  bearing_source?: 'user' | 'estimated' | null
+}
+
+/** Error codes the webcam routes put beside `error`. */
+export type CopWebcamErrorCode =
+  | 'WEBCAM_INVALID'
+  | 'WEBCAM_UNSUPPORTED_LINK'
+  | 'WEBCAM_NOT_FOUND'
+  | 'WEBCAM_UNAVAILABLE'
+  | 'WEBCAM_DUPLICATE'
+  | 'WEBCAM_LIMIT'
+  | 'WEBCAMS_UNAVAILABLE'
+  | 'WEBCAM_DISCOVERY_UNAVAILABLE'
+  | 'WEBCAM_NO_CENTER'
+  | 'WEBCAM_NO_POSITION'
+  | 'PLACE_NOT_FOUND'
+  | 'GEOCODER_UNAVAILABLE'
+  | 'NO_VIEW_TARGET'
+  | 'AI_UNAVAILABLE'
+  | 'RATE_LIMITED'
+  | 'WINDY_ERROR'
+
+/** One Windy camera from GET /api/cop/:id/webcams/nearby. */
+export interface CopWebcamCandidate {
+  windy_id: string
+  title: string
+  status: string
+  lat: number
+  lon: number
+  distance_km: number
+  city: string | null
+  region: string | null
+  country: string | null
+  live: boolean
+  delivery: 'live' | 'timelapse'
+  /** Windy's token image URL; expires about 10 minutes after the search. */
+  preview_url: string | null
+  detail_url: string
+  categories: string[]
+  on_session: boolean
+}
+
+export interface CopWebcamNearbyResponse {
+  center: { lat: number; lon: number; label: string | null; source: 'query' | 'session' | 'place' | 'url' }
+  /** How a place or page link was turned into a search center; null for coordinates. */
+  resolution: { input: string; query: string; display_name: string; ai_used: boolean; ambiguous: boolean } | null
+  radius_km: number
+  total: number
+  webcams: CopWebcamCandidate[]
+  attribution: string
+  attribution_url: string
+  /** Present when a geocoder placed the center (Nominatim: "© OpenStreetMap contributors"). */
+  geocoder_attribution?: string
+  geocoder_attribution_url?: string
+}
+
+/** POST /api/cop/:id/webcams/:camId/estimate-bearing. Not saved until PATCHed. */
+export interface CopWebcamBearingEstimate {
+  bearing_deg: number
+  target: { name: string; display_name: string; lat: number; lon: number; distance_km: number }
+  ai_used: boolean
+  geocoder_attribution?: string
+  geocoder_attribution_url?: string
 }
 
 // ── Workspace Types ─────────────────────────────────────────

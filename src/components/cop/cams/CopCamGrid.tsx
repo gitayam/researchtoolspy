@@ -8,17 +8,19 @@
  *
  * The COP pages carry a CSP that allows the Windy and YouTube players and the
  * allow-listed HLS hosts (public/_headers). An in-app navigation keeps the CSP of
- * the page first loaded, so a page first opened elsewhere asks for a reload.
+ * the page first loaded; CopPlayersCspGate reloads into a COP document, and this
+ * grid's "Reload page" button is the fallback if that could not happen.
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ExternalLink, Loader2, Play, RotateCw, Square, Trash2, Video } from 'lucide-react'
+import { ExternalLink, Loader2, Pencil, Play, RotateCw, Square, Trash2, Video } from 'lucide-react'
 import type { CopWebcam } from '@/types/cop'
 import { camPlayersAllowedHere, MAX_LIVE_PLAYERS } from './cam-players'
 
 const MIN_IMAGE_REFRESH_S = 30
 
-const WINDY_EMBED_PREFIX = 'https://webcams.windy.com/webcams/public/embed/player/'
+// The server derives Windy embeds as …/player/<id>/day, or …/<id>/live when Windy lists a live view.
+const WINDY_EMBED = /^https:\/\/webcams\.windy\.com\/webcams\/public\/embed\/player\/(\d{6,12})\/(day|live)$/
 const YOUTUBE_EMBED_PREFIX = 'https://www.youtube-nocookie.com/embed/'
 
 const PROVIDER_LABELS: Record<string, string> = {
@@ -29,9 +31,11 @@ const PROVIDER_LABELS: Record<string, string> = {
 }
 const DELIVERY_LABELS: Record<string, string> = {
   live: 'Live',
-  timelapse: 'Timelapse',
+  timelapse: 'Time-lapse',
   snapshot: 'Snapshot',
 }
+
+const badgeClass = 'inline-flex items-center rounded px-1.5 py-0.5 text-[11px] font-medium'
 
 const isHttps = (url: string | null | undefined): url is string => !!url && /^https:\/\//i.test(url)
 
@@ -41,12 +45,19 @@ function needsFrameCsp(cam: CopWebcam): boolean {
 
 // ── Players ─────────────────────────────────────────────────────
 
+function windyEmbed(cam: CopWebcam): { url: string; live: boolean } | null {
+  const match = cam.embed_url ? WINDY_EMBED.exec(cam.embed_url) : null
+  if (!match || (cam.provider_ref && match[1] !== cam.provider_ref)) return null
+  return { url: match[0], live: match[2] === 'live' }
+}
+
 function WindyPlayer({ cam }: { cam: CopWebcam }) {
-  if (!cam.embed_url?.startsWith(WINDY_EMBED_PREFIX)) return <PlayerError message="This camera has no player." />
+  const embed = windyEmbed(cam)
+  if (!embed) return <PlayerError message="This camera has no player." />
   return (
     <iframe
-      src={cam.embed_url}
-      title={`${cam.label} (Windy webcam)`}
+      src={embed.url}
+      title={`${cam.label} (Windy ${embed.live ? 'live webcam' : 'webcam time-lapse'})`}
       className="absolute inset-0 h-full w-full border-0"
       sandbox="allow-scripts allow-same-origin"
       referrerPolicy="no-referrer"
@@ -202,6 +213,45 @@ function Attribution({ cam }: { cam: CopWebcam }) {
   return cam.attribution ? <span>{cam.attribution}</span> : null
 }
 
+function CamBadges({ cam }: { cam: CopWebcam }) {
+  const offline = cam.windy_status === 'inactive'
+  const unavailable = !!cam.windy_status && cam.windy_status !== 'active' && !offline
+  const fromWindy = cam.position_source === 'windy' && cam.lat !== null
+  const estimated = cam.bearing_source === 'estimated' && cam.bearing_deg !== null
+  if (!offline && !unavailable && !fromWindy && !estimated) return null
+  return (
+    <div className="flex flex-wrap gap-1 px-2.5 pb-1.5">
+      {offline && <span className={`${badgeClass} bg-amber-100 text-amber-900 dark:bg-amber-900/50 dark:text-amber-200`}>Offline on Windy</span>}
+      {unavailable && <span className={`${badgeClass} bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-200`}>No longer on Windy</span>}
+      {fromWindy && <span className={`${badgeClass} bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300`}>Position from Windy</span>}
+      {estimated && (
+        <span
+          className={`${badgeClass} bg-violet-100 text-violet-800 dark:bg-violet-900/50 dark:text-violet-200`}
+          title="An AI-assisted estimate from the camera's title; check it against the view."
+        >
+          Direction estimated
+        </span>
+      )}
+    </div>
+  )
+}
+
+function OperatorLink({ cam }: { cam: CopWebcam }) {
+  if (!isHttps(cam.source_url)) return null
+  return (
+    <a
+      href={cam.source_url}
+      target="_blank"
+      rel="noopener noreferrer"
+      referrerPolicy="no-referrer"
+      className="inline-flex items-center gap-1 text-cyan-700 dark:text-cyan-400 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-500 rounded"
+    >
+      Camera operator
+      <ExternalLink className="h-3 w-3" aria-hidden="true" />
+    </a>
+  )
+}
+
 interface CamCardProps {
   cam: CopWebcam
   armed: boolean
@@ -209,11 +259,12 @@ interface CamCardProps {
   framesAllowed: boolean
   onArm: () => void
   onDisarm: () => void
+  onEdit?: () => void
   onDelete?: () => void
   deleting?: boolean
 }
 
-function CamCard({ cam, armed, focused, framesAllowed, onArm, onDisarm, onDelete, deleting }: CamCardProps) {
+function CamCard({ cam, armed, focused, framesAllowed, onArm, onDisarm, onEdit, onDelete, deleting }: CamCardProps) {
   const cardRef = useRef<HTMLDivElement>(null)
   const [onScreen, setOnScreen] = useState(true)
 
@@ -258,6 +309,17 @@ function CamCard({ cam, armed, focused, framesAllowed, onArm, onDisarm, onDelete
             <Square className="h-3.5 w-3.5" />
           </button>
         )}
+        {onEdit && (
+          <button
+            type="button"
+            onClick={onEdit}
+            className="inline-flex h-11 w-11 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded text-gray-500 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-200 dark:hover:bg-gray-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-500"
+            aria-label={`Edit ${cam.label}`}
+            title="Edit"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </button>
+        )}
         {onDelete && (
           <button
             type="button"
@@ -271,6 +333,7 @@ function CamCard({ cam, armed, focused, framesAllowed, onArm, onDisarm, onDelete
           </button>
         )}
       </div>
+      <CamBadges cam={cam} />
 
       <div className="relative aspect-video bg-gray-900">
         {armed && onScreen && !blocked ? (
@@ -302,8 +365,9 @@ function CamCard({ cam, armed, focused, framesAllowed, onArm, onDisarm, onDelete
         )}
       </div>
 
-      <div className="px-2.5 py-1.5 text-[11px] text-gray-500 dark:text-gray-400 min-h-[24px]">
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-2.5 py-1.5 text-[11px] text-gray-500 dark:text-gray-400 min-h-[24px]">
         <Attribution cam={cam} />
+        <OperatorLink cam={cam} />
       </div>
     </div>
   )
@@ -314,11 +378,12 @@ function CamCard({ cam, armed, focused, framesAllowed, onArm, onDisarm, onDelete
 interface CopCamGridProps {
   cams: CopWebcam[]
   focusCamId?: string | null
+  onEdit?: (cam: CopWebcam) => void
   onDelete?: (cam: CopWebcam) => void
   deletingId?: string | null
 }
 
-export default function CopCamGrid({ cams, focusCamId, onDelete, deletingId }: CopCamGridProps) {
+export default function CopCamGrid({ cams, focusCamId, onEdit, onDelete, deletingId }: CopCamGridProps) {
   // Armed cameras, oldest first. Video players (not still images) are capped.
   const [armed, setArmed] = useState<string[]>([])
   const [framesAllowed] = useState(camPlayersAllowedHere)
@@ -366,6 +431,7 @@ export default function CopCamGrid({ cams, focusCamId, onDelete, deletingId }: C
             framesAllowed={framesAllowed}
             onArm={() => arm(cam)}
             onDisarm={() => disarm(cam.id)}
+            onEdit={onEdit ? () => onEdit(cam) : undefined}
             onDelete={onDelete ? () => onDelete(cam) : undefined}
             deleting={deletingId === cam.id}
           />

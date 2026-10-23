@@ -1,21 +1,29 @@
 /**
- * CopCamsPanel -- the workspace's webcams: the player grid, plus adding and
- * removing cameras for owners and editors (the server enforces who may).
+ * CopCamsPanel -- the workspace's webcams: the player grid, plus finding, adding,
+ * editing and removing cameras for owners and editors (the server enforces who may).
  */
 
 import { useCallback, useEffect, useState } from 'react'
-import { Loader2, Plus } from 'lucide-react'
+import { Loader2, Plus, Search } from 'lucide-react'
 import { getCopHeaders } from '@/lib/cop-auth'
 import { useConfirm } from '@/components/ui/confirm-dialog'
 import type { CopWebcam } from '@/types/cop'
 import CopCamGrid from './CopCamGrid'
 import AddWebcamDialog from './AddWebcamDialog'
-import { EMPTY_WEBCAM_DRAFT, type WebcamDraft } from './webcam-draft'
+import EditWebcamDialog from './EditWebcamDialog'
+import FindWebcamsDialog from './FindWebcamsDialog'
+import { camRequest } from './webcam-api'
+import {
+  EMPTY_WEBCAM_DRAFT,
+  editDraftFrom,
+  type WebcamDraft,
+  type WebcamEditDraft,
+} from './webcam-draft'
 
 interface CopCamsPanelProps {
   sessionId: string
   focusCamId?: string | null
-  /** Called after a webcam is added or removed, to refresh the map layer. */
+  /** Called after a webcam is added, edited or removed, to refresh the map layer. */
   onChanged?: () => void
   /** Enter map pick mode; the chosen point arrives as pickedLocation. */
   onPickFromMap?: () => void
@@ -33,6 +41,9 @@ function optionalNumber(value: string): number | undefined {
   return value.trim() === '' ? undefined : Number(value)
 }
 
+const headerButtonClass =
+  'inline-flex min-h-[44px] sm:min-h-0 sm:h-7 items-center gap-1 rounded border border-gray-300 dark:border-gray-600 px-2 text-[11px] font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-500'
+
 export default function CopCamsPanel({ sessionId, focusCamId, onChanged, onPickFromMap, pickedLocation }: CopCamsPanelProps) {
   const confirm = useConfirm()
   const [cams, setCams] = useState<CopWebcam[]>([])
@@ -42,8 +53,14 @@ export default function CopCamsPanel({ sessionId, focusCamId, onChanged, onPickF
   const [draft, setDraft] = useState<WebcamDraft>(EMPTY_WEBCAM_DRAFT)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [unsupportedLink, setUnsupportedLink] = useState<string | null>(null)
+  const [findOpen, setFindOpen] = useState(false)
+  const [findFromUrl, setFindFromUrl] = useState<string | null>(null)
+  const [editCam, setEditCam] = useState<CopWebcam | null>(null)
+  const [editOpen, setEditOpen] = useState(false)
+  const [editDraft, setEditDraft] = useState<WebcamEditDraft | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
-  const [picking, setPicking] = useState(false)
+  const [pickingFor, setPickingFor] = useState<'add' | 'edit' | null>(null)
   const [seenPick, setSeenPick] = useState(pickedLocation)
 
   useEffect(() => {
@@ -71,25 +88,39 @@ export default function CopCamsPanel({ sessionId, focusCamId, onChanged, onPickF
     }
   }, [sessionId])
 
-  // A point picked on the map fills the form and reopens the dialog.
+  // A point picked on the map fills the form it was picked for and reopens it.
   if (pickedLocation !== seenPick) {
     setSeenPick(pickedLocation)
-    if (pickedLocation && picking) {
-      setPicking(false)
-      setDraft((d) => ({ ...d, lat: pickedLocation.lat.toFixed(6), lon: pickedLocation.lon.toFixed(6) }))
-      setDialogOpen(true)
+    if (pickedLocation && pickingFor) {
+      const lat = pickedLocation.lat.toFixed(6)
+      const lon = pickedLocation.lon.toFixed(6)
+      if (pickingFor === 'add') {
+        setDraft((d) => ({ ...d, lat, lon }))
+        setDialogOpen(true)
+      } else if (editDraft) {
+        setEditDraft({ ...editDraft, lat, lon })
+        setEditOpen(true)
+      }
+      setPickingFor(null)
     }
   }
 
   const openDialog = () => {
     setSubmitError(null)
+    setUnsupportedLink(null)
     setDialogOpen(true)
   }
 
-  const handlePick = onPickFromMap
+  const openFind = () => {
+    setFindFromUrl(null)
+    setFindOpen(true)
+  }
+
+  const pickFor = (target: 'add' | 'edit') => onPickFromMap
     ? () => {
-        setPicking(true)
-        setDialogOpen(false)
+        setPickingFor(target)
+        if (target === 'add') setDialogOpen(false)
+        else setEditOpen(false)
         onPickFromMap()
       }
     : undefined
@@ -97,33 +128,57 @@ export default function CopCamsPanel({ sessionId, focusCamId, onChanged, onPickF
   const handleSubmit = async () => {
     setSubmitting(true)
     setSubmitError(null)
+    setUnsupportedLink(null)
+    const url = draft.url.trim()
+    const label = draft.label.trim()
     try {
-      const res = await fetch(`/api/cop/${sessionId}/webcams`, {
+      const res = await camRequest<{ webcam: CopWebcam | null }>(`/api/cop/${sessionId}/webcams`, {
         method: 'POST',
-        headers: getCopHeaders(),
-        body: JSON.stringify({
-          url: draft.url.trim(),
-          label: draft.label.trim(),
+        body: {
+          url,
+          // Blank lets the server use Windy's own title.
+          label: label || undefined,
           lat: optionalNumber(draft.lat),
           lon: optionalNumber(draft.lon),
           bearing_deg: optionalNumber(draft.bearing),
           fov_deg: optionalNumber(draft.fov),
-        }),
+        },
       })
-      const json = await res.json().catch(() => null) as { error?: string } | null
       if (!res.ok) {
-        setSubmitError(json?.error ?? `The webcam could not be added (HTTP ${res.status}).`)
+        if (res.code === 'WEBCAM_UNSUPPORTED_LINK') setUnsupportedLink(url)
+        setSubmitError(
+          res.code === 'WEBCAM_DUPLICATE' ? 'That camera is already on this COP.'
+            : res.code === 'WEBCAM_LIMIT' ? 'This COP already holds its maximum number of cameras.'
+              : res.status === 0 ? 'The webcam could not be added. Check your connection and try again.'
+                : res.error ?? `The webcam could not be added (HTTP ${res.status}).`,
+        )
         return
       }
       setDraft(EMPTY_WEBCAM_DRAFT)
       setDialogOpen(false)
       await reload()
       onChanged?.()
-    } catch {
-      setSubmitError('The webcam could not be added. Check your connection and try again.')
     } finally {
       setSubmitting(false)
     }
+  }
+
+  const handleFindNearLink = (link: string) => {
+    setDialogOpen(false)
+    setFindFromUrl(link)
+    setFindOpen(true)
+  }
+
+  const handleEdit = (cam: CopWebcam) => {
+    setEditCam(cam)
+    setEditDraft(editDraftFrom(cam))
+    setEditOpen(true)
+  }
+
+  const handleSaved = (updated: CopWebcam) => {
+    setCams((list) => list.map((c) => (c.id === updated.id ? updated : c)))
+    setEditOpen(false)
+    onChanged?.()
   }
 
   const handleDelete = async (cam: CopWebcam) => {
@@ -155,18 +210,20 @@ export default function CopCamsPanel({ sessionId, focusCamId, onChanged, onPickF
 
   return (
     <div className="flex h-full flex-col gap-2 px-3 py-2">
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="text-[11px] text-gray-500 dark:text-gray-400">
           {loading ? 'Loading…' : `${cams.length} webcam${cams.length === 1 ? '' : 's'}`}
         </span>
-        <button
-          type="button"
-          onClick={openDialog}
-          className="inline-flex min-h-[44px] sm:min-h-0 sm:h-7 items-center gap-1 rounded border border-gray-300 dark:border-gray-600 px-2 text-[11px] font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-500"
-        >
-          <Plus className="h-3 w-3" aria-hidden="true" />
-          Add webcam
-        </button>
+        <div className="flex flex-wrap gap-1.5">
+          <button type="button" onClick={openFind} className={headerButtonClass}>
+            <Search className="h-3 w-3" aria-hidden="true" />
+            Find cameras
+          </button>
+          <button type="button" onClick={openDialog} className={headerButtonClass}>
+            <Plus className="h-3 w-3" aria-hidden="true" />
+            Add webcam
+          </button>
+        </div>
       </div>
 
       {loadError && <p className="text-xs text-red-600 dark:text-red-400" role="alert">{loadError}</p>}
@@ -175,7 +232,7 @@ export default function CopCamsPanel({ sessionId, focusCamId, onChanged, onPickF
         {loading ? (
           <div className="flex justify-center py-6"><Loader2 className="h-4 w-4 animate-spin text-gray-500" /></div>
         ) : (
-          <CopCamGrid cams={cams} focusCamId={focusCamId} onDelete={handleDelete} deletingId={deletingId} />
+          <CopCamGrid cams={cams} focusCamId={focusCamId} onEdit={handleEdit} onDelete={handleDelete} deletingId={deletingId} />
         )}
       </div>
 
@@ -183,12 +240,42 @@ export default function CopCamsPanel({ sessionId, focusCamId, onChanged, onPickF
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         draft={draft}
-        onDraftChange={setDraft}
+        onDraftChange={(next) => {
+          setDraft(next)
+          if (next.url !== draft.url) setUnsupportedLink(null)
+        }}
         onSubmit={handleSubmit}
         submitting={submitting}
         error={submitError}
-        onPickFromMap={handlePick}
+        onPickFromMap={pickFor('add')}
+        unsupportedLink={unsupportedLink}
+        onFindNearLink={handleFindNearLink}
       />
+
+      <FindWebcamsDialog
+        open={findOpen}
+        onOpenChange={setFindOpen}
+        sessionId={sessionId}
+        fromUrl={findFromUrl}
+        onClearFromUrl={() => setFindFromUrl(null)}
+        onAdded={() => {
+          void reload()
+          onChanged?.()
+        }}
+      />
+
+      {editDraft && (
+        <EditWebcamDialog
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          sessionId={sessionId}
+          cam={editCam}
+          draft={editDraft}
+          onDraftChange={setEditDraft}
+          onSaved={handleSaved}
+          onPickFromMap={pickFor('edit')}
+        />
+      )}
     </div>
   )
 }
