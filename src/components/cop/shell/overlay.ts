@@ -50,11 +50,87 @@ function releasePageLock() {
   document.documentElement.style.overflow = savedOverflow
 }
 
-/**
- * While `open`, the browser's Back closes the overlay instead of leaving the page.
- * Opening pushes a same-URL history entry (keeping the router's own state so it
- * sees no navigation); closing from the UI pops it again.
- */
+// ── History: the browser's Back closes the topmost overlay ──────────
+//
+// Opening an overlay pushes a same-URL history entry (keeping the router's state, so
+// it sees no navigation); closing it from the UI pops that entry with history.back().
+// That pop arrives asynchronously, which used to break two things:
+//   - an overlay opened in the same moment (the side menu's "Submit evidence" closes
+//     the menu and opens a sheet) pushed its entry first, so the pending pop removed
+//     the NEW entry and closed the new overlay at once;
+//   - the browser restored the scroll position of the entry it returned to, undoing a
+//     scroll the menu had just started (the menu's "Jump to" did nothing).
+// So one coordinator owns the entries: while our own pop is pending, other overlays
+// ignore it and new ones wait to push; scroll restoration is manual while we hold
+// entries; and a real Back closes only the overlays above the entry it returns to.
+
+interface OverlayEntry {
+  id: string
+  onPop: () => void
+}
+
+const entries: OverlayEntry[] = []
+let pendingBacks = 0
+let pendingTimer: ReturnType<typeof setTimeout> | undefined
+let settleWaiters: Array<() => void> = []
+let savedRestoration: ScrollRestoration | null = null
+let listening = false
+
+function currentOverlayId(): string | undefined {
+  return (window.history.state as { copOverlay?: string } | null)?.copOverlay
+}
+
+function holdScroll() {
+  if (savedRestoration !== null || !('scrollRestoration' in window.history)) return
+  savedRestoration = window.history.scrollRestoration
+  window.history.scrollRestoration = 'manual'
+}
+
+function settleIfIdle() {
+  if (pendingBacks > 0) return
+  if (pendingTimer) clearTimeout(pendingTimer)
+  pendingTimer = undefined
+  const waiters = settleWaiters
+  settleWaiters = []
+  waiters.forEach((resolve) => resolve())
+  if (entries.length === 0 && savedRestoration !== null) {
+    window.history.scrollRestoration = savedRestoration
+    savedRestoration = null
+  }
+}
+
+function onGlobalPop() {
+  if (pendingBacks > 0) {
+    // Our own history.back() from an overlay closed in the UI: not the user's Back.
+    pendingBacks -= 1
+    settleIfIdle()
+    return
+  }
+  // The user's Back: close every overlay above the entry the browser returned to.
+  const keep = entries.findIndex((entry) => entry.id === currentOverlayId())
+  const closing = entries.splice(keep + 1)
+  for (const entry of closing.reverse()) entry.onPop()
+  settleIfIdle()
+}
+
+function popOwnEntry() {
+  pendingBacks += 1
+  if (pendingTimer) clearTimeout(pendingTimer)
+  // A pop that never arrives (no earlier entry, a blocked traversal) must not leave
+  // overlays waiting for ever.
+  pendingTimer = setTimeout(() => {
+    pendingBacks = 0
+    settleIfIdle()
+  }, 1500)
+  window.history.back()
+}
+
+/** Resolves once no overlay's own history pop is pending (immediately when none is). */
+export function whenHistorySettled(): Promise<void> {
+  if (typeof window === 'undefined' || pendingBacks === 0) return Promise.resolve()
+  return new Promise((resolve) => settleWaiters.push(resolve))
+}
+
 export function useBackToClose(open: boolean, onClose: () => void) {
   const id = useId()
   const onCloseRef = useRef(onClose)
@@ -64,22 +140,39 @@ export function useBackToClose(open: boolean, onClose: () => void) {
 
   useEffect(() => {
     if (!open || typeof window === 'undefined') return
-    const base = (window.history.state ?? {}) as Record<string, unknown>
-    window.history.pushState({ ...base, copOverlay: id }, '')
-    let pushed = true
-    const onPop = () => {
+    if (!listening) {
+      window.addEventListener('popstate', onGlobalPop)
+      listening = true
+    }
+    let cancelled = false
+    let pushed = false
+    const entry: OverlayEntry = {
+      id,
+      onPop: () => {
+        pushed = false
+        onCloseRef.current()
+      },
+    }
+    const push = () => {
+      if (cancelled) return
+      holdScroll()
+      const base = (window.history.state ?? {}) as Record<string, unknown>
+      window.history.pushState({ ...base, copOverlay: id }, '')
+      entries.push(entry)
+      pushed = true
+    }
+    if (pendingBacks === 0) push()
+    else void whenHistorySettled().then(push)
+
+    return () => {
+      cancelled = true
       if (!pushed) return
       pushed = false
-      onCloseRef.current()
-    }
-    window.addEventListener('popstate', onPop)
-    return () => {
-      window.removeEventListener('popstate', onPop)
+      const index = entries.indexOf(entry)
+      if (index !== -1) entries.splice(index, 1)
       // Closed from the UI: drop our entry, unless something navigated on top of it.
-      if (pushed && (window.history.state as { copOverlay?: string } | null)?.copOverlay === id) {
-        window.history.back()
-      }
-      pushed = false
+      if (currentOverlayId() === id) popOwnEntry()
+      else settleIfIdle()
     }
   }, [open, id])
 }
@@ -90,9 +183,11 @@ interface ModalOverlayOptions {
   containerRef: RefObject<HTMLElement | null>
   /** Element to focus on open; default: the first focusable element, else the container. */
   initialFocusRef?: RefObject<HTMLElement | null>
+  /** Where focus goes on close when nothing was focused at open (Safari doesn't focus a tapped button). */
+  returnFocusRef?: RefObject<HTMLElement | null>
 }
 
-export function useModalOverlay({ open, onClose, containerRef, initialFocusRef }: ModalOverlayOptions) {
+export function useModalOverlay({ open, onClose, containerRef, initialFocusRef, returnFocusRef }: ModalOverlayOptions) {
   const overlayId = useId()
   const onCloseRef = useRef(onClose)
   useLayoutEffect(() => {
@@ -146,11 +241,12 @@ export function useModalOverlay({ open, onClose, containerRef, initialFocusRef }
       const index = overlayStack.lastIndexOf(overlayId)
       if (index !== -1) overlayStack.splice(index, 1)
       releasePageLock()
-      if (previouslyFocused && document.contains(previouslyFocused)) {
-        previouslyFocused.focus({ preventScroll: true })
-      }
+      const back = previouslyFocused && previouslyFocused !== document.body && document.contains(previouslyFocused)
+        ? previouslyFocused
+        : returnFocusRef?.current
+      back?.focus({ preventScroll: true })
     }
-  }, [open, overlayId, containerRef, initialFocusRef])
+  }, [open, overlayId, containerRef, initialFocusRef, returnFocusRef])
 
   useBackToClose(open, () => onCloseRef.current())
 }

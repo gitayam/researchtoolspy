@@ -177,6 +177,7 @@ export default function PublicCopPage() {
   const [expandedRfis, setExpandedRfis] = useState<Set<string>>(new Set())
 
   const topBarRef = useRef<HTMLElement>(null)
+  const panelsButtonRef = useRef<HTMLButtonElement>(null)
 
   // ── Fetch shared data ──────────────────────────────────────────
 
@@ -757,6 +758,7 @@ export default function PublicCopPage() {
       >
         {isPhone && hasPanels && (
           <button
+            ref={panelsButtonRef}
             type="button"
             onClick={() => setMenuOpen(true)}
             aria-label="Open panels"
@@ -846,6 +848,7 @@ export default function PublicCopPage() {
           title={session.name}
           subtitle={`${TEMPLATE_LABELS[session.template_type] ?? 'COP'} · shared view`}
           openGestureRef={topBarRef}
+          returnFocusRef={panelsButtonRef}
           rootClassName="dark"
           panelClassName="bg-gray-900 text-gray-100"
         >

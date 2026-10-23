@@ -37,6 +37,8 @@ interface CopSideMenuProps {
   panelClassName?: string
   /** Extra classes on the portal root (e.g. `dark` to force the dark palette). */
   rootClassName?: string
+  /** The control that opens the menu: focus returns there on close. */
+  returnFocusRef?: RefObject<HTMLElement | null>
 }
 
 const EASE = 'cubic-bezier(0.32, 0.72, 0, 1)' // iOS-like deceleration
@@ -51,6 +53,7 @@ export default function CopSideMenu({
   openGestureRef,
   panelClassName,
   rootClassName,
+  returnFocusRef,
 }: CopSideMenuProps) {
   const titleId = useId()
   const panelRef = useRef<HTMLDivElement>(null)
@@ -73,7 +76,7 @@ export default function CopSideMenu({
   }
 
   const close = useCallback(() => onOpenChange(false), [onOpenChange])
-  useModalOverlay({ open, onClose: close, containerRef: panelRef, initialFocusRef: closeRef })
+  useModalOverlay({ open, onClose: close, containerRef: panelRef, initialFocusRef: closeRef, returnFocusRef })
 
   const width = () => panelRef.current?.getBoundingClientRect().width || Math.min(window.innerWidth * 0.85, 360)
 
