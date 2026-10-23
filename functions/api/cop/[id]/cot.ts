@@ -111,7 +111,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     // Check KV cache (30-second TTL for CoT feeds), one entry per audience and layer set.
     const audience = collaborator ? 'full' : 'public'
     const COT_CACHE_KEY = `cot-feed:${sessionId}:${audience}:${[withPlaces, withEvents, withActors].map(Number).join('')}`
-    const COT_CACHE_TTL = 30
+    const COT_CACHE_TTL = 60 // KV refuses expirationTtl below 60
 
     if (env.CACHE) {
       const cached = await env.CACHE.get(COT_CACHE_KEY, 'text')
