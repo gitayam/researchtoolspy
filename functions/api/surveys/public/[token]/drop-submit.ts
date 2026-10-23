@@ -13,8 +13,10 @@
  * Inline files (data: URLs) are typed from their bytes and images stripped of
  * identifying metadata before the row is stored; an unreadable image is refused. A
  * photo keeps its GPS position and capture time (and Orientation) for the team — the
- * form says so next to its file inputs and before submit (PublicIntakeForm) — and
- * nothing else: no make, model, serials, owner names, thumbnails, XMP or IPTC. Nobody
+ * form says so next to its file inputs and before submit (PublicIntakeForm), and the row
+ * records it (keep_photo_location, migration 0029; without the column the photo is
+ * stored fully stripped) — and nothing else: no make, model, serials, owner names,
+ * thumbnails, XMP or IPTC. Nobody
  * outside the team gets the position (the public results route re-cleans images,
  * publicFormData; share links serve the stripped copy). For a form linked to a COP with auto_ingest on, the tip becomes
  * unverified COP evidence at once (functions/api/_shared/cop-ingest.ts); the
@@ -36,7 +38,7 @@ import { INGEST_SUBMISSION_RECEIVED } from '../../../_shared/cop-event-types'
 import { autoIngestSubmission, parseFormSchema, sanitizeFormDataFiles } from '../../../_shared/cop-ingest'
 import { chosenQuestionsForSubmission, storedQuestionChoices } from '../../../_shared/cop-evidence-links'
 import { verifyQuestionTicket } from '../../../_shared/cop-question-ticket'
-import { isMissingColumn } from '../../../_shared/cop-input'
+import { columnMissing } from '../../../_shared/cop-records'
 import type { R2Like } from '../../../_shared/cop-uploads'
 import { formDataTooLarge, readCappedText, SUBMISSION_BODY_MAX_BYTES } from '../../../_shared/capped-body'
 
@@ -177,7 +179,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     // Size limit
     const formData = cleaned.formData
-    const formDataStr = JSON.stringify(formData)
+    let formDataStr = JSON.stringify(formData)
     if (formDataStr.length > 65536) {
       return new Response(JSON.stringify({ ok: false, error: TOO_LARGE }), {
         status: 200, headers: JSON_HEADERS,
@@ -209,36 +211,45 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
 
     // Content hash — for same-drop content tracking (no dedup — accept every tip)
-    const contentHash = await hashFormData(formData)
+    let contentHash = await hashFormData(formData)
 
     const id = generatePrefixedId('drop')
     const now = new Date().toISOString()
 
-    // Insert — no submitter_ip_hash, no submitter geo, no submitter name/contact
-    try {
-      await env.DB.prepare(`
-        INSERT INTO survey_responses (
-          id, survey_id, cop_session_id,
-          form_data, content_hash, status, updated_at, question_choices
-        ) VALUES (?, ?, ?, ?, ?, 'pending', ?, ?)
-      `).bind(
-        id, form.id, form.cop_session_id || null,
-        formDataStr, contentHash, now,
-        storedQuestionChoices(questions.picks)
-      ).run()
-    } catch (insertError) {
-      // Before migration 0026: the row without the checked choices (ingest falls back to
-      // the `_question(s)` answers, filing only the standalone form's key questions).
-      if (!isMissingColumn(insertError)) throw insertError
-      await env.DB.prepare(`
-        INSERT INTO survey_responses (
-          id, survey_id, cop_session_id,
-          form_data, content_hash, status, updated_at
-        ) VALUES (?, ?, ?, ?, ?, 'pending', ?)
-      `).bind(
-        id, form.id, form.cop_session_id || null,
-        formDataStr, contentHash, now
-      ).run()
+    // Insert — no submitter_ip_hash, no submitter geo, no submitter name/contact.
+    // Optional columns, each dropped (once) when its migration isn't applied:
+    //   - question_choices (0026): without it ingest falls back to the `_question(s)`
+    //     answers, filing only the standalone form's key questions;
+    //   - keep_photo_location (0029): this form told the tipster that photos keep where
+    //     and when they were taken, so ingest may keep that for the team. Without the
+    //     column the consent can't be recorded: the photos are stored fully stripped.
+    const optional: { column: string; value: unknown }[] = [
+      { column: 'question_choices', value: storedQuestionChoices(questions.picks) },
+      { column: 'keep_photo_location', value: 1 },
+    ]
+    for (;;) {
+      try {
+        await env.DB.prepare(`
+          INSERT INTO survey_responses (
+            id, survey_id, cop_session_id,
+            form_data, content_hash, status, updated_at${optional.map((o) => `, ${o.column}`).join('')}
+          ) VALUES (?, ?, ?, ?, ?, 'pending', ?${optional.map(() => ', ?').join('')})
+        `).bind(
+          id, form.id, form.cop_session_id || null,
+          formDataStr, contentHash, now, ...optional.map((o) => o.value),
+        ).run()
+        break
+      } catch (insertError) {
+        const missing = optional.findIndex((o) => columnMissing(insertError, o.column))
+        if (missing === -1) throw insertError
+        if (optional[missing].column === 'keep_photo_location') {
+          const stripped = await sanitizeFormDataFiles(rawFormData, formSchemaFields)
+          if (stripped.ok === false) throw new Error('A file accepted with its location kept was refused without it', { cause: insertError })
+          formDataStr = JSON.stringify(stripped.formData)
+          contentHash = await hashFormData(stripped.formData)
+        }
+        optional.splice(missing, 1)
+      }
     }
 
     // Increment submission count

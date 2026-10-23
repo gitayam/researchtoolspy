@@ -5,8 +5,9 @@
  *   - one unverified evidence item: the form's answers as text (form fields only;
  *     never the submitter's name, contact or network location), the form's URL
  *     field as source_url, its images stored as COP uploads (identifying metadata
- *     stripped; the team's copy keeps a photo's GPS position and capture time, which
- *     the drop form tells the tipster before they submit);
+ *     stripped; for a drop-form tip — keep_photo_location on its row — the team's copy
+ *     keeps a photo's GPS position and capture time, which that form tells the tipster
+ *     before they submit; every other row is fully stripped);
  *   - a POSSIBLE marker, only when the form has an explicit location (geopoint)
  *     field. The response's own lat/lon columns are never mapped: on the survey
  *     path they can be the submitter's IP-derived position;
@@ -271,20 +272,32 @@ interface ResponseRow {
   linked_marker_id?: string | null
   auto_ingested?: number | null
   ingested_evidence_id?: string | null
+  /** 1: stored by drop-submit, whose form said photos keep where and when they were taken. */
+  keep_photo_location?: number | null
 }
 
+const RESPONSE_BASE = 'id, survey_id, form_data, cop_session_id, linked_evidence_id'
+const RESPONSE_0023 = `${RESPONSE_BASE}, linked_marker_id, auto_ingested, ingested_evidence_id`
+
 async function loadResponse(db: D1Database, responseId: string, sessionId: string): Promise<ResponseRow | null> {
-  try {
-    return await db.prepare(`
-      SELECT id, survey_id, form_data, cop_session_id, linked_evidence_id, linked_marker_id, auto_ingested, ingested_evidence_id
+  const select = (columns: string) => db.prepare(`
+      SELECT ${columns}
       FROM survey_responses WHERE id = ? AND cop_session_id = ?
     `).bind(responseId, sessionId).first<ResponseRow>()
+  try {
+    return await select(`${RESPONSE_0023}, keep_photo_location`)
+  } catch (error) {
+    if (!columnMissing(error, 'keep_photo_location')) {
+      if (!columnMissing(error, 'linked_marker_id') && !columnMissing(error, 'auto_ingested') && !columnMissing(error, 'ingested_evidence_id')) throw error
+      return select(RESPONSE_BASE)
+    }
+  }
+  // Before managed migration 0029 no row records consent: nothing keeps a location.
+  try {
+    return await select(RESPONSE_0023)
   } catch (error) {
     if (!columnMissing(error, 'linked_marker_id') && !columnMissing(error, 'auto_ingested') && !columnMissing(error, 'ingested_evidence_id')) throw error
-    return db.prepare(`
-      SELECT id, survey_id, form_data, cop_session_id, linked_evidence_id
-      FROM survey_responses WHERE id = ? AND cop_session_id = ?
-    `).bind(responseId, sessionId).first<ResponseRow>()
+    return select(RESPONSE_BASE)
   }
 }
 
@@ -337,14 +350,17 @@ export async function ingestSubmission(
   let photoLocation: StoredLocation | null = null
   try {
     // Inline files: stored as COP uploads (already cleaned at submit time; cleaned again
-    // here). The team copy keeps what the submit route kept (drop form: GPS, capture time).
+    // here). A photo keeps where and when it was taken (team copy, marker) only when the
+    // row says its form told the submitter so (drop-submit, keep_photo_location = 1);
+    // surveys, intake forms and older rows are fully stripped.
+    const keepLocation = Number(response.keep_photo_location) === 1
     if (env.UPLOADS) {
       for (const { value } of fileAnswers(formData, schema).slice(0, MAX_FILES)) {
         const bytes = decodeDataUrl(value)
         if (!bytes) continue
         // documents stays off: a submitter's file is an image or a PDF, never more.
         const stored = await storeCopUpload({ DB: db, UPLOADS: env.UPLOADS }, {
-          sessionId: input.sessionId, bytes, originalName: null, createdBy: actor, sourceChannel: 'drop', keepLocation: true,
+          sessionId: input.sessionId, bytes, originalName: null, createdBy: actor, sourceChannel: 'drop', keepLocation,
         })
         if (stored.ok) {
           uploadIds.push(stored.row.id)

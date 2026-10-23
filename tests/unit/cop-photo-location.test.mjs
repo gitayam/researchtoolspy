@@ -523,3 +523,44 @@ test('the photo marker\'s text (public once confirmed) carries no capture time',
     assert.doesNotMatch(String(marker[field] ?? ''), /2026|10:15|\+02:00|taken (at|on|\d)/, field)
   }
 })
+
+test('only a drop-submit row (whose form told the tipster) keeps a photo\'s location; other rows are stripped at ingest', async () => {
+  const { db, env, r2 } = await photoFixture()
+  // The drop form records the consent on its row.
+  const res = await publicCall(env, mod('dropSubmit'), 'POST', `/api/surveys/public/${DROP_TOKEN}/drop-submit`, {
+    params: { token: DROP_TOKEN }, body: { form_data: { what: 'Tip with photo', photo: dataUrl('image/jpeg', phonePhoto('image/jpeg')) } },
+  })
+  assert.equal((await res.json()).ok, true)
+  assert.equal(db.prepare("SELECT keep_photo_location FROM survey_responses WHERE survey_id = 'srv-paris'").get().keep_photo_location, 1)
+
+  // A survey row, and a drop row from before this change, holding a raw phone photo
+  // (as rows stored before submit-time cleaning could): nothing kept at ingest.
+  const raw = JSON.stringify({ what: 'Older answer', photo: dataUrl('image/jpeg', phonePhoto('image/jpeg')) })
+  db.prepare("INSERT INTO survey_responses (id, survey_id, cop_session_id, form_data, status) VALUES ('sub-survey-raw', 'srv-survey', ?, ?, 'pending')").run(SESSION, raw)
+  db.prepare("INSERT INTO survey_responses (id, survey_id, cop_session_id, form_data, status) VALUES ('sub-drop-old', 'srv-paris', ?, ?, 'pending')").run(SESSION, raw)
+  const before = photoMarkers(db).length
+  for (const responseId of ['sub-survey-raw', 'sub-drop-old']) {
+    const out = await mod('copIngest').ingestSubmission(env, { responseId, sessionId: SESSION, actorUserId: 1, auto: false })
+    assert.equal(out.ok, true, responseId)
+    const upload = db.prepare('SELECT r2_key, team_r2_key, gps_lat, captured_at FROM cop_uploads WHERE evidence_id = ?').get(String(out.evidenceId))
+    assert.equal(upload.team_r2_key, null, `${responseId}: no team copy`)
+    assert.equal(upload.gps_lat, null, `${responseId}: no position on the row`)
+    assert.equal(upload.captured_at, null, `${responseId}: no capture time on the row`)
+    const stored = r2.objects.get(upload.r2_key).bytes
+    assert.equal(exifBlocks(stored, 'image/jpeg').some((b) => readTiff(b).gps || readTiff(b).exif), false, `${responseId}: stripped`)
+  }
+  assert.equal(photoMarkers(db).length, before, 'no photo marker for them')
+})
+
+test('before migration 0029 the drop form stores a fully stripped photo (no consent column to record)', async () => {
+  const { db, env } = await photoFixture({ photoLocation: false })
+  const res = await publicCall(env, mod('dropSubmit'), 'POST', `/api/surveys/public/${DROP_TOKEN}/drop-submit`, {
+    params: { token: DROP_TOKEN }, body: { form_data: { what: 'Tip with photo', photo: dataUrl('image/jpeg', phonePhoto('image/jpeg')) } },
+  })
+  assert.equal((await res.json()).ok, true)
+  const row = db.prepare("SELECT form_data FROM survey_responses WHERE survey_id = 'srv-paris'").get()
+  const stored = Buffer.from(JSON.parse(row.form_data).photo.split(',')[1], 'base64')
+  assert.equal(exifBlocks(stored, 'image/jpeg').some((b) => readTiff(b).gps || readTiff(b).exif), false)
+  assert.deepEqual(leaksIdentifying(stored), [])
+  assert.equal(photoMarkers(db).length, 0)
+})
