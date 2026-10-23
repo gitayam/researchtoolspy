@@ -8,7 +8,7 @@
  * a point on the map.
  */
 
-import { Loader2, MapPin } from 'lucide-react'
+import { Loader2, MapPin, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -19,6 +19,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import type { WebcamDraft } from './webcam-draft'
+import { looksLikeWindyLink } from './webcam-api'
 
 interface AddWebcamDialogProps {
   open: boolean
@@ -30,6 +31,10 @@ interface AddWebcamDialogProps {
   error: string | null
   /** Close the dialog and let the analyst click the map; the parent reopens it. */
   onPickFromMap?: () => void
+  /** Set when the server said the link is a page, not a camera feed. */
+  unsupportedLink?: string | null
+  /** Search for cameras near the place that page describes. */
+  onFindNearLink?: (link: string) => void
 }
 
 const inputClass =
@@ -45,10 +50,15 @@ export default function AddWebcamDialog({
   submitting,
   error,
   onPickFromMap,
+  unsupportedLink,
+  onFindNearLink,
 }: AddWebcamDialogProps) {
   const set = (field: keyof WebcamDraft) => (e: React.ChangeEvent<HTMLInputElement>) =>
     onDraftChange({ ...draft, [field]: e.target.value })
-  const canSubmit = draft.url.trim() !== '' && draft.label.trim() !== '' && !submitting
+  // Windy supplies its own title and position, so a Windy link needs neither.
+  const windy = looksLikeWindyLink(draft.url)
+  const canSubmit = draft.url.trim() !== '' && (windy || draft.label.trim() !== '') && !submitting
+  const showFindNearLink = !!unsupportedLink && unsupportedLink === draft.url.trim() && !!onFindNearLink
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -84,16 +94,16 @@ export default function AddWebcamDialog({
             />
           </div>
           <div>
-            <label htmlFor="cam-label" className={labelClass}>Label</label>
+            <label htmlFor="cam-label" className={labelClass}>Label{windy ? ' (optional)' : ''}</label>
             <input
               id="cam-label"
               type="text"
               maxLength={120}
               value={draft.label}
               onChange={set('label')}
-              placeholder="Palais d'Iéna, facing the Eiffel Tower"
+              placeholder={windy ? "Leave blank to use Windy's title" : "Palais d'Iéna, facing the Eiffel Tower"}
               className={inputClass}
-              required
+              required={!windy}
             />
           </div>
           <div className="grid grid-cols-2 gap-2">
@@ -123,7 +133,33 @@ export default function AddWebcamDialog({
             </div>
           </div>
 
-          {error && <p className="text-xs text-red-600 dark:text-red-400" role="alert">{error}</p>}
+          {windy && (
+            <p className="text-[11px] text-gray-600 dark:text-gray-400">
+              Leave the position blank to use the one Windy lists for this camera.
+            </p>
+          )}
+
+          {showFindNearLink ? (
+            <div className="space-y-2 rounded border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/40 p-2.5" role="alert">
+              <p className="text-xs font-semibold text-amber-900 dark:text-amber-200">This page isn&apos;t a camera feed.</p>
+              <p className="text-xs text-amber-900 dark:text-amber-200">
+                It may show a camera from Windy or YouTube. Open it and copy that link, or search for public cameras near
+                the place the page is about. The page itself is not opened.
+              </p>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => { if (unsupportedLink) onFindNearLink?.(unsupportedLink) }}
+                className="min-h-[44px] sm:min-h-0"
+              >
+                <Search className="h-3.5 w-3.5 mr-1" aria-hidden="true" />
+                Find cameras near this page&apos;s place
+              </Button>
+            </div>
+          ) : (
+            error && <p className="text-xs text-red-600 dark:text-red-400" role="alert">{error}</p>
+          )}
 
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
