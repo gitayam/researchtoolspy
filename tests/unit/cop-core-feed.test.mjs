@@ -73,7 +73,7 @@ test('changes: viewers read the feed, strangers do not, bad cursors are refused,
   db.prepare("INSERT INTO cop_events (id, cop_session_id, event_type, entity_type, created_by) VALUES ('evt-legacy', ?, 'collaborator.added', 'collaborator', 1)").run(SESSION)
   db.prepare("INSERT INTO cop_events (id, cop_session_id, event_type, entity_type, created_by) VALUES ('evt-odd', ?, 'x.y', 'not-a-feed-type', 1)").run(SESSION)
   const viewer = await json(await changes(env, '0', { who: 'viewer' }))
-  assert.equal(viewer.events.find((e) => e.id === 'evt-legacy').entity_type, 'session')
+  assert.equal(viewer.events.find((e) => e.id === 'evt-legacy').entity_type, 'activity')
   assert.equal(viewer.events.find((e) => e.id === 'evt-odd'), undefined)
   assert.equal((await changes(env, '0', { who: 'stranger' })).status, 403)
   assert.equal((await changes(env, '0', { who: 'anonymous' })).status, 401)
@@ -140,8 +140,8 @@ test('source_channel comes from the caller, never from the body', async () => {
 // ── Duplicates and upserts ─────────────────────────────────────────
 
 test('evidence: the same link twice (tracking parameters, fragment, trailing slash, host case) is one item', async () => {
-  const { db, env } = await fixture({ seed: (d) => d.exec(`INSERT INTO evidence_items (id, title, description, evidence_type, credibility, reliability, workspace_id, created_by, source_url)
-    VALUES (900, 'Saved before 0022', 'x', 'observation', 'unverified', 'unknown', '${WS}', 1, 'https://old.example/story')`) })
+  const { db, env } = await fixture({ seed: (d) => d.exec(`INSERT INTO evidence_items (id, title, description, evidence_type, credibility, reliability, workspace_id, created_by, source_url, metadata)
+    VALUES (900, 'Saved before 0022', 'x', 'observation', 'unverified', 'unknown', '${WS}', 1, 'https://old.example/story', '{"cop_session_id":"${SESSION}"}')`) })
   const first = await call(env, 'evidence', 'POST', `${P}/evidence`, { params: S, body: { title: 'Story', url: 'https://News.example/story/?utm_source=x&id=7#top' } })
   assert.equal(first.status, 201)
   const { id } = await first.json()
@@ -338,10 +338,10 @@ test('public payload: evidence_form only when the link allows evidence and an ac
 test('public payload: key_rfis with the questions panel; evidence with the evidence panel, without descriptions or other links', async () => {
   const { env } = await fixture({ seed: (d) => {
     seedShare(['map', 'questions', 'evidence'])(d)
-    d.exec(`INSERT INTO evidence_items (id, title, description, evidence_type, credibility, reliability, workspace_id, created_by, source_url)
-      VALUES (1, 'Tip', 'Call me on +33 6 00 00 00 00', 'observation', 'unverified', 'unknown', '${WS}', 1, 'javascript:alert(1)'),
-             (2, 'Story', 'x', 'observation', 'unverified', 'unknown', '${WS}', 1, 'https://news.example/a'),
-             (3, 'Other workspace', 'x', 'observation', 'unverified', 'unknown', 'ws-other', 4, 'https://other.example')`)
+    d.exec(`INSERT INTO evidence_items (id, title, description, evidence_type, credibility, reliability, workspace_id, created_by, source_url, metadata)
+      VALUES (1, 'Tip', 'Call me on +33 6 00 00 00 00', 'observation', 'unverified', 'unknown', '${WS}', 1, 'javascript:alert(1)', '{"cop_session_id":"${SESSION}"}'),
+             (2, 'Story', 'x', 'observation', 'unverified', 'unknown', '${WS}', 1, 'https://news.example/a', '{"cop_session_id":"${SESSION}"}'),
+             (3, 'Other workspace', 'x', 'observation', 'unverified', 'unknown', 'ws-other', 4, 'https://other.example', NULL)`)
     d.exec("INSERT INTO cop_rfi_answers (id, rfi_id, answer_text, created_by) VALUES ('a1', 'rfi-existing', 'two', 1)")
   } })
   const payload = await json(await publicGet(env))
@@ -419,7 +419,11 @@ test('without migration 0022 the routes keep working with the old columns', asyn
 
   const ev = await call(env, 'evidence', 'POST', `${P}/evidence`, { params: S, body: { title: 'New', url: 'https://new.example/a' } })
   assert.equal(ev.status, 201, await ev.clone().text())
-  assert.equal((await json(await call(env, 'evidence', 'POST', `${P}/evidence`, { params: S, body: { title: 'x', url: 'https://old.example/story/' } }))).id, 900)
+  // Before 0022 a COP sharing its owner's workspace can't tell its own old evidence from
+  // the workspace's, so an old item is not a duplicate: the link is saved for this COP.
+  const again = await call(env, 'evidence', 'POST', `${P}/evidence`, { params: S, body: { title: 'x', url: 'https://old.example/story/' } })
+  assert.equal(again.status, 201)
+  assert.notEqual((await again.json()).id, 900)
   assert.equal((await call(env, 'evidenceBatch', 'POST', `${P}/evidence/batch`, { params: S, body: { items: [{ title: 'b', url: 'https://b.example' }] } })).status, 201)
   assert.equal((await call(env, 'markers', 'POST', `${P}/markers`, { params: S, body: { lat: 1, lon: 2 } })).status, 201)
   assert.equal((await call(env, 'rfis', 'POST', `${P}/rfis`, { params: S, body: { question: 'Q?', is_key: true } })).status, 201)

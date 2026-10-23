@@ -51,9 +51,10 @@ function seedItems(db) {
     INSERT INTO cop_markers (id, cop_session_id, uid, lat, lon, created_by, workspace_id) VALUES
       ('mkr-1', '${SESSION}', 'uid-1', 48.9, 2.36, 1, '${WS}'),
       ('mkr-bot', '${SESSION}', 'uid-bot', 48.9, 2.36, ${SERVICE_USER}, '${WS}');
-    INSERT INTO evidence_items (id, title, description, evidence_type, credibility, reliability, workspace_id, created_by) VALUES
-      (1001, 'Photo of the gate', 'x', 'observation', 'unverified', 'unknown', '${WS}', 1),
-      (1002, 'Link from chat', 'x', 'observation', 'unverified', 'unknown', '${WS}', ${SERVICE_USER});
+    -- COP evidence: migration 0022 gives these their session from the metadata.
+    INSERT INTO evidence_items (id, title, description, evidence_type, credibility, reliability, workspace_id, created_by, metadata) VALUES
+      (1001, 'Photo of the gate', 'x', 'observation', 'unverified', 'unknown', '${WS}', 1, '{"cop_session_id":"${SESSION}"}'),
+      (1002, 'Link from chat', 'x', 'observation', 'unverified', 'unknown', '${WS}', ${SERVICE_USER}, '{"cop_session_id":"${SESSION}"}');
     INSERT INTO cop_rfis (id, cop_session_id, question, created_by, updated_at) VALUES ('rfi-bot', '${SESSION}', 'Asked in chat?', ${SERVICE_USER}, '${T0}');
     INSERT INTO cop_rfi_answers (id, rfi_id, answer_text, created_by) VALUES ('ans-1', 'rfi-existing', 'Two guards', 1);
     INSERT INTO cop_shares (id, cop_session_id, share_token, visible_panels, created_by) VALUES ('cops-1', '${SESSION}', '${SHARE_TOKEN}', '["map","rfi"]', 1);
@@ -81,9 +82,9 @@ const WRITES = [
   ['claims POST', 'claims', 'POST', `${P}/claims`, S, { claims: [{ claim: 'The gate opens at eight' }], url: 'https://news.example/a' }, 'claim'],
   ['claims PUT', 'claims', 'PUT', `${P}/claims`, S, { claim_id: 'clm-1', status: 'disputed' }, 'claim'],
   ['claims DELETE', 'claims', 'DELETE', `${P}/claims?claim_id=clm-1`, S, undefined, 'claim'],
-  ['collaborators POST', 'collaborators', 'POST', `${P}/collaborators`, S, { user_id: 4, role: 'viewer' }, 'session', { ownerOnly: true }],
-  ['collaborators PUT', 'collaborators', 'PUT', `${P}/collaborators`, S, { collaborator_id: 'col-editor', availability: 'busy' }, 'session', { ownerOnly: true }],
-  ['collaborators DELETE', 'collaborators', 'DELETE', `${P}/collaborators`, S, { collaborator_id: 'col-viewer' }, 'session', { ownerOnly: true }],
+  ['collaborators POST', 'collaborators', 'POST', `${P}/collaborators`, S, { user_id: 4, role: 'viewer' }, 'activity', { ownerOnly: true }],
+  ['collaborators PUT', 'collaborators', 'PUT', `${P}/collaborators`, S, { collaborator_id: 'col-editor', availability: 'busy' }, 'activity', { ownerOnly: true }],
+  ['collaborators DELETE', 'collaborators', 'DELETE', `${P}/collaborators`, S, { collaborator_id: 'col-viewer' }, 'activity', { ownerOnly: true }],
   ['evidence POST', 'evidence', 'POST', `${P}/evidence`, S, { title: 'Video of the gate', url: 'https://video.example/v1' }, 'evidence'],
   ['evidence DELETE', 'evidence', 'DELETE', `${P}/evidence?id=1001`, S, undefined, 'evidence'],
   ['evidence batch POST', 'evidenceBatch', 'POST', `${P}/evidence/batch`, S, { items: [{ title: 'A', url: 'https://a.example/1' }] }, 'evidence'],

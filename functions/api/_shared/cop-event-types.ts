@@ -138,8 +138,9 @@ export type CopFeedEntityType = (typeof COP_FEED_ENTITY_TYPES)[number]
  * them as. New code emits feed types only.
  */
 export const LEGACY_ENTITY_TYPES: Readonly<Record<string, CopFeedEntityType>> = {
-  collaborator: 'session',
-  export: 'session',
+  // Team activity, never shown on a share link (publicFeedTypes has no 'activity').
+  collaborator: 'activity',
+  export: 'activity',
   alert: 'activity',
   workflow: 'playbook',
 }

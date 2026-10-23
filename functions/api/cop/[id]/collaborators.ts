@@ -143,7 +143,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     await emitCopEvent(env.DB, {
       copSessionId: sessionId,
       eventType: COLLABORATOR_ADDED,
-      entityType: 'session',
+      entityType: 'activity',
       entityId: id,
       payload: { email: body.email ?? null, role },
       createdBy: invitedBy,
@@ -235,7 +235,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       `UPDATE cop_collaborators SET ${updates.join(', ')} WHERE id = ? AND cop_session_id = ?`
     ).bind(...bindings).run()
 
-    await emitCopEvent(env.DB, { copSessionId: sessionId, eventType: COLLABORATOR_UPDATED, entityType: 'session', entityId: sessionId, createdBy: userId })
+    await emitCopEvent(env.DB, { copSessionId: sessionId, eventType: COLLABORATOR_UPDATED, entityType: 'activity', entityId: sessionId, createdBy: userId })
     return new Response(JSON.stringify({ success: true }), { headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } })
   } catch (error) {
     await logEvent(env, {
@@ -316,7 +316,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     await emitCopEvent(env.DB, {
       copSessionId: sessionId,
       eventType: COLLABORATOR_REMOVED,
-      entityType: 'session',
+      entityType: 'activity',
       entityId: body.collaborator_id,
       payload: {},
       createdBy: removedBy,

@@ -9,7 +9,8 @@
  */
 
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { verifyCopLayerAccess } from '../../../_shared/auth-helpers'
+import { getUserFromRequest, verifyCopLayerAccess, verifyCopSessionAccess } from '../../../_shared/auth-helpers'
+import { UNVERIFIED_TIP_LABEL, unreviewedTipMarker } from '../../../_shared/cop-input'
 import { JSON_HEADERS } from '../../../_shared/api-utils'
 import { logEvent } from '../../../_shared/event-log'
 
@@ -28,6 +29,14 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   const access = await verifyCopLayerAccess(env.DB, sessionId, request, env, 'markers')
   if (access instanceof Response) return access
 
+  // A drop-form tip nobody has reviewed shows its text to the session's own people only:
+  // a share link or a public session's anonymous reader sees "Unverified tip".
+  let collaborator = false
+  if (!access.viaShare) {
+    const userId = await getUserFromRequest(request, env)
+    collaborator = Boolean(userId && (await verifyCopSessionAccess(env.DB, sessionId, userId)))
+  }
+
   try {
     const rows = await env.DB.prepare(`
       SELECT * FROM cop_markers
@@ -37,27 +46,30 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       LIMIT 500
     `).bind(sessionId).all()
 
-    const features = (rows.results || []).map((row: any) => ({
-      type: 'Feature' as const,
-      geometry: {
-        type: 'Point' as const,
-        coordinates: [row.lon, row.lat],
-      },
-      properties: {
-        id: row.id,
-        uid: row.uid,
-        cot_type: row.cot_type,
-        callsign: row.callsign,
-        label: row.label,
-        description: row.description,
-        icon: row.icon,
-        color: row.color,
-        event_time: row.event_time,
-        stale_time: row.stale_time,
-        source_type: row.source_type,
-        entity_type: 'marker',
-      },
-    }))
+    const features = (rows.results || []).map((row: any) => {
+      const hidden = !collaborator && unreviewedTipMarker(row)
+      return {
+        type: 'Feature' as const,
+        geometry: {
+          type: 'Point' as const,
+          coordinates: [row.lon, row.lat],
+        },
+        properties: {
+          id: row.id,
+          uid: row.uid,
+          cot_type: row.cot_type,
+          callsign: hidden ? null : row.callsign,
+          label: hidden ? UNVERIFIED_TIP_LABEL : row.label,
+          description: hidden ? null : row.description,
+          icon: row.icon,
+          color: row.color,
+          event_time: row.event_time,
+          stale_time: row.stale_time,
+          source_type: row.source_type,
+          entity_type: 'marker',
+        },
+      }
+    })
 
     return new Response(JSON.stringify({
       type: 'FeatureCollection',

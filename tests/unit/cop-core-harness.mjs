@@ -66,6 +66,9 @@ export const ENTRIES = {
   publicShare: 'functions/api/cop/public/[token].ts',
   publicChanges: 'functions/api/cop/public/[token]/changes.ts',
   publicAnswers: 'functions/api/cop/public/[token]/rfis/[rfiId]/answers.ts',
+  markersLayer: `${R}layers/markers.ts`,
+  stats: `${R}stats.ts`,
+  copTags: 'functions/api/_shared/cop-tags.ts',
 }
 
 /**

@@ -11,6 +11,7 @@ import { logEvent } from '../../../../_shared/event-log'
 import { copCallerUserId } from '../../../../_shared/cop-caller'
 import { emitCopEvent } from '../../../../_shared/cop-events'
 import { EVIDENCE_CREATED, RFI_ANSWERED, RFI_ANSWER_UPDATED } from '../../../../_shared/cop-event-types'
+import { setEvidenceSession } from '../../../../_shared/cop-input'
 
 interface Env {
   DB: D1Database
@@ -81,14 +82,15 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       ).bind(sessionId).first<{ workspace_id: string }>()
       const workspaceId = session?.workspace_id ?? sessionId
 
-      await env.DB.prepare(`
-        INSERT INTO evidence_items (title, description, evidence_type, credibility, confidence_level, workspace_id, created_by, created_at, updated_at)
-        VALUES (?, ?, 'rfi_answer', 'unverified', 'medium', ?, ?, ?, ?)
+      const seeded = await env.DB.prepare(`
+        INSERT INTO evidence_items (title, description, evidence_type, credibility, reliability, confidence_level, workspace_id, created_by, created_at, updated_at)
+        VALUES (?, ?, 'rfi_answer', 'unverified', 'unknown', 'medium', ?, ?, ?, ?)
       `).bind(
         `RFI Answer: ${(rfi?.question ?? 'Unknown').substring(0, 80)}`,
         body.answer_text.trim(),
         workspaceId, userId, now, now,
       ).run()
+      if (seeded.meta?.last_row_id) await setEvidenceSession(env.DB, seeded.meta.last_row_id, sessionId)
       await emitCopEvent(env.DB, {
         copSessionId: sessionId,
         eventType: EVIDENCE_CREATED,

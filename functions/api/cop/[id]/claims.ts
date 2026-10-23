@@ -16,7 +16,7 @@ import { copCallerUserId } from '../../_shared/cop-caller'
 import { emitCopEvent } from '../../_shared/cop-events'
 import { CLAIM_CREATED, CLAIM_DELETED, CLAIM_UPDATED, EVIDENCE_CREATED } from '../../_shared/cop-event-types'
 import {
-  copSourceChannel, copSourceRef, expectedUpdatedAt, serviceDeleteRefused, serviceMayDelete, setProvenance,
+  copSourceChannel, copSourceRef, expectedUpdatedAt, serviceChangeRefused, serviceDeleteRefused, serviceMayChange, serviceMayDelete, setEvidenceSession, setProvenance,
   staleWriteResponse,
 } from '../../_shared/cop-input'
 
@@ -201,6 +201,8 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
         status: 404, headers: JSON_HEADERS,
       })
     }
+    // A service (the bot's credential) changes only claims it created.
+    if (!serviceMayChange(context, current.created_by)) return serviceChangeRefused()
     const expected = expectedUpdatedAt(request, body)
     if (expected && expected !== current.updated_at) return staleWriteResponse(current)
 
@@ -259,7 +261,10 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
         }
         throw error
       }
-      if (evidenceId) await setProvenance(env.DB, 'evidence_items', evidenceId, copSourceChannel(context), copSourceRef(context))
+      if (evidenceId) {
+        await setEvidenceSession(env.DB, evidenceId, sessionId)
+        await setProvenance(env.DB, 'evidence_items', evidenceId, copSourceChannel(context), copSourceRef(context))
+      }
       await emitCopEvent(env.DB, { copSessionId: sessionId, eventType: CLAIM_UPDATED, entityType: 'claim', entityId: claimId, payload: { status: 'verified', promoted: true }, createdBy: userId })
       await emitCopEvent(env.DB, { copSessionId: sessionId, eventType: EVIDENCE_CREATED, entityType: 'evidence', entityId: evidenceId ? String(evidenceId) : null, createdBy: userId })
 

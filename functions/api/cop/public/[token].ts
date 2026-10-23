@@ -120,7 +120,10 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     // Evidence only with the evidence panel: explicit fields, no descriptions.
     if (visiblePanels.includes('evidence')) {
-      response.evidence = await publicEvidence(env.DB, String((session as { workspace_id?: unknown }).workspace_id))
+      response.evidence = await publicEvidence(env.DB, {
+        sessionId: share.cop_session_id,
+        workspaceId: String((session as { workspace_id?: unknown }).workspace_id),
+      })
     }
 
     // Include RFIs if rfi panel is visible

@@ -13,7 +13,7 @@ import type { PagesFunction } from '@cloudflare/workers-types'
 import { JSON_HEADERS } from '../../../_shared/api-utils'
 import { logEvent } from '../../../_shared/event-log'
 import { changesLimit, listCopChanges } from '../../../_shared/cop-events'
-import { loadPublicShare, publicFeedTypes, takePublicChangesSlot } from '../../../_shared/cop-public'
+import { loadPublicShare, PUBLIC_REDACTED_ID_TYPES, publicFeedTypes, takePublicChangesSlot } from '../../../_shared/cop-public'
 import type { KvLike } from '../../../_shared/kv-json'
 
 interface Env {
@@ -50,6 +50,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       url.searchParams.get('since'),
       changesLimit(url.searchParams.get('limit')),
       publicFeedTypes(found.panels),
+      PUBLIC_REDACTED_ID_TYPES,
     )
     if (result.ok === false) return new Response(JSON.stringify({ error: result.error }), { status: result.status, headers })
     return new Response(JSON.stringify({ events: result.events, cursor: result.cursor, has_more: result.has_more }), { headers })

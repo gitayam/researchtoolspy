@@ -9,6 +9,7 @@
  */
 
 import type { PagesFunction } from '@cloudflare/workers-types'
+import { queryEvidenceInSession } from '../../_shared/cop-input'
 import { verifyCopSessionAccess } from '../../_shared/auth-helpers'
 import { JSON_HEADERS } from '../../_shared/api-utils'
 import { logEvent } from '../../_shared/event-log'
@@ -63,7 +64,12 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       safeCount(`SELECT COUNT(*) as cnt FROM events WHERE workspace_id = ?`, workspace_id),
       safeCount(`SELECT COUNT(*) as cnt FROM places WHERE workspace_id = ?`, workspace_id),
       safeCount(`SELECT COUNT(*) as cnt FROM behaviors WHERE workspace_id = ?`, workspace_id),
-      safeCount(`SELECT COUNT(*) as cnt FROM evidence_items WHERE workspace_id = ?`, workspace_id),
+      // This COP's evidence only, not everything in its workspace.
+      queryEvidenceInSession(
+        env.DB, 'SELECT COUNT(*) as cnt FROM evidence_items WHERE {EVIDENCE_SCOPE}',
+        { sessionId, workspaceId: workspace_id }, [], [],
+        (statement) => statement.first<{ cnt: number }>(),
+      ).then((row) => Number(row?.cnt ?? 0)).catch(() => 0),
       safeCount(`SELECT COALESCE(JSON_ARRAY_LENGTH(linked_frameworks), 0) as cnt FROM cop_sessions WHERE id = ?`, sessionId),
       safeCount(`SELECT COUNT(*) as cnt FROM relationships WHERE workspace_id = ?`, workspace_id),
       safeCount(`SELECT COUNT(*) as cnt FROM cop_rfis WHERE cop_session_id = ? AND status = 'open'`, sessionId),

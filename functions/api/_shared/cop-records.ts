@@ -79,10 +79,12 @@ export async function insertCopEvidence(db: D1Database, scope: CopSessionScope, 
       status, workspace_id, created_by, created_at, updated_at`
   let result
   try {
+    // source_channel and cop_session_id come with migration 0022: the COP's evidence is
+    // what carries its session (evidence_items is workspace-wide).
     result = await db.prepare(`
-      INSERT INTO evidence_items (${columns}, source_channel)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?, ?, ?, ?, ?)
-    `).bind(...values, input.sourceChannel).run()
+      INSERT INTO evidence_items (${columns}, source_channel, cop_session_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?, ?, ?, ?, ?, ?)
+    `).bind(...values, input.sourceChannel, scope.sessionId).run()
   } catch (error) {
     if (!columnMissing(error, 'source_channel')) throw error
     result = await db.prepare(`

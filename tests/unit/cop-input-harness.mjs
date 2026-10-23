@@ -227,7 +227,8 @@ const PROD_TABLES = `
     evidence_type TEXT NOT NULL, credibility TEXT NOT NULL, reliability TEXT NOT NULL, confidence_level TEXT,
     tags TEXT, status TEXT DEFAULT 'draft', created_by INTEGER DEFAULT 1,
     created_at TEXT NOT NULL DEFAULT (datetime('now')), updated_at TEXT NOT NULL DEFAULT (datetime('now')),
-    source_name TEXT, source_url TEXT, workspace_id TEXT, metadata TEXT
+    source_name TEXT, source_url TEXT, workspace_id TEXT, metadata TEXT,
+    cop_session_id TEXT -- migration 0022: the COP an evidence item belongs to
   );
   CREATE TABLE cop_markers (
     id TEXT PRIMARY KEY, cop_session_id TEXT NOT NULL, uid TEXT NOT NULL, cot_type TEXT DEFAULT 'a-u-G', callsign TEXT,
@@ -331,9 +332,9 @@ export async function fixture({ tags = true, channel = false, kv = true, r2 = tr
       ('share-1', '${SESSION}', '${SHARE_TOKEN}', '["map","event"]', '${past}', '${future}'),
       ('share-2', '${SESSION}', '${SHARE_NO_FEED}', '["map","cams"]', '${past}', '${future}'),
       ('share-3', '${SESSION}', '${SHARE_EXPIRED}', '["map","event"]', '${past}', '${past}');
-    INSERT INTO evidence_items (id, title, description, evidence_type, credibility, reliability, workspace_id, created_by) VALUES
-      (1, 'Paris evidence', 'x', 'observation', 'unverified', 'unknown', 'ws-owner', 1),
-      (2, 'Attacker evidence', 'x', 'observation', 'unverified', 'unknown', 'ws-attacker', 4);
+    INSERT INTO evidence_items (id, title, description, evidence_type, credibility, reliability, workspace_id, created_by, cop_session_id) VALUES
+      (1, 'Paris evidence', 'x', 'observation', 'unverified', 'unknown', 'ws-owner', 1, '${SESSION}'),
+      (2, 'Attacker evidence', 'x', 'observation', 'unverified', 'unknown', 'ws-attacker', 4, '${ATTACKER_SESSION}');
   `)
   // One item of every taggable type in each session.
   for (const [session, suffix, ws] of [[SESSION, 'paris', 'ws-owner'], [ATTACKER_SESSION, 'attacker', 'ws-attacker']]) {

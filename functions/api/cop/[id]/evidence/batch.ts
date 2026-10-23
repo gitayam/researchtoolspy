@@ -12,7 +12,9 @@ import { logEvent } from '../../../_shared/event-log'
 import { copCallerUserId } from '../../../_shared/cop-caller'
 import { emitCopEvent } from '../../../_shared/cop-events'
 import { EVIDENCE_BATCH_CREATED } from '../../../_shared/cop-event-types'
-import { canonicalUrl, copSourceChannel, copSourceRef, isMissingColumn, setProvenance } from '../../../_shared/cop-input'
+import {
+  canonicalUrl, copSourceChannel, copSourceRef, evidenceInSession, isMissingColumn, setEvidenceSession, setProvenance,
+} from '../../../_shared/cop-input'
 
 interface Env {
   DB: D1Database
@@ -96,7 +98,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       canonicals.push(canonical)
     }
 
-    // Links already in the workspace, and repeats inside this batch, are not saved again.
+    // Links already in this COP, and repeats inside this batch, are not saved again.
+    const scope = evidenceInSession({ sessionId, workspaceId })
     const duplicates: { index: number; id: number | null }[] = []
     const seen = new Map<string, number>()
     const fresh: number[] = []
@@ -110,14 +113,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       try {
         existing = await env.DB.prepare(`
           SELECT id FROM evidence_items
-          WHERE workspace_id = ? AND (canonical_url = ? OR (canonical_url IS NULL AND source_url IN (?, ?)))
+          WHERE ${scope.sql} AND (canonical_url = ? OR (canonical_url IS NULL AND source_url IN (?, ?)))
           ORDER BY id ASC LIMIT 1
-        `).bind(workspaceId, canonical, raw, canonical).first<{ id: number }>()
+        `).bind(...scope.binds, canonical, raw, canonical).first<{ id: number }>()
       } catch (error) {
         if (!isMissingColumn(error)) throw error
         existing = await env.DB.prepare(
-          'SELECT id FROM evidence_items WHERE workspace_id = ? AND source_url IN (?, ?) ORDER BY id ASC LIMIT 1'
-        ).bind(workspaceId, raw, canonical).first<{ id: number }>()
+          `SELECT id FROM evidence_items WHERE ${scope.legacySql} AND source_url IN (?, ?) ORDER BY id ASC LIMIT 1`
+        ).bind(...scope.legacyBinds, raw, canonical).first<{ id: number }>()
       }
       if (existing) duplicates.push({ index: i, id: Number(existing.id) })
       else fresh.push(i)
@@ -156,6 +159,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     for (let k = 0; k < results.length; k++) {
       const id = (results[k] as D1Result).meta?.last_row_id
       if (!id) continue
+      await setEvidenceSession(env.DB, id, sessionId)
       await setProvenance(env.DB, 'evidence_items', id, channel, ref)
       const canonical = canonicals[fresh[k]]
       if (canonical) {

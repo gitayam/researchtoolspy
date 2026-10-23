@@ -95,7 +95,8 @@ export function entityTypeForCopPath(pathname: string): CopFeedEntityType {
     case 'submissions': case 'intake-forms': return 'submission'
     case 'shares': return 'share'
     case 'playbooks': return 'playbook'
-    case 'activity': case 'alerts': return 'activity'
+    // Team activity (collaborators, exports) is private: never on a share link's feed.
+    case 'activity': case 'alerts': case 'collaborators': case 'export': case 'exports': return 'activity'
     default: return 'session'
   }
 }

@@ -889,11 +889,11 @@ async function batchInsertEvidence(
     // Provenance (migration 0022) and the change feed for open COPs.
     try {
       await db.prepare(`
-        UPDATE evidence_items SET source_channel = 'scrape', source_ref = ?
+        UPDATE evidence_items SET source_channel = 'scrape', source_ref = ?, cop_session_id = ?
         WHERE source_channel IS NULL AND id IN (
           SELECT evidence_item_id FROM cop_scrape_imports WHERE run_id = ? AND cop_session_id = ? AND evidence_item_id IS NOT NULL
         )
-      `).bind(scraperType, runId, sessionId).run()
+      `).bind(scraperType, sessionId, runId, sessionId).run()
     } catch (error) {
       if (!isMissingColumn(error)) throw error
     }

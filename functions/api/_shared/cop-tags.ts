@@ -12,6 +12,7 @@
  * lower-cased name, so `#Protest` and `protest` are one tag.
  */
 import { emitCopEventLoose } from './cop-events-loose'
+import { queryEvidenceInSession } from './cop-input'
 
 export const TAG_TARGET_TYPES = [
   'evidence', 'marker', 'rfi', 'task', 'timeline', 'claim', 'hypothesis',
@@ -88,6 +89,7 @@ export function isMissingTable(error: unknown): boolean {
 
 /** SQL that finds one item of a type in a session (or, for evidence, its workspace). */
 const TARGET_SQL: Record<TagTargetType, { sql: string; scope: 'session' | 'workspace' }> = {
+  // Evidence is checked by targetInSession with evidenceInSession (the COP's own items).
   evidence: { sql: 'SELECT 1 FROM evidence_items WHERE CAST(id AS TEXT) = ? AND workspace_id = ?', scope: 'workspace' },
   marker: { sql: 'SELECT 1 FROM cop_markers WHERE id = ? AND cop_session_id = ?', scope: 'session' },
   rfi: { sql: 'SELECT 1 FROM cop_rfis WHERE id = ? AND cop_session_id = ?', scope: 'session' },
@@ -109,6 +111,15 @@ export async function targetInSession(
   targetType: TagTargetType,
   targetId: string,
 ): Promise<boolean> {
+  if (targetType === 'evidence') {
+    // Only this COP's evidence, never another COP's in the same workspace.
+    return Boolean(await queryEvidenceInSession(
+      db,
+      'SELECT 1 AS found FROM evidence_items WHERE CAST(id AS TEXT) = ? AND {EVIDENCE_SCOPE}',
+      scope, [targetId], [],
+      (statement) => statement.first(),
+    ))
+  }
   const { sql, scope: by } = TARGET_SQL[targetType]
   try {
     const row = await db.prepare(sql).bind(targetId, by === 'workspace' ? scope.workspaceId : scope.sessionId).first()

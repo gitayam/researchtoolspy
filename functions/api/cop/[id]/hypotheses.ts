@@ -15,9 +15,10 @@ import { HYPOTHESIS_CREATED, HYPOTHESIS_DELETED, HYPOTHESIS_UPDATED, HYPOTHESIS_
 import { createTimelineEntry } from '../../_shared/timeline-helper'
 import { JSON_HEADERS } from '../../_shared/api-utils'
 import { logEvent } from '../../_shared/event-log'
-import { copCallerUserId } from '../../_shared/cop-caller'
+import { copCallerUserId, copServiceCaller } from '../../_shared/cop-caller'
 import {
-  copSourceChannel, copSourceRef, expectedUpdatedAt, serviceDeleteRefused, serviceMayDelete, setProvenance,
+  copSourceChannel, copSourceRef, expectedUpdatedAt, serviceChangeRefused, serviceDeleteRefused, serviceMayChange,
+  serviceMayDelete, setProvenance,
   staleWriteResponse,
 } from '../../_shared/cop-input'
 
@@ -223,6 +224,13 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       return new Response(JSON.stringify({ error: 'Hypothesis id is required' }), {
         status: 400, headers: JSON_HEADERS,
       })
+    }
+
+    // A service (the bot's credential) changes only hypotheses it created.
+    if (copServiceCaller(context.data)) {
+      const own = await env.DB.prepare('SELECT created_by FROM cop_hypotheses WHERE id = ? AND cop_session_id = ?')
+        .bind(body.id, sessionId).first<{ created_by: number }>()
+      if (own && !serviceMayChange(context, own.created_by)) return serviceChangeRefused()
     }
 
     const expected = expectedUpdatedAt(request, body)

@@ -8,6 +8,12 @@
 -- - cop_rfis.is_key: a starred RFI is a key question. The session's key_questions list
 --   stays, rewritten from the starred RFIs, so older readers see the same list.
 -- - cop_shares.allow_evidence: the share link offers the session's evidence form.
+-- - evidence_items.cop_session_id: the COP session an evidence item belongs to.
+--   evidence_items is workspace-wide, and a COP often shares its owner's main
+--   workspace, so "the COP's evidence" is decided by this column: set on every COP
+--   evidence insert, and backfilled below from the session's own records. A row
+--   without it counts as the session's only when the session has a workspace of its
+--   own (workspace_id = session id).
 --
 -- The change feed (GET /api/cop/:id/changes) pages cop_events by rowid; the existing
 -- idx_cop_events_session(cop_session_id) already orders a session's rows by rowid, so
@@ -34,10 +40,55 @@ ALTER TABLE cop_claims ADD COLUMN source_ref TEXT;
 ALTER TABLE cop_hypotheses ADD COLUMN source_channel TEXT;
 ALTER TABLE cop_hypotheses ADD COLUMN source_ref TEXT;
 ALTER TABLE cop_shares ADD COLUMN allow_evidence INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE evidence_items ADD COLUMN cop_session_id TEXT;
 
 CREATE INDEX IF NOT EXISTS idx_evidence_items_workspace_canonical
   ON evidence_items(workspace_id, canonical_url) WHERE canonical_url IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_cop_rfis_session_key ON cop_rfis(cop_session_id, is_key);
+CREATE INDEX IF NOT EXISTS idx_evidence_items_cop_session ON evidence_items(cop_session_id) WHERE cop_session_id IS NOT NULL;
+
+-- Evidence a COP created before this column: its session is known from the session's
+-- own records (its evidence.created events, its timeline lines about the item, or the
+-- metadata the claim-promote and scrape routes wrote), and only when that session's
+-- workspace is the item's workspace.
+UPDATE evidence_items
+SET cop_session_id = (
+  SELECT s.id FROM cop_events e JOIN cop_sessions s ON s.id = e.cop_session_id
+  WHERE e.entity_type = 'evidence' AND e.entity_id = CAST(evidence_items.id AS TEXT)
+    AND s.workspace_id = evidence_items.workspace_id
+  ORDER BY e.rowid ASC LIMIT 1
+)
+WHERE cop_session_id IS NULL
+  AND EXISTS (
+    SELECT 1 FROM cop_events e JOIN cop_sessions s ON s.id = e.cop_session_id
+    WHERE e.entity_type = 'evidence' AND e.entity_id = CAST(evidence_items.id AS TEXT)
+      AND s.workspace_id = evidence_items.workspace_id
+  );
+
+UPDATE evidence_items
+SET cop_session_id = (
+  SELECT s.id FROM cop_timeline_entries t JOIN cop_sessions s ON s.id = t.cop_session_id
+  WHERE t.entity_type = 'evidence' AND t.entity_id = CAST(evidence_items.id AS TEXT)
+    AND s.workspace_id = evidence_items.workspace_id
+  ORDER BY t.rowid ASC LIMIT 1
+)
+WHERE cop_session_id IS NULL
+  AND EXISTS (
+    SELECT 1 FROM cop_timeline_entries t JOIN cop_sessions s ON s.id = t.cop_session_id
+    WHERE t.entity_type = 'evidence' AND t.entity_id = CAST(evidence_items.id AS TEXT)
+      AND s.workspace_id = evidence_items.workspace_id
+  );
+
+UPDATE evidence_items
+SET cop_session_id = json_extract(metadata, '$.cop_session_id')
+WHERE cop_session_id IS NULL
+  AND json_valid(metadata)
+  AND json_type(metadata, '$.cop_session_id') = 'text'
+  AND EXISTS (
+    SELECT 1 FROM cop_sessions s
+    WHERE s.id = json_extract(evidence_items.metadata, '$.cop_session_id')
+      AND s.workspace_id = evidence_items.workspace_id
+  );
 
 -- Key questions → starred RFIs. Questions compare lowercased, with line breaks and tabs
 -- as spaces, doubled spaces collapsed and trailing "?" or spaces dropped (the same rule

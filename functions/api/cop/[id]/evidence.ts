@@ -16,7 +16,8 @@ import { JSON_HEADERS } from '../../_shared/api-utils'
 import { logEvent } from '../../_shared/event-log'
 import { copCallerUserId } from '../../_shared/cop-caller'
 import {
-  canonicalUrl, copSourceChannel, copSourceRef, isMissingColumn, serviceDeleteRefused, serviceMayDelete, setProvenance,
+  canonicalUrl, copSourceChannel, copSourceRef, evidenceInSession, isMissingColumn, queryEvidenceInSession,
+  serviceDeleteRefused, serviceMayDelete, setEvidenceSession, setProvenance, type EvidenceSessionScope,
 } from '../../_shared/cop-input'
 
 interface Env {
@@ -41,22 +42,24 @@ async function evidenceRow(db: D1Database, id: number | string, workspaceId: str
 }
 
 /**
- * The workspace's evidence item for the same link, if any: by canonical_url (migration
- * 0022), or, for items saved before it, by the exact link as given or canonical.
+ * The session's evidence item for the same link, if any: by canonical_url (migration
+ * 0022), or, for items saved before it, by the exact link as given or canonical. Only
+ * this COP's evidence (evidenceInSession), never another COP's in the same workspace.
  */
-async function findDuplicate(db: D1Database, workspaceId: string, raw: string, canonical: string): Promise<number | null> {
+async function findDuplicate(db: D1Database, scope: EvidenceSessionScope, raw: string, canonical: string): Promise<number | null> {
+  const clause = evidenceInSession(scope)
   try {
     const row = await db.prepare(`
       SELECT id FROM evidence_items
-      WHERE workspace_id = ? AND (canonical_url = ? OR (canonical_url IS NULL AND source_url IN (?, ?)))
+      WHERE ${clause.sql} AND (canonical_url = ? OR (canonical_url IS NULL AND source_url IN (?, ?)))
       ORDER BY id ASC LIMIT 1
-    `).bind(workspaceId, canonical, raw, canonical).first<{ id: number }>()
+    `).bind(...clause.binds, canonical, raw, canonical).first<{ id: number }>()
     return row ? Number(row.id) : null
   } catch (error) {
     if (!isMissingColumn(error)) throw error
     const row = await db.prepare(
-      'SELECT id FROM evidence_items WHERE workspace_id = ? AND source_url IN (?, ?) ORDER BY id ASC LIMIT 1'
-    ).bind(workspaceId, raw, canonical).first<{ id: number }>()
+      `SELECT id FROM evidence_items WHERE ${clause.legacySql} AND source_url IN (?, ?) ORDER BY id ASC LIMIT 1`
+    ).bind(...clause.legacyBinds, raw, canonical).first<{ id: number }>()
     return row ? Number(row.id) : null
   }
 }
@@ -83,9 +86,13 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
   try {
 
-    const results = await env.DB.prepare(`
-      SELECT * FROM evidence_items WHERE workspace_id = ? ORDER BY created_at DESC LIMIT 500
-    `).bind(workspaceId).all()
+    // This COP's evidence, not everything in its workspace (evidenceInSession).
+    const results = await queryEvidenceInSession(
+      env.DB,
+      'SELECT * FROM evidence_items WHERE {EVIDENCE_SCOPE} ORDER BY created_at DESC LIMIT 500',
+      { sessionId, workspaceId }, [], [],
+      (statement) => statement.all(),
+    )
 
     return new Response(JSON.stringify({ evidence: results.results }), { headers: JSON_HEADERS })
   } catch (error) {
@@ -133,7 +140,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
     if (rawUrl && canonical) {
-      const duplicateId = await findDuplicate(env.DB, workspaceId, rawUrl, canonical)
+      const duplicateId = await findDuplicate(env.DB, { sessionId, workspaceId }, rawUrl, canonical)
       if (duplicateId !== null) {
         const evidence = await evidenceRow(env.DB, duplicateId, workspaceId)
         return new Response(JSON.stringify({ id: duplicateId, evidence, duplicate: true, message: 'Evidence already saved' }), {
@@ -170,6 +177,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     ).run()
 
     const id = result.meta?.last_row_id ?? 0
+    await setEvidenceSession(env.DB, id, sessionId)
     await setProvenance(env.DB, 'evidence_items', id, copSourceChannel(context), copSourceRef(context))
     if (canonical) {
       try {
@@ -236,8 +244,12 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     if (!/^\d{1,15}$/.test(raw)) {
       return new Response(JSON.stringify({ error: 'id query parameter is required' }), { status: 400, headers: JSON_HEADERS })
     }
-    const existing = await env.DB.prepare('SELECT id, created_by FROM evidence_items WHERE id = ? AND workspace_id = ?')
-      .bind(Number(raw), workspaceId).first<{ id: number; created_by: number }>()
+    const existing = await queryEvidenceInSession(
+      env.DB,
+      'SELECT id, created_by FROM evidence_items WHERE id = ? AND {EVIDENCE_SCOPE}',
+      { sessionId, workspaceId }, [Number(raw)], [],
+      (statement) => statement.first<{ id: number; created_by: number }>(),
+    )
     if (!existing) {
       return new Response(JSON.stringify({ error: 'Evidence not found' }), { status: 404, headers: JSON_HEADERS })
     }

@@ -123,6 +123,7 @@ export function changesLimit(raw: string | null): number {
  * `since` is '' or absent to start from now (no events, the latest cursor), a cursor
  * from an earlier answer, or an event id. `allowed` restricts the entity types
  * returned (the public feed); rows of other types still advance the cursor.
+ * `redactIds` lists types whose entity_id is answered as null (the public feed).
  * Payloads and user ids never leave.
  */
 export async function listCopChanges(
@@ -131,6 +132,7 @@ export async function listCopChanges(
   since: string | null,
   limit: number,
   allowed?: ReadonlySet<CopFeedEntityType>,
+  redactIds?: ReadonlySet<CopFeedEntityType>,
 ): Promise<CopChangesResult> {
   const raw = (since ?? '').trim()
   if (raw === '') {
@@ -169,7 +171,7 @@ export async function listCopChanges(
     events.push({
       id: row.id,
       entity_type: type,
-      entity_id: row.entity_id == null ? null : String(row.entity_id),
+      entity_id: row.entity_id == null || redactIds?.has(type) ? null : String(row.entity_id),
       event_type: row.event_type,
       created_at: row.created_at ?? null,
     })

@@ -282,3 +282,87 @@ export async function rewriteSessionKeyQuestions(
   await emitCopEvent(db, { copSessionId: sessionId, eventType: SESSION_UPDATED, entityType: 'session', entityId: sessionId, payload: { key_questions: out.length }, createdBy: actorUserId })
   return out
 }
+
+// ── Evidence that belongs to a COP session ───────────────────────
+
+/**
+ * evidence_items is workspace-wide, and a COP often shares its owner's main workspace,
+ * so the COP's evidence is what carries its cop_session_id (migration 0022). A row
+ * without one (saved before it) is the session's only when the session has a workspace
+ * of its own (workspace_id = session id).
+ */
+export interface EvidenceSessionScope {
+  sessionId: string
+  workspaceId: string
+}
+
+/**
+ * The WHERE clause (columns of evidence_items, optionally prefixed) and its binds that
+ * keep a query to the session's evidence. `legacy` is the clause to use when
+ * cop_session_id doesn't exist yet: only a dedicated workspace counts then.
+ */
+export function evidenceInSession(scope: EvidenceSessionScope, alias = ''): {
+  sql: string
+  binds: unknown[]
+  legacySql: string
+  legacyBinds: unknown[]
+} {
+  const a = alias ? `${alias}.` : ''
+  const dedicated = scope.workspaceId === scope.sessionId
+  return {
+    sql: dedicated
+      ? `(${a}workspace_id = ? AND (${a}cop_session_id = ? OR ${a}cop_session_id IS NULL))`
+      : `(${a}workspace_id = ? AND ${a}cop_session_id = ?)`,
+    binds: [scope.workspaceId, scope.sessionId],
+    legacySql: dedicated ? `(${a}workspace_id = ?)` : '(0 = 1)',
+    legacyBinds: dedicated ? [scope.workspaceId] : [],
+  }
+}
+
+/**
+ * Run a query that has one `{EVIDENCE_SCOPE}` placeholder for evidenceInSession's clause:
+ * with cop_session_id, or (before migration 0022) with the legacy clause. `before` and
+ * `after` are the binds around the placeholder.
+ */
+export async function queryEvidenceInSession<T>(
+  db: D1Database,
+  sqlTemplate: string,
+  scope: EvidenceSessionScope,
+  before: unknown[],
+  after: unknown[],
+  run: (statement: D1PreparedStatement) => Promise<T>,
+  alias = '',
+): Promise<T> {
+  const clause = evidenceInSession(scope, alias)
+  try {
+    return await run(db.prepare(sqlTemplate.replace('{EVIDENCE_SCOPE}', clause.sql)).bind(...before, ...clause.binds, ...after))
+  } catch (error) {
+    if (!isMissingColumn(error)) throw error
+    return run(db.prepare(sqlTemplate.replace('{EVIDENCE_SCOPE}', clause.legacySql)).bind(...before, ...clause.legacyBinds, ...after))
+  }
+}
+
+/** Record the COP session an evidence item belongs to; nothing before migration 0022. */
+export async function setEvidenceSession(db: D1Database, evidenceId: string | number, sessionId: string): Promise<void> {
+  try {
+    await db.prepare('UPDATE evidence_items SET cop_session_id = ? WHERE id = ? AND cop_session_id IS NULL')
+      .bind(sessionId, evidenceId).run()
+  } catch (error) {
+    if (!isMissingColumn(error)) throw error
+  }
+}
+
+// ── Unreviewed drop-form tips on public views ─────────────────────
+
+/** The label a public view shows for a drop-form tip no editor has confirmed yet. */
+export const UNVERIFIED_TIP_LABEL = 'Unverified tip'
+
+/** A marker from the drop form that nobody has raised above POSSIBLE. */
+export function unreviewedTipMarker(row: { source_channel?: unknown; confidence?: unknown }): boolean {
+  return row.source_channel === 'drop' && (row.confidence == null || row.confidence === 'POSSIBLE')
+}
+
+/** An evidence item from the drop form whose credibility nobody has changed. */
+export function unreviewedTipEvidence(row: { source_channel?: unknown; credibility?: unknown }): boolean {
+  return row.source_channel === 'drop' && (row.credibility == null || row.credibility === 'unverified')
+}
