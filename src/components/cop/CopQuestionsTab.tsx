@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import type { CopSession } from '@/types/cop'
 import { getCopHeaders } from '@/lib/cop-auth'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
+import { normalizeQuestion } from '@/components/cop/shell/key-questions'
 
 // ── 5W1H Categories ──────────────────────────────────────────────
 
@@ -189,6 +190,24 @@ export default function CopQuestionsTab({ session }: CopQuestionsTabProps) {
   const [error, setError] = useState<string | null>(null)
   const [createdRfis, setCreatedRfis] = useState<Set<string>>(new Set())
   const [creatingRfi, setCreatingRfi] = useState<string | null>(null)
+  // Questions the session already tracks as RFIs (normalised), so none is added twice.
+  const [rfiQuestions, setRfiQuestions] = useState<Set<string>>(new Set())
+  const [rfiReload, setRfiReload] = useState(0)
+
+  useEffect(() => {
+    const controller = new AbortController()
+    fetch(`/api/cop/${session.id}/rfis`, { headers: getCopHeaders(), signal: controller.signal })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!data) return
+        const items: { question?: string }[] = data.rfis ?? data ?? []
+        setRfiQuestions(new Set(items.filter((r) => typeof r.question === 'string').map((r) => normalizeQuestion(r.question as string))))
+      })
+      .catch(() => { /* the buttons still work; duplicates are just not hidden */ })
+    return () => controller.abort()
+  }, [session.id, rfiReload])
+
+  const isTracked = (questionId: string, text: string) => createdRfis.has(questionId) || rfiQuestions.has(normalizeQuestion(text))
   // Local copy of linked_frameworks to avoid direct prop mutation
   const [localLinkedFrameworks, setLocalLinkedFrameworks] = useState<(string | number)[]>(
     session.linked_frameworks ?? []
@@ -447,17 +466,17 @@ export default function CopQuestionsTab({ session }: CopQuestionsTabProps) {
       const res = await fetch(`/api/cop/${session.id}/rfis`, {
         method: 'POST',
         headers: getCopHeaders(),
-        body: JSON.stringify({
-          question: questionText,
-          priority: 'medium',
-          requester_name: `5W1H ${category.toUpperCase()}`,
-        }),
+        body: JSON.stringify(category === 'key'
+          // A key question becomes a starred RFI.
+          ? { question: questionText, priority: 'high', requester_name: 'Key question', is_key: true }
+          : { question: questionText, priority: 'medium', requester_name: `5W1H ${category.toUpperCase()}` }),
       })
       if (!res.ok) {
         const errData = await res.json().catch(() => null)
         throw new Error(errData?.error ?? 'Failed to create RFI')
       }
       setCreatedRfis(prev => new Set(prev).add(questionId))
+      setRfiReload((n) => n + 1)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create RFI')
     } finally {
@@ -544,17 +563,19 @@ export default function CopQuestionsTab({ session }: CopQuestionsTabProps) {
                           </div>
                           {/* Convert to RFI button — show for unanswered questions */}
                           {!q.answer && (
-                            createdRfis.has(q.id) ? (
-                              <span className="shrink-0 p-0.5 text-emerald-500" title="RFI created">
-                                <Check className="h-3 w-3" />
+                            isTracked(q.id, q.question) ? (
+                              <span className="shrink-0 p-0.5 text-emerald-500" title="Tracked as an RFI">
+                                <Check className="h-3 w-3" aria-hidden="true" />
+                                <span className="sr-only">Tracked as an RFI</span>
                               </span>
                             ) : (
                               <button
                                 type="button"
                                 onClick={() => handleCreateRfi(q.id, q.question, cat.key)}
                                 disabled={creatingRfi === q.id}
-                                className="shrink-0 p-0.5 text-slate-400 hover:text-amber-500 opacity-0 group-hover:opacity-100 transition-all cursor-pointer disabled:opacity-50"
-                                title="Create RFI from this question"
+                                className="shrink-0 p-0.5 pointer-coarse:min-h-11 pointer-coarse:min-w-11 flex items-center justify-center text-slate-400 hover:text-amber-500 md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100 pointer-coarse:opacity-100 transition-all cursor-pointer disabled:opacity-50"
+                                title="Track this question as an RFI"
+                                aria-label={`Track as an RFI: ${q.question}`}
                               >
                                 {creatingRfi === q.id ? (
                                   <Loader2 className="h-3 w-3 animate-spin" />
@@ -604,14 +625,33 @@ export default function CopQuestionsTab({ session }: CopQuestionsTabProps) {
             <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-medium px-1">
               Key Questions ({session.key_questions.length})
             </p>
-            {session.key_questions.map((q, i) => (
-              <div
-                key={i}
-                className="text-xs text-slate-600 dark:text-slate-300 py-1.5 px-2 border-l-2 border-blue-400 dark:border-blue-500 bg-slate-50 dark:bg-slate-800/50 rounded-r"
-              >
-                {q}
-              </div>
-            ))}
+            {session.key_questions.map((q, i) => {
+              const keyId = `key-${i}`
+              const tracked = isTracked(keyId, q)
+              return (
+                <div
+                  key={i}
+                  className="flex items-start gap-2 text-xs text-slate-600 dark:text-slate-300 py-1.5 px-2 rounded-md bg-slate-50 dark:bg-slate-800/50"
+                >
+                  <Star className="h-3 w-3 mt-0.5 shrink-0 fill-amber-400 text-amber-500" aria-hidden="true" />
+                  <span className="flex-1">{q}</span>
+                  {tracked ? (
+                    <span className="shrink-0 inline-flex items-center gap-0.5 text-[10px] text-emerald-600 dark:text-emerald-400">
+                      <Check className="h-3 w-3" aria-hidden="true" /> RFI
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => handleCreateRfi(keyId, q, 'key')}
+                      disabled={creatingRfi === keyId}
+                      className="shrink-0 rounded border border-amber-400/70 px-1.5 py-0.5 pointer-coarse:min-h-11 pointer-coarse:px-3 text-[10px] font-medium text-amber-700 hover:bg-amber-50 disabled:opacity-50 dark:border-amber-700 dark:text-amber-300 dark:hover:bg-amber-950/30 cursor-pointer"
+                    >
+                      {creatingRfi === keyId ? 'Adding…' : 'Track as RFI'}
+                    </button>
+                  )}
+                </div>
+              )
+            })}
             <div className="pt-2">
               {error && (
                 <p className="text-[10px] text-red-500 dark:text-red-400 mb-2">{error}</p>
