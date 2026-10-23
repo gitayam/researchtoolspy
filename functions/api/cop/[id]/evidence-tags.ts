@@ -4,6 +4,10 @@
  * GET    /api/cop/:id/evidence-tags?evidence_id=xxx - List tags for an evidence item
  * POST   /api/cop/:id/evidence-tags                 - Create a tag
  * DELETE  /api/cop/:id/evidence-tags?tag_id=xxx      - Remove a tag
+ *
+ * Every call is scoped to evidence in this session's workspace, in SQL: another
+ * workspace's evidence id is 404 (read) or refused (write), never touched. Writes
+ * need the session owner or an editor/admin collaborator.
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-helpers'
@@ -11,6 +15,14 @@ import { emitCopEvent } from '../../_shared/cop-events'
 import { EVIDENCE_TAGGED } from '../../_shared/cop-event-types'
 import { generatePrefixedId , JSON_HEADERS } from '../../_shared/api-utils'
 import { logEvent } from '../../_shared/event-log'
+import { mayEditCopSession } from '../../_shared/cop-webcams'
+
+/** True when the evidence item belongs to the workspace. */
+async function evidenceInWorkspace(db: D1Database, evidenceId: string, workspaceId: string): Promise<boolean> {
+  const row = await db.prepare('SELECT 1 FROM evidence_items WHERE CAST(id AS TEXT) = ? AND workspace_id = ?')
+    .bind(evidenceId, workspaceId).first()
+  return Boolean(row)
+}
 
 interface Env {
   DB: D1Database
@@ -41,9 +53,16 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       })
     }
 
+    if (!(await evidenceInWorkspace(env.DB, evidenceId, accessWorkspaceId))) {
+      return new Response(JSON.stringify({ error: 'Evidence not found' }), { status: 404, headers: JSON_HEADERS })
+    }
     const tags = await env.DB.prepare(`
-      SELECT * FROM cop_evidence_tags WHERE evidence_id = ? ORDER BY tag_category, tag_value
-    `).bind(evidenceId).all()
+      SELECT t.id, t.evidence_id, t.tag_category, t.tag_value, t.confidence, t.created_by, t.created_at
+      FROM cop_evidence_tags t
+      WHERE t.evidence_id = ?
+        AND EXISTS (SELECT 1 FROM evidence_items e WHERE CAST(e.id AS TEXT) = t.evidence_id AND e.workspace_id = ?)
+      ORDER BY t.tag_category, t.tag_value
+    `).bind(evidenceId, accessWorkspaceId).all()
 
     return new Response(JSON.stringify({ tags: tags.results }), { headers: JSON_HEADERS })
   } catch (error) {
@@ -70,8 +89,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         status: 401, headers: JSON_HEADERS,
       })
     }
-    if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
-      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
+    const workspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId)
+    if (!workspaceId || !(await mayEditCopSession(env.DB, sessionId, userId))) {
+      return new Response(JSON.stringify({ error: 'Only the session owner or an editor can tag evidence' }), { status: 403, headers: JSON_HEADERS })
     }
     const body = await request.json() as any
 
@@ -93,9 +113,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
+    if (typeof body.evidence_id !== 'string' || !(await evidenceInWorkspace(env.DB, body.evidence_id.trim(), workspaceId))) {
+      return new Response(JSON.stringify({ error: 'Evidence not found' }), { status: 404, headers: JSON_HEADERS })
+    }
+
     const id = generatePrefixedId('etg')
     const now = new Date().toISOString()
-    const confidence = Math.min(Math.max(body.confidence ?? 100, 0), 100)
+    const confidence = Math.min(Math.max(Number(body.confidence ?? 100) || 0, 0), 100)
 
     await env.DB.prepare(`
       INSERT INTO cop_evidence_tags (id, evidence_id, tag_category, tag_value, confidence, created_by, created_at)
@@ -140,8 +164,9 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
         status: 401, headers: JSON_HEADERS,
       })
     }
-    if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
-      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
+    const accessWorkspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId)
+    if (!accessWorkspaceId || !(await mayEditCopSession(env.DB, sessionId, userId))) {
+      return new Response(JSON.stringify({ error: 'Only the session owner or an editor can remove tags' }), { status: 403, headers: JSON_HEADERS })
     }
     if (!tagId) {
       return new Response(JSON.stringify({ error: 'tag_id query parameter is required' }), {
@@ -149,18 +174,12 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       })
     }
 
-    // Look up workspace from session for scoped delete
-    const session = await env.DB.prepare(
-      'SELECT workspace_id FROM cop_sessions WHERE id = ?'
-    ).bind(sessionId).first() as any
-    const workspaceId = session?.workspace_id || sessionId
-
     // Only delete if the tag belongs to evidence in this session's workspace
     await env.DB.prepare(`
-      DELETE FROM cop_evidence_tags WHERE id = ? AND evidence_id IN (
-        SELECT id FROM evidence_items WHERE workspace_id = ?
+      DELETE FROM cop_evidence_tags WHERE id = ? AND EXISTS (
+        SELECT 1 FROM evidence_items e WHERE CAST(e.id AS TEXT) = cop_evidence_tags.evidence_id AND e.workspace_id = ?
       )
-    `).bind(tagId, workspaceId).run()
+    `).bind(tagId, accessWorkspaceId).run()
 
     return new Response(JSON.stringify({ message: 'Evidence tag deleted' }), { headers: JSON_HEADERS })
   } catch (error) {
