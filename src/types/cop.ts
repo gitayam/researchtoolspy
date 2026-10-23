@@ -279,7 +279,14 @@ export interface CopEvidenceLink {
   relation: CopEvidenceRelation
   note: string | null
   created_at: string
+  /** The team's votes on this filing (is it helpful for this question?), and the caller's own. */
+  up: number
+  down: number
+  my_vote: CopVoteValue
 }
+
+/** 1 helpful, -1 not helpful, 0 no vote. */
+export type CopVoteValue = -1 | 0 | 1
 
 /** Filed evidence as a share link shows it under a question (only with the evidence panel). */
 export interface CopPublicFiledEvidence {
@@ -289,6 +296,9 @@ export interface CopPublicFiledEvidence {
   /** null for an unreviewed drop-form tip (its tipster's say-so is not shown). */
   relation: CopEvidenceRelation | null
   created_at: string
+  /** The team's vote counts (absent from servers before the votes change). */
+  up?: number
+  down?: number
 }
 
 export interface CopRfiAnswer {

@@ -5,20 +5,28 @@
  * Filing evidence never answers or closes the question — it collects what bears on
  * it, marked as supporting, contradicting or context. Answering stays a separate,
  * optional step. Writes are refused by the server for viewers; the message says so.
+ *
+ * The team votes on each filing (helpful / not helpful for this question; viewers
+ * too), and the list is ranked by score, then newest.
  */
 import { useId, useMemo, useRef, useState, type FormEvent } from 'react'
 import { ExternalLink, FileUp, Link2, Loader2, Paperclip, Plus, Search, X } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn, formatRelativeTime } from '@/lib/utils'
 import { CopItemTags } from '@/components/cop/CopItemTags'
 import { RelationChip, RelationPicker } from '@/components/cop/evidence-links/RelationChip'
+import { VoteControl } from '@/components/cop/evidence-links/VoteControl'
 import { CopArchiveLink } from '@/components/cop/CopArchiveLink'
-import { useCopEvidenceIndex, useCopEvidenceLinks } from '@/hooks/useCopEvidenceLinks'
+import { setLinkVotes, useCopEvidenceIndex, useCopEvidenceLinks, type EvidenceSummary } from '@/hooks/useCopEvidenceLinks'
 import {
-  addEvidenceToQuestion, addEvidenceToTask, cleanLinkInput, fileEvidence, groupByTarget, linkErrorMessage, NOTE_MAX,
-  RELATION_OPTIONS, targetKey, unfileEvidence,
+  addEvidenceToQuestion, addEvidenceToTask, applyVote, cleanLinkInput, fileEvidence, groupByTarget, linkErrorMessage, nextVote, NOTE_MAX,
+  rankFiled, RELATION_OPTIONS, targetKey, unfileEvidence, voteErrorMessage, voteOnLink,
 } from '@/lib/cop-evidence-links'
 import { UPLOAD_ACCEPT, uploadProblem, uploadToCop } from '@/lib/cop-upload'
-import type { CopEvidenceLinkTarget, CopEvidenceRelation } from '@/types/cop'
+import type { CopEvidenceLink, CopEvidenceLinkTarget, CopEvidenceRelation } from '@/types/cop'
+
+/** A drop-form tip no one has reviewed yet: the team sees it, marked as such. */
+const unverifiedTip = (item: EvidenceSummary | undefined) =>
+  !!item && item.source_channel === 'drop' && (item.credibility === null || item.credibility === 'unverified')
 
 type Mode = 'attach' | 'link' | 'file'
 
@@ -44,10 +52,14 @@ export function FiledEvidence({ sessionId, targetType, targetId, label, classNam
 }) {
   const { links, loaded, available } = useCopEvidenceLinks(sessionId)
   const { items } = useCopEvidenceIndex(sessionId)
-  const filed = useMemo(() => groupByTarget(links).get(targetKey(targetType, targetId)) ?? [], [links, targetType, targetId])
   const byId = useMemo(() => new Map(items.map((e) => [e.id, e])), [items])
+  const filed = useMemo(
+    () => rankFiled(groupByTarget(links).get(targetKey(targetType, targetId)) ?? [], (l) => byId.get(l.evidence_id)?.created_at || l.created_at),
+    [links, targetType, targetId, byId],
+  )
   const [adding, setAdding] = useState(startOpen)
   const [message, setMessage] = useState<string | null>(null)
+  const [voting, setVoting] = useState<ReadonlySet<string>>(new Set())
 
   if (loaded && !available) {
     return (
@@ -55,6 +67,24 @@ export function FiledEvidence({ sessionId, targetType, targetId, label, classNam
         Filing evidence under a {label} isn’t available on this server yet.
       </p>
     )
+  }
+
+  // Shown at once, saved behind; put back with the reason if the server refuses.
+  const castVote = async (link: CopEvidenceLink, pressed: 1 | -1) => {
+    if (voting.has(link.id)) return
+    setMessage(null)
+    const before = { up: link.up, down: link.down, my_vote: link.my_vote }
+    const next = nextVote(link.my_vote, pressed)
+    setVoting((s) => new Set(s).add(link.id))
+    setLinkVotes(sessionId, link.id, applyVote(link, next))
+    const res = await voteOnLink(sessionId, link.id, next)
+    setVoting((s) => { const out = new Set(s); out.delete(link.id); return out })
+    if (res.ok === false) {
+      setLinkVotes(sessionId, link.id, before)
+      setMessage(voteErrorMessage(res))
+      return
+    }
+    setLinkVotes(sessionId, link.id, { up: res.data.up, down: res.data.down, my_vote: res.data.my_vote })
   }
 
   const changeRelation = async (evidenceId: string, relation: CopEvidenceRelation, note: string | null) => {
@@ -103,6 +133,15 @@ export function FiledEvidence({ sessionId, targetType, targetId, label, classNam
                     <CopArchiveLink item={item} className="mt-0.5" />
                     {link.note && <p className="mt-0.5 whitespace-pre-wrap break-words text-[11px] text-gray-600 dark:text-gray-400">{link.note}</p>}
                     <CopItemTags targetType="evidence" targetId={link.evidence_id} label="evidence item" max={3} />
+                    <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-gray-500 dark:text-gray-400">
+                      <VoteControl up={link.up} down={link.down} myVote={link.my_vote} busy={voting.has(link.id)} onVote={(v) => void castVote(link, v)} />
+                      {unverifiedTip(item) ? (
+                        <span className="rounded bg-amber-500/15 px-1.5 py-px font-medium text-amber-800 dark:text-amber-300">Unverified tip</span>
+                      ) : item?.credibility ? (
+                        <span>{item.credibility}</span>
+                      ) : null}
+                      {item?.created_at && <time dateTime={item.created_at}>{formatRelativeTime(item.created_at)}</time>}
+                    </div>
                   </div>
                   <div className="flex shrink-0 items-center gap-0.5">
                     <select

@@ -111,6 +111,7 @@ import { downloadCotExport } from '@/lib/cop-cot-export'
 import CopSideMenu from '@/components/cop/shell/CopSideMenu'
 import CopShareDialog from '@/components/cop/shell/CopShareDialog'
 import EvidenceSubmitSheet from '@/components/cop/shell/EvidenceSubmitSheet'
+import { fetchQuestionTicket } from '@/lib/cop-evidence-links'
 import { useIsPhone } from '@/components/cop/shell/useMediaQuery'
 import { jumpToCopPanel } from '@/components/cop/cop-jump'
 import { isTransientFetchError } from '@/lib/transient-fetch-error'
@@ -717,6 +718,20 @@ export default function CopWorkspacePage() {
     return linkedDrop
   })()
 
+  // The workspace's form may offer every open question, not only the key ones a stranger
+  // sees: a question ticket names this COP, never the person, so the form stays anonymous.
+  // Renewed well inside its 12-hour life.
+  const hasEvidenceForm = !!evidenceForm
+  const [questionTicket, setQuestionTicket] = useState<string | null>(null)
+  useEffect(() => {
+    if (!id || !hasEvidenceForm) return
+    let cancelled = false
+    const load = () => { void fetchQuestionTicket(id).then((ticket) => { if (!cancelled) setQuestionTicket(ticket) }) }
+    load()
+    const timer = window.setInterval(load, 6 * 60 * 60 * 1000)
+    return () => { cancelled = true; window.clearInterval(timer) }
+  }, [id, hasEvidenceForm])
+
   /** Without an evidence form, "Add evidence" goes to the capture bar. */
   const focusCapture = useCallback(() => {
     setMenuOpen(false)
@@ -1191,6 +1206,7 @@ export default function CopWorkspacePage() {
           onOpenChange={setEvidenceOpen}
           dropToken={evidenceForm.token}
           formTitle={evidenceForm.title}
+          questionContext={questionTicket ? { ticket: questionTicket } : undefined}
           onSubmitted={(ingested) => {
             refetchStats()
             // Panels that listen refetch; the feed can highlight the new item when it lands.

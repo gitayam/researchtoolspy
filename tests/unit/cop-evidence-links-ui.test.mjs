@@ -83,3 +83,53 @@ test('linkErrorMessage: says what went wrong and what to do', () => {
   assert.match(mod.linkErrorMessage({ status: 404, code: 'TARGET_NOT_FOUND', error: null }), /question isn’t in this COP/)
   assert.match(mod.linkErrorMessage({ status: 0, code: null, error: null }), /connection/)
 })
+
+// ── Team votes and ranking ──────────────────────────────────────────
+
+const filed = (id, up, down, created_at) => ({ id, up, down, created_at })
+
+test('rankFiled: score (up − down) first, then the newest; ties keep their order', () => {
+  const items = [
+    filed('old-liked', 3, 1, '2026-10-20T08:00:00Z'),
+    filed('new-unvoted', 0, 0, '2026-10-23T09:00:00Z'),
+    filed('disliked', 0, 2, '2026-10-23T10:00:00Z'),
+    filed('newer-liked', 2, 0, '2026-10-22T08:00:00Z'),
+    filed('older-unvoted', 1, 1, '2026-10-21T08:00:00Z'),
+    filed('no-date', 0, 0, ''),
+  ]
+  assert.deepEqual(mod.rankFiled(items, (i) => i.created_at).map((i) => i.id), [
+    'newer-liked', 'old-liked', 'new-unvoted', 'older-unvoted', 'no-date', 'disliked',
+  ])
+  // Items from an older server (no counts) rank by date only, and the input is left as it was.
+  const plain = [{ id: 'a', created_at: '2026-10-01T00:00:00Z' }, { id: 'b', created_at: '2026-10-02T00:00:00Z' }]
+  assert.deepEqual(mod.rankFiled(plain, (i) => i.created_at).map((i) => i.id), ['b', 'a'])
+  assert.deepEqual(plain.map((i) => i.id), ['a', 'b'])
+})
+
+test('nextVote and applyVote: a press toggles, switching moves the count, counts never go negative', () => {
+  assert.equal(mod.nextVote(0, 1), 1)
+  assert.equal(mod.nextVote(1, 1), 0)
+  assert.equal(mod.nextVote(1, -1), -1)
+  assert.equal(mod.nextVote(-1, -1), 0)
+  const item = { up: 2, down: 1, my_vote: 0 }
+  assert.deepEqual(mod.applyVote(item, 1), { up: 3, down: 1, my_vote: 1 })
+  assert.deepEqual(mod.applyVote({ up: 3, down: 1, my_vote: 1 }, -1), { up: 2, down: 2, my_vote: -1 })
+  assert.deepEqual(mod.applyVote({ up: 2, down: 2, my_vote: -1 }, 0), { up: 2, down: 1, my_vote: 0 })
+  assert.deepEqual(mod.applyVote({ up: 0, down: 0, my_vote: 1 }, 0), { up: 0, down: 0, my_vote: 0 })
+})
+
+test('normalizeLink: votes default to none; junk counts and votes are dropped', () => {
+  const base = { id: 'evl-1', evidence_id: '7', target_type: 'rfi', target_id: 'q1', relation: 'supports' }
+  assert.deepEqual(mod.normalizeLink(base), { ...base, note: null, created_at: '', up: 0, down: 0, my_vote: 0 })
+  const odd = mod.normalizeLink({ ...base, up: -3, down: '9', my_vote: 2 })
+  assert.deepEqual([odd.up, odd.down, odd.my_vote], [0, 0, 0])
+  const real = mod.normalizeLink({ ...base, up: 4, down: 1, my_vote: -1 })
+  assert.deepEqual([real.up, real.down, real.my_vote], [4, 1, -1])
+})
+
+test('voteErrorMessage: says why the vote was not saved', () => {
+  assert.match(mod.voteErrorMessage({ status: 503, code: 'EVIDENCE_VOTES_UNAVAILABLE', error: null }), /isn’t available/)
+  assert.match(mod.voteErrorMessage({ status: 403, code: null, error: null }), /team can vote/)
+  assert.match(mod.voteErrorMessage({ status: 404, code: 'LINK_NOT_FOUND', error: null }), /isn’t filed here/)
+  assert.match(mod.voteErrorMessage({ status: 0, code: null, error: null }), /wasn’t saved/)
+})

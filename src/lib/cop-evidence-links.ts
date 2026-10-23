@@ -7,7 +7,7 @@
  * time. The pure helpers here are unit-tested (tests/unit/cop-evidence-links-ui.test.mjs).
  */
 import { copRequest, NOT_AVAILABLE, notifyCopChanged, type CopRequestResult } from '@/lib/cop-request'
-import type { CopEvidenceLink, CopEvidenceLinkTarget, CopEvidenceRelation } from '@/types/cop'
+import type { CopEvidenceLink, CopEvidenceLinkTarget, CopEvidenceRelation, CopVoteValue } from '@/types/cop'
 
 export const RELATION_OPTIONS: { value: CopEvidenceRelation; label: string; hint: string }[] = [
   { value: 'supports', label: 'Supports', hint: 'Points toward an answer' },
@@ -36,6 +36,67 @@ export function groupByTarget(links: readonly CopEvidenceLink[]): Map<string, Co
     else out.set(key, [link])
   }
   return out
+}
+
+// ── Team votes and ranking ───────────────────────────────────────
+
+/** A filing's score: helpful votes minus not-helpful ones. */
+export const voteScore = (item: { up?: number; down?: number }) => (item.up ?? 0) - (item.down ?? 0)
+
+/**
+ * Filed evidence in the order a question shows it: score (up − down) first, then the
+ * newest. The server sends lists in this order; the client re-ranks after a vote. Pure.
+ */
+export function rankFiled<T extends { up?: number; down?: number }>(items: readonly T[], createdAt: (item: T) => string): T[] {
+  const time = (item: T) => {
+    const at = Date.parse(createdAt(item))
+    return Number.isFinite(at) ? at : 0
+  }
+  return items
+    .map((item, index) => ({ item, index }))
+    .sort((a, b) => voteScore(b.item) - voteScore(a.item) || time(b.item) - time(a.item) || a.index - b.index)
+    .map(({ item }) => item)
+}
+
+/** The vote a press sends: pressing the vote you already gave clears it. */
+export function nextVote(current: CopVoteValue, pressed: 1 | -1): CopVoteValue {
+  return current === pressed ? 0 : pressed
+}
+
+/** A filing's counts once `next` replaces the caller's `current` vote (the optimistic update). */
+export function applyVote<T extends { up: number; down: number; my_vote: CopVoteValue }>(item: T, next: CopVoteValue): T {
+  const up = item.up - (item.my_vote === 1 ? 1 : 0) + (next === 1 ? 1 : 0)
+  const down = item.down - (item.my_vote === -1 ? 1 : 0) + (next === -1 ? 1 : 0)
+  return { ...item, up: Math.max(0, up), down: Math.max(0, down), my_vote: next }
+}
+
+const voteOf = (value: unknown): CopVoteValue => (value === 1 ? 1 : value === -1 ? -1 : 0)
+const countOf = (value: unknown) => (typeof value === 'number' && Number.isFinite(value) && value > 0 ? Math.floor(value) : 0)
+
+/** A link as the client keeps it: votes default to none (a server before migration 0026). */
+export function normalizeLink(raw: Partial<CopEvidenceLink> & Pick<CopEvidenceLink, 'id' | 'evidence_id' | 'target_type' | 'target_id' | 'relation'>): CopEvidenceLink {
+  return {
+    id: String(raw.id),
+    evidence_id: String(raw.evidence_id),
+    target_type: raw.target_type,
+    target_id: String(raw.target_id),
+    relation: raw.relation,
+    note: raw.note ?? null,
+    created_at: raw.created_at ?? '',
+    up: countOf(raw.up),
+    down: countOf(raw.down),
+    my_vote: voteOf(raw.my_vote),
+  }
+}
+
+/** The message for a failed vote. */
+export function voteErrorMessage(res: { status: number; code: string | null; error: string | null }): string {
+  if (res.code === NOT_AVAILABLE || res.code === 'EVIDENCE_VOTES_UNAVAILABLE') return 'Voting isn’t available on this server yet.'
+  if (res.status === 0) return 'Couldn’t reach the server. Your vote wasn’t saved.'
+  if (res.status === 401) return 'Sign in to vote.'
+  if (res.status === 403) return 'Only the COP’s team can vote.'
+  if (res.code === 'LINK_NOT_FOUND') return 'That evidence isn’t filed here any more.'
+  return 'Your vote wasn’t saved. Try again.'
 }
 
 /** Links grouped by evidence item. */
@@ -111,7 +172,29 @@ export function linkErrorMessage(res: { status: number; code: string | null; err
 const base = (sessionId: string) => `/api/cop/${encodeURIComponent(sessionId)}`
 
 export async function fetchEvidenceLinks(sessionId: string): Promise<CopRequestResult<{ links: CopEvidenceLink[] }>> {
-  return copRequest<{ links: CopEvidenceLink[] }>(`${base(sessionId)}/evidence-links`, { newRoute: true })
+  const res = await copRequest<{ links: CopEvidenceLink[] }>(`${base(sessionId)}/evidence-links`, { newRoute: true })
+  if (res.ok === false) return res
+  const links = Array.isArray(res.data.links) ? res.data.links.map(normalizeLink) : []
+  return { ...res, data: { links } }
+}
+
+/** Vote on a filing: 1 helpful, -1 not helpful, 0 clears. Answers the new counts. */
+export async function voteOnLink(
+  sessionId: string,
+  linkId: string,
+  value: CopVoteValue,
+): Promise<CopRequestResult<{ link_id: string; up: number; down: number; my_vote: CopVoteValue }>> {
+  return copRequest(`${base(sessionId)}/evidence-links/${encodeURIComponent(linkId)}/vote`, {
+    method: 'PUT',
+    newRoute: true,
+    json: { value },
+  })
+}
+
+/** A question ticket: lets the workspace's evidence form offer every open question. */
+export async function fetchQuestionTicket(sessionId: string): Promise<string | null> {
+  const res = await copRequest<{ ticket?: unknown }>(`${base(sessionId)}/question-ticket`, { newRoute: true })
+  return res.ok === true && typeof res.data.ticket === 'string' ? res.data.ticket : null
 }
 
 export async function fileEvidence(
