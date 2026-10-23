@@ -8,17 +8,20 @@
  *          → { target_type, target_id, tags: [name…] } (editors; the bot)
  *          Creates missing tags (≤ 10 per call). The item must belong to this
  *          session (evidence: to its workspace), checked in SQL; otherwise 404.
- * DELETE /api/cop/:id/item-tags { target_type, target_id, tag }   (editors; the bot)
+ * DELETE /api/cop/:id/item-tags { target_type, target_id, tag }   (editors; the bot,
+ *          which may remove only tags it applied: 403 otherwise)
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { logEvent } from '../../_shared/event-log'
 import { coded, copEditor, copReader, json, readJson } from '../../_shared/cop-route-auth'
+import { serviceChangeRefused, serviceMayChange } from '../../_shared/cop-input'
 import {
   applyItemTags,
   cleanTagName,
   cleanTargetId,
   isTagSource,
   isTagTargetType,
+  itemTagLinks,
   listItemTags,
   MAX_TAGS_PER_CALL,
   removeItemTags,
@@ -109,8 +112,14 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     if (!(await targetInSession(context.env.DB, { sessionId, workspaceId: access.workspaceId }, body.target_type, targetId))) {
       return json({ error: 'Item not found in this session' }, 404)
     }
+    if (access.service) {
+      // The bot undoes its own tags, not people's.
+      const links = await itemTagLinks(context.env.DB, { sessionId, targetType: body.target_type, targetId, names: [tag] })
+      if (links.some((link) => !serviceMayChange(context, link.created_by))) return serviceChangeRefused()
+    }
     const tags = await removeItemTags(context.env.DB, {
       sessionId, targetType: body.target_type, targetId, names: [tag], actorUserId: access.userId,
+      onlyCreatedBy: access.service ? access.userId : undefined,
     })
     return json({ target_type: body.target_type, target_id: targetId, tags })
   } catch (error) {

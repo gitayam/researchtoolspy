@@ -1,8 +1,8 @@
 /**
  * GET /api/cop/public/:token/uploads/:uploadId - A COP upload through a share link
  *
- * Only for a live share (not expired, session not archived) that shows the evidence
- * feed panel ('event'), and only uploads of that share's session. Served inert, like
+ * Only for a live share (not expired, session not archived) that shows the session's
+ * evidence ('evidence' panel, opt-in), and only uploads of that share's session. Served inert, like
  * the authenticated route (functions/api/_shared/cop-uploads.ts).
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
@@ -26,7 +26,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   const share = await env.DB.prepare(
     'SELECT cop_session_id, visible_panels, expires_at FROM cop_shares WHERE share_token = ?'
   ).bind(token).first<{ cop_session_id: string; visible_panels: string | null; expires_at?: string | null }>()
-  if (!share || shareExpired(share) || !sharePanels(share).includes('event')) return notFound()
+  if (!share || shareExpired(share) || !sharePanels(share).includes('evidence')) return notFound()
   const session = await env.DB.prepare('SELECT status FROM cop_sessions WHERE id = ?')
     .bind(share.cop_session_id).first<{ status: string | null }>()
   if (!session || sessionArchived(session)) return notFound()

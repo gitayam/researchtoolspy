@@ -20,6 +20,18 @@ export const TAG_TARGET_TYPES = [
 ] as const
 export type TagTargetType = (typeof TAG_TARGET_TYPES)[number]
 
+/**
+ * Item types whose ids may appear in tag events. The change feed (and its public
+ * share variant) passes events on; ids of other types (submissions, uploads,
+ * personas, …) stay out of them.
+ */
+const EVENT_TARGET_TYPES: ReadonlySet<string> = new Set(['evidence', 'marker', 'rfi', 'task', 'timeline'])
+
+/** A tag event's payload: never tag names; a target id only for the types above. */
+function tagEventPayload(targetType: TagTargetType, targetId: string, extra: Record<string, unknown> = {}): Record<string, unknown> {
+  return { target_type: targetType, ...(EVENT_TARGET_TYPES.has(targetType) ? { target_id: targetId } : {}), ...extra }
+}
+
 export const TAG_SOURCES = ['user', 'ai', 'rule', 'drop', 'chat'] as const
 export type TagSource = (typeof TAG_SOURCES)[number]
 
@@ -180,14 +192,15 @@ export async function ensureTags(
     }
     const now = new Date().toISOString()
     for (const [key, name] of missing) {
+      const id = `tag-${crypto.randomUUID()}`
       const created = await db.prepare(`
         INSERT OR IGNORE INTO cop_tags (id, cop_session_id, name, name_key, color, category, created_by, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `).bind(`tag-${crypto.randomUUID()}`, sessionId, name, key, options.color ?? null, options.category ?? null, actorUserId, now).run()
+      `).bind(id, sessionId, name, key, options.color ?? null, options.category ?? null, actorUserId, now).run()
       if (created.meta?.changes) {
         await emitCopEventLoose(db, {
-          copSessionId: sessionId, eventType: 'tag.created', entityType: 'tag', entityId: key,
-          payload: { name }, createdBy: actorUserId ?? 0,
+          copSessionId: sessionId, eventType: 'tag.created', entityType: 'tag', entityId: id,
+          payload: {}, createdBy: actorUserId ?? 0,
         })
       }
     }
@@ -253,39 +266,54 @@ export async function applyItemTags(db: D1Database, input: ApplyTagsInput): Prom
   const tags = await ensureTags(db, input.sessionId, input.names, input.actorUserId)
   const now = new Date().toISOString()
   const confidence = Number.isInteger(input.confidence) ? Math.min(100, Math.max(0, input.confidence as number)) : null
-  const added: string[] = []
   for (const tag of tags) {
     const linked = await db.prepare(`
       INSERT OR IGNORE INTO cop_item_tags (id, cop_session_id, tag_id, target_type, target_id, source, confidence, created_by, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(`itg-${crypto.randomUUID()}`, input.sessionId, tag.id, input.targetType, input.targetId, input.source, confidence, input.actorUserId, now).run()
-    if (linked.meta?.changes) added.push(tag.name)
-  }
-  if (added.length > 0) {
-    await emitCopEventLoose(db, {
-      copSessionId: input.sessionId, eventType: 'tag.applied', entityType: 'tag', entityId: `${input.targetType}:${input.targetId}`,
-      payload: { target_type: input.targetType, target_id: input.targetId, tags: added, source: input.source },
-      createdBy: input.actorUserId ?? 0,
-    })
+    if (linked.meta?.changes) {
+      await emitCopEventLoose(db, {
+        copSessionId: input.sessionId, eventType: 'tag.applied', entityType: 'tag', entityId: tag.id,
+        payload: tagEventPayload(input.targetType, input.targetId, { source: input.source }),
+        createdBy: input.actorUserId ?? 0,
+      })
+    }
   }
   return itemTagNames(db, input.sessionId, input.targetType, input.targetId)
 }
 
+/** The links of these tag names on one item: who applied each. */
+export async function itemTagLinks(
+  db: D1Database,
+  input: { sessionId: string; targetType: TagTargetType; targetId: string; names: string[] },
+): Promise<{ id: string; tag_id: string; created_by: number | null }[]> {
+  const keys = input.names.map(cleanTagName).filter((n): n is string => Boolean(n)).map(tagKey)
+  if (keys.length === 0) return []
+  const rows = await db.prepare(`
+    SELECT it.id, it.tag_id, it.created_by FROM cop_item_tags it JOIN cop_tags t ON t.id = it.tag_id
+    WHERE it.cop_session_id = ? AND it.target_type = ? AND it.target_id = ?
+      AND t.cop_session_id = ? AND t.name_key IN (${keys.map(() => '?').join(',')})
+  `).bind(input.sessionId, input.targetType, input.targetId, input.sessionId, ...keys).all<{ id: string; tag_id: string; created_by: number | null }>()
+  return rows.results ?? []
+}
+
+/**
+ * Remove tags from one item. `onlyCreatedBy` limits the removal to links that user
+ * applied (a service removes only its own), in the DELETE itself.
+ */
 export async function removeItemTags(
   db: D1Database,
-  input: { sessionId: string; targetType: TagTargetType; targetId: string; names: string[]; actorUserId: number | null },
+  input: { sessionId: string; targetType: TagTargetType; targetId: string; names: string[]; actorUserId: number | null; onlyCreatedBy?: number },
 ): Promise<string[]> {
-  const keys = input.names.map(cleanTagName).filter((n): n is string => Boolean(n)).map(tagKey)
-  if (keys.length > 0) {
-    const removed = await db.prepare(`
-      DELETE FROM cop_item_tags
-      WHERE cop_session_id = ? AND target_type = ? AND target_id = ?
-        AND tag_id IN (SELECT id FROM cop_tags WHERE cop_session_id = ? AND name_key IN (${keys.map(() => '?').join(',')}))
-    `).bind(input.sessionId, input.targetType, input.targetId, input.sessionId, ...keys).run()
+  for (const link of await itemTagLinks(db, input)) {
+    const removed = input.onlyCreatedBy === undefined
+      ? await db.prepare('DELETE FROM cop_item_tags WHERE id = ? AND cop_session_id = ?').bind(link.id, input.sessionId).run()
+      : await db.prepare('DELETE FROM cop_item_tags WHERE id = ? AND cop_session_id = ? AND created_by = ?')
+        .bind(link.id, input.sessionId, input.onlyCreatedBy).run()
     if (removed.meta?.changes) {
       await emitCopEventLoose(db, {
-        copSessionId: input.sessionId, eventType: 'tag.removed', entityType: 'tag', entityId: `${input.targetType}:${input.targetId}`,
-        payload: { target_type: input.targetType, target_id: input.targetId, tags: keys },
+        copSessionId: input.sessionId, eventType: 'tag.removed', entityType: 'tag', entityId: link.tag_id,
+        payload: tagEventPayload(input.targetType, input.targetId),
         createdBy: input.actorUserId ?? 0,
       })
     }

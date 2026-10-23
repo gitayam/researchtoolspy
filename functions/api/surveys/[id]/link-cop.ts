@@ -5,7 +5,7 @@
  * DELETE /api/surveys/:id/link-cop  - Unlink survey from COP session
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-helpers'
+import { getUserFromRequest, requireCopEditor } from '../../_shared/auth-helpers'
 import { JSON_HEADERS } from '../../_shared/api-utils'
 
 interface Env {
@@ -39,16 +39,17 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const body = await request.json() as any
     const copSessionId = body.cop_session_id
 
-    if (!copSessionId) {
+    if (!copSessionId || typeof copSessionId !== 'string') {
       return new Response(JSON.stringify({ error: 'cop_session_id is required' }), {
         status: 400, headers: JSON_HEADERS,
       })
     }
 
-    // Verify COP session access
-    const wsId = await verifyCopSessionAccess(env.DB, copSessionId, userId)
+    // A linked form files its submissions on the COP: the session's owner or an
+    // editor/admin only (a viewer may not).
+    const wsId = await requireCopEditor(env.DB, copSessionId, userId)
     if (!wsId) {
-      return new Response(JSON.stringify({ error: 'Access denied to COP session' }), {
+      return new Response(JSON.stringify({ error: 'Only the COP session owner or an editor can link a form to it' }), {
         status: 403, headers: JSON_HEADERS,
       })
     }

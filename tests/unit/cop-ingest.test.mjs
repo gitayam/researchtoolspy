@@ -160,14 +160,16 @@ test('push-to-cop: two pushes at once make one evidence item; the second is 409'
 test('auto-ingest is capped per form per hour; the rest wait in the inbox', async () => {
   const { db, env } = await fixture()
   const { AUTO_INGEST_PER_HOUR } = mod('copIngest')
-  const recent = new Date().toISOString()
-  for (let i = 0; i < AUTO_INGEST_PER_HOUR; i++) {
-    db.prepare("INSERT INTO survey_responses (id, survey_id, cop_session_id, auto_ingested, status, updated_at) VALUES (?, 'srv-paris', ?, 1, 'accepted', ?)")
-      .run(`old-${i}`, SESSION, recent)
-  }
+  // This form already used every slot of the current UTC hour.
+  db.prepare("INSERT INTO survey_drop_ingest_slots (survey_id, hour, n) VALUES ('srv-paris', ?, ?)")
+    .run(new Date().toISOString().slice(0, 13), AUTO_INGEST_PER_HOUR)
   const body = await (await drop(env, { what: 'one more' })).json()
   assert.equal(body.ok, true)
   assert.equal(body.ingested, null)
+  assert.equal(db.prepare("SELECT status FROM survey_responses WHERE survey_id = 'srv-paris'").get().status, 'pending')
+  // Another form's slots are its own.
+  db.prepare("UPDATE survey_drop_ingest_slots SET survey_id = 'srv-other'").run()
+  assert.ok((await (await drop(env, { what: 'next' })).json()).ingested)
 })
 
 test('without migration 0023 the tip is stored and nothing is ingested', async () => {

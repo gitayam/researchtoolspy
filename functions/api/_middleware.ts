@@ -315,7 +315,12 @@ export async function onRequest(context: MiddlewareContext) {
   // AI endpoints: prevent OpenAI billing abuse. Per-user (hash), generous so it only
   // catches abuse/runaway, not normal use. Backstopped by the gateway's global limiter.
   if (request.method === 'POST' && AI_RATE_LIMITED_PATHS.some(p => url.pathname.includes(p))) {
-    const id = request.headers.get('X-User-Hash') || request.headers.get('X-Guest-Session') || clientIp
+    // Public survey and evidence-form submissions are anonymous: a client could rotate
+    // X-User-Hash / X-Guest-Session to reset its count, so they count by the address
+    // Cloudflare saw.
+    const id = url.pathname.startsWith('/api/surveys/')
+      ? `ip:${clientIp}`
+      : request.headers.get('X-User-Hash') || request.headers.get('X-Guest-Session') || clientIp
     if (await kvRateLimit(env, `ai:${id}`, 40, 60)) {
       return observeResponse(json429('AI rate limit exceeded. Please wait before making more requests.'))
     }

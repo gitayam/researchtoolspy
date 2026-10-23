@@ -23,12 +23,15 @@ import { emitCopEvent } from '../../../_shared/cop-events'
 import { INGEST_SUBMISSION_RECEIVED } from '../../../_shared/cop-event-types'
 import { autoIngestSubmission, parseFormSchema, sanitizeFormDataFiles } from '../../../_shared/cop-ingest'
 import type { R2Like } from '../../../_shared/cop-uploads'
+import { formDataTooLarge, readCappedText, SUBMISSION_BODY_MAX_BYTES } from '../../../_shared/capped-body'
 
 interface Env {
   DB: D1Database
   TURNSTILE_SECRET?: string
   UPLOADS?: R2Like
 }
+
+const TOO_LARGE = 'Submission too large (max 64 KB)'
 
 async function verifyTurnstile(secret: string, token: string): Promise<boolean> {
   try {
@@ -92,9 +95,16 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
+    // Size first: nothing is parsed, decoded or sanitized past the cap.
+    const raw = await readCappedText(context.request, SUBMISSION_BODY_MAX_BYTES)
+    if (raw === null) {
+      return new Response(JSON.stringify({ ok: false, error: TOO_LARGE }), {
+        status: 200, headers: JSON_HEADERS,
+      })
+    }
     let body: any
     try {
-      body = await context.request.json()
+      body = JSON.parse(raw)
     } catch {
       return new Response(JSON.stringify({ ok: false, error: 'Invalid request body' }), {
         status: 200, headers: JSON_HEADERS,
@@ -117,9 +127,15 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       }
     }
 
-    // Inline files: typed from their bytes, image metadata stripped before storage.
+    // Inline files: typed from their bytes, image metadata stripped before storage —
+    // after the answers are known to be within the 64K-character limit.
     const formSchemaFields = parseFormSchema(form.form_schema)
     const rawFormData = body.form_data && typeof body.form_data === 'object' && !Array.isArray(body.form_data) ? body.form_data : {}
+    if (formDataTooLarge(rawFormData)) {
+      return new Response(JSON.stringify({ ok: false, error: TOO_LARGE }), {
+        status: 200, headers: JSON_HEADERS,
+      })
+    }
     const cleaned = sanitizeFormDataFiles(rawFormData, formSchemaFields)
     if (cleaned.ok === false) {
       return new Response(JSON.stringify({ ok: false, error: cleaned.error }), {
@@ -131,7 +147,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const formData = cleaned.formData
     const formDataStr = JSON.stringify(formData)
     if (formDataStr.length > 65536) {
-      return new Response(JSON.stringify({ ok: false, error: 'Submission too large (max 64 KB)' }), {
+      return new Response(JSON.stringify({ ok: false, error: TOO_LARGE }), {
         status: 200, headers: JSON_HEADERS,
       })
     }

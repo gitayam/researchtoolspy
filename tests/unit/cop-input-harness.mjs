@@ -329,9 +329,9 @@ export async function fixture({ tags = true, channel = false, kv = true, r2 = tr
     INSERT INTO cop_collaborators (cop_session_id, user_id, role) VALUES
       ('${SESSION}', 2, 'Editor'), ('${SESSION}', 3, 'viewer'), ('${SESSION}', ${SERVICE_USER}, 'editor');
     INSERT INTO cop_shares (id, cop_session_id, share_token, visible_panels, created_at, expires_at) VALUES
-      ('share-1', '${SESSION}', '${SHARE_TOKEN}', '["map","event"]', '${past}', '${future}'),
-      ('share-2', '${SESSION}', '${SHARE_NO_FEED}', '["map","cams"]', '${past}', '${future}'),
-      ('share-3', '${SESSION}', '${SHARE_EXPIRED}', '["map","event"]', '${past}', '${past}');
+      ('share-1', '${SESSION}', '${SHARE_TOKEN}', '["map","evidence"]', '${past}', '${future}'),
+      ('share-2', '${SESSION}', '${SHARE_NO_FEED}', '["map","event","cams"]', '${past}', '${future}'),
+      ('share-3', '${SESSION}', '${SHARE_EXPIRED}', '["map","evidence"]', '${past}', '${past}');
     INSERT INTO evidence_items (id, title, description, evidence_type, credibility, reliability, workspace_id, created_by, cop_session_id) VALUES
       (1, 'Paris evidence', 'x', 'observation', 'unverified', 'unknown', 'ws-owner', 1, '${SESSION}'),
       (2, 'Attacker evidence', 'x', 'observation', 'unverified', 'unknown', 'ws-attacker', 4, '${ATTACKER_SESSION}');
