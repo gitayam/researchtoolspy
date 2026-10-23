@@ -315,8 +315,12 @@ export async function onRequest(context: MiddlewareContext) {
 
   // AI endpoints: prevent OpenAI billing abuse. Per-user (hash), generous so it only
   // catches abuse/runaway, not normal use. Backstopped by the gateway's global limiter.
-  if (request.method === 'POST' && AI_RATE_LIMITED_PATHS.some(p => url.pathname.includes(p))) {
-    // Public survey and evidence-form submissions are anonymous: a client could rotate
+  // The anonymous evidence form (drop-submit) promises tipsters that nothing identifying
+  // them is read or kept (E-11 / D-E4), so it is never counted by address here. Its abuse
+  // bound is the per-form ingest slot in D1 (cop-ingest.ts), the body cap and Turnstile.
+  const anonymousDrop = /^\/api\/surveys\/public\/[^/]+\/drop-submit$/.test(url.pathname)
+  if (request.method === 'POST' && !anonymousDrop && AI_RATE_LIMITED_PATHS.some(p => url.pathname.includes(p))) {
+    // Public survey submissions are anonymous: a client could rotate
     // X-User-Hash / X-Guest-Session to reset its count, so they count by the address
     // Cloudflare saw, hashed so no raw address is written to KV.
     const id = url.pathname.startsWith('/api/surveys/')
