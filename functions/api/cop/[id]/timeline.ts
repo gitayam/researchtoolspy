@@ -4,13 +4,16 @@
  * GET    /api/cop/:id/timeline - List timeline entries for session
  * POST   /api/cop/:id/timeline - Create one or more timeline entries
  * PUT    /api/cop/:id/timeline - Update a timeline entry
- * DELETE /api/cop/:id/timeline - Delete a timeline entry
+ * DELETE /api/cop/:id/timeline - Delete a timeline entry (?entry_id=; a service: only its own)
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { verifyCopSessionAccess } from '../../_shared/auth-helpers'
+import { verifyCopSessionAccess, requireCopEditor } from '../../_shared/auth-helpers'
 import { generatePrefixedId , JSON_HEADERS } from '../../_shared/api-utils'
 import { logEvent } from '../../_shared/event-log'
 import { copCallerUserId } from '../../_shared/cop-caller'
+import { emitCopEvent } from '../../_shared/cop-events'
+import { TIMELINE_CREATED, TIMELINE_DELETED, TIMELINE_UPDATED } from '../../_shared/cop-event-types'
+import { copSourceChannel, copSourceRef, serviceDeleteRefused, serviceMayDelete, setProvenance } from '../../_shared/cop-input'
 
 interface Env {
   DB: D1Database
@@ -83,7 +86,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         status: 401, headers: JSON_HEADERS,
       })
     }
-    if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
+    if (!(await requireCopEditor(env.DB, sessionId, userId))) {
       return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
     }
     const body = await request.json() as any
@@ -131,6 +134,18 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     })
 
     await env.DB.batch(stmts)
+    const channel = copSourceChannel(context)
+    const ref = copSourceRef(context)
+    for (const id of ids) {
+      await setProvenance(env.DB, 'cop_timeline_entries', id, channel, ref)
+      await emitCopEvent(env.DB, {
+        copSessionId: sessionId,
+        eventType: TIMELINE_CREATED,
+        entityType: 'timeline',
+        entityId: id,
+        createdBy: userId,
+      })
+    }
 
     return new Response(JSON.stringify({
       message: `${ids.length} timeline entries saved`,
@@ -161,7 +176,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
         status: 401, headers: JSON_HEADERS,
       })
     }
-    if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
+    if (!(await requireCopEditor(env.DB, sessionId, userId))) {
       return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
     }
     const body = await request.json() as any
@@ -216,6 +231,13 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     const updated = await env.DB.prepare(
       `SELECT * FROM cop_timeline_entries WHERE id = ? AND cop_session_id = ?`
     ).bind(entryId, sessionId).first()
+    await emitCopEvent(env.DB, {
+      copSessionId: sessionId,
+      eventType: TIMELINE_UPDATED,
+      entityType: 'timeline',
+      entityId: entryId,
+      createdBy: userId,
+    })
 
     return new Response(JSON.stringify({ message: 'Timeline entry updated', entry: updated || { id: entryId } }), { headers: JSON_HEADERS })
   } catch (error) {
@@ -243,7 +265,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
         status: 401, headers: JSON_HEADERS,
       })
     }
-    if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
+    if (!(await requireCopEditor(env.DB, sessionId, userId))) {
       return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
     }
     const url = new URL(request.url)
@@ -256,9 +278,10 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     }
 
     const existing = await env.DB.prepare(
-      `SELECT source_type FROM cop_timeline_entries WHERE id = ? AND cop_session_id = ?`
-    ).bind(entryId, sessionId).first<{ source_type: string }>()
+      `SELECT source_type, created_by FROM cop_timeline_entries WHERE id = ? AND cop_session_id = ?`
+    ).bind(entryId, sessionId).first<{ source_type: string; created_by: number }>()
 
+    if (existing && !serviceMayDelete(context, existing.created_by)) return serviceDeleteRefused()
     if (existing?.source_type === 'system') {
       return new Response(JSON.stringify({ error: 'System-generated entries cannot be deleted' }), {
         status: 403, headers: JSON_HEADERS,
@@ -275,6 +298,13 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       })
     }
 
+    await emitCopEvent(env.DB, {
+      copSessionId: sessionId,
+      eventType: TIMELINE_DELETED,
+      entityType: 'timeline',
+      entityId: entryId,
+      createdBy: userId,
+    })
     return new Response(JSON.stringify({ message: 'Timeline entry deleted' }), { headers: JSON_HEADERS })
   } catch (error) {
     await logEvent(env, {

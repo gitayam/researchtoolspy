@@ -2,12 +2,18 @@
  * COP Public Share API
  *
  * GET /api/cop/public/:token - Get shared session data (filtered by visible_panels)
+ *
+ * Beyond the session fields, by panel: `rfis` (rfi), `key_rfis` — the starred RFIs, i.e.
+ * key questions — (questions), `webcams` (cams), `evidence` (evidence). `evidence_form`
+ * is the session's evidence form when the link allows evidence (allow_evidence) and an
+ * active drop is linked to the session; otherwise null.
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { JSON_HEADERS } from '../../_shared/api-utils'
 import { logEvent } from '../../_shared/event-log'
 import { shareExpired, sharePanels } from '../../_shared/cop-share'
 import { listSessionWebcams, publicWebcam } from '../../_shared/cop-webcams'
+import { publicEvidence, publicEvidenceForm, publicKeyRfis } from '../../_shared/cop-public'
 
 interface Env {
   DB: D1Database
@@ -102,6 +108,19 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       session: publicSessionFields(parsed, visiblePanels),
       visible_panels: visiblePanels,
       allow_rfi_answers: share.allow_rfi_answers === 1,
+      allow_evidence: share.allow_evidence === 1,
+      evidence_form: await publicEvidenceForm(env.DB, share),
+    }
+
+    // Key questions are starred RFIs (migration 0022); key_questions stays in the session
+    // fields for older clients.
+    if (visiblePanels.includes('questions')) {
+      response.key_rfis = await publicKeyRfis(env.DB, share.cop_session_id)
+    }
+
+    // Evidence only with the evidence panel: explicit fields, no descriptions.
+    if (visiblePanels.includes('evidence')) {
+      response.evidence = await publicEvidence(env.DB, String((session as { workspace_id?: unknown }).workspace_id))
     }
 
     // Include RFIs if rfi panel is visible

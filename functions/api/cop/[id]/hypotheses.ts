@@ -3,16 +3,23 @@
  *
  * GET  /api/cop/:id/hypotheses - List hypotheses for session (with evidence)
  * POST /api/cop/:id/hypotheses - Create hypothesis OR link evidence to hypothesis
- * PUT  /api/cop/:id/hypotheses - Update hypothesis status/confidence
+ * PUT  /api/cop/:id/hypotheses - Update hypothesis status/confidence (optional if_updated_at /
+ *                                If-Match → 409 STALE_WRITE)
+ * DELETE /api/cop/:id/hypotheses?id= - Delete a hypothesis and its evidence links (a service:
+ *                                only its own)
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { verifyCopSessionAccess } from '../../_shared/auth-helpers'
+import { verifyCopSessionAccess, requireCopEditor } from '../../_shared/auth-helpers'
 import { emitCopEvent } from '../../_shared/cop-events'
-import { HYPOTHESIS_CREATED, HYPOTHESIS_UPDATED, HYPOTHESIS_EVIDENCE_LINKED } from '../../_shared/cop-event-types'
+import { HYPOTHESIS_CREATED, HYPOTHESIS_DELETED, HYPOTHESIS_UPDATED, HYPOTHESIS_EVIDENCE_LINKED } from '../../_shared/cop-event-types'
 import { createTimelineEntry } from '../../_shared/timeline-helper'
 import { JSON_HEADERS } from '../../_shared/api-utils'
 import { logEvent } from '../../_shared/event-log'
 import { copCallerUserId } from '../../_shared/cop-caller'
+import {
+  copSourceChannel, copSourceRef, expectedUpdatedAt, serviceDeleteRefused, serviceMayDelete, setProvenance,
+  staleWriteResponse,
+} from '../../_shared/cop-input'
 
 interface Env {
   DB: D1Database
@@ -94,7 +101,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         status: 401, headers: JSON_HEADERS,
       })
     }
-    const postWorkspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId)
+    const postWorkspaceId = await requireCopEditor(env.DB, sessionId, userId)
     if (!postWorkspaceId) {
       return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
     }
@@ -156,6 +163,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       INSERT INTO cop_hypotheses (id, cop_session_id, statement, status, confidence, created_by, workspace_id, created_at, updated_at)
       VALUES (?, ?, ?, 'active', ?, ?, ?, ?, ?)
     `).bind(id, sessionId, body.statement.trim(), confidence, userId, workspaceId, now, now).run()
+    await setProvenance(env.DB, 'cop_hypotheses', id, copSourceChannel(context), copSourceRef(context))
 
     await emitCopEvent(env.DB, {
       copSessionId: sessionId,
@@ -205,7 +213,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
         status: 401, headers: JSON_HEADERS,
       })
     }
-    const putAccessId = await verifyCopSessionAccess(env.DB, sessionId, userId)
+    const putAccessId = await requireCopEditor(env.DB, sessionId, userId)
     if (!putAccessId) {
       return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
     }
@@ -215,6 +223,18 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       return new Response(JSON.stringify({ error: 'Hypothesis id is required' }), {
         status: 400, headers: JSON_HEADERS,
       })
+    }
+
+    const expected = expectedUpdatedAt(request, body)
+    if (expected) {
+      const current = await env.DB.prepare('SELECT * FROM cop_hypotheses WHERE id = ? AND cop_session_id = ?')
+        .bind(body.id, sessionId).first<Record<string, unknown> & { updated_at: string }>()
+      if (!current) {
+        return new Response(JSON.stringify({ error: 'Hypothesis not found in this session' }), {
+          status: 404, headers: JSON_HEADERS,
+        })
+      }
+      if (current.updated_at !== expected) return staleWriteResponse(current)
     }
 
     const updates: string[] = []
@@ -241,11 +261,17 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     values.push(body.id)
     values.push(sessionId)
 
+    // With a version from the client, the update only lands on that version.
     const updateResult = await env.DB.prepare(`
-      UPDATE cop_hypotheses SET ${updates.join(', ')} WHERE id = ? AND cop_session_id = ?
-    `).bind(...values).run()
+      UPDATE cop_hypotheses SET ${updates.join(', ')} WHERE id = ? AND cop_session_id = ?${expected ? ' AND updated_at = ?' : ''}
+    `).bind(...values, ...(expected ? [expected] : [])).run()
 
     if (!updateResult.meta.changes || updateResult.meta.changes === 0) {
+      if (expected) {
+        const latest = await env.DB.prepare('SELECT * FROM cop_hypotheses WHERE id = ? AND cop_session_id = ?')
+          .bind(body.id, sessionId).first()
+        if (latest) return staleWriteResponse(latest)
+      }
       return new Response(JSON.stringify({ error: 'Hypothesis not found in this session' }), {
         status: 404, headers: JSON_HEADERS,
       })
@@ -271,6 +297,51 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     return new Response(JSON.stringify({
       error: 'Failed to update hypothesis',
     }), { status: 500, headers: JSON_HEADERS })
+  }
+}
+
+export const onRequestDelete: PagesFunction<Env> = async (context) => {
+  const { request, env, params } = context
+  const sessionId = params.id as string
+
+  try {
+    const userId = await copCallerUserId(context)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), { status: 401, headers: JSON_HEADERS })
+    }
+    if (!(await requireCopEditor(env.DB, sessionId, userId))) {
+      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
+    }
+    const hypothesisId = new URL(request.url).searchParams.get('id')
+    if (!hypothesisId) {
+      return new Response(JSON.stringify({ error: 'id query parameter is required' }), { status: 400, headers: JSON_HEADERS })
+    }
+    const existing = await env.DB.prepare('SELECT id, created_by FROM cop_hypotheses WHERE id = ? AND cop_session_id = ?')
+      .bind(hypothesisId, sessionId).first<{ id: string; created_by: number }>()
+    if (!existing) {
+      return new Response(JSON.stringify({ error: 'Hypothesis not found in this session' }), { status: 404, headers: JSON_HEADERS })
+    }
+    if (!serviceMayDelete(context, existing.created_by)) return serviceDeleteRefused()
+    await env.DB.prepare('DELETE FROM cop_hypothesis_evidence WHERE hypothesis_id = ?').bind(hypothesisId).run()
+    await env.DB.prepare('UPDATE cop_tasks SET linked_hypothesis_id = NULL WHERE linked_hypothesis_id = ? AND cop_session_id = ?')
+      .bind(hypothesisId, sessionId).run()
+    await env.DB.prepare('DELETE FROM cop_hypotheses WHERE id = ? AND cop_session_id = ?').bind(hypothesisId, sessionId).run()
+    await emitCopEvent(env.DB, {
+      copSessionId: sessionId,
+      eventType: HYPOTHESIS_DELETED,
+      entityType: 'hypothesis',
+      entityId: hypothesisId,
+      createdBy: userId,
+    })
+    return new Response(JSON.stringify({ message: 'Hypothesis deleted' }), { headers: JSON_HEADERS })
+  } catch (error) {
+    await logEvent(env, {
+      level: 'error',
+      source: 'cop/hypotheses',
+      message: String(error instanceof Error ? error.message : error).slice(0, 500),
+      context: { error: String(error) },
+    })
+    return new Response(JSON.stringify({ error: 'Failed to delete hypothesis' }), { status: 500, headers: JSON_HEADERS })
   }
 }
 

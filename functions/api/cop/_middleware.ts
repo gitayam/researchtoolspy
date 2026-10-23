@@ -13,6 +13,10 @@
  * The handler then acts as the principal user (copCallerUserId).
  *
  * Refusals are integration-error.v1 documents, like the other service routes.
+ *
+ * For every caller, a successful write to a session route that emitted no cop_events
+ * row gets a generic `entity.changed` event here, so the change feed
+ * (GET /api/cop/:id/changes) never misses a write, even from a route that forgot to emit.
  */
 import { JSON_HEADERS } from '../_shared/api-utils'
 import {
@@ -32,6 +36,9 @@ import {
   serviceMayUseSession,
   type CopServiceCaller,
 } from '../_shared/cop-caller'
+import { getUserFromRequest } from '../_shared/auth-helpers'
+import { emitCopEvent, trackCopEvents } from '../_shared/cop-events'
+import { ENTITY_CHANGED, type CopFeedEntityType } from '../_shared/cop-event-types'
 
 interface Env extends IntegrationAuthEnv {
   DB: D1Database
@@ -66,9 +73,73 @@ function refuse(
   })
 }
 
+const WRITE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE'])
+
+/** The change-feed entity type of a COP session route, from its first path segment. */
+export function entityTypeForCopPath(pathname: string): CopFeedEntityType {
+  const segment = /^\/api\/cop\/[^/]+\/([^/?]+)/.exec(pathname)?.[1] ?? ''
+  switch (segment) {
+    case 'evidence': case 'scrape': return 'evidence'
+    case 'markers': case 'marker-changelog': case 'cot': return 'marker'
+    case 'rfis': return 'rfi'
+    case 'tasks': case 'task-templates': case 'task-dependencies': return 'task'
+    case 'timeline': return 'timeline'
+    case 'claims': return 'claim'
+    case 'hypotheses': return 'hypothesis'
+    case 'personas': return 'persona'
+    case 'poo-estimates': return 'poo'
+    case 'assets': return 'asset'
+    case 'webcams': return 'webcam'
+    case 'evidence-tags': case 'tags': case 'item-tags': return 'tag'
+    case 'uploads': return 'upload'
+    case 'submissions': case 'intake-forms': return 'submission'
+    case 'shares': return 'share'
+    case 'playbooks': return 'playbook'
+    case 'activity': case 'alerts': return 'activity'
+    default: return 'session'
+  }
+}
+
+/**
+ * Run the handler; for a successful write to a session route that emitted no event,
+ * emit a generic one. Reads and non-session routes pass straight through.
+ */
+async function withChangeFallback(
+  context: Parameters<PagesFunction<Env>>[0],
+  service: CopServiceCaller | null,
+): Promise<Response> {
+  const { request, env } = context
+  if (!WRITE_METHODS.has(request.method)) return context.next()
+  const { pathname } = new URL(request.url)
+  const sessionId = copSessionIdFromPath(pathname)
+  if (sessionId === null) return context.next()
+
+  const { result: response, emitted } = await trackCopEvents(() => context.next())
+  if (emitted === 0 && response.status >= 200 && response.status < 300) {
+    let userId: number | null = service?.principalUserId ?? null
+    if (userId === null) {
+      try {
+        userId = await getUserFromRequest(request, env as never)
+      } catch {
+        userId = null
+      }
+    }
+    if (userId !== null) {
+      await emitCopEvent(env.DB, {
+        copSessionId: sessionId,
+        eventType: ENTITY_CHANGED,
+        entityType: entityTypeForCopPath(pathname),
+        payload: { method: request.method },
+        createdBy: userId,
+      })
+    }
+  }
+  return response
+}
+
 export const onRequest: PagesFunction<Env> = async (context) => {
   const { request, env } = context
-  if (!isReservedIntegrationAuthorization(request)) return context.next()
+  if (!isReservedIntegrationAuthorization(request)) return withChangeFallback(context, null)
 
   let principal
   try {
@@ -128,5 +199,5 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     workspaceId: principal.workspaceId,
   }
   ;(context.data as Record<string, unknown>).copService = service
-  return context.next()
+  return withChangeFallback(context, service)
 }

@@ -73,6 +73,9 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       } catch {
         payload = {}
       }
+      // Share events written before 2026-10-23 carried the link's token: a capability
+      // URL no reader of this list (viewers included) should get.
+      if (payload && typeof payload === 'object') delete (payload as Record<string, unknown>).share_token
       return { ...row, payload }
     })
 

@@ -6,12 +6,16 @@
  * PUT  /api/cop/:id/rfis - Update RFI (status, priority, answer)
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { verifyCopSessionAccess } from '../../_shared/auth-helpers'
+import { verifyCopSessionAccess, requireCopEditor } from '../../_shared/auth-helpers'
 import { emitCopEvent } from '../../_shared/cop-events'
-import { RFI_CREATED, RFI_ANSWERED, RFI_CLOSED } from '../../_shared/cop-event-types'
+import { RFI_CREATED, RFI_ANSWERED, RFI_CLOSED, RFI_STARRED, RFI_UNSTARRED, RFI_UPDATED } from '../../_shared/cop-event-types'
 import { generatePrefixedId , JSON_HEADERS } from '../../_shared/api-utils'
 import { logEvent } from '../../_shared/event-log'
 import { copCallerUserId } from '../../_shared/cop-caller'
+import {
+  copSourceChannel, copSourceRef, expectedUpdatedAt, isMissingColumn, rewriteSessionKeyQuestions, setProvenance,
+  staleWriteResponse,
+} from '../../_shared/cop-input'
 
 interface Env {
   DB: D1Database
@@ -32,17 +36,25 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   }
 
   try {
-    const rfis = await env.DB.prepare(`
-      SELECT * FROM cop_rfis WHERE cop_session_id = ? ORDER BY
-        CASE priority
+    // Key questions (starred RFIs, migration 0022) first; before it, priority order only.
+    const order = `CASE priority
           WHEN 'critical' THEN 0
           WHEN 'high' THEN 1
           WHEN 'medium' THEN 2
           WHEN 'low' THEN 3
         END,
-        created_at DESC
-      LIMIT 200
-    `).bind(sessionId).all()
+        created_at DESC`
+    let rfis
+    try {
+      rfis = await env.DB.prepare(
+        `SELECT * FROM cop_rfis WHERE cop_session_id = ? ORDER BY is_key DESC, ${order} LIMIT 200`
+      ).bind(sessionId).all()
+    } catch (error) {
+      if (!isMissingColumn(error)) throw error
+      rfis = await env.DB.prepare(
+        `SELECT * FROM cop_rfis WHERE cop_session_id = ? ORDER BY ${order} LIMIT 200`
+      ).bind(sessionId).all()
+    }
 
     // Fetch answers for each RFI
     const rfiIds = (rfis.results || []).map((r: any) => r.id)
@@ -65,6 +77,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     const enriched = (rfis.results || []).map((r: any) => ({
       ...r,
+      is_key: r.is_key ? 1 : 0,
       answers: answersByRfi[r.id] || [],
     }))
 
@@ -93,7 +106,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         status: 401, headers: JSON_HEADERS,
       })
     }
-    const postWorkspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId)
+    const postWorkspaceId = await requireCopEditor(env.DB, sessionId, userId)
     if (!postWorkspaceId) {
       return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
     }
@@ -114,15 +127,28 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       INSERT INTO cop_rfis (id, cop_session_id, question, priority, status, is_blocker, created_by, assigned_to, requester_name, created_at, updated_at)
       VALUES (?, ?, ?, ?, 'open', ?, ?, ?, ?, ?, ?)
     `).bind(id, sessionId, body.question.trim(), priority, isBLocker, userId, body.assigned_to ?? null, body.requester_name ?? null, now, now).run()
+    await setProvenance(env.DB, 'cop_rfis', id, copSourceChannel(context), copSourceRef(context))
+
+    // A new RFI can be a key question straight away (starred).
+    let starred = false
+    if (body.is_key === true) {
+      try {
+        await env.DB.prepare('UPDATE cop_rfis SET is_key = 1 WHERE id = ? AND cop_session_id = ?').bind(id, sessionId).run()
+        starred = true
+      } catch (error) {
+        if (!isMissingColumn(error)) throw error
+      }
+    }
 
     await emitCopEvent(env.DB, {
       copSessionId: sessionId,
       eventType: RFI_CREATED,
       entityType: 'rfi',
       entityId: id,
-      payload: { question: body.question, priority, is_blocker: !!body.is_blocker },
+      payload: { question: body.question, priority, is_blocker: !!body.is_blocker, is_key: starred },
       createdBy: userId,
     })
+    if (starred) await rewriteSessionKeyQuestions(env.DB, sessionId, userId)
 
     return new Response(JSON.stringify({ id, message: 'RFI created' }), {
       status: 201, headers: JSON_HEADERS,
@@ -152,7 +178,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
         status: 401, headers: JSON_HEADERS,
       })
     }
-    const putWorkspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId)
+    const putWorkspaceId = await requireCopEditor(env.DB, sessionId, userId)
     if (!putWorkspaceId) {
       return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
     }
@@ -163,6 +189,16 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
         status: 400, headers: JSON_HEADERS,
       })
     }
+
+    const existing = await env.DB.prepare('SELECT * FROM cop_rfis WHERE id = ? AND cop_session_id = ?')
+      .bind(body.id, sessionId).first<Record<string, unknown> & { updated_at: string; is_key?: number }>()
+    if (!existing) {
+      return new Response(JSON.stringify({ error: 'RFI not found' }), {
+        status: 404, headers: JSON_HEADERS,
+      })
+    }
+    const expected = expectedUpdatedAt(request, body)
+    if (expected && expected !== existing.updated_at) return staleWriteResponse(existing)
 
     const now = new Date().toISOString()
     const sets: string[] = ['updated_at = ?']
@@ -189,15 +225,43 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       sets.push('assigned_to = ?')
       vals.push(body.assigned_to || null)
     }
+    const starChange = typeof body.is_key === 'boolean' && 'is_key' in existing && Boolean(existing.is_key) !== body.is_key
+    if (starChange) {
+      sets.push('is_key = ?')
+      vals.push(body.is_key ? 1 : 0)
+    }
 
+    // With a version from the client, the update only lands on that version.
     const updateResult = await env.DB.prepare(
-      `UPDATE cop_rfis SET ${sets.join(', ')} WHERE id = ? AND cop_session_id = ?`
-    ).bind(...vals, body.id, sessionId).run()
+      `UPDATE cop_rfis SET ${sets.join(', ')} WHERE id = ? AND cop_session_id = ?${expected ? ' AND updated_at = ?' : ''}`
+    ).bind(...vals, body.id, sessionId, ...(expected ? [expected] : [])).run()
 
     if (!updateResult.meta.changes || updateResult.meta.changes === 0) {
+      if (expected) {
+        const current = await env.DB.prepare('SELECT * FROM cop_rfis WHERE id = ? AND cop_session_id = ?')
+          .bind(body.id, sessionId).first()
+        if (current) return staleWriteResponse(current)
+      }
       return new Response(JSON.stringify({ error: 'RFI not found' }), {
         status: 404, headers: JSON_HEADERS,
       })
+    }
+    await emitCopEvent(env.DB, {
+      copSessionId: sessionId,
+      eventType: RFI_UPDATED,
+      entityType: 'rfi',
+      entityId: body.id,
+      createdBy: userId,
+    })
+    if (starChange) {
+      await emitCopEvent(env.DB, {
+        copSessionId: sessionId,
+        eventType: body.is_key ? RFI_STARRED : RFI_UNSTARRED,
+        entityType: 'rfi',
+        entityId: body.id,
+        createdBy: userId,
+      })
+      await rewriteSessionKeyQuestions(env.DB, sessionId, userId)
     }
 
     // If an answer is provided, insert into cop_rfi_answers and seed evidence

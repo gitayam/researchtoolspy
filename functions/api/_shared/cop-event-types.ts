@@ -78,18 +78,77 @@ export const WORKFLOW_STAGE_ENTERED = 'workflow.stage_entered' as const
 export const WORKFLOW_STAGE_COMPLETED = 'workflow.stage_completed' as const
 export const WORKFLOW_PIPELINE_FINISHED = 'workflow.pipeline_finished' as const
 
-// Entity type enum for the entity_type column
+// -- Generic change events (feed: GET /api/cop/:id/changes) --
+export const EVIDENCE_UPDATED = 'evidence.updated' as const
+export const EVIDENCE_DELETED = 'evidence.deleted' as const
+export const EVIDENCE_BATCH_CREATED = 'evidence.batch_created' as const
+export const EVIDENCE_IMPORTED = 'evidence.imported' as const
+export const MARKER_LOGGED = 'marker.logged' as const
+export const RFI_UPDATED = 'rfi.updated' as const
+export const RFI_STARRED = 'rfi.starred' as const
+export const RFI_UNSTARRED = 'rfi.unstarred' as const
+export const RFI_DELETED = 'rfi.deleted' as const
+export const RFI_ANSWER_UPDATED = 'rfi.answer_updated' as const
+export const TASK_UPDATED = 'task.updated' as const
+export const TASK_DEPENDENCY_ADDED = 'task.dependency_added' as const
+export const TASK_DEPENDENCY_REMOVED = 'task.dependency_removed' as const
+export const TASK_TEMPLATE_CHANGED = 'task.template_changed' as const
+export const TIMELINE_CREATED = 'timeline.created' as const
+export const TIMELINE_UPDATED = 'timeline.updated' as const
+export const TIMELINE_DELETED = 'timeline.deleted' as const
+export const CLAIM_CREATED = 'claim.created' as const
+export const CLAIM_UPDATED = 'claim.updated' as const
+export const CLAIM_DELETED = 'claim.deleted' as const
+export const HYPOTHESIS_DELETED = 'hypothesis.deleted' as const
+export const PERSONA_UPDATED = 'persona.updated' as const
+export const PERSONA_DELETED = 'persona.deleted' as const
+export const POO_CREATED = 'poo.created' as const
+export const POO_UPDATED = 'poo.updated' as const
+export const POO_DELETED = 'poo.deleted' as const
+export const ASSET_DELETED = 'asset.deleted' as const
+export const WEBCAM_CREATED = 'webcam.created' as const
+export const WEBCAM_UPDATED = 'webcam.updated' as const
+export const WEBCAM_DELETED = 'webcam.deleted' as const
+export const SHARE_UPDATED = 'share.updated' as const
+export const SHARE_DELETED = 'share.deleted' as const
+export const SESSION_CREATED = 'session.created' as const
+export const SESSION_UPDATED = 'session.updated' as const
+export const COLLABORATOR_UPDATED = 'collaborator.updated' as const
+export const PLAYBOOK_CREATED = 'playbook.created' as const
+export const PLAYBOOK_UPDATED = 'playbook.updated' as const
+export const PLAYBOOK_DELETED = 'playbook.deleted' as const
+export const INTAKE_FORM_CREATED = 'intake_form.created' as const
+export const INTAKE_FORM_UPDATED = 'intake_form.updated' as const
+export const ACTIVITY_LOGGED = 'activity.logged' as const
+/** Emitted by functions/api/cop/_middleware.ts for a successful write that emitted nothing. */
+export const ENTITY_CHANGED = 'entity.changed' as const
+
+/**
+ * The entity_type vocabulary of the change feed (GET /api/cop/:id/changes). Clients map
+ * these to the panels and layers they refetch. Every write emits one of these.
+ */
+export const COP_FEED_ENTITY_TYPES = [
+  'evidence', 'marker', 'rfi', 'task', 'timeline', 'claim', 'hypothesis', 'persona', 'poo',
+  'asset', 'webcam', 'tag', 'upload', 'submission', 'share', 'session', 'playbook', 'activity',
+] as const
+export type CopFeedEntityType = (typeof COP_FEED_ENTITY_TYPES)[number]
+
+/**
+ * Entity types written before the feed vocabulary existed, and what the feed shows
+ * them as. New code emits feed types only.
+ */
+export const LEGACY_ENTITY_TYPES: Readonly<Record<string, CopFeedEntityType>> = {
+  collaborator: 'session',
+  export: 'session',
+  alert: 'activity',
+  workflow: 'playbook',
+}
+
+// Entity type enum for the entity_type column: the feed vocabulary, plus the legacy
+// types some older emitters still write (mapped by LEGACY_ENTITY_TYPES in the feed).
 export type CopEventEntityType =
-  | 'task'
-  | 'rfi'
-  | 'evidence'
-  | 'hypothesis'
-  | 'persona'
-  | 'marker'
+  | CopFeedEntityType
   | 'collaborator'
-  | 'share'
-  | 'submission'
-  | 'asset'
   | 'export'
   | 'alert'
   | 'workflow'
@@ -113,3 +172,18 @@ export type CopEventType =
   | typeof ALERT_DISMISSED | typeof ALERT_ACTIONED | typeof ALERT_LINKED
   | typeof EXPORT_REQUESTED | typeof EXPORT_COMPLETED | typeof EXPORT_FAILED
   | typeof WORKFLOW_STAGE_ENTERED | typeof WORKFLOW_STAGE_COMPLETED | typeof WORKFLOW_PIPELINE_FINISHED
+  | typeof EVIDENCE_UPDATED | typeof EVIDENCE_DELETED | typeof EVIDENCE_BATCH_CREATED | typeof EVIDENCE_IMPORTED
+  | typeof MARKER_LOGGED
+  | typeof RFI_UPDATED | typeof RFI_STARRED | typeof RFI_UNSTARRED | typeof RFI_DELETED | typeof RFI_ANSWER_UPDATED
+  | typeof TASK_UPDATED | typeof TASK_DEPENDENCY_ADDED | typeof TASK_DEPENDENCY_REMOVED | typeof TASK_TEMPLATE_CHANGED
+  | typeof TIMELINE_CREATED | typeof TIMELINE_UPDATED | typeof TIMELINE_DELETED
+  | typeof CLAIM_CREATED | typeof CLAIM_UPDATED | typeof CLAIM_DELETED
+  | typeof HYPOTHESIS_DELETED | typeof PERSONA_UPDATED | typeof PERSONA_DELETED
+  | typeof POO_CREATED | typeof POO_UPDATED | typeof POO_DELETED
+  | typeof ASSET_DELETED
+  | typeof WEBCAM_CREATED | typeof WEBCAM_UPDATED | typeof WEBCAM_DELETED
+  | typeof SHARE_UPDATED | typeof SHARE_DELETED
+  | typeof SESSION_CREATED | typeof SESSION_UPDATED | typeof COLLABORATOR_UPDATED
+  | typeof PLAYBOOK_CREATED | typeof PLAYBOOK_UPDATED | typeof PLAYBOOK_DELETED
+  | typeof INTAKE_FORM_CREATED | typeof INTAKE_FORM_UPDATED
+  | typeof ACTIVITY_LOGGED | typeof ENTITY_CHANGED

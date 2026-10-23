@@ -39,6 +39,35 @@ import { claimStatusRefresh, enrichWebcamInput, refreshWindyStatuses, staleWindy
 import { windyKeyConfigured } from '../../_shared/windy-webcams'
 import { spendCaller, WEBCAM_INVALID } from '../../_shared/webcam-discovery'
 import type { KvLike } from '../../_shared/kv-json'
+import { emitCopEvent } from '../../_shared/cop-events'
+import { SESSION_UPDATED, WEBCAM_CREATED, WEBCAM_UPDATED } from '../../_shared/cop-event-types'
+
+/**
+ * Switch the session's webcams map layer on, so the first camera shows on the map
+ * without anyone finding the layer toggle. Does nothing when it is already on.
+ */
+async function ensureWebcamsLayer(db: D1Database, sessionId: string, userId: number): Promise<void> {
+  const result = await db.prepare(`
+    UPDATE cop_sessions
+    SET active_layers = json_insert(CASE WHEN json_valid(active_layers) THEN active_layers ELSE '[]' END, '$[#]', 'webcams'),
+        updated_at = ?
+    WHERE id = ?
+      AND NOT EXISTS (
+        SELECT 1 FROM json_each(CASE WHEN json_valid(active_layers) THEN active_layers ELSE '[]' END)
+        WHERE value = 'webcams'
+      )
+  `).bind(new Date().toISOString(), sessionId).run()
+  if (result.meta?.changes) {
+    await emitCopEvent(db, {
+      copSessionId: sessionId,
+      eventType: SESSION_UPDATED,
+      entityType: 'session',
+      entityId: sessionId,
+      payload: { active_layers: 'webcams' },
+      createdBy: userId,
+    })
+  }
+}
 
 interface Env {
   DB: D1Database
@@ -65,7 +94,12 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     const stale = staleWindyCameras(rows)
     if (stale.length > 0 && windyKeyConfigured(env) && (await claimStatusRefresh(env.CACHE, sessionId))) {
       // The stored status is answered now; the refreshed one shows on the next load.
-      context.waitUntil(refreshWindyStatuses(env, sessionId, stale).catch((error) => logEvent(env, {
+      context.waitUntil(refreshWindyStatuses(env, sessionId, stale).then(async (changed) => {
+        // Open COPs refetch the cams panel when a status actually moved.
+        if (changed > 0) {
+          await emitCopEvent(env.DB, { copSessionId: sessionId, eventType: WEBCAM_UPDATED, entityType: 'webcam', payload: { refreshed: changed }, createdBy: userId })
+        }
+      }).catch((error) => logEvent(env, {
         level: 'warn',
         source: 'cop/webcams',
         message: `Windy status refresh failed: ${String(error instanceof Error ? error.message : error)}`.slice(0, 500),
@@ -118,6 +152,18 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       return json({ error: `A session holds at most ${MAX_WEBCAMS_PER_SESSION} webcams`, code: WEBCAM_LIMIT }, 409)
     }
     const row = await getSessionWebcam(env.DB, sessionId, id)
+    await emitCopEvent(env.DB, {
+      copSessionId: sessionId,
+      eventType: WEBCAM_CREATED,
+      entityType: 'webcam',
+      entityId: id,
+      createdBy: userId,
+    })
+    try {
+      await ensureWebcamsLayer(env.DB, sessionId, userId)
+    } catch (error) {
+      await logEvent(env, { level: 'warn', source: 'cop/webcams', message: `webcams layer not switched on: ${String(error).slice(0, 300)}` })
+    }
     return json({ webcam: row ? publicWebcam(row) : null }, 201)
   } catch (error) {
     if (webcamsTableMissing(error)) return webcamsUnavailable()

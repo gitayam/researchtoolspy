@@ -4,13 +4,16 @@
  * GET    /api/cop/:id/poo-estimates - List POO estimates for session
  * POST   /api/cop/:id/poo-estimates - Create a POO estimate
  * PUT    /api/cop/:id/poo-estimates - Update a POO estimate
- * DELETE /api/cop/:id/poo-estimates - Delete a POO estimate
+ * DELETE /api/cop/:id/poo-estimates - Delete a POO estimate (?estimate_id=; a service: only its own)
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { verifyCopSessionAccess } from '../../_shared/auth-helpers'
+import { verifyCopSessionAccess, requireCopEditor } from '../../_shared/auth-helpers'
 import { generatePrefixedId , JSON_HEADERS } from '../../_shared/api-utils'
 import { logEvent } from '../../_shared/event-log'
 import { copCallerUserId } from '../../_shared/cop-caller'
+import { emitCopEvent } from '../../_shared/cop-events'
+import { POO_CREATED, POO_DELETED, POO_UPDATED } from '../../_shared/cop-event-types'
+import { serviceDeleteRefused, serviceMayDelete } from '../../_shared/cop-input'
 
 interface Env {
   DB: D1Database
@@ -66,7 +69,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         status: 401, headers: JSON_HEADERS,
       })
     }
-    if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
+    if (!(await requireCopEditor(env.DB, sessionId, userId))) {
       return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
     }
 
@@ -139,6 +142,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       userId, now, now,
     ).run()
 
+    await emitCopEvent(env.DB, { copSessionId: sessionId, eventType: POO_CREATED, entityType: 'poo', entityId: id, createdBy: userId })
     return new Response(JSON.stringify({ id, message: 'POO estimate created' }), {
       status: 201, headers: JSON_HEADERS,
     })
@@ -167,7 +171,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
         status: 401, headers: JSON_HEADERS,
       })
     }
-    if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
+    if (!(await requireCopEditor(env.DB, sessionId, userId))) {
       return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
     }
 
@@ -253,6 +257,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       `SELECT * FROM cop_poo_estimates WHERE id = ? AND cop_session_id = ?`
     ).bind(estimateId, sessionId).first()
 
+    await emitCopEvent(env.DB, { copSessionId: sessionId, eventType: POO_UPDATED, entityType: 'poo', entityId: estimateId, createdBy: userId })
     return new Response(JSON.stringify({ message: 'POO estimate updated', estimate: estimate || { id: estimateId } }), { headers: JSON_HEADERS })
   } catch (error) {
     await logEvent(env, {
@@ -279,7 +284,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
         status: 401, headers: JSON_HEADERS,
       })
     }
-    if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
+    if (!(await requireCopEditor(env.DB, sessionId, userId))) {
       return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
     }
 
@@ -292,6 +297,10 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       })
     }
 
+    const existing = await env.DB.prepare('SELECT created_by FROM cop_poo_estimates WHERE id = ? AND cop_session_id = ?')
+      .bind(estimateId, sessionId).first<{ created_by: number }>()
+    if (existing && !serviceMayDelete(context, existing.created_by)) return serviceDeleteRefused()
+
     const deleteResult = await env.DB.prepare(
       `DELETE FROM cop_poo_estimates WHERE id = ? AND cop_session_id = ?`
     ).bind(estimateId, sessionId).run()
@@ -302,6 +311,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       })
     }
 
+    await emitCopEvent(env.DB, { copSessionId: sessionId, eventType: POO_DELETED, entityType: 'poo', entityId: estimateId, createdBy: userId })
     return new Response(JSON.stringify({ message: 'POO estimate deleted' }), { headers: JSON_HEADERS })
   } catch (error) {
     await logEvent(env, {

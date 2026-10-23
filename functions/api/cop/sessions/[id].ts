@@ -10,6 +10,9 @@ import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest } from '../../_shared/auth-helpers'
 import { JSON_HEADERS } from '../../_shared/api-utils'
 import { logEvent } from '../../_shared/event-log'
+import { emitCopEvent } from '../../_shared/cop-events'
+import { SESSION_UPDATED } from '../../_shared/cop-event-types'
+import { cleanKeyQuestions, syncKeyQuestionsToRfis } from '../../_shared/cop-input'
 
 interface Env {
   DB: D1Database
@@ -138,11 +141,13 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       }
     }
 
-    // JSON fields that need stringify
+    // JSON fields that need stringify. Key questions are stored as a clean list and
+    // kept in step with the starred RFIs (below).
+    const keyQuestions = body.key_questions !== undefined ? cleanKeyQuestions(body.key_questions) : null
     for (const field of jsonFields) {
       if (body[field] !== undefined) {
         updates.push(`${field} = ?`)
-        values.push(JSON.stringify(body[field]))
+        values.push(JSON.stringify(field === 'key_questions' ? keyQuestions : body[field]))
       }
     }
 
@@ -169,6 +174,16 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       SET ${updates.join(', ')}
       WHERE id = ?
     `).bind(...values).run()
+
+    if (keyQuestions) await syncKeyQuestionsToRfis(env.DB, id, keyQuestions, userId)
+    await emitCopEvent(env.DB, {
+      copSessionId: id,
+      eventType: SESSION_UPDATED,
+      entityType: 'session',
+      entityId: id,
+      payload: { fields: Object.keys(body).filter((k) => typeof k === 'string').slice(0, 30) },
+      createdBy: userId,
+    })
 
     // --- Auto-sync event_facts to events table (append-only) ---
     if (body.event_facts !== undefined && Array.isArray(body.event_facts) && body.event_facts.length > 0) {
@@ -271,6 +286,14 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       'DELETE FROM cop_shares WHERE cop_session_id = ?'
     ).bind(id).run()
 
+    await emitCopEvent(env.DB, {
+      copSessionId: id,
+      eventType: SESSION_UPDATED,
+      entityType: 'session',
+      entityId: id,
+      payload: { status: 'ARCHIVED' },
+      createdBy: userId,
+    })
     return new Response(JSON.stringify({ message: 'COP session archived' }), { headers: JSON_HEADERS })
   } catch (error) {
     await logEvent(env, {

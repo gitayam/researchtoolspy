@@ -7,7 +7,9 @@
  * DELETE /api/cop/:id/task-templates          - Delete template (id in body)
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-helpers'
+import { emitCopEvent } from '../../_shared/cop-events'
+import { TASK_TEMPLATE_CHANGED } from '../../_shared/cop-event-types'
+import { getUserFromRequest, verifyCopSessionAccess, requireCopEditor } from '../../_shared/auth-helpers'
 import { generatePrefixedId , JSON_HEADERS } from '../../_shared/api-utils'
 import { logEvent } from '../../_shared/event-log'
 
@@ -109,7 +111,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         status: 401, headers: JSON_HEADERS,
       })
     }
-    if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
+    if (!(await requireCopEditor(env.DB, sessionId, userId))) {
       return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
     }
     const body = await request.json() as any
@@ -158,6 +160,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       userId, workspaceId, now, now,
     ).run()
 
+    await emitCopEvent(env.DB, { copSessionId: sessionId, eventType: TASK_TEMPLATE_CHANGED, entityType: 'task', entityId: id, createdBy: userId })
     return new Response(JSON.stringify({ id, message: 'Template created' }), {
       status: 201, headers: JSON_HEADERS,
     })
@@ -186,7 +189,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
         status: 401, headers: JSON_HEADERS,
       })
     }
-    if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
+    if (!(await requireCopEditor(env.DB, sessionId, userId))) {
       return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
     }
     const body = await request.json() as any
@@ -254,6 +257,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       `UPDATE cop_task_templates SET ${updates.join(', ')} WHERE id = ? AND workspace_id = ?`
     ).bind(...bindings).run()
 
+    await emitCopEvent(env.DB, { copSessionId: sessionId, eventType: TASK_TEMPLATE_CHANGED, entityType: 'task', entityId: body.id, createdBy: userId })
     return new Response(JSON.stringify({ id: body.id, message: 'Template updated' }), { headers: JSON_HEADERS })
   } catch (error) {
     await logEvent(env, {
@@ -280,7 +284,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
         status: 401, headers: JSON_HEADERS,
       })
     }
-    if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
+    if (!(await requireCopEditor(env.DB, sessionId, userId))) {
       return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
     }
     const body = await request.json() as any
@@ -307,6 +311,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
       })
     }
 
+    await emitCopEvent(env.DB, { copSessionId: sessionId, eventType: TASK_TEMPLATE_CHANGED, entityType: 'task', entityId: null, createdBy: userId })
     return new Response(JSON.stringify({ message: 'Template deleted' }), { headers: JSON_HEADERS })
   } catch (error) {
     await logEvent(env, {

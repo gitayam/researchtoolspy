@@ -3,14 +3,22 @@
  *
  * GET    /api/cop/:id/claims          - List all claims for session
  * POST   /api/cop/:id/claims          - Bulk-create claims from URL extraction
- * PUT    /api/cop/:id/claims/:claimId - Update claim status (verify/dispute/promote)
+ * PUT    /api/cop/:id/claims          - Update claim status (verify/dispute/promote); claim_id in
+ *                                       the body; optional if_updated_at / If-Match → 409 STALE_WRITE
+ * DELETE /api/cop/:id/claims?claim_id= - Delete a claim (a service: only its own)
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { verifyCopSessionAccess } from '../../_shared/auth-helpers'
+import { verifyCopSessionAccess, requireCopEditor } from '../../_shared/auth-helpers'
 import { createTimelineEntry } from '../../_shared/timeline-helper'
 import { generatePrefixedId , JSON_HEADERS } from '../../_shared/api-utils'
 import { logEvent } from '../../_shared/event-log'
 import { copCallerUserId } from '../../_shared/cop-caller'
+import { emitCopEvent } from '../../_shared/cop-events'
+import { CLAIM_CREATED, CLAIM_DELETED, CLAIM_UPDATED, EVIDENCE_CREATED } from '../../_shared/cop-event-types'
+import {
+  copSourceChannel, copSourceRef, expectedUpdatedAt, serviceDeleteRefused, serviceMayDelete, setProvenance,
+  staleWriteResponse,
+} from '../../_shared/cop-input'
 
 interface Env {
   DB: D1Database
@@ -73,7 +81,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         status: 401, headers: JSON_HEADERS,
       })
     }
-    if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
+    if (!(await requireCopEditor(env.DB, sessionId, userId))) {
       return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
     }
     const body = await request.json() as any
@@ -113,6 +121,17 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     })
 
     await env.DB.batch(stmts)
+    const channel = copSourceChannel(context)
+    const ref = copSourceRef(context)
+    for (const id of ids) await setProvenance(env.DB, 'cop_claims', id, channel, ref)
+    await emitCopEvent(env.DB, {
+      copSessionId: sessionId,
+      eventType: CLAIM_CREATED,
+      entityType: 'claim',
+      entityId: ids.length === 1 ? ids[0] : null,
+      payload: { count: ids.length },
+      createdBy: userId,
+    })
 
     try {
       const domain = body.url ? new URL(body.url).hostname.replace(/^www\./, '') : 'unknown'
@@ -156,7 +175,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
         status: 401, headers: JSON_HEADERS,
       })
     }
-    if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
+    if (!(await requireCopEditor(env.DB, sessionId, userId))) {
       return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
     }
     const body = await request.json() as any
@@ -174,6 +193,16 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     const workspaceId = session?.workspace_id ?? sessionId
 
     const now = new Date().toISOString()
+
+    const current = await env.DB.prepare('SELECT * FROM cop_claims WHERE id = ? AND cop_session_id = ?')
+      .bind(claimId, sessionId).first<Record<string, unknown> & { status: string | null; updated_at: string }>()
+    if (!current) {
+      return new Response(JSON.stringify({ error: 'Claim not found in this session' }), {
+        status: 404, headers: JSON_HEADERS,
+      })
+    }
+    const expected = expectedUpdatedAt(request, body)
+    if (expected && expected !== current.updated_at) return staleWriteResponse(current)
 
     // If promoting to evidence, create an evidence_item
     if (body.status === 'verified' && body.promote_to_evidence) {
@@ -209,12 +238,12 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
       const evidenceId = evidenceRes.meta?.last_row_id
 
-      // Update claim with evidence link
+      // Update claim with evidence link (only on the version the client read, when it sent one)
       try {
         const promoted = await env.DB.prepare(`
           UPDATE cop_claims SET status = 'verified', evidence_item_id = ?, updated_at = ?
-          WHERE id = ? AND cop_session_id = ?
-        `).bind(evidenceId, now, claimId, sessionId).run()
+          WHERE id = ? AND cop_session_id = ?${expected ? ' AND updated_at = ?' : ''}
+        `).bind(evidenceId, now, claimId, sessionId, ...(expected ? [expected] : [])).run()
 
         if (!promoted.meta.changes) {
           throw new Error('Claim promotion update did not modify a row')
@@ -223,8 +252,16 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
         await env.DB.prepare(
           'DELETE FROM evidence_items WHERE id = ? AND created_by = ?'
         ).bind(evidenceId, userId).run()
+        if (expected) {
+          const latest = await env.DB.prepare('SELECT * FROM cop_claims WHERE id = ? AND cop_session_id = ?')
+            .bind(claimId, sessionId).first<Record<string, unknown> & { updated_at: string }>()
+          if (latest && latest.updated_at !== expected) return staleWriteResponse(latest)
+        }
         throw error
       }
+      if (evidenceId) await setProvenance(env.DB, 'evidence_items', evidenceId, copSourceChannel(context), copSourceRef(context))
+      await emitCopEvent(env.DB, { copSessionId: sessionId, eventType: CLAIM_UPDATED, entityType: 'claim', entityId: claimId, payload: { status: 'verified', promoted: true }, createdBy: userId })
+      await emitCopEvent(env.DB, { copSessionId: sessionId, eventType: EVIDENCE_CREATED, entityType: 'evidence', entityId: evidenceId ? String(evidenceId) : null, createdBy: userId })
 
       try {
         await createTimelineEntry(env.DB, sessionId, workspaceId, userId, {
@@ -254,14 +291,20 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
     const updateResult = await env.DB.prepare(`
       UPDATE cop_claims SET status = ?, updated_at = ?
-      WHERE id = ? AND cop_session_id = ?
-    `).bind(body.status, now, claimId, sessionId).run()
+      WHERE id = ? AND cop_session_id = ?${expected ? ' AND updated_at = ?' : ''}
+    `).bind(body.status ?? current.status, now, claimId, sessionId, ...(expected ? [expected] : [])).run()
 
     if (!updateResult.meta.changes || updateResult.meta.changes === 0) {
+      if (expected) {
+        const latest = await env.DB.prepare('SELECT * FROM cop_claims WHERE id = ? AND cop_session_id = ?')
+          .bind(claimId, sessionId).first()
+        if (latest) return staleWriteResponse(latest)
+      }
       return new Response(JSON.stringify({ error: 'Claim not found in this session' }), {
         status: 404, headers: JSON_HEADERS,
       })
     }
+    await emitCopEvent(env.DB, { copSessionId: sessionId, eventType: CLAIM_UPDATED, entityType: 'claim', entityId: claimId, payload: { status: body.status ?? null }, createdBy: userId })
 
     if (body.status === 'verified' || body.status === 'disputed') {
       try {
@@ -293,6 +336,43 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     return new Response(JSON.stringify({ error: 'Failed to update claim' }), {
       status: 500, headers: JSON_HEADERS,
     })
+  }
+}
+
+// DELETE — remove a claim (?claim_id=); a service only removes claims it created
+export const onRequestDelete: PagesFunction<Env> = async (context) => {
+  const { request, env, params } = context
+  const sessionId = params.id as string
+
+  try {
+    const userId = await copCallerUserId(context)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), { status: 401, headers: JSON_HEADERS })
+    }
+    if (!(await requireCopEditor(env.DB, sessionId, userId))) {
+      return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
+    }
+    const claimId = new URL(request.url).searchParams.get('claim_id')
+    if (!claimId) {
+      return new Response(JSON.stringify({ error: 'claim_id query parameter is required' }), { status: 400, headers: JSON_HEADERS })
+    }
+    const existing = await env.DB.prepare('SELECT id, created_by FROM cop_claims WHERE id = ? AND cop_session_id = ?')
+      .bind(claimId, sessionId).first<{ id: string; created_by: string | null }>()
+    if (!existing) {
+      return new Response(JSON.stringify({ error: 'Claim not found in this session' }), { status: 404, headers: JSON_HEADERS })
+    }
+    if (!serviceMayDelete(context, existing.created_by)) return serviceDeleteRefused()
+    await env.DB.prepare('DELETE FROM cop_claims WHERE id = ? AND cop_session_id = ?').bind(claimId, sessionId).run()
+    await emitCopEvent(env.DB, { copSessionId: sessionId, eventType: CLAIM_DELETED, entityType: 'claim', entityId: claimId, createdBy: userId })
+    return new Response(JSON.stringify({ message: 'Claim deleted' }), { headers: JSON_HEADERS })
+  } catch (error) {
+    await logEvent(env, {
+      level: 'error',
+      source: 'cop/claims',
+      message: String(error instanceof Error ? error.message : error).slice(0, 500),
+      context: { error: String(error) },
+    })
+    return new Response(JSON.stringify({ error: 'Failed to delete claim' }), { status: 500, headers: JSON_HEADERS })
   }
 }
 

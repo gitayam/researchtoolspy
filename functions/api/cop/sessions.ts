@@ -10,6 +10,9 @@ import { checkWorkspaceAccess } from '../_shared/workspace-helpers'
 import { JSON_HEADERS } from '../_shared/api-utils'
 import { logEvent } from '../_shared/event-log'
 import { copCallerUserId, copServiceCaller } from '../_shared/cop-caller'
+import { emitCopEvent } from '../_shared/cop-events'
+import { SESSION_CREATED } from '../_shared/cop-event-types'
+import { cleanKeyQuestions, syncKeyQuestionsToRfis } from '../_shared/cop-input'
 
 interface Env {
   DB: D1Database
@@ -204,7 +207,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       body.active_layers ? JSON.stringify(body.active_layers) : '[]',
       body.layer_config ? JSON.stringify(body.layer_config) : '{}',
       body.linked_frameworks ? JSON.stringify(body.linked_frameworks) : '[]',
-      body.key_questions ? JSON.stringify(body.key_questions) : '[]',
+      JSON.stringify(cleanKeyQuestions(body.key_questions)),
       body.event_type || null,
       body.event_description || null,
       body.event_facts ? JSON.stringify(body.event_facts) : '[]',
@@ -216,6 +219,17 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       now,
       now
     ).run()
+
+    // Key questions are starred RFIs from the start.
+    const keyQuestions = cleanKeyQuestions(body.key_questions)
+    if (keyQuestions.length > 0) await syncKeyQuestionsToRfis(env.DB, id, keyQuestions, userId)
+    await emitCopEvent(env.DB, {
+      copSessionId: id,
+      eventType: SESSION_CREATED,
+      entityType: 'session',
+      entityId: id,
+      createdBy: userId,
+    })
 
     return new Response(JSON.stringify({ id, workspace_id: workspaceId, team_workspace_id: body.team_workspace_id || null, message: 'COP session created' }), {
       status: 201,

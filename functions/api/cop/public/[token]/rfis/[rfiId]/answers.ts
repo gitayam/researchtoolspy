@@ -7,6 +7,9 @@ import type { PagesFunction } from '@cloudflare/workers-types'
 import { generatePrefixedId, JSON_HEADERS } from '../../../../../_shared/api-utils'
 import { logEvent } from '../../../../../_shared/event-log'
 import { sessionArchived, shareExpired, sharePanels } from '../../../../../_shared/cop-share'
+import { emitCopEvent } from '../../../../../_shared/cop-events'
+import { RFI_ANSWERED } from '../../../../../_shared/cop-event-types'
+import { isMissingColumn } from '../../../../../_shared/cop-input'
 
 interface Env {
   DB: D1Database
@@ -24,9 +27,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       SELECT * FROM cop_shares WHERE share_token = ? AND allow_rfi_answers = 1
     `).bind(token).first()
 
-    // The same rules as the public page: an expired link, one that doesn't show the
-    // RFI panel, or an archived session takes no answers.
-    if (!share || shareExpired(share) || !sharePanels(share).includes('rfi')) {
+    // The same rules as the public page: an expired link, one that shows neither the RFI
+    // panel nor (for a key question) the questions panel, or an archived session takes
+    // no answers.
+    const panels = share ? sharePanels(share) : []
+    if (!share || shareExpired(share) || (!panels.includes('rfi') && !panels.includes('questions'))) {
       return new Response(JSON.stringify({ error: 'Share not found or RFI answers not allowed' }), {
         status: 403, headers: JSON_HEADERS,
       })
@@ -42,12 +47,24 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
 
     // Verify the RFI belongs to the share's session
-    const rfiCheck = await env.DB.prepare(
-      'SELECT id FROM cop_rfis WHERE id = ? AND cop_session_id = ?'
-    ).bind(rfiId, shareSessionId).first()
+    let rfiCheck: { id: string; is_key?: number } | null
+    try {
+      rfiCheck = await env.DB.prepare('SELECT id, is_key FROM cop_rfis WHERE id = ? AND cop_session_id = ?')
+        .bind(rfiId, shareSessionId).first()
+    } catch (error) {
+      if (!isMissingColumn(error)) throw error
+      rfiCheck = await env.DB.prepare('SELECT id FROM cop_rfis WHERE id = ? AND cop_session_id = ?')
+        .bind(rfiId, shareSessionId).first()
+    }
     if (!rfiCheck) {
       return new Response(JSON.stringify({ error: 'RFI not found' }), {
         status: 404, headers: JSON_HEADERS,
+      })
+    }
+    // Through the questions panel alone, only key questions (starred RFIs) are shown.
+    if (!panels.includes('rfi') && rfiCheck.is_key !== 1) {
+      return new Response(JSON.stringify({ error: 'Share not found or RFI answers not allowed' }), {
+        status: 403, headers: JSON_HEADERS,
       })
     }
 
@@ -62,9 +79,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const id = generatePrefixedId('rfia')
     const now = new Date().toISOString()
 
+    // created_by is NOT NULL (default 1) in production: an anonymous answer leaves it to
+    // the default and names its responder instead. An explicit NULL failed every answer.
     await env.DB.prepare(`
-      INSERT INTO cop_rfi_answers (id, rfi_id, answer_text, source_url, source_description, is_accepted, created_by, responder_name, created_at)
-      VALUES (?, ?, ?, ?, ?, 0, NULL, ?, ?)
+      INSERT INTO cop_rfi_answers (id, rfi_id, answer_text, source_url, source_description, is_accepted, responder_name, created_at)
+      VALUES (?, ?, ?, ?, ?, 0, ?, ?)
     `).bind(
       id, rfiId, body.answer_text.trim(),
       body.source_url || null, body.source_description || null,
@@ -75,6 +94,15 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     await env.DB.prepare(`
       UPDATE cop_rfis SET status = 'answered', updated_at = ? WHERE id = ? AND cop_session_id = ? AND status = 'open'
     `).bind(now, rfiId, shareSessionId).run()
+
+    await emitCopEvent(env.DB, {
+      copSessionId: shareSessionId,
+      eventType: RFI_ANSWERED,
+      entityType: 'rfi',
+      entityId: rfiId,
+      payload: { via: 'share' },
+      createdBy: Number((share as { created_by?: unknown }).created_by) || 1,
+    })
 
     return new Response(JSON.stringify({ id, message: 'Answer submitted' }), {
       status: 201, headers: JSON_HEADERS,

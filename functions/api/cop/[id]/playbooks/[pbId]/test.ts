@@ -10,7 +10,7 @@
  *   - event_limit: number of recent events to test against (default 20, max 100)
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserFromRequest, verifyCopSessionAccess } from '../../../../_shared/auth-helpers'
+import { getUserFromRequest, requireCopEditor } from '../../../../_shared/auth-helpers'
 import { evaluateAllConditions } from '../../../../_shared/playbook-engine/condition-evaluator'
 import { JSON_HEADERS } from '../../../../_shared/api-utils'
 import { logEvent } from '../../../../_shared/event-log'
@@ -52,7 +52,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         status: 401, headers: JSON_HEADERS,
       })
     }
-    if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
+    if (!(await requireCopEditor(env.DB, sessionId, userId))) {
       return new Response(JSON.stringify({ error: 'Access denied' }), {
         status: 403, headers: JSON_HEADERS,
       })

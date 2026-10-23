@@ -5,7 +5,9 @@
  * POST /api/cop/:id/marker-changelog               - Create changelog entry
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-helpers'
+import { emitCopEvent } from '../../_shared/cop-events'
+import { MARKER_LOGGED } from '../../_shared/cop-event-types'
+import { getUserFromRequest, verifyCopSessionAccess, requireCopEditor } from '../../_shared/auth-helpers'
 import { generatePrefixedId , JSON_HEADERS } from '../../_shared/api-utils'
 import { logEvent } from '../../_shared/event-log'
 
@@ -73,7 +75,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         status: 401, headers: JSON_HEADERS,
       })
     }
-    if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
+    if (!(await requireCopEditor(env.DB, sessionId, userId))) {
       return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
     }
     const body = await request.json() as any
@@ -118,6 +120,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       now,
     ).run()
 
+    await emitCopEvent(env.DB, { copSessionId: sessionId, eventType: MARKER_LOGGED, entityType: 'marker', entityId: body.marker_id ?? null, createdBy: userId })
     return new Response(JSON.stringify({ id, message: 'Changelog entry created' }), {
       status: 201, headers: JSON_HEADERS,
     })

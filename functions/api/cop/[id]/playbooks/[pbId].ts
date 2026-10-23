@@ -6,7 +6,9 @@
  * DELETE /api/cop/:id/playbooks/:pbId - Delete playbook (cascades to rules + log)
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserFromRequest, verifyCopSessionAccess } from '../../../_shared/auth-helpers'
+import { emitCopEvent } from '../../../_shared/cop-events'
+import { PLAYBOOK_DELETED, PLAYBOOK_UPDATED } from '../../../_shared/cop-event-types'
+import { getUserFromRequest, verifyCopSessionAccess, requireCopEditor } from '../../../_shared/auth-helpers'
 import { JSON_HEADERS } from '../../../_shared/api-utils'
 import { logEvent } from '../../../_shared/event-log'
 
@@ -92,7 +94,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
         status: 401, headers: JSON_HEADERS,
       })
     }
-    if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
+    if (!(await requireCopEditor(env.DB, sessionId, userId))) {
       return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
     }
     const body = await request.json() as any
@@ -138,6 +140,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       `UPDATE cop_playbooks SET ${updates.join(', ')} WHERE id = ? AND cop_session_id = ?`
     ).bind(...bindings).run()
 
+    await emitCopEvent(env.DB, { copSessionId: sessionId, eventType: PLAYBOOK_UPDATED, entityType: 'playbook', entityId: pbId, createdBy: userId })
     return new Response(JSON.stringify({ id: pbId, message: 'Playbook updated' }), { headers: JSON_HEADERS })
   } catch (error) {
     await logEvent(env, {
@@ -164,7 +167,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
         status: 401, headers: JSON_HEADERS,
       })
     }
-    if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
+    if (!(await requireCopEditor(env.DB, sessionId, userId))) {
       return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
     }
     const existing = await env.DB.prepare(
@@ -182,6 +185,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     await env.DB.prepare('DELETE FROM cop_playbook_rules WHERE playbook_id = ?').bind(pbId).run()
     await env.DB.prepare('DELETE FROM cop_playbooks WHERE id = ? AND cop_session_id = ?').bind(pbId, sessionId).run()
 
+    await emitCopEvent(env.DB, { copSessionId: sessionId, eventType: PLAYBOOK_DELETED, entityType: 'playbook', entityId: pbId, createdBy: userId })
     return new Response(JSON.stringify({ message: 'Playbook deleted' }), { headers: JSON_HEADERS })
   } catch (error) {
     await logEvent(env, {

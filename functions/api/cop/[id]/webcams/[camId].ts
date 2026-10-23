@@ -10,6 +10,9 @@ import type { PagesFunction } from '@cloudflare/workers-types'
 import { JSON_HEADERS } from '../../../_shared/api-utils'
 import { logEvent } from '../../../_shared/event-log'
 import { copCallerUserId } from '../../../_shared/cop-caller'
+import { emitCopEvent } from '../../../_shared/cop-events'
+import { WEBCAM_DELETED, WEBCAM_UPDATED } from '../../../_shared/cop-event-types'
+import { serviceDeleteRefused, serviceMayDelete } from '../../../_shared/cop-input'
 import {
   cleanText,
   getSessionWebcam,
@@ -42,10 +45,16 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
   }
 
   try {
+    const existing = await env.DB.prepare(
+      'SELECT created_by FROM cop_webcams WHERE id = ? AND cop_session_id = ? AND archived_at IS NULL'
+    ).bind(camId, sessionId).first<{ created_by: number | null }>()
+    if (!existing) return json({ error: 'Webcam not found' }, 404)
+    if (!serviceMayDelete(context, existing.created_by)) return serviceDeleteRefused()
     const result = await env.DB.prepare(
       'UPDATE cop_webcams SET archived_at = ? WHERE id = ? AND cop_session_id = ? AND archived_at IS NULL'
     ).bind(new Date().toISOString(), camId, sessionId).run()
     if (!result.meta?.changes) return json({ error: 'Webcam not found' }, 404)
+    await emitCopEvent(env.DB, { copSessionId: sessionId, eventType: WEBCAM_DELETED, entityType: 'webcam', entityId: camId, createdBy: userId })
     return json({ ok: true })
   } catch (error) {
     if (webcamsTableMissing(error)) return webcamsUnavailable()
@@ -143,6 +152,7 @@ export const onRequestPatch: PagesFunction<Env> = async (context) => {
     }
     if (!result.meta?.changes) return json({ error: 'Webcam not found' }, 404)
     const row = await getSessionWebcam(env.DB, sessionId, camId)
+    await emitCopEvent(env.DB, { copSessionId: sessionId, eventType: WEBCAM_UPDATED, entityType: 'webcam', entityId: camId, createdBy: userId })
     return json({ webcam: row ? publicWebcam(row) : null })
   } catch (error) {
     if (webcamsTableMissing(error)) return webcamsUnavailable()

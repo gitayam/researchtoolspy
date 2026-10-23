@@ -5,7 +5,9 @@
  * POST /api/cop/:id/intake-forms  - Create a new intake form
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
-import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-helpers'
+import { emitCopEvent } from '../../_shared/cop-events'
+import { INTAKE_FORM_CREATED } from '../../_shared/cop-event-types'
+import { getUserFromRequest, verifyCopSessionAccess, requireCopEditor } from '../../_shared/auth-helpers'
 import { generatePrefixedId , JSON_HEADERS } from '../../_shared/api-utils'
 import { logEvent } from '../../_shared/event-log'
 import { hashPassword, isValidAccessLevel, isValidSlug } from '../../_shared/survey-drops'
@@ -80,7 +82,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       status: 401, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
     })
   }
-  const accessWorkspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId)
+  const accessWorkspaceId = await requireCopEditor(env.DB, sessionId, userId)
   if (!accessWorkspaceId) {
     return new Response(JSON.stringify({ error: 'Access denied' }), {
       status: 403, headers: JSON_HEADERS,
@@ -178,6 +180,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       body.success_message || null,
       body.redirect_url || null
     ).run()
+    await emitCopEvent(env.DB, { copSessionId: sessionId, eventType: INTAKE_FORM_CREATED, entityType: 'submission', entityId: id, createdBy: userId })
 
     return new Response(JSON.stringify({
       id, share_token: shareToken,

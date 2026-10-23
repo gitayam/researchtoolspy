@@ -284,7 +284,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     await emitCopEvent(env.DB, {
       copSessionId: sessionId,
       eventType: EXPORT_REQUESTED,
-      entityType: 'export',
+      entityType: 'session',
       entityId: exportId,
       payload: { format, scope },
       createdBy: userId,
@@ -333,7 +333,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       await emitCopEvent(env.DB, {
         copSessionId: sessionId,
         eventType: EXPORT_COMPLETED,
-        entityType: 'export',
+        entityType: 'session',
         entityId: exportId,
         payload: { format, scope, file_size_bytes: fileSize },
         createdBy: userId,
@@ -362,7 +362,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       await emitCopEvent(env.DB, {
         copSessionId: sessionId,
         eventType: EXPORT_FAILED,
-        entityType: 'export',
+        entityType: 'session',
         entityId: exportId,
         payload: { format, scope, error: 'Export serialization failed' },
         createdBy: userId,
