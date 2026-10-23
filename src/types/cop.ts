@@ -726,6 +726,12 @@ export interface IntakeFormField {
   min?: number           // For number/rating
   max?: number           // For number/rating
   help_text?: string     // Shown below the field
+  /**
+   * This text or long-text field is the submission's summary: a tip filed into a COP is
+   * titled from it. Without one, a tip is titled from its first long-text answer, never
+   * from a short field (functions/api/_shared/cop-ingest.ts tipTitle).
+   */
+  summary?: boolean
 }
 
 export type IntakeFormStatus = 'draft' | 'active' | 'closed'

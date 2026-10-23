@@ -129,7 +129,7 @@ test('source_channel comes from the caller, never from the body', async () => {
   const bot = await call(env, 'evidence', 'POST', `${P}/evidence`, { who: 'service', through: 'middleware', params: S, body: { title: 'From chat', source_channel: 'web', url: 'https://a.example/chat' } })
   assert.equal(bot.status, 201, await bot.clone().text())
   const botRow = db.prepare('SELECT source_channel, source_ref, created_by FROM evidence_items WHERE id = ?').get((await bot.json()).id)
-  assert.deepEqual({ ...botRow }, { source_channel: 'signal', source_ref: 'irregularchat-signal-test', created_by: SERVICE_USER })
+  assert.deepEqual({ ...botRow }, { source_channel: 'signal', source_ref: 'irregularchat-signal-prod', created_by: SERVICE_USER })
 
   const rfi = await json(await call(env, 'rfis', 'POST', `${P}/rfis`, { who: 'service', through: 'middleware', params: S, body: { question: 'Asked in chat?' } }))
   assert.equal(db.prepare('SELECT source_channel FROM cop_rfis WHERE id = ?').get(rfi.id).source_channel, 'signal')

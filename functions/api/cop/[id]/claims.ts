@@ -13,8 +13,8 @@ import { createTimelineEntry } from '../../_shared/timeline-helper'
 import { generatePrefixedId , JSON_HEADERS } from '../../_shared/api-utils'
 import { logEvent } from '../../_shared/event-log'
 import { copCallerUserId } from '../../_shared/cop-caller'
-import { emitCopEvent } from '../../_shared/cop-events'
-import { CLAIM_CREATED, CLAIM_DELETED, CLAIM_UPDATED, EVIDENCE_CREATED } from '../../_shared/cop-event-types'
+import { emitCopEvent, emitCopEvents } from '../../_shared/cop-events'
+import { CLAIM_CREATED, CLAIM_DELETED, CLAIM_EXTRACTED, CLAIM_UPDATED, EVIDENCE_CREATED } from '../../_shared/cop-event-types'
 import {
   copSourceChannel, copSourceRef, expectedUpdatedAt, serviceChangeRefused, serviceDeleteRefused, serviceMayChange, serviceMayDelete, setEvidenceSession, setProvenance,
   staleWriteResponse,
@@ -124,6 +124,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const channel = copSourceChannel(context)
     const ref = copSourceRef(context)
     for (const id of ids) await setProvenance(env.DB, 'cop_claims', id, channel, ref)
+    // The request's event, as before (playbooks trigger on it), then one claim.extracted
+    // per claim with its id, which the chat feed reads and playbook triggers don't offer.
     await emitCopEvent(env.DB, {
       copSessionId: sessionId,
       eventType: CLAIM_CREATED,
@@ -132,6 +134,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       payload: { count: ids.length },
       createdBy: userId,
     })
+    await emitCopEvents(env.DB, ids.map((id) => ({
+      copSessionId: sessionId,
+      eventType: CLAIM_EXTRACTED,
+      entityType: 'claim' as const,
+      entityId: id,
+      createdBy: userId,
+    })))
 
     try {
       const domain = body.url ? new URL(body.url).hostname.replace(/^www\./, '') : 'unknown'

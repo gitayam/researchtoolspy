@@ -9,7 +9,10 @@
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { verifyCopSessionAccess, requireCopEditor } from '../../_shared/auth-helpers'
 import { emitCopEvent } from '../../_shared/cop-events'
-import { TASK_CREATED, TASK_COMPLETED, TASK_STARTED, TASK_BLOCKED, TASK_UNBLOCKED, TASK_DELETED, TASK_UPDATED } from '../../_shared/cop-event-types'
+import {
+  TASK_ASSIGNED, TASK_BLOCKED, TASK_COMPLETED, TASK_CREATED, TASK_DELETED, TASK_PRIORITY_CHANGED, TASK_REOPENED, TASK_STARTED,
+  TASK_UNBLOCKED, TASK_UPDATED,
+} from '../../_shared/cop-event-types'
 import { generatePrefixedId , JSON_HEADERS } from '../../_shared/api-utils'
 import { logEvent } from '../../_shared/event-log'
 import { copCallerUserId, copServiceCaller } from '../../_shared/cop-caller'
@@ -354,9 +357,22 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       entityId: body.id,
       createdBy: userId,
     })
+    // Typed changes for the chat feed; the payloads name no one (assigned_to is a name).
+    if (body.priority !== undefined && VALID_PRIORITIES.includes(body.priority) && body.priority !== existing.priority) {
+      await emitCopEvent(env.DB, {
+        copSessionId: sessionId, eventType: TASK_PRIORITY_CHANGED, entityType: 'task', entityId: body.id,
+        payload: { priority: body.priority }, createdBy: userId,
+      })
+    }
+    if (body.assigned_to !== undefined && body.assigned_to && body.assigned_to !== existing.assigned_to) {
+      await emitCopEvent(env.DB, {
+        copSessionId: sessionId, eventType: TASK_ASSIGNED, entityType: 'task', entityId: body.id,
+        payload: { strategy: 'manual' }, createdBy: userId,
+      })
+    }
 
     // Emit event for status transitions
-    if (body.status && body.status !== existing.status) {
+    if (body.status && VALID_STATUSES.includes(body.status) && body.status !== existing.status) {
       const statusEventMap: Record<string, string> = {
         'in_progress': TASK_STARTED,
         'done': TASK_COMPLETED,
@@ -371,6 +387,12 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
           entityId: body.id,
           payload: { title: existing.title, previous_status: existing.status, new_status: body.status, assigned_to: existing.assigned_to },
           createdBy: userId,
+        })
+      }
+      if (existing.status === 'done') {
+        await emitCopEvent(env.DB, {
+          copSessionId: sessionId, eventType: TASK_REOPENED, entityType: 'task', entityId: body.id,
+          payload: { new_status: body.status }, createdBy: userId,
         })
       }
 

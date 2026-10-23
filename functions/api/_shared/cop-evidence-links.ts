@@ -15,6 +15,7 @@
  * question", 👎 "it doesn't". Lists come ranked by score (up − down), then newest.
  */
 import { emitCopEventLoose } from './cop-events-loose'
+import { EVIDENCE_LINK_UPDATED, EVIDENCE_LINK_VOTED, EVIDENCE_LINKED, EVIDENCE_UNLINKED } from './cop-event-types'
 import { shareExpired, sharePanels } from './cop-share'
 import {
   evidenceInSession, isMissingColumn, queryEvidenceInSession, UNVERIFIED_TIP_LABEL, unreviewedTipEvidence,
@@ -128,6 +129,12 @@ export async function upsertEvidenceLink(
     note: string | null
     actorUserId: number
     serviceUserId: number | null
+    /**
+     * The tipster chose this question on the drop form: the row is still written as
+     * `actorUserId` (the form's owner or the reviewer), but its events are anonymous
+     * (created_by 0, via 'tip'), as the tipster's choice.
+     */
+    viaTip?: boolean
   },
 ): Promise<LinkWriteResult> {
   const { scope } = input
@@ -151,7 +158,7 @@ export async function upsertEvidenceLink(
       const updated = await db.prepare('UPDATE cop_evidence_links SET relation = ?, note = ? WHERE id = ? AND cop_session_id = ?')
         .bind(input.relation, input.note, existing.id, scope.sessionId).run()
       if (!updated.meta?.changes) return { ok: false, status: 404, error: 'Link not found in this COP' }
-      await emitLinkEvents(db, scope.sessionId, 'evidence.link_updated', input, existing.id)
+      await emitLinkEvents(db, scope.sessionId, EVIDENCE_LINK_UPDATED, input, existing.id)
     }
     return {
       ok: true,
@@ -189,7 +196,7 @@ export async function upsertEvidenceLink(
       code: 'LINK_LIMIT',
     }
   }
-  await emitLinkEvents(db, scope.sessionId, 'evidence.linked', input, id)
+  await emitLinkEvents(db, scope.sessionId, EVIDENCE_LINKED, input, id)
   return {
     ok: true,
     created: true,
@@ -213,7 +220,7 @@ export async function deleteEvidenceLink(
   const removed = await db.prepare(`DELETE FROM cop_evidence_links WHERE id = ? AND cop_session_id = ?${owner}`)
     .bind(input.linkId, input.sessionId, ...(input.serviceUserId !== null ? [input.serviceUserId] : [])).run()
   if (!removed.meta?.changes) return { ok: false, status: 404, error: 'Link not found in this COP' }
-  await emitLinkEvents(db, input.sessionId, 'evidence.unlinked', {
+  await emitLinkEvents(db, input.sessionId, EVIDENCE_UNLINKED, {
     evidenceId: existing.evidence_id, targetType: existing.target_type, targetId: existing.target_id, actorUserId: input.actorUserId,
   }, existing.id)
   return { ok: true }
@@ -223,16 +230,17 @@ async function emitLinkEvents(
   db: D1Database,
   sessionId: string,
   eventType: string,
-  input: { evidenceId: string; targetType: LinkTargetType; targetId: string; actorUserId: number },
+  input: { evidenceId: string; targetType: LinkTargetType; targetId: string; actorUserId: number; viaTip?: boolean },
   linkId: string,
 ): Promise<void> {
   // Both ends change for the people watching them; no note or titles in the payload.
-  const payload = { link_id: linkId, target_type: input.targetType }
+  const payload = { link_id: linkId, target_type: input.targetType, ...(input.viaTip ? { via: 'tip' } : {}) }
+  const createdBy = input.viaTip ? 0 : input.actorUserId
   await emitCopEventLoose(db, {
-    copSessionId: sessionId, eventType, entityType: 'evidence', entityId: input.evidenceId, payload, createdBy: input.actorUserId,
+    copSessionId: sessionId, eventType, entityType: 'evidence', entityId: input.evidenceId, payload, createdBy,
   })
   await emitCopEventLoose(db, {
-    copSessionId: sessionId, eventType, entityType: input.targetType, entityId: input.targetId, payload, createdBy: input.actorUserId,
+    copSessionId: sessionId, eventType, entityType: input.targetType, entityId: input.targetId, payload, createdBy,
   })
 }
 
@@ -369,7 +377,7 @@ export async function setLinkVote(
   if ((changed.meta?.changes ?? 0) > 0) {
     await emitCopEventLoose(db, {
       copSessionId: scope.sessionId,
-      eventType: 'evidence.link_voted',
+      eventType: EVIDENCE_LINK_VOTED,
       entityType: link.target_type,
       entityId: link.target_id,
       payload: { link_id: link.id, up: result.up, down: result.down },
@@ -859,6 +867,7 @@ export async function fileTipUnderChosenQuestions(
         note: null,
         actorUserId: input.actorUserId,
         serviceUserId: null,
+        viaTip: true,
       })
       if (result.ok) filed.push(result.link.target_id)
     } catch (error) {

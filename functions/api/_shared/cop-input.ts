@@ -12,7 +12,7 @@
  * skipped and the write goes ahead as before.
  */
 import { generatePrefixedId, JSON_HEADERS } from './api-utils'
-import { copServiceCaller } from './cop-caller'
+import { copServiceCaller, isSignalBotClient } from './cop-caller'
 import { emitCopEvent } from './cop-events'
 import { RFI_CREATED, RFI_STARRED, RFI_UNSTARRED, SESSION_UPDATED } from './cop-event-types'
 
@@ -26,13 +26,14 @@ export type SourceChannel = 'web' | 'signal' | 'drop' | 'scrape' | 'api'
 
 /**
  * Where a write came from, judged from the caller: a service credential whose client
- * is the Signal bot is 'signal', any other service 'api', a signed-in person 'web'.
+ * is the Signal bot (SIGNAL_BOT_CLIENT_IDS, exact ids) is 'signal', any other service
+ * 'api', a signed-in person 'web'.
  * Routes that create items for the drop form or the scraper pass 'drop' / 'scrape'.
  */
 export function copSourceChannel(context: { data?: unknown }): SourceChannel {
   const service = copServiceCaller(context.data)
   if (!service) return 'web'
-  return /signal/i.test(service.clientId) ? 'signal' : 'api'
+  return isSignalBotClient(service.clientId) ? 'signal' : 'api'
 }
 
 /** The caller's service client id (source_ref for service writes), or null for a person. */
@@ -356,6 +357,12 @@ export async function setEvidenceSession(db: D1Database, evidenceId: string | nu
 
 /** The label a public view shows for a drop-form tip no editor has confirmed yet. */
 export const UNVERIFIED_TIP_LABEL = 'Unverified tip'
+
+/**
+ * The title a drop-form tip gets when none of its answers is safe to name it with (every
+ * text field asks for a name, contact or place). The chat feed shows no title for it.
+ */
+export const UNTITLED_TIP_TITLE = 'Anonymous tip'
 
 /** A marker from the drop form that nobody has raised above POSSIBLE. */
 export function unreviewedTipMarker(row: { source_channel?: unknown; confidence?: unknown }): boolean {

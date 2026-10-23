@@ -12,7 +12,7 @@ import type { PagesFunction } from '@cloudflare/workers-types'
 import { requireCopEditor } from '../../../_shared/auth-helpers'
 import { emitCopEvent } from '../../../_shared/cop-events'
 import {
-  RFI_ANSWERED, RFI_ACCEPTED, RFI_CLOSED, RFI_DELETED, RFI_STARRED, RFI_UNSTARRED, RFI_UPDATED,
+  RFI_ANSWERED, RFI_ACCEPTED, RFI_CLOSED, RFI_DELETED, RFI_REOPENED, RFI_STARRED, RFI_UNSTARRED, RFI_UPDATED,
 } from '../../../_shared/cop-event-types'
 import { JSON_HEADERS } from '../../../_shared/api-utils'
 import { logEvent } from '../../../_shared/event-log'
@@ -142,6 +142,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
         'accepted': RFI_ACCEPTED,
         'closed': RFI_CLOSED,
       }
+      if (body.status === 'open' && ['answered', 'accepted', 'closed'].includes(existing.status)) statusEventMap.open = RFI_REOPENED
       const eventType = statusEventMap[body.status]
       if (eventType) {
         await emitCopEvent(env.DB, {

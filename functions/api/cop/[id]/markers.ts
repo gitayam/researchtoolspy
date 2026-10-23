@@ -18,7 +18,7 @@
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { verifyCopSessionAccess, requireCopEditor } from '../../_shared/auth-helpers'
 import { emitCopEvent } from '../../_shared/cop-events'
-import { MARKER_CREATED, MARKER_DELETED, MARKER_UPDATED } from '../../_shared/cop-event-types'
+import { MARKER_CONFIRMED, MARKER_CREATED, MARKER_DELETED, MARKER_UPDATED } from '../../_shared/cop-event-types'
 import { createTimelineEntry } from '../../_shared/timeline-helper'
 import { JSON_HEADERS } from '../../_shared/api-utils'
 import { logEvent } from '../../_shared/event-log'
@@ -312,6 +312,14 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       })
     }
 
+    // Confirming is its own event (the chat feed says "confirmed"), once per confirmation.
+    let wasConfirmed = false
+    if (allowed.confidence === 'CONFIRMED') {
+      const before = await env.DB.prepare('SELECT confidence FROM cop_markers WHERE id = ? AND cop_session_id = ?')
+        .bind(body.id, sessionId).first<{ confidence: string | null }>()
+      wasConfirmed = before?.confidence === 'CONFIRMED'
+    }
+
     const setClauses = Object.keys(allowed).map(k => `${k} = ?`).join(', ')
     const values = Object.values(allowed)
 
@@ -350,6 +358,11 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       payload: allowed,
       createdBy: userId,
     })
+    if (allowed.confidence === 'CONFIRMED' && !wasConfirmed) {
+      await emitCopEvent(env.DB, {
+        copSessionId: sessionId, eventType: MARKER_CONFIRMED, entityType: 'marker', entityId: body.id, createdBy: userId,
+      })
+    }
 
     return new Response(JSON.stringify({ id: body.id, message: 'Marker updated' }), {
       headers: JSON_HEADERS,

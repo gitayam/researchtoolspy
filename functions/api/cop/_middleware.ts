@@ -109,7 +109,7 @@ export function entityTypeForCopPath(pathname: string): CopFeedEntityType {
     case 'shares': return 'share'
     case 'playbooks': return 'playbook'
     // Team activity (collaborators, exports) is private: never on a share link's feed.
-    case 'activity': case 'alerts': case 'collaborators': case 'export': case 'exports': return 'activity'
+    case 'activity': case 'alerts': case 'collaborators': case 'export': case 'exports': case 'room-link-codes': return 'activity'
     // Look-ups (skipped by NON_MUTATING_POST anyway): never a public type.
     case 'suggest': case 'geocode': return 'activity'
     default: return 'session'

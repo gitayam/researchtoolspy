@@ -8,7 +8,7 @@
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { verifyCopSessionAccess, requireCopEditor } from '../../_shared/auth-helpers'
 import { emitCopEvent } from '../../_shared/cop-events'
-import { RFI_CREATED, RFI_ANSWERED, RFI_CLOSED, RFI_STARRED, RFI_UNSTARRED, RFI_UPDATED } from '../../_shared/cop-event-types'
+import { RFI_CREATED, RFI_ANSWERED, RFI_CLOSED, RFI_REOPENED, RFI_STARRED, RFI_UNSTARRED, RFI_UPDATED } from '../../_shared/cop-event-types'
 import { generatePrefixedId , JSON_HEADERS } from '../../_shared/api-utils'
 import { logEvent } from '../../_shared/event-log'
 import { copCallerUserId } from '../../_shared/cop-caller'
@@ -269,6 +269,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     }
 
     // If an answer is provided, insert into cop_rfi_answers and seed evidence
+    let answeredWith: string | null = null
     if (body.answer?.trim()) {
 
       const answerId = `rfa-${crypto.randomUUID().slice(0, 12)}`
@@ -276,6 +277,17 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
         INSERT INTO cop_rfi_answers (id, rfi_id, answer_text, source_description, created_by, responder_name, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?)
       `).bind(answerId, body.id, body.answer.trim(), body.source_description || null, userId, body.responder_name || null, now).run()
+      answeredWith = answerId
+      // The answer itself, as the answers route records it (the chat feed shows its text),
+      // with new_status as the status event carried before (playbook conditions read it).
+      await emitCopEvent(env.DB, {
+        copSessionId: sessionId,
+        eventType: RFI_ANSWERED,
+        entityType: 'rfi',
+        entityId: body.id,
+        payload: { answer_id: answerId, new_status: body.status ?? existing.status },
+        createdBy: userId,
+      })
 
       // Auto-seed evidence item from RFI answer so Evidence Feed reflects progress
       if (body.seed_evidence !== false) {
@@ -309,14 +321,15 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       }
     }
 
-    // Emit event for status transitions
+    // Emit event for status transitions (an answer given in this call already said 'answered').
     if (body.status) {
 
       const statusEventMap: Record<string, string> = {
         'answered': RFI_ANSWERED,
         'closed': RFI_CLOSED,
       }
-      const eventType = statusEventMap[body.status]
+      if (body.status === 'open' && ['answered', 'accepted', 'closed'].includes(String(existing.status))) statusEventMap.open = RFI_REOPENED
+      const eventType = body.status === 'answered' && answeredWith ? undefined : statusEventMap[body.status]
       if (eventType) {
         await emitCopEvent(env.DB, {
           copSessionId: sessionId,

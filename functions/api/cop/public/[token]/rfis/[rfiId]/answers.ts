@@ -20,6 +20,30 @@ interface Env {
 
 /** Answers per client address per 10 minutes through share links (anonymous writes). */
 export const PUBLIC_ANSWERS_PER_WINDOW = 10
+/**
+ * Answers per share link per UTC hour, whoever sends them (migration 0028): the address
+ * limit alone is beaten by rotating addresses, and these answers reach linked Signal rooms.
+ */
+export const SHARE_ANSWERS_PER_HOUR = 20
+
+/**
+ * One of the share's hourly answer slots, taken in one statement. 'ok', 'over', or
+ * 'pending' while migration 0028 isn't applied (the address limit still applies).
+ */
+async function takeShareAnswerSlot(db: D1Database, shareId: string): Promise<'ok' | 'over' | 'pending'> {
+  const hour = new Date().toISOString().slice(0, 13)
+  try {
+    const slot = await db.prepare(`
+      INSERT INTO cop_share_answer_slots (share_id, hour, n) VALUES (?, ?, 1)
+      ON CONFLICT (share_id, hour) DO UPDATE SET n = n + 1 WHERE n < ?
+      RETURNING n
+    `).bind(shareId, hour, SHARE_ANSWERS_PER_HOUR).first<{ n: number }>()
+    return slot ? 'ok' : 'over'
+  } catch (error) {
+    if (/no such table:\s*(?:main\.)?cop_share_answer_slots/i.test(String(error instanceof Error ? error.message : error))) return 'pending'
+    throw error
+  }
+}
 const ANSWER_MAX = 4000
 const URL_MAX = 2000
 const NAME_MAX = 100
@@ -123,6 +147,15 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const sourceDescription = typeof body.source_description === 'string' && body.source_description.trim()
       ? body.source_description.trim().slice(0, SOURCE_DESCRIPTION_MAX) : null
 
+    // The share's hourly cap, counted only for answers that would be stored.
+    const shareSlot = await takeShareAnswerSlot(env.DB, String((share as { id?: unknown }).id ?? token))
+    if (shareSlot === 'over') {
+      return new Response(JSON.stringify({ error: 'This link has taken all the answers it can for now; try again later', code: 'SHARE_RATE_LIMITED' }), {
+        status: 429, headers: { ...JSON_HEADERS, 'Retry-After': '600' },
+      })
+    }
+    if (shareSlot === 'pending') console.warn('[cop/public/rfis/answers] share answer cap off: migration 0028 not applied')
+
     const id = generatePrefixedId('rfia')
     const now = new Date().toISOString()
 
@@ -147,8 +180,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       eventType: RFI_ANSWERED,
       entityType: 'rfi',
       entityId: rfiId,
-      payload: { via: 'share' },
-      createdBy: Number((share as { created_by?: unknown }).created_by) || 1,
+      // An anonymous visitor's answer: created_by 0, never the share's creator (who may be
+      // the Signal bot, whose own events the chat feed leaves out).
+      payload: { via: 'share', answer_id: id },
+      createdBy: 0,
     })
 
     return new Response(JSON.stringify({ id, message: 'Answer submitted' }), {

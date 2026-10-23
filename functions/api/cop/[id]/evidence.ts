@@ -17,7 +17,7 @@
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { verifyCopSessionAccess, requireCopEditor } from '../../_shared/auth-helpers'
 import { emitCopEvent } from '../../_shared/cop-events'
-import { EVIDENCE_CREATED, EVIDENCE_DELETED, EVIDENCE_UPDATED } from '../../_shared/cop-event-types'
+import { EVIDENCE_CREATED, EVIDENCE_DELETED, EVIDENCE_REVIEWED, EVIDENCE_UPDATED } from '../../_shared/cop-event-types'
 import { createTimelineEntry } from '../../_shared/timeline-helper'
 import { JSON_HEADERS } from '../../_shared/api-utils'
 import { logEvent } from '../../_shared/event-log'
@@ -258,9 +258,9 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
     const existing = await queryEvidenceInSession(
       env.DB,
-      'SELECT id, created_by, metadata FROM evidence_items WHERE id = ? AND {EVIDENCE_SCOPE}',
+      'SELECT id, created_by, metadata, credibility FROM evidence_items WHERE id = ? AND {EVIDENCE_SCOPE}',
       { sessionId, workspaceId }, [Number(rawId)], [],
-      (statement) => statement.first<{ id: number; created_by: number; metadata: string | null }>(),
+      (statement) => statement.first<{ id: number; created_by: number; metadata: string | null; credibility: string | null }>(),
     )
     if (!existing) return reply({ error: 'Evidence not found' }, 404)
     if (!serviceMayChange(context, existing.created_by)) return serviceChangeRefused()
@@ -313,6 +313,13 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       entityId: rawId,
       createdBy: userId,
     })
+    // A credibility change is a review (a drop-form tip stops being "unverified").
+    if (body.credibility !== undefined && body.credibility !== existing.credibility) {
+      await emitCopEvent(env.DB, {
+        copSessionId: sessionId, eventType: EVIDENCE_REVIEWED, entityType: 'evidence', entityId: rawId,
+        payload: { credibility: body.credibility }, createdBy: userId,
+      })
+    }
     const evidence = await evidenceRow(env.DB, Number(rawId), workspaceId)
     return reply({ evidence })
   } catch (error) {
