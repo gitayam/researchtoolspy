@@ -12,11 +12,14 @@
  * hard-to-guess random-prefixed key — the unguessable key IS the gate for v1.
  * A stricter per-survey/owner access check can layer on later if needed.
  *
- * EXIF stripping (E-6c): JPEG bytes are buffered and their APP1 (EXIF/GPS/XMP)
- * segments removed before serving; all other content types stream as-stored.
+ * Metadata: uploads are now stripped before they are stored (survey upload.ts).
+ * Files stored earlier may still carry EXIF/GPS, so every image is also cleaned
+ * here (functions/api/_shared/image-sanitize.ts: JPEG keeps only Orientation; PNG,
+ * WebP and GIF lose their text/EXIF/XMP blocks). An image that can't be parsed is
+ * not served raw. PDFs stream as stored.
  */
 import { CORS_HEADERS } from '../_shared/api-utils'
-import { stripImageExif } from './_exif'
+import { IMAGE_TYPES, sanitizeImage, sniffFileType } from '../_shared/image-sanitize'
 
 interface Env {
   UPLOADS?: R2Bucket
@@ -71,17 +74,25 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   // top-level document (mitigates stored-XSS via crafted files).
   headers.set('Content-Disposition', 'inline')
   headers.set('X-Content-Type-Options', 'nosniff')
+  headers.set('Content-Security-Policy', "default-src 'none'; sandbox")
   // Immutable: keys are random-prefixed and never reused, so cache aggressively.
   headers.set('Cache-Control', 'private, max-age=31536000, immutable')
   if (object.httpEtag) headers.set('ETag', object.httpEtag)
 
-  // E-6c: strip EXIF/GPS from JPEGs before serving. Only images are buffered;
-  // every other type streams the R2 body unchanged.
-  if (contentType.toLowerCase() === 'image/jpeg') {
+  // Images: buffered and cleaned (older objects were stored with their metadata).
+  if (contentType.toLowerCase().startsWith('image/')) {
     const buf = new Uint8Array(await object.arrayBuffer())
-    const cleaned = stripImageExif(buf, contentType)
-    headers.set('Content-Length', String(cleaned.byteLength))
-    return new Response(cleaned, { status: 200, headers })
+    const sniffed = sniffFileType(buf)
+    const cleaned = sniffed && IMAGE_TYPES.has(sniffed) ? sanitizeImage(buf, sniffed) : null
+    if (!sniffed || !cleaned || cleaned.ok === false) {
+      return new Response(JSON.stringify({ error: 'This file cannot be shown' }), {
+        status: 415,
+        headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
+      })
+    }
+    headers.set('Content-Type', sniffed)
+    headers.set('Content-Length', String(cleaned.bytes.byteLength))
+    return new Response(cleaned.bytes, { status: 200, headers })
   }
 
   headers.set('Content-Length', String(object.size))

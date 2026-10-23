@@ -27,7 +27,10 @@
  * The extracted text is RETURNED only (not stored to a table here — reviewer-side
  * full-text storage is a later refinement).
  *
- * NOT here (later units): EXIF strip + retention (E-6c/E-6d). Files are stored verbatim.
+ * Stored clean: each file's type comes from its bytes (a declared type that
+ * disagrees is ignored), images lose their metadata (EXIF/GPS, XMP, IPTC,
+ * comments) BEFORE the R2 write, and an image that can't be parsed is refused
+ * (functions/api/_shared/cop-uploads.ts cleanFile). Retention (E-6d) is separate.
  */
 import { JSON_HEADERS } from '../../../_shared/api-utils'
 import {
@@ -41,6 +44,7 @@ import {
   MAX_FILES_PER_SUBMISSION,
 } from './_upload'
 import { extractPdfTextFromBuffer } from '../../../content-intelligence/pdf-extractor'
+import { cleanFile } from '../../../_shared/cop-uploads'
 
 interface Env {
   DB: D1Database
@@ -217,10 +221,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       }), { status: 413, headers: JSON_HEADERS })
     }
 
-    // Validate every file BEFORE writing any — all-or-nothing on validation.
+    // Size checks for every file BEFORE writing any. The type is decided from the
+    // bytes below; the declared type only has to be a plausible upload.
     for (const file of files) {
-      const v = validateUpload({ mime: file.type, size: file.size })
-      if (v.ok === false) {
+      const v = validateUpload({ mime: file.type || 'application/octet-stream', size: file.size })
+      if (v.ok === false && !/Unsupported file type/.test(v.error)) {
         return new Response(JSON.stringify({ error: v.error, filename: file.name }), {
           status: 415, headers: JSON_HEADERS,
         })
@@ -232,11 +237,18 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const stored: UploadedFileInfo[] = []
     for (const file of files) {
       const key = uploadObjectKey(token, form.id, file.name)
-      // Read the bytes ONCE — reused for the R2 put and (for PDFs) extraction.
-      const body = await file.arrayBuffer()
-      // E-6c: strip EXIF before storing (images). For now stored verbatim.
+      // Type from the bytes; images stripped of metadata before the write.
+      const clean = cleanFile(new Uint8Array(await file.arrayBuffer()))
+      if (clean.ok === false) {
+        // All or nothing: take back what this request already stored.
+        for (const done of stored) await env.UPLOADS.delete(done.key).catch(() => {})
+        return new Response(JSON.stringify({ error: clean.error, filename: file.name }), {
+          status: clean.status, headers: JSON_HEADERS,
+        })
+      }
+      const body = clean.bytes
       await env.UPLOADS.put(key, body, {
-        httpMetadata: { contentType: file.type },
+        httpMetadata: { contentType: clean.type },
         // Survey id recorded for E-6d retention sweeps; NO submitter IP/UA (privacy).
         customMetadata: {
           surveyId: form.id,
@@ -244,14 +256,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         },
       })
 
-      const entry: UploadedFileInfo = { key, name: file.name, size: file.size, type: file.type }
+      const entry: UploadedFileInfo = { key, name: file.name, size: body.length, type: clean.type }
 
       // E-6b: for PDFs within the size guard, extract text in-Worker for pre-fill.
       // Extraction MUST NOT fail the upload — any throw/timeout just omits the text.
       // NB: full-text storage for the reviewer is a later refinement (not stored here).
-      if (shouldExtractPdf(file.type, file.size)) {
+      if (shouldExtractPdf(clean.type, body.length)) {
         try {
-          const result = await extractPdfTextFromBuffer(body)
+          const result = await extractPdfTextFromBuffer(body.buffer.slice(body.byteOffset, body.byteOffset + body.byteLength) as ArrayBuffer)
           entry.extractedText = truncateText(result.text)
           if (typeof result.metadata?.pageCount === 'number') {
             entry.pageCount = result.metadata.pageCount

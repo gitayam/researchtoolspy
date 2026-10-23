@@ -2,6 +2,13 @@
  * Survey Drops Public Submission API
  *
  * POST /api/surveys/public/:token/submit - Submit a public form entry (no auth)
+ *
+ * Inline files (data: URLs) are typed from their bytes and images stripped of
+ * metadata before the row is stored; an unreadable image is refused. For a form
+ * linked to a COP with auto_ingest on, the answers become unverified COP evidence
+ * at once (form fields only: never the submitter's name, contact or location —
+ * functions/api/_shared/cop-ingest.ts); the response then carries
+ * `ingested: { evidence_id, marker_id }` (else null) and nothing else about the COP.
  */
 import { emitCopEvent } from '../../../_shared/cop-events'
 import { INGEST_SUBMISSION_RECEIVED, INGEST_SUBMISSION_BLOCKED, INGEST_SUBMISSION_RATE_LIMITED } from '../../../_shared/cop-event-types'
@@ -12,9 +19,12 @@ import {
   type PublicSubmissionBody, type PublicSubmissionFormRow,
 } from '../../../_shared/survey-drops'
 import { enrichResponseUrls } from '../../../_shared/url-enrichment'
+import { autoIngestSubmission, parseFormSchema, sanitizeFormDataFiles } from '../../../_shared/cop-ingest'
+import type { R2Like } from '../../../_shared/cop-uploads'
 
 interface Env {
   DB: D1Database
+  UPLOADS?: R2Like
 }
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
@@ -149,7 +159,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     let formSchema = []
     try { formSchema = form.form_schema ? JSON.parse(form.form_schema) : [] } catch { formSchema = [] }
 
-    const formData = body.form_data || {}
+    const rawFormData = body.form_data && typeof body.form_data === 'object' && !Array.isArray(body.form_data) ? body.form_data : {}
+    const cleaned = sanitizeFormDataFiles(rawFormData, parseFormSchema(formSchema))
+    if (cleaned.ok === false) {
+      return new Response(JSON.stringify({ error: cleaned.error }), { status: 400, headers: JSON_HEADERS })
+    }
+    const formData = cleaned.formData
     for (const field of formSchema) {
       if (field.required && !String(formData[field.name] ?? '').trim()) {
         return new Response(JSON.stringify({ error: `Required field "${field.name}" is missing` }), {
@@ -204,12 +219,21 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         entityId: id,
         payload: {
           survey_id: form.id,
-          submitter_name: body.submitter_name || null,
           submitter_country: geo.country,
           has_location: body.lat != null || geo.lat != null,
         },
         createdBy: 0,
       })
+    }
+
+    // Put it on the COP now; a failure here must never lose the submission.
+    let ingested: { evidence_id: string; marker_id: string | null } | null = null
+    if (form.cop_session_id) {
+      try {
+        ingested = await autoIngestSubmission(env, { formId: form.id, responseId: id, sessionId: form.cop_session_id })
+      } catch (ingestError) {
+        console.error('[Survey Drops Public] Auto-ingest failed:', ingestError instanceof Error ? ingestError.message : ingestError)
+      }
     }
 
     // Async post-processing (runs after response is sent)
@@ -274,7 +298,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       }
     })())
 
-    return new Response(JSON.stringify({ id, message: 'Submission received. Thank you.' }), {
+    return new Response(JSON.stringify({ id, message: 'Submission received. Thank you.', ingested }), {
       status: 201, headers: JSON_HEADERS,
     })
   } catch (error) {

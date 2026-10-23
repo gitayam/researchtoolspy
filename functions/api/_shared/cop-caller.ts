@@ -24,11 +24,15 @@ export const COP_SERVICE_ROUTES: readonly { method: string; path: RegExp }[] = [
   { method: 'POST', path: /^\/api\/cop\/sessions$/ },
   {
     method: 'GET',
-    path: /^\/api\/cop\/(?!public(?:\/|$)|sessions(?:\/|$))[^/]+\/(?:claims|stats|webcams\/nearby)$/,
+    path: /^\/api\/cop\/(?!public(?:\/|$)|sessions(?:\/|$))[^/]+\/(?:claims|stats|webcams\/nearby|tags|item-tags|geocode)$/,
   },
   {
     method: 'POST',
-    path: /^\/api\/cop\/(?!public(?:\/|$)|sessions(?:\/|$))[^/]+\/(?:shares|rfis|evidence|markers|timeline|tasks|poo-estimates|personas|claims|hypotheses|webcams)$/,
+    path: /^\/api\/cop\/(?!public(?:\/|$)|sessions(?:\/|$))[^/]+\/(?:shares|rfis|evidence|markers|timeline|tasks|poo-estimates|personas|claims|hypotheses|webcams|tags|item-tags|suggest|uploads)$/,
+  },
+  {
+    method: 'DELETE',
+    path: /^\/api\/cop\/(?!public(?:\/|$)|sessions(?:\/|$))[^/]+\/item-tags$/,
   },
   {
     method: 'PUT',
