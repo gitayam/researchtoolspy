@@ -51,10 +51,10 @@ function seedItems(db) {
     INSERT INTO cop_markers (id, cop_session_id, uid, lat, lon, created_by, workspace_id) VALUES
       ('mkr-1', '${SESSION}', 'uid-1', 48.9, 2.36, 1, '${WS}'),
       ('mkr-bot', '${SESSION}', 'uid-bot', 48.9, 2.36, ${SERVICE_USER}, '${WS}');
-    -- COP evidence: migration 0022 gives these their session from the metadata.
+    -- COP evidence: migration 0022 gives these their session from server-written metadata.
     INSERT INTO evidence_items (id, title, description, evidence_type, credibility, reliability, workspace_id, created_by, metadata) VALUES
-      (1001, 'Photo of the gate', 'x', 'observation', 'unverified', 'unknown', '${WS}', 1, '{"cop_session_id":"${SESSION}"}'),
-      (1002, 'Link from chat', 'x', 'observation', 'unverified', 'unknown', '${WS}', ${SERVICE_USER}, '{"cop_session_id":"${SESSION}"}');
+      (1001, 'Photo of the gate', 'x', 'observation', 'unverified', 'unknown', '${WS}', 1, '{"cop_session_id":"${SESSION}","origin":"verified_claim"}'),
+      (1002, 'Link from chat', 'x', 'observation', 'unverified', 'unknown', '${WS}', ${SERVICE_USER}, '{"cop_session_id":"${SESSION}","origin":"verified_claim"}');
     INSERT INTO cop_rfis (id, cop_session_id, question, created_by, updated_at) VALUES ('rfi-bot', '${SESSION}', 'Asked in chat?', ${SERVICE_USER}, '${T0}');
     INSERT INTO cop_rfi_answers (id, rfi_id, answer_text, created_by) VALUES ('ans-1', 'rfi-existing', 'Two guards', 1);
     INSERT INTO cop_shares (id, cop_session_id, share_token, visible_panels, created_by) VALUES ('cops-1', '${SESSION}', '${SHARE_TOKEN}', '["map","rfi"]', 1);

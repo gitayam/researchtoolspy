@@ -16,7 +16,7 @@ import { JSON_HEADERS } from '../../_shared/api-utils'
 import { logEvent } from '../../_shared/event-log'
 import { copCallerUserId } from '../../_shared/cop-caller'
 import {
-  canonicalUrl, copSourceChannel, copSourceRef, evidenceInSession, isMissingColumn, queryEvidenceInSession,
+  canonicalUrl, copSourceChannel, copSourceRef, evidenceInSession, isMissingColumn, maskTipEvidenceRow, queryEvidenceInSession,
   serviceDeleteRefused, serviceMayDelete, setEvidenceSession, setProvenance, type EvidenceSessionScope,
 } from '../../_shared/cop-input'
 
@@ -91,10 +91,14 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       env.DB,
       'SELECT * FROM evidence_items WHERE {EVIDENCE_SCOPE} ORDER BY created_at DESC LIMIT 500',
       { sessionId, workspaceId }, [], [],
-      (statement) => statement.all(),
+      (statement) => statement.all<Record<string, unknown>>(),
     )
+    // readOnly admits any signed-in reader of a public session: only the owner and
+    // collaborators see unreviewed drop-form tips in full.
+    const collaborator = Boolean(await verifyCopSessionAccess(env.DB, sessionId, userId))
+    const evidence = (results.results ?? []).map((row) => (collaborator ? row : maskTipEvidenceRow(row)))
 
-    return new Response(JSON.stringify({ evidence: results.results }), { headers: JSON_HEADERS })
+    return new Response(JSON.stringify({ evidence }), { headers: JSON_HEADERS })
   } catch (error) {
     await logEvent(env, {
       level: 'error',

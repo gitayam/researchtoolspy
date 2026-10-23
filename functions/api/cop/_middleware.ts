@@ -75,6 +75,12 @@ function refuse(
 
 const WRITE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE'])
 
+/**
+ * POST routes that change nothing (they compute or look up): no fallback event, which
+ * would tell every viewer, and share links, that the session changed.
+ */
+const NON_MUTATING_POST = /^\/api\/cop\/[^/]+\/(?:suggest|geocode|webcams\/[^/]+\/estimate-bearing|playbooks\/[^/]+\/test)\/?$/
+
 /** The change-feed entity type of a COP session route, from its first path segment. */
 export function entityTypeForCopPath(pathname: string): CopFeedEntityType {
   const segment = /^\/api\/cop\/[^/]+\/([^/?]+)/.exec(pathname)?.[1] ?? ''
@@ -97,6 +103,8 @@ export function entityTypeForCopPath(pathname: string): CopFeedEntityType {
     case 'playbooks': return 'playbook'
     // Team activity (collaborators, exports) is private: never on a share link's feed.
     case 'activity': case 'alerts': case 'collaborators': case 'export': case 'exports': return 'activity'
+    // Look-ups (skipped by NON_MUTATING_POST anyway): never a public type.
+    case 'suggest': case 'geocode': return 'activity'
     default: return 'session'
   }
 }
@@ -114,6 +122,7 @@ async function withChangeFallback(
   const { pathname } = new URL(request.url)
   const sessionId = copSessionIdFromPath(pathname)
   if (sessionId === null) return context.next()
+  if (request.method === 'POST' && NON_MUTATING_POST.test(pathname)) return context.next()
 
   const { result: response, emitted } = await trackCopEvents(() => context.next())
   if (emitted === 0 && response.status >= 200 && response.status < 300) {

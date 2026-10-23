@@ -67,8 +67,10 @@ export const ENTRIES = {
   publicChanges: 'functions/api/cop/public/[token]/changes.ts',
   publicAnswers: 'functions/api/cop/public/[token]/rfis/[rfiId]/answers.ts',
   markersLayer: `${R}layers/markers.ts`,
+  cot: `${R}cot.ts`,
   stats: `${R}stats.ts`,
   copTags: 'functions/api/_shared/cop-tags.ts',
+  copRecords: 'functions/api/_shared/cop-records.ts',
 }
 
 /**

@@ -77,20 +77,28 @@ export async function insertCopEvidence(db: D1Database, scope: CopSessionScope, 
   const columns = `title, description, source_url, evidence_type, confidence_level,
       credibility, reliability, source_name, metadata,
       status, workspace_id, created_by, created_at, updated_at`
+  // source_channel and cop_session_id come with migration 0022; cop_session_id is what
+  // makes the item this COP's (evidence_items is workspace-wide). A missing column is
+  // dropped on its own, so the session is never lost because the channel column is.
+  const optional: { column: string; value: unknown }[] = [
+    { column: 'source_channel', value: input.sourceChannel },
+    { column: 'cop_session_id', value: scope.sessionId },
+  ]
   let result
-  try {
-    // source_channel and cop_session_id come with migration 0022: the COP's evidence is
-    // what carries its session (evidence_items is workspace-wide).
-    result = await db.prepare(`
-      INSERT INTO evidence_items (${columns}, source_channel, cop_session_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?, ?, ?, ?, ?, ?)
-    `).bind(...values, input.sourceChannel, scope.sessionId).run()
-  } catch (error) {
-    if (!columnMissing(error, 'source_channel')) throw error
-    result = await db.prepare(`
-      INSERT INTO evidence_items (${columns})
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?, ?, ?, ?)
-    `).bind(...values).run()
+  for (;;) {
+    const extraColumns = optional.map((o) => `, ${o.column}`).join('')
+    const extraMarks = optional.map(() => ', ?').join('')
+    try {
+      result = await db.prepare(`
+        INSERT INTO evidence_items (${columns}${extraColumns})
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?, ?, ?, ?${extraMarks})
+      `).bind(...values, ...optional.map((o) => o.value)).run()
+      break
+    } catch (error) {
+      const missing = optional.findIndex((o) => columnMissing(error, o.column))
+      if (missing === -1) throw error
+      optional.splice(missing, 1)
+    }
   }
   const id = String(result.meta?.last_row_id ?? '')
   if (!id || id === '0') throw new Error('Evidence insert returned no id')

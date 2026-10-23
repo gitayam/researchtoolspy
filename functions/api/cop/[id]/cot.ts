@@ -8,6 +8,12 @@
  * This feed is compatible with ATAK, WinTAK, and iTAK for real-time
  * common operating picture interoperability.
  *
+ * Access: a signed-in reader of the session, or ?token=<share token> for headless TAK
+ * clients. A share token must be live (unexpired), show the map, and its feed carries
+ * only the layers a share may read (shareMayReadLayer): places, events and actors only
+ * when the session has those layers on. Anyone who is not the owner or a collaborator
+ * sees a drop-form tip nobody has reviewed as "Unverified tip".
+ *
  * Entities are filtered by the session's bounding box.
  * Stale markers (past their stale_time) are excluded.
  * The staleMinutes for entity-derived CoT events is derived from
@@ -17,6 +23,8 @@
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-helpers'
 import { logEvent } from '../../_shared/event-log'
+import { UNVERIFIED_TIP_LABEL, unreviewedTipMarker } from '../../_shared/cop-input'
+import { shareExpired, shareMayReadLayer, sharePanels } from '../../_shared/cop-share'
 import {
   entityToCoT, wrapCoTFeed,
   placeToCoTType, eventToCoTType, actorToCoTType,
@@ -45,18 +53,23 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   const url = new URL(request.url)
   const shareToken = url.searchParams.get('token')
 
-  if (shareToken) {
-    // Validate the share token against cop_shares for this session
-    const share = await env.DB.prepare(
-      `SELECT id FROM cop_shares WHERE share_token = ? AND cop_session_id = ? LIMIT 1`
-    ).bind(shareToken, sessionId).first<{ id: string }>()
+  // What this caller may see: a share token's panels decide its layers; the owner and
+  // collaborators see unreviewed tips in full.
+  let sharePanelList: string[] | null = null
+  let collaborator = false
 
-    if (!share) {
+  if (shareToken) {
+    // A live share link for this session that shows the map.
+    const share = await env.DB.prepare(
+      `SELECT * FROM cop_shares WHERE share_token = ? AND cop_session_id = ? LIMIT 1`
+    ).bind(shareToken, sessionId).first<{ visible_panels?: string; expires_at?: string | null }>()
+
+    if (!share || shareExpired(share) || !sharePanels(share).includes('map')) {
       return new Response('<error>Authentication required</error>', {
         status: 401, headers: xmlHeaders,
       })
     }
-    // Valid share token — fall through to feed generation below (no header auth needed)
+    sharePanelList = sharePanels(share)
   } else {
     // Header-auth path: browser / authenticated clients use X-User-Hash
     const userId = await getUserFromRequest(request, env)
@@ -71,12 +84,15 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         status: 403, headers: xmlHeaders,
       })
     }
+    // readOnly admits any signed-in reader of a public session; only the owner and
+    // collaborators see tips in full.
+    collaborator = Boolean(await verifyCopSessionAccess(env.DB, sessionId, userId))
   }
 
   try {
     const session = await env.DB.prepare(
       `SELECT workspace_id, bbox_min_lat, bbox_min_lon, bbox_max_lat, bbox_max_lon,
-              rolling_hours, status
+              rolling_hours, status, active_layers
        FROM cop_sessions WHERE id = ? AND status != 'ARCHIVED'`
     ).bind(sessionId).first<any>()
 
@@ -86,8 +102,15 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       })
     }
 
-    // Check KV cache (30-second TTL for CoT feeds)
-    const COT_CACHE_KEY = `cot-feed:${sessionId}`
+    // A share token gets only the layers a share may read.
+    const mayRead = (layer: string) => sharePanelList === null || shareMayReadLayer(session, layer, sharePanelList, url)
+    const withPlaces = mayRead('places')
+    const withEvents = mayRead('events')
+    const withActors = mayRead('actors') && withPlaces
+
+    // Check KV cache (30-second TTL for CoT feeds), one entry per audience and layer set.
+    const audience = collaborator ? 'full' : 'public'
+    const COT_CACHE_KEY = `cot-feed:${sessionId}:${audience}:${[withPlaces, withEvents, withActors].map(Number).join('')}`
     const COT_CACHE_TTL = 30
 
     if (env.CACHE) {
@@ -107,8 +130,9 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     const cotEvents: string[] = []
 
     // Fetch places, events, actors, markers in parallel
+    const none = Promise.resolve({ results: [] as unknown[] })
     const [places, events, actors, markers] = await Promise.all([
-      env.DB.prepare(`
+      !withPlaces ? none : env.DB.prepare(`
         SELECT id, name, place_type, coordinates FROM places
         WHERE workspace_id = ? AND coordinates IS NOT NULL
           AND json_extract(coordinates, '$.lat') BETWEEN ? AND ?
@@ -116,7 +140,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         LIMIT 200
       `).bind(wsId, minLat, maxLat, minLon, maxLon).all(),
 
-      env.DB.prepare(`
+      !withEvents ? none : env.DB.prepare(`
         SELECT id, name, event_type, coordinates FROM events
         WHERE workspace_id = ? AND coordinates IS NOT NULL
           AND json_extract(coordinates, '$.lat') BETWEEN ? AND ?
@@ -124,7 +148,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         LIMIT 200
       `).bind(wsId, minLat, maxLat, minLon, maxLon).all(),
 
-      env.DB.prepare(`
+      !withActors ? none : env.DB.prepare(`
         SELECT a.id, a.name, a.type AS actor_type, p.coordinates
         FROM actors a
         JOIN relationships r ON r.source_entity_id = a.id
@@ -203,13 +227,14 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     // Convert tactical markers (already CoT-native)
     for (const row of (markers.results || []) as any[]) {
+      const hidden = !collaborator && unreviewedTipMarker(row)
       cotEvents.push(entityToCoT({
         uid: row.uid,
         type: row.cot_type,
         lat: row.lat,
         lon: row.lon,
         hae: row.hae,
-        callsign: row.callsign || row.label,
+        callsign: hidden ? UNVERIFIED_TIP_LABEL : (row.callsign || row.label),
         staleMinutes: 5,
       }))
     }

@@ -142,8 +142,8 @@ test('3: migration 0022 gives existing COP evidence its session from the session
       INSERT INTO cop_events (id, cop_session_id, event_type, entity_type, entity_id, created_by) VALUES
         ('evt-e11', '${SESSION}', 'evidence.created', 'evidence', '11', 1),
         ('evt-foreign', '${OTHER_SESSION}', 'evidence.created', 'evidence', '13', 4);
-      INSERT INTO cop_timeline_entries (id, cop_session_id, workspace_id, event_date, title, entity_type, entity_id, created_by)
-        VALUES ('tle-e12', '${SIBLING}', '${WS}', '2026-10-01', 'Evidence added', 'evidence', '12', 1);
+      INSERT INTO cop_timeline_entries (id, cop_session_id, workspace_id, event_date, title, source_type, entity_type, entity_id, action, created_by)
+        VALUES ('tle-e12', '${SIBLING}', '${WS}', '2026-10-01', 'Evidence added', 'system', 'evidence', '12', 'created', 1);
     `)
   } })
   const sessionOf = (id) => db.prepare('SELECT cop_session_id FROM evidence_items WHERE id = ?').get(id).cop_session_id
@@ -280,4 +280,160 @@ test('drop-form tips nobody has reviewed show as "Unverified tip" on public view
   // Collaborators see the tip as submitted.
   const own = (await json(await call(env, 'evidence', 'GET', `${P}/evidence`, { who: 'viewer', params: S }))).evidence
   assert.equal(own.find((e) => e.id === 21).title, 'Strike confirmed, evacuate')
+})
+
+// ── Re-verification (2026-10-23) ───────────────────────────────────
+
+test('A: the 0022 backfill attaches only what the COP created, never a tagged or client-referenced library item', async () => {
+  const { db } = await fixture({ seed: (d) => {
+    d.exec(`
+      INSERT INTO evidence_items (id, title, description, evidence_type, credibility, reliability, workspace_id, created_by, metadata) VALUES
+        (30, 'Library item, tagged from the COP', 'x', 'observation', 'unverified', 'unknown', '${WS}', 1, NULL),
+        (31, 'Library item, named in a manual timeline line', 'x', 'observation', 'unverified', 'unknown', '${WS}', 1, NULL),
+        (32, 'Library item with hand-written metadata', 'x', 'observation', 'unverified', 'unknown', '${WS}', 1, '{"cop_session_id":"${SESSION}"}'),
+        (33, 'Created by the COP', 'x', 'observation', 'unverified', 'unknown', '${WS}', 1, NULL),
+        (34, 'Promoted claim', 'x', 'statement', '2', 'B', '${WS}', 1, '{"cop_session_id":"${SESSION}","origin":"verified_claim"}'),
+        (35, 'Scraped', 'x', 'observation', 'unverified', 'unknown', '${WS}', 1, '{"cop_session_id":"${SESSION}","scrape_provider":"apify"}'),
+        (36, 'System timeline line', 'x', 'observation', 'unverified', 'unknown', '${WS}', 1, NULL);
+      INSERT INTO cop_events (id, cop_session_id, event_type, entity_type, entity_id, created_by) VALUES
+        ('evt-tag', '${SESSION}', 'evidence.tagged', 'evidence', '30', 2),
+        ('evt-new', '${SESSION}', 'evidence.created', 'evidence', '33', 1);
+      INSERT INTO cop_timeline_entries (id, cop_session_id, workspace_id, event_date, title, source_type, entity_type, entity_id, action, created_by) VALUES
+        ('tle-manual', '${SESSION}', '${WS}', '2026-10-01', 'about item 31', 'manual', 'evidence', '31', 'created', 2),
+        ('tle-system', '${SESSION}', '${WS}', '2026-10-01', 'Evidence added', 'system', 'evidence', '36', 'created', 1);
+    `)
+  } })
+  const sessionOf = (id) => db.prepare('SELECT cop_session_id FROM evidence_items WHERE id = ?').get(id).cop_session_id
+  assert.deepEqual([30, 31, 32].map(sessionOf), [null, null, null])
+  assert.deepEqual([33, 34, 35, 36].map(sessionOf), [SESSION, SESSION, SESSION, SESSION])
+})
+
+test('A: a client cannot write a system timeline line', async () => {
+  const { db, env } = await fixture()
+  const res = await call(env, 'timeline', 'POST', `${P}/timeline`, { params: S, body: { title: 'Forged', source_type: 'system', entity_type: 'evidence', entity_id: '1', action: 'created' } })
+  assert.equal(res.status, 201)
+  assert.equal(db.prepare("SELECT source_type FROM cop_timeline_entries WHERE title = 'Forged'").get().source_type, 'manual')
+  await call(env, 'timeline', 'POST', `${P}/timeline`, { params: S, body: { title: 'From OSINT', source_type: 'osint' } })
+  assert.equal(db.prepare("SELECT source_type FROM cop_timeline_entries WHERE title = 'From OSINT'").get().source_type, 'osint')
+})
+
+function seedTips(db) {
+  db.exec(`
+    INSERT INTO cop_markers (id, cop_session_id, uid, lat, lon, label, description, callsign, confidence, created_by, workspace_id, source_channel) VALUES
+      ('mkr-tip', '${SESSION}', 'u-tip', 48.86, 2.29, 'Alice at 12 Rue X', 'From the evidence form', 'Alice callsign', 'POSSIBLE', 1, '${WS}', 'drop'),
+      ('mkr-web', '${SESSION}', 'u-web', 48.86, 2.29, 'Analyst pin', NULL, NULL, 'POSSIBLE', 1, '${WS}', 'web');
+    INSERT INTO cop_marker_changelog (id, marker_id, cop_session_id, action, new_value, created_by) VALUES
+      ('mcl-tip', 'mkr-tip', '${SESSION}', 'created', '{"label":"Alice at 12 Rue X"}', 1);
+    INSERT INTO evidence_items (id, title, description, evidence_type, credibility, reliability, workspace_id, created_by, source_url, source_channel, cop_session_id) VALUES
+      (41, 'Alice at 12 Rue X', 'call Alice', 'observation', 'unverified', 'unknown', '${WS}', 1, 'https://evil.example/alice', 'drop', '${SESSION}'),
+      (42, 'Analyst link', 'x', 'observation', 'unverified', 'unknown', '${WS}', 1, 'https://ok.example/', 'web', '${SESSION}');
+    INSERT INTO cop_timeline_entries (id, cop_session_id, workspace_id, event_date, title, source_type, entity_type, entity_id, action, created_by) VALUES
+      ('tle-tip', '${SESSION}', '${WS}', '2026-10-23', 'Evidence added: Alice at 12 Rue X', 'system', 'evidence', '41', 'created', 1);
+  `)
+}
+
+function cotTables(db) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS places (id TEXT, name TEXT, place_type TEXT, coordinates TEXT, workspace_id TEXT);
+    CREATE TABLE IF NOT EXISTS relationships (source_entity_id TEXT, source_entity_type TEXT, relationship_type TEXT, target_entity_id TEXT, target_entity_type TEXT);
+    ALTER TABLE events ADD COLUMN coordinates TEXT;
+    ALTER TABLE actors ADD COLUMN name TEXT; ALTER TABLE actors ADD COLUMN type TEXT; ALTER TABLE actors ADD COLUMN workspace_id TEXT;
+    INSERT INTO places (id, name, place_type, coordinates, workspace_id) VALUES ('pl-1', 'Owner safehouse', 'building', '{"lat":48.85,"lng":2.3}', '${WS}');
+  `)
+}
+
+test('B1: the CoT feed needs a live share showing the map, follows its layers, and hides tip text from it', async () => {
+  const { db, env } = await fixture()
+  seedTips(db)
+  cotTables(db)
+  const cot = (query, who = 'anonymous') => call(env, 'cot', 'GET', `${P}/cot${query}`, { who, params: S })
+  db.prepare(`INSERT INTO cop_shares (id, cop_session_id, share_token, visible_panels, created_by, expires_at) VALUES
+    ('s-exp', ?, 'tok-expired', '["map"]', 1, '2026-01-01T00:00:00Z'),
+    ('s-nomap', ?, 'tok-nomap', '["rfi"]', 1, NULL),
+    ('s-live', ?, 'tok-live', '["map"]', 1, NULL)`).run(SESSION, SESSION, SESSION)
+  assert.equal((await cot('?token=tok-expired')).status, 401)
+  assert.equal((await cot('?token=tok-nomap')).status, 401)
+  assert.equal((await cot('?token=nope')).status, 401)
+
+  // A collaborator first, so a shared cache would hand the full feed to the share.
+  const full = await (await cot('', 'viewer')).text()
+  assert.ok(full.includes('Alice callsign'))
+  assert.ok(full.includes('Owner safehouse'))
+  const shared = await cot('?token=tok-live')
+  assert.equal(shared.status, 200)
+  const xml = await shared.text()
+  assert.ok(!xml.includes('Alice'), xml)
+  assert.ok(xml.includes('Unverified tip'))
+  assert.ok(xml.includes('Analyst pin'))
+  assert.ok(!xml.includes('Owner safehouse'), 'places layer is off for this session')
+  db.prepare(`UPDATE cop_sessions SET active_layers = '["cop-markers","places"]' WHERE id = ?`).run(SESSION)
+  env.CACHE.store.clear()
+  assert.ok((await (await cot('?token=tok-live')).text()).includes('Owner safehouse'))
+
+  // A public session: a signed-in non-collaborator gets the masked feed too.
+  db.prepare('UPDATE cop_sessions SET is_public = 1 WHERE id = ?').run(SESSION)
+  const stranger = await (await cot('', 'stranger')).text()
+  assert.ok(!stranger.includes('Alice') && stranger.includes('Unverified tip'))
+})
+
+test('B2: on a public session a signed-in non-collaborator sees tips masked in evidence, markers, timeline and changelog', async () => {
+  const { db, env } = await fixture()
+  seedTips(db)
+  db.prepare('UPDATE cop_sessions SET is_public = 1 WHERE id = ?').run(SESSION)
+  const read = async (handler, path, who) => {
+    const res = await call(env, handler, 'GET', path, { who, params: S })
+    assert.equal(res.status, 200, `${handler} ${who}: ${await res.clone().text()}`)
+    return res.text()
+  }
+  const paths = [['evidence', `${P}/evidence`], ['markers', `${P}/markers`], ['timeline', `${P}/timeline`], ['markerChangelog', `${P}/marker-changelog?marker_id=mkr-tip`]]
+  for (const [handler, path] of paths) {
+    const body = await read(handler, path, 'stranger')
+    assert.ok(!body.includes('Alice') && !body.includes('evil.example'), `${handler}: ${body.slice(0, 300)}`)
+  }
+  const evidence = JSON.parse(await read('evidence', `${P}/evidence`, 'stranger')).evidence
+  assert.equal(evidence.find((e) => e.id === 41).title, 'Unverified tip')
+  assert.equal(evidence.find((e) => e.id === 42).title, 'Analyst link')
+  const markers = JSON.parse(await read('markers', `${P}/markers`, 'stranger')).markers
+  assert.equal(markers.find((m) => m.id === 'mkr-tip').label, 'Unverified tip')
+  assert.equal(markers.find((m) => m.id === 'mkr-web').label, 'Analyst pin')
+  // Collaborators (viewers included) see the tip as submitted.
+  for (const [handler, path] of paths) assert.ok((await read(handler, path, 'viewer')).includes('Alice'), handler)
+})
+
+test('D: a POST that only looks things up leaves no change event for viewers or shares', async () => {
+  const { db, env } = await fixture()
+  const before = events(db).length
+  for (const path of [`${P}/suggest`, `${P}/geocode`, `${P}/webcams/cam-1/estimate-bearing`, `${P}/playbooks/pb-1/test`]) {
+    const request = new Request(`https://researchtools.test${path}`, { method: 'POST', headers: { Authorization: 'Bearer session-editor' } })
+    const context = { request, env, params: S, data: {}, waitUntil() {}, next: async () => new Response('{}', { status: 200 }) }
+    assert.equal((await mod('middleware').onRequest(context)).status, 200)
+  }
+  assert.equal(events(db).length, before)
+  assert.equal(mod('middleware').entityTypeForCopPath(`${P}/suggest`), 'activity')
+})
+
+test('the shared evidence insert keeps the session when only source_channel is missing', async () => {
+  const { insertCopEvidence, copSessionScope } = mod('copRecords')
+  const input = {
+    title: 'Tip', description: 'x', sourceUrl: null, evidenceType: 'observation', credibility: 'unverified',
+    sourceName: null, sourceChannel: 'drop', metadata: {}, createdBy: 1,
+  }
+  const columns = (db) => db.prepare("SELECT name FROM pragma_table_info('evidence_items')").all().map((r) => r.name)
+
+  // Both 0022 columns: both set.
+  let f = await fixture()
+  let id = await insertCopEvidence(f.env.DB, await copSessionScope(f.env.DB, SESSION), input)
+  assert.deepEqual({ ...f.db.prepare('SELECT source_channel, cop_session_id FROM evidence_items WHERE id = ?').get(Number(id)) }, { source_channel: 'drop', cop_session_id: SESSION })
+
+  // Only cop_session_id: the session is still recorded.
+  f = await fixture({ core: false })
+  f.db.exec('ALTER TABLE evidence_items ADD COLUMN cop_session_id TEXT')
+  assert.ok(!columns(f.db).includes('source_channel'))
+  id = await insertCopEvidence(f.env.DB, await copSessionScope(f.env.DB, SESSION), input)
+  assert.equal(f.db.prepare('SELECT cop_session_id FROM evidence_items WHERE id = ?').get(Number(id)).cop_session_id, SESSION)
+
+  // Neither (before 0022): the item is still saved.
+  f = await fixture({ core: false })
+  id = await insertCopEvidence(f.env.DB, await copSessionScope(f.env.DB, SESSION), input)
+  assert.equal(f.db.prepare('SELECT title FROM evidence_items WHERE id = ?').get(Number(id)).title, 'Tip')
 })

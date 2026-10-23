@@ -47,35 +47,45 @@ CREATE INDEX IF NOT EXISTS idx_evidence_items_workspace_canonical
 CREATE INDEX IF NOT EXISTS idx_cop_rfis_session_key ON cop_rfis(cop_session_id, is_key);
 CREATE INDEX IF NOT EXISTS idx_evidence_items_cop_session ON evidence_items(cop_session_id) WHERE cop_session_id IS NOT NULL;
 
--- Evidence a COP created before this column: its session is known from the session's
--- own records (its evidence.created events, its timeline lines about the item, or the
--- metadata the claim-promote and scrape routes wrote), and only when that session's
--- workspace is the item's workspace.
+-- Evidence a COP created before this column: its session is known from records the
+-- server wrote when the COP created the item, and only when that session's workspace is
+-- the item's workspace:
+--   - the creation event (evidence.created / evidence.imported, whose entity_id is the
+--     new row's id). Never other evidence events: evidence.tagged carried an id the
+--     client chose, so tagging a library item doesn't make it the COP's.
+--   - the system timeline line written when the COP created the item (source_type
+--     'system', action 'created'); never a line a client wrote.
+--   - metadata the claim-promote (origin 'verified_claim') and scrape (scrape_provider)
+--     routes wrote.
 UPDATE evidence_items
 SET cop_session_id = (
   SELECT s.id FROM cop_events e JOIN cop_sessions s ON s.id = e.cop_session_id
-  WHERE e.entity_type = 'evidence' AND e.entity_id = CAST(evidence_items.id AS TEXT)
+  WHERE e.entity_type = 'evidence' AND e.event_type IN ('evidence.created', 'evidence.imported')
+    AND e.entity_id = CAST(evidence_items.id AS TEXT)
     AND s.workspace_id = evidence_items.workspace_id
   ORDER BY e.rowid ASC LIMIT 1
 )
 WHERE cop_session_id IS NULL
   AND EXISTS (
     SELECT 1 FROM cop_events e JOIN cop_sessions s ON s.id = e.cop_session_id
-    WHERE e.entity_type = 'evidence' AND e.entity_id = CAST(evidence_items.id AS TEXT)
+    WHERE e.entity_type = 'evidence' AND e.event_type IN ('evidence.created', 'evidence.imported')
+      AND e.entity_id = CAST(evidence_items.id AS TEXT)
       AND s.workspace_id = evidence_items.workspace_id
   );
 
 UPDATE evidence_items
 SET cop_session_id = (
   SELECT s.id FROM cop_timeline_entries t JOIN cop_sessions s ON s.id = t.cop_session_id
-  WHERE t.entity_type = 'evidence' AND t.entity_id = CAST(evidence_items.id AS TEXT)
+  WHERE t.entity_type = 'evidence' AND t.source_type = 'system' AND t.action = 'created'
+    AND t.entity_id = CAST(evidence_items.id AS TEXT)
     AND s.workspace_id = evidence_items.workspace_id
   ORDER BY t.rowid ASC LIMIT 1
 )
 WHERE cop_session_id IS NULL
   AND EXISTS (
     SELECT 1 FROM cop_timeline_entries t JOIN cop_sessions s ON s.id = t.cop_session_id
-    WHERE t.entity_type = 'evidence' AND t.entity_id = CAST(evidence_items.id AS TEXT)
+    WHERE t.entity_type = 'evidence' AND t.source_type = 'system' AND t.action = 'created'
+      AND t.entity_id = CAST(evidence_items.id AS TEXT)
       AND s.workspace_id = evidence_items.workspace_id
   );
 
@@ -84,6 +94,7 @@ SET cop_session_id = json_extract(metadata, '$.cop_session_id')
 WHERE cop_session_id IS NULL
   AND json_valid(metadata)
   AND json_type(metadata, '$.cop_session_id') = 'text'
+  AND (json_extract(metadata, '$.origin') = 'verified_claim' OR json_type(metadata, '$.scrape_provider') = 'text')
   AND EXISTS (
     SELECT 1 FROM cop_sessions s
     WHERE s.id = json_extract(evidence_items.metadata, '$.cop_session_id')

@@ -23,7 +23,10 @@ import { createTimelineEntry } from '../../_shared/timeline-helper'
 import { JSON_HEADERS } from '../../_shared/api-utils'
 import { logEvent } from '../../_shared/event-log'
 import { copCallerUserId, copServiceCaller } from '../../_shared/cop-caller'
-import { copSourceChannel, copSourceRef, serviceChangeRefused, serviceDeleteRefused, serviceMayChange, serviceMayDelete, setProvenance } from '../../_shared/cop-input'
+import {
+  copSourceChannel, copSourceRef, maskTipMarkerRow, serviceChangeRefused, serviceDeleteRefused, serviceMayChange, serviceMayDelete,
+  setProvenance,
+} from '../../_shared/cop-input'
 
 /** The marker fields a write answers with. */
 const MARKER_COLUMNS = 'id, uid, cot_type, callsign, lat, lon, hae, label, description, icon, color, ' +
@@ -50,6 +53,9 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   if (!accessWorkspaceId) {
     return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
   }
+  // readOnly admits any signed-in reader of a public session: only the owner and
+  // collaborators see unreviewed drop-form tips in full.
+  const collaborator = Boolean(await verifyCopSessionAccess(env.DB, sessionId, userId))
 
   try {
     const rows = await env.DB.prepare(`
@@ -63,10 +69,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       } catch {
         detail = {}
       }
-      return {
-        ...row,
-        detail,
-      }
+      const marker = { ...row, detail }
+      return collaborator ? marker : maskTipMarkerRow(marker)
     })
 
     return new Response(JSON.stringify({ markers }), { headers: JSON_HEADERS })

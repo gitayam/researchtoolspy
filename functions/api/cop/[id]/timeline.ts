@@ -13,12 +13,17 @@ import { logEvent } from '../../_shared/event-log'
 import { copCallerUserId } from '../../_shared/cop-caller'
 import { emitCopEvent } from '../../_shared/cop-events'
 import { TIMELINE_CREATED, TIMELINE_DELETED, TIMELINE_UPDATED } from '../../_shared/cop-event-types'
-import { copSourceChannel, copSourceRef, serviceDeleteRefused, serviceMayDelete, setProvenance } from '../../_shared/cop-input'
+import {
+  copSourceChannel, copSourceRef, serviceDeleteRefused, serviceMayDelete, setProvenance, UNVERIFIED_TIP_LABEL, unreviewedTipIds,
+} from '../../_shared/cop-input'
 
 interface Env {
   DB: D1Database
 }
 
+
+/** The source types a client may give a timeline line ('system' is the server's). */
+const CLIENT_SOURCE_TYPES = ['manual', 'osint']
 
 // GET — list timeline entries for a session, ordered by event_date
 export const onRequestGet: PagesFunction<Env> = async (context) => {
@@ -58,9 +63,21 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     query += ` ORDER BY event_date ASC, created_at ASC LIMIT 1000`
 
-    const results = await env.DB.prepare(query).bind(...bindings).all()
+    const results = await env.DB.prepare(query).bind(...bindings).all<Record<string, unknown>>()
+    let entries = results.results ?? []
 
-    return new Response(JSON.stringify({ entries: results.results }), { headers: JSON_HEADERS })
+    // A public session's other readers don't see the text of drop-form tips nobody has
+    // reviewed, which the server's own lines repeat ("Evidence added: <tip>").
+    if (!(await verifyCopSessionAccess(env.DB, sessionId, userId))) {
+      const tips = await unreviewedTipIds(env.DB, sessionId)
+      entries = entries.map((row) => {
+        const id = String(row.entity_id ?? '')
+        const tip = (row.entity_type === 'evidence' && tips.evidence.has(id)) || (row.entity_type === 'marker' && tips.markers.has(id))
+        return tip ? { ...row, title: UNVERIFIED_TIP_LABEL, description: null, source_url: null, source_title: null } : row
+      })
+    }
+
+    return new Response(JSON.stringify({ entries }), { headers: JSON_HEADERS })
   } catch (error) {
     await logEvent(env, {
       level: 'error',
@@ -122,7 +139,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         entry.title,
         entry.description ?? null,
         entry.category ?? 'event',
-        entry.source_type ?? 'manual',
+        // 'system' lines are written by the server only (createTimelineEntry): the edit
+        // and delete routes and migration 0022 treat them as the server's record.
+        CLIENT_SOURCE_TYPES.includes(entry.source_type) ? entry.source_type : 'manual',
         entry.source_url ?? null,
         entry.source_title ?? null,
         entry.importance ?? 'normal',

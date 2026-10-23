@@ -366,3 +366,46 @@ export function unreviewedTipMarker(row: { source_channel?: unknown; confidence?
 export function unreviewedTipEvidence(row: { source_channel?: unknown; credibility?: unknown }): boolean {
   return row.source_channel === 'drop' && (row.credibility == null || row.credibility === 'unverified')
 }
+
+/**
+ * A marker row as a non-collaborator sees it: an unreviewed drop-form tip keeps its
+ * position, type and times but none of its text.
+ */
+export function maskTipMarkerRow<T extends Record<string, unknown>>(row: T): T {
+  if (!unreviewedTipMarker(row)) return row
+  return { ...row, label: UNVERIFIED_TIP_LABEL, callsign: null, description: null, rationale: null, detail: {} }
+}
+
+/**
+ * An evidence row as a non-collaborator sees it: an unreviewed drop-form tip is reduced
+ * to its id, type, credibility, status, provenance and times; every text field goes.
+ */
+export function maskTipEvidenceRow(row: Record<string, unknown>): Record<string, unknown> {
+  if (!unreviewedTipEvidence(row)) return row
+  const keep = ['id', 'evidence_type', 'credibility', 'reliability', 'status', 'source_channel', 'cop_session_id', 'workspace_id', 'created_at', 'updated_at']
+  const out: Record<string, unknown> = { title: UNVERIFIED_TIP_LABEL, description: '' }
+  for (const key of keep) if (key in row) out[key] = row[key]
+  return out
+}
+
+/**
+ * The ids of a session's unreviewed drop-form tips (markers still POSSIBLE, evidence
+ * still unverified), to hide their text in other lists a non-collaborator reads (the
+ * timeline lines and marker changelog that repeat it). Empty before migration 0022.
+ */
+export async function unreviewedTipIds(db: D1Database, sessionId: string): Promise<{ markers: Set<string>; evidence: Set<string> }> {
+  const out = { markers: new Set<string>(), evidence: new Set<string>() }
+  try {
+    const markers = await db.prepare(
+      "SELECT id FROM cop_markers WHERE cop_session_id = ? AND source_channel = 'drop' AND (confidence IS NULL OR confidence = 'POSSIBLE')"
+    ).bind(sessionId).all<{ id: string }>()
+    for (const row of markers.results ?? []) out.markers.add(String(row.id))
+    const evidence = await db.prepare(
+      "SELECT id FROM evidence_items WHERE cop_session_id = ? AND source_channel = 'drop' AND (credibility IS NULL OR credibility = 'unverified')"
+    ).bind(sessionId).all<{ id: number }>()
+    for (const row of evidence.results ?? []) out.evidence.add(String(row.id))
+  } catch (error) {
+    if (!isMissingColumn(error)) throw error
+  }
+  return out
+}
