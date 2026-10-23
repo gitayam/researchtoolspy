@@ -27,7 +27,7 @@ import { emitCopEventLoose } from './cop-events-loose'
 import { queryEvidenceInSession, UNTITLED_TIP_TITLE } from './cop-input'
 import { columnMissing, copSessionScope, insertCopEvidence, insertCopMarker } from './cop-records'
 import { cleanFile, copUploadPath, storeCopUpload, uploadObjectKeys, type R2Like, type StoredLocation } from './cop-uploads'
-import { IMAGE_TYPES, sanitizeImage, sniffFileType, type SniffedType } from './image-sanitize'
+import { IMAGE_TYPES, type SniffedType } from './image-sanitize'
 import { PHOTO_GPS_SOURCE, placePhotoMarkerQuietly } from './cop-photo-location'
 
 export const AUTO_INGEST_PER_HOUR = 30
@@ -146,7 +146,8 @@ export function fileAnswers(formData: Record<string, unknown>, schema: FormField
  * `keepLocation` (the drop form, whose notice says so before submit): an image is
  * stored as the TEAM copy — GPS position, capture time and Orientation kept, every
  * other identifying block removed. Without it (surveys, intake forms) nothing but
- * Orientation stays. Public readers of the answers get them through publicFormData.
+ * Orientation stays. No public route returns the answers themselves (the public
+ * results route gives ordinary surveys' totals only).
  */
 export async function sanitizeFormDataFiles(
   formData: Record<string, unknown>,
@@ -166,34 +167,6 @@ export async function sanitizeFormDataFiles(
     next[`${field.name}_type`] = clean.type
   }
   return { ok: true, formData: next }
-}
-
-/**
- * Form answers as someone outside the team may see them (the public results route):
- * every inline image re-cleaned to the public copy — no GPS position, capture time or
- * other metadata, whatever the row holds — PDFs as stored, anything else inline left
- * out. Never throws.
- */
-export function publicFormData(formData: Record<string, unknown>): Record<string, unknown> {
-  const out: Record<string, unknown> = {}
-  for (const [key, value] of Object.entries(formData)) {
-    if (typeof value !== 'string' || !value.trim().startsWith('data:')) {
-      out[key] = value
-      continue
-    }
-    try {
-      const bytes = decodeDataUrl(value.trim())
-      const type = bytes ? sniffFileType(bytes) : null
-      if (!bytes || !type) continue
-      if (type === 'application/pdf') {
-        out[key] = encodeDataUrl(type, bytes)
-        continue
-      }
-      const clean = sanitizeImage(bytes, type)
-      if (clean.ok) out[key] = encodeDataUrl(type, clean.bytes)
-    } catch { /* left out */ }
-  }
-  return out
 }
 
 const HELPER_SUFFIX = /_(?:raw|resolving|format|precision|mgrs|lat|lon|name|type)$/

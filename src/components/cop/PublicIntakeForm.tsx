@@ -458,6 +458,7 @@ export default function PublicIntakeForm({
       token={token}
       successMessage={successMessage}
       showResultsLink={offersPublicResults(isDropMode)}
+      password={formPassword}
       onSubmitAnother={() => {
         setSubmitted(false)
         setFormData({})
@@ -1196,15 +1197,19 @@ function ExpandableContext({ description, facts, changelog }: {
 
 // ── Submitted Screen with Results ───────────────────────────────
 
-/** After a submission. `showResultsLink`: offer everyone's answers (ordinary surveys only). */
-export function SubmittedScreen({ token, successMessage, showResultsLink, onSubmitAnother }: {
+/**
+ * After a submission. `showResultsLink`: offer the survey's totals (ordinary surveys
+ * only); `password`: a password form's, sent as X-Form-Password.
+ */
+export function SubmittedScreen({ token, successMessage, showResultsLink, password = null, onSubmitAnother }: {
   token: string
   successMessage: string | null
   showResultsLink: boolean
+  password?: string | null
   onSubmitAnother: () => void
 }) {
   const [showResults, setShowResults] = useState(false)
-  const [results, setResults] = useState<any>(null)
+  const [results, setResults] = useState<SurveyResultsTotals | null>(null)
   const [loadingResults, setLoadingResults] = useState(false)
   const [resultsError, setResultsError] = useState<string | null>(null)
 
@@ -1212,7 +1217,9 @@ export function SubmittedScreen({ token, successMessage, showResultsLink, onSubm
     setLoadingResults(true)
     setResultsError(null)
     try {
-      const res = await fetch(`/api/surveys/public/${token}/results`)
+      const res = await fetch(`/api/surveys/public/${token}/results`, {
+        headers: password ? { 'X-Form-Password': password } : undefined,
+      })
       if (!res.ok) throw new Error('Could not load results')
       const data = await res.json()
       setResults(data)
@@ -1222,7 +1229,7 @@ export function SubmittedScreen({ token, successMessage, showResultsLink, onSubm
     } finally {
       setLoadingResults(false)
     }
-  }, [token])
+  }, [token, password])
 
   if (!showResults) {
     return (
@@ -1243,7 +1250,7 @@ export function SubmittedScreen({ token, successMessage, showResultsLink, onSubm
                 disabled={loadingResults}
                 className="w-full min-h-[44px] rounded-xl border border-blue-300 dark:border-blue-800 text-blue-600 dark:text-blue-400 text-sm font-medium hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
               >
-                {loadingResults ? 'Loading...' : 'View all responses'}
+                {loadingResults ? 'Loading...' : 'See the totals so far'}
               </button>
             )}
             <button
@@ -1260,52 +1267,61 @@ export function SubmittedScreen({ token, successMessage, showResultsLink, onSubm
     )
   }
 
-  // Results view
+  if (!results) return null
+  return <SurveyResultsSummary results={results} onSubmitAnother={onSubmitAnother} />
+}
+
+/** What the public results route answers: totals only (no individual responses). */
+export interface SurveyResultsTotals {
+  title?: string
+  total?: number
+  counted?: number
+  fields?: { name: string; label?: string; type?: string }[]
+  stats?: { distributions?: Record<string, Record<string, number>> }
+}
+
+/** A survey's totals: how many responded, and per choice/rating field how often each value was picked. */
+export function SurveyResultsSummary({ results, onSubmitAnother }: { results: SurveyResultsTotals; onSubmitAnother: () => void }) {
+  const total = typeof results.total === 'number' ? results.total : null
+  const distributions = results.stats?.distributions && typeof results.stats.distributions === 'object' ? results.stats.distributions : {}
+  const counted = Object.entries(distributions).filter(([, dist]) => dist && typeof dist === 'object' && Object.keys(dist).length > 0)
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 py-4 px-4">
       <div className="max-w-2xl mx-auto space-y-4">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-lg font-bold">{results.title}</h1>
-            <p className="text-xs text-slate-500">{results.total} response{results.total !== 1 ? 's' : ''}</p>
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-lg font-bold break-words">{results.title || 'Results'}</h1>
+            {total !== null && <p className="text-xs text-slate-500">{total} response{total !== 1 ? 's' : ''}</p>}
           </div>
-          <div className="flex gap-2">
-            <button
-              onClick={onSubmitAnother}
-              className="text-xs px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-            >
-              Submit another
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={onSubmitAnother}
+            className="shrink-0 min-h-[44px] text-xs px-3 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+          >
+            Submit another
+          </button>
         </div>
 
-        {/* Stats: distributions */}
-        {results.stats?.distributions && Object.keys(results.stats.distributions).length > 0 && (
+        {/* Totals per choice and rating field; individual responses stay with the team. */}
+        {counted.length > 0 ? (
           <div className="space-y-3">
-            {Object.entries(results.stats.distributions).map(([fieldName, dist]) => {
-              const field = results.fields?.find((f: any) => f.name === fieldName)
-              const entries = Object.entries(dist as Record<string, number>).sort((a, b) => b[1] - a[1])
+            {counted.map(([fieldName, dist]) => {
+              const field = results.fields?.find((f) => f.name === fieldName)
+              const entries = Object.entries(dist).sort((a, b) => b[1] - a[1])
               const maxCount = entries[0]?.[1] || 1
               return (
                 <div key={fieldName} className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 p-4">
-                  <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
-                    {field?.label || fieldName}
-                  </h3>
+                  <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">{field?.label || fieldName}</h3>
                   <div className="space-y-1.5">
                     {entries.map(([value, count]) => (
-                      <div key={value} className="flex items-center gap-2">
-                        <div className="flex-1">
-                          <div className="flex justify-between text-xs mb-0.5">
-                            <span className="text-slate-700 dark:text-slate-300">{value}</span>
-                            <span className="text-slate-400">{count as number}</span>
-                          </div>
-                          <div className="h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-blue-500 rounded-full transition-all"
-                              style={{ width: `${((count as number) / maxCount) * 100}%` }}
-                            />
-                          </div>
+                      <div key={value}>
+                        <div className="flex justify-between gap-2 text-xs mb-0.5">
+                          <span className="text-slate-700 dark:text-slate-300 break-words">{value}</span>
+                          <span className="text-slate-500 tabular-nums">{count}</span>
+                        </div>
+                        <div className="h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                          <div className="h-full bg-blue-500 rounded-full" style={{ width: `${(count / maxCount) * 100}%` }} />
                         </div>
                       </div>
                     ))}
@@ -1314,72 +1330,10 @@ export function SubmittedScreen({ token, successMessage, showResultsLink, onSubm
               )
             })}
           </div>
+        ) : (
+          <p className="text-sm text-slate-500 dark:text-slate-400">No totals to show yet.</p>
         )}
-
-        {/* Country breakdown */}
-        {results.stats?.by_country && Object.keys(results.stats.by_country).length > 0 && (
-          <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 p-4">
-            <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
-              By country
-            </h3>
-            <div className="flex flex-wrap gap-1.5">
-              {Object.entries(results.stats.by_country)
-                .sort((a, b) => (b[1] as number) - (a[1] as number))
-                .map(([code, count]) => (
-                  <span key={code} className="text-xs px-2 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
-                    {code} <span className="font-semibold">{count as number}</span>
-                  </span>
-                ))}
-            </div>
-          </div>
-        )}
-
-        {/* Tags */}
-        {results.stats?.by_tag && Object.keys(results.stats.by_tag).length > 0 && (
-          <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 p-4">
-            <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
-              Topics detected
-            </h3>
-            <div className="flex flex-wrap gap-1.5">
-              {Object.entries(results.stats.by_tag)
-                .sort((a, b) => (b[1] as number) - (a[1] as number))
-                .map(([tag, count]) => (
-                  <span key={tag} className="text-xs px-2.5 py-1 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">
-                    {tag} <span className="font-semibold">{count as number}</span>
-                  </span>
-                ))}
-            </div>
-          </div>
-        )}
-
-        {/* Individual responses */}
-        <div className="space-y-2">
-          <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-            Responses ({results.showing})
-          </h3>
-          {results.results?.map((r: any) => (
-            <div key={r.id} className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 p-4 space-y-2">
-              {results.fields?.map((field: any) => {
-                const val = r.data[field.name]
-                if (val == null || val === '') return null
-                const display = Array.isArray(val) ? val.join(', ') : String(val)
-                return (
-                  <div key={field.name}>
-                    <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">{field.label}</span>
-                    <p className="text-sm text-slate-800 dark:text-slate-200 break-words whitespace-pre-line">{display}</p>
-                  </div>
-                )
-              })}
-              <div className="flex items-center gap-3 text-[10px] text-slate-400 pt-1">
-                {r.country && <span>{r.country}</span>}
-                <span>{new Date(r.created_at).toLocaleString()}</span>
-                {r.tags?.length > 0 && r.tags.map((tag: string) => (
-                  <span key={tag} className="px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">{tag}</span>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
+        <p className="text-xs text-slate-500 dark:text-slate-400">Individual responses are seen only by the research team.</p>
       </div>
     </div>
   )

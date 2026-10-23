@@ -16,9 +16,9 @@
  * form says so next to its file inputs and before submit (PublicIntakeForm), and the row
  * records it (keep_photo_location, migration 0029; without the column the photo is
  * stored fully stripped) — and nothing else: no make, model, serials, owner names,
- * thumbnails, XMP or IPTC. Nobody
- * outside the team gets the position (the public results route re-cleans images,
- * publicFormData; share links serve the stripped copy). For a form linked to a COP with auto_ingest on, the tip becomes
+ * thumbnails, XMP or IPTC. Nobody outside the team gets the position: no public route
+ * returns a tip's answers (the public results route 404s for tip forms) and share links
+ * serve the stripped copy. For a form linked to a COP with auto_ingest on, the tip becomes
  * unverified COP evidence at once (functions/api/_shared/cop-ingest.ts); the
  * response then says `ingested: { evidence_id, marker_id }` (else null) and
  * nothing else about the COP.
