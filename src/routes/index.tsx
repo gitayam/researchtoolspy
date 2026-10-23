@@ -3,6 +3,8 @@ import { lazyWithReload as lazy } from '@/lib/lazy-with-reload'
 import { createBrowserRouter, Navigate, useParams } from 'react-router-dom'
 import { DashboardLayout, DashboardFullBleedLayout } from '@/layouts/DashboardLayout'
 import { RouteErrorBoundary } from '@/components/RouteErrorBoundary'
+// Eager: it captures the document's first path at app start (COP player CSP).
+import CopPlayersCspGate from '@/components/cop/CopPlayersCspGate'
 
 // Legacy redirect: /dashboard/surveys/:id → /dashboard/drops/:id
 function LegacySurveyRedirect() {
@@ -227,7 +229,7 @@ export const router = createBrowserRouter([
   },
   {
     path: '/public/cop/:token',
-    element: <LazyPage Component={PublicCopPage} />,
+    element: <CopPlayersCspGate><LazyPage Component={PublicCopPage} /></CopPlayersCspGate>,
     errorElement: <RouteErrorBoundary />,
   },
   {
@@ -269,7 +271,7 @@ export const router = createBrowserRouter([
   },
   {
     path: '/dashboard/cop/:id',
-    element: <DashboardFullBleedLayout />,
+    element: <CopPlayersCspGate><DashboardFullBleedLayout /></CopPlayersCspGate>,
     children: [
       { index: true, element: <LazyPage Component={CopWorkspacePage} />, errorElement: <RouteErrorBoundary /> },
     ],

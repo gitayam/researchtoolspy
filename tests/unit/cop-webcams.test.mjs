@@ -10,71 +10,37 @@
  *   shows the `cams` panel (and, for the layer, has `webcams` switched on).
  * - Every route tolerates the table being absent.
  *
- * The real modules are bundled with esbuild and run on node:sqlite behind a small
- * D1 shim, with the real migration applied. A module that does not build is
- * reported by the tests that use it, so a run against an older tree shows which
- * behaviour is missing rather than one bundling error.
+ * The fixture (real bundled modules, node:sqlite behind a D1 shim with the real
+ * migrations, fake KV, guarded fetch) is in cop-webcams-harness.mjs. Phase 2
+ * (Windy facts, discovery, PATCH, direction estimates) is cop-webcams-discovery.test.mjs.
  *
  * Run: npm run test:unit
  */
-import { test, before } from 'node:test'
+import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { DatabaseSync } from 'node:sqlite'
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { build } from 'esbuild'
+import {
+  addCam,
+  as,
+  cop,
+  countCams,
+  fixture,
+  mod,
+  OTHER_SESSION,
+  PARIS_CAM,
+  removeCam,
+  ROOT,
+  SERVICE_AUTH,
+  SESSION,
+  setupWebcamSuite,
+  WINDY_ID,
+  YT_ID,
+} from './cop-webcams-harness.mjs'
 
-const ROOT = new URL('../../', import.meta.url).pathname
-const ENTRIES = {
-  webcamUrl: 'functions/api/_shared/webcam-url.ts',
-  copShare: 'functions/api/_shared/cop-share.ts',
-  copCaller: 'functions/api/_shared/cop-caller.ts',
-  serviceAuth: 'functions/api/_shared/service-auth.ts',
-  middleware: 'functions/api/cop/_middleware.ts',
-  webcams: 'functions/api/cop/[id]/webcams.ts',
-  webcam: 'functions/api/cop/[id]/webcams/[camId].ts',
-  layer: 'functions/api/cop/[id]/layers/webcams.ts',
-  shares: 'functions/api/cop/[id]/shares.ts',
-  publicShare: 'functions/api/cop/public/[token].ts',
-}
-const built = {}
-const buildErrors = {}
-
-before(async () => {
-  const dir = mkdtempSync(join(tmpdir(), 'rt-cop-webcams-'))
-  try {
-    for (const [name, entry] of Object.entries(ENTRIES)) {
-      const outfile = join(dir, `${name}.mjs`)
-      try {
-        await build({
-          entryPoints: [join(ROOT, entry)],
-          bundle: true,
-          format: 'esm',
-          platform: 'node',
-          target: 'es2022',
-          outfile,
-          logLevel: 'silent',
-        })
-        built[name] = await import(outfile)
-      } catch (error) {
-        buildErrors[name] = error
-      }
-    }
-  } finally {
-    rmSync(dir, { recursive: true, force: true })
-  }
-})
-
-function mod(name) {
-  if (!built[name]) throw new Error(`${ENTRIES[name]} did not build: ${buildErrors[name]?.message ?? 'missing'}`)
-  return built[name]
-}
+setupWebcamSuite()
 
 // ── URL validation ────────────────────────────────────────────────
-
-const WINDY_ID = '1706619137'
-const YT_ID = 'dQw4w9WgXcQ'
 
 const ACCEPTED = [
   [`https://webcams.windy.com/webcams/public/embed/player/${WINDY_ID}/day`, 'windy', WINDY_ID, 'timelapse'],
@@ -175,147 +141,6 @@ test('webcam links: COP_WEBCAM_EXTRA_HOSTS adds exact hosts, never IPs or camera
   assert.equal(parseWebcamUrl('https://streams.example.net/feeds-other/x.m3u8', 'streams.example.net/feeds').ok, false)
 })
 
-// ── Fixture ───────────────────────────────────────────────────────
-
-function d1(db) {
-  const statement = (sql, args = []) => ({
-    bind: (...next) => statement(sql, next),
-    async all() {
-      return { results: db.prepare(sql).all(...args), success: true }
-    },
-    async first(column) {
-      const row = db.prepare(sql).get(...args) ?? null
-      return column && row ? row[column] : row
-    },
-    async run() {
-      const r = db.prepare(sql).run(...args)
-      return { success: true, meta: { changes: Number(r.changes) } }
-    },
-  })
-  return { prepare: (sql) => statement(sql) }
-}
-
-const CLIENT_ID = 'community_client_01'
-const SECRET = 'A'.repeat(43)
-const HASH_KEY = 'integration-test-key-material-0000000000000000'
-const SERVICE_USER = 73
-const SESSION = 'cop-cams'
-const OTHER_SESSION = 'cop-other'
-const migration = (name) => readFileSync(join(ROOT, 'schema/managed-migrations', name), 'utf8')
-
-async function fixture({ webcamsTable = true } = {}) {
-  const db = new DatabaseSync(':memory:')
-  db.exec(`
-    CREATE TABLE users (
-      id INTEGER PRIMARY KEY, username TEXT NOT NULL UNIQUE, email TEXT NOT NULL UNIQUE,
-      full_name TEXT NOT NULL, hashed_password TEXT NOT NULL, user_hash TEXT, account_hash TEXT,
-      oidc_sub TEXT, oidc_provider TEXT, oidc_email TEXT, is_active INTEGER NOT NULL, role TEXT NOT NULL
-    );
-    CREATE TABLE workspaces (
-      id TEXT PRIMARY KEY, name TEXT, description TEXT, type TEXT NOT NULL DEFAULT 'PERSONAL',
-      owner_id INTEGER NOT NULL, is_public INTEGER NOT NULL DEFAULT 0, created_at TEXT, updated_at TEXT
-    );
-    CREATE TABLE workspace_members (id TEXT, workspace_id TEXT NOT NULL, user_id INTEGER NOT NULL, role TEXT NOT NULL);
-    CREATE TABLE investigations (id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL, created_by INTEGER NOT NULL, status TEXT NOT NULL);
-  `)
-  db.exec(migration('0009_community_service_auth.sql'))
-  db.exec(migration('0010_service_principal_identity_compat.sql'))
-  db.exec(`
-    CREATE TABLE cop_sessions (
-      id TEXT PRIMARY KEY, name TEXT, description TEXT, template_type TEXT, status TEXT,
-      bbox_min_lat REAL, bbox_min_lon REAL, bbox_max_lat REAL, bbox_max_lon REAL,
-      center_lat REAL, center_lon REAL, zoom_level INTEGER,
-      time_window_start TEXT, time_window_end TEXT, rolling_hours INTEGER,
-      active_layers TEXT, layer_config TEXT, linked_frameworks TEXT, key_questions TEXT,
-      event_type TEXT, event_description TEXT, event_facts TEXT, content_analyses TEXT,
-      workspace_id TEXT, created_by INTEGER, is_public INTEGER, team_workspace_id TEXT,
-      created_at TEXT, updated_at TEXT
-    );
-    CREATE TABLE cop_collaborators (cop_session_id TEXT, user_id INTEGER, role TEXT NOT NULL DEFAULT 'viewer');
-    CREATE TABLE cop_shares (
-      id TEXT PRIMARY KEY, cop_session_id TEXT NOT NULL, share_token TEXT NOT NULL UNIQUE,
-      visible_panels TEXT NOT NULL DEFAULT '["map","event"]', allow_rfi_answers INTEGER NOT NULL DEFAULT 0,
-      created_by INTEGER NOT NULL DEFAULT 1, created_at TEXT, view_count INTEGER NOT NULL DEFAULT 0, expires_at TEXT
-    );
-    CREATE TABLE cop_rfis (id TEXT PRIMARY KEY, cop_session_id TEXT, question TEXT, priority TEXT, status TEXT, created_at TEXT, updated_at TEXT);
-    CREATE TABLE cop_events (id TEXT, cop_session_id TEXT, event_type TEXT, entity_type TEXT, entity_id TEXT, payload TEXT, created_by INTEGER);
-    CREATE TABLE event_logs (level TEXT, source TEXT, message TEXT, context TEXT, user_id INTEGER);
-
-    INSERT INTO users (id, username, email, full_name, hashed_password, is_active, role) VALUES
-      (1, 'owner', 'owner@example.test', 'Owner', 'x', 1, 'user'),
-      (2, 'editor', 'editor@example.test', 'Editor', 'x', 1, 'user'),
-      (3, 'viewer', 'viewer@example.test', 'Viewer', 'x', 1, 'user'),
-      (4, 'stranger', 'stranger@example.test', 'Stranger', 'x', 1, 'user');
-    INSERT INTO users (id, username, email, full_name, hashed_password, is_active, role)
-      VALUES (${SERVICE_USER}, 'service_${CLIENT_ID}', 'service+${CLIENT_ID}@service.invalid',
-        'Integration Service', 'SERVICE_AUTH_DISABLED', 1, 'service');
-    INSERT INTO workspaces (id, type, owner_id, is_public) VALUES
-      ('workspace-test', 'TEAM', ${SERVICE_USER}, 0), ('ws-owner', 'PERSONAL', 1, 0);
-    INSERT INTO investigations (id, workspace_id, created_by, status)
-      VALUES ('investigation-test', 'workspace-test', ${SERVICE_USER}, 'active');
-    INSERT INTO integration_clients
-      (id, community_id, workspace_id, intake_investigation_id, principal_user_id, environment, maximum_visibility, status)
-      VALUES ('${CLIENT_ID}', 'community-test', 'workspace-test', 'investigation-test', ${SERVICE_USER}, 'production', 'community', 'active');
-
-    INSERT INTO cop_sessions (id, name, template_type, status, center_lat, center_lon, zoom_level,
-      active_layers, layer_config, key_questions, event_facts, content_analyses, workspace_id, created_by, is_public)
-    VALUES
-      ('${SESSION}', 'Paris overwatch', 'custom', 'ACTIVE', 48.86, 2.29, 11,
-       '["webcams"]', '{}', '[]', '[]', '[]', 'ws-owner', 1, 0),
-      ('${OTHER_SESSION}', 'Another COP', 'custom', 'ACTIVE', 1, 2, 5,
-       '["webcams"]', '{}', '[]', '[]', '[]', 'ws-owner', 1, 0),
-      ('cop-service-own', 'Bot breakout', 'custom', 'ACTIVE', 1, 2, 5,
-       '[]', '{}', '[]', '[]', '[]', 'workspace-test', ${SERVICE_USER}, 0);
-    INSERT INTO cop_collaborators (cop_session_id, user_id, role) VALUES
-      ('${SESSION}', 2, 'Editor'),
-      ('${SESSION}', 3, 'viewer');
-  `)
-  if (webcamsTable) db.exec(migration('0020_cop_webcams.sql'))
-
-  const now = Math.floor(Date.now() / 1000)
-  const hash = await mod('serviceAuth').deriveIntegrationTokenHash(HASH_KEY, CLIENT_ID, SECRET)
-  db.prepare(`INSERT INTO integration_client_tokens (id, client_id, slot, secret_hash, created_at, not_before, expires_at)
-    VALUES ('token_identifier_00000001', ?, 'current', ?, ?, ?, ?)`).run(CLIENT_ID, hash, now - 100, now - 100, now + 3600)
-  db.prepare(`INSERT INTO integration_client_token_scopes (token_id, scope) VALUES ('token_identifier_00000001', 'community.cop.write')`).run()
-
-  const sessions = new Map([
-    ['session-owner', JSON.stringify({ user_id: 1 })],
-    ['session-editor', JSON.stringify({ user_id: 2 })],
-    ['session-viewer', JSON.stringify({ user_id: 3 })],
-    ['session-stranger', JSON.stringify({ user_id: 4 })],
-  ])
-  const env = {
-    DB: d1(db),
-    SESSIONS: { get: async (k) => sessions.get(k) ?? null },
-    ENVIRONMENT: 'production',
-    INTEGRATION_TOKEN_HASH_KEY: HASH_KEY,
-    COMMUNITY_INTEGRATIONS_ENABLED: 'true',
-    COP_SERVICE_ENABLED: 'true',
-  }
-  return { db, env }
-}
-
-const as = (who) => ({ Authorization: `Bearer session-${who}` })
-const SERVICE_AUTH = { Authorization: `Bearer rt_svc_${CLIENT_ID}.${SECRET}` }
-const PARIS_CAM = { url: `https://www.windy.com/webcams/${WINDY_ID}`, label: 'CESE, facing the Eiffel Tower', lat: 48.8656, lon: 2.2969, bearing_deg: 200 }
-
-/** Run a request through the COP middleware into the handler, as Pages does. */
-async function cop(env, method, path, { headers = {}, body, handler, params = {} } = {}) {
-  const request = new Request(`https://researchtools.test${path}`, {
-    method,
-    headers: { 'Content-Type': 'application/json', ...headers },
-    body: body === undefined ? undefined : JSON.stringify(body),
-  })
-  const context = { request, env, params, data: {}, waitUntil() {} }
-  context.next = () => handler[`onRequest${method[0]}${method.slice(1).toLowerCase()}`](context)
-  return mod('middleware').onRequest(context)
-}
-
-const addCam = (env, who, body = PARIS_CAM, session = SESSION) =>
-  cop(env, 'POST', `/api/cop/${session}/webcams`, { headers: as(who), body, handler: mod('webcams'), params: { id: session } })
-const removeCam = (env, who, camId, session = SESSION) =>
-  cop(env, 'DELETE', `/api/cop/${session}/webcams/${camId}`, { headers: as(who), handler: mod('webcam'), params: { id: session, camId } })
-const countCams = (db) => db.prepare('SELECT COUNT(*) AS n FROM cop_webcams WHERE archived_at IS NULL').get().n
 
 // ── Routes ────────────────────────────────────────────────────────
 
@@ -360,7 +185,8 @@ test('POST validates the link, label and position', async () => {
   }
   assert.match(await refused({ url: 'https://www.meteocanada.com/europe/france/ile-de-france/seine-saint-denis/saint-denis/webcam' }), /windy/i)
   await refused({ label: 'x'.repeat(121) })
-  await refused({ label: '   ' })
+  // A Windy camera may leave its label blank (Windy's title fills it); others may not.
+  await refused({ url: `https://youtu.be/${YT_ID}`, label: '   ' })
   await refused({ lat: 91 })
   await refused({ lon: -181 })
   await refused({ lat: undefined })
@@ -433,8 +259,9 @@ test('GET lists explicit fields for any collaborator, nothing for a stranger', a
   const { webcams } = await res.json()
   assert.equal(webcams.length, 1)
   assert.deepEqual(Object.keys(webcams[0]).sort(), [
-    'attribution', 'bearing_deg', 'created_at', 'delivery', 'embed_url', 'fov_deg', 'id', 'image_url', 'label',
-    'lat', 'lon', 'page_url', 'provider', 'provider_ref', 'refresh_s', 'stream_url',
+    'attribution', 'bearing_deg', 'bearing_source', 'created_at', 'delivery', 'embed_url', 'fov_deg', 'id',
+    'image_url', 'label', 'lat', 'lon', 'page_url', 'position_source', 'provider', 'provider_ref', 'refresh_s',
+    'source_url', 'status_checked_at', 'stream_url', 'windy_status',
   ])
   assert.equal((await list('stranger')).status, 403)
 })

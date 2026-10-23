@@ -2,39 +2,50 @@
  * COP webcams
  *
  * GET  /api/cop/:id/webcams - The session's webcams (owner, collaborators, or any
- *                             signed-in user on a public session)
+ *                             signed-in user on a public session). Windy cameras
+ *                             whose status is over 6 h old are re-checked in the
+ *                             background (at most once per session per 10 min).
  * POST /api/cop/:id/webcams - Add a webcam (owner, editor or admin collaborator).
- *                             409 with code WEBCAM_DUPLICATE (already pinned) or
- *                             WEBCAM_LIMIT (session full).
+ *                             400 WEBCAM_INVALID / WEBCAM_UNSUPPORTED_LINK (a page,
+ *                             not a camera); 422 WEBCAM_NOT_FOUND / WEBCAM_UNAVAILABLE
+ *                             (Windy says so); 409 WEBCAM_DUPLICATE / WEBCAM_LIMIT.
  *
  * A webcam is a link to the provider's own player or feed: a Windy or YouTube id,
  * or an allow-listed image/HLS URL (functions/api/_shared/webcam-url.ts). The embed
- * URL is derived on read; the browser loads the provider directly.
+ * URL is derived on read; the browser loads the provider directly. A Windy camera
+ * takes its position (when none is given), title, live player and status from Windy
+ * when WINDY_WEBCAMS_API_KEY is set (functions/api/_shared/webcam-enrich.ts).
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { verifyCopSessionAccess } from '../../_shared/auth-helpers'
 import { JSON_HEADERS } from '../../_shared/api-utils'
 import { logEvent } from '../../_shared/event-log'
-import { copCallerUserId } from '../../_shared/cop-caller'
+import { copCallerUserId, copServiceCaller } from '../../_shared/cop-caller'
 import {
+  getSessionWebcam,
+  insertWebcam,
   listSessionWebcams,
   mayEditCopSession,
   MAX_WEBCAMS_PER_SESSION,
   publicWebcam,
   validateWebcamInput,
-  WEBCAM_COLUMNS,
   WEBCAM_DUPLICATE,
   WEBCAM_LIMIT,
   webcamDuplicate,
   webcamsTableMissing,
   webcamsUnavailable,
-  type WebcamRow,
 } from '../../_shared/cop-webcams'
+import { claimStatusRefresh, enrichWebcamInput, refreshWindyStatuses, staleWindyCameras } from '../../_shared/webcam-enrich'
+import { windyKeyConfigured } from '../../_shared/windy-webcams'
+import { spendCaller, WEBCAM_INVALID } from '../../_shared/webcam-discovery'
+import type { KvLike } from '../../_shared/kv-json'
 
 interface Env {
   DB: D1Database
   SESSIONS?: KVNamespace
+  CACHE?: KvLike
   COP_WEBCAM_EXTRA_HOSTS?: string
+  WINDY_WEBCAMS_API_KEY?: string
 }
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: JSON_HEADERS })
@@ -51,6 +62,15 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
   try {
     const rows = await listSessionWebcams(env.DB, sessionId)
+    const stale = staleWindyCameras(rows)
+    if (stale.length > 0 && windyKeyConfigured(env) && (await claimStatusRefresh(env.CACHE, sessionId))) {
+      // The stored status is answered now; the refreshed one shows on the next load.
+      context.waitUntil(refreshWindyStatuses(env, sessionId, stale).catch((error) => logEvent(env, {
+        level: 'warn',
+        source: 'cop/webcams',
+        message: `Windy status refresh failed: ${String(error instanceof Error ? error.message : error)}`.slice(0, 500),
+      })))
+    }
     return json({ webcams: rows.map(publicWebcam) })
   } catch (error) {
     await logEvent(env, {
@@ -77,33 +97,27 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
     body = await request.json()
   } catch {
-    return json({ error: 'Expected a JSON body' }, 400)
+    return json({ error: 'Expected a JSON body', code: WEBCAM_INVALID }, 400)
   }
   const input = validateWebcamInput(body, env.COP_WEBCAM_EXTRA_HOSTS)
-  if (!input.ok) return json({ error: input.error }, 400)
-  const cam = input.value
+  if (!input.ok) return json({ error: input.error, code: input.code }, 400)
+
+  const now = new Date().toISOString()
+  const caller = spendCaller(request, userId, copServiceCaller(context.data))
+  const enriched = await enrichWebcamInput(env, input.value, now, caller, (message) => logEvent(env, {
+    level: 'warn',
+    source: 'cop/webcams',
+    message: message.slice(0, 500),
+  }))
+  if (!enriched.ok) return json({ error: enriched.error, code: enriched.code }, enriched.status)
+  const cam = enriched.cam
 
   try {
-    // The cap is checked in the INSERT itself, so parallel adds cannot pass it together.
     const id = crypto.randomUUID()
-    const now = new Date().toISOString()
-    const inserted = await env.DB.prepare(`
-      INSERT INTO cop_webcams (id, cop_session_id, provider, provider_ref, page_url, image_url, stream_url,
-        label, lat, lon, bearing_deg, fov_deg, delivery, refresh_s, attribution, created_by, created_at)
-      SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
-      WHERE (SELECT COUNT(*) FROM cop_webcams WHERE cop_session_id = ? AND archived_at IS NULL) < ?
-    `).bind(
-      id, sessionId, cam.provider, cam.provider_ref, cam.page_url, cam.image_url, cam.stream_url,
-      cam.label, cam.lat, cam.lon, cam.bearing_deg, cam.fov_deg, cam.delivery, cam.refresh_s, cam.attribution,
-      userId, now,
-      sessionId, MAX_WEBCAMS_PER_SESSION,
-    ).run()
-    if (!inserted.meta?.changes) {
+    if (!(await insertWebcam(env.DB, id, sessionId, cam, userId, now))) {
       return json({ error: `A session holds at most ${MAX_WEBCAMS_PER_SESSION} webcams`, code: WEBCAM_LIMIT }, 409)
     }
-
-    const row = await env.DB.prepare(`SELECT ${WEBCAM_COLUMNS} FROM cop_webcams WHERE id = ? AND cop_session_id = ?`)
-      .bind(id, sessionId).first<WebcamRow>()
+    const row = await getSessionWebcam(env.DB, sessionId, id)
     return json({ webcam: row ? publicWebcam(row) : null }, 201)
   } catch (error) {
     if (webcamsTableMissing(error)) return webcamsUnavailable()

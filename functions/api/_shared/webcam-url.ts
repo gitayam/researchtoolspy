@@ -29,11 +29,21 @@ export interface ParsedWebcam {
   attribution: string | null
 }
 
+/**
+ * WEBCAM_UNSUPPORTED_LINK: a well-formed https address on an ordinary host name that
+ * is simply not a camera source (a weather page, a news site). A client may offer to
+ * look for cameras near the place that page is about. Every other refusal is
+ * WEBCAM_INVALID.
+ */
+export type WebcamLinkError = 'WEBCAM_INVALID' | 'WEBCAM_UNSUPPORTED_LINK'
+
 // Both arms name both fields so callers compile under strict: false (functions
 // tsconfig), where a boolean discriminant does not narrow.
 export type WebcamUrlResult =
-  | { ok: true; cam: ParsedWebcam; error?: undefined }
-  | { ok: false; error: string; cam?: undefined }
+  | { ok: true; cam: ParsedWebcam; error?: undefined; code?: undefined }
+  | { ok: false; error: string; code: WebcamLinkError; cam?: undefined }
+
+const invalid = (error: string): WebcamUrlResult => ({ ok: false, error, code: 'WEBCAM_INVALID' })
 
 export interface WebcamHostRule {
   host: string
@@ -87,11 +97,19 @@ const UNSUPPORTED =
   '(windy.com/webcams/<id>) or a YouTube video link. A page that shows a camera ' +
   'usually embeds a Windy or YouTube player: open the player and copy its link.'
 
-/** The iframe URL for a stored Windy or YouTube camera; null for anything else. */
-export function webcamEmbedUrl(provider: string, providerRef: string | null | undefined): string | null {
+/**
+ * The iframe URL for a stored Windy or YouTube camera; null for anything else. A Windy
+ * camera that Windy reports a live player for (delivery 'live') gets that player,
+ * every other one the day time-lapse.
+ */
+export function webcamEmbedUrl(
+  provider: string,
+  providerRef: string | null | undefined,
+  delivery?: string | null,
+): string | null {
   const ref = String(providerRef ?? '')
   if (provider === 'windy' && WINDY_ID.test(ref)) {
-    return `https://webcams.windy.com/webcams/public/embed/player/${ref}/day`
+    return `https://webcams.windy.com/webcams/public/embed/player/${ref}/${delivery === 'live' ? 'live' : 'day'}`
   }
   if (provider === 'youtube' && YOUTUBE_ID.test(ref)) {
     return `https://www.youtube-nocookie.com/embed/${ref}`
@@ -167,55 +185,55 @@ function youtubeId(url: URL): string | null | undefined {
  */
 export function parseWebcamUrl(raw: unknown, extraHosts?: string | null): WebcamUrlResult {
   const input = typeof raw === 'string' ? raw.trim() : ''
-  if (!input) return { ok: false, error: 'A camera link is required.' }
-  if (input.length > 2048) return { ok: false, error: 'The camera link is too long.' }
+  if (!input) return invalid('A camera link is required.')
+  if (input.length > 2048) return invalid('The camera link is too long.')
 
   const shorthand = /^windy:(\S+)$/i.exec(input)
   if (shorthand) {
-    return WINDY_ID.test(shorthand[1]) ? windy(shorthand[1]) : { ok: false, error: 'A Windy webcam id is 6 to 12 digits.' }
+    return WINDY_ID.test(shorthand[1]) ? windy(shorthand[1]) : invalid('A Windy webcam id is 6 to 12 digits.')
   }
 
   let url: URL
   try {
     url = new URL(input)
   } catch {
-    return { ok: false, error: UNSUPPORTED }
+    return invalid(UNSUPPORTED)
   }
 
   const scheme = url.protocol.slice(0, -1).toLowerCase()
   if (scheme === 'rtsp' || scheme === 'rtmp' || scheme === 'rtmps') {
-    return { ok: false, error: `${scheme.toUpperCase()} streams are not supported: a COP shows cameras through their provider's https player or feed.` }
+    return invalid(`${scheme.toUpperCase()} streams are not supported: a COP shows cameras through their provider's https player or feed.`)
   }
-  if (scheme !== 'https') return { ok: false, error: 'Only https camera links are accepted.' }
-  if (url.username || url.password) return { ok: false, error: 'Camera links may not carry a username or password.' }
-  if (url.port) return { ok: false, error: 'Camera links must use the standard https port.' }
+  if (scheme !== 'https') return invalid('Only https camera links are accepted.')
+  if (url.username || url.password) return invalid('Camera links may not carry a username or password.')
+  if (url.port) return invalid('Camera links must use the standard https port.')
   const host = url.hostname.toLowerCase()
-  if (isIpLiteral(host)) return { ok: false, error: 'Camera links must name a host, not an IP address.' }
+  if (isIpLiteral(host)) return invalid('Camera links must name a host, not an IP address.')
   if (deniedDomain(host)) {
-    return { ok: false, error: 'Directories of unsecured private cameras are not accepted as a source.' }
+    return invalid('Directories of unsecured private cameras are not accepted as a source.')
   }
 
   let path: string
   try {
     path = decodeURIComponent(url.pathname + url.search).toLowerCase()
   } catch {
-    return { ok: false, error: UNSUPPORTED }
+    return invalid(UNSUPPORTED)
   }
   if (DEVICE_PATH_MARKERS.some((m) => path.includes(m))) {
-    return { ok: false, error: "Links straight to a camera device aren't accepted; use the provider's public player or feed." }
+    return invalid("Links straight to a camera device aren't accepted; use the provider's public player or feed.")
   }
 
   if (WINDY_HOSTS.has(host)) {
     const id = windyId(url)
-    return id ? windy(id) : { ok: false, error: 'Paste a Windy webcam link: windy.com/webcams/<id>.' }
+    return id ? windy(id) : invalid('Paste a Windy webcam link: windy.com/webcams/<id>.')
   }
 
   if (YOUTUBE_HOSTS.has(host)) {
     const id = youtubeId(url)
     if (id === undefined) {
-      return { ok: false, error: "Paste a YouTube video link (watch?v=..., youtu.be/..., /live/...), not a channel or playlist." }
+      return invalid("Paste a YouTube video link (watch?v=..., youtu.be/..., /live/...), not a channel or playlist.")
     }
-    if (!id || !YOUTUBE_ID.test(id)) return { ok: false, error: 'That YouTube link has no valid 11-character video id.' }
+    if (!id || !YOUTUBE_ID.test(id)) return invalid('That YouTube link has no valid 11-character video id.')
     return {
       ok: true,
       cam: {
@@ -234,7 +252,7 @@ export function parseWebcamUrl(raw: unknown, extraHosts?: string | null): Webcam
   url.hash = ''
   if (url.pathname.toLowerCase().endsWith('.m3u8')) {
     const rule = matchRule([...HLS_HOSTS, ...extra], url)
-    if (!rule) return { ok: false, error: 'HLS streams are accepted only from approved open-data hosts.' }
+    if (!rule) return invalid('HLS streams are accepted only from approved open-data hosts.')
     return {
       ok: true,
       cam: {
@@ -245,8 +263,11 @@ export function parseWebcamUrl(raw: unknown, extraHosts?: string | null): Webcam
   }
 
   const rule = matchRule([...IMAGE_HOSTS, ...extra], url)
-  if (!rule) return { ok: false, error: UNSUPPORTED }
-  if (!IMAGE_PATH.test(url.pathname)) return { ok: false, error: 'An image camera link must end in .jpg, .png or .webp.' }
+  if (!rule) {
+    // An ordinary page on an ordinary host: not a camera, but maybe about a place.
+    return HOSTNAME.test(host) ? { ok: false, error: UNSUPPORTED, code: 'WEBCAM_UNSUPPORTED_LINK' } : invalid(UNSUPPORTED)
+  }
+  if (!IMAGE_PATH.test(url.pathname)) return invalid('An image camera link must end in .jpg, .png or .webp.')
   return {
     ok: true,
     cam: {
