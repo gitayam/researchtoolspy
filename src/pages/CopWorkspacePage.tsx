@@ -720,17 +720,25 @@ export default function CopWorkspacePage() {
 
   // The workspace's form may offer every open question, not only the key ones a stranger
   // sees: a question ticket names this COP, never the person, so the form stays anonymous.
-  // Renewed well inside its 12-hour life.
+  // It lives an hour: renewed at half-life, and once more if the server refuses a ticked
+  // question with it (then the form reloads its questions with the new one).
   const hasEvidenceForm = !!evidenceForm
   const [questionTicket, setQuestionTicket] = useState<string | null>(null)
+  const [ticketRenewal, setTicketRenewal] = useState(0)
+  const renewedAfterRefusal = useRef<string | null>(null)
   useEffect(() => {
     if (!id || !hasEvidenceForm) return
     let cancelled = false
     const load = () => { void fetchQuestionTicket(id).then((ticket) => { if (!cancelled) setQuestionTicket(ticket) }) }
     load()
-    const timer = window.setInterval(load, 6 * 60 * 60 * 1000)
+    const timer = window.setInterval(load, 30 * 60 * 1000)
     return () => { cancelled = true; window.clearInterval(timer) }
-  }, [id, hasEvidenceForm])
+  }, [id, hasEvidenceForm, ticketRenewal])
+  const renewTicketOnce = useCallback(() => {
+    if (renewedAfterRefusal.current === questionTicket) return
+    renewedAfterRefusal.current = questionTicket
+    setTicketRenewal((n) => n + 1)
+  }, [questionTicket])
 
   /** Without an evidence form, "Add evidence" goes to the capture bar. */
   const focusCapture = useCallback(() => {
@@ -1207,6 +1215,7 @@ export default function CopWorkspacePage() {
           dropToken={evidenceForm.token}
           formTitle={evidenceForm.title}
           questionContext={questionTicket ? { ticket: questionTicket } : undefined}
+          onQuestionsRefused={renewTicketOnce}
           onSubmitted={(ingested) => {
             refetchStats()
             // Panels that listen refetch; the feed can highlight the new item when it lands.

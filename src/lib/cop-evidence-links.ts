@@ -93,6 +93,7 @@ export function normalizeLink(raw: Partial<CopEvidenceLink> & Pick<CopEvidenceLi
 export function voteErrorMessage(res: { status: number; code: string | null; error: string | null }): string {
   if (res.code === NOT_AVAILABLE || res.code === 'EVIDENCE_VOTES_UNAVAILABLE') return 'Voting isn’t available on this server yet.'
   if (res.status === 0) return 'Couldn’t reach the server. Your vote wasn’t saved.'
+  if (res.status === 429 || res.code === 'VOTE_RATE_LIMITED') return 'Slow down: too many votes in a minute. Try again shortly.'
   if (res.status === 401) return 'Sign in to vote.'
   if (res.status === 403) return 'Only the COP’s team can vote.'
   if (res.code === 'LINK_NOT_FOUND') return 'That evidence isn’t filed here any more.'

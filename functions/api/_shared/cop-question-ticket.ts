@@ -12,7 +12,8 @@
  */
 
 const LABEL = 'researchtools/cop-question-ticket/v1'
-export const QUESTION_TICKET_TTL_SECONDS = 12 * 60 * 60
+/** One hour; the workspace renews it at half-life. */
+export const QUESTION_TICKET_TTL_SECONDS = 60 * 60
 const TICKET_MAX_LENGTH = 512
 
 const encoder = new TextEncoder()

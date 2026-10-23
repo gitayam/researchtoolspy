@@ -24,6 +24,7 @@ import {
 
 const R = 'functions/api/cop/[id]/'
 Object.assign(ENTRIES, {
+  surveyDrops: 'functions/api/_shared/survey-drops.ts',
   evidenceLinks: `${R}evidence-links.ts`,
   linkVote: `${R}evidence-links/[linkId]/vote.ts`,
   questionTicket: `${R}question-ticket.ts`,
@@ -491,4 +492,80 @@ test('a stored choice whose question was deleted since is skipped; the others st
   assert.equal(accepted.status, 200, await accepted.clone().text())
   const evidenceId = db.prepare('SELECT linked_evidence_id FROM survey_responses WHERE id = ?').get(sub.id).linked_evidence_id
   assert.deepEqual(db.prepare('SELECT target_id FROM cop_evidence_links WHERE evidence_id = ?').all(String(evidenceId)).map((r) => r.target_id), [keyRfi])
+})
+
+// ── Security review follow-ups ─────────────────────────────────────
+
+test('a repeated or no-op vote stays silent: no event ever names the voter (through the COP middleware)', async () => {
+  const { db, env } = await votesFixture()
+  const [keyRfi] = keyIds(db)
+  const link = await file(env, 101, keyRfi)
+  for (const value of [1, 1, 0, 0]) {
+    const res = await vote(env, 'viewer', link.id, value, { through: 'middleware' })
+    assert.equal(res.status, 200, await res.clone().text())
+  }
+  const viewerId = 3
+  assert.equal(count(db, 'cop_events', 'created_by = ?', viewerId), 0)
+  // The two real changes went out, authored by nobody.
+  assert.equal(count(db, 'cop_events', "event_type = 'evidence.link_voted' AND created_by = 0"), 2)
+})
+
+test('votes are limited per person per COP: over 30 a minute is 429, nothing written or announced', async () => {
+  const { db, env } = await votesFixture()
+  const [keyRfi] = keyIds(db)
+  const link = await file(env, 101, keyRfi)
+  for (let i = 0; i < 30; i++) {
+    const res = await vote(env, 'editor', link.id, i % 2 === 0 ? 1 : -1)
+    assert.equal(res.status, 200, `vote ${i}: ${await res.clone().text()}`)
+  }
+  const before = { votes: db.prepare('SELECT value FROM cop_evidence_link_votes WHERE link_id = ?').all(link.id).map((r) => r.value), events: count(db, 'cop_events') }
+  const over = await vote(env, 'editor', link.id, 1)
+  assert.equal(over.status, 429)
+  assert.equal((await over.json()).code, 'VOTE_RATE_LIMITED')
+  assert.deepEqual(db.prepare('SELECT value FROM cop_evidence_link_votes WHERE link_id = ?').all(link.id).map((r) => r.value), before.votes)
+  assert.equal(count(db, 'cop_events'), before.events)
+  // Someone else still votes; every limiter write used a TTL KV accepts (the fake refuses < 60).
+  assert.equal((await vote(env, 'owner', link.id, 1)).status, 200)
+  // Without KV the guard lets votes through (it is not access control).
+  delete env.CACHE
+  assert.equal((await vote(env, 'editor', link.id, 0)).status, 200)
+})
+
+test('a question ticket lasts an hour: one issued 61 minutes ago is refused, 30 minutes ago still works', async () => {
+  const { db, env } = await votesFixture()
+  seedDrop(db, { picker: 0 })
+  const { signQuestionTicket } = mod('ticketModule')
+  const stale = (await signQuestionTicket(SECRET, SESSION, Date.now() - 61 * 60_000)).ticket
+  const fresh = (await signQuestionTicket(SECRET, SESSION, Date.now() - 30 * 60_000)).ticket
+  assert.deepEqual(await choices(env, '', stale), [])
+  assert.deepEqual(ids(await choices(env, '', fresh)), [...keyIds(db), 'rfi-plain'])
+  const issued = await (await call(env, 'questionTicket', 'GET', `${P}/question-ticket`, { who: 'viewer', params: S })).json()
+  const life = Date.parse(issued.expires_at) - Date.now()
+  assert.ok(life > 59 * 60_000 && life <= 60 * 60_000, String(life))
+})
+
+test('a password drop form takes tips only with its password: none or wrong is 401, nothing stored or ingested', async () => {
+  const { db, env } = await votesFixture()
+  seedDrop(db, { picker: 1 })
+  const hash = await mod('surveyDrops').hashPassword('correct horse battery')
+  db.prepare("UPDATE survey_drops SET access_level = 'password', password_hash = ? WHERE id = 'drop-votes'").run(hash)
+  const post = (body) => call(env, 'dropSubmit', 'POST', `/api/surveys/public/${DROP}/drop-submit`, { who: 'anonymous', params: { token: DROP }, body })
+  const stored = () => count(db, 'survey_responses', "survey_id = 'drop-votes'")
+  const evidenceBefore = count(db, 'evidence_items')
+
+  for (const body of [{ form_data: { what: 'no password' } }, { form_data: { what: 'blank' }, password: '' }, { form_data: { what: 'odd' }, password: 42 }]) {
+    const res = await post(body)
+    assert.equal(res.status, 401, JSON.stringify(body))
+    assert.deepEqual(await res.json(), { ok: false, error: 'Password is required' })
+  }
+  const wrong = await post({ form_data: { what: 'wrong' }, password: 'tr0ub4dor' })
+  assert.equal(wrong.status, 401)
+  assert.deepEqual(await wrong.json(), { ok: false, error: 'Incorrect password' })
+  assert.equal(stored(), 0)
+  assert.equal(count(db, 'evidence_items'), evidenceBefore)
+
+  const right = await post({ form_data: { what: 'right', _questions: [{ id: keyIds(db)[0] }] }, password: 'correct horse battery' })
+  assert.equal(right.status, 201, await right.clone().text())
+  assert.ok((await right.json()).ingested?.evidence_id)
+  assert.equal(stored(), 1)
 })

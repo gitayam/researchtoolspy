@@ -81,6 +81,13 @@ const WRITE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE'])
  */
 const NON_MUTATING_POST = /^\/api\/cop\/[^/]+\/(?:suggest|geocode|webcams\/[^/]+\/estimate-bearing|playbooks\/[^/]+\/test)\/?$/
 
+/**
+ * A vote emits its own event (counts only, created_by 0) when it changes something,
+ * and nothing when it doesn't. The generic fallback would record the voter as the
+ * event's author, readable by every collaborator, so it never runs for a vote.
+ */
+const VOTE_ROUTE = /^\/api\/cop\/[^/]+\/evidence-links\/[^/]+\/vote\/?$/
+
 /** The change-feed entity type of a COP session route, from its first path segment. */
 export function entityTypeForCopPath(pathname: string): CopFeedEntityType {
   const segment = /^\/api\/cop\/[^/]+\/([^/?]+)/.exec(pathname)?.[1] ?? ''
@@ -123,6 +130,7 @@ async function withChangeFallback(
   const sessionId = copSessionIdFromPath(pathname)
   if (sessionId === null) return context.next()
   if (request.method === 'POST' && NON_MUTATING_POST.test(pathname)) return context.next()
+  if (VOTE_ROUTE.test(pathname)) return context.next()
 
   const { result: response, emitted } = await trackCopEvents(() => context.next())
   if (emitted === 0 && response.status >= 200 && response.status < 300) {

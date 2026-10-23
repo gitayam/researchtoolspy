@@ -121,6 +121,11 @@ interface PublicIntakeFormProps {
    */
   initialQuestionId?: string | null
   preselectNonce?: number
+  /**
+   * The server refused a ticked question (closed since, or the context's permission ran
+   * out). The form reloads its questions; the host may renew its context first.
+   */
+  onQuestionsRefused?: () => void
 }
 
 /** The question choices a form config sends: id, text and key flag only, at most 100, never anything else. */
@@ -141,6 +146,7 @@ const RELATIONS: { value: CopEvidenceRelation; label: string; Icon: typeof Check
 
 export default function PublicIntakeForm({
   token, isDropMode = false, embedded = false, onSubmitted, questionContext, initialQuestionId = null, preselectNonce = 0,
+  onQuestionsRefused,
 }: PublicIntakeFormProps) {
   // Full-page screens fill the window; embedded ones fit their sheet.
   const screen = embedded ? 'py-10' : 'min-h-screen'
@@ -177,6 +183,8 @@ export default function PublicIntakeForm({
 
   const contextShare = questionContext?.share ?? null
   const contextTicket = questionContext?.ticket ?? null
+  // Bumped to load the questions again after the server refused one.
+  const [choicesReload, setChoicesReload] = useState(0)
   useEffect(() => {
     const controller = new AbortController()
     // The share token is already in the page's URL; the ticket travels in a header.
@@ -218,7 +226,7 @@ export default function PublicIntakeForm({
         if (err?.name !== 'AbortError') { setError(err.message); setLoading(false) }
       })
     return () => controller.abort()
-  }, [token, contextShare, contextTicket])
+  }, [token, contextShare, contextTicket, choicesReload])
 
   // "+ Add evidence" on a question opens the form with it ticked; a general open ticks none.
   // Applied while rendering (React's "adjust state when a prop changes"), so the form
@@ -318,7 +326,12 @@ export default function PublicIntakeForm({
       // Ticked questions travel as `_questions` (helper key); the server checks every one.
       const answers = picks.length > 0 ? { ...formData, _questions: picks.map(p => ({ id: p.id, relation: p.relation })) } : formData
       const requestBody = isDropMode
-        ? { form_data: answers, ...(context && picks.length > 0 ? { question_context: context } : {}) }
+        ? {
+            form_data: answers,
+            ...(context && picks.length > 0 ? { question_context: context } : {}),
+            // A password form's tips need its password too (never anything that identifies the sender).
+            ...(formPassword ? { password: formPassword } : {}),
+          }
         : {
             form_data: answers,
             submitter_name: submitterName || null,
@@ -334,6 +347,11 @@ export default function PublicIntakeForm({
       })
 
       const data = await res.json()
+      if (isDropMode && data.code === 'QUESTION_NOT_OFFERED') {
+        // Reload the list (a question may have closed); the draft and other ticks stay.
+        setChoicesReload(n => n + 1)
+        onQuestionsRefused?.()
+      }
       if (!res.ok || (isDropMode && data.ok === false)) {
         throw new Error(data.error || 'Submission failed')
       }
@@ -359,7 +377,7 @@ export default function PublicIntakeForm({
     } finally {
       setSubmitting(false)
     }
-  }, [formMeta, formData, picks, submitterName, submitterContact, lat, lon, token, formPassword, isDropMode, embedded, onSubmitted, contextShare, contextTicket])
+  }, [formMeta, formData, picks, submitterName, submitterContact, lat, lon, token, formPassword, isDropMode, embedded, onSubmitted, onQuestionsRefused, contextShare, contextTicket])
 
   if (loading) return <div className={`flex items-center justify-center ${screen}`}><span className="text-sm text-muted-foreground">Loading...</span></div>
   if (error && !formMeta) return (

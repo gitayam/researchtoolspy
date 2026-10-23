@@ -8,7 +8,10 @@
  * per filing. Never a service credential (the route is not in COP_SERVICE_ROUTES and
  * the handler refuses one), never a share link, never a signed-in reader who is not a
  * collaborator. The filing must be this session's (checked in SQL). The change goes
- * out as an `evidence.link_voted` event on the question, with counts and no user id.
+ * out as an `evidence.link_voted` event on the question, with counts and no user id;
+ * a vote that changes nothing is silent (the COP middleware adds no fallback event).
+ * At most VOTES_PER_MINUTE votes per person per COP: 429 VOTE_RATE_LIMITED, nothing
+ * written. A soft spam guard, not access control: without KV it lets votes through.
  * 503 EVIDENCE_VOTES_UNAVAILABLE until migration 0026 is applied.
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
@@ -17,10 +20,15 @@ import { JSON_HEADERS } from '../../../../_shared/api-utils'
 import { logEvent } from '../../../../_shared/event-log'
 import { copCallerUserId, copServiceCaller } from '../../../../_shared/cop-caller'
 import { cleanTargetId, cleanVote, linksTableMissing, setLinkVote, votesTableMissing } from '../../../../_shared/cop-evidence-links'
+import { takeQuota, type KvLike } from '../../../../_shared/kv-json'
 
 interface Env {
   DB: D1Database
+  CACHE?: KvLike
 }
+
+export const VOTES_PER_MINUTE = 30
+let warnedUncounted = false
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: JSON_HEADERS })
 
@@ -43,6 +51,13 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
   }
   const value = cleanVote(body?.value)
   if (value === null) return json({ error: 'value must be 1, -1 or 0' }, 400)
+
+  const slot = await takeQuota(env.CACHE, 'cop-vote', `${sessionId}:${userId}`, VOTES_PER_MINUTE, 60)
+  if (slot === 'over') return json({ error: 'Too many votes in a minute. Slow down and try again shortly.', code: 'VOTE_RATE_LIMITED' }, 429)
+  if (slot === 'unavailable' && !warnedUncounted) {
+    warnedUncounted = true
+    console.warn('[cop/evidence-links/vote] votes are not being counted for the rate limit (no KV, or KV failed)')
+  }
 
   try {
     const session = await env.DB.prepare('SELECT status FROM cop_sessions WHERE id = ?').bind(sessionId).first<{ status: string | null }>()

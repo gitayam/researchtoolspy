@@ -132,6 +132,7 @@ test('voteErrorMessage: says why the vote was not saved', () => {
   assert.match(mod.voteErrorMessage({ status: 403, code: null, error: null }), /team can vote/)
   assert.match(mod.voteErrorMessage({ status: 404, code: 'LINK_NOT_FOUND', error: null }), /isn’t filed here/)
   assert.match(mod.voteErrorMessage({ status: 0, code: null, error: null }), /wasn’t saved/)
+  assert.match(mod.voteErrorMessage({ status: 429, code: 'VOTE_RATE_LIMITED', error: null }), /^Slow down/)
 })
 
 // ── The evidence form's question checklist ─────────────────────────

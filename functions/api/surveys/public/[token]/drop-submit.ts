@@ -26,7 +26,7 @@
  * file; `ok: true` means the tip goes under every question it named.
  */
 import { generatePrefixedId, JSON_HEADERS } from '../../../_shared/api-utils'
-import { hashFormData } from '../../../_shared/survey-drops'
+import { hashFormData, verifyPassword } from '../../../_shared/survey-drops'
 import { emitCopEvent } from '../../../_shared/cop-events'
 import { INGEST_SUBMISSION_RECEIVED } from '../../../_shared/cop-event-types'
 import { autoIngestSubmission, parseFormSchema, sanitizeFormDataFiles } from '../../../_shared/cop-ingest'
@@ -72,7 +72,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
   try {
     const form = await env.DB.prepare(
-      `SELECT id, cop_session_id, status, form_schema, intent, expires_at, access_level
+      `SELECT id, cop_session_id, status, form_schema, intent, expires_at, access_level, password_hash
        FROM survey_drops WHERE share_token = ?`
     ).bind(token).first() as any
 
@@ -121,6 +121,21 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       return new Response(JSON.stringify({ ok: false, error: 'Invalid request body' }), {
         status: 200, headers: JSON_HEADERS,
       })
+    }
+
+    // A password form takes tips only with its password (checked as submit.ts does).
+    if (form.access_level === 'password') {
+      const password = body && typeof body === 'object' ? body.password : undefined
+      if (!password || typeof password !== 'string') {
+        return new Response(JSON.stringify({ ok: false, error: 'Password is required' }), {
+          status: 401, headers: JSON_HEADERS,
+        })
+      }
+      if (!form.password_hash || !(await verifyPassword(password, form.password_hash))) {
+        return new Response(JSON.stringify({ ok: false, error: 'Incorrect password' }), {
+          status: 401, headers: JSON_HEADERS,
+        })
+      }
     }
 
     // Turnstile check — fail-OPEN: if TURNSTILE_SECRET is not configured, skip

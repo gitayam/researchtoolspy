@@ -811,7 +811,10 @@ function readStoredChoices(raw: unknown): QuestionPick[] {
  * migration 0026 carries the choices drop-submit checked (survey_responses.question_choices);
  * an older one, its `_question(s)` answers, of which only the standalone form's key
  * questions are filed (checked again here). Every RFI must be this session's (in SQL).
- * Best effort per question: a bad or stale one files nothing. Returns the RFI ids filed.
+ * Whether it was closed since is not checked again: a reviewer accepting the tip after a
+ * question closed still files it there, which is fine (a closed question keeps its
+ * evidence). Best effort per question: a bad or stale one files nothing. Returns the
+ * RFI ids filed.
  */
 export async function fileTipUnderChosenQuestions(
   db: D1Database,

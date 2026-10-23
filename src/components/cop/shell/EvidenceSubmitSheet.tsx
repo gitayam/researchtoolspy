@@ -31,6 +31,8 @@ interface EvidenceSubmitSheetProps {
   questionContext?: IntakeQuestionContext
   initialQuestionId?: string | null
   preselectNonce?: number
+  /** A ticked question was refused (the host may renew its question ticket). */
+  onQuestionsRefused?: () => void
 }
 
 export default function EvidenceSubmitSheet({
@@ -43,6 +45,7 @@ export default function EvidenceSubmitSheet({
   questionContext,
   initialQuestionId = null,
   preselectNonce = 0,
+  onQuestionsRefused,
 }: EvidenceSubmitSheetProps) {
   const [received, setReceived] = useState(false)
   // Whether the server put it straight into the COP, or it waits in the review inbox.
@@ -144,6 +147,7 @@ export default function EvidenceSubmitSheet({
           questionContext={questionContext}
           initialQuestionId={initialQuestionId}
           preselectNonce={preselectNonce}
+          onQuestionsRefused={onQuestionsRefused}
         />
       </div>
     </CopSheet>
