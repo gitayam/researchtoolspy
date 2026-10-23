@@ -74,14 +74,15 @@ export function FiledEvidence({ sessionId, targetType, targetId, label, classNam
       </div>
 
       {filed.length > 0 ? (
-        <ul className="space-y-1">
+        <ul className="divide-y divide-gray-200 dark:divide-gray-700">
           {filed.map((link) => {
             const item = byId.get(link.evidence_id)
             const url = httpUrl(item?.source_url ?? null)
             return (
-              <li key={link.id} className="rounded border border-gray-200 bg-white px-2 py-1.5 dark:border-gray-700 dark:bg-gray-800/40">
+              <li key={link.id} className="py-1.5">
                 <div className="flex items-start gap-1.5">
-                  <RelationChip relation={link.relation} className="mt-px shrink-0" />
+                  {/* On phones the select below already names the relation; the chip would crowd the title. */}
+                  <RelationChip relation={link.relation} className="mt-px hidden shrink-0 sm:inline-flex" />
                   <div className="min-w-0 flex-1">
                     <p className="break-words text-xs text-gray-800 dark:text-gray-200">
                       {item?.title ?? `Evidence #${link.evidence_id}`}
@@ -259,14 +260,14 @@ function AddEvidenceForm({ sessionId, targetType, targetId, label, alreadyFiled,
 
   return (
     <div
-      className="space-y-2 rounded border border-blue-200 bg-blue-50/40 p-2 dark:border-blue-900/60 dark:bg-blue-950/20"
+      className="space-y-2 rounded bg-blue-50/70 p-2 dark:bg-blue-950/30"
       onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); onDone() } }}
     >
-      <div className="flex flex-wrap items-center justify-between gap-1">
+      <div className="flex items-center justify-between gap-1">
         <div role="tablist" aria-label="Where the evidence comes from" className="flex flex-wrap gap-0.5">
-          {tab('attach', Paperclip, 'From this COP')}
-          {tab('link', Link2, 'Paste a link')}
-          {tab('file', FileUp, 'Upload')}
+          {tab('attach', Paperclip, 'In this COP')}
+          {tab('link', Link2, 'Link')}
+          {tab('file', FileUp, 'File')}
         </div>
         <button
           type="button"

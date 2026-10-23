@@ -98,14 +98,14 @@ export function FileUnderQuestions({ sessionId, evidenceId, className }: {
             className="relative inline-flex items-center gap-0.5 rounded px-1 py-0.5 text-[11px] text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500 after:absolute after:-inset-y-3 after:-inset-x-1 after:content-['']"
           >
             <FolderInput className="h-3 w-3" aria-hidden="true" />
-            {filed.length === 0 ? 'File under question' : 'Questions'}
+            {filed.length === 0 ? 'File under question' : 'Edit questions'}
           </button>
         </div>
       )}
 
       {open && (
         <div
-          className="space-y-1.5 rounded border border-blue-200 bg-blue-50/40 p-2 dark:border-blue-900/60 dark:bg-blue-950/20"
+          className="space-y-1.5 rounded bg-blue-50/70 p-2 dark:bg-blue-950/30"
           onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); setOpen(false) } }}
         >
           <p className="text-[11px] font-medium text-gray-700 dark:text-gray-200">File under questions</p>

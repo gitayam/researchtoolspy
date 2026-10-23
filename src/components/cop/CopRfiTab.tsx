@@ -637,7 +637,7 @@ export default function CopRfiTab({ sessionId, onRfiCountChange, keyQuestions }:
                       targetId={rfi.id}
                       label="question"
                       startOpen={addEvidenceFor === rfi.id}
-                      className="rounded border border-gray-200 bg-white/60 p-2 dark:border-gray-700 dark:bg-gray-900/30"
+                      className="pt-1"
                     />
 
                     <h4 className="pt-1 text-[11px] font-semibold text-gray-700 dark:text-gray-200">
