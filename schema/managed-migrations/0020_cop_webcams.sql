@@ -33,3 +33,9 @@ CREATE TABLE IF NOT EXISTS cop_webcams (
 );
 
 CREATE INDEX IF NOT EXISTS idx_cop_webcams_session ON cop_webcams(cop_session_id);
+
+-- One live row per camera per session: a re-add of the same Windy/YouTube id or
+-- image/HLS URL answers 409 WEBCAM_DUPLICATE. Archived rows don't count.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_cop_webcams_live_source ON cop_webcams(
+    cop_session_id, provider, COALESCE(provider_ref, image_url, stream_url, '')
+) WHERE archived_at IS NULL;

@@ -9,6 +9,8 @@ import { parseWebcamUrl, webcamEmbedUrl, WINDY_ATTRIBUTION, type WebcamProvider,
 import { JSON_HEADERS } from './api-utils'
 
 export const WEBCAMS_UNAVAILABLE = 'WEBCAMS_UNAVAILABLE'
+export const WEBCAM_DUPLICATE = 'WEBCAM_DUPLICATE'
+export const WEBCAM_LIMIT = 'WEBCAM_LIMIT'
 export const MAX_WEBCAMS_PER_SESSION = 200
 export const DEFAULT_IMAGE_REFRESH_S = 60
 export const MIN_IMAGE_REFRESH_S = 30
@@ -57,6 +59,12 @@ export interface WebcamInput {
 
 export function webcamsTableMissing(error: unknown): boolean {
   return /no such table:\s*(?:main\.)?cop_webcams\b/i.test(String(error instanceof Error ? error.message : error))
+}
+
+/** The live-source unique index (migration 0020) refused a second row for one camera. */
+export function webcamDuplicate(error: unknown): boolean {
+  const message = String(error instanceof Error ? error.message : error)
+  return /UNIQUE constraint failed/i.test(message) && /idx_cop_webcams_live_source/.test(message)
 }
 
 export function webcamsUnavailable(): Response {

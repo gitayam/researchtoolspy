@@ -3,7 +3,9 @@
  *
  * GET  /api/cop/:id/webcams - The session's webcams (owner, collaborators, or any
  *                             signed-in user on a public session)
- * POST /api/cop/:id/webcams - Add a webcam (owner, editor or admin collaborator)
+ * POST /api/cop/:id/webcams - Add a webcam (owner, editor or admin collaborator).
+ *                             409 with code WEBCAM_DUPLICATE (already pinned) or
+ *                             WEBCAM_LIMIT (session full).
  *
  * A webcam is a link to the provider's own player or feed: a Windy or YouTube id,
  * or an allow-listed image/HLS URL (functions/api/_shared/webcam-url.ts). The embed
@@ -21,6 +23,9 @@ import {
   publicWebcam,
   validateWebcamInput,
   WEBCAM_COLUMNS,
+  WEBCAM_DUPLICATE,
+  WEBCAM_LIMIT,
+  webcamDuplicate,
   webcamsTableMissing,
   webcamsUnavailable,
   type WebcamRow,
@@ -79,30 +84,32 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const cam = input.value
 
   try {
-    const count = await env.DB.prepare(
-      'SELECT COUNT(*) AS n FROM cop_webcams WHERE cop_session_id = ? AND archived_at IS NULL'
-    ).bind(sessionId).first<{ n: number }>()
-    if (Number(count?.n ?? 0) >= MAX_WEBCAMS_PER_SESSION) {
-      return json({ error: `A session holds at most ${MAX_WEBCAMS_PER_SESSION} webcams` }, 409)
-    }
-
+    // The cap is checked in the INSERT itself, so parallel adds cannot pass it together.
     const id = crypto.randomUUID()
     const now = new Date().toISOString()
-    await env.DB.prepare(`
+    const inserted = await env.DB.prepare(`
       INSERT INTO cop_webcams (id, cop_session_id, provider, provider_ref, page_url, image_url, stream_url,
         label, lat, lon, bearing_deg, fov_deg, delivery, refresh_s, attribution, created_by, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+      WHERE (SELECT COUNT(*) FROM cop_webcams WHERE cop_session_id = ? AND archived_at IS NULL) < ?
     `).bind(
       id, sessionId, cam.provider, cam.provider_ref, cam.page_url, cam.image_url, cam.stream_url,
       cam.label, cam.lat, cam.lon, cam.bearing_deg, cam.fov_deg, cam.delivery, cam.refresh_s, cam.attribution,
       userId, now,
+      sessionId, MAX_WEBCAMS_PER_SESSION,
     ).run()
+    if (!inserted.meta?.changes) {
+      return json({ error: `A session holds at most ${MAX_WEBCAMS_PER_SESSION} webcams`, code: WEBCAM_LIMIT }, 409)
+    }
 
     const row = await env.DB.prepare(`SELECT ${WEBCAM_COLUMNS} FROM cop_webcams WHERE id = ? AND cop_session_id = ?`)
       .bind(id, sessionId).first<WebcamRow>()
     return json({ webcam: row ? publicWebcam(row) : null }, 201)
   } catch (error) {
     if (webcamsTableMissing(error)) return webcamsUnavailable()
+    if (webcamDuplicate(error)) {
+      return json({ error: 'That camera is already on this session', code: WEBCAM_DUPLICATE }, 409)
+    }
     await logEvent(env, {
       level: 'error',
       source: 'cop/webcams',

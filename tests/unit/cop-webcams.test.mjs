@@ -376,6 +376,40 @@ test('POST validates the link, label and position', async () => {
   assert.equal(webcam.lat, null)
 })
 
+test('a camera already on the session answers 409 WEBCAM_DUPLICATE until it is removed', async () => {
+  const { db, env } = await fixture()
+  const first = await (await addCam(env, 'owner')).json()
+  for (const url of [`windy:${WINDY_ID}`, `https://www.windy.com/webcams/${WINDY_ID}`]) {
+    const again = await addCam(env, 'editor', { ...PARIS_CAM, url, label: 'Same camera, new label' })
+    assert.equal(again.status, 409, url)
+    assert.equal((await again.json()).code, 'WEBCAM_DUPLICATE')
+  }
+  assert.equal(countCams(db), 1)
+  // The same camera on another session is a different pin.
+  assert.equal((await addCam(env, 'owner', PARIS_CAM, OTHER_SESSION)).status, 201)
+
+  assert.equal((await removeCam(env, 'owner', first.webcam.id)).status, 200)
+  assert.equal((await addCam(env, 'owner')).status, 201)
+})
+
+test('a full session answers 409 WEBCAM_LIMIT and stores nothing', async () => {
+  const { db, env } = await fixture()
+  const MAX_WEBCAMS_PER_SESSION = 200 // functions/api/_shared/cop-webcams.ts
+  const seed = db.prepare(
+    "INSERT INTO cop_webcams (id, cop_session_id, provider, image_url, label, delivery) VALUES (?, ?, 'image', ?, 'Seed', 'snapshot')"
+  )
+  for (let i = 0; i < MAX_WEBCAMS_PER_SESSION; i++) {
+    seed.run(`seed-${i}`, SESSION, `https://weathercam.digitraffic.fi/C${i}.jpg`)
+  }
+  const full = await addCam(env, 'owner')
+  assert.equal(full.status, 409)
+  assert.equal((await full.json()).code, 'WEBCAM_LIMIT')
+  assert.equal(countCams(db), MAX_WEBCAMS_PER_SESSION)
+
+  db.prepare("UPDATE cop_webcams SET archived_at = datetime('now') WHERE id = 'seed-0'").run()
+  assert.equal((await addCam(env, 'owner')).status, 201)
+})
+
 test('GET lists explicit fields for any collaborator, nothing for a stranger', async () => {
   const { env } = await fixture()
   await addCam(env, 'owner')
