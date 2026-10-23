@@ -23,6 +23,7 @@ import { emitCopEvent } from '../../../_shared/cop-events'
 import { INGEST_SUBMISSION_RECEIVED } from '../../../_shared/cop-event-types'
 import { autoIngestSubmission, parseFormSchema, sanitizeFormDataFiles } from '../../../_shared/cop-ingest'
 import type { R2Like } from '../../../_shared/cop-uploads'
+import { formDataTooLarge, readCappedText, SUBMISSION_BODY_MAX_BYTES } from '../../../_shared/capped-body'
 
 interface Env {
   DB: D1Database
@@ -30,36 +31,7 @@ interface Env {
   UPLOADS?: R2Like
 }
 
-/** The raw body cap: 64 KB of answers plus room for the Turnstile token and JSON. */
-const MAX_BODY_BYTES = 72 * 1024
 const TOO_LARGE = 'Submission too large (max 64 KB)'
-
-/** The body as text, or null when it is (or says it is) over `max` bytes; read with a running count. */
-async function readCappedText(request: Request, max: number): Promise<string | null> {
-  const declared = Number(request.headers.get('Content-Length') ?? '')
-  if (Number.isFinite(declared) && declared > max) return null
-  if (!request.body) return ''
-  const reader = request.body.getReader()
-  const chunks: Uint8Array[] = []
-  let size = 0
-  for (;;) {
-    const { done, value } = await reader.read()
-    if (done) break
-    size += value.byteLength
-    if (size > max) {
-      await reader.cancel().catch(() => {})
-      return null
-    }
-    chunks.push(value)
-  }
-  const all = new Uint8Array(size)
-  let at = 0
-  for (const chunk of chunks) {
-    all.set(chunk, at)
-    at += chunk.byteLength
-  }
-  return new TextDecoder().decode(all)
-}
 
 async function verifyTurnstile(secret: string, token: string): Promise<boolean> {
   try {
@@ -124,7 +96,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
 
     // Size first: nothing is parsed, decoded or sanitized past the cap.
-    const raw = await readCappedText(context.request, MAX_BODY_BYTES)
+    const raw = await readCappedText(context.request, SUBMISSION_BODY_MAX_BYTES)
     if (raw === null) {
       return new Response(JSON.stringify({ ok: false, error: TOO_LARGE }), {
         status: 200, headers: JSON_HEADERS,
@@ -155,9 +127,15 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       }
     }
 
-    // Inline files: typed from their bytes, image metadata stripped before storage.
+    // Inline files: typed from their bytes, image metadata stripped before storage —
+    // after the answers are known to be within the 64K-character limit.
     const formSchemaFields = parseFormSchema(form.form_schema)
     const rawFormData = body.form_data && typeof body.form_data === 'object' && !Array.isArray(body.form_data) ? body.form_data : {}
+    if (formDataTooLarge(rawFormData)) {
+      return new Response(JSON.stringify({ ok: false, error: TOO_LARGE }), {
+        status: 200, headers: JSON_HEADERS,
+      })
+    }
     const cleaned = sanitizeFormDataFiles(rawFormData, formSchemaFields)
     if (cleaned.ok === false) {
       return new Response(JSON.stringify({ ok: false, error: cleaned.error }), {

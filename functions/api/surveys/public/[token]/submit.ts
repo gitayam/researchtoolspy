@@ -20,6 +20,7 @@ import {
 } from '../../../_shared/survey-drops'
 import { enrichResponseUrls } from '../../../_shared/url-enrichment'
 import { autoIngestSubmission, parseFormSchema, sanitizeFormDataFiles } from '../../../_shared/cop-ingest'
+import { formDataTooLarge, readCappedJson } from '../../../_shared/capped-body'
 import type { R2Like } from '../../../_shared/cop-uploads'
 
 interface Env {
@@ -79,7 +80,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       }), { status: 403, headers: JSON_HEADERS })
     }
 
-    const body = await request.json() as PublicSubmissionBody
+    // Size first: the body is read with a byte cap before it is parsed.
+    const parsed = await readCappedJson<PublicSubmissionBody>(request)
+    if (parsed.ok === false) {
+      return parsed.reason === 'too_large'
+        ? new Response(JSON.stringify({ error: 'Form data too large (max 64KB)' }), { status: 413, headers: JSON_HEADERS })
+        : new Response(JSON.stringify({ error: 'Invalid request body' }), { status: 400, headers: JSON_HEADERS })
+    }
+    const body = parsed.value
 
     // Size limits
     if (body.submitter_name && body.submitter_name.length > 200) {
@@ -88,8 +96,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (body.submitter_contact && body.submitter_contact.length > 500) {
       return new Response(JSON.stringify({ error: 'Contact info too long (max 500 chars)' }), { status: 400, headers: JSON_HEADERS })
     }
-    const formDataStr = JSON.stringify(body.form_data || {})
-    if (formDataStr.length > 65536) {
+    if (formDataTooLarge(body.form_data)) {
       return new Response(JSON.stringify({ error: 'Form data too large (max 64KB)' }), { status: 413, headers: JSON_HEADERS })
     }
 

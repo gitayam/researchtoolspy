@@ -19,7 +19,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  b64, cop, DROP_TOKEN, ENTRIES, fakeKv, fixture, leaksMetadata, mod, publicCall, SESSION, setupInputSuite,
+  b64, cop, DROP_TOKEN, ENTRIES, fakeKv, fixture, INTAKE_TOKEN, leaksMetadata, mod, publicCall, SESSION, setupInputSuite, SURVEY_TOKEN,
 } from './cop-input-harness.mjs'
 import { GIF_COMMENT, JPEG_PLAIN, PNG_META, WEBP_META } from './fixtures/images.mjs'
 
@@ -31,6 +31,7 @@ Object.assign(ENTRIES, {
 })
 setupInputSuite([
   'serviceAuth', 'copCaller', 'middleware', 'sanitize', 'copIngest', 'itemTags', 'dropSubmit', 'surveys', 'survey', 'linkCop', 'apiMiddleware',
+  'surveySubmit', 'intakeSubmit',
 ])
 
 const auth = (who) => ({ Authorization: `Bearer session-${who}` })
@@ -287,4 +288,35 @@ test('drop-submit refuses an oversized body before decoding or checking any file
   })
   assert.match((await declared.json()).error, /too large/i, 'a declared length over the cap is refused unread')
   assert.equal(db.prepare("SELECT COUNT(*) AS n FROM survey_responses WHERE survey_id = 'srv-paris'").get().n, 0)
+})
+
+test('survey and intake submit read no more than the cap: a declared length or an oversized body is refused before parsing', async () => {
+  const { db, env } = await fixture()
+  const routes = [
+    ['survey', mod('surveySubmit'), `/api/surveys/public/${SURVEY_TOKEN}/submit`, SURVEY_TOKEN],
+    ['intake', mod('intakeSubmit'), `/api/cop/public/intake/${INTAKE_TOKEN}/submit`, INTAKE_TOKEN],
+  ]
+  for (const [name, handler, path, token] of routes) {
+    const declared = await publicCall(env, handler, 'POST', path, {
+      params: { token }, raw: JSON.stringify({ form_data: { what: 'small' } }),
+      headers: { 'Content-Type': 'application/json', 'Content-Length': String(10 * 1024 * 1024) },
+    })
+    assert.equal(declared.status, 413, `${name}: declared length`)
+    // Small answers, but a 250 KB name: only a byte cap on the body catches it before parsing.
+    const padded = await publicCall(env, handler, 'POST', path, {
+      params: { token }, body: { form_data: { what: 'small' }, submitter_name: 'x'.repeat(250 * 1024) },
+    })
+    assert.equal(padded.status, 413, `${name}: oversized body`)
+    // 100 KB of answers: over the routes' 64K-character limit.
+    const answers = await publicCall(env, handler, 'POST', path, {
+      params: { token }, body: { form_data: { what: 'y'.repeat(100 * 1024) } },
+    })
+    assert.equal(answers.status, 413, `${name}: form data over 64K characters`)
+  }
+  assert.equal(db.prepare("SELECT COUNT(*) AS n FROM survey_responses WHERE survey_id IN ('srv-survey', 'intake-paris')").get().n, 0)
+  // Within the limits, including non-Latin text the character limit allows, both still accept.
+  const ok = await publicCall(env, mod('surveySubmit'), 'POST', `/api/surveys/public/${SURVEY_TOKEN}/submit`, {
+    params: { token: SURVEY_TOKEN }, body: { form_data: { what: '北'.repeat(60000) } },
+  })
+  assert.equal(ok.status, 201)
 })
