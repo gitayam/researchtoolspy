@@ -11,7 +11,7 @@ import { logEvent } from '../../../../_shared/event-log'
 import { copCallerUserId } from '../../../../_shared/cop-caller'
 import { emitCopEvent } from '../../../../_shared/cop-events'
 import { EVIDENCE_CREATED, RFI_ANSWERED, RFI_ANSWER_UPDATED } from '../../../../_shared/cop-event-types'
-import { setEvidenceSession } from '../../../../_shared/cop-input'
+import { serviceChangeRefused, serviceMayChange, setEvidenceSession } from '../../../../_shared/cop-input'
 
 interface Env {
   DB: D1Database
@@ -47,13 +47,15 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     // Verify RFI belongs to this session
     const rfiCheck = await env.DB.prepare(
-      'SELECT id FROM cop_rfis WHERE id = ? AND cop_session_id = ?'
-    ).bind(rfiId, sessionId).first()
+      'SELECT id, created_by FROM cop_rfis WHERE id = ? AND cop_session_id = ?'
+    ).bind(rfiId, sessionId).first<{ id: string; created_by: number | null }>()
     if (!rfiCheck) {
       return new Response(JSON.stringify({ error: 'RFI not found' }), {
         status: 404, headers: JSON_HEADERS,
       })
     }
+    // A service (the Signal bot's !resolve) answers only the RFIs it created.
+    if (!serviceMayChange(context, rfiCheck.created_by)) return serviceChangeRefused()
 
     const id = generatePrefixedId('rfia')
     const now = new Date().toISOString()

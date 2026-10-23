@@ -86,6 +86,7 @@ const WRITES = [
   ['collaborators PUT', 'collaborators', 'PUT', `${P}/collaborators`, S, { collaborator_id: 'col-editor', availability: 'busy' }, 'activity', { ownerOnly: true }],
   ['collaborators DELETE', 'collaborators', 'DELETE', `${P}/collaborators`, S, { collaborator_id: 'col-viewer' }, 'activity', { ownerOnly: true }],
   ['evidence POST', 'evidence', 'POST', `${P}/evidence`, S, { title: 'Video of the gate', url: 'https://video.example/v1' }, 'evidence'],
+  ['evidence PUT', 'evidence', 'PUT', `${P}/evidence`, S, { id: 1001, credibility: 'probable' }, 'evidence'],
   ['evidence DELETE', 'evidence', 'DELETE', `${P}/evidence?id=1001`, S, undefined, 'evidence'],
   ['evidence batch POST', 'evidenceBatch', 'POST', `${P}/evidence/batch`, S, { items: [{ title: 'A', url: 'https://a.example/1' }] }, 'evidence'],
   ['hypotheses POST', 'hypotheses', 'POST', `${P}/hypotheses`, S, { statement: 'Rain delays the opening' }, 'hypothesis'],

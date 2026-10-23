@@ -12,8 +12,11 @@ import { emitCopEvent } from '../../_shared/cop-events'
 import { TASK_CREATED, TASK_COMPLETED, TASK_STARTED, TASK_BLOCKED, TASK_UNBLOCKED, TASK_DELETED, TASK_UPDATED } from '../../_shared/cop-event-types'
 import { generatePrefixedId , JSON_HEADERS } from '../../_shared/api-utils'
 import { logEvent } from '../../_shared/event-log'
-import { copCallerUserId } from '../../_shared/cop-caller'
-import { copSourceChannel, copSourceRef, expectedUpdatedAt, serviceDeleteRefused, serviceMayDelete, setProvenance, staleWriteResponse } from '../../_shared/cop-input'
+import { copCallerUserId, copServiceCaller } from '../../_shared/cop-caller'
+import {
+  copSourceChannel, copSourceRef, expectedUpdatedAt, serviceChangeRefused, serviceDeleteRefused, serviceMayChange, serviceMayDelete,
+  setProvenance, staleWriteResponse,
+} from '../../_shared/cop-input'
 
 interface Env {
   DB: D1Database
@@ -23,6 +26,8 @@ interface Env {
 const VALID_STATUSES = ['todo', 'in_progress', 'done', 'blocked']
 const VALID_PRIORITIES = ['low', 'medium', 'high', 'critical']
 const VALID_TASK_TYPES = ['pimeyes', 'geoguessr', 'forensic', 'osint', 'reverse_image', 'social_media', 'general']
+/** What a service (the Signal bot's !done/!start/!priority/!assign…) may change on its own tasks. */
+const SERVICE_TASK_FIELDS = new Set(['id', 'status', 'priority', 'assigned_to', 'due_date', 'if_updated_at'])
 
 // GET - List tasks for a COP session
 export const onRequestGet: PagesFunction<Env> = async (context) => {
@@ -216,6 +221,17 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       return new Response(JSON.stringify({ error: 'Task not found in this session' }), {
         status: 404, headers: JSON_HEADERS,
       })
+    }
+    // A service (the Signal bot) changes only the tasks it created, and only their
+    // status, priority, assignee and due date.
+    if (copServiceCaller(context.data)) {
+      if (!serviceMayChange(context, existing.created_by)) return serviceChangeRefused()
+      const extra = Object.keys(body).filter((key) => !SERVICE_TASK_FIELDS.has(key))
+      if (extra.length > 0) {
+        return new Response(JSON.stringify({ error: `A service may only change status, priority, assigned_to and due_date (not ${extra.join(', ')})` }), {
+          status: 400, headers: JSON_HEADERS,
+        })
+      }
     }
 
     const expected = expectedUpdatedAt(request, body)

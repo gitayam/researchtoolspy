@@ -156,7 +156,8 @@ test('upload: the bytes decide the type and lose their metadata before R2', asyn
 
 test('upload: SVG, HTML and unknown files are refused; an unparsable image is refused', async () => {
   const { env, r2 } = await fixture()
-  for (const raw of [SVG, HTML, new TextEncoder().encode('just text')]) {
+  // Plain text is a document now (cop-roadmap-files.test.mjs); unknown binary is not.
+  for (const raw of [SVG, HTML, new Uint8Array([0x00, 0x13, 0x37, 0x42, 0x99, 0x00, 0x01])]) {
     const res = await upload(env, 'owner', raw, { headers: { 'Content-Type': 'image/svg+xml' } })
     assert.equal(res.status, 415)
     assert.equal((await res.json()).code, 'UNSUPPORTED_FILE')
@@ -228,8 +229,10 @@ test('serving: a PDF is a download', async () => {
   const { env } = await fixture()
   const res = await upload(env, 'owner', new TextEncoder().encode('%PDF-1.4\n%%EOF\n'))
   const { upload: up } = await res.json()
+  assert.equal(up.metadata_removed, false)
   const served = await getUpload(env, 'owner', up.id)
-  assert.equal(served.headers.get('Content-Type'), 'application/pdf')
+  // Download-only: never a type a browser would render inline.
+  assert.equal(served.headers.get('Content-Type'), 'application/octet-stream')
   assert.match(served.headers.get('Content-Disposition'), /^attachment; filename="upl-[0-9a-f-]+\.pdf"$/)
 })
 

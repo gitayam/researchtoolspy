@@ -28,6 +28,18 @@ export async function copReader(context: { request: Request; env: { DB: D1Databa
   return { ok: true, userId, workspaceId, service: Boolean(copServiceCaller(context.data)) }
 }
 
+/**
+ * The owner or a collaborator (viewers included) — not the signed-in public readers of a
+ * public session that copReader admits. For files and other private material.
+ */
+export async function copCollaborator(context: { request: Request; env: { DB: D1Database }; data?: unknown }, sessionId: string): Promise<CopAccess> {
+  const userId = await copCallerUserId(context)
+  if (!userId) return { ok: false, response: json({ error: 'Authentication required' }, 401) }
+  const workspaceId = await verifyCopSessionAccess(context.env.DB, sessionId, userId)
+  if (!workspaceId) return { ok: false, response: json({ error: 'Access denied' }, 403) }
+  return { ok: true, userId, workspaceId, service: Boolean(copServiceCaller(context.data)) }
+}
+
 /** The owner or an editor/admin collaborator may write. */
 export async function copEditor(
   context: { request: Request; env: { DB: D1Database }; data?: unknown },

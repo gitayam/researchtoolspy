@@ -5,24 +5,36 @@
  * POST   /api/cop/:id/evidence          - Create new evidence item scoped to session's workspace.
  *                                         A link already in the workspace (same canonical URL)
  *                                         answers 200 { evidence, duplicate: true } instead.
+ * PUT    /api/cop/:id/evidence          - Update title, description, credibility, the archive
+ *                                         reference (source_ref) and scan state (a service:
+ *                                         only its own items)
  * DELETE /api/cop/:id/evidence?id=<id>  - Delete an evidence item (a service: only its own)
+ *
+ * `source_ref` from a caller is only ever an archive reference (silo:<id> or
+ * peertube:<link>) and `scan_state` one of pending/clean/quarantined (cop-archive.ts);
+ * neither reaches anyone outside the COP.
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { verifyCopSessionAccess, requireCopEditor } from '../../_shared/auth-helpers'
 import { emitCopEvent } from '../../_shared/cop-events'
-import { EVIDENCE_CREATED, EVIDENCE_DELETED } from '../../_shared/cop-event-types'
+import { EVIDENCE_CREATED, EVIDENCE_DELETED, EVIDENCE_UPDATED } from '../../_shared/cop-event-types'
 import { createTimelineEntry } from '../../_shared/timeline-helper'
 import { JSON_HEADERS } from '../../_shared/api-utils'
 import { logEvent } from '../../_shared/event-log'
 import { copCallerUserId } from '../../_shared/cop-caller'
 import {
   canonicalUrl, copSourceChannel, copSourceRef, evidenceInSession, isMissingColumn, maskTipEvidenceRow, queryEvidenceInSession,
-  serviceDeleteRefused, serviceMayDelete, setEvidenceSession, setProvenance, type EvidenceSessionScope,
+  serviceChangeRefused, serviceDeleteRefused, serviceMayChange, serviceMayDelete, setEvidenceSession, setProvenance,
+  type EvidenceSessionScope,
 } from '../../_shared/cop-input'
+import { archiveFields, cleanArchiveRef, cleanScanState, readMetadata, stripPrivateEvidenceFields } from '../../_shared/cop-archive'
 
 interface Env {
   DB: D1Database
+  COP_PEERTUBE_HOST?: string
 }
+
+const ALLOWED_CREDIBILITY = ['confirmed', 'probable', 'possible', 'doubtful', 'unverified']
 
 
 /** The evidence fields a write answers with. */
@@ -95,8 +107,11 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     )
     // readOnly admits any signed-in reader of a public session: only the owner and
     // collaborators see unreviewed drop-form tips in full.
+    // Archive references and scan states stay inside the COP too (cop-archive.ts).
     const collaborator = Boolean(await verifyCopSessionAccess(env.DB, sessionId, userId))
-    const evidence = (results.results ?? []).map((row) => (collaborator ? row : maskTipEvidenceRow(row)))
+    const evidence = (results.results ?? []).map((row) => (collaborator
+      ? { ...row, ...archiveFields(row) }
+      : stripPrivateEvidenceFields(maskTipEvidenceRow(row))))
 
     return new Response(JSON.stringify({ evidence }), { headers: JSON_HEADERS })
   } catch (error) {
@@ -153,10 +168,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       }
     }
 
+    const archiveRef = cleanArchiveRef(body.source_ref, env)
+    if (archiveRef.ok === false) return new Response(JSON.stringify({ error: archiveRef.error }), { status: 400, headers: JSON_HEADERS })
+    const scanState = cleanScanState(body.scan_state)
+    if (scanState.ok === false) return new Response(JSON.stringify({ error: scanState.error }), { status: 400, headers: JSON_HEADERS })
+
     const now = new Date().toISOString()
 
-    const ALLOWED_SOURCE_TYPES = ['observation', 'document', 'image', 'video', 'testimony', 'signal']
-    const ALLOWED_CREDIBILITY = ['confirmed', 'probable', 'possible', 'doubtful', 'unverified']
+    const ALLOWED_SOURCE_TYPES = ['observation', 'document', 'image', 'video', 'audio', 'testimony', 'signal']
     const sourceType = ALLOWED_SOURCE_TYPES.includes(body.source_type) ? body.source_type : 'observation'
     const credibility = ALLOWED_CREDIBILITY.includes(body.credibility) ? body.credibility : 'unverified'
 
@@ -182,7 +201,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     const id = result.meta?.last_row_id ?? 0
     await setEvidenceSession(env.DB, id, sessionId)
-    await setProvenance(env.DB, 'evidence_items', id, copSourceChannel(context), copSourceRef(context))
+    // An archive reference (silo:/peertube:) takes the place of the client id.
+    await setProvenance(env.DB, 'evidence_items', id, copSourceChannel(context), archiveRef.value ?? copSourceRef(context))
+    if (scanState.value) {
+      await env.DB.prepare('UPDATE evidence_items SET metadata = ? WHERE id = ?')
+        .bind(JSON.stringify({ scan_state: scanState.value }), id).run()
+    }
     if (canonical) {
       try {
         await env.DB.prepare('UPDATE evidence_items SET canonical_url = ? WHERE id = ?').bind(canonical, id).run()
@@ -226,6 +250,101 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     return new Response(JSON.stringify({
       error: 'Failed to create evidence',
     }), { status: 500, headers: JSON_HEADERS })
+  }
+}
+
+const MAX_TITLE = 300
+const MAX_DESCRIPTION = 20_000
+
+export const onRequestPut: PagesFunction<Env> = async (context) => {
+  const { request, env, params } = context
+  const sessionId = params.id as string
+  const reply = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: JSON_HEADERS })
+
+  try {
+    const userId = await copCallerUserId(context)
+    if (!userId) return reply({ error: 'Authentication required' }, 401)
+    const workspaceId = await requireCopEditor(env.DB, sessionId, userId)
+    if (!workspaceId) return reply({ error: 'Access denied' }, 403)
+
+    let body: Record<string, unknown>
+    try {
+      const parsed = await request.json()
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return reply({ error: 'Expected a JSON object' }, 400)
+      body = parsed as Record<string, unknown>
+    } catch {
+      return reply({ error: 'Expected a JSON object' }, 400)
+    }
+    const rawId = String(body.id ?? '')
+    if (!/^\d{1,15}$/.test(rawId)) return reply({ error: 'id is required' }, 400)
+
+    const existing = await queryEvidenceInSession(
+      env.DB,
+      'SELECT id, created_by, metadata FROM evidence_items WHERE id = ? AND {EVIDENCE_SCOPE}',
+      { sessionId, workspaceId }, [Number(rawId)], [],
+      (statement) => statement.first<{ id: number; created_by: number; metadata: string | null }>(),
+    )
+    if (!existing) return reply({ error: 'Evidence not found' }, 404)
+    if (!serviceMayChange(context, existing.created_by)) return serviceChangeRefused()
+
+    const sets: string[] = []
+    const binds: unknown[] = []
+    if (body.title !== undefined) {
+      const title = typeof body.title === 'string' ? body.title.trim() : ''
+      if (!title || title.length > MAX_TITLE) return reply({ error: `title must be 1–${MAX_TITLE} characters` }, 400)
+      sets.push('title = ?'); binds.push(title)
+    }
+    if (body.description !== undefined) {
+      const description = typeof body.description === 'string' ? body.description.trim() : null
+      if (description === null || description.length > MAX_DESCRIPTION) return reply({ error: 'description must be text' }, 400)
+      sets.push('description = ?'); binds.push(description)
+    }
+    if (body.credibility !== undefined) {
+      if (!ALLOWED_CREDIBILITY.includes(String(body.credibility))) return reply({ error: 'credibility is not valid' }, 400)
+      sets.push('credibility = ?'); binds.push(body.credibility)
+    }
+    const archiveRef = cleanArchiveRef(body.source_ref, env)
+    if (archiveRef.ok === false) return reply({ error: archiveRef.error }, 400)
+    const scanState = cleanScanState(body.scan_state)
+    if (scanState.ok === false) return reply({ error: scanState.error }, 400)
+    if (scanState.value) {
+      sets.push('metadata = ?'); binds.push(JSON.stringify({ ...readMetadata(existing.metadata), scan_state: scanState.value }))
+    }
+    if (sets.length === 0 && archiveRef.value === undefined) return reply({ error: 'No valid fields to update' }, 400)
+
+    const now = new Date().toISOString()
+    if (sets.length > 0) {
+      sets.push('updated_at = ?'); binds.push(now)
+      await env.DB.prepare(`UPDATE evidence_items SET ${sets.join(', ')} WHERE id = ? AND workspace_id = ?`)
+        .bind(...binds, Number(rawId), workspaceId).run()
+    }
+    if (archiveRef.value !== undefined) {
+      try {
+        await env.DB.prepare('UPDATE evidence_items SET source_ref = ?, updated_at = ? WHERE id = ? AND workspace_id = ?')
+          .bind(archiveRef.value ?? copSourceRef(context), now, Number(rawId), workspaceId).run()
+      } catch (error) {
+        if (!isMissingColumn(error)) throw error
+        return reply({ error: 'Archive references are not available on this server yet' }, 503)
+      }
+    }
+
+    await emitCopEvent(env.DB, {
+      copSessionId: sessionId,
+      eventType: EVIDENCE_UPDATED,
+      entityType: 'evidence',
+      entityId: rawId,
+      createdBy: userId,
+    })
+    const evidence = await evidenceRow(env.DB, Number(rawId), workspaceId)
+    return reply({ evidence })
+  } catch (error) {
+    await logEvent(env, {
+      level: 'error',
+      source: 'cop/evidence',
+      message: String(error instanceof Error ? error.message : error).slice(0, 500),
+      context: { error: String(error) },
+    })
+    return reply({ error: 'Failed to update evidence' }, 500)
   }
 }
 

@@ -48,7 +48,7 @@ export interface EvidenceInput {
   title: string
   description: string
   sourceUrl: string | null
-  evidenceType: 'observation' | 'image' | 'document'
+  evidenceType: 'observation' | 'image' | 'document' | 'audio'
   credibility: 'confirmed' | 'probable' | 'possible' | 'doubtful' | 'unverified'
   sourceName: string | null
   sourceChannel: SourceChannel
