@@ -144,7 +144,7 @@ export default function CopCamsPanel({ sessionId, focusCamId, onChanged, onPickF
           fov_deg: optionalNumber(draft.fov),
         },
       })
-      if (!res.ok) {
+      if (res.ok === false) {
         if (res.code === 'WEBCAM_UNSUPPORTED_LINK') setUnsupportedLink(url)
         setSubmitError(
           res.code === 'WEBCAM_DUPLICATE' ? 'That camera is already on this COP.'
@@ -194,7 +194,7 @@ export default function CopCamsPanel({ sessionId, focusCamId, onChanged, onPickF
         method: 'DELETE',
         headers: getCopHeaders(),
       })
-      if (!res.ok) {
+      if (res.ok === false) {
         const json = await res.json().catch(() => null) as { error?: string } | null
         setLoadError(json?.error ?? `The webcam could not be removed (HTTP ${res.status}).`)
         return

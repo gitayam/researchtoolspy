@@ -88,7 +88,7 @@ export default function EditWebcamDialog({
       { method: 'POST', body: {} },
     )
     setEstimating(false)
-    if (!res.ok) {
+    if (res.ok === false) {
       setEstimateError(estimateErrorMessage(res))
       return
     }
@@ -117,7 +117,7 @@ export default function EditWebcamDialog({
       { method: 'PATCH', body: built.patch },
     )
     setSaving(false)
-    if (!res.ok) {
+    if (res.ok === false) {
       setSaveError(saveErrorMessage(res.status, res.error))
       return
     }

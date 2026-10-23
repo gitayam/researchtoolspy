@@ -109,7 +109,7 @@ export default function FindWebcamsDialog({
         { signal: controller.signal },
       )
       if (controller.signal.aborted) return
-      if (!res.ok) {
+      if (res.ok === false) {
         setResult(null)
         setError(nearbyErrorMessage(res, !placeText && !!opts.fromUrl))
         return
@@ -158,7 +158,7 @@ export default function FindWebcamsDialog({
       // The server fills the position (and the title, when it can reach Windy).
       body: { url: `windy:${cam.windy_id}`, label: cam.title.trim().slice(0, 120) || undefined },
     })
-    if (res.ok) {
+    if (res.ok === true) {
       setRows((r) => ({ ...r, [cam.windy_id]: {} }))
       markOnSession(cam.windy_id)
       onAdded()
