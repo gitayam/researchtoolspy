@@ -23,6 +23,9 @@ import { cn } from '@/lib/utils'
 import { getCopHeaders } from '@/lib/cop-auth'
 import CopArtifactLightbox from '@/components/cop/CopArtifactLightbox'
 import { CopItemTags } from '@/components/cop/CopItemTags'
+import { FileUnderQuestions, QuestionFilterSelect } from '@/components/cop/evidence-links/FileUnderQuestions'
+import { useCopEvidenceLinks, useCopQuestions } from '@/hooks/useCopEvidenceLinks'
+import { evidenceIdsFor } from '@/lib/cop-evidence-links'
 import { useBulkSelection } from '@/hooks/useBulkSelection'
 import { TagFilterNote } from '@/components/cop/CopTagFilter'
 import { useCopTagFilter } from '@/components/cop/tag-filter-context'
@@ -168,6 +171,10 @@ export default function CopEvidenceFeed({
   const [url, setUrl] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [typeFilter, setTypeFilter] = useState<string>('all')
+  // "Evidence for: <question>" — '' shows everything.
+  const [questionFilter, setQuestionFilter] = useState<string>('')
+  const { links: evidenceLinks } = useCopEvidenceLinks(sessionId)
+  const { questions: copQuestions } = useCopQuestions(sessionId)
   const [newItemCount, setNewItemCount] = useState(0)
   const [autoScroll, setAutoScroll] = useState(true)
   const tagFilter = useCopTagFilter()
@@ -464,9 +471,12 @@ export default function CopEvidenceFeed({
         return true
       })
   // The page's tag filter applies to saved items; ones still being analysed stay visible.
-  const filteredItems = tagFilter.filtering
+  const tagFiltered = tagFilter.filtering
     ? typeFiltered.filter(item => item.status !== 'completed' || tagFilter.passes('evidence', item.id))
     : typeFiltered
+  const filedUnder = questionFilter ? evidenceIdsFor(evidenceLinks, 'rfi', questionFilter) : null
+  const filteredItems = filedUnder ? tagFiltered.filter(item => filedUnder.has(String(item.id))) : tagFiltered
+  const filterQuestion = questionFilter ? copQuestions.find(q => q.id === questionFilter) : undefined
 
   const visibleItems = expanded ? filteredItems.slice(0, 100) : filteredItems.slice(0, 10)
 
@@ -578,7 +588,20 @@ export default function CopEvidenceFeed({
               {type === 'all' ? `All (${items.length})` : type === 'url_analysis' ? 'URL Analysis' : type.charAt(0).toUpperCase() + type.slice(1)}
             </button>
           ))}
+          <QuestionFilterSelect sessionId={sessionId} value={questionFilter} onChange={setQuestionFilter} className="ml-auto pl-1" />
         </div>
+        {filterQuestion && (
+          <p className="flex flex-wrap items-center gap-1 px-3 py-1 text-[11px] text-gray-600 dark:text-gray-300" role="status">
+            <span>Showing {filteredItems.length} filed under “{filterQuestion.question}”.</span>
+            <button
+              type="button"
+              onClick={() => setQuestionFilter('')}
+              className="rounded px-1 text-blue-600 hover:underline dark:text-blue-400 pointer-coarse:min-h-11 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500"
+            >
+              Show all
+            </button>
+          </p>
+        )}
 
         {/* Monitor mode controls */}
         {monitorMode && (
@@ -622,7 +645,7 @@ export default function CopEvidenceFeed({
           )
         )}
 
-        <TagFilterNote shown={filteredItems.length} total={typeFiltered.length} />
+        <TagFilterNote shown={tagFiltered.length} total={typeFiltered.length} />
 
         {/* Handle detection prompts */}
         {handleDetections.length > 0 && (
@@ -872,6 +895,7 @@ export default function CopEvidenceFeed({
                           <CopUploadDownload path={item.url!} filename={`${item.title}.pdf`} className="mt-1" />
                         )}
                         {saved && <CopItemTags targetType="evidence" targetId={item.id} label="evidence item" />}
+                        {saved && <FileUnderQuestions sessionId={sessionId} evidenceId={String(item.id)} />}
                         <div className="flex items-center gap-2 mt-0.5">
                           <span className="text-[10px] text-gray-500">
                             {timeAgo(item.created_at)}

@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button'
 import type { CopRfi, CopRfiAnswer, CopRfiPriority } from '@/types/cop'
 import { RFI_PRIORITY_COLORS } from '@/types/cop'
 import { splitKeyQuestions, type QuestionLike } from '@/components/cop/shell/key-questions'
+import { FiledEvidence } from '@/components/cop/evidence-links/FiledEvidence'
 
 /** An RFI as the list returns it; `is_key` once the server stars key questions. */
 type KeyRfi = CopRfi & QuestionLike
@@ -121,14 +122,36 @@ export default function CopRfiTab({ sessionId, onRfiCountChange, keyQuestions }:
   const [trackingKey, setTrackingKey] = useState<string | null>(null)
   const [trackError, setTrackError] = useState<string | null>(null)
 
-  const createKeyRfi = useCallback(async (question: string) => {
+  const createKeyRfi = useCallback(async (question: string): Promise<string | null> => {
     const res = await fetch(`/api/cop/${sessionId}/rfis`, {
       method: 'POST',
       headers: getCopHeaders(),
       body: JSON.stringify({ question, priority: 'high', requester_name: 'Key question', is_key: true }),
     })
     if (!res.ok) throw new Error(res.status === 403 ? 'Only the session owner or an editor can add questions.' : `Couldn't add it (HTTP ${res.status}).`)
+    const body = await res.json().catch(() => null) as { id?: unknown } | null
+    return typeof body?.id === 'string' ? body.id : null
   }, [sessionId])
+
+  // Evidence is filed under an RFI: a key question not tracked yet becomes one first,
+  // then opens with "Add evidence" ready. Its status stays open.
+  const [addEvidenceFor, setAddEvidenceFor] = useState<string | null>(null)
+  const trackAndAddEvidence = useCallback(async (question: string) => {
+    setTrackError(null)
+    setTrackingKey(question)
+    try {
+      const id = await createKeyRfi(question)
+      await fetchRfis()
+      if (id) {
+        setExpandedRfi(id)
+        setAddEvidenceFor(id)
+      }
+    } catch (err) {
+      setTrackError(err instanceof Error ? err.message : "Couldn't add it.")
+    } finally {
+      setTrackingKey(null)
+    }
+  }, [createKeyRfi, fetchRfis])
 
   const trackKeyQuestions = useCallback(async (questions: string[]) => {
     setTrackError(null)
@@ -437,6 +460,14 @@ export default function CopRfiTab({ sessionId, onRfiCountChange, keyQuestions }:
                   <span className="flex-1 text-xs text-gray-800 dark:text-gray-200">{question}</span>
                   <button
                     type="button"
+                    onClick={() => trackAndAddEvidence(question)}
+                    disabled={trackingKey !== null}
+                    className="shrink-0 rounded px-1.5 py-0.5 pointer-coarse:min-h-11 pointer-coarse:px-3 text-[11px] font-medium text-amber-800 hover:bg-amber-100 disabled:opacity-50 dark:text-amber-300 dark:hover:bg-amber-900/40 cursor-pointer"
+                  >
+                    Add evidence
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => trackKeyQuestions([question])}
                     disabled={trackingKey !== null}
                     className="shrink-0 rounded border border-amber-400/70 px-1.5 py-0.5 pointer-coarse:min-h-11 pointer-coarse:px-3 text-[11px] font-medium text-amber-800 hover:bg-amber-100 disabled:opacity-50 dark:border-amber-700 dark:text-amber-300 dark:hover:bg-amber-900/40 cursor-pointer"
@@ -527,6 +558,11 @@ export default function CopRfiTab({ sessionId, onRfiCountChange, keyQuestions }:
                           by {(rfi as any).requester_name}
                         </span>
                       )}
+                      {(rfi.evidence_count ?? 0) > 0 && (
+                        <span className="text-[10px] font-medium text-gray-600 dark:text-gray-300">
+                          {rfi.evidence_count} evidence
+                        </span>
+                      )}
                       {answers.length > 0 && (
                         <span className="text-[10px] text-gray-500">
                           {answers.length} answer{answers.length !== 1 ? 's' : ''}
@@ -595,6 +631,18 @@ export default function CopRfiTab({ sessionId, onRfiCountChange, keyQuestions }:
                       )}
                     </div>
 
+                    <FiledEvidence
+                      sessionId={sessionId}
+                      targetType="rfi"
+                      targetId={rfi.id}
+                      label="question"
+                      startOpen={addEvidenceFor === rfi.id}
+                      className="rounded border border-gray-200 bg-white/60 p-2 dark:border-gray-700 dark:bg-gray-900/30"
+                    />
+
+                    <h4 className="pt-1 text-[11px] font-semibold text-gray-700 dark:text-gray-200">
+                      Answers <span className="font-normal text-gray-500 dark:text-gray-400">(optional — the question can stay open)</span>
+                    </h4>
                     {answers.length > 0 ? (
                       answers.map(answer => (
                         <div

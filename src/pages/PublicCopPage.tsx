@@ -44,11 +44,13 @@ import EvidenceSubmitSheet from '@/components/cop/shell/EvidenceSubmitSheet'
 import { useIsPhone } from '@/components/cop/shell/useMediaQuery'
 import { usePublicCopChanges, type ChangeMode } from '@/components/cop/shell/usePublicCopChanges'
 import { splitKeyQuestions, type QuestionLike } from '@/components/cop/shell/key-questions'
+import { RelationChip } from '@/components/cop/evidence-links/RelationChip'
 import { cn } from '@/lib/utils'
 import type {
   CopSession,
   CopFeatureCollection,
   CopLayerDef,
+  CopPublicFiledEvidence,
   CopRfi,
   CopWebcam,
   EventFact,
@@ -61,10 +63,12 @@ import {
 
 // ── Types ────────────────────────────────────────────────────────
 
-type PublicRfi = CopRfi & QuestionLike & { answer_count?: number }
+/** Evidence filed under a question: the count always, the items only with the evidence panel. */
+type FiledOnShare = { evidence_count?: number; evidence?: CopPublicFiledEvidence[] }
+type PublicRfi = CopRfi & QuestionLike & { answer_count?: number } & FiledOnShare
 
 /** A starred RFI as the share sends it with the `questions` panel. */
-interface PublicKeyRfi {
+interface PublicKeyRfi extends FiledOnShare {
   id: string
   question: string
   status: CopRfi['status']
@@ -452,6 +456,51 @@ export default function PublicCopPage() {
     )
   }
 
+  /** What has been filed under a question: the items with the evidence panel, else the count. */
+  function renderFiledEvidence(rfi: PublicRfi) {
+    const count = rfi.evidence_count ?? 0
+    if (!Array.isArray(rfi.evidence)) {
+      return count > 0
+        ? <p className="text-xs text-gray-400">{count} evidence item{count !== 1 ? 's' : ''} filed under this question.</p>
+        : null
+    }
+    if (rfi.evidence.length === 0) return <p className="text-xs text-gray-500">No evidence filed under this question yet.</p>
+    return (
+      <div className="space-y-1.5">
+        <p className="text-xs font-medium text-gray-300">Evidence filed under this question</p>
+        <ul className="space-y-1.5">
+          {rfi.evidence.map((item, i) => (
+            <li key={`${item.created_at}-${i}`} className="flex items-start gap-2 rounded-md bg-gray-800 p-2">
+              <RelationChip relation={item.relation} onDark className="mt-0.5 shrink-0" />
+              <div className="min-w-0 flex-1">
+                <p className="break-words text-sm text-gray-200">{item.title}</p>
+                <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                  {item.credibility && <span>{item.credibility}</span>}
+                  {item.created_at && <span>{new Date(item.created_at).toLocaleString()}</span>}
+                  {isHttpsUrl(item.url) && (
+                    <a
+                      href={item.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      referrerPolicy="no-referrer"
+                      className="inline-flex min-h-11 items-center gap-1 text-blue-400 hover:text-blue-300 sm:min-h-0"
+                    >
+                      <Link2 className="h-3 w-3" aria-hidden="true" />
+                      Source
+                    </a>
+                  )}
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
+        {count > rfi.evidence.length && (
+          <p className="text-xs text-gray-500">Showing the newest {rfi.evidence.length} of {count}.</p>
+        )}
+      </div>
+    )
+  }
+
   function renderRfi(rfi: PublicRfi, starred: boolean) {
     const isExpanded = expandedRfis.has(rfi.id)
     const priorityColor = RFI_PRIORITY_COLORS[rfi.priority] ?? '#6b7280'
@@ -496,6 +545,9 @@ export default function PublicCopPage() {
               >
                 {rfi.status}
               </span>
+              {(rfi.evidence_count ?? 0) > 0 && (
+                <span className="text-gray-300">{rfi.evidence_count} evidence</span>
+              )}
               {answerCount > 0 && (
                 <span className="text-gray-400">{answerCount} answer{answerCount !== 1 ? 's' : ''}</span>
               )}
@@ -505,6 +557,7 @@ export default function PublicCopPage() {
 
         {isExpanded && (
           <div id={panelId} className="border-t border-gray-700 px-3 py-3 space-y-2">
+            {renderFiledEvidence(rfi)}
             {answers.length === 0 && (
               <p className="text-xs text-gray-500">No answers yet.</p>
             )}

@@ -94,6 +94,16 @@ interface PublicIntakeFormProps {
   onSubmitted?: (result: { ingested: IntakeIngested | null }) => void
 }
 
+/** The question choices a form config sends: id and text only, at most 50, never anything else. */
+function questionChoices(raw: unknown): { id: string; question: string }[] {
+  if (!Array.isArray(raw)) return []
+  return raw
+    .filter((c): c is { id: string; question: string } =>
+      !!c && typeof c === 'object' && typeof (c as { id?: unknown }).id === 'string' && typeof (c as { question?: unknown }).question === 'string')
+    .slice(0, 50)
+    .map((c) => ({ id: c.id, question: c.question.slice(0, 500) }))
+}
+
 export default function PublicIntakeForm({ token, isDropMode = false, embedded = false, onSubmitted }: PublicIntakeFormProps) {
   // Full-page screens fill the window; embedded ones fit their sheet.
   const screen = embedded ? 'py-10' : 'min-h-screen'
@@ -105,6 +115,8 @@ export default function PublicIntakeForm({ token, isDropMode = false, embedded =
     require_location: boolean; require_contact: boolean
     facts: { text: string; as_of: string }[]
     changelog: { date: string; entry: string }[]
+    /** The COP's key questions, when the form's owner lets tipsters pick one. */
+    question_choices: { id: string; question: string }[]
   } | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -151,6 +163,7 @@ export default function PublicIntakeForm({ token, isDropMode = false, embedded =
           require_contact: data.require_contact,
           facts: data.facts || [],
           changelog: data.changelog || [],
+          question_choices: questionChoices(data.question_choices),
         })
         setThemeColor(data.theme_color || null)
         setLogoUrl(data.logo_url || null)
@@ -194,6 +207,7 @@ export default function PublicIntakeForm({ token, isDropMode = false, embedded =
         require_contact: data.require_contact,
         facts: data.facts || [],
         changelog: data.changelog || [],
+        question_choices: questionChoices(data.question_choices),
       })
       setSuccessMessage(data.success_message || null)
       setFormPassword(passwordInput)
@@ -884,6 +898,59 @@ export default function PublicIntakeForm({ token, isDropMode = false, embedded =
               )}
             </div>
           ))}
+
+          {/* Which key question the tip is about (the form owner's choice to offer it).
+              Sent as helper keys `_question` / `_question_relation`; the server files the
+              tip under it only if it is one of this COP's key questions. */}
+          {formMeta.question_choices.length > 0 && (
+            <fieldset className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 p-4 space-y-2">
+              <legend className="px-1 text-sm font-semibold text-slate-800 dark:text-slate-200">
+                Which question is this about? <span className="font-normal text-slate-500">(optional)</span>
+              </legend>
+              <div className="space-y-1">
+                {[{ id: '', question: 'Not sure / none of these' }, ...formMeta.question_choices].map(choice => (
+                  <label
+                    key={choice.id || 'none'}
+                    className="flex min-h-11 cursor-pointer items-start gap-2 rounded-lg px-2 py-2 text-sm text-slate-800 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800/60 has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-blue-500"
+                  >
+                    <input
+                      type="radio"
+                      name={`${idBase}-question`}
+                      value={choice.id}
+                      checked={(formData._question ?? '') === choice.id}
+                      onChange={() => setFormData(prev => {
+                        const next: Record<string, string> = { ...prev, _question: choice.id }
+                        if (!choice.id) { delete next._question; delete next._question_relation }
+                        return next
+                      })}
+                      className="mt-0.5 h-4 w-4 shrink-0"
+                    />
+                    <span className={choice.id ? '' : 'text-slate-500 dark:text-slate-400'}>{choice.question}</span>
+                  </label>
+                ))}
+              </div>
+              {formData._question && (
+                <div role="radiogroup" aria-label="Does it support or contradict that?" className="flex flex-wrap gap-2 pt-1">
+                  {([['supports', 'It supports / answers it'], ['contradicts', 'It contradicts it']] as const).map(([value, text]) => (
+                    <label
+                      key={value}
+                      className="flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border border-slate-300 px-3 text-sm text-slate-800 dark:border-slate-700 dark:text-slate-200 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50 dark:has-[:checked]:bg-blue-950/40 has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-blue-500"
+                    >
+                      <input
+                        type="radio"
+                        name={`${idBase}-relation`}
+                        value={value}
+                        checked={(formData._question_relation ?? 'supports') === value}
+                        onChange={() => setFormData(prev => ({ ...prev, _question_relation: value }))}
+                        className="h-4 w-4"
+                      />
+                      {text}
+                    </label>
+                  ))}
+                </div>
+              )}
+            </fieldset>
+          )}
 
           {/* About you section. An anonymous drop sends no name or contact (drop-submit
               takes form_data only), so it doesn't ask for them. */}
