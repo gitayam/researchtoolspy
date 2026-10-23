@@ -17,6 +17,7 @@ import {
 import { JSON_HEADERS } from '../../../_shared/api-utils'
 import { logEvent } from '../../../_shared/event-log'
 import { copCallerUserId } from '../../../_shared/cop-caller'
+import { deleteLinksOf } from '../../../_shared/cop-evidence-links'
 import {
   expectedUpdatedAt, isMissingColumn, rewriteSessionKeyQuestions, serviceChangeRefused, serviceDeleteRefused,
   serviceMayChange, serviceMayDelete, staleWriteResponse,
@@ -205,6 +206,8 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
         status: 404, headers: JSON_HEADERS,
       })
     }
+    // The evidence filed under it stays in the COP; only the filings go.
+    await deleteLinksOf(env.DB, sessionId, { targetType: 'rfi', targetId: rfiId })
 
     await emitCopEvent(env.DB, {
       copSessionId: sessionId,

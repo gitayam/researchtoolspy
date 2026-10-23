@@ -16,6 +16,7 @@
  * NULL in one UPDATE) makes a double submit, a retry or two reviewers clicking at
  * once produce one evidence item.
  */
+import { deleteLinksOf, fileTipUnderChosenQuestion, linksTableMissing } from './cop-evidence-links'
 import { applyItemTags, cleanTagName, dropItemTags, tagsTableMissing } from './cop-tags'
 import { emitCopEventLoose } from './cop-events-loose'
 import { queryEvidenceInSession } from './cop-input'
@@ -329,6 +330,19 @@ export async function ingestSubmission(
     }
   }
 
+  // The key question the tipster picked, if the form offers that (migration 0024).
+  try {
+    await fileTipUnderChosenQuestion(db, {
+      formId: form.id,
+      scope: { sessionId: input.sessionId, workspaceId: scope.workspaceId },
+      evidenceId,
+      formData,
+      actorUserId: actor,
+    })
+  } catch (error) {
+    if (!linksTableMissing(error)) console.error('[cop-ingest] tip not filed under its question:', error instanceof Error ? error.message : error)
+  }
+
   const tag = cleanTagName(form.auto_tag_category ?? '')
   if (tag) {
     try {
@@ -468,6 +482,8 @@ export async function retractAutoIngest(
     )
     if (removed.meta?.changes) {
       await dropItemTags(db, input.sessionId, 'evidence', evidenceId)
+      // Its filings under questions go with it (else they'd linger as orphans).
+      await deleteLinksOf(db, input.sessionId, { evidenceId })
       await emitCopEventLoose(db, {
         copSessionId: input.sessionId, eventType: 'evidence.deleted', entityType: 'evidence', entityId: evidenceId,
         payload: { reason: 'submission_rejected' }, createdBy: input.actorUserId,

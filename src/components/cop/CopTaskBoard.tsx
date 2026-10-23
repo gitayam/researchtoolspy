@@ -3,6 +3,7 @@ import { getCopHeaders } from '@/lib/cop-auth'
 import { notifyCopChanged } from '@/lib/cop-request'
 import { useCopChangeListener } from '@/hooks/useCopChanges'
 import { CopItemTags } from '@/components/cop/CopItemTags'
+import { FiledEvidence } from '@/components/cop/evidence-links/FiledEvidence'
 import { useBulkSelection } from '@/hooks/useBulkSelection'
 import { TagFilterNote } from '@/components/cop/CopTagFilter'
 import { useCopTagFilter } from '@/components/cop/tag-filter-context'
@@ -56,6 +57,8 @@ interface CopTask {
   completed_at: string | null
   created_at: string
   updated_at: string
+  /** Evidence filed under the task (migration 0024). */
+  evidence_count?: number
 }
 
 interface CopTaskBoardProps {
@@ -333,6 +336,9 @@ export default function CopTaskBoard({ sessionId, expanded = true }: CopTaskBoar
                   {getInitials(task.assigned_to)}
                 </span>
               )}
+              {(task.evidence_count ?? 0) > 0 && (
+                <span className="text-[10px] font-medium text-gray-600 dark:text-gray-300">{task.evidence_count} evidence</span>
+              )}
             </div>
           </div>
 
@@ -392,6 +398,8 @@ export default function CopTaskBoard({ sessionId, expanded = true }: CopTaskBoar
                 </span>
               )}
             </div>
+
+            <FiledEvidence sessionId={sessionId} targetType="task" targetId={task.id} label="task" />
 
             {/* Status change buttons */}
             {transitions.length > 0 && (

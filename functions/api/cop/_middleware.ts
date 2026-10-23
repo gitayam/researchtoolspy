@@ -85,7 +85,7 @@ const NON_MUTATING_POST = /^\/api\/cop\/[^/]+\/(?:suggest|geocode|webcams\/[^/]+
 export function entityTypeForCopPath(pathname: string): CopFeedEntityType {
   const segment = /^\/api\/cop\/[^/]+\/([^/?]+)/.exec(pathname)?.[1] ?? ''
   switch (segment) {
-    case 'evidence': case 'scrape': return 'evidence'
+    case 'evidence': case 'scrape': case 'evidence-links': return 'evidence'
     case 'markers': case 'marker-changelog': case 'cot': return 'marker'
     case 'rfis': return 'rfi'
     case 'tasks': case 'task-templates': case 'task-dependencies': return 'task'

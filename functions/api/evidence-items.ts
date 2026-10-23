@@ -2,6 +2,7 @@
 import { getUserFromRequest } from './_shared/auth-helpers'
 import { CORS_HEADERS, JSON_HEADERS, safeJsonParse } from './_shared/api-utils'
 import { checkWorkspaceAccess } from './_shared/workspace-helpers'
+import { deleteLinksOfEvidenceAnywhere } from './_shared/cop-evidence-links'
 
 function serializeJson(value: unknown): string | null {
   if (value === undefined || value === null) return null
@@ -557,6 +558,8 @@ export async function onRequest(context: any) {
           headers: JSON_HEADERS,
         })
       }
+      // Its filings under COP questions and tasks go with it.
+      await deleteLinksOfEvidenceAnywhere(env.DB, String(evidenceId))
 
       return new Response(JSON.stringify({ message: 'Evidence deleted successfully' }), {
         status: 200,
