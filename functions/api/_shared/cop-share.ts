@@ -43,12 +43,14 @@ const LAYER_IDS: Record<string, readonly string[]> = {
   assets: ['assets'],
   markers: ['cop-markers', 'markers'],
   analysis: ['deception-risk', 'framework-overlay'],
+  webcams: ['webcams'],
 }
 
 /**
  * May a share read this map layer of its session? Only a layer the session has
- * switched on, never `assets` (human sources and their positions) unless a panel
- * explicitly shares it, and never on an archived session.
+ * switched on, never `assets` (human sources and their positions) or `webcams`
+ * unless a panel (`assets`, `cams`) explicitly shares it, and never on an
+ * archived session.
  */
 export function shareMayReadLayer(
   session: { status?: unknown; active_layers?: unknown },
@@ -58,6 +60,7 @@ export function shareMayReadLayer(
 ): boolean {
   if (!layer || sessionArchived(session)) return false
   if (layer === 'assets' && !panels.includes('assets')) return false
+  if (layer === 'webcams' && !panels.includes('cams')) return false
   let ids = LAYER_IDS[layer] ?? []
   if (layer === 'analysis') {
     // Same default as layers/analysis.ts: no type means deception.

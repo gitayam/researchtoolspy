@@ -28,7 +28,7 @@ export const COP_SERVICE_ROUTES: readonly { method: string; path: RegExp }[] = [
   },
   {
     method: 'POST',
-    path: /^\/api\/cop\/(?!public(?:\/|$)|sessions(?:\/|$))[^/]+\/(?:shares|rfis|evidence|markers|timeline|tasks|poo-estimates|personas|claims|hypotheses)$/,
+    path: /^\/api\/cop\/(?!public(?:\/|$)|sessions(?:\/|$))[^/]+\/(?:shares|rfis|evidence|markers|timeline|tasks|poo-estimates|personas|claims|hypotheses|webcams)$/,
   },
   {
     method: 'PUT',

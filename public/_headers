@@ -16,6 +16,21 @@
   Permissions-Policy: camera=(), microphone=(), geolocation=()
   Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https: http:; worker-src 'self' blob:; connect-src 'self' https://api.openai.com https://*.tiles.mapbox.com https://*.maplibre.org https://*.maptiler.com https://demotiles.maplibre.org https://*.cartocdn.com https://nominatim.openstreetmap.org https://researchtools.net https://researchtoolspy.pages.dev http://localhost:* https://api.apify.com https://cloudflareinsights.com; frame-src 'self'; object-src 'none'; base-uri 'self'
 
+# COP pages embed webcam players (src/components/cop/cams). Same policy as /*,
+# plus: frame-src for the Windy and YouTube (nocookie) players, and media-src /
+# connect-src for HLS_HOSTS in functions/api/_shared/webcam-url.ts (blob: for
+# hls.js). Pages joins a header set by two matching rules with a comma, which a
+# browser enforces as two policies (the stricter /* one would still block the
+# players), so `!` first detaches the /* policy and this rule sets the whole one.
+# These rules must stay below /*. Any other page keeps the global policy.
+/dashboard/cop/*
+  ! Content-Security-Policy
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https: http:; worker-src 'self' blob:; connect-src 'self' https://api.openai.com https://*.tiles.mapbox.com https://*.maplibre.org https://*.maptiler.com https://demotiles.maplibre.org https://*.cartocdn.com https://nominatim.openstreetmap.org https://researchtools.net https://researchtoolspy.pages.dev http://localhost:* https://api.apify.com https://cloudflareinsights.com https://wzmedia.dot.ca.gov; frame-src 'self' https://webcams.windy.com https://www.youtube-nocookie.com; media-src 'self' blob: https://wzmedia.dot.ca.gov; object-src 'none'; base-uri 'self'
+
+/public/cop/*
+  ! Content-Security-Policy
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https: http:; worker-src 'self' blob:; connect-src 'self' https://api.openai.com https://*.tiles.mapbox.com https://*.maplibre.org https://*.maptiler.com https://demotiles.maplibre.org https://*.cartocdn.com https://nominatim.openstreetmap.org https://researchtools.net https://researchtoolspy.pages.dev http://localhost:* https://api.apify.com https://cloudflareinsights.com https://wzmedia.dot.ca.gov; frame-src 'self' https://webcams.windy.com https://www.youtube-nocookie.com; media-src 'self' blob: https://wzmedia.dot.ca.gov; object-src 'none'; base-uri 'self'
+
 # Capability URLs must not be indexed, cached or sent to third-party scripts.
 /present/*
   Cache-Control: no-store

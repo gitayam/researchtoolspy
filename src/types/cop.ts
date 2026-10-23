@@ -291,11 +291,37 @@ export interface CopShare {
 
 export type CopSidebarTab = 'event' | 'intel' | 'rfi' | 'questions' | 'layers'
 
+// ── Webcams ─────────────────────────────────────────────────
+
+export type CopWebcamProvider = 'windy' | 'youtube' | 'image' | 'hls'
+export type CopWebcamDelivery = 'live' | 'timelapse' | 'snapshot'
+
+/** A webcam as GET /api/cop/:id/webcams and the public share return it. */
+export interface CopWebcam {
+  id: string
+  provider: CopWebcamProvider
+  provider_ref: string | null
+  page_url: string | null
+  image_url: string | null
+  stream_url: string | null
+  /** Derived by the server from provider_ref (Windy, YouTube); never user-supplied. */
+  embed_url: string | null
+  label: string
+  lat: number | null
+  lon: number | null
+  bearing_deg: number | null
+  fov_deg: number | null
+  delivery: CopWebcamDelivery
+  refresh_s: number | null
+  attribution: string | null
+  created_at: string
+}
+
 // ── Workspace Types ─────────────────────────────────────────
 
 export type CopWorkspaceMode = 'progress' | 'monitor'
 
-export type CopPanelId = 'graph' | 'timeline' | 'questions' | 'analysis' | 'feed' | 'map'
+export type CopPanelId = 'graph' | 'timeline' | 'questions' | 'analysis' | 'feed' | 'map' | 'cams'
 
 export interface CopPanelState {
   visible: boolean
@@ -317,6 +343,7 @@ export const DEFAULT_PANEL_LAYOUT: CopPanelLayout = {
     analysis:  { visible: true, expanded: false, position: [1, 2] },
     feed:      { visible: true, expanded: false, position: [0, 3] },
     map:       { visible: false, expanded: false, position: [0, 4] },
+    cams:      { visible: true, expanded: false, position: [1, 4] },
   },
 }
 

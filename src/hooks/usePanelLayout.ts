@@ -42,6 +42,7 @@ export const DEFAULT_PANELS: PanelConfig[] = [
   { id: 'playbooks',   width: 'full', visible: true },
   { id: 'claims',      width: 'full', visible: true },
   { id: 'evidence',    width: 'full', visible: true },
+  { id: 'cams',        width: 'full', visible: true },
   { id: 'activity',    width: 'full', visible: true },
 ]
 
