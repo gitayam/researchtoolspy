@@ -167,7 +167,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     try { formSchema = form.form_schema ? JSON.parse(form.form_schema) : [] } catch { formSchema = [] }
 
     const rawFormData = body.form_data && typeof body.form_data === 'object' && !Array.isArray(body.form_data) ? body.form_data : {}
-    const cleaned = sanitizeFormDataFiles(rawFormData, parseFormSchema(formSchema))
+    const cleaned = await sanitizeFormDataFiles(rawFormData, parseFormSchema(formSchema))
     if (cleaned.ok === false) {
       return new Response(JSON.stringify({ error: cleaned.error }), { status: 400, headers: JSON_HEADERS })
     }

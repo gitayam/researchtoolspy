@@ -6,6 +6,8 @@ import { convertPooLayerData } from '@/components/cop/poo-geometry'
 import { useCopTagFilter } from '@/components/cop/tag-filter-context'
 import { useCopTagsContext } from '@/components/cop/tags'
 import type { CopTagTargetType } from '@/types/cop'
+import { getLayerById } from '@/components/cop/CopLayerCatalog'
+import { boundsKey, contentBounds, hasStoredView, openingView, WORLD_VIEW } from '@/components/cop/cop-map-view'
 
 type TagsFor = (targetType: CopTagTargetType, targetId: string) => string[]
 const NO_TAGS: TagsFor = () => []
@@ -87,6 +89,11 @@ export default function CopMap({
 }: CopMapProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)
+  // A session without a stored center opens on its own content (cop-map-view.ts) and
+  // follows it as it loads, until the user moves the map.
+  const storedViewRef = useRef(hasStoredView(session))
+  const userMovedRef = useRef(false)
+  const fittedOwnKeyRef = useRef<string | null>(null)
   const popupRef = useRef<maplibregl.Popup | null>(null)
   const addedSourcesRef = useRef<Set<string>>(new Set())
   const [mapError, setMapError] = useState<string | null>(null)
@@ -143,8 +150,9 @@ export default function CopMap({
         map = new maplibregl.Map({
           container: el,
           style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
-          center: [session.center_lon ?? 0, session.center_lat ?? 0],
-          zoom: session.zoom_level ?? 5,
+          ...(storedViewRef.current
+            ? { center: [session.center_lon ?? 0, session.center_lat ?? 0] as [number, number], zoom: session.zoom_level ?? 5 }
+            : WORLD_VIEW),
         })
 
         map.addControl(new maplibregl.NavigationControl(), 'top-right')
@@ -159,6 +167,12 @@ export default function CopMap({
         })
         map.on('moveend', () => { if (map) emitBbox(map) })
         map.on('load', () => { if (map) emitBbox(map) })
+        // Only a person's drag/zoom/rotate carries an originalEvent; our fits don't.
+        const markMoved = (e: { originalEvent?: unknown }) => { if (e.originalEvent) userMovedRef.current = true }
+        map.on('dragstart', markMoved)
+        map.on('zoomstart', markMoved)
+        map.on('rotatestart', markMoved)
+        map.on('pitchstart', markMoved)
 
         mapRef.current = map
       } catch (err) {
@@ -288,6 +302,23 @@ export default function CopMap({
           addLineLayer(map, sourceId, layerId, color)
         } else {
           addPointLayers(map, sourceId, layerId, color, popupRef, onMarkerOpenInFeedRef, tagsForRef)
+        }
+      }
+
+      // Without a stored center: fit the COP's own content (not external feeds), and
+      // follow it as more of it loads until the user moves the map.
+      if (!storedViewRef.current && !userMovedRef.current) {
+        const own = contentBounds(layers as Record<string, { features?: { geometry?: { type: string; coordinates?: unknown } | null }[] }>,
+          (id) => getLayerById(id)?.category !== 'external')
+        if (own) {
+          const key = boundsKey(own)
+          if (key !== fittedOwnKeyRef.current) {
+            fittedOwnKeyRef.current = key
+            hasFittedRef.current = true
+            const view = openingView(own)
+            if (view.kind === 'point') map.jumpTo({ center: view.center, zoom: view.zoom })
+            else map.fitBounds(view.bounds, { padding: view.padding, maxZoom: view.maxZoom, animate: false })
+          }
         }
       }
 

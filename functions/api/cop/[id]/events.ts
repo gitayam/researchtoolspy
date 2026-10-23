@@ -30,7 +30,10 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   if (!userId) {
     return new Response(JSON.stringify({ error: 'Authentication required' }), { status: 401, headers: JSON_HEADERS })
   }
-  const accessWorkspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId, { readOnly: true })
+  // Owner and collaborators only: event payloads carry titles, labels and invitees, so
+  // the signed-in public readers of a public session don't get this list (they have the
+  // payload-free change feed).
+  const accessWorkspaceId = await verifyCopSessionAccess(env.DB, sessionId, userId)
   if (!accessWorkspaceId) {
     return new Response(JSON.stringify({ error: 'Access denied' }), { status: 403, headers: JSON_HEADERS })
   }

@@ -12,9 +12,12 @@ import { emitCopEvent } from '../../_shared/cop-events'
 import { TASK_CREATED, TASK_COMPLETED, TASK_STARTED, TASK_BLOCKED, TASK_UNBLOCKED, TASK_DELETED, TASK_UPDATED } from '../../_shared/cop-event-types'
 import { generatePrefixedId , JSON_HEADERS } from '../../_shared/api-utils'
 import { logEvent } from '../../_shared/event-log'
-import { copCallerUserId } from '../../_shared/cop-caller'
+import { copCallerUserId, copServiceCaller } from '../../_shared/cop-caller'
 import { deleteOrphanTaskLinks, evidenceCounts } from '../../_shared/cop-evidence-links'
-import { copSourceChannel, copSourceRef, expectedUpdatedAt, serviceDeleteRefused, serviceMayDelete, setProvenance, staleWriteResponse } from '../../_shared/cop-input'
+import {
+  copSourceChannel, copSourceRef, expectedUpdatedAt, serviceChangeRefused, serviceDeleteRefused, serviceMayChange, serviceMayDelete,
+  setProvenance, staleWriteResponse,
+} from '../../_shared/cop-input'
 
 interface Env {
   DB: D1Database
@@ -24,6 +27,9 @@ interface Env {
 const VALID_STATUSES = ['todo', 'in_progress', 'done', 'blocked']
 const VALID_PRIORITIES = ['low', 'medium', 'high', 'critical']
 const VALID_TASK_TYPES = ['pimeyes', 'geoguessr', 'forensic', 'osint', 'reverse_image', 'social_media', 'general']
+/** What a service (the Signal bot's !done/!start/!priority/!assign…) may change on its own tasks. */
+// title: the bot marks a cancelled task 'Cancelled: …' (there is no cancelled status).
+const SERVICE_TASK_FIELDS = new Set(['id', 'status', 'priority', 'assigned_to', 'due_date', 'title', 'if_updated_at'])
 
 // GET - List tasks for a COP session
 export const onRequestGet: PagesFunction<Env> = async (context) => {
@@ -222,6 +228,17 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
         status: 404, headers: JSON_HEADERS,
       })
     }
+    // A service (the Signal bot) changes only the tasks it created, and only their
+    // status, priority, assignee and due date.
+    if (copServiceCaller(context.data)) {
+      if (!serviceMayChange(context, existing.created_by)) return serviceChangeRefused()
+      const extra = Object.keys(body).filter((key) => !SERVICE_TASK_FIELDS.has(key))
+      if (extra.length > 0) {
+        return new Response(JSON.stringify({ error: `A service may only change status, priority, assigned_to, due_date and title (not ${extra.join(', ')})` }), {
+          status: 400, headers: JSON_HEADERS,
+        })
+      }
+    }
 
     const expected = expectedUpdatedAt(request, body)
     if (expected && expected !== existing.updated_at) return staleWriteResponse(existing)
@@ -250,8 +267,12 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
     // Build dynamic update
     if (body.title !== undefined) {
+      const title = typeof body.title === 'string' ? body.title.trim() : ''
+      if (!title || title.length > 300) {
+        return new Response(JSON.stringify({ error: 'title must be 1–300 characters' }), { status: 400, headers: JSON_HEADERS })
+      }
       updates.push('title = ?')
-      bindings.push(body.title.trim())
+      bindings.push(title)
     }
     if (body.description !== undefined) {
       updates.push('description = ?')

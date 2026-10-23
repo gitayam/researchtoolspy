@@ -24,7 +24,7 @@ export const COP_SERVICE_ROUTES: readonly { method: string; path: RegExp }[] = [
   { method: 'POST', path: /^\/api\/cop\/sessions$/ },
   {
     method: 'GET',
-    path: /^\/api\/cop\/(?!public(?:\/|$)|sessions(?:\/|$))[^/]+\/(?:claims|stats|webcams\/nearby|tags|item-tags|geocode)$/,
+    path: /^\/api\/cop\/(?!public(?:\/|$)|sessions(?:\/|$))[^/]+\/(?:claims|stats|webcams\/nearby|tags|item-tags|geocode|rfis)$/,
   },
   {
     method: 'POST',
@@ -40,10 +40,17 @@ export const COP_SERVICE_ROUTES: readonly { method: string; path: RegExp }[] = [
     method: 'DELETE',
     path: /^\/api\/cop\/(?!public(?:\/|$)|sessions(?:\/|$))[^/]+\/(?:item-tags|evidence|markers|tasks|timeline|rfis\/[^/]+|evidence-links)$/,
   },
-  // Confirming a bot marker and starring a bot RFI; same own-items rule.
+  // Confirming a bot marker, starring a bot RFI, the bot's !done/!start/!priority/!assign on
+  // its own tasks and updating its own evidence (archive reference, scan state); same
+  // own-items rule in every handler.
   {
     method: 'PUT',
-    path: /^\/api\/cop\/(?!public(?:\/|$)|sessions(?:\/|$))[^/]+\/(?:claims|hypotheses|markers|rfis\/[^/]+)$/,
+    path: /^\/api\/cop\/(?!public(?:\/|$)|sessions(?:\/|$))[^/]+\/(?:claims|hypotheses|markers|tasks|evidence|rfis\/[^/]+)$/,
+  },
+  // The bot's !resolve answers an RFI it created.
+  {
+    method: 'POST',
+    path: /^\/api\/cop\/(?!public(?:\/|$)|sessions(?:\/|$))[^/]+\/rfis\/[^/]+\/answers$/,
   },
 ]
 

@@ -13,6 +13,7 @@ import {
   type PublicSubmissionBody, type PublicSubmissionFormRow,
 } from '../../../../_shared/survey-drops'
 import { enrichResponseUrls } from '../../../../_shared/url-enrichment'
+import { parseFormSchema, sanitizeFormDataFiles } from '../../../../_shared/cop-ingest'
 import { formDataTooLarge, readCappedJson } from '../../../../_shared/capped-body'
 
 interface Env {
@@ -146,7 +147,15 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     let formSchema = []
     try { formSchema = form.form_schema ? JSON.parse(form.form_schema) : [] } catch { formSchema = [] }
 
-    const formData = body.form_data || {}
+    // Inline files: typed from their bytes (images and PDFs only — anonymous submitters
+    // never add documents or audio), image metadata stripped before storage, as on
+    // the evidence-form routes.
+    const rawFormData = body.form_data && typeof body.form_data === 'object' && !Array.isArray(body.form_data) ? body.form_data : {}
+    const cleaned = await sanitizeFormDataFiles(rawFormData, parseFormSchema(formSchema))
+    if (cleaned.ok === false) {
+      return new Response(JSON.stringify({ error: cleaned.error }), { status: 400, headers: JSON_HEADERS })
+    }
+    const formData = cleaned.formData
     for (const field of formSchema) {
       if (field.required && !String(formData[field.name] ?? '').trim()) {
         return new Response(JSON.stringify({ error: `Required field "${field.name}" is missing` }), {

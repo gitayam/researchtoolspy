@@ -146,6 +146,7 @@ test('COP_SERVICE_ROUTES admits exactly the routes the bot calls', () => {
     ['GET', '/api/cop/cop-x/tags'], ['POST', '/api/cop/cop-x/tags'],
     ['GET', '/api/cop/cop-x/item-tags'], ['POST', '/api/cop/cop-x/item-tags'], ['DELETE', '/api/cop/cop-x/item-tags'],
     ['POST', '/api/cop/cop-x/suggest'], ['GET', '/api/cop/cop-x/geocode'], ['POST', '/api/cop/cop-x/uploads'],
+    ['GET', '/api/cop/cop-x/rfis'],
   ]) assert.equal(allowed(method, path), true, `${method} ${path}`)
   for (const [method, path] of [
     ['POST', '/api/cop/cop-x/item-tags/bulk'], ['GET', '/api/cop/cop-x/uploads/upl-1'], ['DELETE', '/api/cop/cop-x/tags'],

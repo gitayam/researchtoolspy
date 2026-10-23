@@ -349,7 +349,7 @@ test('public payload: key_rfis with the questions panel; evidence with the evide
   assert.deepEqual(payload.evidence.map((e) => e.title).sort(), ['Story', 'Tip'])
   assert.equal(payload.evidence.find((e) => e.title === 'Tip').source_url, null)
   assert.ok(!JSON.stringify(payload).includes('+33'))
-  for (const e of payload.evidence) assert.deepEqual(Object.keys(e).sort(), ['created_at', 'credibility', 'evidence_type', 'id', 'source_channel', 'source_url', 'title'])
+  for (const e of payload.evidence) assert.deepEqual(Object.keys(e).sort(), ['created_at', 'credibility', 'evidence_type', 'held', 'id', 'source_channel', 'source_url', 'title'])
 })
 
 test('a share showing only key questions takes answers to starred RFIs, not to others', async () => {

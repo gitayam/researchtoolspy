@@ -7,6 +7,7 @@
  * submitted evidence, or other sessions' rows.
  */
 import { JSON_HEADERS } from './api-utils'
+import { evidenceHeld } from './cop-archive'
 import type { CopFeedEntityType } from './cop-event-types'
 import {
   evidenceInSession, isMissingColumn, UNVERIFIED_TIP_LABEL, unreviewedTipEvidence, type EvidenceSessionScope,
@@ -214,6 +215,8 @@ export interface PublicEvidenceItem {
   evidence_type: string | null
   source_channel: string | null
   created_at: string
+  /** Held pending a virus scan (or quarantined): shown, but with no file or link. */
+  held: boolean
 }
 
 const httpUrl = (value: unknown): string | null => {
@@ -238,7 +241,7 @@ export async function publicEvidence(db: D1Database, scope: EvidenceSessionScope
   let rows: Record<string, unknown>[]
   try {
     rows = ((await db.prepare(`
-      SELECT id, title, source_url, credibility, evidence_type, source_channel, created_at
+      SELECT id, title, source_url, credibility, evidence_type, source_channel, created_at, metadata
       FROM evidence_items WHERE ${clause.sql} ORDER BY created_at DESC, id DESC LIMIT 100
     `).bind(...clause.binds).all<Record<string, unknown>>()).results ?? [])
   } catch (error) {
@@ -250,10 +253,12 @@ export async function publicEvidence(db: D1Database, scope: EvidenceSessionScope
   }
   return rows.map((r) => {
     const unreviewed = unreviewedTipEvidence(r)
+    const held = evidenceHeld(r)
     return {
       id: Number(r.id),
       title: unreviewed ? UNVERIFIED_TIP_LABEL : String(r.title ?? ''),
-      source_url: unreviewed ? null : httpUrl(r.source_url),
+      source_url: unreviewed || held ? null : httpUrl(r.source_url),
+      held,
       credibility: (r.credibility as string | null) ?? null,
       evidence_type: (r.evidence_type as string | null) ?? null,
       source_channel: (r.source_channel as string | null) ?? null,

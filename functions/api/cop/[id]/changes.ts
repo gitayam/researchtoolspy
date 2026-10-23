@@ -5,7 +5,8 @@
  *   → { events: [{ id, entity_type, entity_id, event_type, created_at }], cursor, has_more }
  *
  * Any reader of the session (owner, collaborators including viewers, any signed-in user
- * on a public session). Start with `since=` empty: no events, the current cursor. Then
+ * on a public session). Readers outside the COP get upload and submission events
+ * without their ids (an upload id would fetch the file). Start with `since=` empty: no events, the current cursor. Then
  * poll with the cursor from each answer; while `has_more` is true, poll again at once.
  * entity_type is one of COP_FEED_ENTITY_TYPES; clients refetch the panels for the types
  * they see. No payloads and no user ids leave.
@@ -24,6 +25,9 @@ interface Env {
 
 const headers = { ...JSON_HEADERS, 'Cache-Control': 'no-store' }
 
+/** Entity types whose ids readers outside the COP don't get. */
+const PRIVATE_IDS = new Set(['upload', 'submission'])
+
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   const { request, env, params } = context
   const sessionId = params.id as string
@@ -40,7 +44,11 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     const url = new URL(request.url)
     const result = await listCopChanges(env.DB, sessionId, url.searchParams.get('since'), changesLimit(url.searchParams.get('limit')))
     if (result.ok === false) return new Response(JSON.stringify({ error: result.error }), { status: result.status, headers })
-    return new Response(JSON.stringify({ events: result.events, cursor: result.cursor, has_more: result.has_more }), { headers })
+    const collaborator = Boolean(await verifyCopSessionAccess(env.DB, sessionId, userId))
+    const events = collaborator
+      ? result.events
+      : result.events.map((event) => (PRIVATE_IDS.has(event.entity_type) ? { ...event, entity_id: null } : event))
+    return new Response(JSON.stringify({ events, cursor: result.cursor, has_more: result.has_more }), { headers })
   } catch (error) {
     await logEvent(env, {
       level: 'error',
