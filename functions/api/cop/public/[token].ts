@@ -4,7 +4,9 @@
  * GET /api/cop/public/:token - Get shared session data (filtered by visible_panels)
  *
  * Beyond the session fields, by panel: `rfis` (rfi), `key_rfis` — the starred RFIs, i.e.
- * key questions — (questions), `webcams` (cams), `evidence` (evidence). `evidence_form`
+ * key questions — (questions), `webcams` (cams), `evidence` (evidence). Every RFI carries
+ * `evidence_count` (evidence filed under it); with the evidence panel also `evidence`,
+ * the filed items as the share's evidence list shows them. `evidence_form`
  * is the session's evidence form when the link allows evidence (allow_evidence) and an
  * active drop is linked to the session; otherwise null.
  */
@@ -14,6 +16,7 @@ import { logEvent } from '../../_shared/event-log'
 import { shareExpired, sharePanels } from '../../_shared/cop-share'
 import { listSessionWebcams, publicWebcam } from '../../_shared/cop-webcams'
 import { publicEvidence, publicEvidenceForm, publicKeyRfis } from '../../_shared/cop-public'
+import { evidenceCounts, publicEvidenceByRfi } from '../../_shared/cop-evidence-links'
 
 interface Env {
   DB: D1Database
@@ -157,6 +160,25 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         ...r,
         answers: answersByRfi[r.id] || [],
       }))
+    }
+
+    // Evidence filed under the questions this link shows: counts always; the items only
+    // with the evidence panel (unreviewed drop tips masked as in the evidence list).
+    const shownRfis: { id: string; evidence_count?: number; evidence?: unknown }[] =
+      [...(response.key_rfis ?? []), ...(response.rfis ?? [])]
+    if (shownRfis.length > 0) {
+      const ids = [...new Set(shownRfis.map((r) => String(r.id)))]
+      const counts = await evidenceCounts(env.DB, share.cop_session_id, 'rfi', ids)
+      const filed = visiblePanels.includes('evidence')
+        ? await publicEvidenceByRfi(env.DB, {
+            sessionId: share.cop_session_id,
+            workspaceId: String((session as { workspace_id?: unknown }).workspace_id),
+          }, ids)
+        : null
+      for (const rfi of shownRfis) {
+        rfi.evidence_count = counts.get(String(rfi.id)) ?? 0
+        if (filed) rfi.evidence = filed.get(String(rfi.id)) ?? []
+      }
     }
 
     // Webcams only with the cams panel: explicit fields, never who added them.

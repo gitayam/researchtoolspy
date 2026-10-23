@@ -7,6 +7,7 @@
  */
 import { verifyPassword } from '../../../_shared/survey-drops'
 import { JSON_HEADERS } from '../../../_shared/api-utils'
+import { questionChoicesForDrop } from '../../../_shared/cop-evidence-links'
 
 interface Env {
   DB: D1Database
@@ -80,6 +81,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       title: form.title,
       description: form.description,
       form_schema,
+      // "Which question is this about?" — only when the owner turned it on for a COP-linked form.
+      question_choices: await questionChoicesForDrop(env.DB, form.id),
       facts,
       changelog,
       require_location: form.require_location === 1,
