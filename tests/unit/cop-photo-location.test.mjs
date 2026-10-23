@@ -512,3 +512,14 @@ test('a photo marker\'s changelog never gives a non-collaborator its coordinates
   assert.ok(theirs.every((e) => e.old_value === null && e.new_value === null))
   assert.doesNotMatch(JSON.stringify(theirs), /48\.858|2\.294|48\.87/, 'no coordinates in any entry')
 })
+
+test('the photo marker\'s text (public once confirmed) carries no capture time', async () => {
+  const { db, env } = await photoFixture()
+  const { upload } = await (await uploadPhoto(env, 'editor', phonePhoto('image/jpeg'))).json()
+  const [marker] = photoMarkers(db)
+  assert.ok(marker, 'a marker was placed')
+  assert.equal(db.prepare('SELECT captured_at FROM cop_uploads WHERE id = ?').get(upload.id).captured_at, '2026-10-23T10:15:00+02:00', 'the team still has it on the upload')
+  for (const field of ['label', 'description', 'rationale', 'callsign', 'detail']) {
+    assert.doesNotMatch(String(marker[field] ?? ''), /2026|10:15|\+02:00|taken (at|on|\d)/, field)
+  }
+})

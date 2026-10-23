@@ -47,12 +47,13 @@ export async function placePhotoMarker(
 ): Promise<string | null> {
   const { lat, lon } = input.location
   if (!Number.isFinite(lat) || !Number.isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180 || (lat === 0 && lon === 0)) return null
-  const taken = input.location.capturedAt ? `, taken ${input.location.capturedAt}` : ''
+  // The text shows on share maps once the marker is confirmed: no capture time in it
+  // (that stays on the team's upload row and copy).
   return insertCopMarkerOnce(db, scope, {
     lat,
     lon,
     label: PHOTO_LOCATION_LABEL,
-    description: `Where the photo says it was taken (its own GPS data${taken}). Not verified.`,
+    description: 'Where the photo says it was taken (its own GPS data). Not verified.',
     confidence: 'POSSIBLE',
     rationale: 'Position from the GPS data in a photo; not verified.',
     sourceType: PHOTO_GPS_SOURCE,
