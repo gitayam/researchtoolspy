@@ -1,14 +1,23 @@
 /**
  * Survey Drops Public Form Schema API
  *
- * GET /api/surveys/public/:token - Get form schema for public submission (no auth)
+ * GET /api/surveys/public/:token[?share=<share token>]   (X-Question-Ticket: <ticket>)
+ *   - Get form schema for public submission (no auth)
+ *
+ * `question_choices` ([{ id, question, key }]) are the open questions the form offers
+ * where it was opened: the standalone link, a share link's Submit sheet (`share`), or a
+ * collaborator's workspace (the question ticket, in a header so it stays out of URLs and
+ * logs); see questionChoicesForForm. Neither is a credential for anything else, and the
+ * route still never reads who is calling.
  */
 import { extractGeoFromRequest, isCountryAllowed } from '../../_shared/survey-drops'
 import { JSON_HEADERS } from '../../_shared/api-utils'
-import { questionChoicesForDrop } from '../../_shared/cop-evidence-links'
+import { questionChoicesForForm } from '../../_shared/cop-evidence-links'
+import { verifyQuestionTicket } from '../../_shared/cop-question-ticket'
 
 interface Env {
   DB: D1Database
+  JWT_SECRET?: string
 }
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
@@ -82,12 +91,18 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     let changelog = []
     try { changelog = form.changelog ? JSON.parse(form.changelog) : [] } catch { changelog = [] }
 
+    const ticket = request.headers.get('X-Question-Ticket')
+    const questionContext = {
+      shareToken: new URL(request.url).searchParams.get('share'),
+      ticketSessionId: await verifyQuestionTicket(env.JWT_SECRET, ticket),
+    }
+
     return new Response(JSON.stringify({
       title: form.title,
       description: form.description,
       form_schema,
-      // "Which question is this about?" — only when the owner turned it on for a COP-linked form.
-      question_choices: await questionChoicesForDrop(env.DB, form.id),
+      // "Which question does this help answer?" — for a COP-linked form, by where it was opened.
+      question_choices: await questionChoicesForForm(env.DB, form.id, questionContext),
       facts,
       changelog,
       require_location: form.require_location === 1,
@@ -97,7 +112,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       success_message: form.success_message,
       access_level: form.access_level || 'public',
       intent: form.intent || 'survey',
-    }), { headers: JSON_HEADERS })
+      // A ticket's wider list is for the collaborator who asked, never a shared cache.
+    }), { headers: ticket ? { ...JSON_HEADERS, 'Cache-Control': 'no-store' } : JSON_HEADERS })
   } catch (error) {
     console.error('[Survey Drops Public] Form fetch error:', error)
     return new Response(JSON.stringify({ error: 'Failed to load form' }), {

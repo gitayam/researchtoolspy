@@ -5,11 +5,18 @@
  * a bottom sheet on phones, a right-side sheet on wider screens. The form stays
  * mounted while the sheet is closed, so a draft survives an accidental dismiss.
  * "Open in new window" pops the same form out to /drop/<token>.
+ *
+ * "Which questions does this help answer?" lists the questions the host may offer
+ * (`questionContext`: a share link, or the workspace's question ticket); "+ Add
+ * evidence" on a question opens the sheet with it ticked (`initialQuestionId`, applied
+ * again each time `preselectNonce` changes; others can be added). After a submission
+ * the sheet says which questions it was filed under.
  */
 import { useCallback, useState } from 'react'
 import { CheckCircle2, ExternalLink } from 'lucide-react'
-import PublicIntakeForm, { type IntakeIngested } from '../PublicIntakeForm'
+import PublicIntakeForm, { type IntakeIngested, type IntakeQuestionChoice, type IntakeQuestionContext } from '../PublicIntakeForm'
 import CopSheet from './CopSheet'
+import { filedUnderLabel } from '@/lib/cop-evidence-links'
 
 interface EvidenceSubmitSheetProps {
   open: boolean
@@ -18,9 +25,14 @@ interface EvidenceSubmitSheetProps {
   dropToken: string
   /** The drop's title, shown under the sheet title. */
   formTitle?: string | null
-  /** Called after each successful submission. */
-  onSubmitted?: (ingested: IntakeIngested | null) => void
+  /** Called after each successful submission, with the questions it was filed under. */
+  onSubmitted?: (ingested: IntakeIngested | null, questions: IntakeQuestionChoice[]) => void
   rootClassName?: string
+  questionContext?: IntakeQuestionContext
+  initialQuestionId?: string | null
+  preselectNonce?: number
+  /** A ticked question was refused (the host may renew its question ticket). */
+  onQuestionsRefused?: () => void
 }
 
 export default function EvidenceSubmitSheet({
@@ -30,16 +42,22 @@ export default function EvidenceSubmitSheet({
   formTitle,
   onSubmitted,
   rootClassName,
+  questionContext,
+  initialQuestionId = null,
+  preselectNonce = 0,
+  onQuestionsRefused,
 }: EvidenceSubmitSheetProps) {
   const [received, setReceived] = useState(false)
   // Whether the server put it straight into the COP, or it waits in the review inbox.
   const [ingestedNow, setIngestedNow] = useState(false)
+  const [filedUnder, setFiledUnder] = useState<IntakeQuestionChoice[]>([])
 
   const handleSubmitted = useCallback(
-    ({ ingested }: { ingested: IntakeIngested | null }) => {
+    ({ ingested, questions }: { ingested: IntakeIngested | null; questions: IntakeQuestionChoice[] }) => {
       setReceived(true)
       setIngestedNow(!!ingested?.evidence_id)
-      onSubmitted?.(ingested)
+      setFiledUnder(questions)
+      onSubmitted?.(ingested, questions)
     },
     [onSubmitted],
   )
@@ -77,10 +95,27 @@ export default function EvidenceSubmitSheet({
             <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold text-emerald-900 dark:text-emerald-200">Received</p>
+              {filedUnder.length === 1 && (
+                <p className="mt-1 text-sm text-emerald-900 dark:text-emerald-100">
+                  <span className="font-medium">{filedUnderLabel(1)}</span> <span className="break-words">{filedUnder[0].question}</span>
+                </p>
+              )}
+              {filedUnder.length > 1 && (
+                <div className="mt-1 text-sm text-emerald-900 dark:text-emerald-100">
+                  <p className="font-medium">{filedUnderLabel(filedUnder.length)}</p>
+                  <ul className="mt-0.5 list-disc space-y-0.5 pl-5">
+                    {filedUnder.map((q) => <li key={q.id} className="break-words">{q.question}</li>)}
+                  </ul>
+                </div>
+              )}
               <p className="mt-0.5 text-sm text-emerald-800 dark:text-emerald-300">
                 {ingestedNow
-                  ? "It's in the COP feed now, marked unverified until someone reviews it."
-                  : 'It appears in the COP feed as unverified once the team has reviewed it.'}
+                  ? filedUnder.length > 0
+                    ? `It's listed under ${filedUnder.length === 1 ? 'that question' : 'those questions'} now, marked unverified until someone reviews it.`
+                    : "It's in the COP feed now, marked unverified until someone reviews it."
+                  : filedUnder.length > 0
+                    ? `It appears under ${filedUnder.length === 1 ? 'that question' : 'those questions'}, marked unverified, once the team has reviewed it.`
+                    : 'It appears in the COP feed as unverified once the team has reviewed it.'}
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <button
@@ -104,7 +139,16 @@ export default function EvidenceSubmitSheet({
       )}
       {/* Kept mounted (hidden after a submission) so the next one starts from a fresh form, not a reload. */}
       <div hidden={received}>
-        <PublicIntakeForm token={dropToken} isDropMode embedded onSubmitted={handleSubmitted} />
+        <PublicIntakeForm
+          token={dropToken}
+          isDropMode
+          embedded
+          onSubmitted={handleSubmitted}
+          questionContext={questionContext}
+          initialQuestionId={initialQuestionId}
+          preselectNonce={preselectNonce}
+          onQuestionsRefused={onQuestionsRefused}
+        />
       </div>
     </CopSheet>
   )

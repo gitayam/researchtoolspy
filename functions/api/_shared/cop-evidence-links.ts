@@ -10,8 +10,12 @@
  * the evidence through evidenceInSession (evidence_items is workspace-wide), the RFI
  * or task through its cop_session_id. A service credential (the Signal bot) may
  * change or remove only the links it created.
+ *
+ * Collaborators vote on a filing (migration 0026): 👍 "this helps answer the
+ * question", 👎 "it doesn't". Lists come ranked by score (up − down), then newest.
  */
 import { emitCopEventLoose } from './cop-events-loose'
+import { shareExpired, sharePanels } from './cop-share'
 import {
   evidenceInSession, isMissingColumn, queryEvidenceInSession, UNVERIFIED_TIP_LABEL, unreviewedTipEvidence,
   type EvidenceSessionScope,
@@ -36,11 +40,25 @@ export interface EvidenceLink {
   created_at: string
 }
 
+/** A filing as the lists show it: with its team votes, and the caller's own. */
+export interface ListedEvidenceLink extends EvidenceLink {
+  up: number
+  down: number
+  my_vote: VoteValue
+}
+
+export type VoteValue = -1 | 0 | 1
+
 const LINK_COLUMNS = 'id, evidence_id, target_type, target_id, relation, note, created_at'
 
 /** True when cop_evidence_links doesn't exist yet (migration 0024 pending). */
 export function linksTableMissing(error: unknown): boolean {
   return /no such table:?\s*(?:main\.)?cop_evidence_links\b/i.test(String(error instanceof Error ? error.message : error))
+}
+
+/** True when cop_evidence_link_votes doesn't exist yet (migration 0026 pending). */
+export function votesTableMissing(error: unknown): boolean {
+  return /no such table:?\s*(?:main\.)?cop_evidence_link_votes\b/i.test(String(error instanceof Error ? error.message : error))
 }
 
 export function isLinkTargetType(value: unknown): value is LinkTargetType {
@@ -218,37 +236,147 @@ async function emitLinkEvents(
   })
 }
 
+/** SQL: each filing's vote totals in the session (`v.up`, `v.down`), joined on `l.id`; binds the session id. */
+const VOTE_TOTALS_JOIN = `LEFT JOIN (
+       SELECT link_id, SUM(CASE WHEN value = 1 THEN 1 ELSE 0 END) AS up, SUM(CASE WHEN value = -1 THEN 1 ELSE 0 END) AS down
+       FROM cop_evidence_link_votes WHERE cop_session_id = ? GROUP BY link_id
+     ) v ON v.link_id = l.id`
+
+const voteValue = (value: unknown): VoteValue => (Number(value) === 1 ? 1 : Number(value) === -1 ? -1 : 0)
+
 /**
  * The session's links, optionally narrowed; [] before migration 0024. Joined to the
  * session's evidence (evidenceInSession), so a link whose evidence is gone or isn't
- * this COP's is never listed.
+ * this COP's is never listed. Each carries its votes (`up`, `down`) and `viewerId`'s
+ * own (`my_vote`; 0 before migration 0026), ranked per question or task: score
+ * (up − down) first, then the newest evidence.
  */
 export async function listEvidenceLinks(
   db: D1Database,
   scope: EvidenceSessionScope,
   filter: { targetType?: LinkTargetType; targetId?: string; evidenceId?: string } = {},
-): Promise<EvidenceLink[]> {
+  viewerId: number | null = null,
+): Promise<ListedEvidenceLink[]> {
   const where = ['l.cop_session_id = ?']
   const binds: unknown[] = [scope.sessionId]
   if (filter.targetType) { where.push('l.target_type = ?'); binds.push(filter.targetType) }
   if (filter.targetId) { where.push('l.target_id = ?'); binds.push(filter.targetId) }
   if (filter.evidenceId) { where.push('l.evidence_id = ?'); binds.push(filter.evidenceId) }
+  const run = (withVotes: boolean) => queryEvidenceInSession(
+    db,
+    `SELECT l.id, l.evidence_id, l.target_type, l.target_id, l.relation, l.note, l.created_at,
+       ${withVotes ? 'COALESCE(v.up, 0) AS up, COALESCE(v.down, 0) AS down, COALESCE(mv.value, 0) AS my_vote' : '0 AS up, 0 AS down, 0 AS my_vote'}
+     FROM cop_evidence_links l JOIN evidence_items e ON CAST(e.id AS TEXT) = l.evidence_id
+     ${withVotes ? `${VOTE_TOTALS_JOIN} LEFT JOIN cop_evidence_link_votes mv ON mv.link_id = l.id AND mv.user_id = ?` : ''}
+     WHERE ${where.join(' AND ')} AND {EVIDENCE_SCOPE}
+     ORDER BY l.target_type, l.target_id, ${withVotes ? '(COALESCE(v.up, 0) - COALESCE(v.down, 0)) DESC, ' : ''}e.created_at DESC, e.id DESC
+     LIMIT 5000`,
+    scope, withVotes ? [scope.sessionId, viewerId ?? -1, ...binds] : binds, [],
+    (statement) => statement.all<Record<string, unknown>>(),
+    'e',
+  )
   try {
-    const rows = await queryEvidenceInSession(
-      db,
-      `SELECT l.id, l.evidence_id, l.target_type, l.target_id, l.relation, l.note, l.created_at
-       FROM cop_evidence_links l JOIN evidence_items e ON CAST(e.id AS TEXT) = l.evidence_id
-       WHERE ${where.join(' AND ')} AND {EVIDENCE_SCOPE}
-       ORDER BY l.created_at ASC, l.id ASC LIMIT 5000`,
-      scope, binds, [],
-      (statement) => statement.all<EvidenceLink>(),
-      'e',
-    )
-    return rows.results ?? []
+    let rows: Record<string, unknown>[]
+    try {
+      rows = (await run(true)).results ?? []
+    } catch (error) {
+      if (!votesTableMissing(error)) throw error
+      rows = (await run(false)).results ?? []
+    }
+    return rows.map((r) => ({
+      id: String(r.id),
+      evidence_id: String(r.evidence_id),
+      target_type: r.target_type as LinkTargetType,
+      target_id: String(r.target_id),
+      relation: (cleanRelation(r.relation) ?? 'supports'),
+      note: (r.note as string | null) ?? null,
+      created_at: String(r.created_at ?? ''),
+      up: Number(r.up) || 0,
+      down: Number(r.down) || 0,
+      my_vote: voteValue(r.my_vote),
+    }))
   } catch (error) {
     if (linksTableMissing(error)) return []
     throw error
   }
+}
+
+// ── Team votes on a filing ───────────────────────────────────────
+
+/** A vote as the route takes it: 1 (helpful), -1 (not helpful), 0 (clear my vote). */
+export function cleanVote(value: unknown): VoteValue | null {
+  return value === 1 || value === -1 || value === 0 ? value : null
+}
+
+export interface LinkTally {
+  link_id: string
+  up: number
+  down: number
+  my_vote: VoteValue
+}
+
+export type VoteResult =
+  | { ok: true; tally: LinkTally }
+  | { ok: false; status: 404; code: 'LINK_NOT_FOUND'; error: string }
+
+/**
+ * Set (1 / -1) or clear (0) one collaborator's vote on a filing. The filing must be
+ * this session's, with this session's evidence (checked in SQL, as the lists show it);
+ * one vote per person per filing (UNIQUE), changed in place. The caller has already
+ * checked that `userId` is the owner or a collaborator, and not a service or a share.
+ * Throws "no such table" before migration 0026 (the route answers 503).
+ */
+export async function setLinkVote(
+  db: D1Database,
+  input: { scope: EvidenceSessionScope; linkId: string; userId: number; value: VoteValue },
+): Promise<VoteResult> {
+  const { scope, linkId, userId, value } = input
+  const link = await queryEvidenceInSession(
+    db,
+    `SELECT l.id, l.target_type, l.target_id FROM cop_evidence_links l
+     JOIN evidence_items e ON CAST(e.id AS TEXT) = l.evidence_id
+     WHERE l.id = ? AND l.cop_session_id = ? AND {EVIDENCE_SCOPE}`,
+    scope, [linkId, scope.sessionId], [],
+    (statement) => statement.first<{ id: string; target_type: LinkTargetType; target_id: string }>(),
+    'e',
+  )
+  if (!link) return { ok: false, status: 404, code: 'LINK_NOT_FOUND', error: 'That filing isn’t in this COP any more' }
+
+  const now = new Date().toISOString()
+  const changed = value === 0
+    ? await db.prepare('DELETE FROM cop_evidence_link_votes WHERE link_id = ? AND user_id = ? AND cop_session_id = ?')
+      .bind(link.id, userId, scope.sessionId).run()
+    : await db.prepare(`
+        INSERT INTO cop_evidence_link_votes (id, cop_session_id, link_id, user_id, value, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT (link_id, user_id) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at
+        WHERE cop_evidence_link_votes.value <> excluded.value
+      `).bind(`evv-${crypto.randomUUID()}`, scope.sessionId, link.id, userId, value, now, now).run()
+
+  const tally = await db.prepare(`
+    SELECT COALESCE(SUM(CASE WHEN value = 1 THEN 1 ELSE 0 END), 0) AS up,
+           COALESCE(SUM(CASE WHEN value = -1 THEN 1 ELSE 0 END), 0) AS down,
+           COALESCE(MAX(CASE WHEN user_id = ? THEN value END), 0) AS my_vote
+    FROM cop_evidence_link_votes WHERE link_id = ? AND cop_session_id = ?
+  `).bind(userId, link.id, scope.sessionId).first<{ up: number; down: number; my_vote: number }>()
+  const result: LinkTally = {
+    link_id: link.id,
+    up: Number(tally?.up) || 0,
+    down: Number(tally?.down) || 0,
+    my_vote: voteValue(tally?.my_vote),
+  }
+  // Everyone watching the question re-ranks it. Counts only: never who voted.
+  if ((changed.meta?.changes ?? 0) > 0) {
+    await emitCopEventLoose(db, {
+      copSessionId: scope.sessionId,
+      eventType: 'evidence.link_voted',
+      entityType: link.target_type,
+      entityId: link.target_id,
+      payload: { link_id: link.id, up: result.up, down: result.down },
+      createdBy: 0,
+    })
+  }
+  return { ok: true, tally: result }
 }
 
 /** SQL (on evidence_items as `e`): a drop-form tip no editor has reviewed yet. Needs migration 0022. */
@@ -397,6 +525,9 @@ export interface PublicLinkedEvidence {
   /** null for an unreviewed drop-form tip: its tipster's say-so is not shown. */
   relation: LinkRelation | null
   created_at: string
+  /** The team's votes on this filing (counts only; 0 before migration 0026). */
+  up: number
+  down: number
 }
 
 const httpUrl = (value: unknown): string | null => {
@@ -409,15 +540,17 @@ const httpUrl = (value: unknown): string | null => {
   }
 }
 
-/** Per question, at most this many evidence items in a share payload (newest first). */
+/** Per question, at most this many evidence items in a share payload (best ranked first). */
 export const PUBLIC_EVIDENCE_PER_QUESTION = 20
 
 /**
  * The evidence filed under these RFIs, for a share showing the evidence panel: title,
- * link (http(s) only), credibility, relation and date, at most
+ * link (http(s) only), credibility, relation, date and the team's vote counts, ranked
+ * as the workspace ranks them (score, then newest), at most
  * PUBLIC_EVIDENCE_PER_QUESTION per question (limited in SQL). Only the session's
  * evidence; an unreviewed drop-form tip shows as "Unverified tip" without its link or
- * relation, exactly as the share's evidence list does. Never notes or descriptions.
+ * relation, exactly as the share's evidence list does (its counts show). Never notes,
+ * descriptions or who voted.
  */
 export async function publicEvidenceByRfi(
   db: D1Database,
@@ -428,26 +561,39 @@ export async function publicEvidenceByRfi(
   if (rfiIds.length === 0) return out
   const ids = rfiIds.slice(0, 200)
   const marks = ids.map(() => '?').join(',')
-  const query = (columns: string) => queryEvidenceInSession(
+  const query = (columns: string, withVotes: boolean) => queryEvidenceInSession(
     db,
-    `SELECT target_id, relation, ${columns} FROM (
+    `SELECT target_id, relation, up, down, ${columns} FROM (
        SELECT l.target_id, l.relation, ${columns.split(', ').map((c) => `e.${c}`).join(', ')},
-         ROW_NUMBER() OVER (PARTITION BY l.target_id ORDER BY e.created_at DESC, e.id DESC) AS rn
+         ${withVotes ? 'COALESCE(v.up, 0) AS up, COALESCE(v.down, 0) AS down' : '0 AS up, 0 AS down'},
+         ROW_NUMBER() OVER (
+           PARTITION BY l.target_id
+           ORDER BY ${withVotes ? '(COALESCE(v.up, 0) - COALESCE(v.down, 0)) DESC, ' : ''}e.created_at DESC, e.id DESC
+         ) AS rn
        FROM cop_evidence_links l JOIN evidence_items e ON CAST(e.id AS TEXT) = l.evidence_id
+       ${withVotes ? VOTE_TOTALS_JOIN : ''}
        WHERE l.cop_session_id = ? AND l.target_type = 'rfi' AND l.target_id IN (${marks}) AND {EVIDENCE_SCOPE}
      ) WHERE rn <= ${PUBLIC_EVIDENCE_PER_QUESTION}
      ORDER BY target_id, rn`,
-    scope, [scope.sessionId, ...ids], [],
+    scope, withVotes ? [scope.sessionId, scope.sessionId, ...ids] : [scope.sessionId, ...ids], [],
     (statement) => statement.all<Record<string, unknown>>(),
     'e',
   )
+  const queryColumns = async (withVotes: boolean) => {
+    try {
+      return (await query('title, source_url, credibility, source_channel, created_at', withVotes)).results ?? []
+    } catch (error) {
+      if (!isMissingColumn(error) || linksTableMissing(error)) throw error
+      return (await query('title, source_url, credibility, created_at', withVotes)).results ?? []
+    }
+  }
   let rows: Record<string, unknown>[]
   try {
     try {
-      rows = (await query('title, source_url, credibility, source_channel, created_at')).results ?? []
+      rows = await queryColumns(true)
     } catch (error) {
-      if (!isMissingColumn(error) || linksTableMissing(error)) throw error
-      rows = (await query('title, source_url, credibility, created_at')).results ?? []
+      if (!votesTableMissing(error)) throw error
+      rows = await queryColumns(false)
     }
   } catch (error) {
     if (linksTableMissing(error)) return out
@@ -463,34 +609,66 @@ export async function publicEvidenceByRfi(
       credibility: (row.credibility as string | null) ?? null,
       relation: unreviewed ? null : (cleanRelation(row.relation) ?? 'supports'),
       created_at: String(row.created_at ?? ''),
+      up: Number(row.up) || 0,
+      down: Number(row.down) || 0,
     })
     out.set(key, list)
   }
   return out
 }
 
-// ── "Which question is this about?" on a COP's evidence form ──────
+// ── "Which question does this help answer?" on a COP's evidence form ──
 
 export interface QuestionChoice {
   id: string
   question: string
+  /** A key question (starred RFI): listed first, starred in the form. */
+  key: boolean
 }
 
 /**
- * The key questions (starred RFIs) a COP-linked evidence form offers its tipsters, when
- * the form's owner turned the picker on (survey_drops.question_picker, migration 0024).
- * Only for a form made by the session's owner or a current editor/admin collaborator
- * (the rule auto-ingest uses), and only that session's starred RFIs. [] otherwise, or
- * before migrations 0022/0024.
+ * Where the evidence form was opened, which decides the questions it may offer:
+ * - nothing: the standalone /drop/<token> link — the COP's key questions, and only
+ *   when the form's owner turned the picker on (survey_drops.question_picker);
+ * - `shareToken`: the Submit sheet of a share link that offers evidence — besides the
+ *   above, the questions that share shows (its `questions` panel: key questions; its
+ *   `rfi` panel: every RFI);
+ * - `ticketSessionId`: a collaborator's workspace (a verified question ticket,
+ *   functions/api/_shared/cop-question-ticket.ts) — every question of the COP.
  */
-export async function questionChoicesForDrop(db: D1Database, formId: string): Promise<QuestionChoice[]> {
+export interface QuestionContext {
+  shareToken?: string | null
+  ticketSessionId?: string | null
+}
+
+const SHARE_TOKEN_RE = /^[A-Za-z0-9_-]{8,128}$/
+
+/** The panels of a live share of this session that offers evidence; null for anything else. */
+async function evidenceSharePanels(db: D1Database, shareToken: string, sessionId: string): Promise<string[] | null> {
+  if (!SHARE_TOKEN_RE.test(shareToken)) return null
+  const share = await db.prepare('SELECT * FROM cop_shares WHERE share_token = ? AND cop_session_id = ?')
+    .bind(shareToken, sessionId).first<Record<string, unknown>>()
+  if (!share || shareExpired(share) || Number(share.allow_evidence) !== 1) return null
+  return sharePanels(share)
+}
+
+/**
+ * The open questions (any RFI not closed) a COP-linked evidence form offers, by where it
+ * was opened (QuestionContext), key questions first. Only for a form made by the
+ * session's owner or a current editor/admin collaborator (the rule auto-ingest uses),
+ * only that session's RFIs, never on an archived session. [] otherwise, or before
+ * migrations 0022/0024.
+ */
+export async function questionChoicesForForm(
+  db: D1Database,
+  formId: string,
+  context: QuestionContext = {},
+): Promise<QuestionChoice[]> {
   try {
-    const rows = await db.prepare(`
-      SELECT r.id, r.question FROM survey_drops d
+    const form = await db.prepare(`
+      SELECT d.cop_session_id AS session_id, d.question_picker FROM survey_drops d
       JOIN cop_sessions s ON s.id = d.cop_session_id
-      JOIN cop_rfis r ON r.cop_session_id = s.id AND r.is_key = 1
-      WHERE d.id = ? AND d.question_picker = 1
-        AND upper(coalesce(s.status, '')) <> 'ARCHIVED'
+      WHERE d.id = ? AND upper(coalesce(s.status, '')) <> 'ARCHIVED'
         AND (
           s.created_by = d.created_by
           OR EXISTS (
@@ -499,54 +677,194 @@ export async function questionChoicesForDrop(db: D1Database, formId: string): Pr
               AND lower(trim(c.role)) IN ('editor', 'admin')
           )
         )
-      ORDER BY r.created_at ASC, r.rowid ASC
-      LIMIT 50
-    `).bind(formId).all<{ id: string; question: string }>()
-    return (rows.results ?? []).map((r) => ({ id: String(r.id), question: String(r.question ?? '').slice(0, 500) }))
+    `).bind(formId).first<{ session_id: string; question_picker: number | null }>()
+    if (!form) return []
+
+    let keyQuestions = Number(form.question_picker) === 1
+    let everyQuestion = false
+    if (context.ticketSessionId && context.ticketSessionId === form.session_id) {
+      keyQuestions = everyQuestion = true
+    } else if (context.shareToken) {
+      const panels = await evidenceSharePanels(db, context.shareToken, form.session_id)
+      if (panels?.includes('questions')) keyQuestions = true
+      if (panels?.includes('rfi')) everyQuestion = true
+    }
+    if (!keyQuestions && !everyQuestion) return []
+
+    const rows = await db.prepare(`
+      SELECT r.id, r.question, r.is_key FROM cop_rfis r
+      WHERE r.cop_session_id = ? AND lower(coalesce(r.status, 'open')) <> 'closed'
+        ${everyQuestion ? '' : 'AND r.is_key = 1'}
+      ORDER BY r.is_key DESC, r.created_at ASC, r.rowid ASC
+      LIMIT 100
+    `).bind(form.session_id).all<{ id: string; question: string; is_key: number | null }>()
+    return (rows.results ?? []).map((r) => ({
+      id: String(r.id),
+      question: String(r.question ?? '').slice(0, 500),
+      key: Number(r.is_key) === 1,
+    }))
   } catch (error) {
     if (isMissingColumn(error)) return []
     throw error
   }
 }
 
-/** The form field names a tipster's choice travels in (helper keys: not shown as answers). */
-export const QUESTION_FIELD = '_question'
-export const QUESTION_RELATION_FIELD = '_question_relation'
+/** The standalone form's choices (no context): key questions, when the picker is on. */
+export function questionChoicesForDrop(db: D1Database, formId: string): Promise<QuestionChoice[]> {
+  return questionChoicesForForm(db, formId)
+}
 
 /**
- * File an ingested tip under the key question its tipster chose, if the form offers
- * the picker and the choice is one of that COP's starred RFIs (checked in SQL — a
- * tipster can never name an RFI outside the COP). Relation 'supports' unless the
- * tipster said it contradicts. Best effort: a bad or stale choice files nothing.
+ * The form field names a tipster's choices travel in (helper keys: not shown as answers).
+ * `_questions` is [{ id, relation }]; the single `_question` / `_question_relation` pair
+ * comes from forms loaded before multi-select and counts as a one-element list.
  */
-export async function fileTipUnderChosenQuestion(
+export const QUESTIONS_FIELD = '_questions'
+export const QUESTION_FIELD = '_question'
+export const QUESTION_RELATION_FIELD = '_question_relation'
+/** Questions one tip may be filed under. */
+export const MAX_QUESTIONS_PER_TIP = 5
+
+const QUESTION_ID_RE = /^[A-Za-z0-9_.:-]{1,80}$/
+
+export interface QuestionPick {
+  rfiId: string
+  relation: LinkRelation
+}
+
+const NOT_OFFERED = 'A question you picked can’t take evidence from this form now. Untick it, or leave them all unticked (not about a specific question).'
+
+/**
+ * The questions a submission names, as written: `_questions` plus the legacy single
+ * `_question`, duplicates collapsed (the first relation wins). null when malformed: not
+ * a list, an entry without a valid id, an unknown relation, or more than
+ * MAX_QUESTIONS_PER_TIP distinct questions. Not checked against anything yet.
+ */
+export function parseQuestionPicks(formData: Record<string, unknown>): QuestionPick[] | null {
+  const entries: { id: unknown; relation: unknown }[] = []
+  const list = formData[QUESTIONS_FIELD]
+  if (list !== undefined && list !== null) {
+    if (!Array.isArray(list) || list.length > MAX_QUESTIONS_PER_TIP * 4) return null
+    for (const item of list) {
+      if (!item || typeof item !== 'object' || Array.isArray(item)) return null
+      entries.push({ id: (item as { id?: unknown }).id, relation: (item as { relation?: unknown }).relation })
+    }
+  }
+  const single = formData[QUESTION_FIELD]
+  if (single !== undefined && single !== null && single !== '') {
+    entries.push({ id: single, relation: formData[QUESTION_RELATION_FIELD] })
+  }
+  const picks: QuestionPick[] = []
+  for (const entry of entries) {
+    const id = typeof entry.id === 'string' ? entry.id.trim() : ''
+    if (!QUESTION_ID_RE.test(id)) return null
+    const relation = cleanRelation(entry.relation)
+    if (!relation) return null
+    if (!picks.some((p) => p.rfiId === id)) picks.push({ rfiId: id, relation })
+  }
+  return picks.length > MAX_QUESTIONS_PER_TIP ? null : picks
+}
+
+export type ChosenQuestions =
+  | { ok: true; picks: QuestionPick[] }
+  | { ok: false; error: string }
+
+/**
+ * The questions a submission names, every one checked against the questions the form
+ * offered in its context (questionChoicesForForm). None named → []. Any one the form
+ * didn't offer (another COP's, closed, not shown to this caller), or a malformed list,
+ * refuses the whole submission: nothing is stored or filed.
+ */
+export async function chosenQuestionsForSubmission(
+  db: D1Database,
+  formId: string,
+  formData: Record<string, unknown>,
+  context: QuestionContext,
+): Promise<ChosenQuestions> {
+  const picks = parseQuestionPicks(formData)
+  if (picks === null) return { ok: false, error: NOT_OFFERED }
+  if (picks.length === 0) return { ok: true, picks }
+  const offered = new Set((await questionChoicesForForm(db, formId, context)).map((choice) => choice.id))
+  if (!picks.every((pick) => offered.has(pick.rfiId))) return { ok: false, error: NOT_OFFERED }
+  return { ok: true, picks }
+}
+
+/** The checked choices as survey_responses.question_choices stores them (null for none). */
+export function storedQuestionChoices(picks: readonly QuestionPick[]): string | null {
+  return picks.length > 0 ? JSON.stringify(picks.map((p) => ({ id: p.rfiId, relation: p.relation }))) : null
+}
+
+/** survey_responses.question_choices read back; anything off-shape is dropped. */
+function readStoredChoices(raw: unknown): QuestionPick[] {
+  if (typeof raw !== 'string' || !raw) return []
+  try {
+    const parsed = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return []
+    return parseQuestionPicks({ [QUESTIONS_FIELD]: parsed.slice(0, MAX_QUESTIONS_PER_TIP) }) ?? []
+  } catch {
+    return []
+  }
+}
+
+/**
+ * File an ingested tip under each question its tipster chose. A submission made after
+ * migration 0026 carries the choices drop-submit checked (survey_responses.question_choices);
+ * an older one, its `_question(s)` answers, of which only the standalone form's key
+ * questions are filed (checked again here). Every RFI must be this session's (in SQL).
+ * Whether it was closed since is not checked again: a reviewer accepting the tip after a
+ * question closed still files it there, which is fine (a closed question keeps its
+ * evidence). Best effort per question: a bad or stale one files nothing. Returns the
+ * RFI ids filed.
+ */
+export async function fileTipUnderChosenQuestions(
   db: D1Database,
   input: {
     formId: string
+    responseId: string
     scope: EvidenceSessionScope
     evidenceId: string
     formData: Record<string, unknown>
     actorUserId: number
   },
-): Promise<string | null> {
-  const chosen = typeof input.formData[QUESTION_FIELD] === 'string' ? String(input.formData[QUESTION_FIELD]).trim() : ''
-  if (!chosen || !/^[A-Za-z0-9_.:-]{1,80}$/.test(chosen)) return null
-  const offered = await questionChoicesForDrop(db, input.formId)
-  if (!offered.some((choice) => choice.id === chosen)) return null
-  // The choices query already scoped the RFI to the form's session; ingest runs for that session.
-  const inSession = await db.prepare('SELECT id FROM cop_rfis WHERE id = ? AND cop_session_id = ? AND is_key = 1')
-    .bind(chosen, input.scope.sessionId).first()
-  if (!inSession) return null
-  const relation: LinkRelation = input.formData[QUESTION_RELATION_FIELD] === 'contradicts' ? 'contradicts' : 'supports'
-  const result = await upsertEvidenceLink(db, {
-    scope: input.scope,
-    evidenceId: input.evidenceId,
-    targetType: 'rfi',
-    targetId: chosen,
-    relation,
-    note: null,
-    actorUserId: input.actorUserId,
-    serviceUserId: null,
-  })
-  return result.ok ? result.link.target_id : null
+): Promise<string[]> {
+  let stored: { question_choices: string | null } | null = null
+  try {
+    stored = await db.prepare('SELECT question_choices FROM survey_responses WHERE id = ? AND cop_session_id = ?')
+      .bind(input.responseId, input.scope.sessionId).first()
+  } catch (error) {
+    if (!isMissingColumn(error)) throw error
+  }
+
+  let picks = readStoredChoices(stored?.question_choices)
+  if (picks.length === 0 && !stored?.question_choices) {
+    const legacy = parseQuestionPicks(input.formData) ?? []
+    if (legacy.length > 0) {
+      const offered = new Set((await questionChoicesForForm(db, input.formId)).map((choice) => choice.id))
+      picks = legacy.filter((pick) => offered.has(pick.rfiId))
+    }
+  }
+
+  const filed: string[] = []
+  for (const pick of picks) {
+    try {
+      const inSession = await db.prepare('SELECT id FROM cop_rfis WHERE id = ? AND cop_session_id = ?')
+        .bind(pick.rfiId, input.scope.sessionId).first()
+      if (!inSession) continue
+      const result = await upsertEvidenceLink(db, {
+        scope: input.scope,
+        evidenceId: input.evidenceId,
+        targetType: 'rfi',
+        targetId: pick.rfiId,
+        relation: pick.relation,
+        note: null,
+        actorUserId: input.actorUserId,
+        serviceUserId: null,
+      })
+      if (result.ok) filed.push(result.link.target_id)
+    } catch (error) {
+      if (linksTableMissing(error)) throw error
+      console.error('[cop-evidence-links] tip not filed under one question:', error instanceof Error ? error.message : error)
+    }
+  }
+  return filed
 }

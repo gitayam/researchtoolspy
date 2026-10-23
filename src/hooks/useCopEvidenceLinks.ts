@@ -10,7 +10,7 @@ import { useCallback, useEffect, useSyncExternalStore } from 'react'
 import { useCopChangeListener } from '@/hooks/useCopChanges'
 import { copRequest, NOT_AVAILABLE } from '@/lib/cop-request'
 import { fetchEvidenceLinks } from '@/lib/cop-evidence-links'
-import type { CopEntityType, CopEvidenceLink } from '@/types/cop'
+import type { CopEntityType, CopEvidenceLink, CopVoteValue } from '@/types/cop'
 
 interface Snapshot<T> {
   data: T
@@ -32,6 +32,12 @@ class Store<T> {
   }
 
   get = () => this.snapshot
+
+  /** Change the data in place (an optimistic update); the next refresh replaces it. */
+  patch = (change: (data: T) => T) => {
+    this.snapshot = { ...this.snapshot, data: change(this.snapshot.data) }
+    for (const listener of this.listeners) listener()
+  }
 
   subscribe = (listener: () => void) => {
     this.listeners.add(listener)
@@ -83,14 +89,22 @@ function useStore<T>(store: Store<T>, types: readonly CopEntityType[]) {
 
 const EMPTY_LINKS: CopEvidenceLink[] = []
 
-export function useCopEvidenceLinks(sessionId: string) {
-  const store = storeFor<CopEvidenceLink[]>(`links:${sessionId}`, EMPTY_LINKS, async () => {
+function linksStore(sessionId: string) {
+  return storeFor<CopEvidenceLink[]>(`links:${sessionId}`, EMPTY_LINKS, async () => {
     const res = await fetchEvidenceLinks(sessionId)
     if (res.ok === true) return { ok: true, data: Array.isArray(res.data.links) ? res.data.links : [] }
     return { ok: false, unavailable: res.code === NOT_AVAILABLE || res.code === 'EVIDENCE_LINKS_UNAVAILABLE' }
   })
-  const state = useStore(store, ['evidence', 'rfi', 'task'])
+}
+
+export function useCopEvidenceLinks(sessionId: string) {
+  const state = useStore(linksStore(sessionId), ['evidence', 'rfi', 'task'])
   return { links: state.data, loaded: state.loaded, available: state.available, error: state.error, refresh: state.refresh }
+}
+
+/** Show one filing's votes now (before or after the server answers), for every panel showing it. */
+export function setLinkVotes(sessionId: string, linkId: string, votes: { up: number; down: number; my_vote: CopVoteValue }) {
+  linksStore(sessionId).patch((links) => links.map((l) => (l.id === linkId ? { ...l, ...votes } : l)))
 }
 
 // ── Evidence items (for titles and the "attach from this COP" picker) ──

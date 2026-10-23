@@ -1,6 +1,9 @@
 import { useState, useEffect, useCallback, useRef, useId } from 'react'
-import { Send, CheckCircle2, AlertCircle, MapPin, Upload, Camera, X, ClipboardPaste, ChevronDown, ChevronRight, Clock, FileText } from 'lucide-react'
-import type { IntakeFormField } from '../../types/cop'
+import { Send, CheckCircle2, AlertCircle, MapPin, Upload, Camera, X, ClipboardPaste, ChevronDown, ChevronRight, Clock, FileText, Star, XCircle, Info } from 'lucide-react'
+import type { CopEvidenceRelation, IntakeFormField } from '../../types/cop'
+import {
+  keepOffered, MAX_QUESTIONS_PER_TIP, preselectPicks, setPickRelation, togglePick, type QuestionPick,
+} from '@/lib/cop-evidence-links'
 import UrlConfirmCard from './UrlConfirmCard'
 
 // Auto-detect platform from URL domain
@@ -78,6 +81,24 @@ export interface IntakeIngested {
   marker_id: string | null
 }
 
+/** A question the form offers: "Which question does this help answer?". */
+export interface IntakeQuestionChoice {
+  id: string
+  question: string
+  /** A key question (starred RFI). */
+  key: boolean
+}
+
+/**
+ * Where the form was opened, which decides the questions it may offer (the server
+ * checks it again on submit): a share link's Submit sheet, or a collaborator's
+ * workspace with its question ticket. Neither identifies the submitter.
+ */
+export interface IntakeQuestionContext {
+  share?: string | null
+  ticket?: string | null
+}
+
 interface PublicIntakeFormProps {
   token: string
   /**
@@ -91,20 +112,42 @@ interface PublicIntakeFormProps {
    * reported to the host and the form clears for the next one.
    */
   embedded?: boolean
-  onSubmitted?: (result: { ingested: IntakeIngested | null }) => void
+  /** `questions`: the ones it was filed under, by name from the offered list (pick order). */
+  onSubmitted?: (result: { ingested: IntakeIngested | null; questions: IntakeQuestionChoice[] }) => void
+  questionContext?: IntakeQuestionContext
+  /**
+   * Tick this question when the form loads or `preselectNonce` changes ("+ Add
+   * evidence" on a question; others can be added); null ticks none. Changeable.
+   */
+  initialQuestionId?: string | null
+  preselectNonce?: number
+  /**
+   * The server refused a ticked question (closed since, or the context's permission ran
+   * out). The form reloads its questions; the host may renew its context first.
+   */
+  onQuestionsRefused?: () => void
 }
 
-/** The question choices a form config sends: id and text only, at most 50, never anything else. */
-function questionChoices(raw: unknown): { id: string; question: string }[] {
+/** The question choices a form config sends: id, text and key flag only, at most 100, never anything else. */
+function questionChoices(raw: unknown): IntakeQuestionChoice[] {
   if (!Array.isArray(raw)) return []
   return raw
-    .filter((c): c is { id: string; question: string } =>
+    .filter((c): c is { id: string; question: string; key?: unknown } =>
       !!c && typeof c === 'object' && typeof (c as { id?: unknown }).id === 'string' && typeof (c as { question?: unknown }).question === 'string')
-    .slice(0, 50)
-    .map((c) => ({ id: c.id, question: c.question.slice(0, 500) }))
+    .slice(0, 100)
+    .map((c) => ({ id: c.id, question: c.question.slice(0, 500), key: c.key === true }))
 }
 
-export default function PublicIntakeForm({ token, isDropMode = false, embedded = false, onSubmitted }: PublicIntakeFormProps) {
+const RELATIONS: { value: CopEvidenceRelation; label: string; Icon: typeof CheckCircle2 }[] = [
+  { value: 'supports', label: 'Supports', Icon: CheckCircle2 },
+  { value: 'contradicts', label: 'Contradicts', Icon: XCircle },
+  { value: 'context', label: 'Context', Icon: Info },
+]
+
+export default function PublicIntakeForm({
+  token, isDropMode = false, embedded = false, onSubmitted, questionContext, initialQuestionId = null, preselectNonce = 0,
+  onQuestionsRefused,
+}: PublicIntakeFormProps) {
   // Full-page screens fill the window; embedded ones fit their sheet.
   const screen = embedded ? 'py-10' : 'min-h-screen'
   const idBase = useId()
@@ -115,8 +158,8 @@ export default function PublicIntakeForm({ token, isDropMode = false, embedded =
     require_location: boolean; require_contact: boolean
     facts: { text: string; as_of: string }[]
     changelog: { date: string; entry: string }[]
-    /** The COP's key questions, when the form's owner lets tipsters pick one. */
-    question_choices: { id: string; question: string }[]
+    /** The COP's open questions this form may offer where it was opened (key questions first). */
+    question_choices: IntakeQuestionChoice[]
   } | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -138,9 +181,18 @@ export default function PublicIntakeForm({ token, isDropMode = false, embedded =
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [formPassword, setFormPassword] = useState<string | null>(null) // stored for submission
 
+  const contextShare = questionContext?.share ?? null
+  const contextTicket = questionContext?.ticket ?? null
+  // Bumped to load the questions again after the server refused one.
+  const [choicesReload, setChoicesReload] = useState(0)
   useEffect(() => {
     const controller = new AbortController()
-    fetch(`/api/surveys/public/${token}`, { signal: controller.signal })
+    // The share token is already in the page's URL; the ticket travels in a header.
+    const suffix = contextShare ? `?${new URLSearchParams({ share: contextShare })}` : ''
+    fetch(`/api/surveys/public/${token}${suffix}`, {
+      signal: controller.signal,
+      ...(contextTicket ? { headers: { 'X-Question-Ticket': contextTicket } } : {}),
+    })
       .then(async res => {
         const data = await res.json()
         if (!res.ok) {
@@ -174,7 +226,23 @@ export default function PublicIntakeForm({ token, isDropMode = false, embedded =
         if (err?.name !== 'AbortError') { setError(err.message); setLoading(false) }
       })
     return () => controller.abort()
-  }, [token])
+  }, [token, contextShare, contextTicket, choicesReload])
+
+  // "+ Add evidence" on a question opens the form with it ticked; a general open ticks none.
+  // Applied while rendering (React's "adjust state when a prop changes"), so the form
+  // never shows the old ticks for a frame. A reloaded list keeps the ticks it still offers.
+  const choicesLoaded = formMeta ? formMeta.question_choices : null
+  const [picks, setPicks] = useState<QuestionPick[]>([])
+  const [preselected, setPreselected] = useState<{ choices: IntakeQuestionChoice[] | null; nonce: number; id: string | null }>({
+    choices: null, nonce: -1, id: null,
+  })
+  if (choicesLoaded && (preselected.choices !== choicesLoaded || preselected.nonce !== preselectNonce || preselected.id !== initialQuestionId)) {
+    const offeredIds = choicesLoaded.map(c => c.id)
+    const reopened = preselected.nonce !== preselectNonce || preselected.id !== initialQuestionId
+    const kept = reopened ? [] : keepOffered(picks, offeredIds)
+    setPreselected({ choices: choicesLoaded, nonce: preselectNonce, id: initialQuestionId })
+    setPicks(kept.length > 0 ? kept : preselectPicks(initialQuestionId, offeredIds))
+  }
 
   const requestLocation = useCallback(() => {
     navigator.geolocation.getCurrentPosition(
@@ -254,10 +322,18 @@ export default function PublicIntakeForm({ token, isDropMode = false, embedded =
         ? `/api/surveys/public/${token}/drop-submit`
         : `/api/surveys/public/${token}/submit`
 
+      const context = contextShare ? { share: contextShare } : contextTicket ? { ticket: contextTicket } : null
+      // Ticked questions travel as `_questions` (helper key); the server checks every one.
+      const answers = picks.length > 0 ? { ...formData, _questions: picks.map(p => ({ id: p.id, relation: p.relation })) } : formData
       const requestBody = isDropMode
-        ? { form_data: formData }
+        ? {
+            form_data: answers,
+            ...(context && picks.length > 0 ? { question_context: context } : {}),
+            // A password form's tips need its password too (never anything that identifies the sender).
+            ...(formPassword ? { password: formPassword } : {}),
+          }
         : {
-            form_data: formData,
+            form_data: answers,
             submitter_name: submitterName || null,
             submitter_contact: submitterContact || null,
             lat, lon,
@@ -271,19 +347,28 @@ export default function PublicIntakeForm({ token, isDropMode = false, embedded =
       })
 
       const data = await res.json()
+      if (isDropMode && data.code === 'QUESTION_NOT_OFFERED') {
+        // Reload the list (a question may have closed); the draft and other ticks stay.
+        setChoicesReload(n => n + 1)
+        onQuestionsRefused?.()
+      }
       if (!res.ok || (isDropMode && data.ok === false)) {
         throw new Error(data.error || 'Submission failed')
       }
 
       if (embedded && onSubmitted) {
         const ingested = data && typeof data.ingested === 'object' && data.ingested ? data.ingested as IntakeIngested : null
+        const questions = picks
+          .map(p => formMeta.question_choices.find(c => c.id === p.id))
+          .filter((c): c is IntakeQuestionChoice => !!c)
         setFormData({})
+        setPicks([])
         setSubmitterName('')
         setSubmitterContact('')
         setLat(null)
         setLon(null)
         setError(null)
-        onSubmitted({ ingested })
+        onSubmitted({ ingested, questions })
       } else {
         setSubmitted(true)
       }
@@ -292,7 +377,7 @@ export default function PublicIntakeForm({ token, isDropMode = false, embedded =
     } finally {
       setSubmitting(false)
     }
-  }, [formMeta, formData, submitterName, submitterContact, lat, lon, token, formPassword, isDropMode, embedded, onSubmitted])
+  }, [formMeta, formData, picks, submitterName, submitterContact, lat, lon, token, formPassword, isDropMode, embedded, onSubmitted, onQuestionsRefused, contextShare, contextTicket])
 
   if (loading) return <div className={`flex items-center justify-center ${screen}`}><span className="text-sm text-muted-foreground">Loading...</span></div>
   if (error && !formMeta) return (
@@ -438,6 +523,19 @@ export default function PublicIntakeForm({ token, isDropMode = false, embedded =
         })()}
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Which questions it helps answer, from the questions this form may offer where it
+              was opened. Sent as the helper key `_questions` (and the context); the server
+              refuses the whole tip if any one wasn't offered. */}
+          {formMeta.question_choices.length > 0 && (
+            <QuestionStep
+              name={`${idBase}-question`}
+              choices={formMeta.question_choices}
+              picks={picks}
+              onToggle={(id) => setPicks(prev => togglePick(prev, id))}
+              onRelationChange={(id, relation) => setPicks(prev => setPickRelation(prev, id, relation))}
+            />
+          )}
+
           {/* Dynamic form fields */}
           {formMeta.form_schema.map(field => (
             <div key={field.name} className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 p-4 space-y-2">
@@ -898,59 +996,6 @@ export default function PublicIntakeForm({ token, isDropMode = false, embedded =
               )}
             </div>
           ))}
-
-          {/* Which key question the tip is about (the form owner's choice to offer it).
-              Sent as helper keys `_question` / `_question_relation`; the server files the
-              tip under it only if it is one of this COP's key questions. */}
-          {formMeta.question_choices.length > 0 && (
-            <fieldset className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 p-4 space-y-2">
-              <legend className="px-1 text-sm font-semibold text-slate-800 dark:text-slate-200">
-                Which question is this about? <span className="font-normal text-slate-500">(optional)</span>
-              </legend>
-              <div className="space-y-1">
-                {[{ id: '', question: 'Not sure / none of these' }, ...formMeta.question_choices].map(choice => (
-                  <label
-                    key={choice.id || 'none'}
-                    className="flex min-h-11 cursor-pointer items-start gap-2 rounded-lg px-2 py-2 text-sm text-slate-800 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800/60 has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-blue-500"
-                  >
-                    <input
-                      type="radio"
-                      name={`${idBase}-question`}
-                      value={choice.id}
-                      checked={(formData._question ?? '') === choice.id}
-                      onChange={() => setFormData(prev => {
-                        const next: Record<string, string> = { ...prev, _question: choice.id }
-                        if (!choice.id) { delete next._question; delete next._question_relation }
-                        return next
-                      })}
-                      className="mt-0.5 h-4 w-4 shrink-0"
-                    />
-                    <span className={choice.id ? '' : 'text-slate-500 dark:text-slate-400'}>{choice.question}</span>
-                  </label>
-                ))}
-              </div>
-              {formData._question && (
-                <div role="radiogroup" aria-label="Does it support or contradict that?" className="flex flex-wrap gap-2 pt-1">
-                  {([['supports', 'It supports / answers it'], ['contradicts', 'It contradicts it']] as const).map(([value, text]) => (
-                    <label
-                      key={value}
-                      className="flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border border-slate-300 px-3 text-sm text-slate-800 dark:border-slate-700 dark:text-slate-200 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50 dark:has-[:checked]:bg-blue-950/40 has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-blue-500"
-                    >
-                      <input
-                        type="radio"
-                        name={`${idBase}-relation`}
-                        value={value}
-                        checked={(formData._question_relation ?? 'supports') === value}
-                        onChange={() => setFormData(prev => ({ ...prev, _question_relation: value }))}
-                        className="h-4 w-4"
-                      />
-                      {text}
-                    </label>
-                  ))}
-                </div>
-              )}
-            </fieldset>
-          )}
 
           {/* About you section. An anonymous drop sends no name or contact (drop-submit
               takes form_data only), so it doesn't ask for them. */}
@@ -1508,5 +1553,84 @@ function FileDropZone({ fieldName, accept, currentName, hasFile, previewUrl, onF
         }}
       />
     </div>
+  )
+}
+
+/**
+ * "Which questions does this help answer?": a checklist of the offered questions, key
+ * questions starred first, none ticked by default (not about a specific question), up to
+ * MAX_QUESTIONS_PER_TIP. Each ticked question shows how the tip bears on it, inline.
+ */
+function QuestionStep({ name, choices, picks, onToggle, onRelationChange }: {
+  name: string
+  choices: IntakeQuestionChoice[]
+  picks: QuestionPick[]
+  onToggle: (id: string) => void
+  onRelationChange: (id: string, relation: CopEvidenceRelation) => void
+}) {
+  const full = picks.length >= MAX_QUESTIONS_PER_TIP
+  return (
+    <fieldset className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 p-4 space-y-2">
+      {/* Floated, so the legend sits inside the box like a heading instead of on its border. */}
+      <legend className="float-left mb-1 w-full text-sm font-semibold text-slate-800 dark:text-slate-200">
+        Which questions does this help answer? <span className="font-normal text-slate-500 dark:text-slate-400">(optional)</span>
+      </legend>
+      <p id={`${name}-hint`} className="clear-left text-xs text-slate-600 dark:text-slate-400" aria-live="polite">
+        {picks.length === 0
+          ? `Tick up to ${MAX_QUESTIONS_PER_TIP}, or none if it isn’t about a specific question.`
+          : full
+            ? `${picks.length} ticked, the most one tip can go under.`
+            : `${picks.length} ticked · up to ${MAX_QUESTIONS_PER_TIP}.`}
+      </p>
+      <ul className={`space-y-1 ${choices.length > 6 ? 'max-h-80 overflow-y-auto overscroll-contain pr-1' : ''}`}>
+        {choices.map(choice => {
+          const pick = picks.find(p => p.id === choice.id)
+          const disabled = !pick && full
+          return (
+            <li key={choice.id} className={`rounded-lg ${pick ? 'bg-blue-50 dark:bg-blue-950/40' : ''}`}>
+              <label
+                className={`flex min-h-11 items-start gap-2 rounded-lg px-2 py-2 text-sm text-slate-800 dark:text-slate-200 has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-blue-500 ${disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/60'}`}
+              >
+                <input
+                  type="checkbox"
+                  checked={!!pick}
+                  disabled={disabled}
+                  onChange={() => onToggle(choice.id)}
+                  aria-describedby={`${name}-hint`}
+                  className="mt-0.5 h-4 w-4 shrink-0"
+                />
+                {choice.key && <Star className="mt-0.5 h-4 w-4 shrink-0 fill-amber-400 text-amber-500" aria-label="Key question" />}
+                <span className="min-w-0 break-words">{choice.question}</span>
+              </label>
+              {pick && (
+                <div
+                  role="radiogroup"
+                  aria-label={`How it bears on: ${choice.question.slice(0, 120)}`}
+                  className="mx-2 mb-2 grid grid-cols-1 gap-1 rounded-lg bg-slate-100 p-1 min-[350px]:grid-cols-3 dark:bg-slate-800"
+                >
+                  {RELATIONS.map(({ value: option, label, Icon }) => (
+                    <label
+                      key={option}
+                      className="flex min-h-11 cursor-pointer items-center justify-center gap-1.5 rounded-md px-1 text-sm font-medium text-slate-700 dark:text-slate-300 has-[:checked]:bg-white has-[:checked]:text-slate-900 has-[:checked]:shadow-sm dark:has-[:checked]:bg-slate-950 dark:has-[:checked]:text-white has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-blue-500"
+                    >
+                      <input
+                        type="radio"
+                        name={`${name}-relation-${choice.id}`}
+                        value={option}
+                        checked={pick.relation === option}
+                        onChange={() => onRelationChange(choice.id, option)}
+                        className="sr-only"
+                      />
+                      <Icon className="hidden h-4 w-4 shrink-0 min-[380px]:block" aria-hidden="true" />
+                      {label}
+                    </label>
+                  ))}
+                </div>
+              )}
+            </li>
+          )
+        })}
+      </ul>
+    </fieldset>
   )
 }

@@ -33,6 +33,7 @@ import {
   Menu,
   Newspaper,
   FilePlus2,
+  Plus,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
@@ -45,7 +46,9 @@ import { useIsPhone } from '@/components/cop/shell/useMediaQuery'
 import { usePublicCopChanges, type ChangeMode } from '@/components/cop/shell/usePublicCopChanges'
 import { splitKeyQuestions, type QuestionLike } from '@/components/cop/shell/key-questions'
 import { RelationChip } from '@/components/cop/evidence-links/RelationChip'
-import { cn } from '@/lib/utils'
+import { VoteCounts } from '@/components/cop/evidence-links/VoteControl'
+import { rankFiled } from '@/lib/cop-evidence-links'
+import { cn, formatRelativeTime } from '@/lib/utils'
 import type {
   CopSession,
   CopFeatureCollection,
@@ -163,6 +166,8 @@ export default function PublicCopPage() {
   const [focusCamId, setFocusCamId] = useState<string | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const [evidenceOpen, setEvidenceOpen] = useState(false)
+  // The question "+ Add evidence" picked (null: opened generally); the nonce re-applies it.
+  const [evidenceQuestion, setEvidenceQuestion] = useState<{ id: string | null; nonce: number }>({ id: null, nonce: 0 })
   const [highlightEvidenceId, setHighlightEvidenceId] = useState<string | null>(null)
 
   // RFI answer form state
@@ -311,7 +316,9 @@ export default function PublicCopPage() {
   const showsCams = visiblePanels.includes('cams')
 
   const questions = useMemo(() => {
-    const rfis: PublicRfi[] = [...(data?.rfis ?? [])]
+    // The RFI list (rfi panel) carries no star; the key_rfis (questions panel) say which are key.
+    const keyIds = new Set((data?.key_rfis ?? []).map((k) => k.id))
+    const rfis: PublicRfi[] = (data?.rfis ?? []).map((r) => (keyIds.has(r.id) ? { ...r, is_key: 1 } : r))
     // Starred RFIs the share sends with the questions panel, when the RFI list itself isn't shared.
     for (const keyRfi of data?.key_rfis ?? []) {
       if (!rfis.some((r) => r.id === keyRfi.id)) {
@@ -466,18 +473,31 @@ export default function PublicCopPage() {
         : null
     }
     if (rfi.evidence.length === 0) return <p className="text-xs text-gray-500">No evidence filed under this question yet.</p>
+    // The server ranks them (team score, then newest); ranked again for older servers.
+    const ranked = rankFiled(rfi.evidence, (item) => item.created_at)
+    const voted = ranked.some((item) => (item.up ?? 0) + (item.down ?? 0) > 0)
     return (
       <div className="space-y-1.5">
-        <p className="text-xs font-medium text-gray-300">Evidence filed under this question</p>
+        <p className="text-xs font-medium text-gray-300">
+          Evidence filed under this question
+          {voted && <span className="font-normal text-gray-500"> · ranked by the team’s votes</span>}
+        </p>
         <ul className="space-y-1.5">
-          {rfi.evidence.map((item, i) => (
+          {ranked.map((item, i) => (
             <li key={`${item.created_at}-${i}`} className="flex items-start gap-2 rounded-md bg-gray-800 p-2">
               {item.relation && <RelationChip relation={item.relation} onDark className="mt-0.5 shrink-0" />}
               <div className="min-w-0 flex-1">
                 <p className="break-words text-sm text-gray-200">{item.title}</p>
-                <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-gray-500">
-                  {item.credibility && <span>{item.credibility}</span>}
-                  {item.created_at && <span>{new Date(item.created_at).toLocaleString()}</span>}
+                <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-400">
+                  {typeof item.up === 'number' && <VoteCounts up={item.up} down={item.down ?? 0} />}
+                  {item.relation === null
+                    ? <span className="rounded bg-amber-500/15 px-1.5 py-px font-medium text-amber-300">Unverified</span>
+                    : item.credibility && <span>{item.credibility}</span>}
+                  {item.created_at && (
+                    <time dateTime={item.created_at} title={new Date(item.created_at).toLocaleString()}>
+                      {formatRelativeTime(item.created_at)}
+                    </time>
+                  )}
                   {isHttpsUrl(item.url) && (
                     <a
                       href={item.url}
@@ -513,53 +533,68 @@ export default function PublicCopPage() {
     const answers = rfi.answers ?? []
     const answerCount = answers.length || rfi.answer_count || 0
     const canAnswer = allow_rfi_answers && rfi.status !== 'closed' && rfi.status !== 'accepted'
+    // The form offers this share's open questions (the server checks the same list).
+    const canAddEvidence = !!evidenceForm && rfi.status !== 'closed'
     const panelId = `rfi-${rfi.id}`
 
     return (
       <li key={rfi.id} className="rounded-lg border border-gray-700 bg-gray-800/50">
-        <button
-          type="button"
-          onClick={() => toggleRfiExpand(rfi.id)}
-          aria-expanded={isExpanded}
-          aria-controls={panelId}
-          className="w-full min-h-11 flex items-start gap-2 p-3 text-left rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-blue-500"
-        >
-          {isExpanded ? (
-            <ChevronDown className="h-4 w-4 text-gray-500 mt-0.5 shrink-0" aria-hidden="true" />
-          ) : (
-            <ChevronRight className="h-4 w-4 text-gray-500 mt-0.5 shrink-0" aria-hidden="true" />
-          )}
-          <div className="flex-1 min-w-0">
-            <p className="text-sm text-gray-100 leading-snug">
-              {starred && <Star className="inline h-3.5 w-3.5 mr-1 -mt-0.5 fill-amber-400 text-amber-400" aria-label="Key question" />}
-              {rfi.question}
-            </p>
-            <div className="flex flex-wrap items-center gap-2 mt-1.5 text-xs">
-              <span className="inline-flex items-center gap-1 text-gray-400">
-                <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: priorityColor }} aria-hidden="true" />
-                {rfi.priority}
-              </span>
-              <span
-                className={cn(
-                  'rounded px-1.5 py-0.5',
-                  rfi.status === 'accepted'
-                    ? 'bg-green-500/20 text-green-300'
-                    : rfi.status === 'answered'
-                      ? 'bg-blue-500/20 text-blue-300'
-                      : 'bg-gray-700 text-gray-300',
+        <div className="flex items-start">
+          <button
+            type="button"
+            onClick={() => toggleRfiExpand(rfi.id)}
+            aria-expanded={isExpanded}
+            aria-controls={panelId}
+            className="min-w-0 flex-1 min-h-11 flex items-start gap-2 p-3 text-left rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-blue-500"
+          >
+            {isExpanded ? (
+              <ChevronDown className="h-4 w-4 text-gray-500 mt-0.5 shrink-0" aria-hidden="true" />
+            ) : (
+              <ChevronRight className="h-4 w-4 text-gray-500 mt-0.5 shrink-0" aria-hidden="true" />
+            )}
+            <div className="flex-1 min-w-0">
+              <p className="text-sm text-gray-100 leading-snug">
+                {starred && <Star className="inline h-3.5 w-3.5 mr-1 -mt-0.5 fill-amber-400 text-amber-400" aria-label="Key question" />}
+                {rfi.question}
+              </p>
+              <div className="flex flex-wrap items-center gap-2 mt-1.5 text-xs">
+                <span className="inline-flex items-center gap-1 text-gray-400">
+                  <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: priorityColor }} aria-hidden="true" />
+                  {rfi.priority}
+                </span>
+                <span
+                  className={cn(
+                    'rounded px-1.5 py-0.5',
+                    rfi.status === 'accepted'
+                      ? 'bg-green-500/20 text-green-300'
+                      : rfi.status === 'answered'
+                        ? 'bg-blue-500/20 text-blue-300'
+                        : 'bg-gray-700 text-gray-300',
+                  )}
+                >
+                  {rfi.status}
+                </span>
+                {(rfi.evidence_count ?? 0) > 0 && (
+                  <span className="text-gray-300">{rfi.evidence_count} evidence</span>
                 )}
-              >
-                {rfi.status}
-              </span>
-              {(rfi.evidence_count ?? 0) > 0 && (
-                <span className="text-gray-300">{rfi.evidence_count} evidence</span>
-              )}
-              {answerCount > 0 && (
-                <span className="text-gray-400">{answerCount} answer{answerCount !== 1 ? 's' : ''}</span>
-              )}
+                {answerCount > 0 && (
+                  <span className="text-gray-400">{answerCount} answer{answerCount !== 1 ? 's' : ''}</span>
+                )}
+              </div>
             </div>
-          </div>
-        </button>
+          </button>
+          {canAddEvidence && (
+            <button
+              type="button"
+              onClick={() => openEvidence(rfi.id)}
+              aria-label={`Add evidence to: ${rfi.question.slice(0, 120)}`}
+              className="m-1.5 inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-1 rounded-lg border border-emerald-500/40 px-2.5 text-sm font-medium text-emerald-300 hover:bg-emerald-500/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-400"
+            >
+              <Plus className="h-4 w-4" aria-hidden="true" />
+              Evidence
+            </button>
+          )}
+        </div>
 
         {isExpanded && (
           <div id={panelId} className="border-t border-gray-700 px-3 py-3 space-y-2">
@@ -742,8 +777,9 @@ export default function PublicCopPage() {
     ? { role: 'tabpanel' as const, id: `${prefix}-panel-${shownPanel}`, 'aria-labelledby': `${prefix}-tab-${shownPanel}` }
     : { role: 'region' as const, 'aria-label': panels.find((p) => p.id === shownPanel)?.label ?? 'Panel' }
 
-  const openEvidence = () => {
+  const openEvidence = (questionId: string | null = null) => {
     setMenuOpen(false)
+    setEvidenceQuestion((prev) => ({ id: questionId, nonce: prev.nonce + 1 }))
     setEvidenceOpen(true)
   }
 
@@ -787,7 +823,7 @@ export default function PublicCopPage() {
         {evidenceForm && (
           <button
             type="button"
-            onClick={openEvidence}
+            onClick={() => openEvidence()}
             className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full bg-emerald-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400"
           >
             <FilePlus2 className="h-4 w-4" aria-hidden="true" />
@@ -860,7 +896,7 @@ export default function PublicCopPage() {
             <div className="border-t border-gray-800 p-3">
               <button
                 type="button"
-                onClick={openEvidence}
+                onClick={() => openEvidence()}
                 className="flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 text-sm font-semibold text-white hover:bg-emerald-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400"
               >
                 <FilePlus2 className="h-4 w-4" aria-hidden="true" />
@@ -878,8 +914,15 @@ export default function PublicCopPage() {
           dropToken={evidenceForm.token}
           formTitle={evidenceForm.title}
           rootClassName="dark"
-          onSubmitted={(ingested) => {
-            if (ingested?.evidence_id != null) {
+          questionContext={token ? { share: token } : undefined}
+          initialQuestionId={evidenceQuestion.id}
+          preselectNonce={evidenceQuestion.nonce}
+          onSubmitted={(ingested, filedUnder) => {
+            if (filedUnder.length > 0 && showsQuestions) {
+              // Show it where it was filed: those questions, opened.
+              setExpandedRfis((prev) => new Set([...prev, ...filedUnder.map((q) => q.id)]))
+              setActivePanel('questions')
+            } else if (ingested?.evidence_id != null) {
               setHighlightEvidenceId(String(ingested.evidence_id))
               if (evidence) setActivePanel('feed')
             }

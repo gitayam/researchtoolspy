@@ -341,22 +341,28 @@ test('a tip is filed under the key question its tipster chose, and never under a
   const against = await submitTip(env, { what: 'Gate B is empty', _question: secondKey, _question_relation: 'contradicts' })
   assert.equal(db.prepare('SELECT relation FROM cop_evidence_links WHERE evidence_id = ?').get(String(against.ingested.evidence_id)).relation, 'contradicts')
 
+  // A question the form didn't offer is refused (migration 0026's drop-submit check), never filed.
+  const stored = count(db, 'survey_responses')
   for (const bad of ['rfi-other', 'rfi-plain', 'rfi-nope', "x' OR 1=1 --"]) {
     const res = await submitTip(env, { what: `Tip naming ${bad}`, _question: bad })
-    assert.ok(res.ingested?.evidence_id, bad)
-    assert.equal(count(db, 'cop_evidence_links', 'evidence_id = ?', String(res.ingested.evidence_id)), 0, bad)
+    assert.equal(res.ok, false, bad)
+    assert.equal(res.code, 'QUESTION_NOT_OFFERED', bad)
   }
+  assert.equal(count(db, 'survey_responses'), stored)
+  assert.equal(count(db, 'cop_evidence_links'), 2)
   // The choice never shows as an answer in the evidence text.
   const description = db.prepare('SELECT description FROM evidence_items WHERE id = ?').get(Number(chosen.ingested.evidence_id)).description
   assert.ok(!description.includes(keyRfi), description)
 })
 
-test('a picker turned off ignores the choice; the owner sets it through the survey settings', async () => {
+test('a picker turned off refuses the choice; the owner sets it through the survey settings', async () => {
   const { db, env } = await linksFixture()
   seedDrop(db, { picker: 0 })
   const [keyRfi] = rfiIds(db)
   const tip = await submitTip(env, { what: 'Something', _question: keyRfi })
-  assert.equal(count(db, 'cop_evidence_links', 'evidence_id = ?', String(tip.ingested.evidence_id)), 0)
+  assert.equal(tip.ok, false)
+  assert.equal(tip.code, 'QUESTION_NOT_OFFERED')
+  assert.equal(count(db, 'cop_evidence_links'), 0)
 
   const put = await call(env, 'surveyItem', 'PUT', '/api/surveys/drop-links', { who: 'owner', params: { id: 'drop-links' }, body: { question_picker: true } })
   assert.equal(put.status, 200, await put.clone().text())

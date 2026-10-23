@@ -16,12 +16,23 @@
  * unverified COP evidence at once (functions/api/_shared/cop-ingest.ts); the
  * response then says `ingested: { evidence_id, marker_id }` (else null) and
  * nothing else about the COP.
+ *
+ * "Which questions does this help answer?": every question in `_questions`
+ * ([{ id, relation }], at most 5; the older single `_question` counts as one) must be one
+ * the form offered where it was opened — `question_context: { share }` (a share link's
+ * Submit sheet) or `{ ticket }` (a collaborator's workspace), else the standalone link's
+ * (questionChoicesForForm). One that wasn't, or a malformed list, refuses the whole
+ * submission. The checked choices are stored on the row (migration 0026) for ingest to
+ * file; `ok: true` means the tip goes under every question it named.
  */
 import { generatePrefixedId, JSON_HEADERS } from '../../../_shared/api-utils'
-import { hashFormData } from '../../../_shared/survey-drops'
+import { hashFormData, verifyPassword } from '../../../_shared/survey-drops'
 import { emitCopEvent } from '../../../_shared/cop-events'
 import { INGEST_SUBMISSION_RECEIVED } from '../../../_shared/cop-event-types'
 import { autoIngestSubmission, parseFormSchema, sanitizeFormDataFiles } from '../../../_shared/cop-ingest'
+import { chosenQuestionsForSubmission, storedQuestionChoices } from '../../../_shared/cop-evidence-links'
+import { verifyQuestionTicket } from '../../../_shared/cop-question-ticket'
+import { isMissingColumn } from '../../../_shared/cop-input'
 import type { R2Like } from '../../../_shared/cop-uploads'
 import { formDataTooLarge, readCappedText, SUBMISSION_BODY_MAX_BYTES } from '../../../_shared/capped-body'
 
@@ -29,6 +40,7 @@ interface Env {
   DB: D1Database
   TURNSTILE_SECRET?: string
   UPLOADS?: R2Like
+  JWT_SECRET?: string
 }
 
 const TOO_LARGE = 'Submission too large (max 64 KB)'
@@ -60,7 +72,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
   try {
     const form = await env.DB.prepare(
-      `SELECT id, cop_session_id, status, form_schema, intent, expires_at, access_level
+      `SELECT id, cop_session_id, status, form_schema, intent, expires_at, access_level, password_hash
        FROM survey_drops WHERE share_token = ?`
     ).bind(token).first() as any
 
@@ -109,6 +121,21 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       return new Response(JSON.stringify({ ok: false, error: 'Invalid request body' }), {
         status: 200, headers: JSON_HEADERS,
       })
+    }
+
+    // A password form takes tips only with its password (checked as submit.ts does).
+    if (form.access_level === 'password') {
+      const password = body && typeof body === 'object' ? body.password : undefined
+      if (!password || typeof password !== 'string') {
+        return new Response(JSON.stringify({ ok: false, error: 'Password is required' }), {
+          status: 401, headers: JSON_HEADERS,
+        })
+      }
+      if (!form.password_hash || !(await verifyPassword(password, form.password_hash))) {
+        return new Response(JSON.stringify({ ok: false, error: 'Incorrect password' }), {
+          status: 401, headers: JSON_HEADERS,
+        })
+      }
     }
 
     // Turnstile check — fail-OPEN: if TURNSTILE_SECRET is not configured, skip
@@ -164,6 +191,18 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       }
     }
 
+    // The questions it is filed under: only ones this form offered where it was opened.
+    const rawContext = body.question_context && typeof body.question_context === 'object' ? body.question_context : {}
+    const questions = await chosenQuestionsForSubmission(env.DB, form.id, formData, {
+      shareToken: typeof rawContext.share === 'string' ? rawContext.share : null,
+      ticketSessionId: await verifyQuestionTicket(env.JWT_SECRET, rawContext.ticket),
+    })
+    if (questions.ok === false) {
+      return new Response(JSON.stringify({ ok: false, error: questions.error, code: 'QUESTION_NOT_OFFERED' }), {
+        status: 200, headers: JSON_HEADERS,
+      })
+    }
+
     // Content hash — for same-drop content tracking (no dedup — accept every tip)
     const contentHash = await hashFormData(formData)
 
@@ -171,15 +210,31 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const now = new Date().toISOString()
 
     // Insert — no submitter_ip_hash, no submitter geo, no submitter name/contact
-    await env.DB.prepare(`
-      INSERT INTO survey_responses (
-        id, survey_id, cop_session_id,
-        form_data, content_hash, status, updated_at
-      ) VALUES (?, ?, ?, ?, ?, 'pending', ?)
-    `).bind(
-      id, form.id, form.cop_session_id || null,
-      formDataStr, contentHash, now
-    ).run()
+    try {
+      await env.DB.prepare(`
+        INSERT INTO survey_responses (
+          id, survey_id, cop_session_id,
+          form_data, content_hash, status, updated_at, question_choices
+        ) VALUES (?, ?, ?, ?, ?, 'pending', ?, ?)
+      `).bind(
+        id, form.id, form.cop_session_id || null,
+        formDataStr, contentHash, now,
+        storedQuestionChoices(questions.picks)
+      ).run()
+    } catch (insertError) {
+      // Before migration 0026: the row without the checked choices (ingest falls back to
+      // the `_question(s)` answers, filing only the standalone form's key questions).
+      if (!isMissingColumn(insertError)) throw insertError
+      await env.DB.prepare(`
+        INSERT INTO survey_responses (
+          id, survey_id, cop_session_id,
+          form_data, content_hash, status, updated_at
+        ) VALUES (?, ?, ?, ?, ?, 'pending', ?)
+      `).bind(
+        id, form.id, form.cop_session_id || null,
+        formDataStr, contentHash, now
+      ).run()
+    }
 
     // Increment submission count
     await env.DB.prepare(
