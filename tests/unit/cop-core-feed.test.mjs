@@ -445,3 +445,43 @@ test('without migration 0022 the routes keep working with the old columns', asyn
   assert.ok(Array.isArray(payload.evidence))
   assert.equal((await changes(env, '0')).status, 200)
 })
+
+// ── Follow-ups: the workspace's evidence form, starred RFIs on create ──
+
+test('the workspace session response carries the evidence form for the owner and editors only', async () => {
+  const { db, env } = await fixture({ seed: seedDrops })
+  const get = (who) => call(env, 'sessionItem', 'GET', `/api/cop/sessions/${SESSION}`, { who, params: S })
+  const form = { token: 'drop-token-1', title: 'Paris evidence form', require_location: true, require_contact: false }
+  for (const who of ['owner', 'editor', 'admin']) {
+    const body = await json(await get(who))
+    assert.deepEqual(body.evidence_form, form, who)
+    assert.equal(body.session.id, SESSION)
+  }
+  assert.equal((await json(await get('viewer'))).evidence_form, null)
+  assert.equal((await get('stranger')).status, 403)
+
+  // A public session: anyone may read it, the form still only for those who manage it.
+  db.prepare('UPDATE cop_sessions SET is_public = 1 WHERE id = ?').run(SESSION)
+  assert.equal((await json(await get('stranger'))).evidence_form, null)
+  assert.equal((await json(await get('anonymous'))).evidence_form, null)
+  assert.deepEqual((await json(await get('editor'))).evidence_form, form)
+
+  // No active drop linked to this session: null (never another session's drop).
+  db.exec("UPDATE survey_drops SET status = 'closed' WHERE cop_session_id = 'cop-core'")
+  assert.equal((await json(await get('owner'))).evidence_form, null)
+})
+
+test('POST /rfis with is_key: true creates a starred RFI and adds it to the key questions', async () => {
+  const { db, env } = await fixture()
+  const res = await call(env, 'rfis', 'POST', `${P}/rfis`, { who: 'editor', params: S, body: { question: 'Who opens the gate?', is_key: true } })
+  assert.equal(res.status, 201)
+  const { id } = await res.json()
+  assert.equal(db.prepare('SELECT is_key FROM cop_rfis WHERE id = ?').get(id).is_key, 1)
+  assert.deepEqual(JSON.parse(db.prepare('SELECT key_questions FROM cop_sessions WHERE id = ?').get(SESSION).key_questions),
+    ['Who is at the gate?', 'When does it start?', 'Who opens the gate?'])
+  assert.ok(events(db).some((e) => e.event_type === 'rfi.created' && e.entity_id === id))
+  assert.ok(events(db).some((e) => e.event_type === 'session.updated'))
+  // Without is_key it is an ordinary RFI.
+  const plain = await json(await call(env, 'rfis', 'POST', `${P}/rfis`, { params: S, body: { question: 'Anything else?' } }))
+  assert.equal(db.prepare('SELECT is_key FROM cop_rfis WHERE id = ?').get(plain.id).is_key, 0)
+})

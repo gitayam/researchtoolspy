@@ -102,11 +102,18 @@ export interface PublicEvidenceForm {
 }
 
 /**
- * The session's evidence form for a share that allows evidence: the newest active,
- * public, password-free, unexpired drop linked to this session. Never another drop.
+ * The session's evidence form for a share that allows evidence (see sessionEvidenceForm).
  */
 export async function publicEvidenceForm(db: D1Database, share: PublicShareRow): Promise<PublicEvidenceForm | null> {
   if (share.allow_evidence !== 1) return null
+  return sessionEvidenceForm(db, share.cop_session_id)
+}
+
+/**
+ * A session's evidence form: the newest active, public, password-free, unexpired drop
+ * linked to this session. Never another session's drop.
+ */
+export async function sessionEvidenceForm(db: D1Database, sessionId: string): Promise<PublicEvidenceForm | null> {
   const rows = await db.prepare(`
     SELECT share_token, title, require_location, require_contact, expires_at
     FROM survey_drops
@@ -114,7 +121,7 @@ export async function publicEvidenceForm(db: D1Database, share: PublicShareRow):
       AND access_level = 'public' AND password_hash IS NULL
     ORDER BY created_at DESC, rowid DESC
     LIMIT 10
-  `).bind(share.cop_session_id).all<{ share_token: string; title: string; require_location: number; require_contact: number; expires_at: string | null }>()
+  `).bind(sessionId).all<{ share_token: string; title: string; require_location: number; require_contact: number; expires_at: string | null }>()
   const now = Date.now()
   for (const row of rows.results ?? []) {
     if (row.expires_at) {
