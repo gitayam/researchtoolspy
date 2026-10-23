@@ -448,13 +448,13 @@ export default function ResearchFormBuilderPage() {
                     <ShieldCheck className="h-4 w-4 mt-0.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
                     <div>
                       <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Drop Spot</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Anonymous tip-line. No IP address or identifying info collected.</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Anonymous tip-line. No IP address or identifying info recorded.</p>
                     </div>
                   </button>
                 </div>
                 {state.intent === 'drop' && (
                   <p className="text-xs text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-md px-3 py-2">
-                    Submissions will be completely anonymous — no IP address or identifying information is collected. Turnstile bot protection activates if configured.
+                    Submissions are anonymous: no IP address, device or identifying information is recorded. Turnstile bot protection activates if configured.
                   </p>
                 )}
               </div>
