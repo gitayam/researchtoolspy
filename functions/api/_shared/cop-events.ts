@@ -29,7 +29,12 @@ function generateEventId(): string {
 
 // Counts the events a request emitted, so the COP middleware can tell a write that
 // emitted nothing (see trackCopEvents).
-const emitTracker = new AsyncLocalStorage<{ emitted: number }>()
+// One tracker per isolate, even when a test bundles the middleware and a route
+// separately (each bundle would otherwise get its own module copy and count nothing).
+const TRACKER_KEY = Symbol.for('researchtools.copEventTracker')
+const emitTracker: AsyncLocalStorage<{ emitted: number }> =
+  ((globalThis as Record<symbol, unknown>)[TRACKER_KEY] as AsyncLocalStorage<{ emitted: number }> | undefined) ??
+  ((globalThis as Record<symbol, unknown>)[TRACKER_KEY] = new AsyncLocalStorage<{ emitted: number }>())
 
 /**
  * Run a request handler while counting the COP events it emits. The COP middleware
