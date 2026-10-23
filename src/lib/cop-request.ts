@@ -2,9 +2,10 @@
  * JSON requests to the COP API that keep the server's error `code`.
  *
  * The input contract's routes (tags, suggest, geocode, uploads) ship in the same
- * release as the UI but may land after it, so a 404 or 405 from one of them is
- * reported as `NOT_AVAILABLE` and the caller says "not available yet" instead of
- * failing.
+ * release as the UI but may land after it, so a 404 or 405 from one of them
+ * (`newRoute: true`) is reported as `NOT_AVAILABLE` and the caller says "not
+ * available yet" instead of failing. For the long-standing routes a 404 means
+ * what it says (no such COP or item) and keeps its status.
  */
 import { getCopAuthHeaders, getCopHeaders } from '@/lib/cop-auth'
 import type { CopEntityType } from '@/types/cop'
@@ -15,8 +16,11 @@ export type CopRequestResult<T> =
 
 export const NOT_AVAILABLE = 'NOT_AVAILABLE'
 
-export async function copRequest<T>(url: string, init: RequestInit & { json?: unknown } = {}): Promise<CopRequestResult<T>> {
-  const { json, ...rest } = init
+export async function copRequest<T>(
+  url: string,
+  init: RequestInit & { json?: unknown; newRoute?: boolean } = {},
+): Promise<CopRequestResult<T>> {
+  const { json, newRoute, ...rest } = init
   const isForm = typeof FormData !== 'undefined' && rest.body instanceof FormData
   let res: Response
   try {
@@ -30,7 +34,7 @@ export async function copRequest<T>(url: string, init: RequestInit & { json?: un
   }
   const body = await res.json().catch(() => null) as Record<string, unknown> | null
   if (res.ok) return { ok: true, status: res.status, data: (body ?? {}) as T }
-  if (res.status === 404 || res.status === 405) {
+  if (newRoute && (res.status === 404 || res.status === 405)) {
     return { ok: false, status: res.status, code: NOT_AVAILABLE, error: null }
   }
   return {

@@ -59,8 +59,8 @@ export function useCopTags(sessionId: string, opts: { enabled?: boolean } = {}):
     const mine = ++generation.current
     const base = `/api/cop/${encodeURIComponent(sessionId)}`
     const [vocab, linked] = await Promise.all([
-      copRequest<{ tags?: CopTag[] }>(`${base}/tags`),
-      copRequest<{ items?: CopItemTags[] }>(`${base}/item-tags`),
+      copRequest<{ tags?: CopTag[] }>(`${base}/tags`, { newRoute: true }),
+      copRequest<{ items?: CopItemTags[] }>(`${base}/item-tags`, { newRoute: true }),
     ])
     if (mine !== generation.current) return // a newer load won
     if ((vocab.ok === false && vocab.code === NOT_AVAILABLE) || (linked.ok === false && linked.code === NOT_AVAILABLE)) {
@@ -134,7 +134,7 @@ export function useCopTags(sessionId: string, opts: { enabled?: boolean } = {}):
   const createTag = useCallback(async (name: string, extra: { color?: string; category?: string } = {}) => {
     const [clean] = uniqueTagNames([name], 1)
     if (!clean) return null
-    const res = await copRequest<{ tag?: CopTag }>(`${base}/tags`, { method: 'POST', json: { name: clean, ...extra } })
+    const res = await copRequest<{ tag?: CopTag }>(`${base}/tags`, { method: 'POST', json: { name: clean, ...extra }, newRoute: true })
     if (res.ok === false) {
       setError(failure(res.status, res.code, res.error))
       return null
@@ -149,6 +149,7 @@ export function useCopTags(sessionId: string, opts: { enabled?: boolean } = {}):
     setItemTagsLocally(target, prev => uniqueTagNames([...prev, ...clean], 100))
     const res = await copRequest<CopItemTags>(`${base}/item-tags`, {
       method: 'POST',
+      newRoute: true,
       json: { target_type: target.target_type, target_id: String(target.target_id), tags: clean, source },
     })
     if (res.ok === false) {
@@ -163,6 +164,7 @@ export function useCopTags(sessionId: string, opts: { enabled?: boolean } = {}):
     setItemTagsLocally(target, prev => prev.filter(t => tagKey(t) !== tagKey(name)))
     const res = await copRequest<unknown>(`${base}/item-tags`, {
       method: 'DELETE',
+      newRoute: true,
       json: { target_type: target.target_type, target_id: String(target.target_id), tag: name },
     })
     if (res.ok === false) {
@@ -182,6 +184,7 @@ export function useCopTags(sessionId: string, opts: { enabled?: boolean } = {}):
       const chunk = targets.slice(i, i + 100).map(t => ({ target_type: t.target_type, target_id: String(t.target_id) }))
       const res = await copRequest<unknown>(`${base}/item-tags/bulk`, {
         method: 'POST',
+        newRoute: true,
         json: { targets: chunk, add: addClean, remove: removeClean },
       })
       if (res.ok === false) {

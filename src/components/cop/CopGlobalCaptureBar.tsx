@@ -77,9 +77,15 @@ function captureFailure(status: number, code: string | null, error: string | nul
   if (code === NOT_AVAILABLE) return "That isn't available on this server yet."
   if (status === 401) return 'Sign in again to add to this COP.'
   if (status === 403) return 'Only the session owner or an editor can add to this COP.'
+  if (status === 404) return 'This COP was not found. It may have been removed, or your access ended.'
   if (status === 429) return 'Too many requests at once. Try again in a minute.'
   if (status === 0) return 'Could not reach the server. Check your connection.'
   return error ?? `Could not add it (HTTP ${status}).`
+}
+
+/** What a line becomes, short enough for a phone. */
+const KIND_SHORT: Record<CaptureKind, string> = {
+  rfi: 'Question', nai: 'Map', task: 'Task', timeline: 'Timeline', survey: 'Form', url: 'Link', hypothesis: 'Hypothesis', note: 'Note',
 }
 
 const KIND_ICON: Record<CaptureKind, typeof Link> = {
@@ -270,6 +276,7 @@ export default function CopGlobalCaptureBar({ sessionId, workspaceId, onSuccess,
     if (route.tags?.length && target && id) {
       const tagRes = await copRequest<unknown>(`${base}/item-tags`, {
         method: 'POST',
+        newRoute: true,
         json: { target_type: target, target_id: id, tags: route.tags, source: 'user' },
       })
       if (tagRes.ok === true) tagged = true
@@ -429,6 +436,7 @@ export default function CopGlobalCaptureBar({ sessionId, workspaceId, onSuccess,
     setError(null)
     const res = await copRequest<CopSuggestResponse>(`${base}/suggest`, {
       method: 'POST',
+      newRoute: true,
       json: { text: input.trim().slice(0, 2000), want: ['kind', 'tags', 'places'] },
     })
     setSuggesting(false)
@@ -461,7 +469,7 @@ export default function CopGlobalCaptureBar({ sessionId, workspaceId, onSuccess,
 
   const lookUpPlace = async (p: { text: string; query: string }) => {
     setError(null)
-    const res = await copRequest<CopGeocodeResponse>(`${base}/geocode?q=${encodeURIComponent(p.query)}`)
+    const res = await copRequest<CopGeocodeResponse>(`${base}/geocode?q=${encodeURIComponent(p.query)}`, { newRoute: true })
     if (res.ok === false) {
       setError(res.code === NOT_AVAILABLE ? "Place search isn't available on this server yet." : captureFailure(res.status, res.code, res.error))
       return
@@ -510,7 +518,7 @@ export default function CopGlobalCaptureBar({ sessionId, workspaceId, onSuccess,
   const tagAtCaret = hashtagAtCaret(input, caret)
   const loadVocabulary = useCallback(async () => {
     if (vocabulary) return
-    const res = await copRequest<{ tags?: CopTag[] }>(`${base}/tags`)
+    const res = await copRequest<{ tags?: CopTag[] }>(`${base}/tags`, { newRoute: true })
     setVocabulary(res.ok === true && Array.isArray(res.data.tags) ? res.data.tags : [])
   }, [base, vocabulary])
 
@@ -630,7 +638,7 @@ export default function CopGlobalCaptureBar({ sessionId, workspaceId, onSuccess,
             onPaste={handlePaste}
             aria-label="Capture to the COP"
             aria-describedby="cop-capture-help"
-            placeholder="Note, link or photo · rfi: task: t: nai: · #tags"
+            placeholder="Note, link or photo · #tags"
             className={cn(
               'max-h-32 min-h-11 w-full resize-none rounded-lg border border-gray-300 bg-gray-50 py-2.5 pl-10 pr-[7.5rem] text-base text-gray-900 placeholder:text-gray-500 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/60 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:placeholder:text-gray-400 sm:text-sm',
             )}
@@ -758,9 +766,9 @@ export default function CopGlobalCaptureBar({ sessionId, workspaceId, onSuccess,
         )}
 
         {place && (
-          <div className="ml-10 flex flex-wrap items-center gap-2 rounded-md border border-emerald-300 bg-emerald-50 px-2 py-1.5 text-xs text-emerald-900 dark:border-emerald-500/40 dark:bg-emerald-950 dark:text-emerald-200">
+          <div className="flex flex-wrap items-center gap-2 rounded-md border border-emerald-300 bg-emerald-50 px-2 py-1.5 text-xs text-emerald-900 dark:border-emerald-500/40 dark:bg-emerald-950 dark:text-emerald-200 sm:ml-10">
             <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-            <span className="min-w-0 flex-1">
+            <span className="min-w-0 flex-1 basis-[calc(100%-2rem)] sm:basis-auto">
               <span className="font-semibold">{place.text}</span>: {place.displayName}{' '}
               <span className="tabular-nums">({place.lat.toFixed(5)}, {place.lon.toFixed(5)})</span>
               <a
@@ -781,7 +789,7 @@ export default function CopGlobalCaptureBar({ sessionId, workspaceId, onSuccess,
         )}
 
         {batch && (
-          <section className="ml-10 rounded-lg border border-gray-200 bg-gray-50 p-2 dark:border-gray-700 dark:bg-gray-800" aria-label="Pasted lines">
+          <section className="rounded-lg border sm:ml-10 border-gray-200 bg-gray-50 p-2 dark:border-gray-700 dark:bg-gray-800" aria-label="Pasted lines">
             <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
               {batch.lines.length} lines pasted. Add each line as its own item?
             </p>
@@ -793,8 +801,8 @@ export default function CopGlobalCaptureBar({ sessionId, workspaceId, onSuccess,
                 const route = parseCapture(line.text)
                 return (
                   <li key={i} className="flex items-start gap-2 text-xs">
-                    <span className="w-24 shrink-0 font-semibold text-gray-700 dark:text-gray-300">
-                      {route ? PANEL_LABEL_FOR_KIND[route.kind] : 'Nothing to add'}
+                    <span className="w-20 shrink-0 font-semibold text-gray-700 dark:text-gray-300">
+                      {route ? KIND_SHORT[route.kind] : 'Nothing'}
                     </span>
                     <span className="min-w-0 flex-1 break-words text-gray-900 dark:text-gray-100">
                       {route?.body ?? line.text}
@@ -843,7 +851,7 @@ export default function CopGlobalCaptureBar({ sessionId, workspaceId, onSuccess,
         )}
 
         {(uploads.length > 0 || photoOffers.length > 0) && (
-          <div className="ml-10 space-y-1">
+          <div className="space-y-1 sm:ml-10">
             {uploads.map(u => (
               <div key={u.key} className="flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300">
                 {u.status === 'uploading' && <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-600" aria-hidden="true" />}
@@ -858,7 +866,7 @@ export default function CopGlobalCaptureBar({ sessionId, workspaceId, onSuccess,
             {photoOffers.map(offer => (
               <div key={offer.key} className="flex flex-wrap items-center gap-2 rounded-md border border-sky-300 bg-sky-50 px-2 py-1.5 text-xs text-sky-950 dark:border-sky-500/40 dark:bg-sky-950 dark:text-sky-100" role="status">
                 <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                <span className="min-w-0 flex-1">
+                <span className="min-w-0 flex-1 basis-[calc(100%-2rem)] sm:basis-auto">
                   "{offer.label}" says where it was taken
                   <span className="tabular-nums"> ({offer.position.lat.toFixed(5)}, {offer.position.lon.toFixed(5)})</span>.
                   Pin it on the map? The stored copy has its location data removed.
@@ -880,7 +888,7 @@ export default function CopGlobalCaptureBar({ sessionId, workspaceId, onSuccess,
 
         {/* The prefixes, shown rather than described. */}
         {!input.trim() && !loading && !batch && (
-          <div className="ml-10 hidden flex-wrap items-center gap-2 sm:flex">
+          <div className="-mx-2 flex items-center gap-2 overflow-x-auto px-2 pb-0.5 sm:mx-0 sm:ml-10 sm:flex-wrap sm:overflow-visible sm:px-0" aria-label="Shortcuts">
             {[
               { prefix: 'rfi:', meaning: 'question', extra: '! or !! to raise priority' },
               { prefix: 'nai:', meaning: 'named area', extra: 'start with 34.05,-118.24, an MGRS grid, or a map link' },
@@ -903,7 +911,7 @@ export default function CopGlobalCaptureBar({ sessionId, workspaceId, onSuccess,
                   inputRef.current?.focus()
                 }}
                 title={hint.extra ? `${hint.meaning}: ${hint.extra}` : hint.meaning}
-                className="rounded border border-gray-300 px-1.5 py-0.5 text-xs text-gray-600 hover:border-gray-400 hover:text-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500 dark:border-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                className="min-h-9 shrink-0 rounded border border-gray-300 px-2 text-xs text-gray-600 hover:border-gray-400 hover:text-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500 dark:border-gray-700 dark:text-gray-400 dark:hover:text-gray-200 sm:min-h-0 sm:px-1.5 sm:py-0.5"
               >
                 <span className="font-mono font-semibold">{hint.prefix}</span>{' '}
                 <span>{hint.meaning}</span>

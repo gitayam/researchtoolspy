@@ -5,13 +5,15 @@
  * (`onRemove`). The remove control is small to look at but its hit area is
  * extended to 44px, so it can be used on a phone without crowding a card.
  */
+import { useMemo } from 'react'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { tagChipClasses } from './tag-names'
+import { tagChipClasses, tagKey } from './tag-names'
+import { useCopTagsContext } from './tag-context'
 
 export interface TagChipsProps {
   tags: readonly string[]
-  /** Stored colours by tag key (lowercase name), from the vocabulary. */
+  /** Stored colours by tag key (lowercase name). Defaults to the page's vocabulary. */
   colors?: ReadonlyMap<string, string | null>
   onSelect?: (name: string) => void
   onRemove?: (name: string) => void
@@ -24,6 +26,14 @@ export interface TagChipsProps {
 }
 
 export default function TagChips({ tags, colors, onSelect, onRemove, max, active, className, size = 'sm' }: TagChipsProps) {
+  // The page's vocabulary, so a tag has the same colour on every panel.
+  const context = useCopTagsContext()
+  const vocabulary = context?.tags
+  const pageColors = useMemo(
+    () => new Map((vocabulary ?? []).map(t => [tagKey(t.name), t.color] as const)),
+    [vocabulary],
+  )
+  const palette = colors ?? pageColors
   if (tags.length === 0) return null
   const shown = max && tags.length > max ? tags.slice(0, max) : tags
   const hidden = tags.length - shown.length
@@ -37,7 +47,7 @@ export default function TagChips({ tags, colors, onSelect, onRemove, max, active
         const chip = cn(
           'inline-flex max-w-[12rem] items-center gap-1 rounded-full border px-2 py-0.5 font-medium leading-5',
           text,
-          tagChipClasses(name, colors?.get(name.toLowerCase())),
+          tagChipClasses(name, palette.get(tagKey(name))),
           pressed && 'ring-2 ring-offset-1 ring-blue-500 dark:ring-offset-gray-900',
         )
         return (

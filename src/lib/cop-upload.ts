@@ -73,6 +73,7 @@ export async function uploadToCop(sessionId: string, file: File, opts: UploadOpt
   const res = await copRequest<CopUploadResponse>(`/api/cop/${encodeURIComponent(sessionId)}/uploads`, {
     method: 'POST',
     body: form,
+    newRoute: true,
   })
   if (res.ok === false) return res
   notifyCopChanged(res.data.evidence ? ['upload', 'evidence'] : ['upload'])
