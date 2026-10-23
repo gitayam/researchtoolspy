@@ -89,16 +89,21 @@ test('the link asks the workspace to open the map at the point, once', () => {
 })
 
 test('the tip form says photos keep their location, before submit and beside every file input', () => {
+  // Where AND when: the team copy keeps position, altitude, date, time and time zone.
   assert.equal(
     mod.TIP_PHOTO_LOCATION_NOTICE,
-    "Photos keep their location (GPS) so the team can place them on the map. Remove it from the photo first if you don't want to share where it was taken.",
+    "Photos keep where and when they were taken (GPS position, altitude, date, time and time zone) so the team can place them on the map. Remove this from the photo first if you don't want to share it.",
   )
+  // A screenshot has no GPS position but can still carry a date (XMP photoshop:DateCreated).
+  assert.doesNotMatch(mod.TIP_PHOTO_LOCATION_HOWTO, /carries none|no metadata/)
+  assert.match(mod.TIP_PHOTO_LOCATION_HOWTO, /screenshot/)
+  assert.match(mod.TIP_PHOTO_LOCATION_HOWTO, /date/)
   // Still promised, and still true: IP, device and identity are not recorded.
   assert.match(mod.TIP_IDENTITY_PROMISE, /IP address/)
   assert.match(mod.TIP_IDENTITY_PROMISE, /device/)
   assert.match(mod.TIP_IDENTITY_PROMISE, /who you are/)
   const html = mod.renderToStaticMarkup(mod.createElement(mod.TipPhotoLocationNote, {}))
-  assert.ok(html.includes('Photos keep their location (GPS) so the team can place them on the map.'), html)
+  assert.ok(html.includes('Photos keep where and when they were taken (GPS position, altitude, date, time and time zone)'), html)
 
   const form = source('src/components/cop/PublicIntakeForm.tsx')
   // The old promise was false once photos keep their location.
