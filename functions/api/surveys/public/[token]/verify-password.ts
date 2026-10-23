@@ -5,8 +5,9 @@
  * Body: { password: string }
  * Returns: full form schema on success, 401 on failure
  */
-import { verifyPassword } from '../../../_shared/survey-drops'
+import { extractGeoFromRequest, isCountryAllowed, verifyPassword } from '../../../_shared/survey-drops'
 import { JSON_HEADERS } from '../../../_shared/api-utils'
+import { questionChoicesForDrop } from '../../../_shared/cop-evidence-links'
 
 interface Env {
   DB: D1Database
@@ -27,7 +28,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const form = await env.DB.prepare(
       `SELECT id, title, description, form_schema, require_location, require_contact,
               status, access_level, password_hash, expires_at, theme_color, logo_url, success_message,
-              facts, changelog
+              facts, changelog, allowed_countries
        FROM survey_drops WHERE share_token = ?`
     ).bind(token).first() as any
 
@@ -45,6 +46,16 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     if (form.expires_at && new Date(form.expires_at) < new Date()) {
       return new Response(JSON.stringify({ error: 'This form has expired' }), {
+        status: 403, headers: JSON_HEADERS,
+      })
+    }
+
+    // The same country gate as GET /api/surveys/public/:token: the form (and its
+    // question list) is not handed out where the owner did not allow it.
+    let allowedCountries: string[] = []
+    try { allowedCountries = form.allowed_countries ? JSON.parse(form.allowed_countries) : [] } catch { /* none */ }
+    if (!isCountryAllowed(allowedCountries, extractGeoFromRequest(request).country)) {
+      return new Response(JSON.stringify({ error: 'This form is not available in your region', country_blocked: true }), {
         status: 403, headers: JSON_HEADERS,
       })
     }
@@ -80,6 +91,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       title: form.title,
       description: form.description,
       form_schema,
+      // "Which question is this about?" — only when the owner turned it on for a COP-linked form.
+      question_choices: await questionChoicesForDrop(env.DB, form.id),
       facts,
       changelog,
       require_location: form.require_location === 1,

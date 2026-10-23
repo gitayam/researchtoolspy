@@ -13,6 +13,7 @@ import { TASK_CREATED, TASK_COMPLETED, TASK_STARTED, TASK_BLOCKED, TASK_UNBLOCKE
 import { generatePrefixedId , JSON_HEADERS } from '../../_shared/api-utils'
 import { logEvent } from '../../_shared/event-log'
 import { copCallerUserId, copServiceCaller } from '../../_shared/cop-caller'
+import { deleteOrphanTaskLinks, evidenceCounts } from '../../_shared/cop-evidence-links'
 import {
   copSourceChannel, copSourceRef, expectedUpdatedAt, serviceChangeRefused, serviceDeleteRefused, serviceMayChange, serviceMayDelete,
   setProvenance, staleWriteResponse,
@@ -73,7 +74,11 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     const rows = await env.DB.prepare(query).bind(...bindings).all()
 
-    return new Response(JSON.stringify({ tasks: rows.results || [] }), { headers: JSON_HEADERS })
+    const tasks = (rows.results || []) as Record<string, unknown>[]
+    const counts = await evidenceCounts(env.DB, { sessionId, workspaceId: accessWorkspaceId }, 'task', tasks.map((t) => String(t.id)))
+    return new Response(JSON.stringify({
+      tasks: tasks.map((t) => ({ ...t, evidence_count: counts.get(String(t.id)) ?? 0 })),
+    }), { headers: JSON_HEADERS })
   } catch (error) {
     await logEvent(env, {
       level: 'error',
@@ -495,6 +500,8 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
         status: 404, headers: JSON_HEADERS,
       })
     }
+    // Evidence filed under the task (and its subtasks) stays in the COP; the filings go.
+    await deleteOrphanTaskLinks(env.DB, sessionId)
 
     await emitCopEvent(env.DB, {
       copSessionId: sessionId,

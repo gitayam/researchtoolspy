@@ -833,6 +833,7 @@ function SettingsTab({
   const [themeColor, setThemeColor] = useState(survey.theme_color || '#3b82f6')
   const [successMessage, setSuccessMessage] = useState(survey.success_message || '')
   const [copSessionId, setCopSessionId] = useState(survey.cop_session_id || '')
+  const [questionPicker, setQuestionPicker] = useState(!!survey.question_picker)
   const [allowedCountries, setAllowedCountries] = useState<string[]>(survey.allowed_countries || [])
   const [countryInput, setCountryInput] = useState('')
   const [saving, setSaving] = useState(false)
@@ -860,6 +861,8 @@ function SettingsTab({
       if (accessLevel === 'password' && password) {
         body.password = password
       }
+      // Sent only when changed, so a server without migration 0024 still saves the rest.
+      if (questionPicker !== !!survey.question_picker) body.question_picker = questionPicker
       const res = await fetch(`/api/surveys/${survey.id}`, {
         method: 'PUT',
         headers: getCopHeaders(),
@@ -890,6 +893,8 @@ function SettingsTab({
     themeColor,
     successMessage,
     copSessionId,
+    questionPicker,
+    survey.question_picker,
     allowedCountries,
     onSaved,
   ])
@@ -1133,6 +1138,22 @@ function SettingsTab({
               : 'Not linked to any COP session'}
           </p>
         </div>
+        {copSessionId && (
+          <label className="flex min-h-11 cursor-pointer items-start gap-2 text-sm text-gray-700 dark:text-gray-300">
+            <input
+              type="checkbox"
+              checked={questionPicker}
+              onChange={(e) => setQuestionPicker(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-600 focus-visible:ring-2 focus-visible:ring-blue-500 dark:border-gray-600"
+            />
+            <span>
+              Let tipsters pick a question
+              <span className="block text-xs text-gray-500 dark:text-gray-400">
+                This publishes the COP’s key questions to anyone who has this form’s link, or a share link that lets viewers submit evidence. A tip is filed under the question chosen, without answering it.
+              </span>
+            </span>
+          </label>
+        )}
       </div>
 
       {/* Save */}

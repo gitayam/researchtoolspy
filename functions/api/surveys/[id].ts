@@ -44,8 +44,16 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       })
     }
 
+    // question_picker comes with migration 0024; false before it.
+    let questionPicker = false
+    try {
+      const row = await env.DB.prepare('SELECT question_picker FROM survey_drops WHERE id = ?').bind(surveyId).first<{ question_picker: number }>()
+      questionPicker = Number(row?.question_picker) === 1
+    } catch { /* column not there yet */ }
+
     return new Response(JSON.stringify({
       ...survey,
+      question_picker: questionPicker,
       has_password: !!(survey as any).has_password,
       form_schema: safeJsonParse((survey as any).form_schema, []),
       allowed_countries: safeJsonParse((survey as any).allowed_countries, []),
@@ -127,6 +135,23 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
         sets.push(`${field} = ?`)
         bindings.push(body[field] || null)
       }
+    }
+
+    // "Which question is this about?" for a COP-linked form (migration 0024).
+    if (body.question_picker !== undefined) {
+      if (typeof body.question_picker !== 'boolean') {
+        return new Response(JSON.stringify({ error: 'question_picker must be true or false' }), { status: 400, headers: JSON_HEADERS })
+      }
+      try {
+        await env.DB.prepare('SELECT question_picker FROM survey_drops LIMIT 0').all()
+      } catch {
+        return new Response(JSON.stringify({
+          error: 'Letting tipsters pick a question is not available on this server yet.',
+          code: 'QUESTION_PICKER_UNAVAILABLE',
+        }), { status: 503, headers: JSON_HEADERS })
+      }
+      sets.push('question_picker = ?')
+      bindings.push(body.question_picker ? 1 : 0)
     }
 
     // facts (array -> JSON string)

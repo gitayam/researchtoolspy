@@ -4,7 +4,9 @@
  * GET /api/cop/public/:token - Get shared session data (filtered by visible_panels)
  *
  * Beyond the session fields, by panel: `rfis` (rfi), `key_rfis` — the starred RFIs, i.e.
- * key questions — (questions), `webcams` (cams), `evidence` (evidence). `evidence_form`
+ * key questions — (questions), `webcams` (cams), `evidence` (evidence). Every RFI carries
+ * `evidence_count` (evidence filed under it); with the evidence panel also `evidence`,
+ * the filed items as the share's evidence list shows them. `evidence_form`
  * is the session's evidence form when the link allows evidence (allow_evidence) and an
  * active drop is linked to the session; otherwise null.
  */
@@ -14,6 +16,7 @@ import { logEvent } from '../../_shared/event-log'
 import { shareExpired, sharePanels } from '../../_shared/cop-share'
 import { listSessionWebcams, publicWebcam } from '../../_shared/cop-webcams'
 import { publicEvidence, publicEvidenceForm, publicKeyRfis } from '../../_shared/cop-public'
+import { filedCounts, publicEvidenceByRfi } from '../../_shared/cop-evidence-links'
 
 interface Env {
   DB: D1Database
@@ -157,6 +160,28 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         ...r,
         answers: answersByRfi[r.id] || [],
       }))
+    }
+
+    // Evidence filed under the questions this link shows. evidence_count counts reviewed
+    // evidence only — an unreviewed drop-form tip never counts toward what the public
+    // sees. With the evidence panel the items come too (tips masked, no relation), and
+    // unreviewed_count says how many of them are unreviewed tips.
+    const shownRfis: { id: string; evidence_count?: number; unreviewed_count?: number; evidence?: unknown }[] =
+      [...(response.key_rfis ?? []), ...(response.rfis ?? [])]
+    if (shownRfis.length > 0) {
+      const scope = { sessionId: share.cop_session_id, workspaceId: String((session as { workspace_id?: unknown }).workspace_id) }
+      const ids = [...new Set(shownRfis.map((r) => String(r.id)))]
+      const counts = await filedCounts(env.DB, scope, 'rfi', ids)
+      const showsEvidence = visiblePanels.includes('evidence')
+      const filed = showsEvidence ? await publicEvidenceByRfi(env.DB, scope, ids) : null
+      for (const rfi of shownRfis) {
+        const c = counts.get(String(rfi.id)) ?? { all: 0, unreviewed: 0 }
+        rfi.evidence_count = c.all - c.unreviewed
+        if (filed) {
+          rfi.unreviewed_count = c.unreviewed
+          rfi.evidence = filed.get(String(rfi.id)) ?? []
+        }
+      }
     }
 
     // Webcams only with the cams panel: explicit fields, never who added them.

@@ -12,6 +12,7 @@ import { RFI_CREATED, RFI_ANSWERED, RFI_CLOSED, RFI_STARRED, RFI_UNSTARRED, RFI_
 import { generatePrefixedId , JSON_HEADERS } from '../../_shared/api-utils'
 import { logEvent } from '../../_shared/event-log'
 import { copCallerUserId } from '../../_shared/cop-caller'
+import { evidenceCounts } from '../../_shared/cop-evidence-links'
 import {
   copSourceChannel, copSourceRef, expectedUpdatedAt, isMissingColumn, rewriteSessionKeyQuestions, setEvidenceSession, setProvenance,
   staleWriteResponse,
@@ -75,10 +76,13 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       answersByRfi[rfiId].push(a)
     }
 
+    // Evidence filed under each question (migration 0024); filing never changes the status.
+    const evidenceCount = await evidenceCounts(env.DB, { sessionId, workspaceId: accessWorkspaceId }, 'rfi', rfiIds.map(String))
     const enriched = (rfis.results || []).map((r: any) => ({
       ...r,
       is_key: r.is_key ? 1 : 0,
       answers: answersByRfi[r.id] || [],
+      evidence_count: evidenceCount.get(String(r.id)) ?? 0,
     }))
 
     return new Response(JSON.stringify({ rfis: enriched }), { headers: JSON_HEADERS })

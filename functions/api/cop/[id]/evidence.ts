@@ -23,11 +23,11 @@ import { JSON_HEADERS } from '../../_shared/api-utils'
 import { logEvent } from '../../_shared/event-log'
 import { copCallerUserId } from '../../_shared/cop-caller'
 import {
-  canonicalUrl, copSourceChannel, copSourceRef, evidenceInSession, isMissingColumn, maskTipEvidenceRow, queryEvidenceInSession,
+  canonicalUrl, copSourceChannel, copSourceRef, isMissingColumn, maskTipEvidenceRow, queryEvidenceInSession,
   serviceChangeRefused, serviceDeleteRefused, serviceMayChange, serviceMayDelete, setEvidenceSession, setProvenance,
-  type EvidenceSessionScope,
 } from '../../_shared/cop-input'
 import { archiveFields, cleanArchiveRef, cleanScanState, readMetadata, stripPrivateEvidenceFields } from '../../_shared/cop-archive'
+import { deleteLinksOf, findDuplicateEvidence } from '../../_shared/cop-evidence-links'
 
 interface Env {
   DB: D1Database
@@ -50,29 +50,6 @@ async function evidenceRow(db: D1Database, id: number | string, workspaceId: str
     if (!isMissingColumn(error)) throw error
     return db.prepare(`SELECT ${EVIDENCE_COLUMNS} FROM evidence_items WHERE id = ? AND workspace_id = ?`)
       .bind(id, workspaceId).first()
-  }
-}
-
-/**
- * The session's evidence item for the same link, if any: by canonical_url (migration
- * 0022), or, for items saved before it, by the exact link as given or canonical. Only
- * this COP's evidence (evidenceInSession), never another COP's in the same workspace.
- */
-async function findDuplicate(db: D1Database, scope: EvidenceSessionScope, raw: string, canonical: string): Promise<number | null> {
-  const clause = evidenceInSession(scope)
-  try {
-    const row = await db.prepare(`
-      SELECT id FROM evidence_items
-      WHERE ${clause.sql} AND (canonical_url = ? OR (canonical_url IS NULL AND source_url IN (?, ?)))
-      ORDER BY id ASC LIMIT 1
-    `).bind(...clause.binds, canonical, raw, canonical).first<{ id: number }>()
-    return row ? Number(row.id) : null
-  } catch (error) {
-    if (!isMissingColumn(error)) throw error
-    const row = await db.prepare(
-      `SELECT id FROM evidence_items WHERE ${clause.legacySql} AND source_url IN (?, ?) ORDER BY id ASC LIMIT 1`
-    ).bind(...clause.legacyBinds, raw, canonical).first<{ id: number }>()
-    return row ? Number(row.id) : null
   }
 }
 
@@ -159,7 +136,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
     if (rawUrl && canonical) {
-      const duplicateId = await findDuplicate(env.DB, { sessionId, workspaceId }, rawUrl, canonical)
+      const duplicateId = await findDuplicateEvidence(env.DB, { sessionId, workspaceId }, rawUrl, canonical)
       if (duplicateId !== null) {
         const evidence = await evidenceRow(env.DB, duplicateId, workspaceId)
         return new Response(JSON.stringify({ id: duplicateId, evidence, duplicate: true, message: 'Evidence already saved' }), {
@@ -383,6 +360,8 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     if (!result.meta?.changes) {
       return new Response(JSON.stringify({ error: 'Evidence not found' }), { status: 404, headers: JSON_HEADERS })
     }
+    // Its filings under questions and tasks go with it.
+    await deleteLinksOf(env.DB, sessionId, { evidenceId: String(Number(raw)) })
 
     await emitCopEvent(env.DB, {
       copSessionId: sessionId,

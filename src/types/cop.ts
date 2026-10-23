@@ -262,6 +262,33 @@ export interface CopRfi {
   created_at: string
   updated_at: string
   answers?: CopRfiAnswer[]
+  /** Evidence filed under this question (migration 0024); filing never changes the status. */
+  evidence_count?: number
+}
+
+/** How an evidence item bears on the question or task it is filed under. */
+export type CopEvidenceRelation = 'supports' | 'contradicts' | 'context'
+export type CopEvidenceLinkTarget = 'rfi' | 'task'
+
+/** An evidence item filed under an RFI (question) or task: GET /api/cop/:id/evidence-links. */
+export interface CopEvidenceLink {
+  id: string
+  evidence_id: string
+  target_type: CopEvidenceLinkTarget
+  target_id: string
+  relation: CopEvidenceRelation
+  note: string | null
+  created_at: string
+}
+
+/** Filed evidence as a share link shows it under a question (only with the evidence panel). */
+export interface CopPublicFiledEvidence {
+  title: string
+  url: string | null
+  credibility: string | null
+  /** null for an unreviewed drop-form tip (its tipster's say-so is not shown). */
+  relation: CopEvidenceRelation | null
+  created_at: string
 }
 
 export interface CopRfiAnswer {
@@ -771,6 +798,8 @@ export interface SurveyDrop {
   facts: { text: string; as_of: string }[]
   changelog: { date: string; entry: string }[]
   cop_session_id: string | null
+  /** Tipsters may pick which key question their tip is about (migration 0024). */
+  question_picker?: boolean
   workspace_id: string
   created_by: number
   created_at: string

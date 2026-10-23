@@ -28,12 +28,17 @@ export const COP_SERVICE_ROUTES: readonly { method: string; path: RegExp }[] = [
   },
   {
     method: 'POST',
-    path: /^\/api\/cop\/(?!public(?:\/|$)|sessions(?:\/|$))[^/]+\/(?:shares|rfis|evidence|markers|timeline|tasks|poo-estimates|personas|claims|hypotheses|webcams|tags|item-tags|suggest|uploads)$/,
+    path: /^\/api\/cop\/(?!public(?:\/|$)|sessions(?:\/|$))[^/]+\/(?:shares|rfis|evidence|markers|timeline|tasks|poo-estimates|personas|claims|hypotheses|webcams|tags|item-tags|suggest|uploads|evidence-links)$/,
+  },
+  // Filing evidence under a question in one call (the bot's !cop file).
+  {
+    method: 'POST',
+    path: /^\/api\/cop\/(?!public(?:\/|$)|sessions(?:\/|$))[^/]+\/rfis\/[^/]+\/evidence$/,
   },
   // Undo of the bot's own captures; each handler refuses items a service didn't create.
   {
     method: 'DELETE',
-    path: /^\/api\/cop\/(?!public(?:\/|$)|sessions(?:\/|$))[^/]+\/(?:item-tags|evidence|markers|tasks|timeline|rfis\/[^/]+)$/,
+    path: /^\/api\/cop\/(?!public(?:\/|$)|sessions(?:\/|$))[^/]+\/(?:item-tags|evidence|markers|tasks|timeline|rfis\/[^/]+|evidence-links)$/,
   },
   // Confirming a bot marker, starring a bot RFI, the bot's !done/!start/!priority/!assign on
   // its own tasks and updating its own evidence (archive reference, scan state); same
