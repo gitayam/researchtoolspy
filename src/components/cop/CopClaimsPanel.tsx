@@ -5,7 +5,14 @@
  * and displays risk scores with deception detection results.
  */
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
+import { useCopChangeListener } from '@/hooks/useCopChanges'
+import { notifyCopChanged } from '@/lib/cop-request'
+import { CopItemTags } from '@/components/cop/CopItemTags'
+import { TagFilterNote } from '@/components/cop/CopTagFilter'
+import { useCopTagFilter } from '@/components/cop/tag-filter-context'
+import { StaleWriteNotice } from '@/components/cop/CopStaleWrite'
+import { copPutWithPrecondition } from '@/lib/cop-stale-write'
 import {
   Loader2,
   LinkIcon,
@@ -35,6 +42,7 @@ interface ExtractedClaim {
   suggested_market?: string
   status?: 'unverified' | 'verified' | 'disputed' | 'false'
   evidence_item_id?: number | null
+  updated_at?: string
 }
 
 interface ClaimAnalysisResult {
@@ -82,6 +90,11 @@ function looksLikeUrl(input: string): boolean {
   return false
 }
 
+/** One source group's identity across reloads: its URL, or its first claim for manual ones. */
+function resultKey(r: ClaimAnalysisResult): string {
+  return r.url || `manual-${r.claims[0]?.id ?? r.analyzed_at}`
+}
+
 // ── Component ────────────────────────────────────────────────────
 
 export default function CopClaimsPanel({ sessionId, expanded, highlightEntityId }: CopClaimsPanelProps) {
@@ -106,14 +119,19 @@ export default function CopClaimsPanel({ sessionId, expanded, highlightEntityId 
     return () => clearTimeout(timer)
   }, [highlightEntityId])
 
-  // Load persisted claims from DB on mount
-  useEffect(() => {
+  // Load persisted claims on mount, and again whenever the change feed reports
+  // claim changes. Sources hidden with "Remove" stay hidden; analyses whose claims
+  // are not saved yet stay on screen.
+  const hiddenKeysRef = useRef<Set<string>>(new Set())
+  const tagFilter = useCopTagFilter()
+  const [stale, setStale] = useState<{ claimId: string; status: string; promote: boolean } | null>(null)
+
+  const loadClaims = useCallback((signal?: AbortSignal) => {
     if (!sessionId) return
-    const controller = new AbortController()
-    fetch(`/api/cop/${sessionId}/claims`, { headers: getCopHeaders(), signal: controller.signal })
+    return fetch(`/api/cop/${sessionId}/claims`, { headers: getCopHeaders(), signal })
       .then(r => r.ok ? r.json() : null)
       .then(data => {
-        if (!data?.claims?.length) return
+        if (!data || !Array.isArray(data.claims)) return
         // Group by URL
         const grouped = new Map<string, ClaimAnalysisResult>()
         for (const c of data.claims) {
@@ -136,33 +154,47 @@ export default function CopClaimsPanel({ sessionId, expanded, highlightEntityId 
             confidence: c.confidence,
             status: c.status,
             evidence_item_id: c.evidence_item_id,
+            updated_at: c.updated_at,
           })
         }
-        setResults(Array.from(grouped.values()))
+        const saved = Array.from(grouped.values()).filter(r => !hiddenKeysRef.current.has(resultKey(r)))
+        setResults(prev => [...prev.filter(r => r.claims.some(c => !c.id)), ...saved])
       })
       .catch((e) => { if (e?.name !== 'AbortError') console.error('Failed to load claims:', e) })
+  }, [sessionId])
+
+  useEffect(() => {
+    const controller = new AbortController()
+    loadClaims(controller.signal)
     return () => controller.abort()
-  }, [sessionId])
+  }, [loadClaims])
 
-  // Helper to update a single claim's status via API
-  const handleUpdateClaimStatus = useCallback(async (claimId: string, status: string, promoteToEvidence = false) => {
-    try {
-      const res = await fetch(`/api/cop/${sessionId}/claims`, {
-        method: 'PUT',
-        headers: getCopHeaders(),
-        body: JSON.stringify({ claim_id: claimId, status, promote_to_evidence: promoteToEvidence }),
-      })
-      if (!res.ok) return
+  useCopChangeListener(['claim'], () => { loadClaims() })
 
-      // Update local state
-      setResults(prev => prev.map(r => ({
-        ...r,
-        claims: r.claims.map(c => c.id === claimId ? { ...c, status: status as any } : c),
-      })))
-    } catch {
-      // Non-fatal
+  // Helper to update a single claim's status via API. It carries the version the
+  // analyst saw, so a change someone else saved in between is not overwritten.
+  const handleUpdateClaimStatus = useCallback(async (claimId: string, status: string, promoteToEvidence = false, force = false) => {
+    const seen = force ? null : results.flatMap(r => r.claims).find(c => c.id === claimId)?.updated_at ?? null
+    setStale(null)
+    const result = await copPutWithPrecondition(
+      `/api/cop/${sessionId}/claims`,
+      { claim_id: claimId, status, promote_to_evidence: promoteToEvidence },
+      seen,
+    )
+    if (result.kind === 'stale') {
+      setStale({ claimId, status, promote: promoteToEvidence })
+      loadClaims()
+      return
     }
-  }, [sessionId])
+    if (result.kind === 'error') return
+
+    // Update local state
+    setResults(prev => prev.map(r => ({
+      ...r,
+      claims: r.claims.map(c => c.id === claimId ? { ...c, status: status as any } : c),
+    })))
+    notifyCopChanged(promoteToEvidence ? ['claim', 'evidence'] : ['claim'])
+  }, [sessionId, results, loadClaims])
 
   const isUrl = looksLikeUrl(input)
 
@@ -180,6 +212,7 @@ export default function CopClaimsPanel({ sessionId, expanded, highlightEntityId 
       })
 
       if (!persistRes.ok) throw new Error('Failed to save claim')
+      notifyCopChanged(['claim'])
 
       const persistData = await persistRes.json()
       const result: ClaimAnalysisResult = {
@@ -295,6 +328,7 @@ export default function CopClaimsPanel({ sessionId, expanded, highlightEntityId 
               }),
             })
             if (persistRes.ok) {
+              notifyCopChanged(['claim'])
               const persistData = await persistRes.json()
               if (persistData.ids) {
                 result.claims = result.claims.map((c, i) => ({
@@ -368,6 +402,7 @@ export default function CopClaimsPanel({ sessionId, expanded, highlightEntityId 
             }),
           })
           if (persistRes.ok) {
+            notifyCopChanged(['claim'])
             const persistData = await persistRes.json()
             if (persistData.ids) {
               result.claims = result.claims.map((c, i) => ({
@@ -432,6 +467,9 @@ export default function CopClaimsPanel({ sessionId, expanded, highlightEntityId 
   }, [input, isUrl, handleExtractFromUrl, handleManualClaim])
 
   const removeResult = (index: number) => {
+    // Hides the source from this view (it stays saved), also across live reloads.
+    const removed = results[index]
+    if (removed) hiddenKeysRef.current.add(resultKey(removed))
     setResults(prev => prev.filter((_, i) => i !== index))
   }
 
@@ -500,12 +538,29 @@ export default function CopClaimsPanel({ sessionId, expanded, highlightEntityId 
               <span>{totalClaims} claim{totalClaims !== 1 ? 's' : ''} extracted</span>
             </div>
 
+            {stale && (
+              <StaleWriteNotice
+                what="claim"
+                onReload={() => { setStale(null); loadClaims() }}
+                onKeepMine={() => handleUpdateClaimStatus(stale.claimId, stale.status, stale.promote, true)}
+                onDismiss={() => setStale(null)}
+              />
+            )}
+            <TagFilterNote
+              shown={results.reduce((n, r) => n + r.claims.filter(c => !c.id || tagFilter.passes('claim', c.id)).length, 0)}
+              total={totalClaims}
+            />
+
             {/* Results list */}
             {results.map((result, ri) => {
               const isOpen = expandedClaims[ri] ?? (ri === 0)
+              const tagged = tagFilter.filtering
+                ? result.claims.filter(c => !c.id || tagFilter.passes('claim', c.id))
+                : result.claims
+              if (tagFilter.filtering && tagged.length === 0) return null
               const visibleClaims = expanded || isOpen
-                ? result.claims
-                : result.claims.slice(0, 3)
+                ? tagged
+                : tagged.slice(0, 3)
 
               return (
                 <div
@@ -605,6 +660,7 @@ export default function CopClaimsPanel({ sessionId, expanded, highlightEntityId 
                                 </button>
                               )}
                             </div>
+                            {claim.id && <CopItemTags targetType="claim" targetId={claim.id} label="claim" max={3} />}
                           </div>
                         )
                       })}

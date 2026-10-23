@@ -1,4 +1,6 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { notifyCopChanged } from '@/lib/cop-request'
+import { useCopChangeListener } from '@/hooks/useCopChanges'
 import { useConfirm } from '@/components/ui/confirm-dialog'
 import { getCopHeaders } from '@/lib/cop-auth'
 import { isTransientFetchError } from '@/lib/transient-fetch-error'
@@ -57,7 +59,6 @@ export default function CopPlaybookPanel({ sessionId, onEditPlaybook, onViewLog 
   const [submitting, setSubmitting] = useState(false)
   const confirm = useConfirm()
 
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   // ── Fetch ──────────────────────────────────────────────────
 
@@ -79,13 +80,13 @@ export default function CopPlaybookPanel({ sessionId, onEditPlaybook, onViewLog 
 
   useEffect(() => {
     const controller = new AbortController()
+    // fetchPlaybooks sets state only after its request resolves.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchPlaybooks(controller.signal)
-    intervalRef.current = setInterval(() => fetchPlaybooks(controller.signal), 30000)
-    return () => {
-      controller.abort()
-      if (intervalRef.current) clearInterval(intervalRef.current)
-    }
+    return () => controller.abort()
   }, [fetchPlaybooks])
+
+  useCopChangeListener(['playbook'], () => { fetchPlaybooks() })
 
   // ── Create ─────────────────────────────────────────────────
 
@@ -104,6 +105,7 @@ export default function CopPlaybookPanel({ sessionId, onEditPlaybook, onViewLog 
       setNewName('')
       setNewDescription('')
       setShowForm(false)
+      notifyCopChanged(['playbook'])
       await fetchPlaybooks()
     } catch {
       // ignore
@@ -123,6 +125,7 @@ export default function CopPlaybookPanel({ sessionId, onEditPlaybook, onViewLog 
         body: JSON.stringify({ status: nextStatus }),
       })
       if (!res.ok) throw new Error('Failed to toggle status')
+      notifyCopChanged(['playbook'])
       await fetchPlaybooks()
     } catch {
       // ignore
@@ -139,6 +142,7 @@ export default function CopPlaybookPanel({ sessionId, onEditPlaybook, onViewLog 
         headers: getCopHeaders(),
       })
       if (!res.ok) throw new Error('Failed to delete playbook')
+      notifyCopChanged(['playbook'])
       await fetchPlaybooks()
     } catch {
       // ignore

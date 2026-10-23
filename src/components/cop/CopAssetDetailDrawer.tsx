@@ -1,4 +1,6 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { notifyCopChanged } from '@/lib/cop-request'
+import { useCopChangeListener } from '@/hooks/useCopChanges'
 import { getCopHeaders } from '@/lib/cop-auth'
 import type {
   CopAsset,
@@ -191,7 +193,6 @@ export default function CopAssetDetailDrawer({ sessionId, asset, onClose, onStat
   const [reason, setReason] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   // ── Fetch log ──────────────────────────────────────────────
 
@@ -213,13 +214,13 @@ export default function CopAssetDetailDrawer({ sessionId, asset, onClose, onStat
 
   useEffect(() => {
     const controller = new AbortController()
+    // fetchLog sets state only after its request resolves.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchLog(controller.signal)
-    intervalRef.current = setInterval(() => fetchLog(controller.signal), 30000)
-    return () => {
-      controller.abort()
-      if (intervalRef.current) clearInterval(intervalRef.current)
-    }
+    return () => controller.abort()
   }, [fetchLog])
+
+  useCopChangeListener(['asset'], () => { fetchLog() })
 
   // ── Status change ──────────────────────────────────────────
 
@@ -235,6 +236,7 @@ export default function CopAssetDetailDrawer({ sessionId, asset, onClose, onStat
       })
       if (!res.ok) throw new Error('Failed to check in')
       setReason('')
+      notifyCopChanged(['asset'])
       onStatusChanged?.()
       await fetchLog()
     } catch {

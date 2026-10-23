@@ -4,6 +4,8 @@
  */
 
 import { useCallback, useEffect, useState } from 'react'
+import { useCopChangeListener } from '@/hooks/useCopChanges'
+import { notifyCopChanged } from '@/lib/cop-request'
 import { Loader2, Plus, Search } from 'lucide-react'
 import { getCopHeaders } from '@/lib/cop-auth'
 import { useConfirm } from '@/components/ui/confirm-dialog'
@@ -88,6 +90,9 @@ export default function CopCamsPanel({ sessionId, focusCamId, onChanged, onPickF
     }
   }, [sessionId])
 
+  // Live: cameras pinned from the Signal room or by other analysts appear here.
+  useCopChangeListener(['webcam'], () => { void reload() })
+
   // A point picked on the map fills the form it was picked for and reopens it.
   if (pickedLocation !== seenPick) {
     setSeenPick(pickedLocation)
@@ -156,6 +161,7 @@ export default function CopCamsPanel({ sessionId, focusCamId, onChanged, onPickF
       }
       setDraft(EMPTY_WEBCAM_DRAFT)
       setDialogOpen(false)
+      notifyCopChanged(['webcam'])
       await reload()
       onChanged?.()
     } finally {
@@ -178,6 +184,7 @@ export default function CopCamsPanel({ sessionId, focusCamId, onChanged, onPickF
   const handleSaved = (updated: CopWebcam) => {
     setCams((list) => list.map((c) => (c.id === updated.id ? updated : c)))
     setEditOpen(false)
+    notifyCopChanged(['webcam'])
     onChanged?.()
   }
 
@@ -199,6 +206,7 @@ export default function CopCamsPanel({ sessionId, focusCamId, onChanged, onPickF
         setLoadError(json?.error ?? `The webcam could not be removed (HTTP ${res.status}).`)
         return
       }
+      notifyCopChanged(['webcam'])
       await reload()
       onChanged?.()
     } catch {
@@ -259,6 +267,7 @@ export default function CopCamsPanel({ sessionId, focusCamId, onChanged, onPickF
         fromUrl={findFromUrl}
         onClearFromUrl={() => setFindFromUrl(null)}
         onAdded={() => {
+          notifyCopChanged(['webcam'])
           void reload()
           onChanged?.()
         }}

@@ -1,4 +1,6 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { notifyCopChanged } from '@/lib/cop-request'
+import { useCopChangeListener } from '@/hooks/useCopChanges'
 import { getCopHeaders } from '@/lib/cop-auth'
 import type { CopAsset, AssetType, AssetStatus } from '@/types/cop'
 import { ASSET_TYPE_CONFIG, ASSET_STATUS_CONFIG } from '@/types/cop'
@@ -67,7 +69,6 @@ export default function CopAssetPanel({ sessionId, expanded = true, onSelectAsse
   const [newNotes, setNewNotes] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   // ── Fetch assets ──────────────────────────────────────────────
 
@@ -91,13 +92,13 @@ export default function CopAssetPanel({ sessionId, expanded = true, onSelectAsse
 
   useEffect(() => {
     const controller = new AbortController()
+    // fetchAssets sets state only after its request resolves.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchAssets(false, controller.signal)
-    intervalRef.current = setInterval(() => fetchAssets(true, controller.signal), 30000)
-    return () => {
-      controller.abort()
-      if (intervalRef.current) clearInterval(intervalRef.current)
-    }
+    return () => controller.abort()
   }, [fetchAssets])
+
+  useCopChangeListener(['asset'], () => { fetchAssets(true) })
 
   // ── Create asset ──────────────────────────────────────────────
 
@@ -122,6 +123,7 @@ export default function CopAssetPanel({ sessionId, expanded = true, onSelectAsse
       setNewLocation('')
       setNewNotes('')
       setShowForm(false)
+      notifyCopChanged(['asset'])
       await fetchAssets()
     } catch (err) {
       console.error('[CopAssetPanel] Create asset failed:', err)
@@ -146,6 +148,7 @@ export default function CopAssetPanel({ sessionId, expanded = true, onSelectAsse
         body: JSON.stringify({ status: newStatus }),
       })
       if (!res.ok) throw new Error('Failed to update status')
+      notifyCopChanged(['asset'])
       await fetchAssets()
     } catch {
       await fetchAssets()

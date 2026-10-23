@@ -16,6 +16,9 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { ExternalLink, Loader2, Pencil, Play, RotateCw, Square, Trash2, Video } from 'lucide-react'
 import type { CopWebcam } from '@/types/cop'
 import { camPlayersAllowedHere, MAX_LIVE_PLAYERS } from './cam-players'
+import { CopItemTags } from '@/components/cop/CopItemTags'
+import { TagFilterNote } from '@/components/cop/CopTagFilter'
+import { useCopTagFilter } from '@/components/cop/tag-filter-context'
 
 const MIN_IMAGE_REFRESH_S = 30
 
@@ -369,6 +372,7 @@ function CamCard({ cam, armed, focused, framesAllowed, onArm, onDisarm, onEdit, 
         <Attribution cam={cam} />
         <OperatorLink cam={cam} />
       </div>
+      <CopItemTags targetType="webcam" targetId={cam.id} label="webcam" max={3} editable={!!onEdit} className="px-2.5 pb-1.5 mt-0" />
     </div>
   )
 }
@@ -383,7 +387,10 @@ interface CopCamGridProps {
   deletingId?: string | null
 }
 
-export default function CopCamGrid({ cams, focusCamId, onEdit, onDelete, deletingId }: CopCamGridProps) {
+export default function CopCamGrid({ cams: allCams, focusCamId, onEdit, onDelete, deletingId }: CopCamGridProps) {
+  // The page's tag filter (a no-op on the public share, which has no tags).
+  const tagFilter = useCopTagFilter()
+  const cams = tagFilter.filtering ? allCams.filter((c) => tagFilter.passes('webcam', c.id)) : allCams
   // Armed cameras, oldest first. Video players (not still images) are capped.
   const [armed, setArmed] = useState<string[]>([])
   const [framesAllowed] = useState(camPlayersAllowedHere)
@@ -407,6 +414,10 @@ export default function CopCamGrid({ cams, focusCamId, onEdit, onDelete, deletin
     setArmed((prev) => prev.filter((id) => id !== camId))
   }, [])
 
+  if (cams.length === 0 && allCams.length > 0) {
+    return <TagFilterNote shown={0} total={allCams.length} />
+  }
+
   if (cams.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center gap-1 py-6 text-center text-xs text-gray-500">
@@ -421,6 +432,7 @@ export default function CopCamGrid({ cams, focusCamId, onEdit, onDelete, deletin
       <p className="text-[11px] text-amber-700 dark:text-amber-300" role="note">
         Loading a camera contacts its provider directly; they see your IP.
       </p>
+      <TagFilterNote shown={cams.length} total={allCams.length} />
       <div className="grid gap-2 grid-cols-[repeat(auto-fill,minmax(min(100%,240px),1fr))]">
         {cams.map((cam) => (
           <CamCard
