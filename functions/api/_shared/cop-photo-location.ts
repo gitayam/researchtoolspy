@@ -15,7 +15,7 @@
  * PROBABLE, SUSPECTED and DOUBTFUL stay team-only: "confirmed" is the editor's call.
  *
  * Dedupe: one per evidence item, checked in the INSERT (insertCopMarkerOnce) and backed
- * by a unique partial index (managed migration 0029).
+ * by a unique partial index (managed migration 0030).
  */
 import { insertCopMarkerOnce, type CopSessionScope, type SourceChannel } from './cop-records'
 import type { StoredLocation } from './cop-uploads'

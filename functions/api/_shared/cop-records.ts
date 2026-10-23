@@ -147,7 +147,7 @@ export async function insertCopMarker(db: D1Database, scope: CopSessionScope, in
 
 /**
  * Insert a marker unless this session already has one with the same source_type and
- * source_id (the check is in the INSERT itself; managed migration 0029 adds a unique
+ * source_id (the check is in the INSERT itself; managed migration 0030 adds a unique
  * index for photo-location markers as the backstop). Returns null when one exists.
  */
 export async function insertCopMarkerOnce(db: D1Database, scope: CopSessionScope, input: MarkerInput & { sourceId: string }): Promise<string | null> {
@@ -182,7 +182,7 @@ async function writeMarker(db: D1Database, scope: CopSessionScope, input: Marker
       written = await db.prepare(`INSERT INTO cop_markers (${columns}) SELECT ${marks}${guard}`).bind(...values, ...guardBinds).run()
     }
   } catch (error) {
-    // Two writers at once: the unique index (0029) refused the second one.
+    // Two writers at once: the unique index (0030) refused the second one.
     if (once && /UNIQUE constraint failed/i.test(String(error instanceof Error ? error.message : error))) return null
     throw error
   }

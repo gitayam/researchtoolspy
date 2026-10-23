@@ -227,7 +227,10 @@ test('implausible positions are ignored: 0,0, out of range, no hemisphere, void,
 async function photoFixture(options = {}) {
   const f = await fixture({ channel: true, ...options })
   f.db.exec(migration('0025_cop_upload_documents.sql'))
-  if (options.photoLocation !== false) f.db.exec(migration('0029_cop_photo_location.sql'))
+  if (options.photoLocation !== false) {
+    f.db.exec(migration('0029_cop_photo_location.sql'))
+    f.db.exec(migration('0030_cop_photo_marker_unique.sql'))
+  }
   return f
 }
 
@@ -296,7 +299,7 @@ test('one photo-location marker per evidence item', async () => {
   assert.equal(again.status, 201, await again.clone().text())
   assert.equal((await again.json()).evidence.photo_marker_id, null)
   assert.equal(photoMarkers(db).length, 1)
-  // The helper itself refuses a second one, and the 0029 index backs it up.
+  // The helper itself refuses a second one, and the 0030 index backs it up.
   const { copSessionScope, insertCopMarkerOnce } = mod('copRecords')
   const scope = await copSessionScope(env.DB, SESSION)
   const input = { lat: 1, lon: 1, label: 'x', description: null, confidence: 'POSSIBLE', rationale: null, sourceType: 'PHOTO_GPS', sourceId: String(first.evidence.id), sourceChannel: 'web', createdBy: 1 }
@@ -563,4 +566,24 @@ test('before migration 0029 the drop form stores a fully stripped photo (no cons
   assert.equal(exifBlocks(stored, 'image/jpeg').some((b) => readTiff(b).gps || readTiff(b).exif), false)
   assert.deepEqual(leaksIdentifying(stored), [])
   assert.equal(photoMarkers(db).length, 0)
+})
+
+test('the one-marker-per-photo index is its own migration (0030), so duplicates can\'t half-apply 0029', async () => {
+  const sql0029 = migration('0029_cop_photo_location.sql')
+  const sql0030 = migration('0030_cop_photo_marker_unique.sql')
+  assert.doesNotMatch(sql0029, /CREATE\s+(UNIQUE\s+)?INDEX/i, '0029 only adds columns')
+  assert.match(sql0030, /CREATE UNIQUE INDEX IF NOT EXISTS idx_cop_markers_photo_gps\s+ON cop_markers\(cop_session_id, source_id\) WHERE source_type = 'PHOTO_GPS'/)
+  // The read-only pre-check the deploy notes run first, kept in 0030's header.
+  const precheck = /(SELECT cop_session_id, source_id, COUNT\(\*\) AS n FROM cop_markers WHERE source_type = 'PHOTO_GPS' GROUP BY cop_session_id, source_id HAVING COUNT\(\*\) > 1;)/.exec(sql0030.replace(/\n--\s*/g, ' '))
+  assert.ok(precheck, 'the pre-check query is in the header')
+
+  const { db } = await fixture({ channel: true })
+  db.exec(`INSERT INTO cop_markers (id, cop_session_id, uid, lat, lon, created_by, source_type, source_id) VALUES
+    ('mkr-d1', '${SESSION}', 'u1', 1, 1, 1, 'PHOTO_GPS', '7'), ('mkr-d2', '${SESSION}', 'u2', 1, 1, 1, 'PHOTO_GPS', '7')`)
+  db.exec(sql0029) // applies whatever the markers hold
+  assert.deepEqual(db.prepare(precheck[1]).all().map((r) => ({ ...r })), [{ cop_session_id: SESSION, source_id: '7', n: 2 }])
+  assert.throws(() => db.exec(sql0030), /UNIQUE/)
+  db.exec("DELETE FROM cop_markers WHERE id = 'mkr-d2'")
+  assert.deepEqual(db.prepare(precheck[1]).all(), [])
+  db.exec(sql0030)
 })
