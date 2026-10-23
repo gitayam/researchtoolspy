@@ -885,3 +885,112 @@ export interface CopEvent {
   created_by: number
   created_at: string
 }
+
+// -- COP input contract (2026-10-23): tags, change feed, suggestions, uploads --
+
+/** What a tag can sit on (`cop_item_tags.target_type`). */
+export type CopTagTargetType =
+  | 'evidence' | 'marker' | 'rfi' | 'task' | 'timeline' | 'claim' | 'hypothesis'
+  | 'persona' | 'asset' | 'webcam' | 'upload' | 'submission'
+
+/** Where an item's tag came from. */
+export type CopItemTagSource = 'user' | 'ai' | 'rule' | 'drop' | 'chat'
+
+/** A tag in a session's vocabulary (`GET /api/cop/:id/tags`). */
+export interface CopTag {
+  id: string
+  name: string
+  /** A palette name ("blue", "amber"…) or a #rrggbb colour; anything else is ignored. */
+  color: string | null
+  category: string | null
+  /** How many items carry it. */
+  count: number
+}
+
+/** One item's tags (`GET /api/cop/:id/item-tags`). */
+export interface CopItemTags {
+  target_type: CopTagTargetType
+  target_id: string
+  tags: string[]
+}
+
+export interface CopTagTarget {
+  target_type: CopTagTargetType
+  target_id: string
+}
+
+/** `cop_events.entity_type`: what changed, for panels deciding whether to refetch. */
+export type CopEntityType =
+  | 'evidence' | 'marker' | 'rfi' | 'task' | 'timeline' | 'claim' | 'hypothesis'
+  | 'persona' | 'poo' | 'asset' | 'webcam' | 'tag' | 'upload' | 'submission'
+  | 'share' | 'session' | 'playbook' | 'activity'
+
+/** One entry of `GET /api/cop/:id/changes`. */
+export interface CopChangeEvent {
+  id: string
+  entity_type: CopEntityType
+  entity_id: string | null
+  event_type: string
+  created_at: string
+}
+
+export interface CopChangesResponse {
+  events: CopChangeEvent[]
+  cursor: string
+  has_more: boolean
+}
+
+/** `detail` of the window `cop:changed` CustomEvent. */
+export interface CopChangedDetail {
+  types: CopEntityType[]
+}
+
+/** What `POST /api/cop/:id/suggest` may propose for unprefixed text. */
+export type CopSuggestKind = 'note' | 'evidence' | 'rfi' | 'task' | 'timeline' | 'hypothesis' | 'marker'
+
+export interface CopSuggestResponse {
+  kind: { value: CopSuggestKind; confidence: number } | null
+  /** Names from the session's vocabulary only. */
+  tags: string[]
+  places: { text: string; query: string }[]
+}
+
+/** `GET /api/cop/:id/geocode`. */
+export interface CopGeocodeResponse {
+  results: { display_name: string; lat: number; lon: number; importance: number }[]
+  resolution: {
+    input: string
+    query: string
+    display_name: string
+    ai_used: boolean
+    ambiguous: boolean
+  } | null
+  geocoder_attribution?: string
+  geocoder_attribution_url?: string
+}
+
+/** A file stored for a COP (`POST /api/cop/:id/uploads`). */
+export interface CopUpload {
+  id: string
+  url: string
+  content_type: string
+  bytes: number
+  width?: number
+  height?: number
+}
+
+export interface CopUploadResponse {
+  upload: CopUpload
+  evidence?: { id: string | number }
+}
+
+/** Drop-form fields the inbox reads when the server sends them (Wave 4). */
+export interface CopSubmissionIngest {
+  /** 'drop' for a survey drop linked to the COP, 'intake' for a COP intake form. */
+  source?: 'drop' | 'intake'
+  /** True when the server filed it into the COP on arrival (unverified). */
+  auto_ingested?: boolean
+  /** The drop's or intake form's title. */
+  form_title?: string | null
+  tags?: string[]
+}
