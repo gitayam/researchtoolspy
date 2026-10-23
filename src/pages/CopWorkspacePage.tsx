@@ -112,6 +112,7 @@ import CopSideMenu from '@/components/cop/shell/CopSideMenu'
 import CopShareDialog from '@/components/cop/shell/CopShareDialog'
 import EvidenceSubmitSheet from '@/components/cop/shell/EvidenceSubmitSheet'
 import { useIsPhone } from '@/components/cop/shell/useMediaQuery'
+import { jumpToCopPanel } from '@/components/cop/cop-jump'
 import { isTransientFetchError } from '@/lib/transient-fetch-error'
 import { useToast } from '@/components/ui/use-toast'
 
@@ -257,9 +258,22 @@ export default function CopWorkspacePage() {
   const isPhone = useIsPhone()
   const { theme, toggleTheme } = useTheme()
   const [menuOpen, setMenuOpen] = useState(false)
+
+  // The phone bottom tab bar (layout/mobile-bottom-tabs) asks for a panel with a window
+  // event; without a listener here its Map / Evidence / Questions / Timeline did nothing.
+  useEffect(() => {
+    const panels: Record<string, string> = { map: 'map', evidence: 'evidence', rfi: 'rfi', timeline: 'timeline' }
+    const onTab = (event: Event) => {
+      const panel = panels[(event as CustomEvent<string>).detail]
+      if (panel) jumpToCopPanel(panel)
+    }
+    window.addEventListener('bottom-nav-tab-select', onTab)
+    return () => window.removeEventListener('bottom-nav-tab-select', onTab)
+  }, [])
   const [shareOpen, setShareOpen] = useState(false)
   const [evidenceOpen, setEvidenceOpen] = useState(false)
   const headerRef = useRef<HTMLElement>(null)
+  const menuButtonRef = useRef<HTMLButtonElement>(null)
   /** The active evidence form (drop) linked to this session, if the user can see one. */
   const [linkedDrop, setLinkedDrop] = useState<{ token: string; title: string | null } | null>(null)
 
@@ -768,13 +782,14 @@ export default function CopWorkspacePage() {
     <CopTagFilterProvider>
     <div className="flex flex-col bg-background min-h-dvh">
       {/* ── Header + capture: stay on screen on phones, so input is always one tap away ── */}
-      <div className="sticky top-0 z-30 bg-background md:static">
+      <div className="sticky top-0 z-30 bg-background md:static" data-cop-sticky>
       <header
         ref={headerRef}
         className="flex flex-wrap items-center gap-1.5 sm:gap-2 md:gap-3 px-1 sm:px-3 md:px-4 py-1.5 md:py-2 bg-background border-b shrink-0 [touch-action:pan-y] md:[touch-action:auto]"
       >
         {/* Phones: the side menu holds navigation and the less frequent actions */}
         <button
+          ref={menuButtonRef}
           type="button"
           onClick={() => setMenuOpen(true)}
           aria-label="Open menu"
@@ -937,6 +952,7 @@ export default function CopWorkspacePage() {
           title={session.name}
           subtitle={TEMPLATE_LABELS[session.template_type] ?? session.template_type}
           openGestureRef={headerRef}
+          returnFocusRef={menuButtonRef}
         >
           <div className="border-b border-slate-200 p-3 dark:border-slate-800">
             <p className="mb-2 text-xs font-semibold text-slate-500 dark:text-slate-400" id="menu-view-label">View</p>
