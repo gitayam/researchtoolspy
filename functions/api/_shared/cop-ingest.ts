@@ -367,8 +367,14 @@ export async function ingestSubmission(
 
 /**
  * Auto-ingest a submission just stored for a form linked to a COP. Returns the
- * created ids, or null when the form doesn't auto-ingest, the hourly cap is
- * reached, or the schema predates migration 0023.
+ * created ids, or null when the form doesn't auto-ingest, its creator is not (or no
+ * longer) the session's owner or an editor/admin, the hourly cap is reached, or the
+ * schema predates migration 0023.
+ *
+ * The creator check is in the SQL itself: a form pointed at someone else's COP
+ * (however the link was written) never files anything there. The cap is a slot
+ * taken atomically per form and UTC hour, so concurrent tips can't pass it together;
+ * tips beyond it are stored and wait in the review inbox.
  */
 export async function autoIngestSubmission(
   env: IngestEnv,
@@ -377,22 +383,45 @@ export async function autoIngestSubmission(
   const { DB: db } = env
   let enabled: { auto_ingest: number | null } | null
   try {
-    enabled = await db.prepare('SELECT auto_ingest FROM survey_drops WHERE id = ? AND cop_session_id = ?')
-      .bind(input.formId, input.sessionId).first<{ auto_ingest: number | null }>()
+    enabled = await db.prepare(`
+      SELECT d.auto_ingest FROM survey_drops d
+      JOIN cop_sessions s ON s.id = d.cop_session_id
+      WHERE d.id = ? AND d.cop_session_id = ?
+        AND (
+          s.created_by = d.created_by
+          OR EXISTS (
+            SELECT 1 FROM cop_collaborators c
+            WHERE c.cop_session_id = s.id AND c.user_id = d.created_by
+              AND lower(trim(c.role)) IN ('editor', 'admin')
+          )
+        )
+    `).bind(input.formId, input.sessionId).first<{ auto_ingest: number | null }>()
   } catch (error) {
     if (columnMissing(error, 'auto_ingest')) return null
     throw error
   }
   if (!enabled || Number(enabled.auto_ingest) !== 1) return null
-
-  const cutoff = new Date(Date.now() - 3600_000).toISOString()
-  const recent = await db.prepare(
-    'SELECT COUNT(*) AS n FROM survey_responses WHERE survey_id = ? AND auto_ingested = 1 AND updated_at > ?'
-  ).bind(input.formId, cutoff).first<{ n: number }>()
-  if (Number(recent?.n ?? 0) >= AUTO_INGEST_PER_HOUR) return null
+  if (!(await takeIngestSlot(db, input.formId))) return null
 
   const result = await ingestSubmission(env, { responseId: input.responseId, sessionId: input.sessionId, actorUserId: null, auto: true })
   return result.ok ? { evidence_id: result.evidenceId, marker_id: result.markerId } : null
+}
+
+/** One of this form's AUTO_INGEST_PER_HOUR slots for the current UTC hour, taken in one statement. */
+async function takeIngestSlot(db: D1Database, formId: string): Promise<boolean> {
+  const hour = new Date().toISOString().slice(0, 13)
+  try {
+    const slot = await db.prepare(`
+      INSERT INTO survey_drop_ingest_slots (survey_id, hour, n) VALUES (?, ?, 1)
+      ON CONFLICT (survey_id, hour) DO UPDATE SET n = n + 1 WHERE n < ?
+      RETURNING n
+    `).bind(formId, hour, AUTO_INGEST_PER_HOUR).first<{ n: number }>()
+    return Boolean(slot)
+  } catch (error) {
+    // Before migration 0023 there is no slot table: nothing is auto-ingested.
+    if (/no such table:\s*(?:main\.)?survey_drop_ingest_slots/i.test(String(error instanceof Error ? error.message : error))) return false
+    throw error
+  }
 }
 
 /**

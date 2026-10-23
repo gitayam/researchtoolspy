@@ -17,7 +17,16 @@
  *     dropped: phones append extra images and metadata there.
  *   - PDFs are typed and size-checked but not rewritten (their metadata is not
  *     stripped); callers serve them as downloads.
+ *   - Images above MAX_PIXELS (every GIF frame too) are refused: a small file can
+ *     declare a huge canvas.
+ *   - Only blocks needed to draw the image are kept: JPEG APP0 only as JFIF (its
+ *     thumbnail removed), APP14 only as Adobe, an ICC profile; markers outside the
+ *     known set refuse the file. Animated WebP is refused. PNG keeps no ICC profile
+ *     or suggested palette; GIF keeps no comment or plain-text blocks.
  */
+
+/** About 50 megapixels. */
+export const MAX_PIXELS = 50_000_000
 
 export type SniffedType = 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif' | 'application/pdf'
 
@@ -66,6 +75,10 @@ function fail(reason: string): SanitizeResult {
   return { ok: false, reason }
 }
 
+function tooLarge(width: number, height: number): boolean {
+  return width <= 0 || height <= 0 || width * height > MAX_PIXELS
+}
+
 /** Collects slices and joins them once, so large images are not copied byte by byte. */
 class Writer {
   private parts: Uint8Array[] = []
@@ -102,6 +115,22 @@ const ICC_ID = 'ICC_PROFILE\u0000'
 /** SOF markers that carry the frame size (not DHT C4, JPG C8 or DAC CC). */
 function isSof(code: number): boolean {
   return code >= 0xc0 && code <= 0xcf && code !== 0xc4 && code !== 0xc8 && code !== 0xcc
+}
+
+/**
+ * Markers allowed between SOI and EOI outside scan data: frames, tables, restart
+ * interval, scans, APPn (filtered below) and comments (dropped). Reserved markers
+ * (JPG C8, JPGn F0–FD, RES 02–BF), hierarchical DHP/EXP and stray restarts refuse.
+ */
+function knownJpegMarker(code: number): boolean {
+  return isSof(code) || code === 0xc4 || code === 0xcc || code === 0xda || code === 0xdb || code === 0xdc ||
+    code === 0xdd || (code >= 0xe0 && code <= 0xef) || code === 0xfe
+}
+
+/** A JFIF APP0 rewritten without its thumbnail (Xthumb = Ythumb = 0). */
+function jfifWithoutThumbnail(payload: Uint8Array): Uint8Array | null {
+  if (payload.length < 14 || ascii(payload, 0, 5) !== 'JFIF\u0000') return null
+  return Uint8Array.from([0xff, 0xe0, 0x00, 0x10, ...payload.subarray(0, 12), 0x00, 0x00])
 }
 
 /** The Orientation tag (0x0112) from an Exif APP1 payload (starting at "Exif\0\0"), or null. */
@@ -185,6 +214,7 @@ function sanitizeJpeg(b: Uint8Array): SanitizeResult {
   let width: number | null = null
   let height: number | null = null
   let sawScan = false
+  let sawApp0 = false
   let i = 2
   while (i < b.length) {
     const seg = jpegSegment(b, i)
@@ -196,14 +226,13 @@ function sanitizeJpeg(b: Uint8Array): SanitizeResult {
       out.bytes(0xff, 0xd9) // anything after the end marker is dropped
       return { ok: true, bytes: out.done(), width, height, orientation }
     }
-    if (payload === null) {
-      out.bytes(0xff, code)
-      i = next
-      continue
-    }
+    if (payload === null || !knownJpegMarker(code)) return fail('the JPEG has an unexpected marker')
     const segment = b.subarray(i, next)
     if (code === 0xe0) {
-      out.push(segment) // APP0 (JFIF) stays first
+      // APP0 stays first, and only as JFIF without its thumbnail (JFXX and others go).
+      const jfif = sawApp0 ? null : jfifWithoutThumbnail(payload)
+      if (jfif) out.push(jfif)
+      sawApp0 = true
       i = next
       continue
     }
@@ -213,7 +242,7 @@ function sanitizeJpeg(b: Uint8Array): SanitizeResult {
     } else if (code === 0xe2) {
       if (ascii(payload, 0, ICC_ID.length) === ICC_ID) out.push(segment) // colour profile
     } else if (code === 0xee) {
-      out.push(segment) // Adobe: needed to decode CMYK/YCCK
+      if (ascii(payload, 0, 5) === 'Adobe') out.push(segment) // needed to decode CMYK/YCCK
     } else if ((code >= 0xe3 && code <= 0xef) || code === 0xfe) {
       // APP3..APP15 (Photoshop/IPTC among them) and comments: dropped
     } else if (code === 0xda) {
@@ -239,6 +268,7 @@ function sanitizeJpeg(b: Uint8Array): SanitizeResult {
         if (payload.length < 5) return fail('the JPEG frame header is broken')
         height = u16be(payload, 1)
         width = u16be(payload, 3)
+        if (tooLarge(width, height)) return fail('the image is too large')
       }
       out.push(segment)
     }
@@ -251,8 +281,8 @@ function sanitizeJpeg(b: Uint8Array): SanitizeResult {
 
 /** Ancillary chunks that only describe how to draw the image. Text, time and EXIF are not among them. */
 const PNG_KEEP = new Set([
-  'IHDR', 'PLTE', 'IDAT', 'IEND', 'tRNS', 'cHRM', 'gAMA', 'iCCP', 'sBIT', 'sRGB', 'cICP', 'mDCv', 'cLLI',
-  'bKGD', 'hIST', 'pHYs', 'sPLT', 'acTL', 'fcTL', 'fdAT',
+  'IHDR', 'PLTE', 'IDAT', 'IEND', 'tRNS', 'cHRM', 'gAMA', 'sBIT', 'sRGB', 'cICP', 'mDCv', 'cLLI',
+  'bKGD', 'hIST', 'pHYs', 'acTL', 'fcTL', 'fdAT',
 ])
 
 function sanitizePng(b: Uint8Array): SanitizeResult {
@@ -272,6 +302,7 @@ function sanitizePng(b: Uint8Array): SanitizeResult {
       if (type !== 'IHDR' || len < 8) return fail('the PNG has no header')
       width = u32be(b, i + 8)
       height = u32be(b, i + 12)
+      if (tooLarge(width, height)) return fail('the image is too large')
       first = false
     }
     const critical = type.charCodeAt(0) < 0x61
@@ -288,7 +319,7 @@ function sanitizePng(b: Uint8Array): SanitizeResult {
 
 // ── WebP ───────────────────────────────────────────────────────────────────
 
-const WEBP_KEEP = new Set(['VP8 ', 'VP8L', 'VP8X', 'ALPH', 'ANIM', 'ANMF', 'ICCP'])
+const WEBP_KEEP = new Set(['VP8 ', 'VP8L', 'VP8X', 'ALPH'])
 
 function sanitizeWebp(b: Uint8Array): SanitizeResult {
   if (b.length < 20) return fail('the WebP is too short')
@@ -305,11 +336,13 @@ function sanitizeWebp(b: Uint8Array): SanitizeResult {
     const padded = dataEnd + (size & 1)
     if (dataEnd > riffEnd) return fail('the WebP structure is broken')
     const data = b.subarray(i + 8, dataEnd)
+    if (fourcc === 'ANIM' || fourcc === 'ANMF') return fail('animated WebP is not accepted')
     if (WEBP_KEEP.has(fourcc)) {
       if (fourcc === 'VP8X') {
         if (size < 10) return fail('the WebP header is broken')
+        if (data[0] & 0x02) return fail('animated WebP is not accepted')
         const copy = b.slice(i, Math.min(padded, b.length))
-        copy[8] &= ~(0x08 | 0x04) // clear the EXIF and XMP flags
+        copy[8] &= ~(0x20 | 0x08 | 0x04) // clear the ICC, EXIF and XMP flags (those chunks are dropped)
         chunks.push(copy)
         width = u24le(data, 4) + 1
         height = u24le(data, 7) + 1
@@ -326,12 +359,13 @@ function sanitizeWebp(b: Uint8Array): SanitizeResult {
           height = ((bits >>> 14) & 0x3fff) + 1
         }
       }
-      if (fourcc === 'VP8 ' || fourcc === 'VP8L' || fourcc === 'ANMF') image = true
+      if (fourcc === 'VP8 ' || fourcc === 'VP8L') image = true
     }
     // EXIF, XMP and unknown chunks are dropped.
     i = padded
   }
   if (!image) return fail('the WebP has no image data')
+  if (width === null || height === null || tooLarge(width, height)) return fail('the image is too large or has no size')
   const body = chunks.done()
   const out = new Writer()
   const total = 4 + body.length
@@ -351,6 +385,7 @@ function sanitizeGif(b: Uint8Array): SanitizeResult {
   if (b.length < 13) return fail('the GIF is too short')
   const width = u16le(b, 6)
   const height = u16le(b, 8)
+  if (tooLarge(width, height)) return fail('the image is too large')
   const packed = b[10]
   let i = 13 + (packed & 0x80 ? 3 * (1 << ((packed & 0x07) + 1)) : 0)
   if (i > b.length) return fail('the GIF structure is broken')
@@ -377,6 +412,7 @@ function sanitizeGif(b: Uint8Array): SanitizeResult {
     }
     if (sep === 0x2c) {
       if (i + 10 > b.length) return fail('the GIF structure is broken')
+      if (tooLarge(u16le(b, i + 5), u16le(b, i + 7))) return fail('a GIF frame is too large')
       const local = b[i + 9]
       let p = i + 10 + (local & 0x80 ? 3 * (1 << ((local & 0x07) + 1)) : 0)
       p += 1 // LZW minimum code size
@@ -392,7 +428,7 @@ function sanitizeGif(b: Uint8Array): SanitizeResult {
       const label = b[i + 1]
       const end = subBlocksEnd(i + 2)
       if (end < 0) return fail('the GIF ends early')
-      let keep = label === 0xf9 || label === 0x01 // graphic control, plain text
+      let keep = label === 0xf9 // graphic control (timing, transparency); plain text and comments go
       if (label === 0xff && b[i + 2] === 11) keep = GIF_APPS.has(ascii(b, i + 3, 11))
       if (keep) out.push(b.subarray(i, end))
       i = end

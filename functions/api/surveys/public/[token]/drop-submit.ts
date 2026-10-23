@@ -30,6 +30,37 @@ interface Env {
   UPLOADS?: R2Like
 }
 
+/** The raw body cap: 64 KB of answers plus room for the Turnstile token and JSON. */
+const MAX_BODY_BYTES = 72 * 1024
+const TOO_LARGE = 'Submission too large (max 64 KB)'
+
+/** The body as text, or null when it is (or says it is) over `max` bytes; read with a running count. */
+async function readCappedText(request: Request, max: number): Promise<string | null> {
+  const declared = Number(request.headers.get('Content-Length') ?? '')
+  if (Number.isFinite(declared) && declared > max) return null
+  if (!request.body) return ''
+  const reader = request.body.getReader()
+  const chunks: Uint8Array[] = []
+  let size = 0
+  for (;;) {
+    const { done, value } = await reader.read()
+    if (done) break
+    size += value.byteLength
+    if (size > max) {
+      await reader.cancel().catch(() => {})
+      return null
+    }
+    chunks.push(value)
+  }
+  const all = new Uint8Array(size)
+  let at = 0
+  for (const chunk of chunks) {
+    all.set(chunk, at)
+    at += chunk.byteLength
+  }
+  return new TextDecoder().decode(all)
+}
+
 async function verifyTurnstile(secret: string, token: string): Promise<boolean> {
   try {
     // Without a deadline a hung upstream holds this request until the platform's
@@ -92,9 +123,16 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       })
     }
 
+    // Size first: nothing is parsed, decoded or sanitized past the cap.
+    const raw = await readCappedText(context.request, MAX_BODY_BYTES)
+    if (raw === null) {
+      return new Response(JSON.stringify({ ok: false, error: TOO_LARGE }), {
+        status: 200, headers: JSON_HEADERS,
+      })
+    }
     let body: any
     try {
-      body = await context.request.json()
+      body = JSON.parse(raw)
     } catch {
       return new Response(JSON.stringify({ ok: false, error: 'Invalid request body' }), {
         status: 200, headers: JSON_HEADERS,
@@ -131,7 +169,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const formData = cleaned.formData
     const formDataStr = JSON.stringify(formData)
     if (formDataStr.length > 65536) {
-      return new Response(JSON.stringify({ ok: false, error: 'Submission too large (max 64 KB)' }), {
+      return new Response(JSON.stringify({ ok: false, error: TOO_LARGE }), {
         status: 200, headers: JSON_HEADERS,
       })
     }

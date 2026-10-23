@@ -12,6 +12,9 @@
 --   unverified evidence at once (default on); 0 keeps it in the review inbox.
 -- survey_responses.auto_ingested / linked_marker_id: what ingest created, so a
 --   reviewer's reject can take it back off the COP.
+-- survey_drop_ingest_slots: the per-form, per-UTC-hour auto-ingest count. A slot is
+--   taken with one INSERT … ON CONFLICT DO UPDATE … WHERE n < cap RETURNING, so
+--   concurrent tips can't pass the cap together.
 --
 -- The cop_* tables follow their session on delete (ON DELETE CASCADE).
 
@@ -69,3 +72,10 @@ CREATE INDEX IF NOT EXISTS idx_cop_uploads_session ON cop_uploads(cop_session_id
 ALTER TABLE survey_drops ADD COLUMN auto_ingest INTEGER NOT NULL DEFAULT 1;
 ALTER TABLE survey_responses ADD COLUMN auto_ingested INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE survey_responses ADD COLUMN linked_marker_id TEXT;
+
+CREATE TABLE IF NOT EXISTS survey_drop_ingest_slots (
+    survey_id TEXT NOT NULL,
+    hour TEXT NOT NULL,
+    n INTEGER NOT NULL,
+    PRIMARY KEY (survey_id, hour)
+);
