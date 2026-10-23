@@ -714,45 +714,106 @@ export function questionChoicesForDrop(db: D1Database, formId: string): Promise<
   return questionChoicesForForm(db, formId)
 }
 
-/** The form field names a tipster's choice travels in (helper keys: not shown as answers). */
+/**
+ * The form field names a tipster's choices travel in (helper keys: not shown as answers).
+ * `_questions` is [{ id, relation }]; the single `_question` / `_question_relation` pair
+ * comes from forms loaded before multi-select and counts as a one-element list.
+ */
+export const QUESTIONS_FIELD = '_questions'
 export const QUESTION_FIELD = '_question'
 export const QUESTION_RELATION_FIELD = '_question_relation'
+/** Questions one tip may be filed under. */
+export const MAX_QUESTIONS_PER_TIP = 5
 
 const QUESTION_ID_RE = /^[A-Za-z0-9_.:-]{1,80}$/
 
-export type ChosenQuestion =
-  | { ok: true; choice: { rfiId: string; relation: LinkRelation } | null }
+export interface QuestionPick {
+  rfiId: string
+  relation: LinkRelation
+}
+
+const NOT_OFFERED = 'A question you picked can’t take evidence from this form now. Untick it, or leave them all unticked (not about a specific question).'
+
+/**
+ * The questions a submission names, as written: `_questions` plus the legacy single
+ * `_question`, duplicates collapsed (the first relation wins). null when malformed: not
+ * a list, an entry without a valid id, an unknown relation, or more than
+ * MAX_QUESTIONS_PER_TIP distinct questions. Not checked against anything yet.
+ */
+export function parseQuestionPicks(formData: Record<string, unknown>): QuestionPick[] | null {
+  const entries: { id: unknown; relation: unknown }[] = []
+  const list = formData[QUESTIONS_FIELD]
+  if (list !== undefined && list !== null) {
+    if (!Array.isArray(list) || list.length > MAX_QUESTIONS_PER_TIP * 4) return null
+    for (const item of list) {
+      if (!item || typeof item !== 'object' || Array.isArray(item)) return null
+      entries.push({ id: (item as { id?: unknown }).id, relation: (item as { relation?: unknown }).relation })
+    }
+  }
+  const single = formData[QUESTION_FIELD]
+  if (single !== undefined && single !== null && single !== '') {
+    entries.push({ id: single, relation: formData[QUESTION_RELATION_FIELD] })
+  }
+  const picks: QuestionPick[] = []
+  for (const entry of entries) {
+    const id = typeof entry.id === 'string' ? entry.id.trim() : ''
+    if (!QUESTION_ID_RE.test(id)) return null
+    const relation = cleanRelation(entry.relation)
+    if (!relation) return null
+    if (!picks.some((p) => p.rfiId === id)) picks.push({ rfiId: id, relation })
+  }
+  return picks.length > MAX_QUESTIONS_PER_TIP ? null : picks
+}
+
+export type ChosenQuestions =
+  | { ok: true; picks: QuestionPick[] }
   | { ok: false; error: string }
 
 /**
- * The question a submission names, checked against the questions the form offered in
- * its context (questionChoicesForForm): none named → null; one the form didn't offer
- * (another COP's, closed, not shown to this caller, malformed) → refused, never filed.
+ * The questions a submission names, every one checked against the questions the form
+ * offered in its context (questionChoicesForForm). None named → []. Any one the form
+ * didn't offer (another COP's, closed, not shown to this caller), or a malformed list,
+ * refuses the whole submission: nothing is stored or filed.
  */
-export async function chosenQuestionForSubmission(
+export async function chosenQuestionsForSubmission(
   db: D1Database,
   formId: string,
   formData: Record<string, unknown>,
   context: QuestionContext,
-): Promise<ChosenQuestion> {
-  const raw = formData[QUESTION_FIELD]
-  if (raw === undefined || raw === null || raw === '') return { ok: true, choice: null }
-  const chosen = typeof raw === 'string' ? raw.trim() : ''
-  const refused = { ok: false as const, error: 'That question can’t take evidence from this form now. Pick another, or “Not about a specific question”.' }
-  if (!QUESTION_ID_RE.test(chosen)) return refused
-  const offered = await questionChoicesForForm(db, formId, context)
-  if (!offered.some((choice) => choice.id === chosen)) return refused
-  return { ok: true, choice: { rfiId: chosen, relation: cleanRelation(formData[QUESTION_RELATION_FIELD]) ?? 'supports' } }
+): Promise<ChosenQuestions> {
+  const picks = parseQuestionPicks(formData)
+  if (picks === null) return { ok: false, error: NOT_OFFERED }
+  if (picks.length === 0) return { ok: true, picks }
+  const offered = new Set((await questionChoicesForForm(db, formId, context)).map((choice) => choice.id))
+  if (!picks.every((pick) => offered.has(pick.rfiId))) return { ok: false, error: NOT_OFFERED }
+  return { ok: true, picks }
+}
+
+/** The checked choices as survey_responses.question_choices stores them (null for none). */
+export function storedQuestionChoices(picks: readonly QuestionPick[]): string | null {
+  return picks.length > 0 ? JSON.stringify(picks.map((p) => ({ id: p.rfiId, relation: p.relation }))) : null
+}
+
+/** survey_responses.question_choices read back; anything off-shape is dropped. */
+function readStoredChoices(raw: unknown): QuestionPick[] {
+  if (typeof raw !== 'string' || !raw) return []
+  try {
+    const parsed = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return []
+    return parseQuestionPicks({ [QUESTIONS_FIELD]: parsed.slice(0, MAX_QUESTIONS_PER_TIP) }) ?? []
+  } catch {
+    return []
+  }
 }
 
 /**
- * File an ingested tip under the question its tipster chose. A submission made after
- * migration 0026 carries the choice drop-submit checked (survey_responses.question_rfi_id);
- * an older one, its `_question` answer, checked again here against the standalone
- * form's key questions. Either way the RFI must be this session's (in SQL). Best
- * effort: a bad or stale choice files nothing.
+ * File an ingested tip under each question its tipster chose. A submission made after
+ * migration 0026 carries the choices drop-submit checked (survey_responses.question_choices);
+ * an older one, its `_question(s)` answers, of which only the standalone form's key
+ * questions are filed (checked again here). Every RFI must be this session's (in SQL).
+ * Best effort per question: a bad or stale one files nothing. Returns the RFI ids filed.
  */
-export async function fileTipUnderChosenQuestion(
+export async function fileTipUnderChosenQuestions(
   db: D1Database,
   input: {
     formId: string
@@ -762,35 +823,45 @@ export async function fileTipUnderChosenQuestion(
     formData: Record<string, unknown>
     actorUserId: number
   },
-): Promise<string | null> {
-  let checked: { question_rfi_id: string | null; question_relation: string | null } | null = null
+): Promise<string[]> {
+  let stored: { question_choices: string | null } | null = null
   try {
-    checked = await db.prepare('SELECT question_rfi_id, question_relation FROM survey_responses WHERE id = ? AND cop_session_id = ?')
+    stored = await db.prepare('SELECT question_choices FROM survey_responses WHERE id = ? AND cop_session_id = ?')
       .bind(input.responseId, input.scope.sessionId).first()
   } catch (error) {
     if (!isMissingColumn(error)) throw error
   }
 
-  let choice: { rfiId: string; relation: LinkRelation } | null = null
-  if (checked?.question_rfi_id) {
-    choice = { rfiId: checked.question_rfi_id, relation: cleanRelation(checked.question_relation) ?? 'supports' }
-  } else {
-    const legacy = await chosenQuestionForSubmission(db, input.formId, input.formData, {})
-    if (legacy.ok === true) choice = legacy.choice
+  let picks = readStoredChoices(stored?.question_choices)
+  if (picks.length === 0 && !stored?.question_choices) {
+    const legacy = parseQuestionPicks(input.formData) ?? []
+    if (legacy.length > 0) {
+      const offered = new Set((await questionChoicesForForm(db, input.formId)).map((choice) => choice.id))
+      picks = legacy.filter((pick) => offered.has(pick.rfiId))
+    }
   }
-  if (!choice) return null
-  const inSession = await db.prepare('SELECT id FROM cop_rfis WHERE id = ? AND cop_session_id = ?')
-    .bind(choice.rfiId, input.scope.sessionId).first()
-  if (!inSession) return null
-  const result = await upsertEvidenceLink(db, {
-    scope: input.scope,
-    evidenceId: input.evidenceId,
-    targetType: 'rfi',
-    targetId: choice.rfiId,
-    relation: choice.relation,
-    note: null,
-    actorUserId: input.actorUserId,
-    serviceUserId: null,
-  })
-  return result.ok ? result.link.target_id : null
+
+  const filed: string[] = []
+  for (const pick of picks) {
+    try {
+      const inSession = await db.prepare('SELECT id FROM cop_rfis WHERE id = ? AND cop_session_id = ?')
+        .bind(pick.rfiId, input.scope.sessionId).first()
+      if (!inSession) continue
+      const result = await upsertEvidenceLink(db, {
+        scope: input.scope,
+        evidenceId: input.evidenceId,
+        targetType: 'rfi',
+        targetId: pick.rfiId,
+        relation: pick.relation,
+        note: null,
+        actorUserId: input.actorUserId,
+        serviceUserId: null,
+      })
+      if (result.ok) filed.push(result.link.target_id)
+    } catch (error) {
+      if (linksTableMissing(error)) throw error
+      console.error('[cop-evidence-links] tip not filed under one question:', error instanceof Error ? error.message : error)
+    }
+  }
+  return filed
 }

@@ -917,10 +917,10 @@ export default function PublicCopPage() {
           questionContext={token ? { share: token } : undefined}
           initialQuestionId={evidenceQuestion.id}
           preselectNonce={evidenceQuestion.nonce}
-          onSubmitted={(ingested, question) => {
-            if (question && showsQuestions) {
-              // Show it where it was filed: the question, opened.
-              setExpandedRfis((prev) => new Set(prev).add(question.id))
+          onSubmitted={(ingested, filedUnder) => {
+            if (filedUnder.length > 0 && showsQuestions) {
+              // Show it where it was filed: those questions, opened.
+              setExpandedRfis((prev) => new Set([...prev, ...filedUnder.map((q) => q.id)]))
               setActivePanel('questions')
             } else if (ingested?.evidence_id != null) {
               setHighlightEvidenceId(String(ingested.evidence_id))

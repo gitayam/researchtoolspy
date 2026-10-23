@@ -16,7 +16,7 @@
  * NULL in one UPDATE) makes a double submit, a retry or two reviewers clicking at
  * once produce one evidence item.
  */
-import { deleteLinksOf, fileTipUnderChosenQuestion, linksTableMissing } from './cop-evidence-links'
+import { deleteLinksOf, fileTipUnderChosenQuestions, linksTableMissing } from './cop-evidence-links'
 import { applyItemTags, cleanTagName, dropItemTags, tagsTableMissing } from './cop-tags'
 import { emitCopEventLoose } from './cop-events-loose'
 import { queryEvidenceInSession } from './cop-input'
@@ -332,9 +332,9 @@ export async function ingestSubmission(
     }
   }
 
-  // The question the tipster picked, as drop-submit checked it (migrations 0024, 0026).
+  // The questions the tipster picked, as drop-submit checked them (migrations 0024, 0026).
   try {
-    await fileTipUnderChosenQuestion(db, {
+    await fileTipUnderChosenQuestions(db, {
       formId: form.id,
       responseId: input.responseId,
       scope: { sessionId: input.sessionId, workspaceId: scope.workspaceId },

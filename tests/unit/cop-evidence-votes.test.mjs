@@ -234,7 +234,7 @@ test('unfiling or deleting the evidence takes the filing\'s votes with it', asyn
   assert.equal(count(db, 'cop_evidence_link_votes'), 0)
 })
 
-test('before migration 0026: lists show no votes, voting answers 503, tips still go in', async () => {
+test('before migration 0026: lists show no votes, voting answers 503, tips still go in under their key questions', async () => {
   const { db, env } = await votesFixture({ votes: false })
   const [keyRfi] = keyIds(db)
   const link = await file(env, 101, keyRfi)
@@ -251,6 +251,11 @@ test('before migration 0026: lists show no votes, voting answers 503, tips still
   const sent = await submit(env, { what: 'Gate B', _question: keyRfi })
   assert.equal(sent.ok, true, JSON.stringify(sent))
   assert.equal(count(db, 'cop_evidence_links', 'evidence_id = ? AND target_id = ?', String(sent.ingested.evidence_id), keyRfi), 1)
+  const [, secondKey] = keyIds(db)
+  const several = await submit(env, { what: 'Gate C', _questions: [{ id: keyRfi }, { id: secondKey, relation: 'context' }] })
+  assert.equal(several.ok, true, JSON.stringify(several))
+  assert.deepEqual(db.prepare('SELECT target_id, relation FROM cop_evidence_links WHERE evidence_id = ? ORDER BY target_id').all(String(several.ingested.evidence_id)).map((r) => [r.target_id, r.relation]),
+    [[keyRfi, 'supports'], [secondKey, 'context']].sort())
 })
 
 // ── Which questions the form offers, by where it was opened ─────────
@@ -337,7 +342,7 @@ test('a collaborator\'s workspace gets every open question through a question ti
   assert.deepEqual(await choices(env, `?ticket=${encodeURIComponent(ticket)}`), [])
 })
 
-test('drop-submit files under a question the form offered, and refuses any other', async () => {
+test('drop-submit (single legacy `_question`) files under a question the form offered, and refuses any other', async () => {
   const { db, env } = await votesFixture()
   seedDrop(db, { picker: 1 })
   const [keyRfi] = keyIds(db)
@@ -385,22 +390,105 @@ test('drop-submit files under a question the form offered, and refuses any other
   assert.equal(count(db, 'cop_evidence_links', "evidence_id = ? AND target_id = 'rfi-plain'", String(viaTicket.ingested.evidence_id)), 1)
   // Still anonymous: the stored row names no one.
   const row = db.prepare('SELECT * FROM survey_responses WHERE ingested_evidence_id = ?').get(String(viaTicket.ingested.evidence_id))
-  assert.equal(row.question_rfi_id, 'rfi-plain')
+  assert.deepEqual(JSON.parse(row.question_choices), [{ id: 'rfi-plain', relation: 'supports' }])
   assert.ok(!JSON.stringify(row).includes('"user_id"'))
 })
 
-test('a tip waiting for review keeps its checked question and is filed when accepted, even after the share expired', async () => {
+test('one tip under several questions: each with its own relation, duplicates collapsed, at most 5, all or nothing', async () => {
+  const { db, env } = await votesFixture()
+  seedDrop(db, { picker: 1 })
+  const keys = keyIds(db)
+  db.exec(`
+    INSERT INTO cop_rfis (id, cop_session_id, question, created_by, is_key, status) VALUES
+      ('rfi-x1', '${SESSION}', 'Extra one?', 1, 0, 'open'),
+      ('rfi-x2', '${SESSION}', 'Extra two?', 1, 0, 'open'),
+      ('rfi-x3', '${SESSION}', 'Extra three?', 1, 0, 'open');
+  `)
+  const stored = () => count(db, 'survey_responses', "survey_id = 'drop-votes'")
+  const filedUnder = (res) => db.prepare('SELECT target_id, relation FROM cop_evidence_links WHERE evidence_id = ? ORDER BY target_id')
+    .all(String(res.ingested.evidence_id)).map((r) => [r.target_id, r.relation])
+
+  // Happy path from a share: three questions, three relations; a repeat collapses (first wins).
+  const multi = await submit(env, {
+    what: 'Police turning fans away at gate B',
+    _questions: [
+      { id: keys[0], relation: 'supports' },
+      { id: 'rfi-plain', relation: 'contradicts' },
+      { id: 'rfi-x1', relation: 'context' },
+      { id: 'rfi-plain', relation: 'supports' },
+      { id: keys[0] },
+    ],
+  }, { share: SHARES.rfi })
+  assert.equal(multi.ok, true, JSON.stringify(multi))
+  assert.deepEqual(filedUnder(multi), [[keys[0], 'supports'], ['rfi-plain', 'contradicts'], ['rfi-x1', 'context']].sort())
+  const row = db.prepare('SELECT question_choices FROM survey_responses WHERE ingested_evidence_id = ?').get(String(multi.ingested.evidence_id))
+  assert.deepEqual(JSON.parse(row.question_choices).map((c) => c.id), [keys[0], 'rfi-plain', 'rfi-x1'])
+  // The choices never show in the evidence text.
+  const description = db.prepare('SELECT description FROM evidence_items WHERE id = ?').get(Number(multi.ingested.evidence_id)).description
+  assert.ok(!description.includes('rfi-plain') && !description.includes('[object Object]'), description)
+
+  // Five distinct questions is the limit; a legacy `_question` beside the list counts too.
+  const five = await submit(env, { what: 'Five', _questions: ['rfi-plain', 'rfi-x1', 'rfi-x2', 'rfi-x3'].map((id) => ({ id })), _question: keys[0] }, { share: SHARES.rfi })
+  assert.equal(five.ok, true, JSON.stringify(five))
+  assert.equal(filedUnder(five).length, 5)
+
+  const before = stored()
+  const refused = [
+    // Six distinct questions.
+    [{ _questions: [...keys.slice(0, 2), 'rfi-plain', 'rfi-x1', 'rfi-x2', 'rfi-x3'].map((id) => ({ id })) }, { share: SHARES.rfi }],
+    [{ _questions: ['rfi-plain', 'rfi-x1', 'rfi-x2', 'rfi-x3', keys[1]].map((id) => ({ id })), _question: keys[0] }, { share: SHARES.rfi }],
+    // One closed, foreign or unoffered question among good ones refuses the lot.
+    [{ _questions: [{ id: 'rfi-plain' }, { id: 'rfi-closed-plain' }] }, { share: SHARES.rfi }],
+    [{ _questions: [{ id: keys[0] }, { id: 'rfi-other' }] }, { share: SHARES.rfi }],
+    [{ _questions: [{ id: keys[0] }, { id: 'rfi-plain' }] }, { share: SHARES.questions }],
+    [{ _questions: [{ id: keys[0] }, { id: 'rfi-plain' }] }, undefined],
+    // Malformed.
+    [{ _questions: 'rfi-plain' }, { share: SHARES.rfi }],
+    [{ _questions: { id: 'rfi-plain' } }, { share: SHARES.rfi }],
+    [{ _questions: ['rfi-plain'] }, { share: SHARES.rfi }],
+    [{ _questions: [{ id: 'rfi-plain', relation: 'proves' }] }, { share: SHARES.rfi }],
+    [{ _questions: [{ id: "x' OR 1=1 --" }] }, { share: SHARES.rfi }],
+    [{ _questions: [{ relation: 'supports' }] }, { share: SHARES.rfi }],
+  ]
+  for (const [answer, context] of refused) {
+    const res = await submit(env, { what: 'Tip', ...answer }, context)
+    assert.equal(res.ok, false, JSON.stringify([answer, context]))
+    assert.equal(res.code, 'QUESTION_NOT_OFFERED')
+  }
+  assert.equal(stored(), before)
+  // None picked is fine.
+  const none = await submit(env, { what: 'Not about a question', _questions: [] }, { share: SHARES.rfi })
+  assert.equal(none.ok, true)
+  assert.equal(filedUnder(none).length, 0)
+})
+
+test('a tip waiting for review keeps its checked questions and is filed when accepted, even after the share expired', async () => {
   const { db, env } = await votesFixture()
   seedDrop(db, { picker: 0, autoIngest: 0 })
-  const sent = await submit(env, { what: 'Barricade on rue X', _question: 'rfi-plain', _question_relation: 'supports' }, { share: SHARES.rfi })
+  const [keyRfi] = keyIds(db)
+  const sent = await submit(env, { what: 'Barricade on rue X', _questions: [{ id: 'rfi-plain' }, { id: keyRfi, relation: 'contradicts' }] }, { share: SHARES.rfi })
   assert.equal(sent.ok, true, JSON.stringify(sent))
   assert.equal(sent.ingested, null)
-  const sub = db.prepare("SELECT id, question_rfi_id FROM survey_responses WHERE survey_id = 'drop-votes'").get()
-  assert.equal(sub.question_rfi_id, 'rfi-plain')
+  const sub = db.prepare("SELECT id, question_choices FROM survey_responses WHERE survey_id = 'drop-votes'").get()
+  assert.deepEqual(JSON.parse(sub.question_choices), [{ id: 'rfi-plain', relation: 'supports' }, { id: keyRfi, relation: 'contradicts' }])
 
   db.exec(`UPDATE cop_shares SET expires_at = '${PAST()}' WHERE id = 'sh-rfi'`)
   const accepted = await call(env, 'submissions', 'PUT', `${P}/submissions`, { who: 'owner', params: S, body: { id: sub.id, status: 'accepted' } })
   assert.equal(accepted.status, 200, await accepted.clone().text())
   const evidenceId = db.prepare('SELECT linked_evidence_id FROM survey_responses WHERE id = ?').get(sub.id).linked_evidence_id
   assert.equal(count(db, 'cop_evidence_links', "evidence_id = ? AND target_id = 'rfi-plain'", String(evidenceId)), 1)
+  assert.equal(db.prepare('SELECT relation FROM cop_evidence_links WHERE evidence_id = ? AND target_id = ?').get(String(evidenceId), keyRfi).relation, 'contradicts')
+})
+
+test('a stored choice whose question was deleted since is skipped; the others still file', async () => {
+  const { db, env } = await votesFixture()
+  seedDrop(db, { picker: 0, autoIngest: 0 })
+  const [keyRfi] = keyIds(db)
+  await submit(env, { what: 'Two questions', _questions: [{ id: 'rfi-plain' }, { id: keyRfi }] }, { share: SHARES.rfi })
+  const sub = db.prepare("SELECT id FROM survey_responses WHERE survey_id = 'drop-votes'").get()
+  db.exec("DELETE FROM cop_rfis WHERE id = 'rfi-plain'")
+  const accepted = await call(env, 'submissions', 'PUT', `${P}/submissions`, { who: 'owner', params: S, body: { id: sub.id, status: 'accepted' } })
+  assert.equal(accepted.status, 200, await accepted.clone().text())
+  const evidenceId = db.prepare('SELECT linked_evidence_id FROM survey_responses WHERE id = ?').get(sub.id).linked_evidence_id
+  assert.deepEqual(db.prepare('SELECT target_id FROM cop_evidence_links WHERE evidence_id = ?').all(String(evidenceId)).map((r) => r.target_id), [keyRfi])
 })

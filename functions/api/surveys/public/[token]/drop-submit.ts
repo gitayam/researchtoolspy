@@ -17,19 +17,20 @@
  * response then says `ingested: { evidence_id, marker_id }` (else null) and
  * nothing else about the COP.
  *
- * "Which question does this help answer?": the `_question` answer must be one of the
- * questions the form offered where it was opened — `question_context: { share }` (a
- * share link's Submit sheet) or `{ ticket }` (a collaborator's workspace), else the
- * standalone link's (questionChoicesForForm). Anything else is refused, never filed.
- * The checked choice is stored on the row (migration 0026) for ingest to file; `ok:
- * true` with a `_question` means the tip goes under that question.
+ * "Which questions does this help answer?": every question in `_questions`
+ * ([{ id, relation }], at most 5; the older single `_question` counts as one) must be one
+ * the form offered where it was opened — `question_context: { share }` (a share link's
+ * Submit sheet) or `{ ticket }` (a collaborator's workspace), else the standalone link's
+ * (questionChoicesForForm). One that wasn't, or a malformed list, refuses the whole
+ * submission. The checked choices are stored on the row (migration 0026) for ingest to
+ * file; `ok: true` means the tip goes under every question it named.
  */
 import { generatePrefixedId, JSON_HEADERS } from '../../../_shared/api-utils'
 import { hashFormData } from '../../../_shared/survey-drops'
 import { emitCopEvent } from '../../../_shared/cop-events'
 import { INGEST_SUBMISSION_RECEIVED } from '../../../_shared/cop-event-types'
 import { autoIngestSubmission, parseFormSchema, sanitizeFormDataFiles } from '../../../_shared/cop-ingest'
-import { chosenQuestionForSubmission } from '../../../_shared/cop-evidence-links'
+import { chosenQuestionsForSubmission, storedQuestionChoices } from '../../../_shared/cop-evidence-links'
 import { verifyQuestionTicket } from '../../../_shared/cop-question-ticket'
 import { isMissingColumn } from '../../../_shared/cop-input'
 import type { R2Like } from '../../../_shared/cop-uploads'
@@ -175,14 +176,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       }
     }
 
-    // The question it was filed under: only one this form offered where it was opened.
+    // The questions it is filed under: only ones this form offered where it was opened.
     const rawContext = body.question_context && typeof body.question_context === 'object' ? body.question_context : {}
-    const question = await chosenQuestionForSubmission(env.DB, form.id, formData, {
+    const questions = await chosenQuestionsForSubmission(env.DB, form.id, formData, {
       shareToken: typeof rawContext.share === 'string' ? rawContext.share : null,
       ticketSessionId: await verifyQuestionTicket(env.JWT_SECRET, rawContext.ticket),
     })
-    if (question.ok === false) {
-      return new Response(JSON.stringify({ ok: false, error: question.error, code: 'QUESTION_NOT_OFFERED' }), {
+    if (questions.ok === false) {
+      return new Response(JSON.stringify({ ok: false, error: questions.error, code: 'QUESTION_NOT_OFFERED' }), {
         status: 200, headers: JSON_HEADERS,
       })
     }
@@ -198,16 +199,16 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       await env.DB.prepare(`
         INSERT INTO survey_responses (
           id, survey_id, cop_session_id,
-          form_data, content_hash, status, updated_at, question_rfi_id, question_relation
-        ) VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, ?)
+          form_data, content_hash, status, updated_at, question_choices
+        ) VALUES (?, ?, ?, ?, ?, 'pending', ?, ?)
       `).bind(
         id, form.id, form.cop_session_id || null,
         formDataStr, contentHash, now,
-        question.choice?.rfiId ?? null, question.choice?.relation ?? null
+        storedQuestionChoices(questions.picks)
       ).run()
     } catch (insertError) {
-      // Before migration 0026: the row without the checked choice (ingest falls back to
-      // the `_question` answer, which files only a standalone-form key question).
+      // Before migration 0026: the row without the checked choices (ingest falls back to
+      // the `_question(s)` answers, filing only the standalone form's key questions).
       if (!isMissingColumn(insertError)) throw insertError
       await env.DB.prepare(`
         INSERT INTO survey_responses (

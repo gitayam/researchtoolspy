@@ -99,6 +99,44 @@ export function voteErrorMessage(res: { status: number; code: string | null; err
   return 'Your vote wasn’t saved. Try again.'
 }
 
+// ── "Which questions does this help answer?" (the evidence form) ───
+
+/** Questions one tip may be filed under (the server refuses more). */
+export const MAX_QUESTIONS_PER_TIP = 5
+
+/** A question ticked on the evidence form, with how the tip bears on it. */
+export interface QuestionPick {
+  id: string
+  relation: CopEvidenceRelation
+}
+
+/** Tick or untick a question; a new tick says "supports"; never more than the limit. Pure. */
+export function togglePick(picks: readonly QuestionPick[], id: string): QuestionPick[] {
+  if (picks.some((p) => p.id === id)) return picks.filter((p) => p.id !== id)
+  if (picks.length >= MAX_QUESTIONS_PER_TIP) return [...picks]
+  return [...picks, { id, relation: 'supports' }]
+}
+
+/** Change how the tip bears on one ticked question. Pure. */
+export function setPickRelation(picks: readonly QuestionPick[], id: string, relation: CopEvidenceRelation): QuestionPick[] {
+  return picks.map((p) => (p.id === id ? { ...p, relation } : p))
+}
+
+/** What the form starts with: the question "+ Add evidence" was pressed on, if offered; else none. */
+export function preselectPicks(initialId: string | null, offeredIds: readonly string[]): QuestionPick[] {
+  return initialId && offeredIds.includes(initialId) ? [{ id: initialId, relation: 'supports' }] : []
+}
+
+/** Ticks still offered after the list reloads (e.g. the workspace's wider list arrived). Pure. */
+export function keepOffered(picks: readonly QuestionPick[], offeredIds: readonly string[]): QuestionPick[] {
+  return picks.filter((p) => offeredIds.includes(p.id))
+}
+
+/** "Filed under …": one question by name, several by count. */
+export function filedUnderLabel(count: number): string {
+  return count === 1 ? 'Filed under:' : `Filed under ${count} questions:`
+}
+
 /** Links grouped by evidence item. */
 export function groupByEvidence(links: readonly CopEvidenceLink[]): Map<string, CopEvidenceLink[]> {
   const out = new Map<string, CopEvidenceLink[]>()

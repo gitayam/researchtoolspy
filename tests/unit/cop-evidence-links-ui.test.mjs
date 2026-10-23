@@ -133,3 +133,35 @@ test('voteErrorMessage: says why the vote was not saved', () => {
   assert.match(mod.voteErrorMessage({ status: 404, code: 'LINK_NOT_FOUND', error: null }), /isn’t filed here/)
   assert.match(mod.voteErrorMessage({ status: 0, code: null, error: null }), /wasn’t saved/)
 })
+
+// ── The evidence form's question checklist ─────────────────────────
+
+test('question checklist: tick adds "supports", tick again removes, never more than 5', () => {
+  let picks = []
+  picks = mod.togglePick(picks, 'q1')
+  picks = mod.togglePick(picks, 'q2')
+  assert.deepEqual(picks, [{ id: 'q1', relation: 'supports' }, { id: 'q2', relation: 'supports' }])
+  picks = mod.togglePick(picks, 'q1')
+  assert.deepEqual(picks.map((p) => p.id), ['q2'])
+  for (const id of ['q3', 'q4', 'q5', 'q6', 'q7']) picks = mod.togglePick(picks, id)
+  assert.equal(mod.MAX_QUESTIONS_PER_TIP, 5)
+  assert.deepEqual(picks.map((p) => p.id), ['q2', 'q3', 'q4', 'q5', 'q6'])
+  // At the limit, unticking still works.
+  assert.deepEqual(mod.togglePick(picks, 'q4').map((p) => p.id), ['q2', 'q3', 'q5', 'q6'])
+})
+
+test('question checklist: each ticked question keeps its own relation', () => {
+  const picks = mod.setPickRelation(mod.setPickRelation([{ id: 'q1', relation: 'supports' }, { id: 'q2', relation: 'supports' }], 'q2', 'contradicts'), 'q1', 'context')
+  assert.deepEqual(picks, [{ id: 'q1', relation: 'context' }, { id: 'q2', relation: 'contradicts' }])
+  assert.deepEqual(mod.setPickRelation(picks, 'q9', 'supports'), picks)
+})
+
+test('question checklist: "+ Add evidence" ticks only an offered question; a reloaded list keeps what it still offers', () => {
+  assert.deepEqual(mod.preselectPicks('q2', ['q1', 'q2']), [{ id: 'q2', relation: 'supports' }])
+  assert.deepEqual(mod.preselectPicks('q9', ['q1', 'q2']), [])
+  assert.deepEqual(mod.preselectPicks(null, ['q1']), [])
+  const picks = [{ id: 'q1', relation: 'context' }, { id: 'gone', relation: 'supports' }]
+  assert.deepEqual(mod.keepOffered(picks, ['q1', 'q2']), [{ id: 'q1', relation: 'context' }])
+  assert.equal(mod.filedUnderLabel(1), 'Filed under:')
+  assert.equal(mod.filedUnderLabel(3), 'Filed under 3 questions:')
+})

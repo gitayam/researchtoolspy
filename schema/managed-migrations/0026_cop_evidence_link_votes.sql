@@ -1,4 +1,4 @@
--- Team votes on filed evidence, and the question a tipster chose, checked at submission.
+-- Team votes on filed evidence, and the questions a tipster chose, checked at submission.
 --
 -- cop_evidence_link_votes: one 👍 (1) or 👎 (-1) per collaborator per filing — a vote
 --   says "this evidence helps (or doesn't help) answer this question", so it is on the
@@ -6,11 +6,12 @@
 --   collaborators vote (PUT /api/cop/:id/evidence-links/:linkId/vote); share viewers
 --   see the counts. The route checks the link belongs to the session IN SQL. Votes go
 --   with their filing (unfiling, deleting the evidence or the question) and session.
--- survey_responses.question_rfi_id / question_relation: the question a drop-form
---   submission was filed under, written only by drop-submit after checking it against
---   the questions that form offered in its context (the standalone link, a share link,
---   or a collaborator's workspace); ingest files the tip under it. Rows from before
---   this migration keep using the `_question` answer, checked again at ingest.
+-- survey_responses.question_choices: the questions (at most 5) a drop-form submission
+--   is filed under, as JSON [{"id": "<rfi id>", "relation": "supports"|"contradicts"|
+--   "context"}]. Written only by drop-submit, after checking every id against the
+--   questions that form offered in its context (the standalone link, a share link, or a
+--   collaborator's workspace); ingest files the tip under each. Rows from before this
+--   migration keep using the `_question(s)` answers, checked again at ingest.
 
 CREATE TABLE IF NOT EXISTS cop_evidence_link_votes (
     id TEXT PRIMARY KEY,
@@ -25,5 +26,4 @@ CREATE TABLE IF NOT EXISTS cop_evidence_link_votes (
 
 CREATE INDEX IF NOT EXISTS idx_cop_evidence_link_votes_session ON cop_evidence_link_votes(cop_session_id, link_id);
 
-ALTER TABLE survey_responses ADD COLUMN question_rfi_id TEXT;
-ALTER TABLE survey_responses ADD COLUMN question_relation TEXT;
+ALTER TABLE survey_responses ADD COLUMN question_choices TEXT;
