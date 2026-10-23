@@ -16,16 +16,12 @@ export interface CopServiceCaller {
 }
 
 /**
- * The Signal bot's integration clients, by exact id (never a pattern: any client whose
- * id merely contains "signal" is another integration). Production's is
- * irregularchat-signal-prod; irregularchat-signal-test is the unit tests' fixture.
- * Only these read the chat feed, redeem room link codes, and write items marked as
- * coming from chat (source_channel 'signal').
+ * The Signal bot's integration client, by exact id (never a pattern: any client whose
+ * id merely contains "signal" is another integration). Only it reads the chat feed,
+ * redeems room link codes, and writes items marked as coming from chat
+ * (source_channel 'signal'). The unit tests use the same id.
  */
-export const SIGNAL_BOT_CLIENT_IDS: ReadonlySet<string> = new Set([
-  'irregularchat-signal-prod',
-  'irregularchat-signal-test',
-])
+export const SIGNAL_BOT_CLIENT_IDS: ReadonlySet<string> = new Set(['irregularchat-signal-prod'])
 
 export function isSignalBotClient(clientId: string | null | undefined): boolean {
   return typeof clientId === 'string' && SIGNAL_BOT_CLIENT_IDS.has(clientId)

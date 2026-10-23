@@ -215,7 +215,7 @@ export function d1(db) {
 
 // ── Fixture ────────────────────────────────────────────────────────
 
-export const CLIENT_ID = 'irregularchat-signal-test'
+export const CLIENT_ID = 'irregularchat-signal-prod'
 const SECRET = 'A'.repeat(43)
 const HASH_KEY = 'integration-test-key-material-0000000000000000'
 export const SERVICE_USER = 73
