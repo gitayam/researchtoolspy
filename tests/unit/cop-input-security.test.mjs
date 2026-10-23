@@ -116,7 +116,7 @@ test('the /api/surveys limiter counts by CF-Connecting-IP, not by headers the cl
   const cache = fakeKv()
   let reached = 0
   const call = (i) => {
-    const request = new Request(`https://researchtools.test/api/surveys/public/${DROP_TOKEN}/drop-submit`, {
+    const request = new Request(`https://researchtools.test/api/surveys/public/${SURVEY_TOKEN}/submit`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'CF-Connecting-IP': '203.0.113.7', 'X-User-Hash': `rotating-${i}`, 'X-Guest-Session': `g-${i}` },
       body: '{}',
@@ -396,9 +396,25 @@ test('the submission list is for collaborators: a signed-in stranger on a public
   assert.equal((await list('editor')).status, 200)
 })
 
+test('the anonymous evidence form is never counted by address: nothing about the tipster reaches KV', async () => {
+  const cache = fakeKv()
+  let reached = 0
+  for (let i = 0; i < 45; i++) {
+    const request = new Request(`https://researchtools.test/api/surveys/public/${DROP_TOKEN}/drop-submit`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'CF-Connecting-IP': '203.0.113.99' }, body: '{}',
+    })
+    const res = await mod('apiMiddleware').onRequest({
+      request, env: { CACHE: cache }, params: {}, data: {}, waitUntil() {}, next: async () => { reached++; return new Response('{}', { status: 201 }) },
+    })
+    assert.notEqual(res.status, 429)
+  }
+  assert.equal(reached, 45)
+  assert.equal(cache.store.size, 0, [...cache.store.keys()].join(','))
+})
+
 test('the /api/surveys limiter keeps no raw client address in its KV keys', async () => {
   const cache = fakeKv()
-  const request = new Request(`https://researchtools.test/api/surveys/public/${DROP_TOKEN}/drop-submit`, {
+  const request = new Request(`https://researchtools.test/api/surveys/public/${SURVEY_TOKEN}/submit`, {
     method: 'POST', headers: { 'Content-Type': 'application/json', 'CF-Connecting-IP': '203.0.113.77' }, body: '{}',
   })
   await mod('apiMiddleware').onRequest({

@@ -393,7 +393,7 @@ export default function PublicIntakeForm({ token, isDropMode = false, embedded =
             <svg className="h-4 w-4 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.955 11.955 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" /></svg>
             <div>
               <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-300">Anonymous Tip Line</p>
-              <p className="text-xs text-emerald-700 dark:text-emerald-400 mt-0.5">Your identity is protected. We cannot see who you are — no IP address or identifying information is collected.</p>
+              <p className="text-xs text-emerald-700 dark:text-emerald-400 mt-0.5">Your identity is protected. We don't record your IP address, device or anything else that identifies you.</p>
             </div>
           </div>
         )}
