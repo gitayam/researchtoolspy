@@ -9,11 +9,16 @@ import {
   ExternalLink,
   Loader2,
   AlertTriangle,
+  Star,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import type { CopRfi, CopRfiAnswer, CopRfiPriority } from '@/types/cop'
 import { RFI_PRIORITY_COLORS } from '@/types/cop'
+import { splitKeyQuestions, type QuestionLike } from '@/components/cop/shell/key-questions'
+
+/** An RFI as the list returns it; `is_key` once the server stars key questions. */
+type KeyRfi = CopRfi & QuestionLike
 
 // ── Priority options ─────────────────────────────────────────────
 
@@ -38,12 +43,14 @@ const STATUS_COLORS: Record<string, string> = {
 interface CopRfiTabProps {
   sessionId: string
   onRfiCountChange?: (count: number) => void
+  /** The session's key questions: shown starred, and offered as RFIs until tracked. */
+  keyQuestions?: string[] | null
 }
 
 // ── Component ────────────────────────────────────────────────────
 
-export default function CopRfiTab({ sessionId, onRfiCountChange }: CopRfiTabProps) {
-  const [rfis, setRfis] = useState<CopRfi[]>([])
+export default function CopRfiTab({ sessionId, onRfiCountChange, keyQuestions }: CopRfiTabProps) {
+  const [rfis, setRfis] = useState<KeyRfi[]>([])
   const [loading, setLoading] = useState(true)
   const [polling, setPolling] = useState(false)
   const [fetchError, setFetchError] = useState(false)
@@ -67,7 +74,7 @@ export default function CopRfiTab({ sessionId, onRfiCountChange }: CopRfiTabProp
       const res = await fetch(`/api/cop/${sessionId}/rfis`, { headers: getCopHeaders(), signal })
       if (!res.ok) throw new Error('Failed to fetch RFIs')
       const data = await res.json()
-      const items: CopRfi[] = data.rfis ?? data ?? []
+      const items: KeyRfi[] = data.rfis ?? data ?? []
       setRfis(items)
       setFetchError(false)
       const openCount = items.filter(r => r.status === 'open').length
@@ -106,6 +113,56 @@ export default function CopRfiTab({ sessionId, onRfiCountChange }: CopRfiTabProp
     if (pa !== pb) return pa - pb
     return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   })
+
+  // Key questions are starred RFIs: listed first.
+  const split = splitKeyQuestions(sortedRfis, keyQuestions)
+  const keyIds = new Set(split.key.map((r) => r.id))
+  const orderedRfis = [...split.key, ...split.others]
+
+  // ── Track a key question as an RFI ──────────────────────────
+
+  const [trackingKey, setTrackingKey] = useState<string | null>(null)
+  const [trackError, setTrackError] = useState<string | null>(null)
+
+  const createKeyRfi = useCallback(async (question: string) => {
+    const res = await fetch(`/api/cop/${sessionId}/rfis`, {
+      method: 'POST',
+      headers: getCopHeaders(),
+      body: JSON.stringify({ question, priority: 'high', requester_name: 'Key question', is_key: true }),
+    })
+    if (!res.ok) throw new Error(res.status === 403 ? 'Only the session owner or an editor can add questions.' : `Couldn't add it (HTTP ${res.status}).`)
+  }, [sessionId])
+
+  const trackKeyQuestions = useCallback(async (questions: string[]) => {
+    setTrackError(null)
+    setTrackingKey(questions.length === 1 ? questions[0] : '*')
+    try {
+      for (const question of questions) await createKeyRfi(question)
+    } catch (err) {
+      setTrackError(err instanceof Error ? err.message : "Couldn't add it.")
+    } finally {
+      setTrackingKey(null)
+      await fetchRfis()
+    }
+  }, [createKeyRfi, fetchRfis])
+
+  // ── Star / unstar (servers that report is_key) ──────────────
+
+  const handleToggleKey = useCallback(async (rfi: KeyRfi) => {
+    const next = !(rfi.is_key && rfi.is_key !== 0)
+    setRfis((prev) => prev.map((r) => (r.id === rfi.id ? { ...r, is_key: next ? 1 : 0 } : r)))
+    try {
+      const res = await fetch(`/api/cop/${sessionId}/rfis`, {
+        method: 'PUT',
+        headers: getCopHeaders(),
+        body: JSON.stringify({ id: rfi.id, is_key: next }),
+      })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    } catch (err) {
+      console.error('[CopRfiTab] Star failed:', err)
+      setRfis((prev) => prev.map((r) => (r.id === rfi.id ? { ...r, is_key: rfi.is_key } : r)))
+    }
+  }, [sessionId])
 
   // ── Create RFI ──────────────────────────────────────────────
 
@@ -282,7 +339,9 @@ export default function CopRfiTab({ sessionId, onRfiCountChange }: CopRfiTabProp
       {/* Header */}
       <div className="px-3 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-200 uppercase tracking-wider">RFI</h2>
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-200">
+            Questions <span className="font-normal text-gray-500 dark:text-gray-400">· RFIs</span>
+          </h2>
           {openCount > 0 && (
             <span className="flex items-center justify-center min-w-[18px] h-[18px] rounded-full bg-blue-500 text-white text-[10px] font-bold px-1">
               {openCount}
@@ -296,10 +355,10 @@ export default function CopRfiTab({ sessionId, onRfiCountChange }: CopRfiTabProp
           size="sm"
           variant="outline"
           onClick={() => setShowForm(!showForm)}
-          className="h-6 text-[10px] px-2 border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+          className="h-6 pointer-coarse:h-11 pointer-coarse:px-3 pointer-coarse:text-sm text-[10px] px-2 border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
         >
           <Plus className="h-3 w-3 mr-0.5" />
-          New RFI
+          New question
         </Button>
       </div>
 
@@ -356,6 +415,44 @@ export default function CopRfiTab({ sessionId, onRfiCountChange }: CopRfiTabProp
           </div>
         )}
 
+        {/* Key questions that no RFI tracks yet */}
+        {!loading && !fetchError && split.untracked.length > 0 && (
+          <div className="rounded border border-amber-300/60 bg-amber-50 p-2 space-y-1.5 dark:border-amber-700/50 dark:bg-amber-950/20">
+            <div className="flex items-center justify-between gap-2">
+              <p className="flex items-center gap-1 text-[11px] font-semibold text-amber-800 dark:text-amber-300">
+                <Star className="h-3 w-3 fill-amber-400 text-amber-500" aria-hidden="true" />
+                Key questions not yet tracked as RFIs
+              </p>
+              {split.untracked.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => trackKeyQuestions(split.untracked)}
+                  disabled={trackingKey !== null}
+                  className="shrink-0 rounded px-1.5 py-0.5 pointer-coarse:min-h-11 pointer-coarse:px-3 text-[11px] font-medium text-amber-800 hover:bg-amber-100 disabled:opacity-50 dark:text-amber-300 dark:hover:bg-amber-900/40 cursor-pointer"
+                >
+                  {trackingKey === '*' ? 'Adding…' : 'Track all'}
+                </button>
+              )}
+            </div>
+            <ul className="space-y-1">
+              {split.untracked.map((question) => (
+                <li key={question} className="flex items-start gap-2">
+                  <span className="flex-1 text-xs text-gray-800 dark:text-gray-200">{question}</span>
+                  <button
+                    type="button"
+                    onClick={() => trackKeyQuestions([question])}
+                    disabled={trackingKey !== null}
+                    className="shrink-0 rounded border border-amber-400/70 px-1.5 py-0.5 pointer-coarse:min-h-11 pointer-coarse:px-3 text-[11px] font-medium text-amber-800 hover:bg-amber-100 disabled:opacity-50 dark:border-amber-700 dark:text-amber-300 dark:hover:bg-amber-900/40 cursor-pointer"
+                  >
+                    {trackingKey === question ? 'Adding…' : 'Track as RFI'}
+                  </button>
+                </li>
+              ))}
+            </ul>
+            {trackError && <p className="text-[11px] text-red-600 dark:text-red-400" role="alert">{trackError}</p>}
+          </div>
+        )}
+
         {/* RFI list */}
         {loading ? (
           <div className="flex items-center justify-center gap-2 py-4">
@@ -373,9 +470,10 @@ export default function CopRfiTab({ sessionId, onRfiCountChange }: CopRfiTabProp
               Retry
             </button>
           </div>
-        ) : sortedRfis.length > 0 ? (
-          sortedRfis.map(rfi => {
+        ) : orderedRfis.length > 0 ? (
+          orderedRfis.map(rfi => {
             const isExpanded = expandedRfi === rfi.id
+            const isKey = keyIds.has(rfi.id)
             const answers: CopRfiAnswer[] = rfi.answers ?? []
 
             return (
@@ -387,7 +485,8 @@ export default function CopRfiTab({ sessionId, onRfiCountChange }: CopRfiTabProp
                 <button
                   type="button"
                   onClick={() => toggleExpand(rfi.id)}
-                  className="w-full flex items-start gap-2 px-2.5 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-colors cursor-pointer"
+                  aria-expanded={isExpanded}
+                  className="w-full flex items-start gap-2 px-2.5 py-2 pointer-coarse:min-h-11 text-left hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-colors cursor-pointer"
                 >
                   {isExpanded ? (
                     <ChevronDown className="h-3 w-3 text-gray-500 mt-0.5 shrink-0" />
@@ -395,7 +494,10 @@ export default function CopRfiTab({ sessionId, onRfiCountChange }: CopRfiTabProp
                     <ChevronRight className="h-3 w-3 text-gray-500 mt-0.5 shrink-0" />
                   )}
                   <div className="flex-1 min-w-0 space-y-1">
-                    <p className="text-xs text-gray-900 dark:text-gray-200 leading-relaxed">{rfi.question}</p>
+                    <p className="text-xs pointer-coarse:text-sm text-gray-900 dark:text-gray-200 leading-relaxed">
+                      {isKey && <Star className="inline h-3 w-3 mr-1 -mt-0.5 fill-amber-400 text-amber-500" aria-label="Key question" />}
+                      {rfi.question}
+                    </p>
                     <div className="flex items-center gap-2">
                       <Badge
                         className="text-white text-[9px] px-1.5 py-0 leading-4"
@@ -442,6 +544,20 @@ export default function CopRfiTab({ sessionId, onRfiCountChange }: CopRfiTabProp
                   <div className="border-t border-gray-200 dark:border-gray-700 px-2.5 py-2 space-y-2">
                     {/* Controls row: blocker, assign, status */}
                     <div className="flex flex-wrap items-center gap-2 py-1">
+                      {split.serverStars && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => handleToggleKey(rfi)}
+                            aria-pressed={isKey}
+                            className="flex items-center gap-1 rounded px-1 py-0.5 pointer-coarse:min-h-11 pointer-coarse:px-2 text-[10px] text-gray-600 hover:bg-amber-50 dark:text-gray-400 dark:hover:bg-amber-950/30 cursor-pointer"
+                          >
+                            <Star className={isKey ? 'h-3.5 w-3.5 fill-amber-400 text-amber-500' : 'h-3.5 w-3.5'} aria-hidden="true" />
+                            {isKey ? 'Key question' : 'Make key question'}
+                          </button>
+                          <div className="h-3 w-px bg-gray-300 dark:bg-gray-600" />
+                        </>
+                      )}
                       <label className="flex items-center gap-1.5 cursor-pointer">
                         <input
                           type="checkbox"
@@ -577,7 +693,7 @@ export default function CopRfiTab({ sessionId, onRfiCountChange }: CopRfiTabProp
           <div className="text-center py-6">
             <HelpCircle className="h-6 w-6 text-gray-500 dark:text-gray-400 mx-auto mb-2" />
             <p className="text-xs text-gray-500 dark:text-gray-400">
-              No RFIs yet. Create one to request information.
+              No questions yet. Ask one with New question, or with !question in the Signal room.
             </p>
           </div>
         )}
