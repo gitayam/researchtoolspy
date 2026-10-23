@@ -13,6 +13,9 @@
  * `source_ref` from a caller is only ever an archive reference (silo:<id> or
  * peertube:<link>) and `scan_state` one of pending/clean/quarantined (cop-archive.ts);
  * neither reaches anyone outside the COP.
+ *
+ * Collaborators also get `photo_location` ({ marker_id, lat, lon, confirmed } or null):
+ * the marker placed from the item's photo GPS (cop-photo-location.ts). Nobody else does.
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { verifyCopSessionAccess, requireCopEditor } from '../../_shared/auth-helpers'
@@ -28,6 +31,7 @@ import {
 } from '../../_shared/cop-input'
 import { archiveFields, cleanArchiveRef, cleanScanState, readMetadata, stripPrivateEvidenceFields } from '../../_shared/cop-archive'
 import { deleteLinksOf, findDuplicateEvidence } from '../../_shared/cop-evidence-links'
+import { photoMarkersByEvidence, type PhotoLocationLink } from '../../_shared/cop-photo-location'
 
 interface Env {
   DB: D1Database
@@ -87,8 +91,12 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     // collaborators see unreviewed drop-form tips in full.
     // Archive references and scan states stay inside the COP too (cop-archive.ts).
     const collaborator = Boolean(await verifyCopSessionAccess(env.DB, sessionId, userId))
+    // Where a photo says it was taken: the team's only (its marker is hidden elsewhere until confirmed).
+    const photoMarkers: Map<string, PhotoLocationLink> = collaborator
+      ? await photoMarkersByEvidence(env.DB, sessionId).catch(() => new Map<string, PhotoLocationLink>())
+      : new Map<string, PhotoLocationLink>()
     const evidence = (results.results ?? []).map((row) => (collaborator
-      ? { ...row, ...archiveFields(row, env) }
+      ? { ...row, ...archiveFields(row, env), photo_location: photoMarkers.get(String(row.id)) ?? null }
       : stripPrivateEvidenceFields(maskTipEvidenceRow(row))))
 
     return new Response(JSON.stringify({ evidence }), { headers: JSON_HEADERS })

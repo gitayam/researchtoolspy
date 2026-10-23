@@ -6,8 +6,11 @@
  * Returns aggregated and individual results for a survey.
  * Available to anyone with the share token (same access as submitting).
  * Strips PII (submitter_name, submitter_contact, ip_hash) from results.
+ * Inline images are re-cleaned to the public copy (publicFormData): a drop-form tip's
+ * row holds the team copy, with the photo's GPS position and capture time.
  */
 import { JSON_HEADERS } from '../../../_shared/api-utils'
+import { publicFormData } from '../../../_shared/cop-ingest'
 
 interface Env {
   DB: D1Database
@@ -59,9 +62,9 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
       // Extract tags (internal metadata) and clean data for display
       const tags = Array.isArray(formData._tags) ? formData._tags : []
-      const cleanData = Object.fromEntries(
+      const cleanData = publicFormData(Object.fromEntries(
         Object.entries(formData).filter(([k]) => !k.startsWith('_'))
-      )
+      ))
 
       return {
         id: r.id,

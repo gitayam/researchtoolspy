@@ -8,6 +8,15 @@ import { useCopTagsContext } from '@/components/cop/tags'
 import type { CopTagTargetType } from '@/types/cop'
 import { getLayerById } from '@/components/cop/CopLayerCatalog'
 import { boundsKey, contentBounds, hasStoredView, openingView, WORLD_VIEW } from '@/components/cop/cop-map-view'
+import { COP_MAP_FOCUS_EVENT, takePendingMapFocus, type CopMapFocus } from '@/lib/cop-photo-location'
+
+/** Centre the map on a point asked for elsewhere (an evidence card's photo location). */
+function centreOn(map: maplibregl.Map, target: CopMapFocus): void {
+  const reduce = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+  const view = { center: [target.lon, target.lat] as [number, number], zoom: Math.max(map.getZoom(), 15) }
+  if (reduce) map.jumpTo(view)
+  else map.flyTo(view)
+}
 
 type TagsFor = (targetType: CopTagTargetType, targetId: string) => string[]
 const NO_TAGS: TagsFor = () => []
@@ -173,6 +182,14 @@ export default function CopMap({
         map.on('zoomstart', markMoved)
         map.on('rotatestart', markMoved)
         map.on('pitchstart', markMoved)
+        // A photo location asked for before this map existed (the workspace showed it for that).
+        map.once('load', () => {
+          const early = takePendingMapFocus()
+          if (map && early) {
+            userMovedRef.current = true
+            centreOn(map, early)
+          }
+        })
 
         mapRef.current = map
       } catch (err) {
@@ -208,6 +225,20 @@ export default function CopMap({
     }
     // Only initialize once; session props are read at mount time
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // ── Centre on a photo location chosen on an evidence card ───
+  useEffect(() => {
+    const onFocus = (event: Event) => {
+      const map = mapRef.current
+      const target = (event as CustomEvent<CopMapFocus>).detail
+      if (!map || !target) return // no map yet: its load handler takes the pending request
+      takePendingMapFocus()
+      userMovedRef.current = true
+      centreOn(map, target)
+    }
+    window.addEventListener(COP_MAP_FOCUS_EVENT, onFocus)
+    return () => window.removeEventListener(COP_MAP_FOCUS_EVENT, onFocus)
   }, [])
 
   // ── Pin placement mode cursor ──────────────────────────────
@@ -517,7 +548,8 @@ function addPointLayers(
 
     const sourceType = String(props.source_type ?? '')
     const sourceId = String(props.source_id ?? '')
-    const hasBacklink = !!sourceId && (sourceType === 'EVIDENCE' || sourceType === 'HYPOTHESIS')
+    // A photo-location marker (PHOTO_GPS) links back to its photo's evidence item.
+    const hasBacklink = !!sourceId && (sourceType === 'EVIDENCE' || sourceType === 'PHOTO_GPS' || sourceType === 'HYPOTHESIS')
     const tags = props.entity_type === 'marker' && props.id != null
       ? tagsForRef?.current('marker', String(props.id)) ?? []
       : []
@@ -532,7 +564,7 @@ function addPointLayers(
     const popup = new maplibregl.Popup({ closeButton: true, closeOnClick: true }).setLngLat(coords)
     popup.setDOMContent(pointPopupContent(props, color, tags, hasBacklink
       ? {
-          label: sourceType === 'EVIDENCE' ? 'View Evidence' : 'View Hypothesis',
+          label: sourceType === 'HYPOTHESIS' ? 'View Hypothesis' : sourceType === 'PHOTO_GPS' ? 'View Photo' : 'View Evidence',
           onClick: () => {
             onMarkerOpenInFeedRef?.current?.(sourceType, sourceId)
             popup.remove()

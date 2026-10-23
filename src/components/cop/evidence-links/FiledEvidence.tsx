@@ -397,7 +397,7 @@ function AddEvidenceForm({ sessionId, targetType, targetId, label, alreadyFiled,
             <span className="sr-only">Title (optional)</span>
             <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={300} placeholder="Title (optional)" className={inputClass} />
           </label>
-          <p className="text-[10px] text-gray-500 dark:text-gray-400">Photos and PDFs up to 10 MB. Location data is removed from photos.</p>
+          <p className="text-[10px] text-gray-500 dark:text-gray-400">Photos and PDFs up to 10 MB. A photo keeps its location for the team only; share links show it without.</p>
           <SubmitRow busy={busy} text="Upload and file" />
         </form>
       )}

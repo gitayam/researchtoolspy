@@ -6,11 +6,16 @@
  * Returns a GeoJSON FeatureCollection of non-stale tactical markers
  * for the given COP session. Markers with a stale_time in the past
  * are excluded (unless stale_time is NULL, which means persistent).
+ *
+ * A marker placed from a photo's GPS that no editor has confirmed is the team's only:
+ * a share link or anyone else who isn't the owner or a collaborator never gets it
+ * (cop-photo-location.ts).
  */
 
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest, verifyCopLayerAccess, verifyCopSessionAccess } from '../../../_shared/auth-helpers'
 import { UNVERIFIED_TIP_LABEL, unreviewedTipMarker } from '../../../_shared/cop-input'
+import { PUBLIC_MARKERS_SQL, teamOnlyPhotoMarker } from '../../../_shared/cop-photo-location'
 import { JSON_HEADERS } from '../../../_shared/api-utils'
 import { logEvent } from '../../../_shared/event-log'
 
@@ -42,11 +47,13 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       SELECT * FROM cop_markers
       WHERE cop_session_id = ?
         AND (stale_time IS NULL OR stale_time > datetime('now'))
+        ${collaborator ? '' : `AND ${PUBLIC_MARKERS_SQL}`}
       ORDER BY event_time DESC
       LIMIT 500
     `).bind(sessionId).all()
 
-    const features = (rows.results || []).map((row: any) => {
+    const visible = (rows.results || []).filter((row: Record<string, unknown>) => collaborator || !teamOnlyPhotoMarker(row))
+    const features = visible.map((row: any) => {
       const hidden = !collaborator && unreviewedTipMarker(row)
       return {
         type: 'Feature' as const,

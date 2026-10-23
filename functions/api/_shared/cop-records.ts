@@ -140,6 +140,21 @@ export interface MarkerInput {
 
 /** Insert one marker that stays until removed (no stale time); emits its event. */
 export async function insertCopMarker(db: D1Database, scope: CopSessionScope, input: MarkerInput): Promise<string> {
+  const id = await writeMarker(db, scope, input, false)
+  if (!id) throw new Error('Marker insert wrote no row')
+  return id
+}
+
+/**
+ * Insert a marker unless this session already has one with the same source_type and
+ * source_id (the check is in the INSERT itself; managed migration 0029 adds a unique
+ * index for photo-location markers as the backstop). Returns null when one exists.
+ */
+export async function insertCopMarkerOnce(db: D1Database, scope: CopSessionScope, input: MarkerInput & { sourceId: string }): Promise<string | null> {
+  return writeMarker(db, scope, input, true)
+}
+
+async function writeMarker(db: D1Database, scope: CopSessionScope, input: MarkerInput, once: boolean): Promise<string | null> {
   const id = `mkr-${crypto.randomUUID().slice(0, 12)}`
   const now = new Date().toISOString()
   const values = [
@@ -153,12 +168,25 @@ export async function insertCopMarker(db: D1Database, scope: CopSessionScope, in
       event_time, stale_time, source_type, source_id,
       workspace_id, created_by, created_at, confidence, rationale`
   const marks = values.map(() => '?').join(', ')
+  const guard = once
+    ? ' WHERE NOT EXISTS (SELECT 1 FROM cop_markers WHERE cop_session_id = ? AND source_type = ? AND source_id = ?)'
+    : ''
+  const guardBinds = once ? [scope.sessionId, input.sourceType, input.sourceId] : []
+  let written: { meta?: { changes?: number } }
   try {
-    await db.prepare(`INSERT INTO cop_markers (${columns}, source_channel) VALUES (${marks}, ?)`).bind(...values, input.sourceChannel).run()
+    try {
+      written = await db.prepare(`INSERT INTO cop_markers (${columns}, source_channel) SELECT ${marks}, ?${guard}`)
+        .bind(...values, input.sourceChannel, ...guardBinds).run()
+    } catch (error) {
+      if (!columnMissing(error, 'source_channel')) throw error
+      written = await db.prepare(`INSERT INTO cop_markers (${columns}) SELECT ${marks}${guard}`).bind(...values, ...guardBinds).run()
+    }
   } catch (error) {
-    if (!columnMissing(error, 'source_channel')) throw error
-    await db.prepare(`INSERT INTO cop_markers (${columns}) VALUES (${marks})`).bind(...values).run()
+    // Two writers at once: the unique index (0029) refused the second one.
+    if (once && /UNIQUE constraint failed/i.test(String(error instanceof Error ? error.message : error))) return null
+    throw error
   }
+  if (!written.meta?.changes) return null
   try {
     await db.prepare(`
       INSERT INTO cop_marker_changelog (id, marker_id, cop_session_id, action, new_value, rationale, created_by, created_by_name, created_at)

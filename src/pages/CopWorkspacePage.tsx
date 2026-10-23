@@ -107,6 +107,7 @@ import { usePanelLayout } from '@/hooks/usePanelLayout'
 import { useMediaQuery } from '@/hooks/useMediaQuery'
 import type { CopSession, CopFeatureCollection, CopLayerDef, CopWorkspaceMode } from '@/types/cop'
 import { getCopHeaders } from '@/lib/cop-auth'
+import { COP_MAP_FOCUS_EVENT } from '@/lib/cop-photo-location'
 import { downloadCotExport } from '@/lib/cop-cot-export'
 import CopSideMenu from '@/components/cop/shell/CopSideMenu'
 import CopShareDialog from '@/components/cop/shell/CopShareDialog'
@@ -227,6 +228,13 @@ export default function CopWorkspacePage() {
   // ── Mode & map state ───────────────────────────────────────────
   const [mode, setMode] = useState<CopWorkspaceMode>('progress')
   const [showMap, setShowMap] = useState(true)
+
+  // An evidence card's "Photo location" opens the map (CopMap centres it on the point).
+  useEffect(() => {
+    const show = () => setShowMap(true)
+    window.addEventListener(COP_MAP_FOCUS_EVENT, show)
+    return () => window.removeEventListener(COP_MAP_FOCUS_EVENT, show)
+  }, [])
 
   // ── Badge counts ───────────────────────────────────────────────
   const [rfiCount, setRfiCount] = useState(0)
@@ -505,7 +513,11 @@ export default function CopWorkspacePage() {
   )
 
   const handleMarkerOpenInFeed = useCallback(
-    (_sourceType: string, _sourceId: string) => {
+    (sourceType: string, sourceId: string) => {
+      // An evidence marker (a photo's location among them) highlights its item in the feed.
+      if ((sourceType === 'EVIDENCE' || sourceType === 'PHOTO_GPS') && sourceId) {
+        window.dispatchEvent(new CustomEvent('cop:highlight', { detail: { type: 'evidence', id: sourceId } }))
+      }
       // Scroll to evidence feed panel
       const feedEl = document.querySelector('[data-panel="evidence"]') ??
         document.querySelector('h3:has(~ div)')

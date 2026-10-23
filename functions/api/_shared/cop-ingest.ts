@@ -4,10 +4,14 @@
  * A submission to a form (survey_drops) linked to a COP becomes:
  *   - one unverified evidence item: the form's answers as text (form fields only;
  *     never the submitter's name, contact or network location), the form's URL
- *     field as source_url, its images stored as COP uploads (metadata stripped);
+ *     field as source_url, its images stored as COP uploads (identifying metadata
+ *     stripped; the team's copy keeps a photo's GPS position and capture time, which
+ *     the drop form tells the tipster before they submit);
  *   - a POSSIBLE marker, only when the form has an explicit location (geopoint)
  *     field. The response's own lat/lon columns are never mapped: on the survey
  *     path they can be the submitter's IP-derived position;
+ *   - a POSSIBLE "Photo location" marker when its first photo with a valid GPS
+ *     position has one (cop-photo-location.ts: the team's only until confirmed);
  *   - the form's auto_tag_category as a tag (source 'drop').
  *
  * Auto-ingest (survey_drops.auto_ingest, default on) does this at once, capped per
@@ -21,8 +25,9 @@ import { applyItemTags, cleanTagName, dropItemTags, tagsTableMissing } from './c
 import { emitCopEventLoose } from './cop-events-loose'
 import { queryEvidenceInSession, UNTITLED_TIP_TITLE } from './cop-input'
 import { columnMissing, copSessionScope, insertCopEvidence, insertCopMarker } from './cop-records'
-import { cleanFile, copUploadPath, storeCopUpload, type R2Like } from './cop-uploads'
-import { IMAGE_TYPES, type SniffedType } from './image-sanitize'
+import { cleanFile, copUploadPath, storeCopUpload, uploadObjectKeys, type R2Like, type StoredLocation } from './cop-uploads'
+import { IMAGE_TYPES, sanitizeImage, sniffFileType, type SniffedType } from './image-sanitize'
+import { PHOTO_GPS_SOURCE, placePhotoMarkerQuietly } from './cop-photo-location'
 
 export const AUTO_INGEST_PER_HOUR = 30
 const MAX_FILES = 5
@@ -133,13 +138,19 @@ export function fileAnswers(formData: Record<string, unknown>, schema: FormField
 
 /**
  * Before a submission is stored: type every inline file from its bytes and strip
- * image metadata (GPS and the rest), so the response row never holds it. A file
- * that isn't an accepted type, or an image that can't be parsed, refuses the
- * submission with a message for the submitter.
+ * image metadata, so the response row never holds it. A file that isn't an accepted
+ * type, or an image that can't be parsed, refuses the submission with a message for
+ * the submitter.
+ *
+ * `keepLocation` (the drop form, whose notice says so before submit): an image is
+ * stored as the TEAM copy — GPS position, capture time and Orientation kept, every
+ * other identifying block removed. Without it (surveys, intake forms) nothing but
+ * Orientation stays. Public readers of the answers get them through publicFormData.
  */
 export async function sanitizeFormDataFiles(
   formData: Record<string, unknown>,
   schema: FormField[],
+  options: { keepLocation?: boolean } = {},
 ): Promise<{ ok: true; formData: Record<string, unknown>; error?: undefined } | { ok: false; error: string; formData?: undefined }> {
   const files = fileAnswers(formData, schema)
   if (files.length === 0) return { ok: true, formData }
@@ -148,12 +159,40 @@ export async function sanitizeFormDataFiles(
     const bytes = decodeDataUrl(value)
     if (!bytes) return { ok: false, error: `The file in "${field.label}" could not be read.` }
     // Images and PDFs only: anonymous submitters never add documents or audio.
-    const clean = await cleanFile(bytes)
+    const clean = await cleanFile(bytes, { keepLocation: options.keepLocation === true })
     if (clean.ok === false) return { ok: false, error: `The file in "${field.label}" was not accepted: ${clean.error}` }
-    next[field.name] = encodeDataUrl(clean.type, clean.bytes)
+    next[field.name] = encodeDataUrl(clean.type, clean.teamBytes ?? clean.bytes)
     next[`${field.name}_type`] = clean.type
   }
   return { ok: true, formData: next }
+}
+
+/**
+ * Form answers as someone outside the team may see them (the public results route):
+ * every inline image re-cleaned to the public copy — no GPS position, capture time or
+ * other metadata, whatever the row holds — PDFs as stored, anything else inline left
+ * out. Never throws.
+ */
+export function publicFormData(formData: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(formData)) {
+    if (typeof value !== 'string' || !value.trim().startsWith('data:')) {
+      out[key] = value
+      continue
+    }
+    try {
+      const bytes = decodeDataUrl(value.trim())
+      const type = bytes ? sniffFileType(bytes) : null
+      if (!bytes || !type) continue
+      if (type === 'application/pdf') {
+        out[key] = encodeDataUrl(type, bytes)
+        continue
+      }
+      const clean = sanitizeImage(bytes, type)
+      if (clean.ok) out[key] = encodeDataUrl(type, clean.bytes)
+    } catch { /* left out */ }
+  }
+  return out
 }
 
 const HELPER_SUFFIX = /_(?:raw|resolving|format|precision|mgrs|lat|lon|name|type)$/
@@ -295,17 +334,22 @@ export async function ingestSubmission(
 
   let evidenceId: string
   const uploadIds: string[] = []
+  let photoLocation: StoredLocation | null = null
   try {
-    // Inline files: stored as COP uploads (already stripped at submit time; cleaned again here).
+    // Inline files: stored as COP uploads (already cleaned at submit time; cleaned again
+    // here). The team copy keeps what the submit route kept (drop form: GPS, capture time).
     if (env.UPLOADS) {
       for (const { value } of fileAnswers(formData, schema).slice(0, MAX_FILES)) {
         const bytes = decodeDataUrl(value)
         if (!bytes) continue
         // documents stays off: a submitter's file is an image or a PDF, never more.
         const stored = await storeCopUpload({ DB: db, UPLOADS: env.UPLOADS }, {
-          sessionId: input.sessionId, bytes, originalName: null, createdBy: actor, sourceChannel: 'drop',
+          sessionId: input.sessionId, bytes, originalName: null, createdBy: actor, sourceChannel: 'drop', keepLocation: true,
         })
-        if (stored.ok) uploadIds.push(stored.row.id)
+        if (stored.ok) {
+          uploadIds.push(stored.row.id)
+          photoLocation ??= stored.location
+        }
       }
     }
     let imageUpload: string | null = null
@@ -356,6 +400,10 @@ export async function ingestSubmission(
     } catch (error) {
       console.error('[cop-ingest] marker not created:', error instanceof Error ? error.message : error)
     }
+  }
+  // Where its photo says it was taken: the team's only until an editor confirms it.
+  if (photoLocation) {
+    await placePhotoMarkerQuietly(db, scope, { evidenceId, location: photoLocation, sourceChannel: 'drop', createdBy: actor })
   }
 
   // The questions the tipster picked, as drop-submit checked them (migrations 0024, 0026).
@@ -489,12 +537,11 @@ export async function retractAutoIngest(
   const evidenceId = response.ingested_evidence_id ?? null
 
   if (evidenceId) {
-    const uploads = await db.prepare('SELECT id, r2_key FROM cop_uploads WHERE cop_session_id = ? AND evidence_id = ? AND archived_at IS NULL')
-      .bind(input.sessionId, evidenceId).all<{ id: string; r2_key: string }>()
-    for (const upload of uploads.results ?? []) {
+    // Both copies of each file (the public one and the team's).
+    for (const upload of await uploadObjectKeys(db, input.sessionId, evidenceId)) {
       await db.prepare("UPDATE cop_uploads SET archived_at = ? WHERE id = ? AND cop_session_id = ?")
         .bind(new Date().toISOString(), upload.id, input.sessionId).run()
-      await env.UPLOADS?.delete?.(upload.r2_key).catch(() => {})
+      for (const key of upload.keys) await env.UPLOADS?.delete?.(key).catch(() => {})
       await dropItemTags(db, input.sessionId, 'upload', upload.id)
     }
     // Only the item ingest wrote for this submission, and only within the COP.
@@ -531,6 +578,21 @@ export async function retractAutoIngest(
           payload: { reason: 'submission_rejected' }, createdBy: input.actorUserId,
         })
       }
+    }
+    // The photo-location marker ingest placed for that evidence (unless an editor confirmed it).
+    const photoMarkers = await db.prepare(
+      "SELECT id FROM cop_markers WHERE cop_session_id = ? AND source_type = ? AND source_id = ? AND (confidence IS NULL OR confidence != 'CONFIRMED')"
+    ).bind(input.sessionId, PHOTO_GPS_SOURCE, evidenceId).all<{ id: string }>()
+    for (const marker of photoMarkers.results ?? []) {
+      const gone = await db.prepare('DELETE FROM cop_markers WHERE id = ? AND cop_session_id = ? AND source_type = ? AND source_id = ?')
+        .bind(marker.id, input.sessionId, PHOTO_GPS_SOURCE, evidenceId).run()
+      if (!gone.meta?.changes) continue
+      await db.prepare('DELETE FROM cop_marker_changelog WHERE marker_id = ? AND cop_session_id = ?').bind(marker.id, input.sessionId).run().catch(() => {})
+      await dropItemTags(db, input.sessionId, 'marker', marker.id)
+      await emitCopEventLoose(db, {
+        copSessionId: input.sessionId, eventType: 'marker.deleted', entityType: 'marker', entityId: marker.id,
+        payload: { reason: 'submission_rejected' }, createdBy: input.actorUserId,
+      })
     }
   }
   // A link a reviewer made to other evidence stays; the link to what was removed goes.

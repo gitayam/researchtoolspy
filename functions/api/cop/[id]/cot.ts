@@ -12,7 +12,8 @@
  * clients. A share token must be live (unexpired), show the map, and its feed carries
  * only the layers a share may read (shareMayReadLayer): places, events and actors only
  * when the session has those layers on. Anyone who is not the owner or a collaborator
- * sees a drop-form tip nobody has reviewed as "Unverified tip".
+ * sees a drop-form tip nobody has reviewed as "Unverified tip", and never gets a marker
+ * placed from a photo's GPS that no editor has confirmed (cop-photo-location.ts).
  *
  * Entities are filtered by the session's bounding box.
  * Stale markers (past their stale_time) are excluded.
@@ -24,6 +25,7 @@ import type { PagesFunction } from '@cloudflare/workers-types'
 import { getUserFromRequest, verifyCopSessionAccess } from '../../_shared/auth-helpers'
 import { logEvent } from '../../_shared/event-log'
 import { UNVERIFIED_TIP_LABEL, unreviewedTipMarker } from '../../_shared/cop-input'
+import { PUBLIC_MARKERS_SQL, teamOnlyPhotoMarker } from '../../_shared/cop-photo-location'
 import { shareExpired, shareMayReadLayer, sharePanels } from '../../_shared/cop-share'
 import {
   entityToCoT, wrapCoTFeed,
@@ -164,6 +166,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         SELECT * FROM cop_markers
         WHERE cop_session_id = ?
           AND (stale_time IS NULL OR stale_time > datetime('now'))
+          ${collaborator ? '' : `AND ${PUBLIC_MARKERS_SQL}`}
         LIMIT 200
       `).bind(sessionId).all(),
     ])
@@ -227,6 +230,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     // Convert tactical markers (already CoT-native)
     for (const row of (markers.results || []) as any[]) {
+      if (!collaborator && teamOnlyPhotoMarker(row)) continue
       const hidden = !collaborator && unreviewedTipMarker(row)
       cotEvents.push(entityToCoT({
         uid: row.uid,

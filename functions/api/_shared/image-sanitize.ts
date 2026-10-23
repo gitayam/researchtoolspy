@@ -23,7 +23,12 @@
  *     thumbnail removed), APP14 only as Adobe, an ICC profile; markers outside the
  *     known set refuse the file. Animated WebP is refused. PNG keeps no ICC profile
  *     or suggested palette; GIF keeps no comment or plain-text blocks.
+ *
+ * That is the PUBLIC copy, the only one a share link ever serves. A COP upload also
+ * gets a TEAM copy (sanitizeImageVariants): the public copy plus a fresh Exif block with
+ * only GPS position, capture time and Orientation (photo-location.ts lists the tags).
  */
+import { hasTeamMetadata, readPhotoLocation, withTeamMetadata, type PhotoLocation } from './photo-location'
 
 /** About 50 megapixels. */
 export const MAX_PIXELS = 50_000_000
@@ -46,6 +51,37 @@ export function sniffFileType(bytes: Uint8Array): SniffedType | null {
 export type SanitizeResult =
   | { ok: true; bytes: Uint8Array; width: number | null; height: number | null; orientation: number | null; reason?: undefined }
   | { ok: false; reason: string; bytes?: undefined; width?: undefined; height?: undefined; orientation?: undefined }
+
+export type ImageVariants =
+  | {
+      ok: true
+      /** The public copy: every block above removed (Orientation kept), as sanitizeImage. */
+      bytes: Uint8Array
+      /** The team copy: the public copy plus GPS position, capture time and Orientation
+       *  (photo-location.ts), or null when the photo has neither or the format can't carry it. */
+      teamBytes: Uint8Array | null
+      /** What the photo says about where and when, validated (also when teamBytes is null). */
+      location: PhotoLocation
+      width: number | null
+      height: number | null
+      reason?: undefined
+    }
+  | { ok: false; reason: string; bytes?: undefined; teamBytes?: undefined; location?: undefined; width?: undefined; height?: undefined }
+
+/**
+ * The public and the team copy of an image (decision 2026-10-23: a research COP's team
+ * keeps a photo's location; share links never get it). The public copy is exactly
+ * sanitizeImage's output; the team copy is built FROM it, so it can hold nothing the
+ * public copy drops except the fields photo-location.ts writes.
+ */
+export function sanitizeImageVariants(bytes: Uint8Array, type: SniffedType): ImageVariants {
+  const clean = sanitizeImage(bytes, type)
+  if (clean.ok === false) return { ok: false, reason: clean.reason }
+  // Both helpers never throw; a photo whose metadata can't be read simply has no team copy.
+  const location: PhotoLocation = readPhotoLocation(bytes, type)
+  const teamBytes = hasTeamMetadata(location) ? withTeamMetadata(clean.bytes, type, location, clean) : null
+  return { ok: true, bytes: clean.bytes, teamBytes, location, width: clean.width, height: clean.height }
+}
 
 /** Strip metadata from an image of a sniffed type. PDFs pass through untouched. */
 export function sanitizeImage(bytes: Uint8Array, type: SniffedType): SanitizeResult {

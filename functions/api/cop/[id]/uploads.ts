@@ -6,12 +6,19 @@
  * parameters (`?evidence=1&title=…&tags=a,b`, optional `X-File-Name`). At most 10 MB.
  *
  * The type comes from the bytes (functions/api/_shared/cop-uploads.ts): images
- * (JPEG, PNG, WebP, GIF) are stored without their metadata; PDFs, Office and
+ * (JPEG, PNG, WebP, GIF) are stored without their identifying metadata — two copies:
+ * the team's keeps the photo's GPS position, capture time and Orientation, the public
+ * one (all a share link ever gets) keeps only Orientation; PDFs, Office and
  * OpenDocument files, text and audio are stored as uploaded (metadata NOT removed) and
  * only ever downloaded; video, programs and archives are refused.
  *
- * → 201 { upload: { id, url, content_type, bytes, width, height, metadata_removed },
- *         evidence?: { id, tags } }
+ * A photo with a valid GPS position that is filed as evidence (`evidence=1`, or
+ * `evidence_id`) also gets one POSSIBLE map marker there (source PHOTO_GPS, linked to
+ * the evidence item), visible to the team only until an editor confirms it
+ * (functions/api/_shared/cop-photo-location.ts).
+ *
+ * → 201 { upload: { id, url, content_type, bytes, width, height, metadata_removed, location_kept },
+ *         evidence?: { id, tags, photo_marker_id } }
  *   `evidence=1` also files the upload as an unverified evidence item (image, document
  *   or audio) whose source_url is the upload's own address; `source_ref` (silo:<id> or
  *   peertube:<link>, cop-archive.ts) records where the original is archived.
@@ -24,7 +31,8 @@
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { logEvent } from '../../_shared/event-log'
 import { coded, copEditor, json } from '../../_shared/cop-route-auth'
-import { copSessionScope, insertCopEvidence } from '../../_shared/cop-records'
+import { copSessionScope, insertCopEvidence, type SourceChannel } from '../../_shared/cop-records'
+import { placePhotoMarkerQuietly } from '../../_shared/cop-photo-location'
 import { cleanArchiveRef, readMetadata } from '../../_shared/cop-archive'
 import { isMissingColumn, queryEvidenceInSession, serviceChangeRefused, serviceMayChange } from '../../_shared/cop-input'
 import { applyItemTags, cleanTagName, MAX_TAGS_PER_CALL, tagsTableMissing } from '../../_shared/cop-tags'
@@ -56,8 +64,11 @@ interface UploadRequest {
   evidenceId: string | null
 }
 
+/** A photo whose team copy keeps its position says so (share links get it without). */
+const PHOTO_WITH_LOCATION = 'Photo added to the COP. Its location (GPS) is kept for the team only; share links show the photo without it. Other identifying metadata was removed.'
+
 const EVIDENCE_TEXT = {
-  image: { type: 'image', fallback: 'Photo', description: 'Photo added to the COP (location data removed).' },
+  image: { type: 'image', fallback: 'Photo', description: 'Photo added to the COP (identifying metadata removed).' },
   pdf: { type: 'document', fallback: 'Document', description: 'Document added to the COP (its metadata was not removed).' },
   document: { type: 'document', fallback: 'Document', description: 'Document added to the COP (its metadata was not removed).' },
   audio: { type: 'audio', fallback: 'Audio', description: 'Audio added to the COP (its metadata was not removed).' },
@@ -153,12 +164,21 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       attachTo = existing
     }
 
+    // The team keeps a photo's location: its own copy, the row and a possible marker.
     const stored = await storeCopUpload(env, {
       sessionId, bytes: parsed.bytes, originalName: parsed.name, createdBy: access.userId, sourceChannel: channel, documents: true,
+      keepLocation: true,
     })
     if (stored.ok === false) return coded(stored.status, stored.code, stored.error)
-    const upload = publicUpload(stored.row)
+    const upload = { ...publicUpload(stored.row), location_kept: stored.location !== null && Boolean(stored.row.team_r2_key) }
     const text = EVIDENCE_TEXT[uploadKind(stored.row.content_type)]
+    const location = stored.location
+    const placeMarker = async (evidenceId: string | number, evidenceChannel: SourceChannel): Promise<string | null> => {
+      if (!location) return null
+      const scope = await copSessionScope(env.DB, sessionId)
+      if (!scope) return null
+      return placePhotoMarkerQuietly(env.DB, scope, { evidenceId, location, sourceChannel: evidenceChannel, createdBy: access.userId })
+    }
 
     if (attachTo) {
       const metadata = { ...readMetadata(attachTo.metadata), upload_id: upload.id, scan_state: 'clean' }
@@ -172,7 +192,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       // The new file replaces any earlier one: a held or quarantined original must not
       // become downloadable when the hold is lifted for this copy.
       await archiveOtherUploads(env.DB, sessionId, attachTo.id, upload.id)
-      return json({ upload, evidence: { id: attachTo.id, tags: [] } }, 201)
+      const photoMarkerId = await placeMarker(attachTo.id, channel)
+      return json({ upload, evidence: { id: attachTo.id, tags: [], photo_marker_id: photoMarkerId } }, 201)
     }
 
     if (!parsed.evidence) return json({ upload }, 201)
@@ -182,7 +203,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const name = cleanOriginalName(parsed.name)
     const evidenceId = await insertCopEvidence(env.DB, scope, {
       title: parsed.title ?? text.fallback + (name ? `: ${name}` : ''),
-      description: text.description,
+      description: upload.location_kept ? PHOTO_WITH_LOCATION : text.description,
       sourceUrl: upload.url,
       evidenceType: text.type,
       credibility: 'unverified',
@@ -194,6 +215,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (archiveRef.value) await setArchiveRef(env.DB, evidenceId, archiveRef.value)
     await env.DB.prepare('UPDATE cop_uploads SET evidence_id = ? WHERE id = ? AND cop_session_id = ?')
       .bind(evidenceId, upload.id, sessionId).run()
+    const photoMarkerId = await placeMarker(evidenceId, channel)
 
     let tags: string[] = []
     if (parsed.tags.length > 0) {
@@ -206,7 +228,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         if (!tagsTableMissing(error)) throw error
       }
     }
-    return json({ upload, evidence: { id: evidenceId, tags } }, 201)
+    return json({ upload, evidence: { id: evidenceId, tags, photo_marker_id: photoMarkerId } }, 201)
   } catch (error) {
     await logEvent(env, { level: 'error', source: 'cop/uploads', message: String(error instanceof Error ? error.message : error).slice(0, 500) })
     return json({ error: 'Failed to add the file' }, 500)

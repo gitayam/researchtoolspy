@@ -11,8 +11,12 @@
  * When unset: no gate at all — reviewer triages manually.
  *
  * Inline files (data: URLs) are typed from their bytes and images stripped of
- * metadata (GPS and the rest) before the row is stored; an unreadable image is
- * refused. For a form linked to a COP with auto_ingest on, the tip becomes
+ * identifying metadata before the row is stored; an unreadable image is refused. A
+ * photo keeps its GPS position and capture time (and Orientation) for the team — the
+ * form says so next to its file inputs and before submit (PublicIntakeForm) — and
+ * nothing else: no make, model, serials, owner names, thumbnails, XMP or IPTC. Nobody
+ * outside the team gets the position (the public results route re-cleans images,
+ * publicFormData; share links serve the stripped copy). For a form linked to a COP with auto_ingest on, the tip becomes
  * unverified COP evidence at once (functions/api/_shared/cop-ingest.ts); the
  * response then says `ingested: { evidence_id, marker_id }` (else null) and
  * nothing else about the COP.
@@ -154,8 +158,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       }
     }
 
-    // Inline files: typed from their bytes, image metadata stripped before storage —
-    // after the answers are known to be within the 64K-character limit.
+    // Inline files: typed from their bytes, identifying image metadata stripped before
+    // storage (a photo's GPS position and capture time kept for the team) — after the
+    // answers are known to be within the 64K-character limit.
     const formSchemaFields = parseFormSchema(form.form_schema)
     const rawFormData = body.form_data && typeof body.form_data === 'object' && !Array.isArray(body.form_data) ? body.form_data : {}
     if (formDataTooLarge(rawFormData)) {
@@ -163,7 +168,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         status: 200, headers: JSON_HEADERS,
       })
     }
-    const cleaned = await sanitizeFormDataFiles(rawFormData, formSchemaFields)
+    const cleaned = await sanitizeFormDataFiles(rawFormData, formSchemaFields, { keepLocation: true })
     if (cleaned.ok === false) {
       return new Response(JSON.stringify({ ok: false, error: cleaned.error }), {
         status: 200, headers: JSON_HEADERS,

@@ -1022,11 +1022,14 @@ export interface CopUpload {
   bytes: number
   width?: number
   height?: number
+  /** The team's copy keeps the photo's GPS position (share links never get it). */
+  location_kept?: boolean
 }
 
 export interface CopUploadResponse {
   upload: CopUpload
-  evidence?: { id: string | number }
+  /** photo_marker_id: the possible marker the server placed from the photo's GPS, if any. */
+  evidence?: { id: string | number; photo_marker_id?: string | null }
 }
 
 /** Drop-form fields the inbox reads when the server sends them (Wave 4). */

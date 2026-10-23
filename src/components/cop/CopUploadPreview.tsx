@@ -3,8 +3,9 @@
  * the evidence form) live behind `GET /api/cop/:id/uploads/:uploadId`, which takes
  * the COP's header credentials only: a plain `<img src>` would get 401. These
  * components fetch the bytes with the credentials and show them from a blob URL,
- * revoked when they go away. The server has already stripped location data and
- * serves the file inert.
+ * revoked when they go away. The server serves the file inert, and a photo as the
+ * team's copy: identifying metadata stripped, its GPS position and capture time kept
+ * (share links get a copy without them).
  */
 import { useState } from 'react'
 import { Download, FileText, ImageOff, Loader2 } from 'lucide-react'

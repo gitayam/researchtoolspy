@@ -404,7 +404,9 @@ export default function CopGlobalCaptureBar({ sessionId, workspaceId, onSuccess,
         continue
       }
       setUploads(prev => prev.map(u => (u.key === key ? { ...u, status: 'done' } : u)))
-      if (res.data.position) {
+      if (res.data.placedMarker) {
+        setNotice(`"${captionTitle ?? file.name}" is on the map as a possible photo location (from its GPS, team only until confirmed).`)
+      } else if (res.data.position) {
         setPhotoOffers(prev => [...prev, {
           key,
           position: res.data.position!,
@@ -869,7 +871,7 @@ export default function CopGlobalCaptureBar({ sessionId, workspaceId, onSuccess,
                 <span className="min-w-0 flex-1 basis-[calc(100%-2rem)] sm:basis-auto">
                   "{offer.label}" says where it was taken
                   <span className="tabular-nums"> ({offer.position.lat.toFixed(5)}, {offer.position.lon.toFixed(5)})</span>.
-                  Pin it on the map? The stored copy has its location data removed.
+                  Pin it on the map? The team's copy keeps its location; share links never show it.
                 </span>
                 <button type="button" onClick={() => pinOffer(offer)} className="min-h-9 rounded-md bg-sky-700 px-3 font-semibold text-white hover:bg-sky-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-600">
                   Pin it
