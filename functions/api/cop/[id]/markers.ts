@@ -12,7 +12,9 @@
  * or programmatically on the COP map. They support stale times for
  * automatic expiration and CoT type codes for ATAK interoperability.
  *
- * Supported source_type values: MANUAL, ENTITY, ACLED, GDELT, FRAMEWORK, EVIDENCE, HYPOTHESIS
+ * Supported source_type values: MANUAL, ENTITY, ACLED, GDELT, FRAMEWORK, EVIDENCE, HYPOTHESIS,
+ * PHOTO_GPS (placed by the server from a photo's GPS; source_id is its evidence item —
+ * the team's only until an editor confirms it, functions/api/_shared/cop-photo-location.ts)
  */
 
 import type { PagesFunction } from '@cloudflare/workers-types'
@@ -27,6 +29,7 @@ import {
   copSourceChannel, copSourceRef, maskTipMarkerRow, serviceChangeRefused, serviceDeleteRefused, serviceMayChange, serviceMayDelete,
   setProvenance,
 } from '../../_shared/cop-input'
+import { teamOnlyPhotoMarker } from '../../_shared/cop-photo-location'
 
 /** The marker fields a write answers with. */
 const MARKER_COLUMNS = 'id, uid, cot_type, callsign, lat, lon, hae, label, description, icon, color, ' +
@@ -62,7 +65,9 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       SELECT * FROM cop_markers WHERE cop_session_id = ? ORDER BY event_time DESC LIMIT 500
     `).bind(sessionId).all()
 
-    const markers = (rows.results || []).map((row: any) => {
+    // A photo-location marker no editor has confirmed is the team's only.
+    const visible = (rows.results || []).filter((row: Record<string, unknown>) => collaborator || !teamOnlyPhotoMarker(row))
+    const markers = visible.map((row: any) => {
       let detail = {}
       try {
         detail = JSON.parse(row.detail || '{}')

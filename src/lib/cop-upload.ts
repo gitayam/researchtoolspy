@@ -1,10 +1,15 @@
 /**
  * Putting a photo or PDF into a COP from the browser.
  *
- * The server decides the type from the file's bytes and strips its metadata
- * before storing it (`POST /api/cop/:id/uploads`); the checks here only spare a
- * pointless upload. A photo's GPS position is read here first so the bar can
- * OFFER to pin it; it is only sent if the analyst says yes, as a marker.
+ * The server decides the type from the file's bytes and strips its identifying
+ * metadata before storing it (`POST /api/cop/:id/uploads`); the team's copy keeps a
+ * photo's GPS position and capture time, share links get it without them. The checks
+ * here only spare a pointless upload.
+ *
+ * A photo filed as evidence with a GPS position gets a possible marker from the
+ * server itself (`evidence.photo_marker_id`). Only when the server placed none — it
+ * could not read a position the browser could — does the bar OFFER to pin the
+ * position read here; it is only sent if the analyst says yes, as a marker.
  */
 import { copRequest, createdItemId, notifyCopChanged, type CopRequestResult } from '@/lib/cop-request'
 import { readPhotoGps, type PhotoPosition } from '@/lib/photo-gps'
@@ -58,8 +63,10 @@ export interface UploadOptions {
 export interface UploadedFile {
   response: CopUploadResponse
   evidenceId: string | null
-  /** The photo's own GPS position, to offer as a marker. Never sent by itself. */
+  /** The photo's own GPS position, to offer as a marker when the server placed none. Never sent by itself. */
   position: PhotoPosition | null
+  /** The server placed a possible marker at the photo's GPS position (team only until confirmed). */
+  placedMarker: boolean
 }
 
 export async function uploadToCop(sessionId: string, file: File, opts: UploadOptions = {}): Promise<CopRequestResult<UploadedFile>> {
@@ -76,11 +83,12 @@ export async function uploadToCop(sessionId: string, file: File, opts: UploadOpt
     newRoute: true,
   })
   if (res.ok === false) return res
-  notifyCopChanged(res.data.evidence ? ['upload', 'evidence'] : ['upload'])
+  const placedMarker = typeof res.data.evidence?.photo_marker_id === 'string' && res.data.evidence.photo_marker_id !== ''
+  notifyCopChanged(res.data.evidence ? (placedMarker ? ['upload', 'evidence', 'marker'] : ['upload', 'evidence']) : ['upload'])
   return {
     ok: true,
     status: res.status,
-    data: { response: res.data, evidenceId: createdItemId(res.data.evidence), position },
+    data: { response: res.data, evidenceId: createdItemId(res.data.evidence), position: placedMarker ? null : position, placedMarker },
   }
 }
 

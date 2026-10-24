@@ -3,7 +3,8 @@
  *
  * Only for a live share (not expired, session not archived) that shows the session's
  * evidence ('evidence' panel, opt-in), and only uploads of that share's session. Served inert, like
- * the authenticated route (functions/api/_shared/cop-uploads.ts).
+ * the authenticated route (functions/api/_shared/cop-uploads.ts), and always the PUBLIC copy
+ * (r2_key: no GPS position, capture time or other metadata), never the team's.
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { JSON_HEADERS } from '../../../../_shared/api-utils'
@@ -34,5 +35,6 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   const row = await getSessionUpload(env.DB, share.cop_session_id, uploadId)
   // A file held pending a virus scan is not offered through a share at all.
   if (!row || (await uploadServable(env.DB, row)) !== 'ok') return notFound()
-  return serveUpload(env, row, 'private, max-age=300')
+  // Always the stripped copy: a share link never gets a photo's location.
+  return serveUpload(env, row, 'private, max-age=300', 'public')
 }

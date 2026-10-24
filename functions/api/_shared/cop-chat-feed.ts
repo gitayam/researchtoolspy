@@ -20,6 +20,10 @@
  *      the session IN SQL (evidence through evidenceInSession). An id that doesn't
  *      resolve in this session yields nothing, except a deletion (no title).
  *
+ * A marker placed from a photo's GPS (source_type PHOTO_GPS, cop-photo-location.ts) is
+ * labelled "photo location" and titled with its own label ("Photo location"), never the
+ * tip's text; it carries no coordinates like every other item.
+ *
  * Anonymous input comes with its text, labelled so a chat reader can weigh it: a
  * drop-form tip "anonymous tip" + "unverified" (then "reviewed" once an editor sets its
  * credibility), its marker "anonymous tip" + "possible", and an answer through a share
@@ -38,6 +42,7 @@
 import { isSignalBotClient } from './cop-caller'
 import { resolveSinceCursor } from './cop-events'
 import { evidenceInSession, isMissingColumn, type EvidenceSessionScope } from './cop-input'
+import { PHOTO_GPS_SOURCE } from './cop-photo-location'
 
 export const CHAT_FEED_DEFAULT_LIMIT = 50
 export const CHAT_FEED_MAX_LIMIT = 100
@@ -711,6 +716,7 @@ export async function listChatFeed(
   // A drop-form marker's label is its tip's title: the tip's evidence says whether it is safe.
   const tipOfMarker = (row: Record<string, unknown>): string | undefined =>
     row.source_channel === 'drop' && String(row.source_type ?? '').toUpperCase() === 'EVIDENCE' ? safeId(row.source_id) : undefined
+  const photoMarker = (row: Record<string, unknown>): boolean => String(row.source_type ?? '').toUpperCase() === PHOTO_GPS_SOURCE
   const evidence = await evidenceRows(db, scope, [
     ...idsOf('evidence'),
     ...linkGroups.map(linkEnds).map((e) => e.evidenceId).filter((id): id is string => Boolean(id)),
@@ -842,7 +848,12 @@ export async function listChatFeed(
       case 'marker': {
         const row = markers.get(group.entityId)
         if (!row) { resolved = gone; break }
-        if (row.source_channel === 'drop') {
+        if (photoMarker(row)) {
+          // Placed by the server with a fixed label, never the tip's text.
+          item.title = chatLine(row.label)
+          const tipId = row.source_channel === 'drop' ? safeId(row.source_id) : undefined
+          if (tipId) anonymousKey = `tip:${tipId}`
+        } else if (row.source_channel === 'drop') {
           // Its label is its tip's title: shown only when the tip's evidence is marked safe.
           const tipId = tipOfMarker(row)
           item.title = tipText(tipId ? evidence.get(tipId) : undefined, row.label, isUnreviewedTipMarker(row))
@@ -853,6 +864,7 @@ export async function listChatFeed(
         item.status = chatLine(String(row.confidence ?? '').toLowerCase())
         item.labels = tidy([
           originLabel(row.source_channel),
+          photoMarker(row) && 'photo location',
           row.source_channel === 'drop' && (isUnreviewedTipMarker(row) ? 'possible' : 'reviewed'),
           row.confidence === 'CONFIRMED' && 'confirmed',
         ])

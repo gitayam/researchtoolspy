@@ -31,6 +31,8 @@ import { TagFilterNote } from '@/components/cop/CopTagFilter'
 import { useCopTagFilter } from '@/components/cop/tag-filter-context'
 import { CopUploadDownload, CopUploadImage } from '@/components/cop/CopUploadPreview'
 import { CopArchiveLink } from '@/components/cop/CopArchiveLink'
+import { CopPhotoLocationLink } from '@/components/cop/CopPhotoLocationLink'
+import { photoLocationFor, type PhotoLocationLink } from '@/lib/cop-photo-location'
 import { isCopUploadPath } from '@/lib/cop-upload-preview'
 import { BulkTagBar, useCopTagsContext } from '@/components/cop/tags'
 import { useCopChangeListener, useCopHighlight } from '@/hooks/useCopChanges'
@@ -57,6 +59,8 @@ interface FeedItem {
   archive_url?: string | null
   archived_in?: string | null
   held?: boolean
+  /** Collaborators only: the marker placed from the photo's own GPS. */
+  photo_location?: PhotoLocationLink | null
 }
 
 interface HandleDetection {
@@ -261,6 +265,7 @@ export default function CopEvidenceFeed({
           archive_url: typeof e.archive_url === 'string' ? e.archive_url : null,
           archived_in: typeof e.archived_in === 'string' ? e.archived_in : null,
           held: e.held === true,
+          photo_location: photoLocationFor(e),
         })
       )
 
@@ -903,6 +908,7 @@ export default function CopEvidenceFeed({
                           <CopUploadDownload path={item.url!} title={item.title} className="mt-1" />
                         )}
                         <CopArchiveLink item={item} className="mt-1" />
+                        <CopPhotoLocationLink location={item.photo_location} className="mt-1" />
                         {saved && <CopItemTags targetType="evidence" targetId={item.id} label="evidence item" />}
                         {saved && <FileUnderQuestions sessionId={sessionId} evidenceId={String(item.id)} />}
                         <div className="flex items-center gap-2 mt-0.5">

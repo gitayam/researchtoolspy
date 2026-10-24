@@ -60,9 +60,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       let data: Record<string, unknown> = {}
       try { data = JSON.parse(r.form_data) } catch { /* */ }
 
-      // Strip enrichment metadata and internal fields
+      // Strip enrichment metadata and internal fields. Inline files are never sent to
+      // the model: a drop-form photo carries its GPS position for the team.
       const cleanData = Object.fromEntries(
-        Object.entries(data).filter(([k]) => !k.startsWith('_'))
+        Object.entries(data)
+          .filter(([k]) => !k.startsWith('_'))
+          .map(([k, v]) => [k, typeof v === 'string' && v.trim().startsWith('data:') ? '(file attached)' : v])
       )
 
       return `Response #${i + 1} (${r.submitter_country || 'unknown country'}, ${r.created_at}):\n${

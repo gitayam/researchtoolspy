@@ -3,7 +3,8 @@
  * not other signed-in readers of a public session)
  *
  * Served inert: nosniff, `default-src 'none'; sandbox`, images inline with their own
- * type, everything else a download. Another session's upload is 404; a file whose
+ * type, everything else a download. A photo comes as the team copy: its GPS position,
+ * capture time and Orientation kept, every other identifying block removed. Another session's upload is 404; a file whose
  * evidence is held pending a virus scan is 409 FILE_HELD.
  */
 import type { PagesFunction } from '@cloudflare/workers-types'
@@ -26,5 +27,6 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   const servable = await uploadServable(context.env.DB, row)
   if (servable === 'held') return heldResponse()
   if (servable === 'gone') return json({ error: 'Not found' }, 404)
-  return serveUpload(context.env, row, 'private, max-age=3600')
+  // Collaborators get the team copy (a photo's GPS position and capture time kept).
+  return serveUpload(context.env, row, 'private, max-age=3600', 'team')
 }
