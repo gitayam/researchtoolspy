@@ -16,7 +16,9 @@
  * Questions tab. With `allow_rfi_answers`, each question has an Answer button that
  * opens AnswerSheet. When the share allows it (`evidence_form`), "Submit evidence"
  * opens the evidence form in place, and "+ Evidence" on a question opens it with that
- * question ticked. With both, the phone's Submit asks which. Changes arrive through
+ * question ticked. With both, the phone's Submit asks which. Question text is plain
+ * selectable text with a Copy button, and each list has "Copy all" (the open
+ * questions), so visitors can paste them into a search. Changes arrive through
  * the public changes feed (or a full reload every minute on servers without it).
  */
 
@@ -51,6 +53,9 @@ import CopSheet from '@/components/cop/shell/CopSheet'
 import AnswerSheet, { type AnswerTarget } from '@/components/cop/shell/AnswerSheet'
 import EvidenceSubmitSheet from '@/components/cop/shell/EvidenceSubmitSheet'
 import { pickNextQuestion, takesAnswers } from '@/components/cop/shell/share-answers'
+import { CopyableQuestion, CopyAllQuestions, CopyNotice } from '@/components/cop/shell/QuestionCopy'
+import { useCopyNotice } from '@/components/cop/shell/useCopyNotice'
+import { openQuestionLines } from '@/components/cop/shell/copy-questions'
 import { useIsPhone } from '@/components/cop/shell/useMediaQuery'
 import { usePublicCopChanges, type ChangeMode } from '@/components/cop/shell/usePublicCopChanges'
 import { splitKeyQuestions, type QuestionLike } from '@/components/cop/shell/key-questions'
@@ -194,6 +199,8 @@ export default function PublicCopPage() {
 
   // Expanded RFI tracking
   const [expandedRfis, setExpandedRfis] = useState<Set<string>>(new Set())
+  // What the question lists' live region says after a copy.
+  const { notice: copyNotice, announce: announceCopy } = useCopyNotice()
 
   const topBarRef = useRef<HTMLElement>(null)
   const panelsButtonRef = useRef<HTMLButtonElement>(null)
@@ -313,6 +320,8 @@ export default function PublicCopPage() {
     return splitKeyQuestions(rfis, data?.key_rfis ? [] : keyStrings)
   }, [data, visiblePanels])
   const openQuestionCount = [...questions.key, ...questions.others].filter((r) => r.status === 'open').length
+  // "Copy all": the open questions, key ones first, one per line.
+  const openQuestionTexts = useMemo(() => openQuestionLines(questions), [questions])
   const keyOpenCount = questions.key.filter((r) => r.status === 'open').length
   const trackedQuestionCount = questions.key.length + questions.others.length
 
@@ -553,6 +562,7 @@ export default function PublicCopPage() {
     // The form offers this share's open questions (the server checks the same list).
     const canAddEvidence = !!evidenceForm && rfi.status !== 'closed'
     const panelId = `${scope === 'list' ? 'list-' : ''}rfi-${rfi.id}`
+    const textId = `${panelId}-question`
     const shortQuestion = rfi.question.slice(0, 120)
 
     const evidenceButton = (
@@ -569,56 +579,53 @@ export default function PublicCopPage() {
     )
 
     return (
-      <li key={rfi.id} className="@container rounded-lg border border-gray-700 bg-gray-800/50">
-        <div className="flex items-start">
-          <button
-            type="button"
-            onClick={() => toggleRfiExpand(rfi.id)}
-            aria-expanded={isExpanded}
-            aria-controls={panelId}
-            className="min-w-0 flex-1 min-h-11 flex items-start gap-2 p-3 text-left rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-blue-500"
-          >
-            {isExpanded ? (
-              <ChevronDown className="h-4 w-4 text-gray-500 mt-0.5 shrink-0" aria-hidden="true" />
-            ) : (
-              <ChevronRight className="h-4 w-4 text-gray-500 mt-0.5 shrink-0" aria-hidden="true" />
+      <li key={rfi.id} className="rounded-lg border border-gray-700 bg-gray-800/50">
+        {/* Plain text, outside the toggle: a long-press selects the question and nothing else. */}
+        <CopyableQuestion question={rfi.question} starred={starred} textId={textId} onAnnounce={announceCopy} />
+        {/* Priority, status and counts open the card's answers and evidence. */}
+        <button
+          type="button"
+          onClick={() => toggleRfiExpand(rfi.id)}
+          aria-expanded={isExpanded}
+          aria-controls={panelId}
+          aria-describedby={textId}
+          className="flex min-h-11 w-full select-none items-center gap-2 rounded-lg px-3 text-left text-xs focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-blue-500"
+        >
+          {isExpanded ? (
+            <ChevronDown className="h-4 w-4 shrink-0 text-gray-500" aria-hidden="true" />
+          ) : (
+            <ChevronRight className="h-4 w-4 shrink-0 text-gray-500" aria-hidden="true" />
+          )}
+          <span className="sr-only">Details: </span>
+          <span className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-1 text-gray-400">
+              <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: priorityColor }} aria-hidden="true" />
+              {rfi.priority}
+            </span>
+            <span
+              className={cn(
+                'rounded px-1.5 py-0.5',
+                rfi.status === 'accepted'
+                  ? 'bg-green-500/20 text-green-300'
+                  : rfi.status === 'answered'
+                    ? 'bg-blue-500/20 text-blue-300'
+                    : 'bg-gray-700 text-gray-300',
+              )}
+            >
+              {rfi.status}
+            </span>
+            {(rfi.evidence_count ?? 0) > 0 && (
+              <span className="text-gray-300">{rfi.evidence_count} evidence</span>
             )}
-            <div className="flex-1 min-w-0">
-              <p className="text-sm text-gray-100 leading-snug break-words">
-                {starred && <Star className="inline h-3.5 w-3.5 mr-1 -mt-0.5 fill-amber-400 text-amber-400" aria-label="Key question" />}
-                {rfi.question}
-              </p>
-              <div className="flex flex-wrap items-center gap-2 mt-1.5 text-xs">
-                <span className="inline-flex items-center gap-1 text-gray-400">
-                  <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: priorityColor }} aria-hidden="true" />
-                  {rfi.priority}
-                </span>
-                <span
-                  className={cn(
-                    'rounded px-1.5 py-0.5',
-                    rfi.status === 'accepted'
-                      ? 'bg-green-500/20 text-green-300'
-                      : rfi.status === 'answered'
-                        ? 'bg-blue-500/20 text-blue-300'
-                        : 'bg-gray-700 text-gray-300',
-                  )}
-                >
-                  {rfi.status}
-                </span>
-                {(rfi.evidence_count ?? 0) > 0 && (
-                  <span className="text-gray-300">{rfi.evidence_count} evidence</span>
-                )}
-                {answerCount > 0 && (
-                  <span className="text-gray-400">{plural(answerCount, 'answer')}</span>
-                )}
-              </div>
-            </div>
-          </button>
-        </div>
+            {answerCount > 0 && (
+              <span className="text-gray-400">{plural(answerCount, 'answer')}</span>
+            )}
+          </span>
+        </button>
 
         {/* Under the question, so it keeps the card's width: Answer and "+ Evidence", without opening the card. */}
         {(canAnswer || canAddEvidence) && (
-          <div className="flex flex-wrap gap-2 px-3 pb-3 @min-[16.5rem]:pl-9">
+          <div className="flex flex-wrap gap-2 px-3 pb-3">
             {canAnswer && (
               <button
                 type="button"
@@ -683,6 +690,8 @@ export default function PublicCopPage() {
     }
     return (
       <div className="p-3 space-y-4">
+        <CopyNotice notice={copyNotice} />
+        <CopyAllQuestions copName={session?.name ?? ''} lines={openQuestionTexts} onAnnounce={announceCopy} />
         {(key.length > 0 || untracked.length > 0) && (
           <section aria-labelledby={`${idPrefix}key-questions-heading`} className="space-y-2">
             <h3 id={`${idPrefix}key-questions-heading`} className="flex items-center gap-1.5 text-sm font-semibold text-gray-200">
@@ -691,12 +700,9 @@ export default function PublicCopPage() {
             </h3>
             <ul className="space-y-2">
               {key.map((rfi) => renderRfi(rfi, true, scope))}
-              {untracked.map((q) => (
-                <li key={q} className="rounded-lg border border-gray-700 bg-gray-800/30 p-3">
-                  <p className="text-sm text-gray-100 leading-snug">
-                    <Star className="inline h-3.5 w-3.5 mr-1 -mt-0.5 fill-amber-400 text-amber-400" aria-label="Key question" />
-                    {q}
-                  </p>
+              {untracked.map((q, i) => (
+                <li key={q} className="rounded-lg border border-gray-700 bg-gray-800/30 pb-2">
+                  <CopyableQuestion question={q} starred textId={`${idPrefix}key-question-${i}`} onAnnounce={announceCopy} />
                 </li>
               ))}
             </ul>
